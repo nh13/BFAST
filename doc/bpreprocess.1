@@ -1,0 +1,92 @@
+\#  For more details on the layout of this page and how to process it
+\#  to create PDF and HTML, see the comment header for blatter.1
+\#
+\#
+\# .TP
+\# \fB\-I\fR, \fB\-\-ignore\fR=\fIPATTERN\fR
+\# do not list implied entries matching shell PATTERN
+\#
+\" Turn off justification and hyphenation
+.na
+.hy 0
+.TH bpreprocess 1 "Sep 01, 2007" "version 0.1.1" "UCLA Blatter"
+.SH NAME
+bpreprocess \- create an suitable index used in bmatches.
+.SH SYNOPSIS
+.P
+.fam C
+.nf
+bpreprocess
+	[\fB\-o\fR \fIFILENAME\fR] [\fB\-\-OutputFileName\fR\fIFILENAME\fR]
+	[\fB\-h\fR] [\fB\-\-Help\fR]
+.fi
+.fam
+.
+.SH DESCRIPTION
+.B bpreprocess
+is the first of three programs in the Blatter system.
+.
+.
+.SH OPTIONS
+.
+.P
+Many of the options listed here show short and long formats, for example
+the
+.B \-p
+option can also be specified using
+.BR \-\-Cluster "."
+.
+This behaviour relies on the
+.B argp
+library which does not appear to exist in the GNU Compiler Collection
+.RB "(" gcc ")"
+on all platforms so if you have any problems trying to use the long 
+format options, try swapping back to the short forms.
+.
+.P
+Mandatory or optional arguments to long options are also mandatory or
+optional for any corresponding short options.
+.
+.TP 4
+\fB\-o\fR, \fB\-\-OutputFileName\fR=\fIFILENAME\fR
+.
+.TP 4
+\fB\-h\fR, \fB\-\-Help\fR
+Print out a help screen showing the short-form descriptions 
+of each command line option.
+.
+.SH KNOWN ISSUES
+Please see the
+.BR blatter (1)
+manpage.
+.
+.SH AUTHORS
+.P
+Nils Homer <nhomer@tgen.org>
+.br
+Barry Merriman <barrym@ucla.edu>
+.
+.SH SEE ALSO
+.P
+.BR bmatches "(1), "
+.BR balign "(1) "
+.
+.SH COPYRIGHT
+.P
+Dicephia is copyright 2007 by The University of California - Los
+Angeles.  All rights reserved.  This License is limited to, and you
+may use the Software solely for, your own internal and non-commercial
+use for academic and research purposes.  Without limiting the foregoing,
+you may not use the Software as part of, or in any way in connection
+with the production, marketing, sale or support of any commercial
+product or service.  For commercial use, please contact
+licensing@tgen.org.  By installing this Software you are agreeing to
+the terms of the LICENSE file distributed with this software.
+.
+.P
+In any work or product derived from the use of this Software, proper
+attribution of the authors as the source of the software or data must
+be made.  The following URL should be cited:
+.
+.P
+.I <insert address here>

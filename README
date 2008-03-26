@@ -1,0 +1,10 @@
+Welcome to Blatter.
+
+Blatter is copyrighted software. Please see the file COPYING for details.
+
+For manual pages, including installation directions, please use:
+man doc/bpreprocess.1
+man doc/bmatches.1
+man doc/balaign.1
+
+Blatter is not intended for distribution.

@@ -1,0 +1,120 @@
+\#  This page is is written in groff however many of the control
+\#  commands (.TH, .SH, .SS etc) are taken from the "man" macro package
+\#  The man pages for roff and groff are of minimal use.  The primary
+\#  information source for the groff control commands and macros is the
+\#  "info groff" pages.  I have no idea what you're going to do for
+\#  groff documentation if you're not using some flavour of unix.
+\#
+\#  Aide memoire for groff:
+\#    .XX[X*]   - "request" control command for groff or macro package 
+\#                convention - lower case for groff, upper case for macros
+\#    \$n, \$(nn, \$[nnn] - retrieve argument by number from macro call
+\#    \XX[X*]   - "escape" control command for inline use
+\#    .\"       - deprecated comment line via "undefined request"
+\#    \#        - comment line
+\#    .ig .END  - ignore all text between tags, block level commenting
+\#    .nf .fi   - don't screw with text - verbatim spacing kept
+\#
+\#  Aide memoire for navigating "info":
+\#    space     - forward a page (will move on to next node)
+\#    backspace - backward a page (will go back to previous node)
+\#    tab       - skip cursor to next "link" in node document
+\#    return    - follow "link" cursor is sitting on
+\#    arrows    - move cursor left, right, up, down within page
+\#    b         - go to top of current node document
+\#    u         - up one level of nodes
+\#    n         - next node in current chain
+\#    p         - previous node in current chain
+\#    q         - quit info system
+\#
+\#  Converting this document into output formats:
+\#    man page:    groff -man -Tascii blatter.1
+\#    postscript:  groff -man -Tps blatter.1
+\#    HTML:        groff -man -Thtml blatter.1
+\#
+\#  Turn off justification and hyphenation
+.na
+.hy 0
+.TH blatter 1 "Sep 01, 2008" "version 0.1.1" "ULCA Blatter"
+.SH NAME
+blatter \- Align sequences to a reference genome.
+.SH SYNOPSIS
+.P
+.fam C
+.nf 
+bpreprocess [\fBoptions\fR]
+bmatches [\fBoptions\fR]
+balign [\fBoptions\fR]
+.fi
+.fam
+.
+.SH DESCRIPTION
+.P
+Blatter is a software package that provides alignment tools.
+.
+.P
+New Paragraph.
+.
+.P
+The Blatter system consists of three executable programs:
+.BR bpreprocess "," 
+.BR bmatches "," 
+and
+.BR bpalign "." 
+.
+.P
+.
+.
+.SS Dependencies
+.TP
+.B Dependency Header
+Dependency explanation.
+.
+.SH INSTALLATION
+.P
+Installation instructions should go here.
+.
+.SH FILE FORMATS
+.
+.P
+File format explanations should go here.
+.
+.SH KNOWN ISSUES
+.TP
+.B Compiler limitations
+The target compilation environment is gcc and a number of gcc-specific 
+features are used including the argp commandline argument processing 
+system so Blatter may not compile on non-gcc C/C++ compilers.
+.
+.
+.SH AUTHORS
+.P
+Nils Homer <nhomer@cs.ucla.edu>
+.br
+Barry Merriman <barrym@ucla.edu>
+.
+.SH "SEE ALSO"
+.P
+.BR bpreprocess "(1), " 
+.BR bmatches "(1), "
+.BR balign "(1) "
+.
+.SH COPYRIGHT
+.P
+Blatter is copyright 2007 by The University of California - Los 
+Angeles.  All rights reserved.  This License is limited to, and you
+may use the Software solely for, your own internal and non-commercial
+use for academic and research purposes.  Without limiting the foregoing,
+you may not use the Software as part of, or in any way in connection
+with the production, marketing, sale or support of any commercial
+product or service.  For commercial use, please contact
+licensing@tgen.org.  By installing this Software you are agreeing to
+the terms of the LICENSE file distributed with this software.
+.
+.P
+In any work or product derived from the use of this Software, proper
+attribution of the authors as the source of the software or data must
+be made.  The following URL should be cited:
+.
+.P
+.I <insert address here>
