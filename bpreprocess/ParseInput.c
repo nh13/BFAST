@@ -63,7 +63,7 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"rgFileName", 'r', "rgFileName", 0, "Specifies the reference genome file name", 3},
+	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 3},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 1) ================", 2},
 	{"matchLength", 'l', "matchLength", 0, "Specifies the length (in base pairs) to use for our matches (l-mer)", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
@@ -110,6 +110,7 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 	int
 main (int argc, char **argv)
 {
+	int i, j;
 	struct arguments arguments;
 	RGList rgList;
 	if(argc>1) {
@@ -142,12 +143,27 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 
 						/* Execute Program */
-						ReadReferenceGenome(arguments.rgFileName, 
+						ReadReferenceGenome(arguments.rgListFileName, 
 								&rgList,
 								arguments.startChr,
 								arguments.startPos,
 								arguments.endChr,
 								arguments.endPos);
+						if(VERBOSE>DEBUG) {
+							fprintf(stderr, "rgList.numChrs:%d\n", rgList.numChrs);
+							for(i=0;i<rgList.numChrs;i++) {
+								fprintf(stderr, "chr%d:%d-%d\n",
+										rgList.chromosomes[i].chromosome,
+										rgList.chromosomes[i].startPos,
+										rgList.chromosomes[i].endPos);
+								for(j=0;j<rgList.chromosomes[i].endPos - rgList.chromosomes[i].startPos + 1;j++) {
+									fprintf(stderr, "%c", 
+											rgList.chromosomes[i].sequence[j]);
+								}
+								fprintf(stderr, "\n");
+							}
+							fprintf(stderr, "Finished Reading Reference Genome!\n");
+						}
 
 						/* Generate our Tree */ 
 						GenerateTree(
@@ -187,11 +203,11 @@ int ValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->rgFileName!=0) {
-		fprintf(stderr, "Validating rgFileName %s. \n",
-				args->rgFileName);
-		if(ValidateFileName(args->rgFileName)==0)
-			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->rgListFileName!=0) {
+		fprintf(stderr, "Validating rgListFileName %s. \n",
+				args->rgListFileName);
+		if(ValidateFileName(args->rgListFileName)==0)
+			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->matchLength <= 0) {
@@ -235,6 +251,14 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	/* Cross-check arguments */
+	if(args->startChr > args->endChr) {
+		PrintError(FnName, "startChr > endChr", "Command line argument", Exit, OutOfRange);
+	}
+	if(args->startChr == args->endChr && args->startPos > args->endPos) {
+		PrintError(FnName, "endPos < startPos with startChr == endChr", "Command line argument", Exit, OutOfRange);
+	}
+
 	return 1;
 }
 
@@ -274,10 +298,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->rgFileName =
+	args->rgListFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->rgFileName!=0);
-	strcpy(args->rgFileName, DEFAULT_FILENAME);
+	assert(args->rgListFileName!=0);
+	strcpy(args->rgListFileName, DEFAULT_FILENAME);
 
 	args->matchLength = DEFAULT_MATCH_LENGTH;
 
@@ -312,7 +336,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
+	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
 	fprintf(fp, "matchLength:\t\t\t\t%d\n", args->matchLength);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -386,13 +410,16 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputDir = OPTARG;break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
+					case 'g':
+						if(arguments->gapFileName) free(arguments->gapFileName);
+						arguments->gapFileName = OPTARG;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'l':
 						arguments->matchLength=atoi(OPTARG);break;
 					case 'r':
-						if(arguments->rgFileName) free(arguments->rgFileName);
-						arguments->rgFileName = OPTARG;break;
+						if(arguments->rgListFileName) free(arguments->rgListFileName);
+						arguments->rgListFileName = OPTARG;break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;

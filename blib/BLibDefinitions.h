@@ -9,6 +9,9 @@
 #define DEFAULT_MATCH_LENGTH 11
 #define BREAK_LINE "************************************************************\n"
 
+#define VERBOSE 100
+#define DEBUG 10
+
 #define ALPHABET_SIZE 4
 
 #define SEQUENCE_LENGTH 512
@@ -76,5 +79,23 @@ typedef struct {
 	int *indexTwo;
 	char *strand;
 } RGSeqPair;
+
+/* TODO */
+typedef struct {
+	char *sequence;
+	int startPos;
+	int endPos;
+	int chromosome;
+} RGChr;
+
+/* TODO */
+typedef struct {
+	RGChr *chromosomes;
+	int numChrs;
+	int startChr;
+	int startPos;
+	int endChr;
+	int endPos;
+} RGList;
 
 #endif

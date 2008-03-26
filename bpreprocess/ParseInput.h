@@ -6,7 +6,7 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *rgFileName;						/* -r */
+	char *rgListFileName;					/* -r */
 	int matchLength;						/* -l */
 	int startChr;							/* -s */
 	int startPos;							/* -S */
