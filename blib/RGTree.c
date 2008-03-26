@@ -224,13 +224,20 @@ void RGTreePrintTreeHelper(FILE *fp, void *node, int curDepth, int depth)
 				if(((RGNode*)node)->next[i] == NULL) {
 					/* The current node has no child at index i */
 					tempInt = (unsigned int)(-1+RGT_ADD_TO_OUTPUT);
+					if(VERBOSE >= DEBUG) {
+						fprintf(stderr, "\t%d[%d]", tempInt+RGT_ADD_TO_INPUT, tempInt);
+					}
 					tempInt = htonl(tempInt);
 					fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+
 				}
 				else {
 					/* The current node has a child at index i */
 					fprintf(fp, "%d\t", i);
 					tempInt = (unsigned int)(i+RGT_ADD_TO_OUTPUT);
+					if(VERBOSE >= DEBUG) {
+						fprintf(stderr, "\t%d[%d]", tempInt+RGT_ADD_TO_INPUT, tempInt);
+					}
 					tempInt = htonl(tempInt);
 					fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 					RGTreePrintTreeHelper(fp, (void*)((RGNode*)node)->next[i], curDepth+1, depth);
@@ -240,23 +247,35 @@ void RGTreePrintTreeHelper(FILE *fp, void *node, int curDepth, int depth)
 		else {
 			/* We are at a leaf node */
 			tempInt = (unsigned int)(-2+RGT_ADD_TO_OUTPUT);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "\t%d[%d]", tempInt+RGT_ADD_TO_INPUT, tempInt);
+			}
 			tempInt = htonl(tempInt);
 			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 
 			/* Write contents */
 			/* Write the number of entries */
 			tempInt = (unsigned int)(((RGLeaf*)node)->numEntries+RGT_ADD_TO_OUTPUT);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "\t%d[%d]", tempInt+RGT_ADD_TO_INPUT, tempInt);
+			}
 			tempInt = htonl(tempInt);
 			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 			/* Write the positions */
 			for(i=0;i<((RGLeaf*)node)->numEntries;i++) {
 				tempInt = (unsigned int)(((RGLeaf*)node)->positions[i]+RGT_ADD_TO_OUTPUT);
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "\t%d[%d]", tempInt+RGT_ADD_TO_INPUT, tempInt);
+				}
 				tempInt = htonl(tempInt);
 				fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 			}
 			/* Write the chromosomes */
 			for(i=0;i<((RGLeaf*)node)->numEntries;i++) {
 				tempInt = (unsigned int)(((RGLeaf*)node)->chromosomes[i]+RGT_ADD_TO_OUTPUT);
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "\t%d[%d]", tempInt+RGT_ADD_TO_INPUT, tempInt);
+				}
 				tempInt = htonl(tempInt);
 				fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 			}

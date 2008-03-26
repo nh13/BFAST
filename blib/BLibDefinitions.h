@@ -94,6 +94,7 @@ typedef struct {
 	int numChrs;
 	int startChr;
 	int startPos;
+#define DEBUG 10
 	int endChr;
 	int endPos;
 } RGList;

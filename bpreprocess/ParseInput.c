@@ -172,6 +172,9 @@ main (int argc, char **argv)
 								arguments.gapFileName,
 								arguments.outputID,
 								arguments.outputDir);
+						if(VERBOSE>DEBUG) {
+							fprintf(stderr, "Finished generating and outputting reference genome tree!\n");
+						}
 						fprintf(stderr, "Terminating successfully!\n");
 						break;
 					default:

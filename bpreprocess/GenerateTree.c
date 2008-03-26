@@ -57,6 +57,16 @@ void GenerateTree(RGList *rgList,
 	curSequenceOne = (char*)malloc(sizeof(char)*matchLength);
 	curSequenceTwo = (char*)malloc(sizeof(char)*matchLength);
 
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
+	if(VERBOSE > 0) {
+		fprintf(stderr, "Will generate %d different %s files.\n",
+				numGaps,
+				BLATTER_TREE_FILE_EXTENSION);
+	}
+
+
 	/* For every gap between the two l-mers */
 	for(i=0;i<numGaps;i++) {
 		curGap = gaps[i];
@@ -86,15 +96,17 @@ void GenerateTree(RGList *rgList,
 				tree.depth,
 				BLATTER_TREE_FILE_EXTENSION);
 
-		fprintf(stderr, "Generating a tree, outputing to %s.\nCurrently on [gap, chr, pos, size]:\n%d\t%d\t%d\t%d", 
-				outputFileName, -1, -1, -1, -1);
+		if(VERBOSE >=0) {
+			fprintf(stderr, "Generating a tree, outputing to %s.\nCurrently on [gap, chr, pos, size]:\n%d\t%d\t%d\t%d", 
+					outputFileName, -1, -1, -1, -1);
+		}
 
 		/* For every chromosome in the reference genome */
 		for(j=0;j<rgList->numChrs;j++) {
 
 			/* For every starting position of the first l-mer */
-			for(k=rgList->chromosomes[j].startPos;k+2*matchLength+curGap<=rgList->chromosomes[j].endPos;k++) {
-				if(k%GT_ROTATE_NUM==0) {
+			for(k=rgList->chromosomes[j].startPos;k <= rgList->chromosomes[j].endPos - 2*matchLength - curGap + 1;k++) {
+				if(VERBOSE >=0 && k%GT_ROTATE_NUM==0) {
 					fprintf(stderr, "\r%3d\t%2d\t%12d\t%10.2lfMB", 
 							curGap,
 							rgList->chromosomes[j].chromosome,
@@ -102,29 +114,68 @@ void GenerateTree(RGList *rgList,
 							RGTreeGetSize(&tree, RGT_MEGABYTES));
 				}
 				startOne = k;
-				startTwo = k+matchLength+curGap;
+				startTwo = startOne+matchLength+curGap;
+				if(VERBOSE>=DEBUG) {
+					fprintf(stderr, "\nstartOne[%d]\tstartTwo[%d]\n",
+							startOne, 
+							startTwo);
+				}
 				/* Copy over sequences */
 				for(l=startOne;l<startOne+matchLength;l++) {
-					curSequenceOne[l-startOne] = rgList->chromosomes[j].sequence[l-startOne];
+					curSequenceOne[l-startOne] = rgList->chromosomes[j].sequence[l-rgList->chromosomes[j].startPos];
 				}
 				for(l=startTwo;l<startTwo+matchLength;l++) {
-					curSequenceOne[l-startTwo] = rgList->chromosomes[j].sequence[l-startTwo];
+					curSequenceTwo[l-startTwo] = rgList->chromosomes[j].sequence[l-rgList->chromosomes[j].startPos];
+				}
+				if(VERBOSE>=DEBUG) {
+					fprintf(stderr, "Inserting pair [%s] [%s] at chr%d:%d.\n",
+							curSequenceOne,
+							curSequenceTwo,
+							rgList->chromosomes[j].chromosome,
+							startOne);
 				}
 				/* Only insert if it is a valid sequence */
 				if(ValidateSequence(curSequenceOne, matchLength)==1 && ValidateSequence(curSequenceTwo, matchLength)) {
 					/* Insert pair into the tree */
 					RGTreeInsert(&tree, curSequenceOne, curSequenceTwo, matchLength, rgList->chromosomes[j].chromosome, startOne);
+
+					if(VERBOSE >= DEBUG) {
+						RGMatch match;
+						match.positions=NULL;
+						match.chromosomes=NULL;
+						match.strand=NULL;
+						match.numEntries=0;
+						RGTreeGetMatches(&tree,
+								GetIndexFromSequence(curSequenceOne, matchLength),
+								GetIndexFromSequence(curSequenceTwo, matchLength),
+								'f',
+								&match);
+						fprintf(stderr, "Found %d matches for %s\t%s\n",
+								match.numEntries,
+								curSequenceOne,
+								curSequenceTwo);
+						for(i=0;i<match.numEntries;i++) {
+							fprintf(stderr, "match at chr%d:%d strand:%c.\n",
+									(int)match.chromosomes[i],
+									match.positions[i],
+									match.strand[i]);
+						}
+					}
 				}
 			}
-			fprintf(stderr, "\r%3d\t%2d\t%12d\t%10.2lfMB", 
-					curGap,
-					rgList->chromosomes[j].chromosome,
-					k,
-					RGTreeGetSize(&tree, RGT_MEGABYTES));
+			if(VERBOSE >=0) {
+				fprintf(stderr, "\r%3d\t%2d\t%12d\t%10.2lfMB", 
+						curGap,
+						rgList->chromosomes[j].chromosome,
+						k,
+						RGTreeGetSize(&tree, RGT_MEGABYTES));
+			}
 		}
-		fprintf(stderr, "\n");
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\n");
+			fprintf(stderr, "Outputting tree to %s\n", outputFileName);
+		}
 
-		fprintf(stderr, "Outputting tree to %s\n", outputFileName);
 
 		/* Open the output file */
 		if(!(fp=fopen(outputFileName, "wb"))) {
@@ -141,9 +192,11 @@ void GenerateTree(RGList *rgList,
 		/* Free memory */
 		RGTreeDelete(&tree);
 	}
-	fprintf(stderr, "\n");
 
-	fprintf(stderr, "Generated Tree(s) successfully!\n");
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Generated Tree(s) successfully!\n");
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
 
 	/* Free memory */
 	free(curSequenceOne);
