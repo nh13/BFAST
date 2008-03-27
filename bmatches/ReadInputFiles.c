@@ -157,7 +157,8 @@ void ReadRGTree(char *rgTreeFileName, RGTree *tree)
 	fclose(fp);
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading successful\n");
+		fprintf(stderr, "Read tree from %s.\n",
+				rgTreeFileName);
 	}
 }
 

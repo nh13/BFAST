@@ -114,6 +114,7 @@ void RunMatches(char *outputFileName,
 		/* For each RGTree, write temporary output */
 		for(i=0;i<numRGTrees;i++) { /* For each RGTree */
 
+			/* Read in the RG Tree */
 			ReadRGTree(rgTreeFileNames[i], &trees[i]);
 
 			if(VERBOSE >= DEBUG) {
@@ -213,6 +214,7 @@ void FindMatches(FILE* tempSeqFP,
 	char *pairedSequence;
 	RGMatch sequenceMatch;
 	RGMatch pairedSequenceMatch;
+	int numRead = 0;
 
 	/* Initialize match structures */
 	sequenceMatch.positions=NULL;
@@ -233,12 +235,20 @@ void FindMatches(FILE* tempSeqFP,
 		fprintf(stderr, "In FindMatches\n");
 	}
 
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Currently reading sequence:\n%d", 0);
+	}
+
 	/* For each sequence */
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
+		numRead++;
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Read: %s\t%s\n",
 					sequenceName,
 					sequence);
+		}
+		if(VERBOSE >= 0){
+			fprintf(stderr, "\r%d", numRead);
 		}
 
 		/* Find matches */
@@ -264,8 +274,9 @@ void FindMatches(FILE* tempSeqFP,
 		RGMatchOutputToFile(tempFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Finished reading sequence\n");
+		fprintf(stderr, "\r%d\nRead in %d reads.\n", numRead, numRead);
 	}
+
 
 	/* Free memory */
 	free(sequenceName);

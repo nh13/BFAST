@@ -9,7 +9,7 @@
 #define DEFAULT_MATCH_LENGTH 11
 #define BREAK_LINE "************************************************************\n"
 
-#define VERBOSE 100
+#define VERBOSE 0
 #define DEBUG 10
 
 #define ALPHABET_SIZE 4
