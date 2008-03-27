@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include "../blib/SRTree.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 
@@ -42,6 +43,11 @@ void ReadSequencesToTempFile(char *sequenceFileName,
 	char pairedSequence[SEQUENCE_LENGTH];
 	int curReadNum = 1;
 
+	if(VERBOSE > 0) {
+	fprintf(stderr, "Reading sequences from %s to a temp file.\n",
+		sequenceFileName);
+	}
+
 	/* open sequence file */
 	if((seqFP=fopen(sequenceFileName, "r"))==0) {
 		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", sequenceFileName);
@@ -51,6 +57,7 @@ void ReadSequencesToTempFile(char *sequenceFileName,
 	/* open a temporary file */
 	(*tempSeqFP)=tmpfile();
 
+	/* NOTE: we could implement a counter */
 	while((endReadNum<=0 || endReadNum >= curReadNum) && EOF != fscanf(seqFP, "%s", sequenceName)) {
 
 		/* Read sequence label above */
@@ -58,26 +65,39 @@ void ReadSequencesToTempFile(char *sequenceFileName,
 		if(EOF==fscanf(seqFP, "%s", sequence)) {
 			fprintf(stderr, "Error.  Could not read sequence from %s.  Terminating!\n", sequenceFileName);
 		}
+		SequenceToLower(sequence, strlen(sequence));
 		/* Read paired sequence */
 		if(pairedEnd==1) {
 			if(EOF==fscanf(seqFP, "%s", pairedSequence)) {
 				fprintf(stderr, "Error.  Could not read sequence from %s.  Terminating!\n", sequenceFileName);
 			}
+			SequenceToLower(pairedSequence, strlen(pairedSequence));
 		}
 		/* Print only if we are within the desired limit */
 		if(startReadNum<=0 || curReadNum >= startReadNum) {
 			/* Print sequence */
 			fprintf((*tempSeqFP), "%s", sequenceName);
 			/* Print sequence */
-			fprintf((*tempSeqFP), "%s", sequence);
+			fprintf((*tempSeqFP), "\t%s", sequence);
 			/* Print paired sequence */
 			if(pairedEnd==1) {
-				fprintf((*tempSeqFP), "%s", pairedSequence);
+				fprintf((*tempSeqFP), "\t%s", pairedSequence);
+			}
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "sequenceName:%s\tsequence:%s",
+						sequenceName,
+						sequence);
+				if(pairedEnd==1) {
+					fprintf(stderr, "\tpairedSequence:%s",
+							pairedSequence);
+				}
+				fprintf(stderr, "\n");
 			}
 		}
 		/* Increment sequence number */
 		curReadNum++;
 	}
+	curReadNum--; /* decrement sequence number since we have +1 after the loop */
 
 	/* close sequence file */
 	fclose(seqFP);
@@ -85,6 +105,11 @@ void ReadSequencesToTempFile(char *sequenceFileName,
 	/* reset pointer to temp file to the beginning of the file */
 	fseek((*tempSeqFP), 0, SEEK_SET);
 
+	if(VERBOSE > 0) {
+		fprintf(stderr, "Read %d reads from %s.\n",
+				curReadNum,
+				sequenceFileName);
+	}
 }
 
 /* TODO */
@@ -95,11 +120,14 @@ int ReadNextSequence(FILE *fp, char **sequenceOne, char **sequenceTwo, char**seq
 		if(EOF==fscanf(fp, "%s", (*sequenceName)) || EOF==fscanf(fp, "%s", (*sequenceOne)) || EOF==fscanf(fp, "%s", (*sequenceTwo))) {
 			return EOF;
 		}
+		SequenceToLower((*sequenceOne), strlen((*sequenceOne)));
+		SequenceToLower((*sequenceTwo), strlen((*sequenceTwo)));
 	}
 	else {
 		if(EOF==fscanf(fp, "%s", (*sequenceName)) || EOF==fscanf(fp, "%s", (*sequenceOne))) {
 			return EOF;
 		}
+		SequenceToLower((*sequenceOne), strlen((*sequenceOne)));
 		(*sequenceTwo)=NULL;
 	}
 	return 1;
@@ -110,6 +138,11 @@ int ReadNextSequence(FILE *fp, char **sequenceOne, char **sequenceTwo, char**seq
 void ReadRGTree(char *rgTreeFileName, RGTree *tree)
 {
 	FILE *fp;
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Reading tree from %s.\n",
+				rgTreeFileName);
+	}
 
 	/* open file */
 	if((fp=fopen(rgTreeFileName, "r"))==0) {
@@ -122,6 +155,10 @@ void ReadRGTree(char *rgTreeFileName, RGTree *tree)
 
 	/* close file */
 	fclose(fp);
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Reading successful\n");
+	}
 }
 
 int ReadRGTreeFileNames(char *rgTreeListFileName, char ***rgTreeFileNames, int **offsets, int *numOffsets)
@@ -129,6 +166,12 @@ int ReadRGTreeFileNames(char *rgTreeListFileName, char ***rgTreeFileNames, int *
 	char tempFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fp;
 	int numFileNames=0;
+	int i;
+
+	if(VERBOSE>0) {
+		fprintf(stderr, "Reading in blatter tree file names from %s.\n",
+				rgTreeListFileName);
+	}
 
 	/* open file */
 	if((fp=fopen(rgTreeListFileName, "r"))==0) {
@@ -142,12 +185,23 @@ int ReadRGTreeFileNames(char *rgTreeListFileName, char ***rgTreeFileNames, int *
 		exit(1);
 	}
 	assert((*numOffsets)>0);
-	(*offsets)=(int*)malloc(sizeof(int)*(*numOffsets));
-	if(fread((*offsets), sizeof(int), (*numOffsets), fp)==EOF) {
-		fprintf(stderr, "Error.  Could not read %d offsets in %s.  Terminating!\n", 
+	if(VERBOSE>0) {
+		fprintf(stderr, "Will read %d offsets from %s.\n",
 				(*numOffsets),
 				rgTreeListFileName);
-		exit(1);
+	}
+	/* Allocate memory for the offsets */
+	(*offsets)=(int*)malloc(sizeof(int)*(*numOffsets));
+	for(i=0;i<(*numOffsets);i++) {
+		if(fscanf(fp, "%d", &(*offsets)[i])==EOF) {
+			fprintf(stderr, "Error.  Could not read %d offsets in %s.  Terminating!\n", 
+					(*numOffsets),
+					rgTreeListFileName);
+			exit(1);
+		}
+		if(VERBOSE>0) {
+			fprintf(stderr, "Offset %d:%d\n", i+1, (*offsets)[i]);
+		}
 	}
 
 	/* Read in the file names */
@@ -156,10 +210,19 @@ int ReadRGTreeFileNames(char *rgTreeListFileName, char ***rgTreeFileNames, int *
 		(*rgTreeFileNames) = (char**)realloc((*rgTreeFileNames), sizeof(char*)*numFileNames);
 		(*rgTreeFileNames)[numFileNames-1] = (char*)malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 		strcpy((*rgTreeFileNames)[numFileNames-1], tempFileName);
+		if(VERBOSE>0) {
+			fprintf(stderr, "blatter tree file name %d:%s\n", 
+					numFileNames,
+					(*rgTreeFileNames)[numFileNames-1]);
+		}
 	}
 
 	/* close file */
 	fclose(fp);
+
+	if(VERBOSE>0) {
+		fprintf(stderr, "Read %d blatter tree file name.\n", numFileNames);
+	}
 
 	return numFileNames;
 }

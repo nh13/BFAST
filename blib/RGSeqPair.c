@@ -29,17 +29,33 @@ void RGSeqPairFindMatches(RGTree *tree,
 	seqPairs.indexTwo=NULL;
 	seqPairs.strand=NULL;
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "In RGSeqPairFindMatches\n");
+	}
+
 	/* Note: we can speed this up by generating all pairs of l-mers to
 	 * search for and then removing duplicated pairs. */
 	RGSeqPairGeneratePairs(sequence,
 			&seqPairs,
 			offsets,
-			tree->depth,
-			tree->gap,
 			numOffsets,
+			tree->depth/2,
+			tree->gap,
 			numMismatches,
 			numInsertions,
 			numDeletions);
+	assert(seqPairs.numPairs>0);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Generated %d pairs.\n",
+				seqPairs.numPairs);
+		for(i=0;i<seqPairs.numPairs;i++) { /* For each pair */
+			fprintf(stderr, "%d:%d,%d,%c\n",
+					i+1, 
+					seqPairs.indexOne[i],
+					seqPairs.indexTwo[i],
+					seqPairs.strand[i]);
+		}
+	}
 
 	/* All pairs have been generated and are unique.  The next step
 	 * is to use each pair and search in the tree to get all matches. 
@@ -52,8 +68,18 @@ void RGSeqPairFindMatches(RGTree *tree,
 				seqPairs.strand[i],
 				match);
 	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Found %d matches in RGSeqPairFindMatches.\n",
+				match->numEntries);
+	}
+
 	/* Remove duplicates from match */
 	RGMatchRemoveDuplicates(match);
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Removed duplicates with %d matches remaining in RGSeqPairFindMatches.\n",
+				match->numEntries);
+	}
 
 }
 
@@ -76,8 +102,17 @@ void RGSeqPairGeneratePairs(char *sequence,
 
 	GetReverseCompliment(sequence, reverseSequence, sequenceLength);
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Generating all possible pairs (%d offsets).\n",
+				numOffsets);
+	}
+
 	/* Go through all offsets */
 	for(i=0;i<numOffsets;i++) {
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Generating pairs with offset %d.\n",
+					(*offsets)[i]);
+		}
 		/* Go through all mismatches */
 		/* Note: we allow any number (including zero) of mismatches up to
 		 * numMismatches.  We also note that when mismatches is zero, this 
@@ -115,7 +150,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			RGSeqPairGenerateInsertions(sequence,
 					sequenceLength,
 					'-',
-				(*offsets)[i],
+					(*offsets)[i],
 					matchLength,
 					gap,
 					numInsertions,
@@ -124,7 +159,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			RGSeqPairGenerateInsertions(reverseSequence,
 					sequenceLength,
 					'+',
-				(*offsets)[i],
+					(*offsets)[i],
 					matchLength,
 					gap,
 					numInsertions,
@@ -142,7 +177,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			RGSeqPairGenerateDeletions(sequence,
 					sequenceLength,
 					'+',
-				(*offsets)[i],
+					(*offsets)[i],
 					matchLength,
 					gap,
 					numDeletions,
@@ -151,7 +186,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			RGSeqPairGenerateDeletions(reverseSequence,
 					sequenceLength,
 					'-',
-				(*offsets)[i],
+					(*offsets)[i],
 					matchLength,
 					gap,
 					numDeletions,
@@ -235,6 +270,13 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Pair %s[%d]\t%s[%d].\n",
+						curOne,
+						pairs->indexOne[pairs->numPairs-1],
+						curTwo,
+						pairs->indexTwo[pairs->numPairs-1]);
+			}
 			pairs->strand[pairs->numPairs-1] = direction;
 			return;
 		}
@@ -357,6 +399,13 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Pair %s[%d]\t%s[%d].\n",
+					curOne,
+					pairs->indexOne[pairs->numPairs-1],
+					curTwo,
+					pairs->indexTwo[pairs->numPairs-1]);
+		}
 		pairs->strand[pairs->numPairs-1] = direction;
 		return;
 	}
@@ -879,17 +928,17 @@ void GetReverseCompliment(char *s,
 	/* Get reverse compliment sequence */
 	for(i=length-1;i>=0;i--) {
 		switch(s[length-1-i]) {
-			case 'A':
-				r[i] = 'T';
+			case 'a':
+				r[i] = 't';
 				break;
-			case 'C':
-				r[i] = 'G';
+			case 'c':
+				r[i] = 'g';
 				break;
-			case 'G':
-				r[i] = 'C';
+			case 'g':
+				r[i] = 'c';
 				break;
-			case 'T':
-				r[i] = 'A';
+			case 't':
+				r[i] = 'a';
 				break;
 			default:
 				fprintf(stderr, "Error.  In GetReverseCompliment, could not understand %c.  Terminating!\n", s[length-1-i]);

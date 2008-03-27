@@ -16,7 +16,7 @@ int RGTreeGetMatches(RGTree*, int, int, char, RGMatch*);
 void RGTreePrintTree(FILE*, RGTree*);
 void RGTreePrintTreeHelper(FILE*, void*, int, int);
 int RGTreeReadFromFile(RGTree*, FILE*);
-int RGTreeReadFromFileHelper(RGNode*, FILE*);
+int RGTreeReadFromFileHelper(void*, FILE*, RGTree*, int, int);
 void RGTreePrintHeader(FILE*, RGTree*);
 void RGTreeReadHeader(FILE*, RGTree*);
 

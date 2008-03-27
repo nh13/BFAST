@@ -28,12 +28,6 @@ void ReadReferenceGenome(char *rgListFileName,
 	char defaultFileName[MAX_FILENAME_LENGTH]="\0";
 	char header[MAX_FILENAME_LENGTH]="\0";
 
-	fprintf(stderr, "HERE:%d,%d,%d,%d\n",
-			startChr,
-			startPos,
-			endChr,
-			endPos);
-
 	rgList->startChr=startChr;
 	rgList->startPos=startPos;
 	rgList->endChr=endChr;
@@ -210,6 +204,12 @@ void ReadReferenceGenome(char *rgListFileName,
 	if(VERBOSE == 0) {
 		fprintf(stderr, "\n");
 	}
+	/* Add metadata */
+	rgList->startChr = rgList->chromosomes[0].chromosome;
+	rgList->startPos = rgList->chromosomes[0].startPos;
+	rgList->endChr = rgList->chromosomes[rgList->numChrs-1].chromosome;
+	rgList->endPos = rgList->chromosomes[rgList->numChrs-1].endPos;
+
 	if(VERBOSE>0) {
 		fprintf(stderr, "In total read from chr%d:%d to chr%d:%d.\n",
 				rgList->startChr,

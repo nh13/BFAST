@@ -77,7 +77,7 @@ void GenerateTree(RGList *rgList,
 			tree.root->next[j] = NULL;
 		}
 		/* Add metadata */
-		tree.depth = matchLength;
+		tree.depth = 2*matchLength;
 		tree.gap = curGap;
 		tree.startChr = rgList->startChr;
 		tree.startPos = rgList->startPos;
@@ -93,7 +93,7 @@ void GenerateTree(RGList *rgList,
 				tree.endChr,
 				tree.endPos,
 				curGap,
-				tree.depth,
+				matchLength,
 				BLATTER_TREE_FILE_EXTENSION);
 
 		if(VERBOSE >=0) {

@@ -19,10 +19,10 @@ void RunMatches(char *outputFileName,
 		int pairedEnd
 		)
 {
-	RGTree *trees;
+	RGTree *trees=NULL;
 	int numRGTrees=0;
-	char **rgTreeFileNames;
-	int *offsets;
+	char **rgTreeFileNames=NULL;
+	int *offsets=NULL;
 	int numOffsets=0;
 	FILE **tempFPs=NULL;
 	FILE *tempSeqFP=NULL;
@@ -42,11 +42,19 @@ void RunMatches(char *outputFileName,
 	}
 
 	/* Allocate memory for the trees */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Allocating memory for the trees\n");
+	}
 	trees = (RGTree*)malloc(sizeof(RGTree)*numRGTrees);
 	for(i=0;i<numRGTrees;i++) {
-		for(j=0;j<4;j++) {
+		/* Allocate memory for the root */
+		trees[i].root = (RGNode*)malloc(sizeof(RGNode));
+		for(j=0;j<ALPHABET_SIZE;j++) {
 			trees[i].root->next[j] = NULL;
 		}
+	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Memory allocated for the trees\n");
 	}
 
 	/* Read in all the RGTrees at once, or separately? */
@@ -80,10 +88,16 @@ void RunMatches(char *outputFileName,
 		 * 		*/
 
 		/* Create temporary files */
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Creating temporary files (one for each tree)\n");
+		}
 		tempFPs = (FILE**)malloc(sizeof(FILE*)*numRGTrees);
 		for(i=0;i<numRGTrees;i++) { /* For each RGTree */
 			/* Open a temporary file (this is reentrant) */
 			tempFPs[i] = tmpfile();
+		}
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Temporary files opened\n");
 		}
 
 		/* Since we may be running through many trees and only look for a small portion
@@ -99,7 +113,34 @@ void RunMatches(char *outputFileName,
 
 		/* For each RGTree, write temporary output */
 		for(i=0;i<numRGTrees;i++) { /* For each RGTree */
+
 			ReadRGTree(rgTreeFileNames[i], &trees[i]);
+
+			if(VERBOSE >= DEBUG) {
+				/*
+				RGMatch m;
+				m.positions=NULL;
+				m.chromosomes=NULL;
+				m.strand=NULL;
+				m.numEntries=0;
+
+				RGTreeGetMatches(&trees[i], 
+						GetIndexFromSequence("ccttcccttcc", trees[i].depth/2),
+						GetIndexFromSequence("caaaataaaaa", trees[i].depth/2),
+						'f', 
+						&m);
+
+				fprintf(stderr, "Found %d matches.\n", 
+						m.numEntries);
+				for(j=0;j<m.numEntries;j++) {
+					fprintf(stderr, "Match %d chr%d:%d strand:%c.\n",
+							j+1,
+							(int)m.chromosomes[j],
+							m.positions[j],
+							m.strand[j]);
+				}
+				*/
+			}
 
 			/* reset pointer to temp file to the beginning of the file */
 			fseek(tempSeqFP, 0, SEEK_SET);
@@ -188,8 +229,17 @@ void FindMatches(FILE* tempSeqFP,
 	sequence = (char*)malloc(sizeof(char)*SEQUENCE_LENGTH);
 	pairedSequence = (char*)malloc(sizeof(char)*SEQUENCE_LENGTH);
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "In FindMatches\n");
+	}
+
 	/* For each sequence */
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Read: %s\t%s\n",
+					sequenceName,
+					sequence);
+		}
 
 		/* Find matches */
 		RGSeqPairFindMatches(tree,
@@ -212,6 +262,9 @@ void FindMatches(FILE* tempSeqFP,
 		}
 		/* Output to file */
 		RGMatchOutputToFile(tempFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Finished reading sequence\n");
 	}
 
 	/* Free memory */
