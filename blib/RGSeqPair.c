@@ -61,7 +61,7 @@ void RGSeqPairFindMatches(RGTree *tree,
 	 * is to use each pair and search in the tree to get all matches. 
 	 * Store the results in match.
 	 * */
-	if(VERBOSE >= 0) {
+	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "After %d pairs, found %d matches.\n",
 				0,
 				match->numEntries);
@@ -72,7 +72,7 @@ void RGSeqPairFindMatches(RGTree *tree,
 				seqPairs.indexTwo[i],
 				seqPairs.strand[i],
 				match);
-		if(VERBOSE >= 0) {
+		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "After %d pairs, found %d matches.\n",
 					i+1,
 					match->numEntries);
@@ -83,12 +83,18 @@ void RGSeqPairFindMatches(RGTree *tree,
 				match->numEntries);
 	}
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\nRemoving duplicates\n");
+	}
 	/* Remove duplicates from match */
 	RGMatchRemoveDuplicates(match);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Removed duplicates with %d matches remaining in RGSeqPairFindMatches.\n",
 				match->numEntries);
+	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Exiting RGSeqPairFindMatches\n");
 	}
 
 }
@@ -107,9 +113,9 @@ void RGSeqPairGeneratePairs(char *sequence,
 	/* DON'T FORGET TO ALIGN TO BOTH FORWARD AND REVERSE STRANDS */
 	int i;
 	int sequenceLength=strlen(sequence);
-
 	char reverseSequence[SEQUENCE_LENGTH];
 
+	/* Get the reverse compliment of the sequence */
 	GetReverseCompliment(sequence, reverseSequence, sequenceLength);
 
 	if(VERBOSE >= DEBUG) {
@@ -797,38 +803,41 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 {
 	int i;
-	int prevIndexOne = -1;
-	int prevIndexTwo = -1;
-	char prevStrand = 'z';
 	RGSeqPair t;
+	RGSeqPair prev;
 	int curIndex=0;
 
 	/* Merge sort the data structure */
 	RGSeqPairMergeSort(s, 0, s->numPairs-1);
 
+	/* Allocate prev */
+	prev.indexOne = (int*)malloc(sizeof(int));
+	prev.indexTwo = (int*)malloc(sizeof(int));
+	prev.strand = (char*)malloc(sizeof(char));
+	prev.numPairs = 1;
 	/* Allocate temporary */
 	t.indexOne = (int*)malloc(sizeof(int)*(s->numPairs));
 	t.indexTwo = (int*)malloc(sizeof(int)*(s->numPairs));
 	t.strand = (char*)malloc(sizeof(char)*(s->numPairs));
+	t.numPairs = s->numPairs;
+
+	/* Initialize prev */
+	prev.indexOne[0] = -1;
+	prev.indexTwo[0] = -1;
+	prev.strand[0] = 'z';
 
 	/* Remove duplicates */
 	for(i=0;i<s->numPairs;i++) {
-		if(s->indexOne[i] == prevIndexOne &&
-				s->indexTwo[i] == prevIndexTwo &&
-				s->strand[i] == prevStrand) {
+		if(RGSeqPairCompareAtIndex(&prev, 0, s, i)==0) { 
 			/* Ignore */
 		}
 		else {
 			/* Copy over to temporary pair */
-			t.indexOne[curIndex] = s->indexOne[i];
-			t.indexTwo[curIndex] = s->indexTwo[i];
-			t.strand[curIndex] = s->strand[i];
+			RGSeqPairCopyAtIndex(s, i, &t, curIndex);
 			curIndex++;
 
 			/* Save previous */
-			prevIndexOne = s->indexOne[i];
-			prevIndexTwo = s->indexTwo[i];
-			prevStrand = s->strand[i];
+			RGSeqPairCopyAtIndex(s, i, &prev, 0);
 		}
 	}
 
@@ -839,11 +848,13 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 
 	/* Copy over */
 	for(i=0;i<curIndex;i++) {
-		s->indexOne[i] = t.indexOne[i];
-		s->indexTwo[i] = t.indexTwo[i];
-		s->strand[i] = t.strand[i];
+		RGSeqPairCopyAtIndex(&t, i, s, i);
 	}
 
+	/* Free prev memory */
+	free(prev.indexOne);
+	free(prev.indexTwo);
+	free(prev.strand);
 	/* Free temporary memory */
 	free(t.indexOne);
 	free(t.indexTwo);
@@ -864,9 +875,7 @@ void RGSeqPairMergeSort(RGSeqPair *s, int low, int high)
 	int end_lower = mid;
 	int ctr, i;
 
-	int *tempIndexOne;
-	int *tempIndexTwo;
-	char *tempStrand;
+	RGSeqPair temp;
 
 	if(low >= high) {
 		return;
@@ -877,26 +886,21 @@ void RGSeqPairMergeSort(RGSeqPair *s, int low, int high)
 	RGSeqPairMergeSort(s, mid+1, high);
 
 	/* Allocate temporary memory */
-	tempIndexOne = (int*)malloc((high-low+1)*sizeof(int));
-	tempIndexTwo = (int*)malloc((high-low+1)*sizeof(int));
-	tempStrand = (char*)malloc((high-low+1)*sizeof(char));
+	temp.indexOne = (int*)malloc((high-low+1)*sizeof(int));
+	temp.indexTwo = (int*)malloc((high-low+1)*sizeof(int));
+	temp.strand = (char*)malloc((high-low+1)*sizeof(char));
+	temp.numPairs = high-low+1;
 
 	/* Merge the two lists */
 	ctr = 0;
 	while( (start_lower<=end_lower) && (start_upper<=end_upper) )
 	{
-		if(s->indexOne[start_lower] < s->indexOne[start_upper] ||
-				(s->indexOne[start_lower] == s->indexOne[start_upper] && s->indexTwo[start_lower] < s->indexTwo[start_upper]) ||
-				(s->indexOne[start_lower] == s->indexOne[start_upper] && s->indexTwo[start_lower] == s->indexTwo[start_upper] && s->strand[start_lower] <= s->strand[start_upper])) { 
-			tempIndexOne[ctr] = s->indexOne[start_lower];
-			tempIndexTwo[ctr] = s->indexTwo[start_lower];
-			tempStrand[ctr] = s->strand[start_lower];
+		if(RGSeqPairCompareAtIndex(s, start_lower, s, start_upper) <= 0) {
+			RGSeqPairCopyAtIndex(s, start_lower, &temp, ctr);
 			start_lower++;
 		}
 		else {
-			tempIndexOne[ctr] = s->indexOne[start_upper];
-			tempIndexTwo[ctr] = s->indexTwo[start_upper];
-			tempStrand[ctr] = s->strand[start_upper];
+			RGSeqPairCopyAtIndex(s, start_upper, &temp, ctr);
 			start_upper++;
 		}
 		ctr++;
@@ -904,32 +908,25 @@ void RGSeqPairMergeSort(RGSeqPair *s, int low, int high)
 	}
 	if(start_lower<=end_lower) {
 		while(start_lower<=end_lower) {
-			tempIndexOne[ctr] = s->indexOne[start_lower];
-			tempIndexTwo[ctr] = s->indexTwo[start_lower];
-			tempStrand[ctr] = s->strand[start_lower];
+			RGSeqPairCopyAtIndex(s, start_lower, &temp, ctr);
 			ctr++;
 			start_lower++;
 		}
 	}
 	else {
 		while(start_upper<=end_upper) {
-			tempIndexOne[ctr] = s->indexOne[start_upper];
-			tempIndexTwo[ctr] = s->indexTwo[start_upper];
-			tempStrand[ctr] = s->strand[start_upper];
+			RGSeqPairCopyAtIndex(s, start_upper, &temp, ctr);
 			ctr++;
 			start_upper++;
 		}
 	}
 	for(i=low, ctr=0;i<=high;i++, ctr++) {
-		s->indexOne[i] = tempIndexOne[ctr];
-		s->indexTwo[i] = tempIndexTwo[ctr];
-		s->strand[i] = tempStrand[ctr];
+		RGSeqPairCopyAtIndex(&temp, ctr, s, i);
 	}
-	free(tempIndexOne);
-	free(tempIndexTwo);
-	free(tempStrand);
+	free(temp.indexOne);
+	free(temp.indexTwo);
+	free(temp.strand);
 }
-
 
 /* TODO */
 void GetReverseCompliment(char *s,
@@ -960,4 +957,26 @@ void GetReverseCompliment(char *s,
 		}
 	}
 	r[length]='\0';
+}
+
+int RGSeqPairCompareAtIndex(RGSeqPair *pOne, int iOne, RGSeqPair *pTwo, int iTwo) 
+{
+	if(pOne->indexOne[iOne] < pTwo->indexOne[iTwo]  ||
+		(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] < pTwo->indexTwo[iTwo]) ||  
+		(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] <= pTwo->strand[iTwo])) {
+		return -1;
+	}
+	else if(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] == pTwo->strand[iTwo]) {
+		return 0;
+	}
+	else {
+		return 1;
+	}
+}
+
+void RGSeqPairCopyAtIndex(RGSeqPair *src, int srcIndex, RGSeqPair *dest, int destIndex)
+{
+	dest->indexOne[destIndex] = src->indexOne[srcIndex];
+	dest->indexTwo[destIndex] = src->indexTwo[srcIndex];
+	dest->strand[destIndex] = src->strand[srcIndex];
 }

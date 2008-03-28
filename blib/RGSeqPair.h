@@ -20,5 +20,8 @@ void RGSeqPairMergeSort(RGSeqPair*, int, int);
 
 void GetReverseCompliment(char*, char*, int);
 
+int RGSeqPairCompareAtIndex(RGSeqPair*, int, RGSeqPair*, int);
+void RGSeqPairCopyAtIndex(RGSeqPair*, int, RGSeqPair*, int);
+
 #endif
 

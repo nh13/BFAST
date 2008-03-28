@@ -12,7 +12,7 @@
 #define IN_PLACE 0
 #define MERGE_SORT_MIN_PERCENT 0.01
 
-#define VERBOSE 11
+#define VERBOSE 10
 #define DEBUG 10
 
 #define ALPHABET_SIZE 4

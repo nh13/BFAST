@@ -208,15 +208,15 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "readsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->numMismatches <= 0) {
+	if(args->numMismatches < 0) {
 		PrintError(FnName, "numMismatches", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->numInsertions <= 0) {
+	if(args->numInsertions < 0) {
 		PrintError(FnName, "numInsertions", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->numDeletions <= 0) {
+	if(args->numDeletions < 0) {
 		PrintError(FnName, "numDeletions", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -272,6 +272,11 @@ AssignDefaultValues(struct arguments *args)
 	/* Assign default values */
 
 	args->programMode = ExecuteProgram;
+
+	args->blatterTreesFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->blatterTreesFileName!=0);
+	strcpy(args->blatterTreesFileName, DEFAULT_FILENAME);
 
 	args->readsFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));

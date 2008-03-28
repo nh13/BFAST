@@ -54,13 +54,7 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, int matchLe
 void RGTreeCleanUpTree(RGTree *tree) 
 {
 	int i, j;
-	RGNode tempNode;	
-	int prevIndex=-1;
-	RGNode *tempNodes=NULL;
-	int numTempNodes=0;
-
-	tempNode.indexOne=-1;
-	tempNode.indexTwo=-1;
+	int prevIndex = 0;
 
 	/* Sort the nodes in the tree */
 	if(VERBOSE >= 1) {
@@ -87,93 +81,50 @@ void RGTreeCleanUpTree(RGTree *tree)
 
 	/* Remove duplicates */
 	/* Assumes the nodes are sorted */
-	/* We could do this in-place, or with a new memory */
 	if(VERBOSE >= 1) {
 		fprintf(stderr, "Merging\n");
 	}
-	if(IN_PLACE == 0) {
-		for(i=0;i<tree->numNodes;i++) {
-			if(RGNodeCompare(&tree->nodes[i], &tempNode)==0) {
-				/* copy cur node to previous one */
-				assert(prevIndex >= 0);
-				assert(tempNodes[prevIndex].indexOne == tree->nodes[i].indexOne);
-				assert(tempNodes[prevIndex].indexTwo == tree->nodes[i].indexTwo);
-				int start = tempNodes[prevIndex].numEntries;
+	/* This will remove duplicates in-place and in O(n) time */
+	for(i=1;i<tree->numNodes;i++) {
+		if(RGNodeCompare(&tree->nodes[i], &tree->nodes[prevIndex])==0) {
+			/* Append the entry to prevIndex nodes */
+			int start = tree->nodes[prevIndex].numEntries;
 				/* Allocate memory for chromosomes and positions */
-				tempNodes[prevIndex].numEntries += tree->nodes[i].numEntries;
-				tempNodes[prevIndex].positions = (int*)realloc(tempNodes[prevIndex].positions, sizeof(int)*tempNodes[prevIndex].numEntries);
-				tempNodes[prevIndex].chromosomes = (char*)realloc(tempNodes[prevIndex].chromosomes, sizeof(char)*tempNodes[prevIndex].numEntries);
+				tree->nodes[prevIndex].numEntries += tree->nodes[i].numEntries;
+				tree->nodes[prevIndex].positions = (int*)realloc(tree->nodes[prevIndex].positions, sizeof(int)*tree->nodes[prevIndex].numEntries);
+				tree->nodes[prevIndex].chromosomes = (char*)realloc(tree->nodes[prevIndex].chromosomes, sizeof(char)*tree->nodes[prevIndex].numEntries);
 				/* Copy over chromosomes and positions */
-				for(j=start;j<tempNodes[prevIndex].numEntries;j++) {
-					tempNodes[prevIndex].positions[j] = tree->nodes[i].positions[j-start];
-					tempNodes[prevIndex].chromosomes[j] = tree->nodes[i].chromosomes[j-start];
+				for(j=start;j<tree->nodes[prevIndex].numEntries;j++) {
+					tree->nodes[prevIndex].positions[j] = tree->nodes[i].positions[j-start];
+					tree->nodes[prevIndex].chromosomes[j] = tree->nodes[i].chromosomes[j-start];
 				}
 				/* Free memory of the current node */
 				free(tree->nodes[i].positions);
 				free(tree->nodes[i].chromosomes);
-			}
-			else {
-				/* append cur node to tempNodes */
-				/* Allocate memory */
-				numTempNodes++;
-				tempNodes = (RGNode*)realloc(tempNodes, sizeof(RGNode)*numTempNodes);
-				/* Copy over */
-				RGNodeCopy(&tree->nodes[i], &tempNodes[numTempNodes-1]);
-				/* save info */
-
-				tempNode.indexOne = tree->nodes[i].indexOne;
-				tempNode.indexTwo = tree->nodes[i].indexTwo;
-				prevIndex = numTempNodes-1;
-			}
-		}
-		/* Free nodes in the tree */
-		free(tree->nodes);
-		/* Copy over nodes */
-		tree->nodes = tempNodes;
-		tree->numNodes = numTempNodes;
-	}
-	else {
-		int end = tree->numNodes;
-		/* Merge in-place O(n^2) */
-		for(i=0;i<end;i++) {
-			if(RGNodeCompare(&tree->nodes[i], &tempNode)==0) {
-				/* copy cur node to previous one */
-				assert(i>0);
-				int start = tree->nodes[i-1].numEntries;
-				/* Allocate memory for chromosomes and positions */
-				tree->nodes[i-1].numEntries += tree->nodes[i].numEntries;
-				tree->nodes[i-1].positions = (int*)realloc(tree->nodes[i-1].positions, sizeof(int)*tree->nodes[i-1].numEntries);
-				tree->nodes[i-1].chromosomes = (char*)realloc(tree->nodes[i-1].chromosomes, sizeof(char)*tree->nodes[i-1].numEntries);
-				/* Copy over chromosomes and positions */
-				for(j=start;j<tree->nodes[i-1].numEntries;j++) {
-					tree->nodes[i-1].positions[j] = tree->nodes[i].positions[j-start];
-					tree->nodes[i-1].chromosomes[j] = tree->nodes[i].chromosomes[j-start];
-				}
-				/* Free memory of the current node */
-				free(tree->nodes[i].positions);
+				/* Nullify the current node */
 				tree->nodes[i].positions = NULL;
-				free(tree->nodes[i].chromosomes);
 				tree->nodes[i].chromosomes = NULL;
-				/* Shift all nodes from i+1 to end down by one */
-				for(j=i+1;j<end;j++) {
-					RGNodeCopy(&tree->nodes[j], &tree->nodes[j-1]);
-				}
-				/* Decrement the end since we have overwritten a node */
-				end--;
-				/* Decrement i since we have shifted the array */
-				i--;
-			}
-			else {
-				/* ignore */
-				tempNode.indexOne = tree->nodes[i].indexOne;
-				tempNode.indexTwo = tree->nodes[i].indexTwo;
-				prevIndex = i;
+				tree->nodes[i].numEntries=0;
+				tree->nodes[i].indexOne=-1;
+				tree->nodes[i].indexTwo=-1;
+		}
+		else {
+			prevIndex++;
+			/* Move to prevIndex */
+			if(prevIndex < i) {
+			RGNodeCopy(&tree->nodes[i], &tree->nodes[prevIndex]);
+			/* Nullify the current node */
+				tree->nodes[i].positions = NULL;
+				tree->nodes[i].chromosomes = NULL;
+				tree->nodes[i].numEntries=0;
+				tree->nodes[i].indexOne=-1;
+				tree->nodes[i].indexTwo=-1;
 			}
 		}
-		/* Reallocate memory to reflect new size */
-		tree->nodes = (RGNode*)realloc(tree->nodes, sizeof(RGNode)*end);
-		tree->numNodes = end;
 	}
+	tree->numNodes = prevIndex+1;
+	/* Reallocate memory to reflect new number of nodes */
+	tree->nodes = (RGNode*)realloc(tree->nodes, sizeof(RGNode)*tree->numNodes);
 	if(VERBOSE >= 1) {
 		fprintf(stderr, "Merging complete\n");
 	}
@@ -379,16 +330,16 @@ void RGTreePrintTree(FILE *fp, RGTree *tree)
 		/* Print the entries */
 		for(j=0;j<tree->nodes[i].numEntries;j++) {
 			/*
-			   tempInt = tree->nodes[i].positions[j];
+			   tempInt = tree->nodes[i].chromosomes[j];
 			   tempInt = htonl(tempInt);
 			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = tree->nodes[i].chromosomes[j];
+			   tempInt = tree->nodes[i].positions[j];
 			   tempInt = htonl(tempInt);
 			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 			   */
 			fprintf(fp, "\t%d\t%d",
-					tree->nodes[i].positions[j],
-					(int)tree->nodes[i].chromosomes[j]);
+					(int)tree->nodes[i].chromosomes[j],
+					tree->nodes[i].positions[j]);
 		}
 	}
 	fprintf(fp, "\n");
@@ -444,14 +395,14 @@ int RGTreeReadTree(RGTree *tree, FILE *fp)
 			/*
 			   fread(&tempInt, sizeof(unsigned int), 1, fp);
 			   tempInt = ntohl(tempInt);
-			   tree->nodes[i].positions[j] = tempInt;
+			   tree->nodes[i].chromosomes[j] = tempInt;
 			   fread(&tempInt, sizeof(unsigned int), 1, fp);
 			   tempInt = ntohl(tempInt);
-			   tree->nodes[i].chromosomes[j] = tempInt;
+			   tree->nodes[i].positions[j] = tempInt;
 			   */
 			if(fscanf(fp, "%d %d",
-						&tree->nodes[i].positions[j],
-						&tempInt)==EOF) {
+						&tempInt,
+						&tree->nodes[i].positions[j])==EOF) {
 				fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
 				exit(1);
 			}

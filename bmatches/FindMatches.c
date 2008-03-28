@@ -117,28 +117,30 @@ void RunMatches(char *outputFileName,
 			ReadRGTree(rgTreeFileNames[i], &trees[i]);
 
 			if(VERBOSE >= DEBUG) {
-				RGMatch m;
-				m.positions=NULL;
-				m.chromosomes=NULL;
-				m.strand=NULL;
-				m.numEntries=0;
+				/*
+				   RGMatch m;
+				   m.positions=NULL;
+				   m.chromosomes=NULL;
+				   m.strand=NULL;
+				   m.numEntries=0;
 
-				RGTreeGetMatches(&trees[i], 
-						GetIndexFromSequence("aatgttcacca", trees[i].matchLength),
-						GetIndexFromSequence("ttttatatata", trees[i].matchLength),
-						'f', 
-						&m);
+				   RGTreeGetMatches(&trees[i], 
+				   GetIndexFromSequence("aatgttcacca", trees[i].matchLength),
+				   GetIndexFromSequence("ttttatatata", trees[i].matchLength),
+				   'f', 
+				   &m);
 
-				fprintf(stderr, "Found %d matches.\n", 
-						m.numEntries);
-				int j;
-				for(j=0;j<m.numEntries;j++) {
-					fprintf(stderr, "Match %d chr%d:%d strand:%c.\n",
-							j+1,
-							(int)m.chromosomes[j],
-							m.positions[j],
-							m.strand[j]);
-				}
+				   fprintf(stderr, "Found %d matches.\n", 
+				   m.numEntries);
+				   int j;
+				   for(j=0;j<m.numEntries;j++) {
+				   fprintf(stderr, "Match %d chr%d:%d strand:%c.\n",
+				   j+1,
+				   (int)m.chromosomes[j],
+				   m.positions[j],
+				   m.strand[j]);
+				   }
+				   */
 			}
 
 			/* reset pointer to temp file to the beginning of the file */
@@ -165,7 +167,7 @@ void RunMatches(char *outputFileName,
 			exit(1);
 		}
 
-		/* Merge temporary output */
+		/* Merge temporary output from each tree and output to the final output file. */
 		RGMatchMergeFilesAndOutput(tempFPs,
 				numRGTrees,
 				outputFP,
@@ -251,6 +253,16 @@ void FindMatches(FILE* tempSeqFP,
 			}
 		}
 
+		/* Initialize match structures */
+		sequenceMatch.positions=NULL;
+		sequenceMatch.chromosomes=NULL;
+		sequenceMatch.strand=NULL;
+		sequenceMatch.numEntries=0;
+		pairedSequenceMatch.positions=NULL;
+		pairedSequenceMatch.chromosomes=NULL;
+		pairedSequenceMatch.strand=NULL;
+		pairedSequenceMatch.numEntries=0;
+
 		/* Find matches */
 		RGSeqPairFindMatches(tree,
 				&sequenceMatch,
@@ -270,13 +282,40 @@ void FindMatches(FILE* tempSeqFP,
 					numInsertions,
 					numDeletions);
 		}
+
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Outputting to a temp file.\n");
+		}
+
 		/* Output to file */
 		RGMatchOutputToFile(tempFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
+
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Freeing matches.\n");
+		}
+		/* Free matches */
+		if(sequenceMatch.numEntries > 0) {
+			free(sequenceMatch.positions);
+			sequenceMatch.positions=NULL;
+			free(sequenceMatch.chromosomes);
+			sequenceMatch.chromosomes=NULL;
+			free(sequenceMatch.strand);
+			sequenceMatch.strand=NULL;
+			sequenceMatch.numEntries=0;
+		}
+		if(pairedEnd == 1 && pairedSequenceMatch.numEntries > 0) {
+			free(pairedSequenceMatch.positions);
+			pairedSequenceMatch.positions=NULL;
+			free(pairedSequenceMatch.chromosomes);
+			pairedSequenceMatch.chromosomes=NULL;
+			free(pairedSequenceMatch.strand);
+			pairedSequenceMatch.strand=NULL;
+			pairedSequenceMatch.numEntries=0;
+		}
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r%d\nRead in %d reads.\n", numRead, numRead);
 	}
-
 
 	/* Free memory */
 	free(sequenceName);

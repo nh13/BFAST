@@ -13,60 +13,55 @@
 void RGMatchRemoveDuplicates(RGMatch *s)
 {
 	int i;
-	int prevPosition=-1;
-	char prevChromosome=100;
-	char prevStrand='z'; 
-	RGMatch t;
-	int curIndex=0;
+	int prevIndex=0;
 
-	/* Merge sort the data structure */
-	RGMatchMergeSort(s, 0, s->numEntries-1);
-
-	/* Allocate temporary */
-	t.positions = (int*)malloc(sizeof(int)*(s->numEntries));
-	t.chromosomes = (char*)malloc(sizeof(char)*(s->numEntries));
-	t.strand = (char*)malloc(sizeof(char)*(s->numEntries));
-
-	/* Remove duplicates */
-	for(i=0;i<s->numEntries;i++) {
-		if(s->chromosomes[i] == prevChromosome &&
-				s->positions[i] == prevPosition &&
-				s->strand[i] == prevStrand) {
-			/* Ignore */
+	if(s->numEntries > 0) {
+		/* Merge sort the data structure */
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Merge sorting match\n");
+			for(i=0;i<s->numEntries;i++) {
+				fprintf(stderr, "%d\t%d\t%c\n",
+						s->strand[i],
+						(int)s->chromosomes[i],
+						s->positions[i]);
+			}
 		}
-		else {
-			/* Copy over to temporary pair */
-			t.positions[curIndex] = s->positions[i];
-			t.chromosomes[curIndex] = s->chromosomes[i];
-			t.strand[curIndex] = s->strand[i];
-			curIndex++;
-
-			/* Save previous */
-			prevPosition = s->positions[i];
-			prevChromosome = s->chromosomes[i];
-			prevStrand = s->strand[i];
+		RGMatchMergeSort(s, 0, s->numEntries-1);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Sorted!\n");
+			for(i=0;i<s->numEntries;i++) {
+				fprintf(stderr, "%d\t%d\t%c\n",
+						s->strand[i],
+						(int)s->chromosomes[i],
+						s->positions[i]);
+			}
 		}
+		fprintf(stderr, "HERE 1:%d\n",
+				s->numEntries);
+
+		/* Remove duplicates */
+		for(i=1;i<s->numEntries;i++) {
+			if(RGMatchCompareAtIndex(s, prevIndex, s, i)==0) {
+				/* ignore */
+			}
+			else {
+				prevIndex++;
+				/* Copy to prevIndex (incremented) */
+				RGMatchCopyAtIndex(s, i, s, prevIndex);
+			}
+		}
+
+		/* Reallocate pair */
+		/* does not make sense if there are no entries */
+		s->positions = (int*)realloc(s->positions, sizeof(int)*(prevIndex+1));
+		s->chromosomes = (char*)realloc(s->chromosomes, sizeof(char)*(prevIndex+1));
+		s->strand = (char*)realloc(s->strand, sizeof(char)*(prevIndex+1));
+		s->numEntries = prevIndex+1;
 	}
-
-	/* Reallocate pair */
-	s->positions = (int*)realloc(s->positions, sizeof(int)*curIndex);
-	s->chromosomes = (char*)realloc(s->chromosomes, sizeof(char)*curIndex);
-	s->strand = (char*)realloc(s->strand, sizeof(char)*curIndex);
-
-	/* Copy over */
-	for(i=0;i<curIndex;i++) {
-		s->positions[i] = t.positions[i];
-		s->chromosomes[i] = t.chromosomes[i];
-		s->strand[i] = t.strand[i];
-	}
-
-	/* Free temporary memory */
-	free(t.positions);
-	free(t.chromosomes);
-	free(t.strand);
 }
 
 /* TODO */
+/* Note: this is not in-place */
 void RGMatchMergeSort(RGMatch *s, int low, int high)
 {
 	/* NOTE: when high-low < 20 we could use selection sort since it is faster 
@@ -80,9 +75,7 @@ void RGMatchMergeSort(RGMatch *s, int low, int high)
 	int end_lower = mid;
 	int ctr, i;
 
-	int *tempPositions;
-	char *tempChromosomes;
-	char *tempStrand;
+	RGMatch temp;
 
 	if(low >= high) {
 		return;
@@ -93,26 +86,21 @@ void RGMatchMergeSort(RGMatch *s, int low, int high)
 	RGMatchMergeSort(s, mid+1, high);
 
 	/* Allocate temporary memory */
-	tempPositions = (int*)malloc((high-low+1)*sizeof(int));
-	tempChromosomes = (char*)malloc((high-low+1)*sizeof(char));
-	tempStrand = (char*)malloc((high-low+1)*sizeof(char));
+	temp.positions= (int*)malloc((high-low+1)*sizeof(int));
+	temp.chromosomes = (char*)malloc((high-low+1)*sizeof(char));
+	temp.strand = (char*)malloc((high-low+1)*sizeof(char));
+	temp.numEntries = high-low+1;
 
 	/* Merge the two lists */
 	ctr = 0;
 	while( (start_lower<=end_lower) && (start_upper<=end_upper) )
 	{
-		if( ((int)s->chromosomes[start_lower]) < ((int)s->chromosomes[start_upper]) ||
-				(((int)s->chromosomes[start_lower]) == ((int)s->chromosomes[start_upper]) && s->positions[start_lower] < s->positions[start_upper]) ||
-				(((int)s->chromosomes[start_lower]) == ((int)s->chromosomes[start_upper]) && s->positions[start_lower] == s->positions[start_upper] && s->strand[start_lower] <= s->strand[start_upper])) {
-			tempPositions[ctr] = s->positions[start_lower];
-			tempChromosomes[ctr] = s->chromosomes[start_lower];
-			tempStrand[ctr] = s->strand[start_lower];
+		if(RGMatchCompareAtIndex(s, start_lower, s, start_upper) <= 0) {
+			RGMatchCopyAtIndex(s, start_lower, &temp, ctr);
 			start_lower++;
 		}
 		else {
-			tempPositions[ctr] = s->positions[start_upper];
-			tempChromosomes[ctr] = s->chromosomes[start_upper];
-			tempStrand[ctr] = s->strand[start_upper];
+			RGMatchCopyAtIndex(s, start_upper, &temp, ctr);
 			start_upper++;
 		}
 		ctr++;
@@ -120,30 +108,24 @@ void RGMatchMergeSort(RGMatch *s, int low, int high)
 	}
 	if(start_lower<=end_lower) {
 		while(start_lower<=end_lower) {
-			tempPositions[ctr] = s->positions[start_lower];
-			tempChromosomes[ctr] = s->chromosomes[start_lower];
-			tempStrand[ctr] = s->strand[start_lower];
+			RGMatchCopyAtIndex(s, start_lower, &temp, ctr);
 			ctr++;
 			start_lower++;
 		}
 	}
 	else {
 		while(start_upper<=end_upper) {
-			tempPositions[ctr] = s->positions[start_upper];
-			tempChromosomes[ctr] = s->chromosomes[start_upper];
-			tempStrand[ctr] = s->strand[start_upper];
+			RGMatchCopyAtIndex(s, start_upper, &temp, ctr);
 			ctr++;
 			start_upper++;
 		}
 	}
 	for(i=low, ctr=0;i<=high;i++, ctr++) {
-		s->positions[i] = tempPositions[ctr];
-		s->chromosomes[i] = tempChromosomes[ctr];
-		s->strand[i] = tempStrand[ctr];
+		RGMatchCopyAtIndex(&temp, ctr, s, i);
 	}
-	free(tempPositions);
-	free(tempChromosomes);
-	free(tempStrand);
+	free(temp.positions);
+	free(temp.chromosomes);
+	free(temp.strand);
 }
 
 /* TODO */
@@ -157,22 +139,44 @@ void RGMatchOutputToFile(FILE *fp,
 {
 	int i;
 	/* Print the matches to the output file */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "In RGMatchOutputToFile.\n");
+	}
 
 	/* Print sequence name */
 	fprintf(fp, "%s\n", sequenceName);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "%s\n", sequenceName);
+	}
 
 	/* Print first sequence */
 	fprintf(fp, "%s", sequence);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "%s", sequence);
+	}
 
 	/* Print first sequence matches */
 	fprintf(fp, "\t%d", sequenceMatch->numEntries);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\t%d", sequenceMatch->numEntries);
+	}
+
 	for(i=0;i<sequenceMatch->numEntries;i++) {
 		fprintf(fp, "\t%d\t%d\t%c", 
 				(int)sequenceMatch->chromosomes[i],
 				sequenceMatch->positions[i],
 				sequenceMatch->strand[i]);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "\t%d\t%d\t%c", 
+					(int)sequenceMatch->chromosomes[i],
+					sequenceMatch->positions[i],
+					sequenceMatch->strand[i]);
+		}
 	}
 	fprintf(fp, "\n");
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\n");
+	}
 
 	/* Print Paired end if necessary */
 	if(pairedEnd == 1) {
@@ -188,6 +192,9 @@ void RGMatchOutputToFile(FILE *fp,
 					pairedSequenceMatch->strand[i]);
 		}
 		fprintf(fp, "\n");
+	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\nExiting RGMatchOutputToFile.\n");
 	}
 }
 
@@ -303,6 +310,9 @@ int RGMatchGetNextFromFile(FILE *fp,
 	int i;
 	int tempInt;
 	/* Read the matches from the input file */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "In RGMatchGetNextFromFile.\n");
+	}
 
 	/* Read sequence name */
 	if(fscanf(fp, "%s", sequenceName)==EOF) {
@@ -321,6 +331,13 @@ int RGMatchGetNextFromFile(FILE *fp,
 		exit(1);
 	}
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "%s\n%s\n%d\n",
+				sequenceName,
+				sequence,
+				sequenceMatch->numEntries);
+	}
+
 	/* Allocate memory for the matches */
 	sequenceMatch->positions = (int*)malloc(sizeof(int)*(sequenceMatch->numEntries));
 	sequenceMatch->chromosomes = (char*)malloc(sizeof(char)*(sequenceMatch->numEntries));
@@ -336,6 +353,15 @@ int RGMatchGetNextFromFile(FILE *fp,
 			exit(1);
 		}
 		sequenceMatch->chromosomes[i] = tempInt;
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "chr%d:%d:%c\t",
+					(int)sequenceMatch->chromosomes[i],
+					sequenceMatch->positions[i],
+					sequenceMatch->strand[i]);
+		}
+	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\n");
 	}
 
 	/* Read Paired end if necessary */
@@ -364,5 +390,47 @@ int RGMatchGetNextFromFile(FILE *fp,
 		}
 	}
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Exiting RGMatchGetNextFromFile.\n");
+	}
 	return 1;
+}
+
+/* TODO */
+int RGMatchCompareAtIndex(RGMatch *mOne, int indexOne, RGMatch *mTwo, int indexTwo) 
+{
+	assert(indexOne >= 0 && indexOne < mOne->numEntries);
+	assert(indexTwo >= 0 && indexTwo < mTwo->numEntries);
+	if( ((int)mOne->chromosomes[indexOne]) < ((int)mTwo->chromosomes[indexTwo]) ||
+			(((int)mOne->chromosomes[indexOne]) == ((int)mTwo->chromosomes[indexTwo]) && mOne->positions[indexOne] < mTwo->positions[indexTwo]) ||
+			(((int)mOne->chromosomes[indexOne]) == ((int)mTwo->chromosomes[indexTwo]) && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] <= mTwo->strand[indexTwo])) {
+		return -1;
+	}
+	else if(((int)mOne->chromosomes[indexOne]) == ((int)mTwo->chromosomes[indexTwo]) && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] == mTwo->strand[indexTwo]) {
+		return 0;
+	}
+	else {
+		return 1;
+	}
+}
+
+/* TODO */
+void RGMatchCopyAtIndex(RGMatch *src, int srcIndex, RGMatch *dest, int destIndex)
+{
+	if(!(srcIndex >= 0 && srcIndex < src->numEntries)) {
+		fprintf(stderr, "Error. srcIndex:%d\tnumEntries:%d\n",
+				srcIndex,
+				src->numEntries);
+	}
+	if(!(destIndex >= 0 && destIndex < dest->numEntries)) {
+		fprintf(stderr, "Error. destIndex:%d\tnumEntries:%d\n",
+				destIndex,
+				dest->numEntries);
+	}
+
+	assert(srcIndex >= 0 && srcIndex < src->numEntries);
+	assert(destIndex >= 0 && destIndex < dest->numEntries);
+	dest->positions[destIndex] = src->positions[srcIndex];
+	dest->chromosomes[destIndex] = src->chromosomes[srcIndex];
+	dest->strand[destIndex] = src->strand[srcIndex];
 }

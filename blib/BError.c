@@ -9,7 +9,7 @@ static char ActionType[][20]={"Fatal Error", "Warning"};
 
 void
 PrintError(char* FunctionName, char *VariableName, 
-	   char* Message, int type, int Action) 
+	   char* Message, int Action, int type)
 {
   
   fprintf(stderr, "\nIn function \"%s\": %s[%s]. ", 

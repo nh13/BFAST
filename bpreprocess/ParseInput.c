@@ -217,19 +217,19 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "matchLength", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->startChr <= 0) {
+	if(args->startChr < 0) {
 		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->startPos <= 0) {
+	if(args->startPos < 0) {
 		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endChr <= 0) {
+	if(args->endChr < 0) {
 		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endPos <= 0) {
+	if(args->endPos < 0) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -308,10 +308,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->matchLength = DEFAULT_MATCH_LENGTH;
 
-	args->startChr=-1;
-	args->startPos=-1;
-	args->endChr=-1;
-	args->endPos=-1;
+	args->startChr=0;
+	args->startPos=0;
+	args->endChr=0;
+	args->endPos=0;
 
 	args->gapFileName = 
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
