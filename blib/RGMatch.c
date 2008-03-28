@@ -21,9 +21,9 @@ void RGMatchRemoveDuplicates(RGMatch *s)
 			fprintf(stderr, "Merge sorting match\n");
 			for(i=0;i<s->numEntries;i++) {
 				fprintf(stderr, "%d\t%d\t%c\n",
-						s->strand[i],
 						(int)s->chromosomes[i],
-						s->positions[i]);
+						s->positions[i],
+						s->strand[i]);
 			}
 		}
 		RGMatchMergeSort(s, 0, s->numEntries-1);
@@ -31,13 +31,11 @@ void RGMatchRemoveDuplicates(RGMatch *s)
 			fprintf(stderr, "Sorted!\n");
 			for(i=0;i<s->numEntries;i++) {
 				fprintf(stderr, "%d\t%d\t%c\n",
-						s->strand[i],
 						(int)s->chromosomes[i],
-						s->positions[i]);
+						s->positions[i],
+						s->strand[i]);
 			}
 		}
-		fprintf(stderr, "HERE 1:%d\n",
-				s->numEntries);
 
 		/* Remove duplicates */
 		for(i=1;i<s->numEntries;i++) {

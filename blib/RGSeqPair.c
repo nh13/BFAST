@@ -76,6 +76,13 @@ void RGSeqPairFindMatches(RGTree *tree,
 			fprintf(stderr, "After %d pairs, found %d matches.\n",
 					i+1,
 					match->numEntries);
+			int j;
+			for(j=0;j<match->numEntries;j++) {
+				fprintf(stderr, "%d\t%d\t%c\n",
+						(int)match->chromosomes[j],
+						match->positions[j],
+						match->strand[j]);
+			}
 		}
 	}
 	if(VERBOSE >= DEBUG) {
@@ -962,8 +969,8 @@ void GetReverseCompliment(char *s,
 int RGSeqPairCompareAtIndex(RGSeqPair *pOne, int iOne, RGSeqPair *pTwo, int iTwo) 
 {
 	if(pOne->indexOne[iOne] < pTwo->indexOne[iTwo]  ||
-		(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] < pTwo->indexTwo[iTwo]) ||  
-		(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] <= pTwo->strand[iTwo])) {
+			(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] < pTwo->indexTwo[iTwo]) ||  
+			(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] <= pTwo->strand[iTwo])) {
 		return -1;
 	}
 	else if(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] == pTwo->strand[iTwo]) {

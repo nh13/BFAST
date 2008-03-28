@@ -561,6 +561,12 @@ int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, R
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Found index:%d\n", index);
+		fprintf(stderr, "Will append:\n");
+		for(i=0;i<tree->nodes[index].numEntries;i++) {
+			fprintf(stderr, "%d\t%d\n",
+				   (int)tree->nodes[index].chromosomes[i],
+				   tree->nodes[index].positions[i]);
+		}
 	}
 
 	if(index >= 0 && index < tree->numNodes) {
@@ -574,8 +580,8 @@ int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, R
 
 		/* Copy over */
 		for(i=startIndex;i<m->numEntries;i++) {
-			m->positions[i] = tree->nodes[index].positions[i];
-			m->chromosomes[i] = tree->nodes[index].chromosomes[i];
+			m->positions[i] = tree->nodes[index].positions[i-startIndex];
+			m->chromosomes[i] = tree->nodes[index].chromosomes[i-startIndex];
 			m->strand[i] = direction;
 		}
 	}
