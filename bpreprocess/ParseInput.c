@@ -52,7 +52,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, 
-	DescAlgoTitle, DescMatchLength, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescGapFileName,
+	DescAlgoTitle, DescCreateIndexFile, DescMatchLength, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescGapFileName, 
 	DescOutputTitle, DescOutputID, DescOutputDir,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -65,6 +65,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 3},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 1) ================", 2},
+	{"createIndexFile", 'i', "createIndexFile", 0, "Specifies that we are to create a blatter index file instead of a blatter tree file (default: false)", 2},
 	{"matchLength", 'l', "matchLength", 0, "Specifies the length (in base pairs) to use for our matches (l-mer)", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -98,10 +99,10 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:g:l:o:r:s:E:S:hp";
+"d:e:g:l:o:r:s:E:S:hip";
 #endif
 
-enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
+enum {ExecuteGetOptHelp, ExecuteProgramTree, ExecuteProgramIndex, ExecutePrintProgramParameters};
 
 /*
    The main function. All command-line options parsed using argp_parse
@@ -131,7 +132,7 @@ main (int argc, char **argv)
 					case ExecutePrintProgramParameters:
 						PrintProgramParameters(stderr, &arguments);
 						break;
-					case ExecuteProgram:
+					case ExecuteProgramTree:
 						if(ValidateInputs(&arguments)) {
 							fprintf(stderr, "Input arguments look good!\n");
 							fprintf(stderr, BREAK_LINE);
@@ -176,6 +177,10 @@ main (int argc, char **argv)
 							fprintf(stderr, "Finished generating and outputting reference genome tree!\n");
 						}
 						fprintf(stderr, "Terminating successfully!\n");
+						break;
+					case ExecuteProgramIndex:
+						fprintf(stderr, "Error.  Index not implemented.  Terminating!\n");
+						exit(1);
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
@@ -299,7 +304,7 @@ AssignDefaultValues(struct arguments *args)
 {
 	/* Assign default values */
 
-	args->programMode = ExecuteProgram;
+	args->programMode = ExecuteProgramTree;
 
 	args->rgListFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -335,7 +340,7 @@ AssignDefaultValues(struct arguments *args)
 	void 
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
+	char programmode[4][64] = {"ExecuteGetOptHelp", "ExecuteProgramTree", "ExecuteProgramIndex", "ExecutePrintProgramParameters"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
@@ -418,6 +423,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->gapFileName = OPTARG;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
+					case 'i':
+						arguments->programMode=ExecuteProgramIndex;break;
 					case 'l':
 						arguments->matchLength=atoi(OPTARG);break;
 					case 'r':
