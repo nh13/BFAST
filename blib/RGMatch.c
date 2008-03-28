@@ -66,7 +66,7 @@ void RGMatchRemoveDuplicates(RGMatch *s)
 	free(t.strand);
 }
 
-/* TO DO */
+/* TODO */
 void RGMatchMergeSort(RGMatch *s, int low, int high)
 {
 	/* NOTE: when high-low < 20 we could use selection sort since it is faster 
@@ -141,6 +141,9 @@ void RGMatchMergeSort(RGMatch *s, int low, int high)
 		s->chromosomes[i] = tempChromosomes[ctr];
 		s->strand[i] = tempStrand[ctr];
 	}
+	free(tempPositions);
+	free(tempChromosomes);
+	free(tempStrand);
 }
 
 /* TODO */

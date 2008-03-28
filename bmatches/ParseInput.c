@@ -135,7 +135,7 @@ main (int argc, char **argv)
 						break;
 					case ExecuteProgram:
 						if(ValidateInputs(&arguments)) {
-							fprintf(stderr, "**** Input arguments look good! *****\n");
+							fprintf(stderr, "**** Input arguments look good!\n");
 							fprintf(stderr, BREAK_LINE);
 						}
 						else {

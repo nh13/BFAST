@@ -71,14 +71,11 @@ void GenerateTree(RGList *rgList,
 	for(i=0;i<numGaps;i++) {
 		curGap = gaps[i];
 
-		/* Initialize root */
-		tree.root = (RGNode*)malloc(sizeof(RGNode));
-		for(j=0;j<ALPHABET_SIZE;j++) {
-			tree.root->next[j] = NULL;
-		}
-		/* Add metadata */
-		tree.depth = 2*matchLength;
+		/* Initialize the tree */
+		tree.nodes = NULL;
+		tree.numNodes = 0;
 		tree.gap = curGap;
+		tree.matchLength = matchLength;
 		tree.startChr = rgList->startChr;
 		tree.startPos = rgList->startPos;
 		tree.endChr = rgList->endChr;
@@ -171,8 +168,14 @@ void GenerateTree(RGList *rgList,
 						RGTreeGetSize(&tree, RGT_MEGABYTES));
 			}
 		}
+		/* Clean up the tree */
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\n");
+			fprintf(stderr, "Cleaning up the tree.\n");
+		}
+		RGTreeCleanUpTree(&tree);
+
+		if(VERBOSE >= 0) {
 			fprintf(stderr, "Outputting tree to %s\n", outputFileName);
 		}
 

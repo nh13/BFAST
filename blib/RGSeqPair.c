@@ -30,7 +30,7 @@ void RGSeqPairFindMatches(RGTree *tree,
 	seqPairs.strand=NULL;
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In RGSeqPairFindMatches\n");
+		fprintf(stderr, "\nIn RGSeqPairFindMatches\n");
 	}
 
 	/* Note: we can speed this up by generating all pairs of l-mers to
@@ -39,7 +39,7 @@ void RGSeqPairFindMatches(RGTree *tree,
 			&seqPairs,
 			offsets,
 			numOffsets,
-			tree->depth/2,
+			tree->matchLength,
 			tree->gap,
 			numMismatches,
 			numInsertions,
@@ -61,12 +61,22 @@ void RGSeqPairFindMatches(RGTree *tree,
 	 * is to use each pair and search in the tree to get all matches. 
 	 * Store the results in match.
 	 * */
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "After %d pairs, found %d matches.\n",
+				0,
+				match->numEntries);
+	}
 	for(i=0;i<seqPairs.numPairs;i++) { /* For each pair */
 		RGTreeGetMatches(tree, 
 				seqPairs.indexOne[i],
 				seqPairs.indexTwo[i],
 				seqPairs.strand[i],
 				match);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "After %d pairs, found %d matches.\n",
+					i+1,
+					match->numEntries);
+		}
 	}
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Found %d matches in RGSeqPairFindMatches.\n",
@@ -915,6 +925,9 @@ void RGSeqPairMergeSort(RGSeqPair *s, int low, int high)
 		s->indexTwo[i] = tempIndexTwo[ctr];
 		s->strand[i] = tempStrand[ctr];
 	}
+	free(tempIndexOne);
+	free(tempIndexTwo);
+	free(tempStrand);
 }
 
 

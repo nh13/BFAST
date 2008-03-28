@@ -2,24 +2,20 @@
 bpreprocess
 ===============================================================================
 1. 
-Allow for arbitrary splits of the reference genome (multiple chromosomes, or
-part-way through one chromosome including 100bp overlap).
-2. Store the gap information with the RGTrees
-3. Store chromosome and position.
+Create an index of all n-mers in the genome (where n is th length of the read).
 
 
 ===============================================================================
 bmatches
 ===============================================================================
 1.
-Retain names for the reads.
-2. 
 Allow for errors (no calls) in the sequences.
-3. 
+2. 
 Allow for variable sequence read lengths (one can store the # at each node in 
 the tree).
-4.
-Store chromosome and position.
+3. 
+Use index of n-mers to pre-filter alignment.
+
 
 ===============================================================================
 balign

@@ -6,19 +6,20 @@
 #include "RGSeqPair.h"
 
 int RGTreeInsert(RGTree*, char*, char*, int, int, int);
+void RGTreeCleanUpTree(RGTree*);
+void RGTreeInsertionSortNodes(RGTree*);
+void RGTreeMergeSortNodes(RGTree*, int, int);
+int RGTreeGetIndex(RGTree*, int, int);
 void RGTreeDelete(RGTree*);
-void RGTreeDeleteHelper(void**, int, int);
 double RGTreeGetSize(RGTree*, int);
-double RGTreeGetSizeHelper(void*, int, int, int);
-int GetIndexFromSequence(char*, int);
-int RGTreeGetMatches(RGTree*, int, int, char, RGMatch*);
-
 void RGTreePrintTree(FILE*, RGTree*);
-void RGTreePrintTreeHelper(FILE*, void*, int, int);
-int RGTreeReadFromFile(RGTree*, FILE*);
-int RGTreeReadFromFileHelper(void*, FILE*, RGTree*, int, int);
+int RGTreeReadTree(RGTree*, FILE*);
 void RGTreePrintHeader(FILE*, RGTree*);
 void RGTreeReadHeader(FILE*, RGTree*);
+int RGTreeGetMatches(RGTree*, int, int, char, RGMatch*);
+int GetIndexFromSequence(char*, int);
+void RGNodeCopy(RGNode *src, RGNode *dest);
+int RGNodeCompare(RGNode *a, RGNode *b);
 
 #endif
 

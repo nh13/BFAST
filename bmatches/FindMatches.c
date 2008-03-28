@@ -2,6 +2,7 @@
 #include "../blib/SRTree.h"
 #include "../blib/RGTree.h"
 #include "../blib/RGSeqPair.h"
+#include "Definitions.h"
 #include "ReadInputFiles.h"
 #include "FindMatches.h"
 
@@ -27,7 +28,7 @@ void RunMatches(char *outputFileName,
 	FILE **tempFPs=NULL;
 	FILE *tempSeqFP=NULL;
 	FILE *outputFP=NULL;
-	int i, j;
+	int i;
 
 	if(useSequenceTree==1) {
 		fprintf(stderr, "Error.  Using the sequence tree is not implemented.  Terminating!\n");
@@ -47,11 +48,9 @@ void RunMatches(char *outputFileName,
 	}
 	trees = (RGTree*)malloc(sizeof(RGTree)*numRGTrees);
 	for(i=0;i<numRGTrees;i++) {
-		/* Allocate memory for the root */
-		trees[i].root = (RGNode*)malloc(sizeof(RGNode));
-		for(j=0;j<ALPHABET_SIZE;j++) {
-			trees[i].root->next[j] = NULL;
-		}
+		/* Initialize each tree */
+		trees[i].nodes = NULL;
+		trees[i].numNodes = 0;
 	}
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Memory allocated for the trees\n");
@@ -118,7 +117,6 @@ void RunMatches(char *outputFileName,
 			ReadRGTree(rgTreeFileNames[i], &trees[i]);
 
 			if(VERBOSE >= DEBUG) {
-				/*
 				RGMatch m;
 				m.positions=NULL;
 				m.chromosomes=NULL;
@@ -126,13 +124,14 @@ void RunMatches(char *outputFileName,
 				m.numEntries=0;
 
 				RGTreeGetMatches(&trees[i], 
-						GetIndexFromSequence("ccttcccttcc", trees[i].depth/2),
-						GetIndexFromSequence("caaaataaaaa", trees[i].depth/2),
+						GetIndexFromSequence("aatgttcacca", trees[i].matchLength),
+						GetIndexFromSequence("ttttatatata", trees[i].matchLength),
 						'f', 
 						&m);
 
 				fprintf(stderr, "Found %d matches.\n", 
 						m.numEntries);
+				int j;
 				for(j=0;j<m.numEntries;j++) {
 					fprintf(stderr, "Match %d chr%d:%d strand:%c.\n",
 							j+1,
@@ -140,7 +139,6 @@ void RunMatches(char *outputFileName,
 							m.positions[j],
 							m.strand[j]);
 				}
-				*/
 			}
 
 			/* reset pointer to temp file to the beginning of the file */
@@ -243,12 +241,14 @@ void FindMatches(FILE* tempSeqFP,
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
 		numRead++;
 		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Read: %s\t%s\n",
+			fprintf(stderr, "\nRead: %s\t%s\n",
 					sequenceName,
 					sequence);
 		}
 		if(VERBOSE >= 0){
-			fprintf(stderr, "\r%d", numRead);
+			if(numRead%FM_ROTATE_NUM == 0) {
+				fprintf(stderr, "\r%d", numRead);
+			}
 		}
 
 		/* Find matches */

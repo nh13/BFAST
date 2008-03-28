@@ -15,185 +15,321 @@
  * */
 int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, int matchLength, int chromosome, int position) 
 {
-	int i, j, nextNode;
-	RGNode *cur=NULL;
-	RGNode *temp=NULL;
-	int compOne;
-	int compTwo;
-	int lowerX=0;
-	double midX;
-	int upperX=pow(ALPHABET_SIZE, matchLength) - 1;
-	int lowerY=0;
-	double midY;
-	int upperY=upperX;
+	assert(tree->matchLength == matchLength);
 
-	assert(2*matchLength == tree->depth);
-
-	int sequenceOneIndex = GetIndexFromSequence(sequenceOne, matchLength);
-	int sequenceTwoIndex = GetIndexFromSequence(sequenceTwo, matchLength);
+	int indexOne = GetIndexFromSequence(sequenceOne, matchLength);
+	int indexTwo = GetIndexFromSequence(sequenceTwo, matchLength);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "RGTreeInsert: inserting indexes %d and %d.\n",
-				sequenceOneIndex,
-				sequenceTwoIndex);
+				indexOne,
+				indexTwo);
 	}
 
-	/* Initialize cur to be the root */
-	if(tree->root == NULL) {
-		tree->root = (void*)malloc(sizeof(RGNode));
-		for(i=0;i<ALPHABET_SIZE;i++) {
-			tree->root->next[i] = NULL;
-		}
-	}
-	cur = tree->root;
-	assert(cur!=NULL);
+	/* Create a new node */
+	tree->numNodes++;
 
-	/* Traverse the tree to insert */
-	for(i=0;i<2*matchLength;i++) { 
-		midX = (lowerX+upperX)/2.0;
-		midY = (lowerY+upperY)/2.0;
-		/* Four branches to new node (x,y) from search indexes (x',y') 
-		 * B1: x'<x, y'<y
-		 * B2: x'>x, y'<y
-		 * B3: x'<x, y'>y
-		 * B4: x'>x, y'>y
-		 * */
-		compOne = (sequenceOneIndex < midX)?0:1;
-		compTwo = (sequenceTwoIndex < midY)?0:1;
-		nextNode = compOne + 2*compTwo;
+	/* Allocate memory for a new node */
+	tree->nodes = (RGNode*)realloc(tree->nodes, sizeof(RGNode)*tree->numNodes);
 
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "depth:%d,lowerX:%d,midX:%.1f,upperX:%d,lowerY:%d,midY:%.1f,upperY:%d,nextNode:%d\n",
-					i+1,
-					lowerX,
-					midX,
-					upperX,
-					lowerY,
-					midY,
-					upperY,
-					nextNode);
-		}
+	/* Initialize node */
+	tree->nodes[tree->numNodes-1].numEntries = 1;
+	tree->nodes[tree->numNodes-1].indexOne = indexOne;
+	tree->nodes[tree->numNodes-1].indexTwo = indexTwo;
+	tree->nodes[tree->numNodes-1].positions = NULL;
+	tree->nodes[tree->numNodes-1].chromosomes = NULL;
 
-		/* Update lower and upper */
-		switch(nextNode) {
-			case 0:
-				upperX = (int)midX;
-				upperY = (int)midY;
-				break;
-			case 1:
-				lowerX = (int)(midX+0.5);
-				upperY = (int)midY;
-				break;
-			case 2:
-				upperX = (int)midX;
-				lowerY = (int)(midY+0.5);
-				break;
-			case 3:
-				lowerX = (int)(midX+0.5);
-				lowerY = (int)(midY+0.5);
-				break;
-			default:
-				fprintf(stderr, "Error.  Could not understand nextNode [%d] in RGTree.c.  Terminating!\n", nextNode);
-				exit(1);
-				break;
-		}
+	/* Allocate memory for the node members */
+	tree->nodes[tree->numNodes-1].positions = (int*)malloc(sizeof(int));
+	tree->nodes[tree->numNodes-1].chromosomes = (char*)malloc(sizeof(char));
 
-		/* Allocate a new node if it does not exist */
-		if(cur->next[nextNode] == NULL) {
-			/* If it is a leaf node, then allocate an array of integers */
-			if(i==2*matchLength-1) {
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "Creating a new leaf\n");
-				}
-				/* Create a leaf */
-				cur->next[nextNode] = (void*)malloc(sizeof(RGLeaf));
-				((RGLeaf*)cur->next[nextNode])->numEntries = 1;
-				((RGLeaf*)cur->next[nextNode])->positions = (int*)malloc(sizeof(int));
-				((RGLeaf*)cur->next[nextNode])->positions[0] = position;
-				((RGLeaf*)cur->next[nextNode])->chromosomes = (char*)malloc(sizeof(char));
-				((RGLeaf*)cur->next[nextNode])->chromosomes[0] = (int)chromosome;
-			}
-			else {
-				/* Allocate the node */
-				cur->next[nextNode] = malloc(sizeof(RGNode));
-				assert(cur->next[nextNode] != NULL);
-				/* Initialize it's pointers */
-				temp = (RGNode*)cur->next[nextNode];
-				for(j=0;j<ALPHABET_SIZE;j++) {
-					temp->next[j] = NULL;
-				}
-			}
-		}
-		else if(i==2*matchLength-1) {
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Adding to the leaf\n");
-			}
-			/* Add to the leaf */
-			((RGLeaf*)cur->next[nextNode])->numEntries++;
-			((RGLeaf*)cur->next[nextNode])->positions = (int*)realloc(((RGLeaf*)cur->next[nextNode])->positions, sizeof(int)*(((RGLeaf*)cur->next[nextNode])->numEntries));
-			((RGLeaf*)cur->next[nextNode])->chromosomes= (char*)realloc(((RGLeaf*)cur->next[nextNode])->chromosomes, sizeof(char)*(((RGLeaf*)cur->next[nextNode])->numEntries));
-			((RGLeaf*)cur->next[nextNode])->positions[((RGLeaf*)cur->next[nextNode])->numEntries-1] = position;
-			((RGLeaf*)cur->next[nextNode])->chromosomes[((RGLeaf*)cur->next[nextNode])->numEntries-1] = chromosome;
-		}
-		/* move to next one */
-		cur = cur->next[nextNode];
-	}
+	/* Copy over */
+	tree->nodes[tree->numNodes-1].positions[tree->nodes[tree->numNodes-1].numEntries-1] = position;
+	tree->nodes[tree->numNodes-1].chromosomes[tree->nodes[tree->numNodes-1].numEntries-1] = chromosome;
 
 	return 1;
 }
 
 /* TODO */
-void RGTreeDelete(RGTree *tree)
+void RGTreeCleanUpTree(RGTree *tree) 
 {
-	RGTreeDeleteHelper((void**)&tree->root, 0, tree->depth);
+	int i, j;
+	RGNode tempNode;	
+	int prevIndex=-1;
+	RGNode *tempNodes=NULL;
+	int numTempNodes=0;
 
-	/* Free root */
-	free(tree->root);
-	tree->root=NULL;
+	tempNode.indexOne=-1;
+	tempNode.indexTwo=-1;
+
+	/* Sort the nodes in the tree */
+	if(VERBOSE >= 1) {
+		fprintf(stderr, "Sorting (in-place:%d)\n", IN_PLACE);
+	}
+	if(IN_PLACE == 0) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Sorting:\n");
+		}
+		RGTreeMergeSortNodes(tree, 0, tree->numNodes-1);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\n");
+		}
+
+	}
+	else {
+		/* We could use in place merge sort, but lets use insertion sort for simplicity.
+		 * If time becomes a factor, we can implement a faster version later */
+		RGTreeInsertionSortNodes(tree);
+	}
+	if(VERBOSE >= 1) {
+		fprintf(stderr, "Sorting complete\n");
+	}
+
+	/* Remove duplicates */
+	/* Assumes the nodes are sorted */
+	/* We could do this in-place, or with a new memory */
+	if(VERBOSE >= 1) {
+		fprintf(stderr, "Merging\n");
+	}
+	if(IN_PLACE == 0) {
+		for(i=0;i<tree->numNodes;i++) {
+			if(RGNodeCompare(&tree->nodes[i], &tempNode)==0) {
+				/* copy cur node to previous one */
+				assert(prevIndex >= 0);
+				assert(tempNodes[prevIndex].indexOne == tree->nodes[i].indexOne);
+				assert(tempNodes[prevIndex].indexTwo == tree->nodes[i].indexTwo);
+				int start = tempNodes[prevIndex].numEntries;
+				/* Allocate memory for chromosomes and positions */
+				tempNodes[prevIndex].numEntries += tree->nodes[i].numEntries;
+				tempNodes[prevIndex].positions = (int*)realloc(tempNodes[prevIndex].positions, sizeof(int)*tempNodes[prevIndex].numEntries);
+				tempNodes[prevIndex].chromosomes = (char*)realloc(tempNodes[prevIndex].chromosomes, sizeof(char)*tempNodes[prevIndex].numEntries);
+				/* Copy over chromosomes and positions */
+				for(j=start;j<tempNodes[prevIndex].numEntries;j++) {
+					tempNodes[prevIndex].positions[j] = tree->nodes[i].positions[j-start];
+					tempNodes[prevIndex].chromosomes[j] = tree->nodes[i].chromosomes[j-start];
+				}
+				/* Free memory of the current node */
+				free(tree->nodes[i].positions);
+				free(tree->nodes[i].chromosomes);
+			}
+			else {
+				/* append cur node to tempNodes */
+				/* Allocate memory */
+				numTempNodes++;
+				tempNodes = (RGNode*)realloc(tempNodes, sizeof(RGNode)*numTempNodes);
+				/* Copy over */
+				RGNodeCopy(&tree->nodes[i], &tempNodes[numTempNodes-1]);
+				/* save info */
+
+				tempNode.indexOne = tree->nodes[i].indexOne;
+				tempNode.indexTwo = tree->nodes[i].indexTwo;
+				prevIndex = numTempNodes-1;
+			}
+		}
+		/* Free nodes in the tree */
+		free(tree->nodes);
+		/* Copy over nodes */
+		tree->nodes = tempNodes;
+		tree->numNodes = numTempNodes;
+	}
+	else {
+		int end = tree->numNodes;
+		/* Merge in-place O(n^2) */
+		for(i=0;i<end;i++) {
+			if(RGNodeCompare(&tree->nodes[i], &tempNode)==0) {
+				/* copy cur node to previous one */
+				assert(i>0);
+				int start = tree->nodes[i-1].numEntries;
+				/* Allocate memory for chromosomes and positions */
+				tree->nodes[i-1].numEntries += tree->nodes[i].numEntries;
+				tree->nodes[i-1].positions = (int*)realloc(tree->nodes[i-1].positions, sizeof(int)*tree->nodes[i-1].numEntries);
+				tree->nodes[i-1].chromosomes = (char*)realloc(tree->nodes[i-1].chromosomes, sizeof(char)*tree->nodes[i-1].numEntries);
+				/* Copy over chromosomes and positions */
+				for(j=start;j<tree->nodes[i-1].numEntries;j++) {
+					tree->nodes[i-1].positions[j] = tree->nodes[i].positions[j-start];
+					tree->nodes[i-1].chromosomes[j] = tree->nodes[i].chromosomes[j-start];
+				}
+				/* Free memory of the current node */
+				free(tree->nodes[i].positions);
+				tree->nodes[i].positions = NULL;
+				free(tree->nodes[i].chromosomes);
+				tree->nodes[i].chromosomes = NULL;
+				/* Shift all nodes from i+1 to end down by one */
+				for(j=i+1;j<end;j++) {
+					RGNodeCopy(&tree->nodes[j], &tree->nodes[j-1]);
+				}
+				/* Decrement the end since we have overwritten a node */
+				end--;
+				/* Decrement i since we have shifted the array */
+				i--;
+			}
+			else {
+				/* ignore */
+				tempNode.indexOne = tree->nodes[i].indexOne;
+				tempNode.indexTwo = tree->nodes[i].indexTwo;
+				prevIndex = i;
+			}
+		}
+		/* Reallocate memory to reflect new size */
+		tree->nodes = (RGNode*)realloc(tree->nodes, sizeof(RGNode)*end);
+		tree->numNodes = end;
+	}
+	if(VERBOSE >= 1) {
+		fprintf(stderr, "Merging complete\n");
+	}
 }
 
 /* TODO */
-void RGTreeDeleteHelper(void **node, int curDepth, int depth)
+/* Note: if memory requirements are large, we could sort in place, or use a naive sort. */
+void RGTreeMergeSortNodes(RGTree *tree, int low, int high)
 {
-	int i;
-	void *temp;
-	RGNode *tempRGNodePtr;
-	int *tempIntPtr;
-	if(NULL != (*node)) {
-		/* At the leaves, we store an array of ints.  Make sure 
-		 * we do not forget to delete them when we get to the 
-		 * lowest depth.  But we also must be carefull not stop
-		 * at the leaves.
-		 * */
-		if(curDepth<depth) {
-			for(i=0;i<ALPHABET_SIZE;i++) {
-				/* Delete the children */
-				temp =(*((RGNode**)node))->next[i];
-				if(curDepth == depth-1) {
-					tempIntPtr= (int*)temp;
-					RGTreeDeleteHelper((void**)(&tempIntPtr), curDepth+1, depth);
-				}
-				else {
-					tempRGNodePtr = (RGNode*)temp;
-					RGTreeDeleteHelper((void**)(&tempRGNodePtr), curDepth+1, depth);
-				}
-			}
-			free((*((RGNode**)node)));
-			(*((RGNode**)node)) = NULL;
+	/* MergeSort! */
+	int mid = (low + high)/2;
+	int start_upper = mid + 1;
+	int end_upper = high;
+	int start_lower = low;
+	int end_lower = mid;
+	int ctr, i;
+
+	RGNode *tempNodes;
+
+	if(low >= high) {
+		return;
+	}
+
+	/* Partition the list into two lists and then sort them recursively */
+	RGTreeMergeSortNodes(tree, low, mid);
+	RGTreeMergeSortNodes(tree, mid+1, high);
+
+	/* Allocate temporary memory */
+	tempNodes = (RGNode*)malloc((high-low+1)*sizeof(RGNode));
+
+	/* Merge the two lists */
+	ctr = 0;
+	while( (start_lower<=end_lower) && (start_upper<=end_upper) )
+	{
+		if(RGNodeCompare(&tree->nodes[start_lower], &tree->nodes[start_upper]) <= 0) { 
+			RGNodeCopy(&tree->nodes[start_lower], &tempNodes[ctr]);
+			start_lower++;
 		}
 		else {
-			/* Free the RGLeaf */
-			free((*((RGLeaf**)node))->positions);
-			free((*((RGLeaf**)node))->chromosomes);
-			free(*((RGLeaf**)node));
+			RGNodeCopy(&tree->nodes[start_upper], &tempNodes[ctr]);
+			start_upper++;
+		}
+		ctr++;
+		assert(ctr<high-low+1);
+	}
+	if(start_lower<=end_lower) {
+		while(start_lower<=end_lower) {
+			RGNodeCopy(&tree->nodes[start_lower], &tempNodes[ctr]);
+			ctr++;
+			start_lower++;
 		}
 	}
+	else {
+		while(start_upper<=end_upper) {
+			RGNodeCopy(&tree->nodes[start_upper], &tempNodes[ctr]);
+			ctr++;
+			start_upper++;
+		}
+	}
+	/* Copy back */
+	for(i=low, ctr=0;i<=high;i++, ctr++) {
+		RGNodeCopy(&tempNodes[ctr], &tree->nodes[i]); 
+	}
+
+	/* Free memory */
+	free(tempNodes);
+
+	if(VERBOSE>=0) {
+		if( ( 100.0*(high-low) )/tree->numNodes > MERGE_SORT_MIN_PERCENT) {
+	fprintf(stderr, "\r%3.2lf percent complete",
+			100.0*high/tree->numNodes); 
+	}
+	}
+}
+
+/* TODO */
+void RGTreeInsertionSortNodes(RGTree *tree)
+{
+	int i, j;
+	RGNode tempNode;
+
+	for(i=1;i<tree->numNodes;i++) {
+		/* Save the current node */
+		RGNodeCopy(&tree->nodes[i], &tempNode);
+		j=i-1;
+		while(j>=0 && RGNodeCompare(&tree->nodes[j], &tempNode)>0) {
+			/* Copy j into j+1 */
+			RGNodeCopy(&tree->nodes[j], &tree->nodes[j+1]);
+			j--;
+		}
+		/* Update j to the current node (saved) */
+		RGNodeCopy(&tempNode, &tree->nodes[j+1]);
+	}
+}
+
+/* TODO */
+int RGTreeGetIndex(RGTree *tree,
+		int indexOne,
+		int indexTwo)
+{
+	int low = 0;
+	int high = tree->numNodes-1;
+	int mid;
+
+	/* Binary search */
+	while(low <= high) {
+		mid = (low + high)/2;
+		if(indexOne < tree->nodes[mid].indexOne ||
+				(indexOne == tree->nodes[mid].indexOne && indexTwo < tree->nodes[mid].indexTwo)) {
+			high = mid-1;
+		}
+		else if(indexOne == tree->nodes[mid].indexOne && indexTwo == tree->nodes[mid].indexTwo) {
+			return mid;
+		}
+		else {
+			low = mid+1;
+		}
+	}
+	return -1;
+}
+
+/* TODO */
+void RGTreeDelete(RGTree *tree)
+{
+	int i;
+
+	/* Delete fields in the individual nodes */
+	for(i=0;i<tree->numNodes;i++) {
+		free(tree->nodes[i].positions);
+		tree->nodes[i].positions=NULL;
+		free(tree->nodes[i].chromosomes);
+		tree->nodes[i].chromosomes=NULL;
+		tree->nodes[i].numEntries=0;
+	}
+
+	/* Free nodes*/
+	free(tree->nodes);
+	tree->nodes=NULL;
 }
 
 /* TODO */
 double RGTreeGetSize(RGTree *tree, int outputSize) 
 {
-	double total=RGTreeGetSizeHelper((void*)tree->root, 0, tree->depth, -1);
+	int i;
+	double total=0;
+
+	/* Get memory used in each node */
+	for(i=0;i<tree->numNodes;i++) {
+		total += sizeof(RGNode) + /* memory used by the node */
+			sizeof(int)*tree->nodes[i].numEntries + /* memory used by positions */
+			sizeof(char)*tree->nodes[i].numEntries; /* memory used by chromosomes */
+	}
+
+	/* Get memory of the RGTree */
+	total += sizeof(RGTree);
+
 	switch(outputSize) {
 		case RGT_KILOBYTES:
 			return (total/1000);
@@ -211,168 +347,289 @@ double RGTreeGetSize(RGTree *tree, int outputSize)
 }
 
 /* TODO */
-double RGTreeGetSizeHelper(void* node, int curDepth, int depth, int direction) 
-{
-	if(NULL!=node) {
-		if(curDepth<depth) {
-			return (RGTreeGetSizeHelper((void*)((RGNode*)node)->next[0], curDepth+1, depth, 0) + 
-					RGTreeGetSizeHelper((void*)((RGNode*)node)->next[1], curDepth+1, depth, 1) + 
-					RGTreeGetSizeHelper((void*)((RGNode*)node)->next[2], curDepth+1, depth, 2) + 
-					RGTreeGetSizeHelper((void*)((RGNode*)node)->next[3], curDepth+1, depth, 3) + 
-					(int)sizeof(RGNode)); /* size of the current node */
-		}
-		else {
-			/* Get the size of the leaf */
-			return ( (int)sizeof(RGLeaf*) + /* size of the current pointer */
-					(int)sizeof(RGLeaf) + /* size of the current node */
-					(int)sizeof(int)*(((RGLeaf*)node)->numEntries) + /* size of the int array of positions */
-					(int)sizeof(char)*(((RGLeaf*)node)->numEntries) ); /* size of the char array of chromosomes */
-		}
-	}
-	else {
-		return 0;
-	}
-}
-
-/* TODO */
 void RGTreePrintTree(FILE *fp, RGTree *tree)
 {
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Tree depth:%d\n", tree->depth);
-	}
-	/* Print header */
-	RGTreePrintHeader(fp, tree);
-
-	/* Print Tree */
-	RGTreePrintTreeHelper(fp, (void*)tree->root, 0, tree->depth);
-}
-
-/* TODO */
-void RGTreePrintTreeHelper(FILE *fp, void *node, int curDepth, int depth)
-{
-	int i;
+	int i, j;
 	/*
 	   unsigned int tempInt;
 	   */
+
+	/* Print header */
+	RGTreePrintHeader(fp, tree);
+
+	/* Print the nodes */
+	for(i=0;i<tree->numNodes;i++) {
+		fprintf(fp, "\n");
+		/* Print the indexes and the number of entries */
+		/*
+		   tempInt = tree->nodes[i].indexOne;
+		   tempInt = htonl(tempInt);
+		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+		   tempInt = tree->nodes[i].indexTwo;
+		   tempInt = htonl(tempInt);
+		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+		   tempInt = tree->nodes[i].numEntries;
+		   tempInt = htonl(tempInt);
+		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+		   */
+		fprintf(fp, "%d\t%d\t%d",
+				tree->nodes[i].indexOne,
+				tree->nodes[i].indexTwo,
+				tree->nodes[i].numEntries);
+		/* Print the entries */
+		for(j=0;j<tree->nodes[i].numEntries;j++) {
+			/*
+			   tempInt = tree->nodes[i].positions[j];
+			   tempInt = htonl(tempInt);
+			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+			   tempInt = tree->nodes[i].chromosomes[j];
+			   tempInt = htonl(tempInt);
+			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+			   */
+			fprintf(fp, "\t%d\t%d",
+					tree->nodes[i].positions[j],
+					(int)tree->nodes[i].chromosomes[j]);
+		}
+	}
+	fprintf(fp, "\n");
+}
+
+/* TODO */
+int RGTreeReadTree(RGTree *tree, FILE *fp)
+{
+	int i, j;
 	int tempInt;
-	if(NULL!=node) {
-		if(curDepth == depth) {
-			assert(curDepth == depth);
-			/* We are at a leaf node */
-			/*
-			   tempInt = (unsigned int)(-2+RGT_ADD_TO_OUTPUT);
-			   */
-			tempInt = -2+RGT_ADD_TO_OUTPUT;
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "\t%d[%d]{%d}", tempInt+RGT_ADD_TO_INPUT, tempInt, curDepth);
-			}
-			/*
-			   tempInt = htonl(tempInt);
-			   */
-			/*
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   */
-			fprintf(fp, "\t%d", tempInt);
+	/*
+	   unsigned int tempInt;
+	   */
+	/* Make sure memory of the root has been allocated */
+	assert(tree!=NULL);
+	assert(tree->nodes==NULL);
 
-			/* Write contents */
-			/* Write the number of entries */
-			/*
-			   tempInt = (unsigned int)(((RGLeaf*)node)->numEntries+RGT_ADD_TO_OUTPUT);
-			   */
-			tempInt = ((RGLeaf*)node)->numEntries+RGT_ADD_TO_OUTPUT;
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "\t%d[%d]{%d}", tempInt+RGT_ADD_TO_INPUT, tempInt, curDepth);
-			}
-			/*
-			   tempInt = htonl(tempInt);
-			   */
-			/*
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   */
-			fprintf(fp, "\t%d", tempInt);
-			/* Write the positions */
-			for(i=0;i<((RGLeaf*)node)->numEntries;i++) {
-				/*
-				   tempInt = (unsigned int)(((RGLeaf*)node)->positions[i]+RGT_ADD_TO_OUTPUT);
-				   */
-				tempInt = ((RGLeaf*)node)->positions[i]+RGT_ADD_TO_OUTPUT;
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "\t%d[%d]{%d}", tempInt+RGT_ADD_TO_INPUT, tempInt, curDepth);
-				}
-				/*
-				   tempInt = htonl(tempInt);
-				   */
-				/*
-				   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-				   */
-				fprintf(fp, "\t%d", tempInt);
-			}
-			/* Write the chromosomes */
-			for(i=0;i<((RGLeaf*)node)->numEntries;i++) {
-				/*
-				   tempInt = (unsigned int)(((RGLeaf*)node)->chromosomes[i]+RGT_ADD_TO_OUTPUT);
-				   */
-				tempInt = ((int)((RGLeaf*)node)->chromosomes[i])+RGT_ADD_TO_OUTPUT;
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "\t%d[%d]{%d}", tempInt+RGT_ADD_TO_INPUT, tempInt, curDepth);
-				}
-				/*
-				   tempInt = htonl(tempInt);
-				   */
-				/*
-				   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-				   */
-				fprintf(fp, "\t%d", tempInt);
-			}
+	/* Read in the header */
+	RGTreeReadHeader(fp, tree);
+
+	assert(tree->numNodes > 0);
+	/* Allocate memory for the nodes */
+	tree->nodes = (RGNode*)malloc(sizeof(RGNode)*tree->numNodes);
+
+	/* Read in the nodes */
+	for(i=0;i<tree->numNodes;i++) {
+		/* Read in the indexes and the number of entries */
+		/*
+		   fread(&tempInt, sizeof(unsigned int), 1, fp);
+		   tempInt = ntohl(tempInt);
+		   tree->nodes[i].indexOne = tempInt;
+		   fread(&tempInt, sizeof(unsigned int), 1, fp);
+		   tempInt = ntohl(tempInt);
+		   tree->nodes[i].indexTwo = tempInt;
+		   fread(&tempInt, sizeof(unsigned int), 1, fp);
+		   tempInt = ntohl(tempInt);
+		   tree->nodes[i].numEntries = tempInt;
+		   */
+		if(fscanf(fp, "%d %d %d",
+					&tree->nodes[i].indexOne,
+					&tree->nodes[i].indexTwo,
+					&tree->nodes[i].numEntries)==EOF) {
+			fprintf(stderr, "Error.  Could not read in indexes and entries.  Terminating!\n");
+			exit(1);
 		}
-		else {
-			assert(curDepth < depth);
-			for(i=0;i<ALPHABET_SIZE;i++) {
-				if(((RGNode*)node)->next[i] == NULL) {
-					/* The current node has no child at index i */
-					/*
-					   tempInt = (unsigned int)(-1+RGT_ADD_TO_OUTPUT);
-					   */
-					tempInt = -1+RGT_ADD_TO_OUTPUT;
-					if(VERBOSE >= DEBUG) {
-						fprintf(stderr, "\t%d[%d]{%d}", tempInt+RGT_ADD_TO_INPUT, tempInt, curDepth);
-					}
-					/*
-					   tempInt = htonl(tempInt);
-					   */
-					/*
-					   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-					   */
-					fprintf(fp, "\t%d", tempInt);
 
-				}
-				else {
-					/* The current node has a child at index i */
-					assert(i+RGT_ADD_TO_OUTPUT>=0);
-					/*
-					   tempInt = (unsigned int)(i+RGT_ADD_TO_OUTPUT);
-					   */
-					tempInt = i+RGT_ADD_TO_OUTPUT;
-					if(VERBOSE >= DEBUG) {
-						fprintf(stderr, "\t%d[%d]{%d}", tempInt+RGT_ADD_TO_INPUT, tempInt, curDepth);
-					}
-					/*
-					   tempInt = htonl(tempInt);
-					   */
-					/*
-					   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-					   */
-					fprintf(fp, "\t%d", tempInt);
-					RGTreePrintTreeHelper(fp, (void*)((RGNode*)node)->next[i], curDepth+1, depth);
-				}
+		/* Allocate memory for the positions and chromosomes */
+		tree->nodes[i].positions = (int*)malloc(sizeof(int)*tree->nodes[i].numEntries);
+		tree->nodes[i].chromosomes = (char*)malloc(sizeof(char)*tree->nodes[i].numEntries);
+
+		/* Read in positions and chromosomes */
+		for(j=0;j<tree->nodes[i].numEntries;j++) {
+			/*
+			   fread(&tempInt, sizeof(unsigned int), 1, fp);
+			   tempInt = ntohl(tempInt);
+			   tree->nodes[i].positions[j] = tempInt;
+			   fread(&tempInt, sizeof(unsigned int), 1, fp);
+			   tempInt = ntohl(tempInt);
+			   tree->nodes[i].chromosomes[j] = tempInt;
+			   */
+			if(fscanf(fp, "%d %d",
+						&tree->nodes[i].positions[j],
+						&tempInt)==EOF) {
+				fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
+				exit(1);
 			}
-
+			tree->nodes[i].chromosomes[j] = tempInt;
 		}
+	}
+	return 1;
+}
+
+/* TODO */
+void RGTreePrintHeader(FILE *fp, RGTree *tree)
+{
+	unsigned int numNodes=(unsigned int)(tree->numNodes);
+	unsigned int subtractGapInformation=(unsigned int)(tree->gap<0)?(-1*tree->gap):0;
+	unsigned int addGapInformation=(unsigned int)(tree->gap>=0)?(tree->gap):0;
+	unsigned int matchLength=(unsigned int)tree->matchLength;
+	unsigned int startChr=(unsigned int)tree->startChr;
+	unsigned int startPos=(unsigned int)tree->startPos;
+	unsigned int endChr=(unsigned int)tree->endChr;
+	unsigned int endPos=(unsigned int)tree->endPos; 
+
+	if(VERBOSE > 0) {
+		fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d,%d,%d\n",
+				numNodes,
+				subtractGapInformation,
+				addGapInformation,
+				matchLength,
+				startChr,
+				startPos,
+				endChr,
+				endPos);
+	}
+
+	/* Big Endian/Little Endian conversion */
+	/*
+	   numNodes=htonl(numNodes);
+	   subtractGapInformation=htonl(subtractGapInformation);
+	   addGapInformation=htonl(addGapInformation);
+	   matchLength=htonl(matchLength);
+	   startChr=htonl(startChr);
+	   startPos=htonl(startPos);
+	   endChr=htonl(endChr);
+	   endPos=htonl(endPos);
+	   */
+
+	/* Print Header */
+	/*
+	   fwrite(&numNodes, sizeof(unsigned int), 1, fp);
+	   fwrite(&subtractGapInformation, sizeof(unsigned int), 1, fp);
+	   fwrite(&addGapInformation, sizeof(unsigned int), 1, fp);
+	   fwrite(&matchLength, sizeof(unsigned int), 1, fp);
+	   fwrite(&startChr, sizeof(unsigned int), 1, fp);
+	   fwrite(&startPos, sizeof(unsigned int), 1, fp);
+	   fwrite(&endChr, sizeof(unsigned int), 1, fp);
+	   fwrite(&endPos, sizeof(unsigned int), 1, fp);
+	   */
+	fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",
+			numNodes,
+			subtractGapInformation,
+			addGapInformation,
+			matchLength,
+			startChr,
+			startPos,
+			endChr,
+			endPos);
+}
+
+/* TODO */
+void RGTreeReadHeader(FILE *fp, RGTree *tree)
+{
+	int numNodes;
+	int subtractGapInformation;
+	int addGapInformation;
+	int matchLength;
+	int startChr;
+	int startPos;
+	int endChr;
+	int endPos;
+
+	/* Read in header */
+	/*
+	   if(fread(&numNodes, sizeof(unsigned int), 1, fp)!=EOF
+	   && fread(&subtractGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
+	   && fread(&addGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
+	   && fread(&matchLength, sizeof(unsigned int), 1, fp)!=EOF 
+	   && fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
+	   && fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
+	   && fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
+	   && fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
+	   */
+	if(fscanf(fp, "%d %d %d %d %d %d %d %d",
+				&numNodes,
+				&subtractGapInformation,
+				&addGapInformation,
+				&matchLength,
+				&startChr,
+				&startPos,
+				&endChr,
+				&endPos)!=EOF) {
+
+		/* Big Endian/Little Endian conversion */
+		/*
+		   numNodes = ntohl(numNodes);
+		   subtractGapInformation = ntohl(subtractGapInformation);
+		   addGapInformation = ntohl(addGapInformation);
+		   startChr = ntohl(startChr);
+		   startPos = ntohl(startPos);
+		   endChr = ntohl(endChr);
+		   endPos = ntohl(endPos);
+		   matchLength = ntohl(matchLength);
+		   */
+
+		if(VERBOSE > 0) {
+			fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d,%d,%d\n",
+					numNodes,
+					subtractGapInformation,
+					addGapInformation,
+					matchLength,
+					startChr,
+					startPos,
+					endChr,
+					endPos);
+		}
+
+		/* Adjust header - see bpreprocess */
+		tree->numNodes = numNodes;
+		tree->gap = addGapInformation - subtractGapInformation;
+		tree->matchLength = matchLength;
+		tree->startChr = startChr;
+		tree->startPos = startPos;
+		tree->endChr = endChr;
+		tree->endPos = endPos;
+
+		/* Error checking ? */
 	}
 	else {
-		return;
+		fprintf(stderr, "Error.  Could not read header file in RGTreeReadFromFile.  Terminating!\n");
+		exit(1);
 	}
+}
+
+/* TODO */
+/* We will append the matches if matches have already been found */
+int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, RGMatch *m) 
+{
+	int index, startIndex, i;
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "RGTreeGetMatch.  Searching for indexes %d and %d.\n",
+				indexOne,
+				indexTwo);
+	}
+
+	/* Get the index of the tree */
+	index = RGTreeGetIndex(tree, indexOne, indexTwo);
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Found index:%d\n", index);
+	}
+
+	if(index >= 0 && index < tree->numNodes) {
+		/* Copy over the matches */
+		/* (Re)Allocate memory for the new matches */
+		startIndex = m->numEntries;
+		m->numEntries = m->numEntries + tree->nodes[index].numEntries;
+		m->positions = (int*)realloc(m->positions, sizeof(int)*(m->numEntries)); 
+		m->chromosomes = (char*)realloc(m->chromosomes, sizeof(char)*(m->numEntries)); 
+		m->strand = (char*)realloc(m->strand, sizeof(char)*(m->numEntries)); 
+
+		/* Copy over */
+		for(i=startIndex;i<m->numEntries;i++) {
+			m->positions[i] = tree->nodes[index].positions[i];
+			m->chromosomes[i] = tree->nodes[index].chromosomes[i];
+			m->strand[i] = direction;
+		}
+	}
+
+	return 1;
 }
 
 /* TODO */
@@ -408,442 +665,25 @@ int GetIndexFromSequence(char *sequence, int matchLength)
 }
 
 /* TODO */
-int RGTreeReadFromFile(RGTree *tree, FILE *fp)
+void RGNodeCopy(RGNode *src, RGNode *dest) 
 {
-	int i;
-	/* Make sure memory of the root has been allocated */
-	assert(tree->root!=NULL);
-	for(i=0;i<ALPHABET_SIZE;i++) {/*overkill*/
-		assert(tree->root->next[i] == NULL);
-	}
-
-	/* Read in the header */
-	RGTreeReadHeader(fp, tree);
-
-	/* Read in the tree */
-	return RGTreeReadFromFileHelper((void*)tree->root, fp, tree, 0, tree->depth);
+	dest->indexOne = src->indexOne;
+	dest->indexTwo = src->indexTwo;
+	dest->numEntries = src->numEntries;
+	dest->positions = src->positions;
+	dest->chromosomes = src->chromosomes;
 }
 
-/* TODO */
-int RGTreeReadFromFileHelper(void *node, FILE *fp, RGTree *tree, int curDepth, int depth)
+int RGNodeCompare(RGNode *a, RGNode *b) 
 {
-	int i, j;
-	int tempInt;
-	int numPositions;
-	RGNode *curNode=NULL;
-	RGLeaf *curLeaf=NULL;
-
-	/* Basic idea is to read the tree from file */
-	for(i=0;i<ALPHABET_SIZE;i++) { /* For each potential leaf */
-		/*
-		   if(fread(&tempInt, sizeof(unsigned int), 1, fp)==EOF) {
-		   }
-		   */
-		if(fscanf(fp, "%d", &tempInt)==EOF) {
-			return EOF;
-		}
-		else {
-			/* Convert to proper no (Big Endian/Little Endian) */
-			/*
-			   tempInt = ntohl(tempInt);
-			   */
-
-			/* Add to input */
-			tempInt += RGT_ADD_TO_INPUT;
-
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "%d[%d]\t",
-						tempInt+RGT_ADD_TO_OUTPUT,
-						tempInt);
-			}
-
-			if(tempInt >= 0 && tempInt <=3) {
-				assert(curDepth < depth);
-				assert(tempInt == i);
-				curNode = (RGNode*)node;
-				/* Check if we have to allocate a new node */
-				if(curNode->next[tempInt] == NULL) {
-					/* Check what type of node we have to add */
-					if(curDepth == depth-1) { /* Current node's child must be a leaf */
-						if(VERBOSE >= DEBUG) {
-							fprintf(stderr, "Child %d is a leaf (%d).\n", i, curDepth);
-						}
-						curNode->next[tempInt] = (void*)malloc(sizeof(RGLeaf));
-						/* Initialize fields */
-						curLeaf = (RGLeaf*)curNode->next[tempInt];
-						curLeaf->positions = NULL;
-						curLeaf->chromosomes = NULL;
-						curLeaf->numEntries = 0;
-					}
-					else { /* Current node's child must be an internal node */
-						if(VERBOSE >= DEBUG) {
-							fprintf(stderr, "Child %d is an internal node (%d).\n", i, curDepth);
-						}
-						curNode->next[tempInt] = (void*)malloc(sizeof(RGNode));
-						/* Initialize pointers */
-						for(j=0;j<ALPHABET_SIZE;j++) {
-							((RGNode*)curNode->next[tempInt])->next[j] = NULL;
-						}
-					}
-				}
-				else {
-					if(curDepth == depth-1) { /* Current node's child must be a leaf */
-						if(VERBOSE >= DEBUG) {
-							fprintf(stderr, "Child %d is a leaf (%d).\n", i, curDepth);
-						}
-					}
-					else { /* Current node's child must be an internal node */
-						if(VERBOSE >= DEBUG) {
-							fprintf(stderr, "Child %d is an internal node (%d).\n", i, curDepth);
-						}
-					}
-				}
-				/* Keep going deeper */
-				if(RGTreeReadFromFileHelper((void*)curNode->next[tempInt], fp, tree, curDepth+1, depth)==EOF) {
-					return EOF;
-				}
-			}
-			else if(tempInt == -1) {
-				assert(curDepth < depth); /* We must be at an internal node */
-				/* Do nothing this is null */
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "Child %d is null (%d).\n", i, curDepth);
-				}
-				curNode = (RGNode*)node;
-				assert(curNode->next[i] == NULL);
-			}
-			else if(tempInt == -2) {
-				/* We are at a leaf */
-				assert(curDepth == depth);
-				curLeaf = (RGLeaf*)node;
-
-				/* Read the number of positions to be read */
-				if(fscanf(fp, "%d", &numPositions)==EOF) {
-					fprintf(stderr, "Error.  Trying to read the number of positions.  Terminating!\n");
-				}
-				/*
-				   if(fread(&numPositions, sizeof(unsigned int), 1, fp)!=EOF) {
-				   }
-				   */
-				/* Convert to proper no (Big Endian/Little Endian) */
-				/*
-				   numPositions = ntohl(numPositions);
-				   */
-
-				/* Add offset */
-				numPositions += RGT_ADD_TO_INPUT;
-				assert(numPositions > 0);
-
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "%d[%d]\t",
-							numPositions+RGT_ADD_TO_OUTPUT,
-							numPositions);
-				}
-
-				/* Allocate memory for positions and chromosomes */
-				assert(curLeaf != NULL);
-				curLeaf->numEntries = numPositions;
-				curLeaf->positions = (int*)malloc(sizeof(int)*numPositions);
-				curLeaf->chromosomes = (char*)malloc(sizeof(char)*numPositions);
-
-				/* Read in positions */
-				/*
-				   if(fread(curLeaf.positions, sizeof(unsigned int), numPositions, fp)==EOF) {
-				   fprintf(stderr, "Error.  Trying to read %d positions.  Terminating!\n", numPositions);
-				   exit(1);
-				   }
-				   */
-				for(j=0;j<numPositions;j++) {
-					if(fscanf(fp, "%d", &curLeaf->positions[j])==EOF) {
-						fprintf(stderr, "Error.  Trying to read %d positions.  Terminating!\n", numPositions);
-						exit(1);
-					}
-					/* Convert to proper no (Big Endian/Little Endian) */
-					/*
-					   curLeaf->positions[j] = ntohl(curLeaf->positions[j]);
-					   */
-					/* Add offset */
-					curLeaf->positions[j] += RGT_ADD_TO_INPUT;
-					if(VERBOSE >= DEBUG) {
-						fprintf(stderr, "%d[%d]\t",
-								curLeaf->positions[j] +RGT_ADD_TO_OUTPUT,
-								curLeaf->positions[j]);
-					}
-				}
-
-				/* Read in chromosomes */
-				/*
-				 * THIS IS WRONG SINCE chromosomes is of type char!!
-				 if(fread(curLeaf->chromosomes, sizeof(unsigned int), numPositions, fp)==EOF) {
-				 fprintf(stderr, "Error.  Trying to read %d chromosomes.  Terminating!\n", numPositions);
-				 exit(1);
-				 }
-				 */
-				/* Convert to proper no (Big Endian/Little Endian) */
-				for(j=0;j<numPositions;j++) {
-					if(fscanf(fp, "%d", &tempInt)==EOF) {
-						fprintf(stderr, "Error.  Trying to read %d chromosomes.  Terminating!\n", numPositions);
-						exit(1);
-					}
-
-					/*
-					   curLeaf->chromosomes[j] = ntohl(curLeaf->chromosomes[j]);
-					   */
-					/* Add offset */
-					curLeaf->chromosomes[j] = tempInt + RGT_ADD_TO_INPUT;
-					if(VERBOSE >= DEBUG) {
-						fprintf(stderr, "%d[%d]\t",
-								curLeaf->chromosomes[j] + RGT_ADD_TO_INPUT,
-								curLeaf->chromosomes[j]);
-					}
-				}
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "Added information to the leaf (%d).\n", curDepth);
-				}
-				/* No more nodes at this level */
-				return 1;
-			}
-			else {
-				fprintf(stderr, "Error.  In RGTreeReadFromFileHelper could not understand input state %d.  Terminating!\n", tempInt);
-				exit(1);
-			}
-		}
+	if(a->indexOne < b->indexOne ||
+			(a->indexOne == b->indexOne && a->indexTwo < b->indexTwo)) { 
+		return -1;
 	}
-	return 1;
-}
-
-/* TODO */
-void RGTreePrintHeader(FILE *fp, RGTree *tree)
-{
-	unsigned int subtractGapInformation=(unsigned int)(tree->gap<0)?(-1*tree->gap):0;
-	unsigned int addGapInformation=(unsigned int)(tree->gap>=0)?(tree->gap):0;
-	unsigned int depthOfRGTree=(unsigned int)tree->depth;
-	unsigned int startChr=(unsigned int)tree->startChr;
-	unsigned int startPos=(unsigned int)tree->startPos;
-	unsigned int endChr=(unsigned int)tree->endChr;
-	unsigned int endPos=(unsigned int)tree->endPos; 
-
-	if(VERBOSE > 0) {
-		fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d,%d\n",
-				subtractGapInformation,
-				addGapInformation,
-				depthOfRGTree,
-				startChr,
-				startPos,
-				endChr,
-				endPos);
-	}
-
-	/* Big Endian/Little Endian conversion */
-	/*
-	   subtractGapInformation=htonl(subtractGapInformation);
-	   addGapInformation=htonl(addGapInformation);
-	   depthOfRGTree=htonl(depthOfRGTree);
-	   startChr=htonl(startChr);
-	   startPos=htonl(startPos);
-	   endChr=htonl(endChr);
-	   endPos=htonl(endPos);
-	   */
-
-	/* Print Header */
-	/*
-	   fwrite(&subtractGapInformation, sizeof(unsigned int), 1, fp);
-	   fwrite(&addGapInformation, sizeof(unsigned int), 1, fp);
-	   fwrite(&depthOfRGTree, sizeof(unsigned int), 1, fp);
-	   fwrite(&startChr, sizeof(unsigned int), 1, fp);
-	   fwrite(&startPos, sizeof(unsigned int), 1, fp);
-	   fwrite(&endChr, sizeof(unsigned int), 1, fp);
-	   fwrite(&endPos, sizeof(unsigned int), 1, fp);
-	   */
-	fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d\t%d",
-			subtractGapInformation,
-			addGapInformation,
-			depthOfRGTree,
-			startChr,
-			startPos,
-			endChr,
-			endPos);
-}
-
-/* TODO */
-void RGTreeReadHeader(FILE *fp, RGTree *tree)
-{
-	int subtractGapInformation;
-	int addGapInformation;
-	int depthOfRGTree;
-	int startChr;
-	int startPos;
-	int endChr;
-	int endPos;
-
-	/* Read in header */
-	/*
-	   if(fread(&subtractGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&addGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&depthOfRGTree, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
-	   */
-	if(fscanf(fp, "%d %d %d %d %d %d %d",
-				&subtractGapInformation,
-				&addGapInformation,
-				&depthOfRGTree,
-				&startChr,
-				&startPos,
-				&endChr,
-				&endPos)!=EOF) {
-
-		/* Big Endian/Little Endian conversion */
-		/*
-		   subtractGapInformation = ntohl(subtractGapInformation);
-		   addGapInformation = ntohl(addGapInformation);
-		   startChr = ntohl(startChr);
-		   startPos = ntohl(startPos);
-		   endChr = ntohl(endChr);
-		   endPos = ntohl(endPos);
-		   depthOfRGTree = ntohl(depthOfRGTree);
-		   */
-
-		if(VERBOSE > 0) {
-			fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d,%d\n",
-					subtractGapInformation,
-					addGapInformation,
-					depthOfRGTree,
-					startChr,
-					startPos,
-					endChr,
-					endPos);
-		}
-
-		/* Adjust header - see bpreprocess */
-		tree->gap = addGapInformation - subtractGapInformation;
-		tree->depth = depthOfRGTree;
-		tree->startChr = startChr;
-		tree->startPos = startPos;
-		tree->endChr = endChr;
-		tree->endPos = endPos;
-
-		/* Error checking ? */
+	else if(a->indexOne == b->indexOne && a->indexTwo == b->indexTwo) {
+		return 0;
 	}
 	else {
-		fprintf(stderr, "Error.  Could not read header file in RGTreeReadFromFile.  Terminating!\n");
-		exit(1);
+		return 1;
 	}
-}
-
-/* TODO */
-/* We will append the matches if matches have already been found */
-int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, RGMatch *m) 
-{
-	int i, j, nextNode, startIndex;
-	RGNode *cur=NULL;
-	int compOne;
-	int compTwo;
-	int lowerX=0;
-	double midX;
-	int upperX=pow(ALPHABET_SIZE, tree->depth/2) -1;
-	int lowerY=0;
-	double midY;
-	int upperY=upperX;
-
-	cur = tree->root;
-	assert(cur!=NULL);
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "\nRGTreeGetMatch.  Searching for indexes %d and %d.\n",
-				indexOne,
-				indexTwo);
-	}
-
-	/* Traverse the tree to find the appropriate leaf */
-	for(i=0;i<tree->depth;i++) {
-		midX = (lowerX+upperX)/2.0;
-		midY = (lowerY+upperY)/2.0;
-		/* Four branches to new node (x,y) from search indexes (x',y') 
-		 * B1: x'<x, y'<y
-		 * B2: x'>x, y'<y
-		 * B3: x'<x, y'>y
-		 * B4: x'>x, y'>y
-		 * */
-		compOne = (indexOne < midX)?0:1;
-		compTwo = (indexTwo < midY)?0:1;
-		nextNode = compOne + 2*compTwo;
-
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "depth:%d,lowerX:%d,midX:%.1f,upperX:%d,lowerY:%d,midY:%.1f,upperY:%d,nextNode:%d\n",
-					i+1,
-					lowerX,
-					midX,
-					upperX,
-					lowerY,
-					midY,
-					upperY,
-					nextNode);
-		}
-
-		/* Update lower and upper */
-		switch(nextNode) {
-			case 0:
-				upperX = (int)midX;
-				upperY = (int)midY;
-				break;
-			case 1:
-				lowerX = (int)(midX+0.5);
-				upperY = (int)midY;
-				break;
-			case 2:
-				upperX = (int)midX;
-				lowerY = (int)(midY+0.5);
-				break;
-			case 3:
-				lowerX = (int)(midX+0.5);
-				lowerY = (int)(midY+0.5);
-				break;
-			default:
-				fprintf(stderr, "Error.  Could not understand nextNode [%d] in RGTree.c.  Terminating!\n", nextNode);
-				exit(1);
-				break;
-		}
-
-		if(cur->next[nextNode] == NULL) {
-			/* If the next node does not exist, do not add any matches and return */
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "NO MATCH EXISTS (at depth %d)\n", i);
-			}
-			return 0;
-		}
-		else if(i==tree->depth-1) {
-			/* We are at a leaf, copy over the matches */
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "At a leaf, copying over...\n");
-			}
-
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Will copy over %d entries.\n",
-						((RGLeaf*)cur->next[nextNode])->numEntries);
-			}
-
-			/* (Re)Allocate memory for the new matches */
-			startIndex = m->numEntries;
-			m->numEntries = m->numEntries + ((RGLeaf*)cur->next[nextNode])->numEntries;
-			m->positions = (int*)realloc(m->positions, sizeof(int)*(m->numEntries)); 
-			m->chromosomes = (char*)realloc(m->chromosomes, sizeof(char)*(m->numEntries)); 
-			m->strand = (char*)realloc(m->strand, sizeof(char)*(m->numEntries)); 
-
-
-
-			/* Copy over */
-			for(j=startIndex;j<m->numEntries;j++) {
-				m->positions[j] = ((RGLeaf*)cur->next[nextNode])->positions[j-startIndex];
-				m->chromosomes[j] = ((RGLeaf*)cur->next[nextNode])->chromosomes[j-startIndex];
-				m->strand[j] = direction;
-			}
-		}
-		/* move to next one */
-		cur = cur->next[nextNode];
-	}
-
-	return 1;
 }

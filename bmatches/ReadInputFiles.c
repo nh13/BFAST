@@ -44,8 +44,8 @@ void ReadSequencesToTempFile(char *sequenceFileName,
 	int curReadNum = 1;
 
 	if(VERBOSE > 0) {
-	fprintf(stderr, "Reading sequences from %s to a temp file.\n",
-		sequenceFileName);
+		fprintf(stderr, "Reading sequences from %s to a temp file.\n",
+				sequenceFileName);
 	}
 
 	/* open sequence file */
@@ -76,12 +76,12 @@ void ReadSequencesToTempFile(char *sequenceFileName,
 		/* Print only if we are within the desired limit */
 		if(startReadNum<=0 || curReadNum >= startReadNum) {
 			/* Print sequence */
-			fprintf((*tempSeqFP), "%s", sequenceName);
+			fprintf((*tempSeqFP), "%s\n", sequenceName);
 			/* Print sequence */
-			fprintf((*tempSeqFP), "\t%s", sequence);
+			fprintf((*tempSeqFP), "%s\n", sequence);
 			/* Print paired sequence */
 			if(pairedEnd==1) {
-				fprintf((*tempSeqFP), "\t%s", pairedSequence);
+				fprintf((*tempSeqFP), "%s\n", pairedSequence);
 			}
 			if(VERBOSE >= DEBUG) {
 				fprintf(stderr, "sequenceName:%s\tsequence:%s",
@@ -151,7 +151,7 @@ void ReadRGTree(char *rgTreeFileName, RGTree *tree)
 	}
 
 	/* Read from file */
-	RGTreeReadFromFile(tree, fp);
+	RGTreeReadTree(tree, fp);
 
 	/* close file */
 	fclose(fp);

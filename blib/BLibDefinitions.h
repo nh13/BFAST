@@ -9,17 +9,16 @@
 #define DEFAULT_MATCH_LENGTH 11
 #define BREAK_LINE "************************************************************\n"
 
-#define VERBOSE 0
+#define IN_PLACE 0
+#define MERGE_SORT_MIN_PERCENT 0.01
+
+#define VERBOSE 11
 #define DEBUG 10
 
 #define ALPHABET_SIZE 4
 
 #define SEQUENCE_LENGTH 512
 #define SEQUENCE_NAME_LENGTH 4028
-
-/* For RGTree.c */
-#define RGT_ADD_TO_OUTPUT 2
-#define RGT_ADD_TO_INPUT -2
 
 /* For SRTree.c */
 #define SRT_SEQUENCE_NAME_LENGTH 1024 
@@ -41,23 +40,24 @@ enum {RGT_KILOBYTES, RGT_MEGABYTES, RGT_GIGABYTES};
 /* 		Data structures 			*/
 /************************************/
 
-/* TODO */
+/* TODO*/
+/* We could package this better, i.e. pack
+ * numEntries and indexOne and indexTwo.
+ * */
 typedef struct {
-	void *next[4];
-} RGNode;
-
-/* TODO */
-typedef struct {
+	int indexOne;
+	int indexTwo;
+	int numEntries;
 	int *positions;
 	char *chromosomes;
-	int numEntries;
-} RGLeaf;
+} RGNode;
 
-/* TODO */
+/* TODO*/
 typedef struct {
-	RGNode *root;
+	RGNode *nodes;
+	int numNodes;
 	int gap;
-	int depth; /* same as matchLength */
+	int matchLength;
 	int startChr;
 	int startPos;
 	int endChr;
@@ -94,7 +94,6 @@ typedef struct {
 	int numChrs;
 	int startChr;
 	int startPos;
-#define DEBUG 10
 	int endChr;
 	int endPos;
 } RGList;
