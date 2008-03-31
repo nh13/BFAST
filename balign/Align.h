@@ -3,7 +3,7 @@
 
 #include "Definitions.h"
 
-double AlignmentGetScore(char*, int, char*, int, ScoringMatrix*);
+int AlignmentGetScore(char*, int, char*, int, ScoringMatrix*, AlignOutput*);
 double GetScoreFromMatrix(char, char, ScoringMatrix*);
 double GetMaximumOfTwoDoubles(double, double);
 #endif

@@ -20,7 +20,8 @@ int AlignmentGetScore(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		ScoringMatrix *sm)
+		ScoringMatrix *sm,
+		AlignOutput *ao)
 {
 	int i, j;
 	double curMismatchScore;
@@ -123,6 +124,15 @@ int AlignmentGetScore(char *read,
 
 	/* Store results */
 	/* TODO */
+	
+	curCol=endCol;
+	curRow=endRow;
+	while(curCol != -1 && curRow != -1) {
+		/* Update the row and column */
+		tempCol = curCol;
+		curCol = Entries[curRow][curCol];
+		curRow = Entries[curRow][tempCol];
+	}
 
 	/* Free memory */
 	for(i=0;i<numRows;i++) {
