@@ -63,8 +63,8 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 3},
-	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 1) ================", 2},
+	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
+	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"createIndexFile", 'i', "createIndexFile", 0, "Specifies that we are to create a blatter index file instead of a blatter tree file (default: false)", 2},
 	{"matchLength", 'l', "matchLength", 0, "Specifies the length (in base pairs) to use for our matches (l-mer)", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
@@ -179,8 +179,27 @@ main (int argc, char **argv)
 						fprintf(stderr, "Terminating successfully!\n");
 						break;
 					case ExecuteProgramIndex:
-						fprintf(stderr, "Error.  Index not implemented.  Terminating!\n");
-						exit(1);
+						if(ValidateInputs(&arguments)) {
+							fprintf(stderr, "Input arguments look good!\n");
+							fprintf(stderr, BREAK_LINE);
+						}
+						else {
+							fprintf(stderr, "PrintError validating command-line inputs. Terminating!\n");
+							exit(1);
+						}
+						PrintProgramParameters(stderr, &arguments);
+
+						ReadReferenceGenome(arguments.rgListFileName, 
+								&rgList,
+								arguments.startChr,
+								arguments.startPos,
+								arguments.endChr,
+								arguments.endPos);
+						GenerateIndex(
+								&rgList,
+								arguments.matchLength,
+								arguments.outputID,
+								arguments.outputDir);
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
@@ -348,8 +367,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "matchLength:\t\t\t\t%d\n", args->matchLength);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endChr:\t\t\t\t%d\n", args->endChr);
-	fprintf(fp, "endPos:\t\t\t\t%d\n", args->endPos);
+	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
+	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "gapFileName:\t\t\t\t%s\n", args->gapFileName);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);

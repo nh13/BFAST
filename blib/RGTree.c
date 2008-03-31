@@ -17,8 +17,8 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, int matchLe
 {
 	assert(tree->matchLength == matchLength);
 
-	int indexOne = GetIndexFromSequence(sequenceOne, matchLength);
-	int indexTwo = GetIndexFromSequence(sequenceTwo, matchLength);
+	int indexOne = RGTreeGetIndexFromSequence(sequenceOne, matchLength);
+	int indexTwo = RGTreeGetIndexFromSequence(sequenceTwo, matchLength);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "RGTreeInsert: inserting indexes %d and %d.\n",
@@ -30,7 +30,7 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, int matchLe
 	tree->numNodes++;
 
 	/* Allocate memory for a new node */
-	tree->nodes = (RGNode*)realloc(tree->nodes, sizeof(RGNode)*tree->numNodes);
+	tree->nodes = (RGTreeNode*)realloc(tree->nodes, sizeof(RGTreeNode)*tree->numNodes);
 
 	/* Initialize node */
 	tree->nodes[tree->numNodes-1].numEntries = 1;
@@ -41,7 +41,7 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, int matchLe
 
 	/* Allocate memory for the node members */
 	tree->nodes[tree->numNodes-1].positions = (int*)malloc(sizeof(int));
-	tree->nodes[tree->numNodes-1].chromosomes = (char*)malloc(sizeof(char));
+	tree->nodes[tree->numNodes-1].chromosomes = (unsigned char*)malloc(sizeof(unsigned char));
 
 	/* Copy over */
 	tree->nodes[tree->numNodes-1].positions[tree->nodes[tree->numNodes-1].numEntries-1] = position;
@@ -56,43 +56,31 @@ void RGTreeCleanUpTree(RGTree *tree)
 	int i, j;
 	int prevIndex = 0;
 
-	/* Sort the nodes in the tree */
-	if(VERBOSE >= 1) {
-		fprintf(stderr, "Sorting (in-place:%d)\n", IN_PLACE);
-	}
-	if(IN_PLACE == 0) {
+	if(tree->numNodes > 0) {
+
+		/* Sort the nodes in the tree */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Sorting:\n");
+			fprintf(stderr, "Sorting nodes\n");
 		}
-		RGTreeMergeSortNodes(tree, 0, tree->numNodes-1);
+		RGTreeQuickSortNodes(tree, 0, tree->numNodes-1, 0);
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\n");
+			fprintf(stderr, "\nSorting complete\n");
 		}
 
-	}
-	else {
-		/* We could use in place merge sort, but lets use insertion sort for simplicity.
-		 * If time becomes a factor, we can implement a faster version later */
-		RGTreeInsertionSortNodes(tree);
-	}
-	if(VERBOSE >= 1) {
-		fprintf(stderr, "Sorting complete\n");
-	}
-
-	/* Remove duplicates */
-	/* Assumes the nodes are sorted */
-	if(VERBOSE >= 1) {
-		fprintf(stderr, "Merging\n");
-	}
-	/* This will remove duplicates in-place and in O(n) time */
-	for(i=1;i<tree->numNodes;i++) {
-		if(RGNodeCompare(&tree->nodes[i], &tree->nodes[prevIndex])==0) {
-			/* Append the entry to prevIndex nodes */
-			int start = tree->nodes[prevIndex].numEntries;
+		/* Remove duplicates */
+		/* Assumes the nodes are sorted */
+		if(VERBOSE >= 1) {
+			fprintf(stderr, "Merging\n");
+		}
+		/* This will remove duplicates in-place and in O(n) time */
+		for(i=1;i<tree->numNodes;i++) {
+			if(RGTreeNodeCompare(&tree->nodes[i], &tree->nodes[prevIndex])==0) {
+				/* Append the entry to prevIndex nodes */
+				int start = tree->nodes[prevIndex].numEntries;
 				/* Allocate memory for chromosomes and positions */
 				tree->nodes[prevIndex].numEntries += tree->nodes[i].numEntries;
 				tree->nodes[prevIndex].positions = (int*)realloc(tree->nodes[prevIndex].positions, sizeof(int)*tree->nodes[prevIndex].numEntries);
-				tree->nodes[prevIndex].chromosomes = (char*)realloc(tree->nodes[prevIndex].chromosomes, sizeof(char)*tree->nodes[prevIndex].numEntries);
+				tree->nodes[prevIndex].chromosomes = (unsigned char*)realloc(tree->nodes[prevIndex].chromosomes, sizeof(unsigned char)*tree->nodes[prevIndex].numEntries);
 				/* Copy over chromosomes and positions */
 				for(j=start;j<tree->nodes[prevIndex].numEntries;j++) {
 					tree->nodes[prevIndex].positions[j] = tree->nodes[i].positions[j-start];
@@ -107,116 +95,88 @@ void RGTreeCleanUpTree(RGTree *tree)
 				tree->nodes[i].numEntries=0;
 				tree->nodes[i].indexOne=-1;
 				tree->nodes[i].indexTwo=-1;
-		}
-		else {
-			prevIndex++;
-			/* Move to prevIndex */
-			if(prevIndex < i) {
-			RGNodeCopy(&tree->nodes[i], &tree->nodes[prevIndex]);
-			/* Nullify the current node */
-				tree->nodes[i].positions = NULL;
-				tree->nodes[i].chromosomes = NULL;
-				tree->nodes[i].numEntries=0;
-				tree->nodes[i].indexOne=-1;
-				tree->nodes[i].indexTwo=-1;
+			}
+			else {
+				prevIndex++;
+				/* Move to prevIndex */
+				if(prevIndex < i) {
+					RGTreeNodeCopy(&tree->nodes[i], &tree->nodes[prevIndex]);
+					/* Nullify the current node */
+					tree->nodes[i].positions = NULL;
+					tree->nodes[i].chromosomes = NULL;
+					tree->nodes[i].numEntries=0;
+					tree->nodes[i].indexOne=-1;
+					tree->nodes[i].indexTwo=-1;
+				}
 			}
 		}
-	}
-	tree->numNodes = prevIndex+1;
-	/* Reallocate memory to reflect new number of nodes */
-	tree->nodes = (RGNode*)realloc(tree->nodes, sizeof(RGNode)*tree->numNodes);
-	if(VERBOSE >= 1) {
-		fprintf(stderr, "Merging complete\n");
+		tree->numNodes = prevIndex+1;
+		/* Reallocate memory to reflect new number of nodes */
+		tree->nodes = (RGTreeNode*)realloc(tree->nodes, sizeof(RGTreeNode)*tree->numNodes);
+
+		/* Sort each node */
+		for(i=0;i<tree->numNodes;i++) {
+			RGTreeQuickSortNode(tree, i, 0, tree->nodes[i].numEntries-1);
+		}
+
+		if(VERBOSE >= 1) {
+			fprintf(stderr, "Merging complete\n");
+		}
 	}
 }
 
 /* TODO */
-/* Note: if memory requirements are large, we could sort in place, or use a naive sort. */
-void RGTreeMergeSortNodes(RGTree *tree, int low, int high)
+void RGTreeQuickSortNodes(RGTree *tree, int low, int high, int numComplete) 
 {
-	/* MergeSort! */
-	int mid = (low + high)/2;
-	int start_upper = mid + 1;
-	int end_upper = high;
-	int start_lower = low;
-	int end_lower = mid;
-	int ctr, i;
+	int i;
+	int pivot = -1;
+	RGTreeNode temp;
 
-	RGNode *tempNodes;
 
-	if(low >= high) {
-		return;
-	}
+	if(low < high) {
+		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
+		 * but lets just choose the middle element for now.
+		 * */
+		pivot = (low + high)/2;
 
-	/* Partition the list into two lists and then sort them recursively */
-	RGTreeMergeSortNodes(tree, low, mid);
-	RGTreeMergeSortNodes(tree, mid+1, high);
+		/* Partition the array.
+		 * Basically, arrange everything from low to high so that everything that
+		 * has value less than or equal to the pivot is on the low of the pivot, and
+		 * everthing else (greater than) is on the high side. 
+		 * */
 
-	/* Allocate temporary memory */
-	tempNodes = (RGNode*)malloc((high-low+1)*sizeof(RGNode));
+		/* Swap the node at pivot with the node at high */
+		RGTreeNodeCopy(&tree->nodes[pivot], &temp);
+		RGTreeNodeCopy(&tree->nodes[high], &tree->nodes[pivot]);
+		RGTreeNodeCopy(&temp, &tree->nodes[high]);
 
-	/* Merge the two lists */
-	ctr = 0;
-	while( (start_lower<=end_lower) && (start_upper<=end_upper) )
-	{
-		if(RGNodeCompare(&tree->nodes[start_lower], &tree->nodes[start_upper]) <= 0) { 
-			RGNodeCopy(&tree->nodes[start_lower], &tempNodes[ctr]);
-			start_lower++;
+		/* Store where the pivot should be */
+		pivot = low;
+
+		/* move elements */
+		for(i=low;i<high;i++) {
+			/* Compare with the pivot */
+			if(RGTreeNodeCompare(&tree->nodes[i], &tree->nodes[high]) <= 0) {
+				/* Swap node at i with node at the new pivot tree */
+				RGTreeNodeCopy(&tree->nodes[i], &temp);
+				RGTreeNodeCopy(&tree->nodes[pivot], &tree->nodes[i]);
+				RGTreeNodeCopy(&temp, &tree->nodes[pivot]);
+				/* Increment the new pivot tree */
+				pivot++;
+			}
 		}
-		else {
-			RGNodeCopy(&tree->nodes[start_upper], &tempNodes[ctr]);
-			start_upper++;
+		if(VERBOSE>=0) {
+			fprintf(stderr, "\r%3.2lf percent complete",
+					(100.0*numComplete)/tree->numNodes);
 		}
-		ctr++;
-		assert(ctr<high-low+1);
-	}
-	if(start_lower<=end_lower) {
-		while(start_lower<=end_lower) {
-			RGNodeCopy(&tree->nodes[start_lower], &tempNodes[ctr]);
-			ctr++;
-			start_lower++;
-		}
-	}
-	else {
-		while(start_upper<=end_upper) {
-			RGNodeCopy(&tree->nodes[start_upper], &tempNodes[ctr]);
-			ctr++;
-			start_upper++;
-		}
-	}
-	/* Copy back */
-	for(i=low, ctr=0;i<=high;i++, ctr++) {
-		RGNodeCopy(&tempNodes[ctr], &tree->nodes[i]); 
-	}
+		/* Move pivot element to correct place */
+		RGTreeNodeCopy(&tree->nodes[pivot], &temp);
+		RGTreeNodeCopy(&tree->nodes[high], &tree->nodes[pivot]);
+		RGTreeNodeCopy(&temp, &tree->nodes[high]);
 
-	/* Free memory */
-	free(tempNodes);
-
-	if(VERBOSE>=0) {
-		if( ( 100.0*(high-low) )/tree->numNodes > MERGE_SORT_MIN_PERCENT) {
-	fprintf(stderr, "\r%3.2lf percent complete",
-			100.0*high/tree->numNodes); 
-	}
-	}
-}
-
-/* TODO */
-void RGTreeInsertionSortNodes(RGTree *tree)
-{
-	int i, j;
-	RGNode tempNode;
-
-	for(i=1;i<tree->numNodes;i++) {
-		/* Save the current node */
-		RGNodeCopy(&tree->nodes[i], &tempNode);
-		j=i-1;
-		while(j>=0 && RGNodeCompare(&tree->nodes[j], &tempNode)>0) {
-			/* Copy j into j+1 */
-			RGNodeCopy(&tree->nodes[j], &tree->nodes[j+1]);
-			j--;
-		}
-		/* Update j to the current node (saved) */
-		RGNodeCopy(&tempNode, &tree->nodes[j+1]);
+		/* Call recursively */
+		RGTreeQuickSortNodes(tree, low, pivot-1, numComplete+1); 
+		RGTreeQuickSortNodes(tree, pivot+1, high, pivot+1);
 	}
 }
 
@@ -258,11 +218,20 @@ void RGTreeDelete(RGTree *tree)
 		free(tree->nodes[i].chromosomes);
 		tree->nodes[i].chromosomes=NULL;
 		tree->nodes[i].numEntries=0;
+		tree->nodes[i].indexOne=-1;
+		tree->nodes[i].indexTwo=-1;
 	}
 
 	/* Free nodes*/
 	free(tree->nodes);
 	tree->nodes=NULL;
+	tree->numNodes=0;
+	tree->gap=0;
+	tree->matchLength=0;
+	tree->startChr=0;
+	tree->startPos=0;
+	tree->endChr=0;
+	tree->endPos=0;
 }
 
 /* TODO */
@@ -273,9 +242,9 @@ double RGTreeGetSize(RGTree *tree, int outputSize)
 
 	/* Get memory used in each node */
 	for(i=0;i<tree->numNodes;i++) {
-		total += sizeof(RGNode) + /* memory used by the node */
+		total += sizeof(RGTreeNode) + /* memory used by the node */
 			sizeof(int)*tree->nodes[i].numEntries + /* memory used by positions */
-			sizeof(char)*tree->nodes[i].numEntries; /* memory used by chromosomes */
+			sizeof(unsigned char)*tree->nodes[i].numEntries; /* memory used by chromosomes */
 	}
 
 	/* Get memory of the RGTree */
@@ -338,7 +307,7 @@ void RGTreePrintTree(FILE *fp, RGTree *tree)
 			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
 			   */
 			fprintf(fp, "\t%d\t%d",
-					(int)tree->nodes[i].chromosomes[j],
+					tree->nodes[i].chromosomes[j],
 					tree->nodes[i].positions[j]);
 		}
 	}
@@ -346,7 +315,7 @@ void RGTreePrintTree(FILE *fp, RGTree *tree)
 }
 
 /* TODO */
-int RGTreeReadTree(RGTree *tree, FILE *fp)
+int RGTreeReadTree(FILE *fp, RGTree *tree)
 {
 	int i, j;
 	int tempInt;
@@ -362,7 +331,7 @@ int RGTreeReadTree(RGTree *tree, FILE *fp)
 
 	assert(tree->numNodes > 0);
 	/* Allocate memory for the nodes */
-	tree->nodes = (RGNode*)malloc(sizeof(RGNode)*tree->numNodes);
+	tree->nodes = (RGTreeNode*)malloc(sizeof(RGTreeNode)*tree->numNodes);
 
 	/* Read in the nodes */
 	for(i=0;i<tree->numNodes;i++) {
@@ -382,13 +351,13 @@ int RGTreeReadTree(RGTree *tree, FILE *fp)
 					&tree->nodes[i].indexOne,
 					&tree->nodes[i].indexTwo,
 					&tree->nodes[i].numEntries)==EOF) {
-			fprintf(stderr, "Error.  Could not read in indexes and entries.  Terminating!\n");
+			fprintf(stderr, "Error.  Could not read in indexes and numEntries.  Terminating!\n");
 			exit(1);
 		}
 
 		/* Allocate memory for the positions and chromosomes */
 		tree->nodes[i].positions = (int*)malloc(sizeof(int)*tree->nodes[i].numEntries);
-		tree->nodes[i].chromosomes = (char*)malloc(sizeof(char)*tree->nodes[i].numEntries);
+		tree->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*tree->nodes[i].numEntries);
 
 		/* Read in positions and chromosomes */
 		for(j=0;j<tree->nodes[i].numEntries;j++) {
@@ -551,7 +520,7 @@ int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, R
 	int index, startIndex, i;
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "RGTreeGetMatch.  Searching for indexes %d and %d.\n",
+		fprintf(stderr, "RGTreeGetMatches.  Searching for indexes %d and %d.\n",
 				indexOne,
 				indexTwo);
 	}
@@ -561,28 +530,37 @@ int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, R
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Found index:%d\n", index);
-		fprintf(stderr, "Will append:\n");
-		for(i=0;i<tree->nodes[index].numEntries;i++) {
-			fprintf(stderr, "%d\t%d\n",
-				   (int)tree->nodes[index].chromosomes[i],
-				   tree->nodes[index].positions[i]);
-		}
 	}
 
 	if(index >= 0 && index < tree->numNodes) {
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Will append...");
+		}
 		/* Copy over the matches */
 		/* (Re)Allocate memory for the new matches */
 		startIndex = m->numEntries;
 		m->numEntries = m->numEntries + tree->nodes[index].numEntries;
 		m->positions = (int*)realloc(m->positions, sizeof(int)*(m->numEntries)); 
-		m->chromosomes = (char*)realloc(m->chromosomes, sizeof(char)*(m->numEntries)); 
+		m->chromosomes = (unsigned char*)realloc(m->chromosomes, sizeof(unsigned char)*(m->numEntries)); 
 		m->strand = (char*)realloc(m->strand, sizeof(char)*(m->numEntries)); 
 
 		/* Copy over */
 		for(i=startIndex;i<m->numEntries;i++) {
-			m->positions[i] = tree->nodes[index].positions[i-startIndex];
-			m->chromosomes[i] = tree->nodes[index].chromosomes[i-startIndex];
-			m->strand[i] = direction;
+			/* Adjust for reverse strand if necessary */
+			if(direction == FORWARD) {
+				m->positions[i] = tree->nodes[index].positions[i-startIndex];
+				m->chromosomes[i] = tree->nodes[index].chromosomes[i-startIndex];
+				m->strand[i] = direction;
+			}
+			else if(direction == REVERSE) {
+				m->positions[i] = tree->nodes[index].positions[i-startIndex] + tree->matchLength - 1;
+				m->chromosomes[i] = tree->nodes[index].chromosomes[i-startIndex];
+				m->strand[i] = direction;
+			}
+			else {
+				fprintf(stderr, "Error.  Could not understand direction [%c].  Terminating!\n", direction);
+				exit(1);
+			}
 		}
 	}
 
@@ -590,7 +568,7 @@ int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, R
 }
 
 /* TODO */
-int GetIndexFromSequence(char *sequence, int matchLength)
+int RGTreeGetIndexFromSequence(char *sequence, int matchLength)
 {
 	int number = 0;
 	int i;
@@ -612,7 +590,8 @@ int GetIndexFromSequence(char *sequence, int matchLength)
 				temp=3;
 				break;
 			default:
-				fprintf(stderr, "Error: sequence not a proper character [%c].  Terminating!\n", sequence[i]);
+				fprintf(stderr, "sequence:%s\n", sequence);
+				fprintf(stderr, "Error: sequence not a proper character [%c] in RGTreeGetIndexFromSequence.  Terminating!\n", sequence[i]);
 				exit(1);
 				break;
 		}
@@ -622,7 +601,7 @@ int GetIndexFromSequence(char *sequence, int matchLength)
 }
 
 /* TODO */
-void RGNodeCopy(RGNode *src, RGNode *dest) 
+void RGTreeNodeCopy(RGTreeNode *src, RGTreeNode *dest) 
 {
 	dest->indexOne = src->indexOne;
 	dest->indexTwo = src->indexTwo;
@@ -631,7 +610,7 @@ void RGNodeCopy(RGNode *src, RGNode *dest)
 	dest->chromosomes = src->chromosomes;
 }
 
-int RGNodeCompare(RGNode *a, RGNode *b) 
+int RGTreeNodeCompare(RGTreeNode *a, RGTreeNode *b) 
 {
 	if(a->indexOne < b->indexOne ||
 			(a->indexOne == b->indexOne && a->indexTwo < b->indexTwo)) { 
@@ -642,5 +621,57 @@ int RGNodeCompare(RGNode *a, RGNode *b)
 	}
 	else {
 		return 1;
+	}
+}
+
+/* TODO */
+void RGTreeQuickSortNode(RGTree *tree, int index, int low, int high)
+{
+	int i;
+	int pivot = -1;
+	int tempPos;
+	unsigned char tempChr;
+
+	if(low < high) {
+		pivot = (low + high)/2;
+
+		tempPos = tree->nodes[index].positions[pivot];
+		tempChr = tree->nodes[index].chromosomes[pivot];
+		tree->nodes[index].positions[pivot] = tree->nodes[index].positions[high];
+		tree->nodes[index].chromosomes[pivot] = tree->nodes[index].chromosomes[high];
+		tree->nodes[index].positions[high] = tempPos;
+		tree->nodes[index].chromosomes[high] = tempChr;
+
+		pivot = low;
+
+
+		/* move elements */
+		for(i=low;i<high;i++) {
+			/* Compare with the pivot */
+			if(tree->nodes[index].chromosomes[i] < tree->nodes[index].chromosomes[high]  ||
+					(tree->nodes[index].chromosomes[i] == tree->nodes[index].chromosomes[high] && tree->nodes[index].positions[i] <= tree->nodes[index].positions[high])) {
+
+				tempPos = tree->nodes[index].positions[i];
+				tempChr = tree->nodes[index].chromosomes[i];
+				tree->nodes[index].positions[i] = tree->nodes[index].positions[pivot];
+				tree->nodes[index].chromosomes[i] = tree->nodes[index].chromosomes[pivot];
+				tree->nodes[index].positions[pivot] = tempPos;
+				tree->nodes[index].chromosomes[pivot] = tempChr;
+				/* Increment the new pivot tree */
+				pivot++;
+			}
+		}
+
+		/* Move pivot element to correct place */
+		tempPos = tree->nodes[index].positions[pivot];
+		tempChr = tree->nodes[index].chromosomes[pivot];
+		tree->nodes[index].positions[pivot] = tree->nodes[index].positions[high];
+		tree->nodes[index].chromosomes[pivot] = tree->nodes[index].chromosomes[high];
+		tree->nodes[index].positions[high] = tempPos;
+		tree->nodes[index].chromosomes[high] = tempChr;
+
+		/* Call recursively */
+		RGTreeQuickSortNode(tree, index, low, pivot-1);
+		RGTreeQuickSortNode(tree, index, pivot+1, high);
 	}
 }

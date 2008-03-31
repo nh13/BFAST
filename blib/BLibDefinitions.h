@@ -5,20 +5,22 @@
 #define DEFAULT_OUTPUT_ID "OutputID"
 #define DEFAULT_OUTPUT_DIR ""
 #define BLATTER_TREE_FILE_EXTENSION "btf"
+#define BLATTER_INDEX_FILE_EXTENSION "bif"
 #define BLATTER_MATCHES_FILE_EXTENSION "bmf"
+#define BLATTER_ALIGN_FILE_EXTENSION "baf"
 #define DEFAULT_MATCH_LENGTH 11
 #define BREAK_LINE "************************************************************\n"
 
-#define IN_PLACE 0
-#define MERGE_SORT_MIN_PERCENT 0.01
-
-#define VERBOSE 10
+#define VERBOSE 0
 #define DEBUG 10
 
 #define ALPHABET_SIZE 4
 
 #define SEQUENCE_LENGTH 512
 #define SEQUENCE_NAME_LENGTH 4028
+
+#define FORWARD '+'
+#define REVERSE '-'
 
 /* For SRTree.c */
 #define SRT_SEQUENCE_NAME_LENGTH 1024 
@@ -49,12 +51,12 @@ typedef struct {
 	int indexTwo;
 	int numEntries;
 	int *positions;
-	char *chromosomes;
-} RGNode;
+	unsigned char *chromosomes;
+} RGTreeNode;
 
 /* TODO*/
 typedef struct {
-	RGNode *nodes;
+	RGTreeNode *nodes;
 	int numNodes;
 	int gap;
 	int matchLength;
@@ -67,7 +69,7 @@ typedef struct {
 /* TODO */
 typedef struct {
 	int *positions;
-	char *chromosomes;
+	unsigned char *chromosomes;
 	char *strand;
 	int numEntries;
 } RGMatch;
@@ -97,5 +99,40 @@ typedef struct {
 	int endChr;
 	int endPos;
 } RGList;
+
+/* TODO */
+typedef struct {
+	int numEntries;
+	unsigned char *index; 
+	int *positions;
+	unsigned char *chromosomes;
+} RGIndexNode;
+
+/* TODO */
+typedef struct {
+	RGIndexNode *nodes;
+	int numNodes;
+	int matchLength;
+	int startChr;
+	int startPos;
+	int endChr;
+	int endPos;
+} RGIndex;
+
+typedef struct {
+	int chromosome;
+	int startPos;
+	int endPos;
+	char *sequence; /* Store in the bytes via two bits - four nt per char (assuming sizeof(char)==1) */
+} RGBinaryChr;
+
+typedef struct {
+	RGBinaryChr *chromosomes;
+	int numChrs;
+	int startChr;
+	int startPos;
+	int endChr;
+	int endPos;
+} RGBinary;
 
 #endif

@@ -1,22 +1,25 @@
+Note: does not support match lengths > 16 when using indexes
+
 ===============================================================================
 bpreprocess
 ===============================================================================
-1. 
-Create an index of all n-mers in the genome (where n is th length of the read).
-
 
 ===============================================================================
 bmatches
 ===============================================================================
 1.
-Allow for errors (no calls) in the sequences.
-2. 
-Allow for variable sequence read lengths (one can store the # at each node in 
-the tree).
-3. 
-Use index of n-mers to pre-filter alignment.
-
+Allow for errors (no calls) in the sequences (could model them as mismatches).
+2.
+Check that the range of blatter trees is the same as the blatter indexes.
+3.
+Allow for combinations of insertions, deletions and mismatches (just combine
+		the generate functions on top of eachother).
+4.
+Have a command line option that specifies a strict read length (otherwise, we
+		assume that the reads must have length matching the the matchLength
+		equal to that of the index(es)).
 
 ===============================================================================
 balign
 ===============================================================================
+1. Start implementing the program.

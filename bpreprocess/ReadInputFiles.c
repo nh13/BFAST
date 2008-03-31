@@ -8,6 +8,8 @@
 #include "ReadInputFiles.h"
 
 /* TODO */
+/* Note: to save memory, we could store the genome in binary format (we reduce the size
+ * required to store the genome by four */
 void ReadReferenceGenome(char *rgListFileName, 
 		RGList *rgList,
 		int startChr,
@@ -42,7 +44,7 @@ void ReadReferenceGenome(char *rgListFileName,
 	}
 
 	/* Read in file names */
-	if(VERBOSE>0) {
+	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading in chromosomes from %s.\n", rgListFileName);
 	}
@@ -55,7 +57,7 @@ void ReadReferenceGenome(char *rgListFileName,
 			fprintf(stderr, "%d:%s\n", numChrFileNames, chrFileNames[numChrFileNames-1]);
 		}
 	}
-	if(VERBOSE>0) {
+	if(VERBOSE>=0) {
 		fprintf(stderr, "Read in %d chromosomes from %s.\n", numChrFileNames, rgListFileName);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
@@ -87,10 +89,10 @@ void ReadReferenceGenome(char *rgListFileName,
 	assert(endPos >= 1);
 	assert(startPos <= endPos);
 
-	if(VERBOSE>0) {
+	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
-	if(VERBOSE>1) {
+	if(VERBOSE>=0) {
 		fprintf(stderr, "Will read from chr%d:%d to chr%d:%d.\n",
 				startChr,
 				startPos,
@@ -100,7 +102,10 @@ void ReadReferenceGenome(char *rgListFileName,
 
 	for(curChr=startChr;curChr<=endChr;curChr++) {
 
-		if(VERBOSE>0) {
+		/* Initialize the number of positions read */
+		numPosRead=0;
+
+		if(VERBOSE>=0) {
 			fprintf(stderr, "Reading in chromosome %d from %s.\n", 
 					curChr,
 					chrFileNames[curChr-1]); 
@@ -119,9 +124,6 @@ void ReadReferenceGenome(char *rgListFileName,
 					chrFileNames[curChr-1]);
 			exit(1);
 		}
-		if(VERBOSE>1) {
-			fprintf(stderr, "Header:%s\n", header);
-		}
 
 		/* Update the number of chromosomes */
 		numChrs++;
@@ -134,9 +136,6 @@ void ReadReferenceGenome(char *rgListFileName,
 		curPos=1;
 		continueReading=1;
 		while(continueReading==1 && fscanf(fpRG, "%c", &c) > 0) {
-			if(VERBOSE >= 0 && 0 == (curPos%RIF_ROTATE_NUM)) {
-				fprintf(stderr, "\r%d\t%d", curChr, curPos);
-			}
 			c=ToLower(c);
 
 			/* Reallocate memory in increments.  This allows us to avoid having
@@ -169,9 +168,6 @@ void ReadReferenceGenome(char *rgListFileName,
 		/* Decrement position */
 		curPos--;
 		/* Update our our output */
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r%d\t%d", curChr, curPos);
-		}
 
 		/* Add metadata */
 		if(curChr == startChr) {
@@ -183,8 +179,7 @@ void ReadReferenceGenome(char *rgListFileName,
 		rgList->chromosomes[numChrs-1].endPos = curPos;
 		rgList->chromosomes[numChrs-1].chromosome = curChr;
 
-		if(VERBOSE>1) {
-			fprintf(stderr, "\n");
+		if(VERBOSE>=0) {
 			fprintf(stderr, "Read %d bases on chr%d:%d-%d from %s.\n",
 					numPosRead,
 					rgList->chromosomes[numChrs-1].chromosome ,
@@ -201,16 +196,13 @@ void ReadReferenceGenome(char *rgListFileName,
 
 	}
 	assert(numChrs == rgList->numChrs);
-	if(VERBOSE == 0) {
-		fprintf(stderr, "\n");
-	}
 	/* Add metadata */
 	rgList->startChr = rgList->chromosomes[0].chromosome;
 	rgList->startPos = rgList->chromosomes[0].startPos;
 	rgList->endChr = rgList->chromosomes[rgList->numChrs-1].chromosome;
 	rgList->endPos = rgList->chromosomes[rgList->numChrs-1].endPos;
 
-	if(VERBOSE>0) {
+	if(VERBOSE>=0) {
 		fprintf(stderr, "In total read from chr%d:%d to chr%d:%d.\n",
 				rgList->startChr,
 				rgList->startPos,

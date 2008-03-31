@@ -49,7 +49,8 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_bpreprocess_OBJECTS = ReadInputFiles.$(OBJEXT) \
-	GenerateTree.$(OBJEXT) ParseInput.$(OBJEXT) RGTree.$(OBJEXT) \
+	GenerateTree.$(OBJEXT) GenerateIndex.$(OBJEXT) \
+	ParseInput.$(OBJEXT) RGIndex.$(OBJEXT) RGTree.$(OBJEXT) \
 	BError.$(OBJEXT)
 bpreprocess_OBJECTS = $(am_bpreprocess_OBJECTS)
 bpreprocess_DEPENDENCIES =
@@ -158,7 +159,9 @@ target_alias = @target_alias@
 bpreprocess_SOURCES = \
 	ReadInputFiles.c	ReadInputFiles.h \
 	GenerateTree.c	GenerateTree.h \
+	GenerateIndex.c	GenerateIndex.h \
 	ParseInput.c	ParseInput.h \
+	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/RGTree.c	../blib/RGTree.h \
 	../blib/BError.c	../blib/BError.h \
 	Definitions.h
@@ -232,8 +235,10 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/BError.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GenerateIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GenerateTree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ParseInput.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RGIndex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RGTree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ReadInputFiles.Po@am__quote@
 
@@ -250,6 +255,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+RGIndex.o: ../blib/RGIndex.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT RGIndex.o -MD -MP -MF "$(DEPDIR)/RGIndex.Tpo" -c -o RGIndex.o `test -f '../blib/RGIndex.c' || echo '$(srcdir)/'`../blib/RGIndex.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/RGIndex.Tpo" "$(DEPDIR)/RGIndex.Po"; else rm -f "$(DEPDIR)/RGIndex.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../blib/RGIndex.c' object='RGIndex.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o RGIndex.o `test -f '../blib/RGIndex.c' || echo '$(srcdir)/'`../blib/RGIndex.c
+
+RGIndex.obj: ../blib/RGIndex.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT RGIndex.obj -MD -MP -MF "$(DEPDIR)/RGIndex.Tpo" -c -o RGIndex.obj `if test -f '../blib/RGIndex.c'; then $(CYGPATH_W) '../blib/RGIndex.c'; else $(CYGPATH_W) '$(srcdir)/../blib/RGIndex.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/RGIndex.Tpo" "$(DEPDIR)/RGIndex.Po"; else rm -f "$(DEPDIR)/RGIndex.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../blib/RGIndex.c' object='RGIndex.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o RGIndex.obj `if test -f '../blib/RGIndex.c'; then $(CYGPATH_W) '../blib/RGIndex.c'; else $(CYGPATH_W) '$(srcdir)/../blib/RGIndex.c'; fi`
 
 RGTree.o: ../blib/RGTree.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT RGTree.o -MD -MP -MF "$(DEPDIR)/RGTree.Tpo" -c -o RGTree.o `test -f '../blib/RGTree.c' || echo '$(srcdir)/'`../blib/RGTree.c; \

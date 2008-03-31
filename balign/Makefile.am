@@ -1,8 +1,12 @@
 bin_PROGRAMS = balign
 
 balign_SOURCES = \
+	RunAligner.c	RunAligner.h \
 	ParseInput.c	ParseInput.h \
-	BError.c	BError.h \
+	ReadInputFiles.c	ReadInputFiles.h \
+	../blib/BError.c	../blib/BError.h \
+	../blib/RGMatch.c	../blib/RGMatch.h \
+	Align.c		Align.h \
 	Definitions.h
 	
 ##  LDADD only lists those object files which are NOT compiled from 

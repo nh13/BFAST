@@ -35,7 +35,11 @@
 #include <sys/resource.h>
 #endif
 
+#include "../blib/BLibDefinitions.h"
+#include "../blib/BError.h"
 #include "Definitions.h"
+#include "ReadInputFiles.h"
+#include "RunAligner.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =
@@ -50,9 +54,9 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, 
-	DescAlgoTitle, 
-	DescOutputTitle, DescOutputFileName, 
+	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
+	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescPairedEnd,
+	DescOutputTitle, DescOutputID, DescOutputDir,
 	DescMiscTitle, DescHelp
 };
 
@@ -62,10 +66,22 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 1) ================", 2},
+	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
+	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of bmf files", 1},
+	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
+	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
+	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to use 0: Dynamic Programming", 2},
+	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
+	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
+	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
+	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
+	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
+	{"pairedEnd", '2', "pairedEnd", 0, "Specifies that paired end data is to be expected", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
-	{"OutputFileName", 'o', "OutputFileName", 0, "Specifies the output file name", 3},
+	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
+	{"Parameters", 'p', "Parameters", OPTION_NO_USAGE, "Print program parameters", 4},
 	{"Help", 'h', "Help", OPTION_NO_USAGE, "Display usage summary", 4},
 	{0, 0, 0, 0, 0, 0}
 };
@@ -88,10 +104,10 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"o:h";
+"a:d:e:m:o:r:s:x:E:H:O:2ph";
 #endif
 
-enum {ExecuteGetOptHelp, ExecuteProgram};
+enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 
 /*
    The main function. All command-line options parsed using argp_parse
@@ -102,6 +118,7 @@ enum {ExecuteGetOptHelp, ExecuteProgram};
 main (int argc, char **argv)
 {
 	struct arguments arguments;
+	RGBinary rgList;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -113,8 +130,11 @@ main (int argc, char **argv)
 			if(getopt_parse(argc, argv, OptionString, &arguments)==0)
 #endif 
 			{
-				switch(arguments.ProgramMode) {
+				switch(arguments.programMode) {
 					case ExecuteGetOptHelp:
+						PrintProgramParameters(stderr, &arguments);
+						break;
+					case ExecutePrintProgramParameters:
 						PrintProgramParameters(stderr, &arguments);
 						break;
 					case ExecuteProgram:
@@ -128,6 +148,21 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
+						ReadReferenceGenome(arguments.rgListFileName,
+								&rgList,
+								arguments.startChr,
+								arguments.startPos,
+								arguments.endChr,
+								arguments.endPos);
+						/* Run the aligner */
+						RunAligner(&rgList,
+								arguments.matchesFileName,
+								arguments.scoringMatrixFileName,
+								arguments.algorithm,
+								arguments.offsetLength,
+								arguments.pairedEnd,
+								arguments.outputID,
+								arguments.outputDir);
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
@@ -150,18 +185,74 @@ main (int argc, char **argv)
 	return 0;
 }
 
-int ValidateInputs(struct arguments *CommandLineArg) {
+int ValidateInputs(struct arguments *args) {
 
 	char *FnName="ValidateInputs";
 
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if((*CommandLineArg).OutputFileName!=0) {
-		fprintf(stderr, "Validating OutputFileName path %s. \n",
-				(*CommandLineArg).OutputFileName);
-		if(ValidateFileName((*CommandLineArg).OutputFileName)==0)
-			PrintError(FnName, "OutputFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->rgListFileName!=0) {
+		fprintf(stderr, "Validating rgListFileName %s. \n",
+				args->rgListFileName);
+		if(ValidateFileName(args->rgListFileName)==0)
+			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->matchesFileName!=0) {
+		fprintf(stderr, "Validating matchesFileName path %s. \n",
+				args->matchesFileName);
+		if(ValidateFileName(args->matchesFileName)==0)
+			PrintError(FnName, "matchesFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->scoringMatrixFileName!=0) {
+		fprintf(stderr, "Validating scoringMatrixFileName path %s. \n",
+				args->scoringMatrixFileName);
+		if(ValidateFileName(args->scoringMatrixFileName)==0)
+			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->algorithm < MIN_ALGORITHM || args->algorithm > MAX_ALGORITHM) {
+		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->startChr < 0) {
+		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->startPos < 0) {
+		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->endChr < 0) {
+		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->endPos < 0) {
+		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->offsetLength < 0) {
+		PrintError(FnName, "offsetLength", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->pairedEnd < 0 || args->pairedEnd > 1) {
+		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->outputID!=0) {
+		fprintf(stderr, "Validating outputID path %s. \n",
+				args->outputID);
+		if(ValidateFileName(args->outputID)==0)
+			PrintError(FnName, "outputID", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->outputDir!=0) {
+		fprintf(stderr, "Validating outputDir path %s. \n",
+				args->outputDir);
+		if(ValidateFileName(args->outputDir)==0)
+			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
 	return 1;
@@ -199,12 +290,40 @@ AssignDefaultValues(struct arguments *args)
 {
 	/* Assign default values */
 
-	(*args).ProgramMode = ExecuteProgram;
+	args->programMode = ExecuteProgram;
 
-	(*args).OutputFileName =
+	args->rgListFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert((*args).OutputFileName!=0);
-	strcpy((*args).OutputFileName, DEFAULT_FILENAME);
+	assert(args->rgListFileName!=0);
+	strcpy(args->rgListFileName, DEFAULT_FILENAME);
+
+	args->matchesFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->matchesFileName!=0);
+	strcpy(args->matchesFileName, DEFAULT_FILENAME);
+
+	args->scoringMatrixFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->scoringMatrixFileName!=0);
+	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
+
+	args->algorithm = DEFAULT_ALGORITHM;
+	args->startChr=0;
+	args->startPos=0;
+	args->endChr=0;
+	args->endPos=0;
+	args->offsetLength=0;
+	args->pairedEnd = 0;
+
+	args->outputID =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->outputID!=0);
+	strcpy(args->outputID, DEFAULT_FILENAME);
+
+	args->outputDir =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->outputDir!=0);
+	strcpy(args->outputDir, DEFAULT_FILENAME);
 
 	return;
 }
@@ -212,13 +331,25 @@ AssignDefaultValues(struct arguments *args)
 	void 
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[2][64] = {"ExecuteGetOptHelp", "ExecuteProgram"};
+	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "ProgramMode:\t\t\t\t%d\t[%s]\n", (*args).ProgramMode, programmode[(*args).ProgramMode]);
-	fprintf(fp, "OutputFileName:\t\t\t\t%s\n", (*args).OutputFileName);
+	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
+	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
+	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
+	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
+	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
+	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
+	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
+	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
+	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
+	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
+	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
+	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, BREAK_LINE);
 	return;
+
 }
 
 void
@@ -274,11 +405,40 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				   */
 #endif
 				switch (key) {
+					case '2':
+						arguments->pairedEnd = 1;break;
+
+					case 'a':
+						arguments->algorithm=atoi(OPTARG);break;
+					case 'd':
+						if(arguments->outputDir) free(arguments->outputDir);
+						arguments->outputDir = OPTARG;break;
+					case 'e':
+						arguments->endChr=atoi(OPTARG);break;
 					case 'h':
-						arguments->ProgramMode=ExecuteGetOptHelp; break;
+						arguments->programMode=ExecuteGetOptHelp; break;
+					case 'm':
+						if(arguments->matchesFileName) free(arguments->matchesFileName);
+						arguments->matchesFileName = OPTARG;break;
 					case 'o':
-						if(arguments->OutputFileName) free(arguments->OutputFileName);
-						arguments->OutputFileName = OPTARG;break;
+						if(arguments->outputID) free(arguments->outputID);
+						arguments->outputID = OPTARG;break;
+					case 'p':
+						arguments->programMode=ExecutePrintProgramParameters; break;
+					case 'r':
+						if(arguments->rgListFileName) free(arguments->rgListFileName);
+						arguments->rgListFileName = OPTARG;break;
+					case 's':
+						arguments->startChr=atoi(OPTARG);break;
+					case 'x':
+						if(arguments->scoringMatrixFileName) free(arguments->scoringMatrixFileName);
+						arguments->scoringMatrixFileName = OPTARG;break;
+					case 'E':
+						arguments->endPos=atoi(OPTARG);break;
+					case 'O':
+						arguments->offsetLength=atoi(OPTARG);break;
+					case 'S':
+						arguments->startPos=atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

@@ -3,7 +3,9 @@ bin_PROGRAMS = bpreprocess
 bpreprocess_SOURCES = \
 	ReadInputFiles.c	ReadInputFiles.h \
 	GenerateTree.c	GenerateTree.h \
+	GenerateIndex.c	GenerateIndex.h \
 	ParseInput.c	ParseInput.h \
+	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/RGTree.c	../blib/RGTree.h \
 	../blib/BError.c	../blib/BError.h \
 	Definitions.h

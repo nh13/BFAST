@@ -52,7 +52,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescBlatterTreesFileName, DescReadsFileName, 
+	DescInputFilesTitle, DescBlatterIndexesFileName, DescBlatterTreesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescPairedEnd,
 	DescOutputTitle, DescOutputID, DescOutputDir,
 	DescMiscTitle, DescParameters, DescHelp
@@ -64,9 +64,11 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"blatterTreesFileName", 'b', "blatterTreesFileName", 0, "Specifies the file name holding the list of btf files", 1},
-	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
-	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 1) ================", 2},
+	{"blatterIndexesFileName", 'I', "blatterIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
+	{"blatterTreesFileName", 'T', "blatterTreesFileName", 0, "Specifies the file name holding the list of btf files", 1},
+	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
+	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
+	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
 	{"numMismatches", 'm', "numMistmatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
@@ -100,7 +102,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:b:d:e:i:m:o:r:s:2hp";
+"a:d:e:i:m:o:s:I:O:R:T:2hp";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -159,10 +161,10 @@ main (int argc, char **argv)
 
 						/* Run Matches */
 						RunMatches(outputFileName,
-								arguments.readsFileName,
+								arguments.blatterIndexesFileName,
 								arguments.blatterTreesFileName,
-								0,
-								1,
+								arguments.readsFileName,
+								arguments.offsetsFileName,
 								arguments.startReadNum,
 								arguments.endReadNum,
 								arguments.numMismatches,
@@ -201,11 +203,32 @@ int ValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
+	if(args->blatterIndexesFileName!=0) {
+		fprintf(stderr, "Validating blatterIndexesFileName %s. \n",
+				args->blatterIndexesFileName);
+		if(ValidateFileName(args->blatterIndexesFileName)==0)
+			PrintError(FnName, "blatterIndexesFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->blatterTreesFileName!=0) {
+		fprintf(stderr, "Validating blatterTreesFileName %s. \n",
+				args->blatterTreesFileName);
+		if(ValidateFileName(args->blatterTreesFileName)==0)
+			PrintError(FnName, "blatterTreesFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
 	if(args->readsFileName!=0) {
 		fprintf(stderr, "Validating readsFileName %s. \n",
 				args->readsFileName);
 		if(ValidateFileName(args->readsFileName)==0)
 			PrintError(FnName, "readsFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->offsetsFileName!=0) {
+		fprintf(stderr, "Validating offsetsFileName %s. \n",
+				args->offsetsFileName);
+		if(ValidateFileName(args->offsetsFileName)==0)
+			PrintError(FnName, "offsetsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->numMismatches < 0) {
@@ -214,6 +237,10 @@ int ValidateInputs(struct arguments *args) {
 
 	if(args->numInsertions < 0) {
 		PrintError(FnName, "numInsertions", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->pairedEnd < 0 || args->pairedEnd > 1) {
+		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->numDeletions < 0) {
@@ -273,6 +300,11 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
+	args->blatterIndexesFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->blatterIndexesFileName!=0);
+	strcpy(args->blatterIndexesFileName, DEFAULT_FILENAME);
+
 	args->blatterTreesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->blatterTreesFileName!=0);
@@ -282,6 +314,11 @@ AssignDefaultValues(struct arguments *args)
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->readsFileName!=0);
 	strcpy(args->readsFileName, DEFAULT_FILENAME);
+
+	args->offsetsFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->offsetsFileName!=0);
+	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
 	args->startReadNum = -1;
 	args->endReadNum = -1;
@@ -311,8 +348,10 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
+	fprintf(fp, "blatterIndexesFileName\t\t\t%s\n", args->blatterIndexesFileName);
 	fprintf(fp, "blatterTreesFileName\t\t\t%s\n", args->blatterTreesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
+	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
@@ -385,9 +424,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->pairedEnd = 1;break;
 					case 'a':
 						arguments->numDeletions = atoi(OPTARG);break;
-					case 'b':
-						if(arguments->blatterTreesFileName) free(arguments->blatterTreesFileName);
-						arguments->blatterTreesFileName = OPTARG;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;break;
@@ -399,9 +435,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->numInsertions=atoi(OPTARG);break;
 					case 'm':
 						arguments->numMismatches=atoi(OPTARG);break;
-					case 'r':
-						if(arguments->readsFileName) free(arguments->readsFileName);
-						arguments->readsFileName = OPTARG;break;
 					case 's':
 						arguments->startReadNum = atoi(OPTARG);break;
 					case 'o':
@@ -409,6 +442,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'I':
+						if(arguments->blatterIndexesFileName) free(arguments->blatterIndexesFileName);
+						arguments->blatterIndexesFileName = OPTARG;break;
+					case 'O':
+						if(arguments->offsetsFileName) free(arguments->offsetsFileName);
+						arguments->offsetsFileName = OPTARG;break;
+					case 'R':
+						if(arguments->readsFileName) free(arguments->readsFileName);
+						arguments->readsFileName = OPTARG;break;
+					case 'T':
+						if(arguments->blatterTreesFileName) free(arguments->blatterTreesFileName);
+						arguments->blatterTreesFileName = OPTARG;break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

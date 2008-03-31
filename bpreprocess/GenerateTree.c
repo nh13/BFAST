@@ -60,10 +60,11 @@ void GenerateTree(RGList *rgList,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
-	if(VERBOSE > 0) {
-		fprintf(stderr, "Will generate %d different %s files.\n",
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Will generate %d different %s files.\n%s",
 				numGaps,
-				BLATTER_TREE_FILE_EXTENSION);
+				BLATTER_TREE_FILE_EXTENSION,
+				BREAK_LINE);
 	}
 
 
@@ -143,9 +144,9 @@ void GenerateTree(RGList *rgList,
 						match.strand=NULL;
 						match.numEntries=0;
 						RGTreeGetMatches(&tree,
-								GetIndexFromSequence(curSequenceOne, matchLength),
-								GetIndexFromSequence(curSequenceTwo, matchLength),
-								'f',
+								RGTreeGetIndexFromSequence(curSequenceOne, matchLength),
+								RGTreeGetIndexFromSequence(curSequenceTwo, matchLength),
+								FORWARD,
 								&match);
 						fprintf(stderr, "Found %d matches for %s\t%s\n",
 								match.numEntries,
@@ -164,7 +165,7 @@ void GenerateTree(RGList *rgList,
 				fprintf(stderr, "\r%3d\t%2d\t%12d\t%10.2lfMB", 
 						curGap,
 						rgList->chromosomes[j].chromosome,
-						k,
+						k-1,
 						RGTreeGetSize(&tree, RGT_MEGABYTES));
 			}
 		}
@@ -193,11 +194,18 @@ void GenerateTree(RGList *rgList,
 		fclose(fp);
 
 		/* Free memory */
+		if(VERBOSE >=0) {
+			fprintf(stderr, "Cleaning up.\n");
+		}
 		RGTreeDelete(&tree);
+		if(VERBOSE >=0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+		}
 	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Generated Tree(s) successfully!\n");
+		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 

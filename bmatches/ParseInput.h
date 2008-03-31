@@ -5,8 +5,10 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *blatterTreesFileName;				/* -b */
-	char *readsFileName;					/* -r */
+	char *blatterIndexesFileName;			/* -I */
+	char *blatterTreesFileName;				/* -T */
+	char *readsFileName;					/* -R */
+	char *offsetsFileName;					/* -O */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */
 	int numMismatches;						/* -m */

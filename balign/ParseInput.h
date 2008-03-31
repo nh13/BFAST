@@ -4,8 +4,19 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	int ProgramMode;						/* -h */ 
-	char *OutputFileName;					/* -o */
+	char *rgListFileName;                   /* -r */
+	char *matchesFileName;					/* -m */
+	char *scoringMatrixFileName;			/* -x */
+	int algorithm;							/* -a */
+	int startChr;                           /* -s */
+	int startPos;                           /* -S */
+	int endChr;                             /* -e */
+	int endPos;                             /* -E */
+	int offsetLength;						/* -O */
+	int pairedEnd;                          /* -2 */
+	int programMode;						/* -h */ 
+	char *outputID;							/* -o */
+	char *outputDir;						/* -d */
 };
 
 /* Local functions */

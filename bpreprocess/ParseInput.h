@@ -73,3 +73,6 @@ extern int ReadReferenceGenome(char*, RGList*, int, int, int, int);
 
 /* From GenerateTree.c */
 extern void GenerateTree(RGList*, int, char*, char*, char*);
+
+/* From GenerateIndex.c */
+extern void GenerateIndex(RGList*, int, char*, char*);

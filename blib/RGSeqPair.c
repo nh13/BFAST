@@ -5,13 +5,69 @@
 #include <sys/types.h>
 #include <string.h>
 #include "BLibDefinitions.h"
-#include "RGSeqPair.h"
+#include "RGIndex.h"
 #include "RGTree.h"
+#include "RGSeqPair.h"
 
-char ALPHABET[ALPHABET_SIZE] = "ACGT";
+char ALPHABET[ALPHABET_SIZE] = "acgt";
 
 /* TODO */
-void RGSeqPairFindMatches(RGTree *tree, 
+void RGSeqPairFindMatchesInIndex(RGIndex *index, 
+		RGMatch *match,
+		char *sequence)
+{
+	unsigned char *indexForward=NULL;
+	unsigned char *indexReverse=NULL;
+	char reverseSequence[SEQUENCE_LENGTH];
+	int numChars = (int)ceil((2.0/8.0*index->matchLength)/sizeof(unsigned char));
+
+	/* Allocate memory for the indexes */
+	indexForward = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
+	indexReverse = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
+
+	/* DON'T FORGET TO ALIGN TO BOTH FORWARD AND REVERSE STRANDS */
+	assert(strlen(sequence)==index->matchLength);
+	GetReverseCompliment(sequence, reverseSequence, strlen(sequence));
+
+	/* Get indexes */
+	RGIndexGetIndexFromSequence(sequence, index->matchLength, indexForward); 
+	RGIndexGetIndexFromSequence(reverseSequence, index->matchLength, indexReverse); 
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\nIn RGSeqPairFindMatchesInIndex.\n");
+	}
+	/* Get forward matches */
+	RGIndexGetMatches(index, 
+			indexForward,
+			FORWARD,
+			match);
+	/* Get reverse matches */
+	RGIndexGetMatches(index, 
+			indexReverse,
+			REVERSE,
+			match);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Found %d matches in RGSeqPairFindMatchesInIndex.\n",
+				match->numEntries);
+	}
+
+	/* Remove duplicates from match */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Removing duplicates\n");
+	}
+	RGMatchRemoveDuplicates(match);
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Removed duplicates with %d matches remaining in RGSeqPairFindMatchesInIndex.\n",
+				match->numEntries);
+	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Exiting RGSeqPairFindMatchesInIndex.\n");
+	}
+}
+
+/* TODO */
+void RGSeqPairFindMatchesInTree(RGTree *tree, 
 		RGMatch *match,
 		char *sequence,
 		int **offsets,
@@ -30,7 +86,7 @@ void RGSeqPairFindMatches(RGTree *tree,
 	seqPairs.strand=NULL;
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "\nIn RGSeqPairFindMatches\n");
+		fprintf(stderr, "\nIn RGSeqPairFindMatchesInTree\n");
 	}
 
 	/* Note: we can speed this up by generating all pairs of l-mers to
@@ -44,7 +100,14 @@ void RGSeqPairFindMatches(RGTree *tree,
 			numMismatches,
 			numInsertions,
 			numDeletions);
-	assert(seqPairs.numPairs>0);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Generated %d pairs.\n",
+				seqPairs.numPairs);
+	}
+	if(seqPairs.numPairs <= 0) { 
+		/* No pairs generated, return */
+		return;
+	}
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generated %d pairs.\n",
 				seqPairs.numPairs);
@@ -79,14 +142,14 @@ void RGSeqPairFindMatches(RGTree *tree,
 			int j;
 			for(j=0;j<match->numEntries;j++) {
 				fprintf(stderr, "%d\t%d\t%c\n",
-						(int)match->chromosomes[j],
+						match->chromosomes[j],
 						match->positions[j],
 						match->strand[j]);
 			}
 		}
 	}
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Found %d matches in RGSeqPairFindMatches.\n",
+		fprintf(stderr, "Found %d matches in RGSeqPairFindMatchesInTree.\n",
 				match->numEntries);
 	}
 
@@ -97,11 +160,11 @@ void RGSeqPairFindMatches(RGTree *tree,
 	RGMatchRemoveDuplicates(match);
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Removed duplicates with %d matches remaining in RGSeqPairFindMatches.\n",
+		fprintf(stderr, "Removed duplicates with %d matches remaining in RGSeqPairFindMatchesInTree.\n",
 				match->numEntries);
 	}
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Exiting RGSeqPairFindMatches\n");
+		fprintf(stderr, "Exiting RGSeqPairFindMatchesInTree\n");
 	}
 
 }
@@ -128,6 +191,10 @@ void RGSeqPairGeneratePairs(char *sequence,
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generating all possible pairs (%d offsets).\n",
 				numOffsets);
+		fprintf(stderr, "numMismatches:%d\tnumInsertions:%d\tnumDeletions:%d\n",
+				numMismatches,
+				numInsertions,
+				numDeletions);
 	}
 
 	/* Go through all offsets */
@@ -145,7 +212,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 		/* Forward */
 		RGSeqPairGenerateMismatches(sequence,
 				sequenceLength,
-				'+',
+				FORWARD,
 				(*offsets)[i],
 				matchLength,
 				gap,
@@ -154,7 +221,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 		/* Reverse compliment */
 		RGSeqPairGenerateMismatches(reverseSequence,
 				sequenceLength,
-				'-',
+				REVERSE,
 				(*offsets)[i],
 				matchLength,
 				gap,
@@ -172,7 +239,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			/* Forward */
 			RGSeqPairGenerateInsertions(sequence,
 					sequenceLength,
-					'-',
+					FORWARD,
 					(*offsets)[i],
 					matchLength,
 					gap,
@@ -181,7 +248,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			/* Reverse compliment */
 			RGSeqPairGenerateInsertions(reverseSequence,
 					sequenceLength,
-					'+',
+					REVERSE,
 					(*offsets)[i],
 					matchLength,
 					gap,
@@ -199,7 +266,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			/* Forward */
 			RGSeqPairGenerateDeletions(sequence,
 					sequenceLength,
-					'+',
+					FORWARD,
 					(*offsets)[i],
 					matchLength,
 					gap,
@@ -208,7 +275,7 @@ void RGSeqPairGeneratePairs(char *sequence,
 			/* Reverse compliment */
 			RGSeqPairGenerateDeletions(reverseSequence,
 					sequenceLength,
-					'-',
+					REVERSE,
 					(*offsets)[i],
 					matchLength,
 					gap,
@@ -217,8 +284,18 @@ void RGSeqPairGeneratePairs(char *sequence,
 		}
 	}
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "All pairs generated\n");
+	}
+
 	/* Merge all pairs */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Calling RGSeqPairRemoveDuplicates\n");
+	}
 	RGSeqPairRemoveDuplicates(seqPairs);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Exited from RGSeqPairRemoveDuplicates\n");
+	}
 }
 
 /* TODO */
@@ -233,6 +310,11 @@ void RGSeqPairGenerateMismatches(char *seq,
 {
 	char *curOne=NULL;
 	char *curTwo=NULL;
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Generating indexes with %d mismatches\n",
+				numMismatches);
+	}
 
 	if(offset+gap+matchLength*2 > seqLength) {
 		/* Out of bounds.  Don't add anything. */
@@ -291,10 +373,10 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
 			/* Copy over */
-			pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
-			pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
 			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Pair %s[%d]\t%s[%d].\n",
+				fprintf(stderr, "Pair (mistmatch):%s[%d]\t%s[%d].\n",
 						curOne,
 						pairs->indexOne[pairs->numPairs-1],
 						curTwo,
@@ -420,10 +502,10 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
 		/* Copy over */
-		pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
-		pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
 		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Pair %s[%d]\t%s[%d].\n",
+			fprintf(stderr, "Pair(mismatch):%s[%d]\t%s[%d].\n",
 					curOne,
 					pairs->indexOne[pairs->numPairs-1],
 					curTwo,
@@ -447,6 +529,11 @@ void RGSeqPairGenerateDeletions(char *seq,
 {
 	char curOne[SEQUENCE_LENGTH];
 	char curTwo[SEQUENCE_LENGTH];
+
+	if(VERBOSE>=DEBUG) {
+		fprintf(stderr, "Generating pairs with %d deletions.\n",
+				numDeletions);
+	}
 
 	if(offset+gap+matchLength*2 > seqLength) {
 		/* Out of bounds.  Don't add anything. */
@@ -503,8 +590,15 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
 			/* Copy over */
-			pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
-			pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Pair (deletion):%s[%d]\t%s[%d].\n",
+						curOne,
+						pairs->indexOne[pairs->numPairs-1],
+						curTwo,
+						pairs->indexTwo[pairs->numPairs-1]);
+			}
 			pairs->strand[pairs->numPairs-1] = direction;
 			return;
 		}
@@ -617,8 +711,15 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
 		/* Copy over */
-		pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
-		pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Pair(deletion):%s[%d]\t%s[%d].\n",
+					curOne,
+					pairs->indexOne[pairs->numPairs-1],
+					curTwo,
+					pairs->indexTwo[pairs->numPairs-1]);
+		}
 		pairs->strand[pairs->numPairs-1] = direction;
 		return;
 	}
@@ -639,21 +740,24 @@ void RGSeqPairGenerateInsertions(char *seq,
 	char *curTwo;
 	int minRemaining;
 
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Generating pairs with %d insertions\n",
+				numInsertions);
+	}
+
 	/* Bounds on this will be different, since if we need 
 	 * extra bases to compensate for the deletion */
-	minRemaining = seqLength-(offset+gap+matchLength*2+numInsertions);
-	if(minRemaining < 0) {
-		if(numInsertions - minRemaining <= 0) {
-			/* Out of bounds.  Don't add anything. */
-			return;
-		}
-		else {
-			/* Adjust the number of insertions we can handle. We could
-			 * also just use bases infront of offset, but the user
-			 * specified offset for a reason. 
-			 * */
-			numInsertions -= minRemaining;
-		}
+	minRemaining = seqLength-(offset+gap+matchLength*2);
+	if(minRemaining <= 0) {
+		/* Out of bounds.  Don't add anything. */
+		return;
+	}
+	else if(minRemaining < numInsertions) {
+		/* Adjust the number of insertions we can handle. We could
+		 * also just use bases infront of offset, but the user
+		 * specified offset for a reason. 
+		 * */
+		numInsertions = minRemaining;
 	}
 
 	/* Allocate memory */
@@ -712,8 +816,15 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
 			/* Copy over */
-			pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
-			pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Pair (insertions):%s[%d]\t%s[%d].\n",
+						curOne,
+						pairs->indexOne[pairs->numPairs-1],
+						curTwo,
+						pairs->indexTwo[pairs->numPairs-1]);
+			}
 			pairs->strand[pairs->numPairs-1] = direction;
 			return;
 		}
@@ -799,8 +910,15 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
 		/* Copy over */
-		pairs->indexOne[pairs->numPairs-1] = GetIndexFromSequence(curOne, matchLength);
-		pairs->indexTwo[pairs->numPairs-1] = GetIndexFromSequence(curTwo, matchLength);
+		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Pair(insertion):%s[%d]\t%s[%d].\n",
+					curOne,
+					pairs->indexOne[pairs->numPairs-1],
+					curTwo,
+					pairs->indexTwo[pairs->numPairs-1]);
+		}
 		pairs->strand[pairs->numPairs-1] = direction;
 		return;
 	}
@@ -814,8 +932,14 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 	RGSeqPair prev;
 	int curIndex=0;
 
-	/* Merge sort the data structure */
-	RGSeqPairMergeSort(s, 0, s->numPairs-1);
+	/* Sort the data structure */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Sorting\n");
+	}
+	RGSeqPairQuickSort(s, 0, s->numPairs-1);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Sorted!\n");
+	}
 
 	/* Allocate prev */
 	prev.indexOne = (int*)malloc(sizeof(int));
@@ -869,70 +993,47 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 }
 
 /* TO DO */
-void RGSeqPairMergeSort(RGSeqPair *s, int low, int high)
+void RGSeqPairQuickSort(RGSeqPair *s, int low, int high)
 {
-	/* NOTE: when high-low < 20 we could use selection sort since it is faster 
-	 * on smaller lengths. */
-
-	/* MergeSort! */
-	int mid = (low + high)/2;
-	int start_upper = mid + 1;
-	int end_upper = high;
-	int start_lower = low;
-	int end_lower = mid;
-	int ctr, i;
-
+	int i;
+	int pivot=-1;
 	RGSeqPair temp;
 
-	if(low >= high) {
-		return;
-	}
+	if(low < high) {
+		/* Allocate memory for the temp RGSeqPair indexes and strand */
+		temp.indexOne = (int*)malloc(sizeof(int));
+		temp.indexTwo = (int*)malloc(sizeof(int));
+		temp.strand = (char*)malloc(sizeof(char));
 
-	/* Partition the list into two lists and then sort them recursively */
-	RGSeqPairMergeSort(s, low, mid);
-	RGSeqPairMergeSort(s, mid+1, high);
+		pivot = (low + high)/2;
 
-	/* Allocate temporary memory */
-	temp.indexOne = (int*)malloc((high-low+1)*sizeof(int));
-	temp.indexTwo = (int*)malloc((high-low+1)*sizeof(int));
-	temp.strand = (char*)malloc((high-low+1)*sizeof(char));
-	temp.numPairs = high-low+1;
+		RGSeqPairCopyAtIndex(s, pivot, &temp, 0);
+		RGSeqPairCopyAtIndex(s, high, s, pivot);
+		RGSeqPairCopyAtIndex(&temp, 0, s, high);
 
-	/* Merge the two lists */
-	ctr = 0;
-	while( (start_lower<=end_lower) && (start_upper<=end_upper) )
-	{
-		if(RGSeqPairCompareAtIndex(s, start_lower, s, start_upper) <= 0) {
-			RGSeqPairCopyAtIndex(s, start_lower, &temp, ctr);
-			start_lower++;
+		pivot = low;
+
+		for(i=low;i<high;i++) {
+			if(RGSeqPairCompareAtIndex(s, i, s, high) <= 0) {
+				RGSeqPairCopyAtIndex(s, i, &temp, 0);
+				RGSeqPairCopyAtIndex(s, pivot, s, i);
+				RGSeqPairCopyAtIndex(&temp, 0, s, pivot);
+				pivot++;
+			}
 		}
-		else {
-			RGSeqPairCopyAtIndex(s, start_upper, &temp, ctr);
-			start_upper++;
-		}
-		ctr++;
-		assert(ctr<high-low+1);
+		RGSeqPairCopyAtIndex(s, pivot, &temp, 0);
+		RGSeqPairCopyAtIndex(s, high, s, pivot);
+		RGSeqPairCopyAtIndex(&temp, 0, s, high);
+
+		/* Free memory before recursive call */
+		free(temp.indexOne);
+		free(temp.indexTwo);
+		free(temp.strand);
+
+		RGSeqPairQuickSort(s, low, pivot-1);
+		RGSeqPairQuickSort(s, pivot+1, high);
+
 	}
-	if(start_lower<=end_lower) {
-		while(start_lower<=end_lower) {
-			RGSeqPairCopyAtIndex(s, start_lower, &temp, ctr);
-			ctr++;
-			start_lower++;
-		}
-	}
-	else {
-		while(start_upper<=end_upper) {
-			RGSeqPairCopyAtIndex(s, start_upper, &temp, ctr);
-			ctr++;
-			start_upper++;
-		}
-	}
-	for(i=low, ctr=0;i<=high;i++, ctr++) {
-		RGSeqPairCopyAtIndex(&temp, ctr, s, i);
-	}
-	free(temp.indexOne);
-	free(temp.indexTwo);
-	free(temp.strand);
 }
 
 /* TODO */
@@ -941,6 +1042,14 @@ void GetReverseCompliment(char *s,
 		int length) 
 {
 	int i;
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "sequence:");
+		for(i=0;i<length;i++) {
+			fprintf(stderr, "%c", s[i]);
+		}
+		fprintf(stderr, "\n");
+	}
 
 	/* Get reverse compliment sequence */
 	for(i=length-1;i>=0;i--) {
@@ -964,6 +1073,13 @@ void GetReverseCompliment(char *s,
 		}
 	}
 	r[length]='\0';
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "reverse compliment:");
+		for(i=0;i<length;i++) {
+			fprintf(stderr, "%c", r[i]);
+		}
+		fprintf(stderr, "\n");
+	}
 }
 
 int RGSeqPairCompareAtIndex(RGSeqPair *pOne, int iOne, RGSeqPair *pTwo, int iTwo) 

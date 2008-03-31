@@ -7,19 +7,18 @@
 
 int RGTreeInsert(RGTree*, char*, char*, int, int, int);
 void RGTreeCleanUpTree(RGTree*);
-void RGTreeInsertionSortNodes(RGTree*);
-void RGTreeMergeSortNodes(RGTree*, int, int);
+void RGTreeQuickSortNodes(RGTree*, int, int, int);
 int RGTreeGetIndex(RGTree*, int, int);
 void RGTreeDelete(RGTree*);
 double RGTreeGetSize(RGTree*, int);
 void RGTreePrintTree(FILE*, RGTree*);
-int RGTreeReadTree(RGTree*, FILE*);
+int RGTreeReadTree(FILE*, RGTree*);
 void RGTreePrintHeader(FILE*, RGTree*);
 void RGTreeReadHeader(FILE*, RGTree*);
 int RGTreeGetMatches(RGTree*, int, int, char, RGMatch*);
-int GetIndexFromSequence(char*, int);
-void RGNodeCopy(RGNode *src, RGNode *dest);
-int RGNodeCompare(RGNode *a, RGNode *b);
+int RGTreeGetIndexFromSequence(char*, int);
+void RGTreeNodeCopy(RGTreeNode *src, RGTreeNode *dest);
+int RGTreeNodeCompare(RGTreeNode *a, RGTreeNode *b);
+void RGTreeQuickSortNode(RGTree*, int, int, int);
 
 #endif
-
