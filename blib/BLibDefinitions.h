@@ -123,7 +123,7 @@ typedef struct {
 	int chromosome;
 	int startPos;
 	int endPos;
-	char *sequence; /* Store in the bytes via two bits - four nt per char (assuming sizeof(char)==1) */
+	unsigned char *sequence; /* Store in the bytes via two bits - four nt per char (assuming sizeof(char)==1) */
 } RGBinaryChr;
 
 typedef struct {

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-
+#include "ReadInputFiles.h"
 #include "Align.h"
 
 /* TODO */
@@ -12,7 +12,11 @@
  * numbers, and therefore we might an overflow problem if we keep
  * adding negative numbers (long sequences)
  * */
-double AlignmentGetScore(char *read,
+/* Return the offset of the alignment (gaps at the beginning of
+ * the read are OK) in relation to the start of the reference
+ * sequence 
+ * */
+int AlignmentGetScore(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
@@ -70,7 +74,7 @@ double AlignmentGetScore(char *read,
 			/* Update diagonal */
 			/* Get mismatch score */
 			curMismatchScore=GetScoreFromMatrix(read[i-1],
-					reference[j-1],
+					ToLower(reference[j-1]),
 					sm);
 			hScore = Entries[i][j].hScore;
 			vScore = Entries[i][j].vScore;

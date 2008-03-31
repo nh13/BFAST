@@ -7,6 +7,7 @@
 
 void ReadReferenceGenome(char*, RGBinary*, int, int, int, int);
 char ToLower(char);
-void InsertSequenceLetterIntoByte(char*, int, char);
+char ToUpper(char);
+void InsertSequenceLetterIntoByte(unsigned char*, int, char, char);
 int ReadScoringMatrix(char*, ScoringMatrix*);
 #endif

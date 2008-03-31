@@ -28,4 +28,15 @@ typedef struct {
 	int prevCol; /* previous column */
 } MatrixEntry;
 
+/* TODO */
+typedef struct {
+	char *read; /* The read */
+	char *reference;
+	int length; /* The length of the alignment */
+	int chromosome;
+	int position;
+	int strand;
+	double score;
+} AlignOutput;
+
 #endif

@@ -22,4 +22,9 @@ Have a command line option that specifies a strict read length (otherwise, we
 ===============================================================================
 balign
 ===============================================================================
-1. Start implementing the program.
+1. Change the RGBinaryChr to have it so that we only store 2 nts in each byte, 
+	where:
+		left-most 2-bits: nt 1's repeat (0, 1) or N (3)
+		3rd and 4th bits from the left: nt 1's sequence (a=0, c=1, g=2, t=3)
+		3rd and 4th bits from the right: nt 2's repeat (0, 1) or N (3)
+		right-most 2-bits: nt 2's sequence (a=0, c=1, g=2, t=3)

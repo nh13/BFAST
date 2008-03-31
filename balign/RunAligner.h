@@ -5,6 +5,6 @@
 
 void RunAligner(RGBinary*, char*, char*, int, int, int, char*, char*);
 void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, FILE*);
-void GetSequence(RGBinary*, int, int, char, int, int, char*);
+void GetSequenceFromReferenceGenome(RGBinary*, int, int, char, char*, int);
 
 #endif

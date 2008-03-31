@@ -4,12 +4,13 @@
 #include <assert.h>
 #include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
-#include "../blib/RGMatch.h"
+#include "../blib/RGMatch.h" /* To read in the matches */
+#include "../blib/RGSeqPair.h" /* For reverse compliment */
 #include "Definitions.h"
 #include "RunAligner.h"
 
 /* TODO */
-void RunAligner(RGBinary *rgList,
+void RunAligner(RGBinary *rgBinary,
 		char *matchesFileName,
 		char *scoringMatrixFileName,
 		int algorithm,
@@ -71,7 +72,7 @@ void RunAligner(RGBinary *rgList,
 		switch(algorithm) {
 			case 0:
 				RunDynamicProgramming(matchFP,
-						rgList,
+						rgBinary,
 						scoringMatrixFileName,
 						algorithm,
 						offsetLength,
@@ -101,7 +102,7 @@ void RunAligner(RGBinary *rgList,
 
 /* TODO */
 void RunDynamicProgramming(FILE *matchFP,
-		RGBinary *rgList,
+		RGBinary *rgBinary,
 		char *scoringMatrixFileName,
 		int algorithm,
 		int offsetLength,
@@ -116,10 +117,13 @@ void RunDynamicProgramming(FILE *matchFP,
 	RGMatch pairedSequenceMatch;
 	int matchLength;
 	char *reference=NULL;
+	int referenceLength=0;
 	int i;
-	
+
 	/* Allocate memory for the reference */
-	reference = (char*)malloc(sizeof(char)*(2*offsetLength+SEQUENCE_LENGTH));
+	referenceLength = 2*offsetLength + SEQUENCE_LENGTH;
+	reference = (char*)malloc(sizeof(char)*(referenceLength+1));
+	reference[referenceLength] = '\0'; /* Add null terminator */
 
 	/* Read in scoring matrix */
 	ReadScoringMatrix(scoringMatrixFileName, &sm); 
@@ -152,16 +156,14 @@ void RunDynamicProgramming(FILE *matchFP,
 		assert(pairedEnd==0);
 		for(i=0;i<sequenceMatch.numEntries;i++) { /* For each match */
 			/* Get the appropriate reference sequence */
-			GetSequence(rgList, 
+			GetSequenceFromReferenceGenome(rgBinary, 
 					sequenceMatch.chromosomes[i], 
 					sequenceMatch.positions[i],
 					sequenceMatch.strand[i],
-					matchLength,
-					offsetLength,
-					reference);
-			
+					reference,
+					referenceLength);
+
 			/* TODO */
-			/* - Write GetSequence */
 			/* - need a way to store the best match so far */
 			/* - decide output format */
 
@@ -193,12 +195,193 @@ void RunDynamicProgramming(FILE *matchFP,
 }
 
 /* TODO */
-void GetSequence(RGBinary *rgList,
+void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 		int chromosome,
 		int position,
 		char strand,
-		int matchLength,
-		int offsetLength,
-		char *reference)
+		char *reference,
+		int referenceLength)
 {
+	int i;
+	int chrIndex;
+	int posIndex;
+	int byteIndex;
+	int curByteIndex;
+	unsigned char curChar;
+	unsigned char repeat;
+	char *reverseCompliment;
+	int numCharsPerByte;
+	/* We assume that we can hold 2 [acgt] (nts) in each byte */
+	assert(ALPHABET_SIZE==4);
+	numCharsPerByte=ALPHABET_SIZE/2;
+
+
+	int startPos = (strand == FORWARD)?(position):(position-referenceLength-1);
+	int endPos = (strand == FORWARD)?(position+referenceLength-1):(position);
+
+	/* Get chromosome index in rgBinary */
+	chrIndex = chromosome - rgBinary->startChr;
+
+	/* Check chromosome bounds */
+	if(chromosome < rgBinary->startChr || chromosome > rgBinary->endChr) {
+		fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome: chromosome [%d] out of range [%d,%d].  Terminating!\n",
+				chromosome,
+				rgBinary->startChr,
+				rgBinary->endChr);
+		exit(1);
+	}
+
+
+	/* Check position bounds */
+	if(startPos < rgBinary->chromosomes[chrIndex].startPos || endPos > rgBinary->chromosomes[chrIndex].endPos) {
+		fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome: start position [%d] out of range [%d,%d] for chromosome [%d].  Terminating!\n",
+				startPos,
+				rgBinary->chromosomes[chrIndex].startPos,
+				rgBinary->chromosomes[chrIndex].endPos,
+				chromosome);
+		exit(1);
+	}
+
+	if(position < rgBinary->chromosomes[chrIndex].startPos || position > rgBinary->chromosomes[chrIndex].endPos) {
+		fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome: end position [%d] out of range [%d,%d] for chromosome [%d].  Terminating!\n",
+				endPos,
+				rgBinary->chromosomes[chrIndex].startPos,
+				rgBinary->chromosomes[chrIndex].endPos,
+				chromosome);
+		exit(1);
+	}
+
+	/* Get the reference sequence */
+	assert(startPos <= endPos);
+	for(i=startPos;i<=endPos;i++) {
+		/* Get position index in rgBinary */
+		posIndex = i - rgBinary->chromosomes[chrIndex].startPos;
+		byteIndex = i%numCharsPerByte; /* Which bits in the byte */
+		curByteIndex = (posIndex - byteIndex)/numCharsPerByte; /* Get which byte */
+
+		/* Get the sequence */
+		curChar = rgBinary->chromosomes[chrIndex].sequence[curByteIndex];
+		repeat = 0;
+		switch(byteIndex) {
+			case 0:
+				/* left-most 2-bits */
+				repeat = curChar & 0xC0; /* zero out the irrelevant bits */
+				switch(repeat) {
+					case 0x00:
+						repeat = 0; 
+						break;
+					case 0x40:
+						repeat = 1;
+						break;
+					case 0x80:
+						repeat = 2;
+						break;
+					default:
+						fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand repeat [%c].  Terminating!\n",
+								repeat);
+						exit(1);
+						break;
+				}
+				break;
+				/* third and fourth bits from the left */
+				curChar = curChar & 0x30; /* zero out the irrelevant bits */
+				switch(curChar) {
+					case 0x00:
+						curChar = 'a';
+						break;
+					case 0x10:
+						curChar = 'c';
+						break;
+					case 0x20:
+						curChar = 'g';
+						break;
+					case 0x30:
+						curChar = 't';
+						break;
+					default:
+						break;
+				}
+				break;
+			case 1:
+				/* third and fourth bits from the right */
+				repeat = curChar & 0x0C; /* zero out the irrelevant bits */
+				switch(repeat) {
+					case 0x00:
+						repeat = 0;
+						break;
+					case 0x04:
+						repeat = 1;
+						break;
+					case 0x08:
+						repeat = 2;
+						break;
+					default:
+						fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand repeat [%c].  Terminating!\n",
+								repeat);
+						exit(1);
+						break;
+				}
+				break;
+			case 3:
+				/* right-most 2-bits */
+				curChar = curChar & 0x03; /* zero out the irrelevant bits */
+				switch(curChar) {
+					case 0x00:
+						curChar = 'a';
+						break;
+					case 0x01:
+						curChar = 'c';
+						break;
+					case 0x02:
+						curChar = 'g';
+						break;
+					case 0x03:
+						curChar = 't';
+						break;
+					default:
+						break;
+				}
+				break;
+			default:
+				fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand byteIndex [%d].  Terminating!\n",
+						byteIndex);
+				exit(1);
+		}
+		/* Update based on repeat */
+		switch(repeat) {
+			case 0:
+				/* ignore, not a repeat */
+				break;
+			case 1:
+				/* repeat, convert char to upper */
+				curChar=ToUpper(curChar);
+				break;
+			case 2:
+				/* N character */
+				curChar='N';
+				break;
+			default:
+				fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand repeat indexed [%d].  Terminating!\n",
+						repeat);
+				break;
+		}
+		/* Update reference */
+		reference[i=startPos] = curChar;
+	}
+	/* Get the reverse compliment if necessary */
+	if(strand == FORWARD) {
+		/* ignore */
+	}
+	else if(strand == REVERSE) {
+		/* Get the reverse compliment */
+		reverseCompliment = (char*)malloc(sizeof(char)*(referenceLength+1));
+		GetReverseCompliment(reference, reverseCompliment, referenceLength);
+		strcpy(reference, reverseCompliment);
+		free(reverseCompliment);
+	}
+	else {
+		fprintf(stderr, "Error.  Could not understand strandedness [%c].  Terminating!\n", strand);
+		exit(1);
+	}
 }
+

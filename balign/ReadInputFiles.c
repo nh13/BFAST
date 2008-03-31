@@ -8,6 +8,7 @@
 #include "ReadInputFiles.h"
 
 /* TODO */
+/* What about Ns in the genome ? */
 void ReadReferenceGenome(char *rgFileName, 
 		RGBinary *rg,
 		int startChr,
@@ -17,21 +18,23 @@ void ReadReferenceGenome(char *rgFileName,
 {
 	FILE *fpRG=NULL;
 	char c;
+	char repeat;
 	int curChr;
 	int curPos;
 	int numChrs=0;
 	int numPosRead=0;
 	int continueReading=1;
 	int byteIndex;
+	int numCharsPerByte;
 
 	char **chrFileNames=NULL;
 	int numChrFileNames=0;
 	char defaultFileName[MAX_FILENAME_LENGTH]="\0";
 	char header[MAX_FILENAME_LENGTH]="\0";
 
-	/* We assume that we can hold 4 [acgt] (nts) in each byte */
+	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
-
+	numCharsPerByte=ALPHABET_SIZE/2;
 
 	rg->startChr=startChr;
 	rg->startPos=startPos;
@@ -140,6 +143,7 @@ void ReadReferenceGenome(char *rgFileName,
 		curPos=1;
 		continueReading=1;
 		while(continueReading==1 && fscanf(fpRG, "%c", &c) > 0) {
+			repeat = c;
 			c=ToLower(c);
 
 			/* Reallocate memory in increments.  This allows us to avoid having
@@ -160,15 +164,15 @@ void ReadReferenceGenome(char *rgFileName,
 					curPos--;
 				}
 				else {
-					byteIndex = numPosRead%ALPHABET_SIZE;
+					byteIndex = numPosRead%numCharsPerByte;
 					/* Allocate once we have filled up the byte */
 					if(byteIndex==0) {
-						rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(char)*(numPosRead/4));
+						rg->chromosomes[numChrs-1].sequence = (unsigned char*)realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(numPosRead/numCharsPerByte));
 						/* Initialize byte */
-						rg->chromosomes[numChrs-1].sequence[numPosRead/4] = 0; 
+						rg->chromosomes[numChrs-1].sequence[(numPosRead-byteIndex)/numCharsPerByte] = 0; 
 					}
 					/* Insert the sequence correctly (as opposed to incorrectly) */
-					InsertSequenceLetterIntoByte(&rg->chromosomes[numChrs-1].sequence[numPosRead], byteIndex, c);
+					InsertSequenceLetterIntoByte(&rg->chromosomes[numChrs-1].sequence[(numPosRead-byteIndex)/numCharsPerByte], byteIndex, c, repeat);
 					numPosRead++;
 				}
 				curPos++;
@@ -244,34 +248,66 @@ char ToLower(char a)
 }
 
 /* TODO */
-void InsertSequenceLetterIntoByte(char *dest,
-		int byteIndex,
-		char src)
+char ToUpper(char a) 
 {
+	switch(a) {
+		case 'a':
+			return 'A';
+			break;
+		case 'c':
+			return 'C';
+			break;
+		case 'g':
+			return 'G';
+			break;
+		case 't':
+			return 'T';
+			break;
+		default:
+			return a;
+	}
+}
+
+/* TODO */
+void InsertSequenceLetterIntoByte(unsigned char *dest,
+		int byteIndex,
+		char src,
+		char repeat)
+{
+	int numCharsPerByte;
+	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
-	switch(byteIndex%ALPHABET_SIZE) {
+	numCharsPerByte=ALPHABET_SIZE/2;
+
+	switch(byteIndex%numCharsPerByte) {
 		case 0:
 			(*dest)=0;
-			/* left-most 2-bits */
-			switch(src) {
+			/* left-most 2-bits will hold the repeat*/
+			switch(repeat) {
 				case 'a':
+				case 'c':
+				case 'g':
+				case 't':
+					/* zero */
 					(*dest) = (*dest) | 0x00;
 					break;
-				case 'c':
+				case 'A':
+				case 'C':
+				case 'G':
+				case 'T':
+					/* one */
 					(*dest) = (*dest) | 0x40;
 					break;
-				case 'g':
+				case 'N':
+					/* two */
 					(*dest) = (*dest) | 0x80;
 					break;
-				case 't':
-					(*dest) = (*dest) | 0xC0;
-					break;
 				default:
-					break;
+					fprintf(stderr, "Error.  In InsertSequenceLetterIntoByte, could not undertsand repeat [%c].  Terminating!\n",
+							repeat);
+					exit(1);
 			}
-			break;
-		case 1:
-			/* third and fourth bits from the left */
+			/* third and fourth bits from the left will hold the sequence */
 			switch(src) {
 				case 'a':
 					(*dest) = (*dest) | 0x00;
@@ -289,27 +325,33 @@ void InsertSequenceLetterIntoByte(char *dest,
 					break;
 			}
 			break;
-		case 2:
-			/* third and fourth bits from the right */
-			switch(src) {
+		case 1:
+			/* third and fourth bits from the right will hold the repeat*/
+			switch(repeat) {
 				case 'a':
+				case 'c':
+				case 'g':
+				case 't':
+					/* zero */
 					(*dest) = (*dest) | 0x00;
 					break;
-				case 'c':
+				case 'A':
+				case 'C':
+				case 'G':
+				case 'T':
+					/* one */
 					(*dest) = (*dest) | 0x04;
 					break;
-				case 'g':
+				case 'N':
+					/* two */
 					(*dest) = (*dest) | 0x08;
 					break;
-				case 't':
-					(*dest) = (*dest) | 0x0C;
-					break;
 				default:
-					break;
+					fprintf(stderr, "Error.  In InsertSequenceLetterIntoByte, could not undertsand repeat [%c].  Terminating!\n",
+							repeat);
+					exit(1);
 			}
-			break;
-		case 3:
-			/* right most 2-bits */
+			/* right most 2-bits will hold the sequence */
 			switch(src) {
 				case 'a':
 					(*dest) = (*dest) | 0x00;
