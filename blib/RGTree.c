@@ -515,14 +515,15 @@ void RGTreeReadHeader(FILE *fp, RGTree *tree)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, RGMatch *m) 
+int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, int offset, RGMatch *m) 
 {
 	int index, startIndex, i;
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "RGTreeGetMatches.  Searching for indexes %d and %d.\n",
+		fprintf(stderr, "RGTreeGetMatches.  Searching for indexes %d and %d with offset %d.\n",
 				indexOne,
-				indexTwo);
+				indexTwo,
+				offset);
 	}
 
 	/* Get the index of the tree */
@@ -548,12 +549,14 @@ int RGTreeGetMatches(RGTree *tree, int indexOne, int indexTwo, char direction, R
 		for(i=startIndex;i<m->numEntries;i++) {
 			/* Adjust for reverse strand if necessary */
 			if(direction == FORWARD) {
-				m->positions[i] = tree->nodes[index].positions[i-startIndex];
+				/* Adjust for offset in position */
+				m->positions[i] = tree->nodes[index].positions[i-startIndex] - offset;
 				m->chromosomes[i] = tree->nodes[index].chromosomes[i-startIndex];
 				m->strand[i] = direction;
 			}
 			else if(direction == REVERSE) {
-				m->positions[i] = tree->nodes[index].positions[i-startIndex] + tree->matchLength - 1;
+				/* Adjust for offset in position */
+				m->positions[i] = tree->nodes[index].positions[i-startIndex] + tree->matchLength - 1 - offset;
 				m->chromosomes[i] = tree->nodes[index].chromosomes[i-startIndex];
 				m->strand[i] = direction;
 			}

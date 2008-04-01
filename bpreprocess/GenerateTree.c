@@ -147,6 +147,7 @@ void GenerateTree(RGList *rgList,
 								RGTreeGetIndexFromSequence(curSequenceOne, matchLength),
 								RGTreeGetIndexFromSequence(curSequenceTwo, matchLength),
 								FORWARD,
+								0,
 								&match);
 						fprintf(stderr, "Found %d matches for %s\t%s\n",
 								match.numEntries,

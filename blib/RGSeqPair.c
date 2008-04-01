@@ -84,6 +84,7 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 	seqPairs.indexOne=NULL;
 	seqPairs.indexTwo=NULL;
 	seqPairs.strand=NULL;
+	seqPairs.offset=NULL;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "\nIn RGSeqPairFindMatchesInTree\n");
@@ -109,14 +110,13 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 		return;
 	}
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Generated %d pairs.\n",
-				seqPairs.numPairs);
 		for(i=0;i<seqPairs.numPairs;i++) { /* For each pair */
-			fprintf(stderr, "%d:%d,%d,%c\n",
+			fprintf(stderr, "%d:%d,%d,%c,%d\n",
 					i+1, 
 					seqPairs.indexOne[i],
 					seqPairs.indexTwo[i],
-					seqPairs.strand[i]);
+					seqPairs.strand[i],
+					seqPairs.offset[i]);
 		}
 	}
 
@@ -134,6 +134,7 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 				seqPairs.indexOne[i],
 				seqPairs.indexTwo[i],
 				seqPairs.strand[i],
+				seqPairs.offset[i],
 				match);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "After %d pairs, found %d matches.\n",
@@ -372,17 +373,19 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
 			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
 			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Pair (mistmatch):%s[%d]\t%s[%d].\n",
+				fprintf(stderr, "Pair(mistmatch):%s[%d]\t%s[%d].\n",
 						curOne,
 						pairs->indexOne[pairs->numPairs-1],
 						curTwo,
 						pairs->indexTwo[pairs->numPairs-1]);
 			}
 			pairs->strand[pairs->numPairs-1] = direction;
+			pairs->offset[pairs->numPairs-1] = offset;
 			return;
 		}
 		else {
@@ -501,6 +504,7 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
 		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -512,6 +516,7 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 					pairs->indexTwo[pairs->numPairs-1]);
 		}
 		pairs->strand[pairs->numPairs-1] = direction;
+		pairs->offset[pairs->numPairs-1] = offset;
 		return;
 	}
 }                        
@@ -589,17 +594,19 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
 			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
 			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Pair (deletion):%s[%d]\t%s[%d].\n",
+				fprintf(stderr, "Pair(deletion):%s[%d]\t%s[%d].\n",
 						curOne,
 						pairs->indexOne[pairs->numPairs-1],
 						curTwo,
 						pairs->indexTwo[pairs->numPairs-1]);
 			}
 			pairs->strand[pairs->numPairs-1] = direction;
+			pairs->offset[pairs->numPairs-1] = offset;
 			return;
 		}
 		else {
@@ -710,6 +717,7 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
 		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -721,6 +729,7 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 					pairs->indexTwo[pairs->numPairs-1]);
 		}
 		pairs->strand[pairs->numPairs-1] = direction;
+		pairs->offset[pairs->numPairs-1] = offset;
 		return;
 	}
 }
@@ -815,17 +824,19 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
 			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
 			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Pair (insertions):%s[%d]\t%s[%d].\n",
+				fprintf(stderr, "Pair(insertions):%s[%d]\t%s[%d].\n",
 						curOne,
 						pairs->indexOne[pairs->numPairs-1],
 						curTwo,
 						pairs->indexTwo[pairs->numPairs-1]);
 			}
 			pairs->strand[pairs->numPairs-1] = direction;
+			pairs->offset[pairs->numPairs-1] = offset;
 			return;
 		}
 		else {
@@ -909,6 +920,7 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
 		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -920,6 +932,7 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 					pairs->indexTwo[pairs->numPairs-1]);
 		}
 		pairs->strand[pairs->numPairs-1] = direction;
+		pairs->offset[pairs->numPairs-1] = offset;
 		return;
 	}
 }
@@ -945,17 +958,20 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 	prev.indexOne = (int*)malloc(sizeof(int));
 	prev.indexTwo = (int*)malloc(sizeof(int));
 	prev.strand = (char*)malloc(sizeof(char));
+	prev.offset = (int*)malloc(sizeof(int));
 	prev.numPairs = 1;
 	/* Allocate temporary */
 	t.indexOne = (int*)malloc(sizeof(int)*(s->numPairs));
 	t.indexTwo = (int*)malloc(sizeof(int)*(s->numPairs));
 	t.strand = (char*)malloc(sizeof(char)*(s->numPairs));
+	t.offset = (int*)malloc(sizeof(int)*(s->numPairs));
 	t.numPairs = s->numPairs;
 
 	/* Initialize prev */
 	prev.indexOne[0] = -1;
 	prev.indexTwo[0] = -1;
 	prev.strand[0] = 'z';
+	prev.offset[0]= 0;
 
 	/* Remove duplicates */
 	for(i=0;i<s->numPairs;i++) {
@@ -976,6 +992,7 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 	s->indexOne = (int*)realloc(s->indexOne, sizeof(int)*curIndex);
 	s->indexTwo = (int*)realloc(s->indexTwo, sizeof(int)*curIndex);
 	s->strand = (char*)realloc(s->strand, sizeof(char)*curIndex);
+	s->offset = (int*)realloc(s->offset, sizeof(int)*curIndex);
 
 	/* Copy over */
 	for(i=0;i<curIndex;i++) {
@@ -986,10 +1003,12 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 	free(prev.indexOne);
 	free(prev.indexTwo);
 	free(prev.strand);
+	free(prev.offset);
 	/* Free temporary memory */
 	free(t.indexOne);
 	free(t.indexTwo);
 	free(t.strand);
+	free(t.offset);
 }
 
 /* TO DO */
@@ -1004,6 +1023,7 @@ void RGSeqPairQuickSort(RGSeqPair *s, int low, int high)
 		temp.indexOne = (int*)malloc(sizeof(int));
 		temp.indexTwo = (int*)malloc(sizeof(int));
 		temp.strand = (char*)malloc(sizeof(char));
+		temp.offset = (int*)malloc(sizeof(int));
 
 		pivot = (low + high)/2;
 
@@ -1029,6 +1049,7 @@ void RGSeqPairQuickSort(RGSeqPair *s, int low, int high)
 		free(temp.indexOne);
 		free(temp.indexTwo);
 		free(temp.strand);
+		free(temp.offset);
 
 		RGSeqPairQuickSort(s, low, pivot-1);
 		RGSeqPairQuickSort(s, pivot+1, high);
@@ -1086,10 +1107,11 @@ int RGSeqPairCompareAtIndex(RGSeqPair *pOne, int iOne, RGSeqPair *pTwo, int iTwo
 {
 	if(pOne->indexOne[iOne] < pTwo->indexOne[iTwo]  ||
 			(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] < pTwo->indexTwo[iTwo]) ||  
-			(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] <= pTwo->strand[iTwo])) {
+			(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] <  pTwo->strand[iTwo]) ||
+			(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] <  pTwo->strand[iTwo] && pOne->offset[iOne] < pTwo->offset[iTwo])) {
 		return -1;
 	}
-	else if(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] == pTwo->strand[iTwo]) {
+	else if(pOne->indexOne[iOne] == pTwo->indexOne[iTwo] && pOne->indexTwo[iOne] ==  pTwo->indexTwo[iTwo] && pOne->strand[iOne] == pTwo->strand[iTwo] && pOne->offset[iOne] == pTwo->offset[iTwo]) {
 		return 0;
 	}
 	else {
@@ -1102,4 +1124,5 @@ void RGSeqPairCopyAtIndex(RGSeqPair *src, int srcIndex, RGSeqPair *dest, int des
 	dest->indexOne[destIndex] = src->indexOne[srcIndex];
 	dest->indexTwo[destIndex] = src->indexTwo[srcIndex];
 	dest->strand[destIndex] = src->strand[srcIndex];
+	dest->offset[destIndex] = src->offset[srcIndex];
 }

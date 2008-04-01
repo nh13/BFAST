@@ -80,6 +80,7 @@ typedef struct {
 	int *indexOne;
 	int *indexTwo;
 	char *strand;
+	int *offset;
 } RGSeqPair;
 
 /* TODO */

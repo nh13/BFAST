@@ -26,6 +26,7 @@ void ReadReferenceGenome(char *rgFileName,
 	int continueReading=1;
 	int byteIndex;
 	int numCharsPerByte;
+	int sequenceIndex;
 
 	char **chrFileNames=NULL;
 	int numChrFileNames=0;
@@ -165,14 +166,15 @@ void ReadReferenceGenome(char *rgFileName,
 				}
 				else {
 					byteIndex = numPosRead%numCharsPerByte;
-					/* Allocate once we have filled up the byte */
+					sequenceIndex = (numPosRead - byteIndex)/2;
 					if(byteIndex==0) {
-						rg->chromosomes[numChrs-1].sequence = (unsigned char*)realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(numPosRead/numCharsPerByte));
+						/* Allocate once we have filled up the byte */
+						rg->chromosomes[numChrs-1].sequence = (unsigned char*)realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(sequenceIndex+1));
 						/* Initialize byte */
-						rg->chromosomes[numChrs-1].sequence[(numPosRead-byteIndex)/numCharsPerByte] = 0; 
+						rg->chromosomes[numChrs-1].sequence[sequenceIndex] = 0;
 					}
 					/* Insert the sequence correctly (as opposed to incorrectly) */
-					InsertSequenceLetterIntoByte(&rg->chromosomes[numChrs-1].sequence[(numPosRead-byteIndex)/numCharsPerByte], byteIndex, c, repeat);
+					InsertSequenceLetterIntoByte(&rg->chromosomes[numChrs-1].sequence[sequenceIndex], byteIndex, c, repeat);
 					numPosRead++;
 				}
 				curPos++;

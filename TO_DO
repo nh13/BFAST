@@ -28,3 +28,11 @@ balign
 		3rd and 4th bits from the left: nt 1's sequence (a=0, c=1, g=2, t=3)
 		3rd and 4th bits from the right: nt 2's repeat (0, 1) or N (3)
 		right-most 2-bits: nt 2's sequence (a=0, c=1, g=2, t=3)
+
+===============================================================================
+bpostprocess
+===============================================================================
+1. Add Makefile.am
+2. Add doc/bpostprocess.1
+3. Modify docs
+4. Write code.

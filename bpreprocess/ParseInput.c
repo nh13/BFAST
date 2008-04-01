@@ -177,6 +177,7 @@ main (int argc, char **argv)
 							fprintf(stderr, "Finished generating and outputting reference genome tree!\n");
 						}
 						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
 						break;
 					case ExecuteProgramIndex:
 						if(ValidateInputs(&arguments)) {
@@ -200,6 +201,8 @@ main (int argc, char **argv)
 								arguments.matchLength,
 								arguments.outputID,
 								arguments.outputDir);
+						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");

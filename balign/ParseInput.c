@@ -104,7 +104,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:o:r:s:x:E:H:O:2ph";
+"a:d:e:m:o:r:s:x:E:H:O:S:2ph";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -163,6 +163,7 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.outputID,
 								arguments.outputDir);
+						fprintf(stderr, "Terminating successfully!\n");
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");

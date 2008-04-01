@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "ReadInputFiles.h"
+#include "../blib/AlignEntry.h"
 #include "Align.h"
 
 /* TODO */
@@ -21,7 +22,7 @@ int AlignmentGetScore(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignOutput *ao)
+		AlignEntry *aEntry)
 {
 	int i, j;
 	double curMismatchScore;
@@ -29,7 +30,29 @@ int AlignmentGetScore(char *read,
 	int endRow, endCol;
 	int numRows=readLength+1;
 	int numCols=referenceLength+1;
+	int curCol=-1;
+	int curRow=-1;
+	int prevRow, prevCol;
+	int offset=0;
 	MatrixEntry **Entries; /* store the dynamic programming array */
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "In AlignmentGetScore\nread:[%s] length [%d,%d]\nreference:[%s] length [%d,%d]\n",
+				read,
+				readLength,
+				(int)strlen(read),
+				reference,
+				referenceLength,
+				(int)strlen(reference));
+		/*
+		   for(i=0;i<ALPHABET_SIZE;i++) {
+		   for(j=0;j<ALPHABET_SIZE;j++) {
+		   fprintf(stderr, "%lf\t", sm->scores[i][j]);
+		   }
+		   fprintf(stderr, "\n");
+		   }
+		   */
+	}
 
 	/* Allocate memory - remember to include an extra row and column */
 	Entries = (MatrixEntry**)malloc(sizeof(MatrixEntry*)*numRows);
@@ -52,11 +75,11 @@ int AlignmentGetScore(char *read,
 	}
 	/* Scoring Matrix: initialize columns for the first row */
 	for(j=0;j<numCols;j++) {
-			Entries[0][j].hScore = NEGATIVE_INFINITY;
-			Entries[0][j].vScore = NEGATIVE_INFINITY;
-			Entries[0][j].dScore = 0;
-			Entries[0][j].prevRow = -1;
-			Entries[0][j].prevCol = -1;
+		Entries[0][j].hScore = NEGATIVE_INFINITY;
+		Entries[0][j].vScore = NEGATIVE_INFINITY;
+		Entries[0][j].dScore = 0;
+		Entries[0][j].prevRow = -1;
+		Entries[0][j].prevCol = -1;
 	}
 
 	/* Perform alignment - Dynamic programming */
@@ -80,6 +103,26 @@ int AlignmentGetScore(char *read,
 			hScore = Entries[i][j].hScore;
 			vScore = Entries[i][j].vScore;
 			dScore = Entries[i-1][j-1].dScore + curMismatchScore;
+			/*
+			   if(i==12 && j==24) {
+			   fprintf(stderr, "HERE3:d(%c,%c)=%lf\t(h,v,d)=[%.1lf,%.1lf,%.1lf]\n",
+			   read[i-1],
+			   ToLower(reference[j-1]),
+			   curMismatchScore,
+			   hScore,
+			   vScore,
+			   dScore);
+			   for(i=0;i<12;i++) {
+			   fprintf(stderr, "%c", read[i]);
+			   }
+			   fprintf(stderr, "\n");
+			   for(j=0;j<24;j++) {
+			   fprintf(stderr, "%c", reference[j]);
+			   }
+			   fprintf(stderr, "\n");
+			   exit(1);
+			   }
+			   */
 			/* Get the maximum score of the three cases: horizontal, vertical and diagonal */
 			/* Intialize the maximum score to be the horizontal */
 			maxScore = hScore;
@@ -89,13 +132,12 @@ int AlignmentGetScore(char *read,
 			/* Check if vertical is greater */
 			if(vScore > maxScore) {
 				maxScore = vScore;
-				maxScore = dScore;
 				/* Update the previous cell to be from the previous row */
 				Entries[i][j].prevRow = i-1;
 				Entries[i][j].prevCol = j;
 			}
 			/* Check if the diagonal is greater */
-			if(dScore > maxScore) {
+			if(dScore >= maxScore) { /* greater or equal so diagonal always takes precedence! */
 				maxScore = dScore;
 				/* Update the previous cell to be from the previous diagonal */
 				Entries[i][j].prevRow = i-1;
@@ -105,6 +147,23 @@ int AlignmentGetScore(char *read,
 			Entries[i][j].dScore = maxScore;
 
 		}
+	}
+
+	if(VERBOSE >= DEBUG) {
+		/*
+		for(i=0;i<numRows;i++) { 
+			for(j=0;j<numCols;j++) { 
+				fprintf(stderr, "(row,col)=[%d,%d]\t(v,d,h)=[%.2lf,%.2lf,%.2lf]\t(prevRow,prevCol)=[%d,%d]\n",
+						i,
+						j,
+						Entries[i][j].vScore,
+						Entries[i][j].dScore,
+						Entries[i][j].hScore,
+						Entries[i][j].prevRow,
+						Entries[i][j].prevCol);
+			}
+		}
+		*/
 	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then
@@ -123,16 +182,101 @@ int AlignmentGetScore(char *read,
 	}
 
 	/* Store results */
-	/* TODO */
-	
-	curCol=endCol;
-	curRow=endRow;
-	while(curCol != -1 && curRow != -1) {
+	aEntry->score = maxScore;
+
+	/* First allocate the maximum length of the alignment, we can update later */
+	aEntry->read = (char*)malloc(sizeof(char)*(endRow+endCol+1));
+	aEntry->reference = (char*)malloc(sizeof(char)*(endRow+endCol+1));
+
+	aEntry->length = 0; /* initialize length */
+	prevRow=endRow;
+	prevCol=endCol;
+	while(prevRow != -1 && prevCol != -1) {
+		assert(prevRow < numRows && prevCol < numCols);
+		curRow = Entries[prevRow][prevCol].prevRow;
+		curCol = Entries[prevRow][prevCol].prevCol;
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "(curRow,curCol)=[%d,%d]\t(%c,%c)\n",
+					curRow,
+					curCol,
+					read[curRow],
+					reference[curCol]);
+		}
+		assert(curRow < readLength || curCol < referenceLength);
+		if(curRow >= readLength) {
+			fprintf(stderr, "HERE 1\n");
+			assert(curRow != -1 && curCol != -1);
+			aEntry->read[aEntry->length] = '-';
+			aEntry->reference[aEntry->length] = reference[curCol];
+			/* Update the offset */
+			offset=curCol;
+			/* Update the length */
+			aEntry->length++;
+		}
+		else if(curCol >= referenceLength) {
+			fprintf(stderr, "HERE 2\n");
+			assert(curRow != -1 && curCol != -1);
+			aEntry->read[aEntry->length] = read[curRow];
+			aEntry->reference[aEntry->length] = '-';
+			/* Update the offset */
+			offset=curCol;
+			/* Update the length */
+			aEntry->length++;
+		}
+		else if(curRow != -1 && curCol != -1 && curRow < readLength && curCol < referenceLength) {
+			fprintf(stderr, "HERE 3\n");
+
+			/* We have three cases:
+			 * 1. Vertical move: curRow == prevRow && curCol == prevCol-1
+			 * 2. Horizontal move: curRow == prevRow-1 && curCol == prevCol
+			 * 3. Diagonal move: curRow == prevRow-1 && curCol == prevCol-1
+			 * */
+
+			if(curRow == prevRow && curCol == prevCol-1) {
+				/* Vertical - gap in reference */
+				aEntry->read[aEntry->length] = '-';
+				aEntry->reference[aEntry->length] = reference[curCol];
+			}
+			else if(curRow == prevRow-1 && curCol == prevCol) {
+				/* Horizontal - gap in read */
+				aEntry->read[aEntry->length] = read[curCol];
+				aEntry->reference[aEntry->length] = '-';
+			}
+			else if(curRow == prevRow-1 && curCol == prevCol-1) {
+				/* Diagonal */
+				aEntry->read[aEntry->length] = read[curRow]; 
+				aEntry->reference[aEntry->length] = reference[curCol];
+			}
+			else {
+				fprintf(stderr, "Error.  In AlignmentGetScore, could not resolve move [%d,%d,%d,%d].  Terminating!\n",
+						curRow,
+						curCol,
+						prevRow,
+						prevCol);
+				exit(1);
+			}
+
+		/* Update the offset */
+			offset=curCol;
+			/* Update the length */
+			aEntry->length++;
+		}
+
 		/* Update the row and column */
-		tempCol = curCol;
-		curCol = Entries[curRow][curCol];
-		curRow = Entries[curRow][tempCol];
+		prevRow=curRow;
+		prevCol=curCol;
 	}
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\n");
+	}
+	/* Reallocate memory for the read and reference */
+	aEntry->read = (char*)realloc(aEntry->read, sizeof(char)*(aEntry->length+1));
+	aEntry->read[aEntry->length]='\0'; /* null terminator */
+	aEntry->reference = (char*)realloc(aEntry->reference, sizeof(char)*(aEntry->length+1));
+	aEntry->reference[aEntry->length]='\0'; /* null terminator */
+	/* Reverse read and reference since we got them from the end of the path */
+	ReverseSequence(aEntry->read, aEntry->length);
+	ReverseSequence(aEntry->reference, aEntry->length);
 
 	/* Free memory */
 	for(i=0;i<numRows;i++) {
@@ -140,7 +284,14 @@ int AlignmentGetScore(char *read,
 	}
 	free(Entries);
 
-	return 0.0;
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "aligned read:%s\naligned reference:%s\n",
+				aEntry->read,
+				aEntry->reference);
+		fprintf(stderr, "Exiting AlignmentGetScore returning offset %d\n", offset);
+	}
+	/* The return is the number of gaps at the beginning of the reference */
+	return offset;
 }
 
 /* TODO */
@@ -166,7 +317,7 @@ double GetScoreFromMatrix(char a,
 			indexA=3;
 			break;
 		default:
-			fprintf(stderr, "Error.  GetScoreFromMatrix could not understand [%c].  Terminating!\n",
+			fprintf(stderr, "Error.  GetScoreFromMatrix (a) could not understand [%c].  Terminating!\n",
 					a);
 			exit(1);
 			break;
@@ -187,8 +338,8 @@ double GetScoreFromMatrix(char a,
 			indexB=3;
 			break;
 		default:
-			fprintf(stderr, "Error.  GetScoreFromMatrix could not understand [%c].  Terminating!\n",
-					a);
+			fprintf(stderr, "Error.  GetScoreFromMatrix (b) could not understand [%c].  Terminating!\n",
+					b);
 			exit(1);
 			break;
 	}
@@ -199,5 +350,19 @@ double GetScoreFromMatrix(char a,
 /* TODO */
 double GetMaximumOfTwoDoubles(double a, double b)
 {
-	return ((a<b)?a:b); 
+	return ((a>b)?a:b); 
+}
+
+/* TODO */
+void ReverseSequence(char *a, int length) 
+{
+	int i, j;
+	char c;
+
+	/* In-place */
+	for(i=0,j=length-1;i<j;i++,j--) {
+		c = a[i];
+		a[i] = a[j];
+		a[j] = c;
+	}
 }

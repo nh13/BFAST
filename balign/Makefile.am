@@ -9,6 +9,7 @@ balign_SOURCES = \
 	../blib/RGSeqPair.c	../blib/RGSeqPair.h \
 	../blib/RGTree.c	../blib/RGTree.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
+	../blib/AlignEntry.c	../blib/AlignEntry.h \
 	Align.c		Align.h \
 	Definitions.h
 	

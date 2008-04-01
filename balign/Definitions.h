@@ -21,22 +21,11 @@ typedef struct {
 
 /* Structure for the dynamic programming with affine gap penalties */
 typedef struct {
-	int hScore; /* horizontal score */
-	int vScore; /* vertical score */
-	int dScore; /* diagonal score */
+	double hScore; /* horizontal score */
+	double vScore; /* vertical score */
+	double dScore; /* diagonal score */
 	int prevRow; /* previous row */
 	int prevCol; /* previous column */
 } MatrixEntry;
-
-/* TODO */
-typedef struct {
-	char *read; /* The read */
-	char *reference;
-	int length; /* The length of the alignment */
-	int chromosome;
-	int position;
-	int strand;
-	double score;
-} AlignOutput;
 
 #endif
