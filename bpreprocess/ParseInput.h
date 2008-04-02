@@ -65,14 +65,7 @@ struct argp_option {
 int getopt_parse(int, char**, char*, struct arguments*); 
 #endif
 
-/* From Error handling routine */
-extern void PrintError(char*, char*, char*, int, int);
-
-/* From ReadInputFiles.c */
-extern int ReadReferenceGenome(char*, RGList*, int, int, int, int);
-
-/* From GenerateTree.c */
-extern void GenerateTree(RGList*, int, char*, char*, char*);
-
-/* From GenerateIndex.c */
 extern void GenerateIndex(RGList*, int, char*, char*);
+extern void GenerateTree(RGList*, int, int*, int, char*, char*);
+extern void ReadReferenceGenome(char*, RGList*, int, int, int, int, int);
+

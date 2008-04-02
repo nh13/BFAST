@@ -74,13 +74,13 @@ static struct argp_option options[] = {
 	{"numMismatches", 'm', "numMistmatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
 	{"numInsertions", 'i', "numInsertions", 0, "Specifies the number of insertions to allow when searching for candidates", 2},
 	{"numDeletions", 'a', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
-	{"pairedEnd", '2', "pairedEnd", 0, "Specifies that paired end data is to be expected", 2},
+	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
-	{"Parameters", 'p', "Parameters", OPTION_NO_USAGE, "Print program parameters", 4},
-	{"Help", 'h', "Help", OPTION_NO_USAGE, "Display usage summary", 4},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
 	{0, 0, 0, 0, 0, 0}
 };
 /*

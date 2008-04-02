@@ -2,7 +2,7 @@
 #define GENERATE_TREE_H_
 #include "../blib/RGTree.h"
 
-void GenerateTree(RGList*, int, char*, char*, char*);
+void GenerateTree(RGList*, int, int*, int, char*, char*);
 int ValidateSequence(char*, int);
 
 #endif

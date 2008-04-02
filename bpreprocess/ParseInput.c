@@ -65,7 +65,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"createIndexFile", 'i', "createIndexFile", 0, "Specifies that we are to create a blatter index file instead of a blatter tree file (default: false)", 2},
+	{"createIndexFile", 'i', 0, OPTION_NO_USAGE, "Specifies that we are to create a blatter index file instead of a blatter tree file (default: false)", 2},
 	{"matchLength", 'l', "matchLength", 0, "Specifies the length (in base pairs) to use for our matches (l-mer)", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -76,8 +76,8 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
-	{"Parameters", 'p', "Parameters", OPTION_NO_USAGE, "Print program parameters", 4},
-	{"Help", 'h', "Help", OPTION_NO_USAGE, "Display usage summary", 4},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
 	{0, 0, 0, 0, 0, 0}
 };
 /*
@@ -114,6 +114,11 @@ main (int argc, char **argv)
 	int i, j;
 	struct arguments arguments;
 	RGList rgList;
+	int tempGap=0;
+	int *gaps=NULL;
+	int numGaps=0;
+	int maxGap=0;
+	FILE *fp;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -144,12 +149,52 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 
 						/* Execute Program */
+						/* Read in the gap file */
+						if((fp=fopen(arguments.gapFileName, "r"))==0) {
+							fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
+									arguments.gapFileName);
+							exit(1);
+						}
+						maxGap=0;
+						numGaps=0;
+						while(fscanf(fp, "%d", &tempGap)!=EOF) {
+							numGaps++;
+							gaps=realloc(gaps, sizeof(int)*numGaps);
+							gaps[numGaps-1] = tempGap;
+							if(numGaps>1 && gaps[numGaps-2] >= gaps[numGaps-1]) {
+								fprintf(stderr, "Error.  Gaps in %s must be in ascending order.  Terminating!\n",
+										arguments.gapFileName);
+								exit(1);
+							}
+							/* Make sure that we don't go backwards */
+							assert(gaps[numGaps-1] > -1.0*fabs(arguments.matchLength));
+							if(gaps[numGaps-1]>maxGap) {
+								maxGap = gaps[numGaps-1];
+							}
+						}
+						if(numGaps <= 0) {
+							fprintf(stderr, "Error. Could not read any gaps from %s.  Terminating!\n",
+									arguments.gapFileName);
+							exit(1);
+						}
+						fclose(fp);
+
+						/* Read reference genome */
+						/* Note: we add 2*matchLenth-1+gap to the end since we want to include the
+						 * start positions up to and including endPos */
+						if(VERBOSE >= 0) {
+							fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d] and the maximum gap supplied [%d].\n",
+									2*arguments.matchLength-1+maxGap,
+									arguments.matchLength,
+									maxGap);
+						}
 						ReadReferenceGenome(arguments.rgListFileName, 
 								&rgList,
 								arguments.startChr,
 								arguments.startPos,
 								arguments.endChr,
-								arguments.endPos);
+								arguments.endPos,
+								2*arguments.matchLength-1+maxGap);
 						if(VERBOSE>DEBUG) {
 							fprintf(stderr, "rgList.numChrs:%d\n", rgList.numChrs);
 							for(i=0;i<rgList.numChrs;i++) {
@@ -167,10 +212,10 @@ main (int argc, char **argv)
 						}
 
 						/* Generate our Tree */ 
-						GenerateTree(
-								&rgList,
+						GenerateTree(&rgList,
 								arguments.matchLength,
-								arguments.gapFileName,
+								gaps,
+								numGaps,
 								arguments.outputID,
 								arguments.outputDir);
 						if(VERBOSE>DEBUG) {
@@ -190,12 +235,21 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 
+						/* Read in the reference Genome */
+						/* Note: we add matchLenth to the end since we want to include the
+						 * start positions up to and including endPos */
+						if(VERBOSE >= 0) {
+							fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d].\n",
+									arguments.matchLength,
+									arguments.matchLength);
+						}
 						ReadReferenceGenome(arguments.rgListFileName, 
 								&rgList,
 								arguments.startChr,
 								arguments.startPos,
 								arguments.endChr,
-								arguments.endPos);
+								arguments.endPos,
+								arguments.matchLength);
 						GenerateIndex(
 								&rgList,
 								arguments.matchLength,

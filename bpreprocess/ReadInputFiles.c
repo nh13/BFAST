@@ -15,7 +15,8 @@ void ReadReferenceGenome(char *rgListFileName,
 		int startChr,
 		int startPos,
 		int endChr,
-		int endPos)
+		int endPos,
+		int endPosOverhang)
 {
 	FILE *fpRG=NULL;
 	char c;
@@ -97,7 +98,7 @@ void ReadReferenceGenome(char *rgListFileName,
 				startChr,
 				startPos,
 				endChr,
-				endPos);
+				endPos+endPosOverhang);
 	}
 
 	for(curChr=startChr;curChr<=endChr;curChr++) {
@@ -149,7 +150,7 @@ void ReadReferenceGenome(char *rgListFileName,
 				if(startChr == curChr && startPos > curPos) {
 					/* ignore, not within bounds yet */
 				}
-				else if(endChr == curChr && curPos > endPos) {
+				else if(endChr == curChr && curPos > endPos + endPosOverhang) {
 					/* exit the loop */
 					continueReading=0;
 					/* Decrement to avoid the increment below */

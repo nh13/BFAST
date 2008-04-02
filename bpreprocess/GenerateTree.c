@@ -9,7 +9,8 @@
 /* TODO */
 void GenerateTree(RGList *rgList,
 		int matchLength, 
-		char *gapFileName,
+		int *gaps,
+		int numGaps,
 		char *outputID, 
 		char *outputDir)
 {
@@ -20,38 +21,10 @@ void GenerateTree(RGList *rgList,
 	int startTwo;
 	char outputFileName[1024];
 	FILE *fp;
-
 	RGTree tree;
-
-	int tempGap;
-	int *gaps=NULL;
-	int numGaps;
 	int curGap;
 
-	/* Open the gap file */
-	if(!(fp=fopen(gapFileName, "r"))) {
-		fprintf(stderr, "Error. Could not open %s for reading.  Terminating!\n",
-				gapFileName);
-		exit(1);
-	}   
-
-	/* Read in the gap file */
-	numGaps=0;
-	while(fscanf(fp, "%d", &tempGap)!=EOF) {
-		numGaps++;
-		gaps=realloc(gaps, sizeof(int)*numGaps);
-		gaps[numGaps-1] = tempGap;
-		if(numGaps>1 && gaps[numGaps-2] >= gaps[numGaps-1]) {
-			fprintf(stderr, "Error.  Gaps in %s must be in ascending order.  Terminating!\n",
-					gapFileName);
-			exit(1);
-		}
-	}
-	if(numGaps <= 0) {
-		fprintf(stderr, "Error. Could not read any gaps from %s.  Terminating!\n",
-				gapFileName);
-		exit(1);
-	}
+	assert(numGaps > 0);
 
 	/* Allocate memory for holding the temporary sequences */
 	curSequenceOne = (char*)malloc(sizeof(char)*matchLength);
@@ -66,7 +39,6 @@ void GenerateTree(RGList *rgList,
 				BLATTER_TREE_FILE_EXTENSION,
 				BREAK_LINE);
 	}
-
 
 	/* For every gap between the two l-mers */
 	for(i=0;i<numGaps;i++) {
