@@ -4,10 +4,10 @@ bpreprocess_SOURCES = \
 	ReadInputFiles.c	ReadInputFiles.h \
 	GenerateTree.c	GenerateTree.h \
 	GenerateIndex.c	GenerateIndex.h \
-	ParseInput.c	ParseInput.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/RGTree.c	../blib/RGTree.h \
 	../blib/BError.c	../blib/BError.h \
+	ParseInput.c	ParseInput.h \
 	Definitions.h
 	
 ##  LDADD only lists those object files which are NOT compiled from 

@@ -12,7 +12,8 @@ void GenerateTree(RGList *rgList,
 		int *gaps,
 		int numGaps,
 		char *outputID, 
-		char *outputDir)
+		char *outputDir,
+		int binaryOutput)
 {
 	int i, j, k, l;
 	char *curSequenceOne=NULL;
@@ -161,7 +162,7 @@ void GenerateTree(RGList *rgList,
 			exit(1);
 		}   
 
-		RGTreePrintTree(fp, &tree);
+		RGTreePrintTree(fp, &tree, binaryOutput);
 
 		/* Close the output file */
 		fclose(fp);
@@ -185,24 +186,4 @@ void GenerateTree(RGList *rgList,
 	/* Free memory */
 	free(curSequenceOne);
 	free(curSequenceTwo);
-}
-
-int ValidateSequence(char *sequence, int length)
-{
-	int i;
-	for(i=0;i<length;i++) {
-		switch(sequence[i]) {
-			case 'a':
-				break;
-			case 'c':
-				break;
-			case 'g':
-				break;
-			case 't':
-				break;
-			default:
-				return 0;
-		}
-	}
-	return 1;
 }

@@ -9,6 +9,8 @@
 #define MIN_ALGORITHM 0
 #define MAX_ALGORITHM 1
 #define DEFAULT_ALGORITHM 0
+#define READ_ROTATE_NUM 1000000
+#define ALIGN_ROTATE_NUM 1000
 
 /* Align.c specific definitions */
 typedef struct {

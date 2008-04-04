@@ -68,7 +68,7 @@ void RGIndexCleanUpIndex(RGIndex *index)
 
 		/* Sort the nodes in the index */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Sorting:\n");
+			fprintf(stderr, "Sorting (this will speed up):\n");
 		}
 		RGIndexQuickSortNodes(index, 0, index->numNodes-1, 0);
 		if(VERBOSE >= 0) {
@@ -170,7 +170,7 @@ void RGIndexQuickSortNodes(RGIndex *index, int low, int high, int numComplete)
 			}
 		}
 		if(VERBOSE>=0) {
-			fprintf(stderr, "\r%3.2lf percent complete",
+			fprintf(stderr, "\r%3.1lf percent complete",
 					(100.0*numComplete)/index->numNodes);
 		}
 
@@ -185,7 +185,7 @@ void RGIndexQuickSortNodes(RGIndex *index, int low, int high, int numComplete)
 	}
 
 	if(VERBOSE>=0) {
-		fprintf(stderr, "\r%3.2lf percent complete",
+		fprintf(stderr, "\r%3.1lf percent complete",
 				100.0*high/index->numNodes); 
 	}
 }
@@ -283,61 +283,104 @@ double RGIndexGetSize(RGIndex *index, int outputSize)
 }
 
 /* TODO */
-void RGIndexPrintIndex(FILE *fp, RGIndex *index)
+void RGIndexPrintIndex(FILE *fp, RGIndex *index, int binaryOutput)
 {
 	int i, j;
 	int numChars = (int)ceil((2.0/8.0*index->matchLength)/sizeof(unsigned char));
-	/*
-	   unsigned int tempInt;
-	   */
+	unsigned int tempInt;
+	unsigned int *tempIntArr=NULL;
+	int tempIntArrLength=0;
 
 	/* Print header */
-	RGIndexPrintHeader(fp, index);
+	RGIndexPrintHeader(fp, index, binaryOutput);
 
-	/* Print the nodes */
-	for(i=0;i<index->numNodes;i++) {
-		fprintf(fp, "\n");
-		/* Print the index */
-		for(j=0;j<numChars;j++) {
-			/*
-			   tempInt = index->nodes[i].index[j];
-			   tempInt = htonl(tempInt);
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   */
-			fprintf(fp, "%d\t", index->nodes[i].index[j]);
+	if(binaryOutput == 0) {
+		/* Print the nodes */
+		for(i=0;i<index->numNodes;i++) {
+			fprintf(fp, "\n");
+			/* Print the index */
+			for(j=0;j<numChars;j++) {
+				fprintf(fp, "%d\t", index->nodes[i].index[j]);
+			}
+
+			fprintf(fp, "%d",
+					index->nodes[i].numEntries);
+			/* Print the entries */
+			for(j=0;j<index->nodes[i].numEntries;j++) {
+				fprintf(fp, "\t%d\t%d",
+						index->nodes[i].chromosomes[j],
+						index->nodes[i].positions[j]);
+			}
 		}
+		fprintf(fp, "\n");
+	}
+	else {
 
-		/* Print the number of entries */
-		/*
-		   tempInt = index->nodes[i].numEntries;
-		   tempInt = htonl(tempInt);
-		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-		   */
-		fprintf(fp, "%d",
-				index->nodes[i].numEntries);
-		/* Print the entries */
-		for(j=0;j<index->nodes[i].numEntries;j++) {
-			/*
-			   tempInt = index->nodes[i].chromosomes[j];
-			   tempInt = htonl(tempInt);
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = index->nodes[i].positions[j];
-			   tempInt = htonl(tempInt);
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   */
-			fprintf(fp, "\t%d\t%d",
-					index->nodes[i].chromosomes[j],
-					index->nodes[i].positions[j]);
+		/* We could just separate everything into huge arrays, but then we would double memory requirements when writing */
+
+		/* Print the nodes */
+		for(i=0;i<index->numNodes;i++) {
+			/* Allocate memory if necessary */
+			if(numChars > tempIntArrLength) {
+				/* Reallocate memory */
+				tempIntArrLength = numChars;
+				tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+			}
+
+			/* print */
+			for(j=0;j<numChars;j++) {
+				/* Copy over */
+				tempIntArr[j] = (unsigned int)index->nodes[i].index[j];
+				tempIntArr[j] = htonl(tempIntArr[j]);
+			}
+			fwrite(tempIntArr, sizeof(unsigned int), numChars, fp);
+
+			/* Print the number of entries */
+			tempInt = index->nodes[i].numEntries;
+			tempInt = htonl(tempInt);
+			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+
+			/* Print the entries */
+			if(index->nodes[i].numEntries > 0) {
+				/* Allocate memory if necessary */
+				if(index->nodes[i].numEntries > tempIntArrLength) {
+					/* Reallocate memory */
+					tempIntArrLength = index->nodes[i].numEntries;
+					tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+				}
+
+				/* Print the positions */ 
+				for(j=0;j<index->nodes[i].numEntries;j++) {
+					tempIntArr[j] = (unsigned int)index->nodes[i].positions[j];
+					tempIntArr[j] = htonl(tempIntArr[j]);
+				}
+				fwrite(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
+
+				/* Print the chromosomes */
+				for(j=0;j<index->nodes[i].numEntries;j++) {
+					tempIntArr[j] = (unsigned int)index->nodes[i].chromosomes[j];
+					tempIntArr[j] = htonl(tempIntArr[j]);
+				}
+				fwrite(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
+			}
+		}
+		/* Free memory */
+		if(tempIntArrLength > 0) {
+			free(tempIntArr);
+			tempIntArr=NULL;
+			tempIntArrLength=0;
 		}
 	}
-	fprintf(fp, "\n");
 }
 
 /* TODO */
-int RGIndexReadIndex(FILE *fp, RGIndex *index)
+int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 {
 	int i, j;
 	int tempInt;
+	unsigned int *tempIndex=NULL; /* Use this to store from file */
+	unsigned int *tempIntArr=NULL;
+	int tempIntArrLength=0;
 	int numChars = -1;
 	/*
 	   unsigned int tempInt;
@@ -347,7 +390,7 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index)
 	assert(index->nodes==NULL);
 
 	/* Read in the header */
-	RGIndexReadHeader(fp, index);
+	RGIndexReadHeader(fp, index, binaryInput);
 
 	/* Update the structure of the indexes */
 	numChars = (int)ceil((2.0/8.0*index->matchLength)/sizeof(unsigned char));
@@ -356,64 +399,122 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index)
 	/* Allocate memory for the nodes */
 	index->nodes = (RGIndexNode*)malloc(sizeof(RGIndexNode)*index->numNodes);
 
-	/* Read in the nodes */
-	for(i=0;i<index->numNodes;i++) {
-		/* Allocate memory for the index */
-		index->nodes[i].index = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
+	if(binaryInput == 0) {
+		/* Preallocate as much as possible */
+		for(i=0;i<index->numNodes;i++) {
+			/* Allocate memory for the index */
+			index->nodes[i].index = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
+		}
 
-		/* Read in the index */
-		for(j=0;j<numChars;j++) {
-			/*
-			   fread(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = ntohl(tempInt);
-			   */
-			if(fscanf(fp, "%d", &tempInt)==EOF) {
-				fprintf(stderr, "Error.  Could not read in index (unsigned char %d).  Terminating!\n", j);
+		/* Read in the nodes */
+		for(i=0;i<index->numNodes;i++) {
+			/* Read in the index */
+			for(j=0;j<numChars;j++) {
+				if(fscanf(fp, "%d", &tempInt)==EOF) {
+					fprintf(stderr, "Error.  Could not read in index (unsigned char %d).  Terminating!\n", j);
+					exit(1);
+				}
+				index->nodes[i].index[j] = tempInt;
+			}
+
+			/* Read in the number of entries */
+			if(fscanf(fp, "%d",
+						&index->nodes[i].numEntries)==EOF) {
+				fprintf(stderr, "Error.  Could not read in the numEntries.  Terminating!\n");
 				exit(1);
 			}
-			index->nodes[i].index[j] = tempInt;
-		}
 
-		/* Read in the number of entries */
-		/*
-		   fread(&tempInt, sizeof(unsigned int), 1, fp);
-		   tempInt = ntohl(tempInt);
-		   index->nodes[i].numEntries = tempInt;
-		   */
-		if(fscanf(fp, "%d",
-					&index->nodes[i].numEntries)==EOF) {
-			fprintf(stderr, "Error.  Could not read in the numEntries.  Terminating!\n");
-			exit(1);
-		}
+			/* Allocate memory for the positions and chromosomes */
+			if(index->nodes[i].numEntries > 0) {
+				index->nodes[i].positions = (int*)malloc(sizeof(int)*index->nodes[i].numEntries);
+				index->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*index->nodes[i].numEntries);
 
-		/* Allocate memory for the positions and chromosomes */
-		index->nodes[i].positions = (int*)malloc(sizeof(int)*index->nodes[i].numEntries);
-		index->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*index->nodes[i].numEntries);
-
-		/* Read in positions and chromosomes */
-		for(j=0;j<index->nodes[i].numEntries;j++) {
-			/*
-			   fread(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = ntohl(tempInt);
-			   index->nodes[i].chromosomes[j] = tempInt;
-			   fread(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = ntohl(tempInt);
-			   index->nodes[i].positions[j] = tempInt;
-			   */
-			if(fscanf(fp, "%d %d",
-						&tempInt,
-						&index->nodes[i].positions[j])==EOF) {
-				fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
-				exit(1);
+				/* Read in positions and chromosomes */
+				for(j=0;j<index->nodes[i].numEntries;j++) {
+					if(fscanf(fp, "%d %d",
+								&tempInt,
+								&index->nodes[i].positions[j])==EOF) {
+						fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
+						exit(1);
+					}
+					index->nodes[i].chromosomes[j] = tempInt;
+				}
 			}
-			index->nodes[i].chromosomes[j] = tempInt;
+			else {
+				index->nodes[i].positions = NULL;
+				index->nodes[i].chromosomes = NULL;
+			}
 		}
+	}
+	else {
+		/* This will hold the index temporarily */
+		tempIndex = (unsigned int*)malloc(sizeof(unsigned int)*numChars);
+
+		/* Preallocate as much as possible */
+		for(i=0;i<index->numNodes;i++) {
+			/* Allocate memory for the index */
+			index->nodes[i].index = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
+		}
+
+		/* Read in the nodes */
+		for(i=0;i<index->numNodes;i++) {
+			/* Read in the index */
+			fread(tempIndex, sizeof(unsigned int), numChars, fp);
+			/* Copy over index */
+			for(j=0;j<numChars;j++) {
+				tempIndex[j] = ntohl(tempIndex[j]);
+				index->nodes[i].index[j] = (unsigned char)tempIndex[j];
+			}
+
+			/* Read in the number of entries */
+			fread(&tempInt, sizeof(unsigned int), 1, fp);
+			tempInt = ntohl(tempInt);
+			index->nodes[i].numEntries = tempInt;
+
+			if(index->nodes[i].numEntries > 0) {
+				/* Use a temp int array.  Expand when necessary. */
+				if(index->nodes[i].numEntries > tempIntArrLength) {
+					/* Reallocate temp array */
+					tempIntArrLength = index->nodes[i].numEntries;
+					tempIntArr = (unsigned int*)realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+				}
+
+
+				/* Allocate memory for the positions and chromosomes */
+				index->nodes[i].positions = (int*)malloc(sizeof(int)*index->nodes[i].numEntries);
+				index->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*index->nodes[i].numEntries);
+
+				/* Read in positions */
+				fread(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
+				/* Copy over positions */
+				for(j=0;j<index->nodes[i].numEntries;j++) {
+					index->nodes[i].positions[j] = tempIntArr[j];
+				}
+				/* Read in chromosomes */
+				fread(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
+				for(j=0;j<index->nodes[i].numEntries;j++) {
+					index->nodes[i].chromosomes[j] = (unsigned char)tempIntArr[j];
+				}
+			}
+			else {
+				index->nodes[i].positions = NULL;
+				index->nodes[i].chromosomes = NULL;
+			}
+
+		}
+		/* Free memory */
+		if(tempIntArrLength > 0) {
+			free(tempIntArr);
+			tempIntArr=NULL;
+			tempIntArrLength=0;
+		}
+		free(tempIndex);
 	}
 	return 1;
 }
 
 /* TODO */
-void RGIndexPrintHeader(FILE *fp, RGIndex *index)
+void RGIndexPrintHeader(FILE *fp, RGIndex *index, int binaryOutput)
 {
 	unsigned int numNodes=(unsigned int)(index->numNodes);
 	unsigned int matchLength=(unsigned int)index->matchLength;
@@ -431,37 +532,37 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index)
 				endChr,
 				endPos);
 	}
+	if(binaryOutput == 0) {
+		fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d",
+				numNodes,
+				matchLength,
+				startChr,
+				startPos,
+				endChr,
+				endPos);
+	}
+	else {
 
-	/* Big Endian/Little Endian conversion */
-	/*
-	   numNodes=htonl(numNodes);
-	   matchLength=htonl(matchLength);
-	   startChr=htonl(startChr);
-	   startPos=htonl(startPos);
-	   endChr=htonl(endChr);
-	   endPos=htonl(endPos);
-	   */
+		/* Big Endian/Little Endian conversion */
+		numNodes=htonl(numNodes);
+		matchLength=htonl(matchLength);
+		startChr=htonl(startChr);
+		startPos=htonl(startPos);
+		endChr=htonl(endChr);
+		endPos=htonl(endPos);
 
-	/* Print Header */
-	/*
-	   fwrite(&numNodes, sizeof(unsigned int), 1, fp);
-	   fwrite(&matchLength, sizeof(unsigned int), 1, fp);
-	   fwrite(&startChr, sizeof(unsigned int), 1, fp);
-	   fwrite(&startPos, sizeof(unsigned int), 1, fp);
-	   fwrite(&endChr, sizeof(unsigned int), 1, fp);
-	   fwrite(&endPos, sizeof(unsigned int), 1, fp);
-	   */
-	fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d",
-			numNodes,
-			matchLength,
-			startChr,
-			startPos,
-			endChr,
-			endPos);
+		/* Print Header */
+		fwrite(&numNodes, sizeof(unsigned int), 1, fp);
+		fwrite(&matchLength, sizeof(unsigned int), 1, fp);
+		fwrite(&startChr, sizeof(unsigned int), 1, fp);
+		fwrite(&startPos, sizeof(unsigned int), 1, fp);
+		fwrite(&endChr, sizeof(unsigned int), 1, fp);
+		fwrite(&endPos, sizeof(unsigned int), 1, fp);
+	}
 }
 
 /* TODO */
-void RGIndexReadHeader(FILE *fp, RGIndex *index)
+void RGIndexReadHeader(FILE *fp, RGIndex *index, int binaryInput)
 {
 	int numNodes;
 	int matchLength;
@@ -471,56 +572,61 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 	int endPos;
 
 	/* Read in header */
-	/*
-	   if(fread(&numNodes, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&matchLength, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
-	   */
-	if(fscanf(fp, "%d %d %d %d %d %d",
-				&numNodes,
-				&matchLength,
-				&startChr,
-				&startPos,
-				&endChr,
-				&endPos)!=EOF) {
-
-		/* Big Endian/Little Endian conversion */
-		/*
-		   numNodes = ntohl(numNodes);
-		   startChr = ntohl(startChr);
-		   startPos = ntohl(startPos);
-		   endChr = ntohl(endChr);
-		   endPos = ntohl(endPos);
-		   matchLength = ntohl(matchLength);
-		   */
-
-		if(VERBOSE > 0) {
-			fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d\n",
-					numNodes,
-					matchLength,
-					startChr,
-					startPos,
-					endChr,
-					endPos);
+	if(binaryInput == 0) {
+		if(fscanf(fp, "%d %d %d %d %d %d",
+					&numNodes,
+					&matchLength,
+					&startChr,
+					&startPos,
+					&endChr,
+					&endPos)!=EOF) {
 		}
-
-		/* Adjust header - see bpreprocess */
-		index->numNodes = numNodes;
-		index->matchLength = matchLength;
-		index->startChr = startChr;
-		index->startPos = startPos;
-		index->endChr = endChr;
-		index->endPos = endPos;
-
-		/* Error checking ? */
+		else {
+			fprintf(stderr, "Error.  Could not read header file in RGIndexReadFromFile.  Terminating!\n");
+			exit(1);
+		}
 	}
 	else {
-		fprintf(stderr, "Error.  Could not read header file in RGIndexReadFromFile.  Terminating!\n");
-		exit(1);
+		if(fread(&numNodes, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&matchLength, sizeof(unsigned int), 1, fp)!=EOF 
+				&& fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
+
+		}
+		else {
+			fprintf(stderr, "Error.  Could not read header file in RGIndexReadFromFile.  Terminating!\n");
+			exit(1);
+		}
+		/* Big Endian/Little Endian conversion */
+		numNodes = ntohl(numNodes);
+		startChr = ntohl(startChr);
+		startPos = ntohl(startPos);
+		endChr = ntohl(endChr);
+		endPos = ntohl(endPos);
+		matchLength = ntohl(matchLength);
 	}
+
+	if(VERBOSE > 0) {
+		fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d\n",
+				numNodes,
+				matchLength,
+				startChr,
+				startPos,
+				endChr,
+				endPos);
+	}
+
+	/* Adjust header - see bpreprocess */
+	index->numNodes = numNodes;
+	index->matchLength = matchLength;
+	index->startChr = startChr;
+	index->startPos = startPos;
+	index->endChr = endChr;
+	index->endPos = endPos;
+
+	/* Error checking ? */
 }
 
 /* TODO */

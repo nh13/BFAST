@@ -9,6 +9,7 @@ struct arguments
 	char *blatterTreesFileName;				/* -T */
 	char *readsFileName;					/* -R */
 	char *offsetsFileName;					/* -O */
+	int binaryInput;						/* -b */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */
 	int numMismatches;						/* -m */
@@ -18,6 +19,7 @@ struct arguments
 	int programMode;						/* -h */ 
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
+	int binaryOutput;						/* -B */
 };
 
 /* Local functions */

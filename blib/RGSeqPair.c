@@ -130,6 +130,11 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 				match->numEntries);
 	}
 	for(i=0;i<seqPairs.numPairs;i++) { /* For each pair */
+		if(seqPairs.strand[i] != FORWARD && seqPairs.strand[i] != REVERSE) {
+			fprintf(stderr, "Error,  Direction not recognized [%c].  Terminating!\n",
+					seqPairs.strand[i]);
+			exit(1);
+		}
 		RGTreeGetMatches(tree, 
 				seqPairs.indexOne[i],
 				seqPairs.indexTwo[i],
@@ -363,6 +368,8 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 {
 	int i;
 
+	assert(direction == FORWARD || direction == REVERSE);
+
 	if(numMismatchesLeft > 0) {
 		/* No more to print */
 		if(numFirstPrinted >= matchLength && numLastPrinted >= matchLength) {
@@ -535,6 +542,7 @@ void RGSeqPairGenerateDeletions(char *seq,
 	char curOne[SEQUENCE_LENGTH];
 	char curTwo[SEQUENCE_LENGTH];
 
+	assert(direction == FORWARD || direction == REVERSE);
 	if(VERBOSE>=DEBUG) {
 		fprintf(stderr, "Generating pairs with %d deletions.\n",
 				numDeletions);
@@ -753,6 +761,7 @@ void RGSeqPairGenerateInsertions(char *seq,
 		fprintf(stderr, "Generating pairs with %d insertions\n",
 				numInsertions);
 	}
+	assert(direction == FORWARD || direction == REVERSE);
 
 	/* Bounds on this will be different, since if we need 
 	 * extra bases to compensate for the deletion */
@@ -813,6 +822,7 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 
 	remainingOne = matchLength-curOneIndex;
 	remainingTwo = matchLength-curTwoIndex;
+	assert(direction == FORWARD || direction == REVERSE);
 
 	if(numInsertionsLeft > 0) {
 		/* No more to print */
@@ -993,6 +1003,7 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 	s->indexTwo = (int*)realloc(s->indexTwo, sizeof(int)*curIndex);
 	s->strand = (char*)realloc(s->strand, sizeof(char)*curIndex);
 	s->offset = (int*)realloc(s->offset, sizeof(int)*curIndex);
+	s->numPairs = curIndex;
 
 	/* Copy over */
 	for(i=0;i<curIndex;i++) {

@@ -141,11 +141,22 @@ void ReadReferenceGenome(char *rgFileName,
 		rg->chromosomes[numChrs-1].sequence = NULL;
 
 		/* Read in Chromosome */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Reading in [chr,pos]:\n[-1,-1]");
+		}
 		curPos=1;
 		continueReading=1;
 		while(continueReading==1 && fscanf(fpRG, "%c", &c) > 0) {
 			repeat = c;
 			c=ToLower(c);
+
+		if(VERBOSE >= 0) {
+				if(curPos%READ_ROTATE_NUM==0) {
+					fprintf(stderr, "\r[%d,%d]",
+							curChr,
+							curPos);
+				}
+			}
 
 			/* Reallocate memory in increments.  This allows us to avoid having
 			 * to reallocate memory every iteration through the loop, thus speeding
@@ -183,6 +194,9 @@ void ReadReferenceGenome(char *rgFileName,
 		/* Decrement position */
 		curPos--;
 		/* Update our our output */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\r[%d,%d]\n", curChr, curPos);
+		}
 
 		/* Add metadata */
 		if(curChr == startChr) {

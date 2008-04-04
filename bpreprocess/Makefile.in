@@ -50,8 +50,8 @@ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_bpreprocess_OBJECTS = ReadInputFiles.$(OBJEXT) \
 	GenerateTree.$(OBJEXT) GenerateIndex.$(OBJEXT) \
-	ParseInput.$(OBJEXT) RGIndex.$(OBJEXT) RGTree.$(OBJEXT) \
-	BError.$(OBJEXT)
+	RGIndex.$(OBJEXT) RGTree.$(OBJEXT) BError.$(OBJEXT) \
+	ParseInput.$(OBJEXT)
 bpreprocess_OBJECTS = $(am_bpreprocess_OBJECTS)
 bpreprocess_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
@@ -160,10 +160,10 @@ bpreprocess_SOURCES = \
 	ReadInputFiles.c	ReadInputFiles.h \
 	GenerateTree.c	GenerateTree.h \
 	GenerateIndex.c	GenerateIndex.h \
-	ParseInput.c	ParseInput.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/RGTree.c	../blib/RGTree.h \
 	../blib/BError.c	../blib/BError.h \
+	ParseInput.c	ParseInput.h \
 	Definitions.h
 
 bpreprocess_LDADD = -lm 

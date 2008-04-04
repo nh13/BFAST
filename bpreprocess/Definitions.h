@@ -1,6 +1,9 @@
 #ifndef DEFINITIONS_H_
 #define DEFINITIONS_H_
 
+#define ALGORITHM_MIN 0
+#define ALGORITHM_MAX 2
+
 /* For ReadInputFile.c */
 /* The amount of memory to additionally allocate when reallocating memory */ 
 #define RIF_REALLOCATE_INCREMENT 65536

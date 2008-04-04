@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 #include "Definitions.h"
 #include "../blib/BLibDefinitions.h"
 #include "ReadInputFiles.h"
@@ -11,6 +12,7 @@
 /* Note: to save memory, we could store the genome in binary format (we reduce the size
  * required to store the genome by four */
 void ReadReferenceGenome(char *rgListFileName, 
+		int binaryInput,
 		RGList *rgList,
 		int startChr,
 		int startPos,
@@ -30,6 +32,8 @@ void ReadReferenceGenome(char *rgListFileName,
 	int numChrFileNames=0;
 	char defaultFileName[MAX_FILENAME_LENGTH]="\0";
 	char header[MAX_FILENAME_LENGTH]="\0";
+
+	assert(binaryInput==0);
 
 	rgList->startChr=startChr;
 	rgList->startPos=startPos;
@@ -214,6 +218,46 @@ void ReadReferenceGenome(char *rgListFileName,
 
 }
 
+void ReadGaps(char *gapFileName,
+		int **gaps,
+		int *numGaps,
+		int *maxGap,
+		int matchLength)
+{
+	FILE *fp;
+	int tempGap;
+
+	if((fp=fopen(gapFileName, "r"))==0) {
+		fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
+				gapFileName);
+		exit(1);
+	}
+	(*maxGap)=0;
+	(*numGaps)=0;
+	while(fscanf(fp, "%d", &tempGap)!=EOF) {
+		(*numGaps)++;
+		(*gaps)=realloc((*gaps), sizeof(int)*(*numGaps));
+		(*gaps)[(*numGaps)-1] = tempGap;
+		if((*numGaps)>1 && (*gaps)[(*numGaps)-2] >= (*gaps)[(*numGaps)-1]) {
+			fprintf(stderr, "Error.  Gaps in %s must be in ascending order.  Terminating!\n",
+					gapFileName);
+			exit(1);
+		}
+		/* Make sure that we don't go backwards */
+		assert((*gaps)[(*numGaps)-1] > -1.0*fabs(matchLength));
+		if((*gaps)[(*numGaps)-1]>(*maxGap)) {
+			(*maxGap) = (*gaps)[(*numGaps)-1];
+		}
+	}
+	if((*numGaps) <= 0) {
+		fprintf(stderr, "Error. Could not read any gaps from %s.  Terminating!\n",
+				gapFileName);
+		exit(1);
+	}
+	fclose(fp);
+
+}
+
 /* TODO */
 char ToLower(char a) 
 {
@@ -234,3 +278,24 @@ char ToLower(char a)
 			return a;
 	}
 }
+
+int ValidateSequence(char *sequence, int length)
+{
+	int i;
+	for(i=0;i<length;i++) {
+		switch(sequence[i]) {
+			case 'a':
+				break;
+			case 'c':
+				break;
+			case 'g':
+				break;
+			case 't':
+				break;
+			default:
+				return 0;
+		}
+	}
+	return 1;
+}
+

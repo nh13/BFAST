@@ -139,8 +139,9 @@ void RunDynamicProgramming(FILE *matchFP,
 	int referenceLength=0;
 	int adjustPosition=0;
 	int i;
-	int curMatchNum=0;
 	int position;
+	int numMatches=0;
+	int numMatchesAligned=0;
 
 	/* Allocate memory for the reference */
 	referenceLength = 2*offsetLength + SEQUENCE_LENGTH + 1;
@@ -171,10 +172,10 @@ void RunDynamicProgramming(FILE *matchFP,
 				&readMatch,
 				&pairedSequenceMatch,
 				pairedEnd)) {
+		numMatches++;
 
-		curMatchNum++;
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r%d", curMatchNum);
+		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d", numMatches);
 		}
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\nreadMatch.numEntries=%d.\n",
@@ -192,6 +193,9 @@ void RunDynamicProgramming(FILE *matchFP,
 
 		/* Run the aligner */
 		assert(pairedEnd==0);
+		if(readMatch.numEntries > 0) {
+			numMatchesAligned++;
+		}
 		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
 			if(VERBOSE >= DEBUG) {
 				fprintf(stderr, "On entry %d out of %d.  chr%d:%d %c\n",
@@ -245,7 +249,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		}
 		/* Remove duplicate alignments */
 		numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries);
-		if(VERBOSE >= 0) {
+		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Outputting %d aligns.\n",
 					numAlignEntries);
 		}
@@ -285,7 +289,8 @@ void RunDynamicProgramming(FILE *matchFP,
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\n");
-		fprintf(stderr, "Aligned %d matches.\n", curMatchNum); 
+		fprintf(stderr, "There were %d empty matches.\n", numMatches - numMatchesAligned);
+		fprintf(stderr, "Aligned %d matches.\n", numMatchesAligned);
 	}
 
 	/* Free memory */

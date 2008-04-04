@@ -60,7 +60,7 @@ void RGTreeCleanUpTree(RGTree *tree)
 
 		/* Sort the nodes in the tree */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Sorting nodes\n");
+			fprintf(stderr, "Sorting (this will speed up):\n");
 		}
 		RGTreeQuickSortNodes(tree, 0, tree->numNodes-1, 0);
 		if(VERBOSE >= 0) {
@@ -166,7 +166,7 @@ void RGTreeQuickSortNodes(RGTree *tree, int low, int high, int numComplete)
 			}
 		}
 		if(VERBOSE>=0) {
-			fprintf(stderr, "\r%3.2lf percent complete",
+			fprintf(stderr, "\r%3.1lf percent complete",
 					(100.0*numComplete)/tree->numNodes);
 		}
 		/* Move pivot element to correct place */
@@ -177,6 +177,10 @@ void RGTreeQuickSortNodes(RGTree *tree, int low, int high, int numComplete)
 		/* Call recursively */
 		RGTreeQuickSortNodes(tree, low, pivot-1, numComplete+1); 
 		RGTreeQuickSortNodes(tree, pivot+1, high, pivot+1);
+	}
+	if(VERBOSE>=0) {
+		fprintf(stderr, "\r%3.1lf percent complete",
+				100.0*high/tree->numNodes);
 	}
 }
 
@@ -267,122 +271,182 @@ double RGTreeGetSize(RGTree *tree, int outputSize)
 }
 
 /* TODO */
-void RGTreePrintTree(FILE *fp, RGTree *tree)
+void RGTreePrintTree(FILE *fp, RGTree *tree, int binaryOutput)
 {
 	int i, j;
-	/*
-	   unsigned int tempInt;
-	   */
+	unsigned int tempInt;
+	unsigned int *tempIntArr=NULL;
+	unsigned int tempIntArrLength=0;
 
 	/* Print header */
-	RGTreePrintHeader(fp, tree);
+	RGTreePrintHeader(fp, tree, binaryOutput);
 
 	/* Print the nodes */
-	for(i=0;i<tree->numNodes;i++) {
+	if(binaryOutput == 0) {
+		for(i=0;i<tree->numNodes;i++) {
+			fprintf(fp, "\n");
+			/* Print the indexes and the number of entries */
+			fprintf(fp, "%d\t%d\t%d",
+					tree->nodes[i].indexOne,
+					tree->nodes[i].indexTwo,
+					tree->nodes[i].numEntries);
+			/* Print the entries */
+			for(j=0;j<tree->nodes[i].numEntries;j++) {
+				fprintf(fp, "\t%d\t%d",
+						tree->nodes[i].chromosomes[j],
+						tree->nodes[i].positions[j]);
+			}
+		}
 		fprintf(fp, "\n");
-		/* Print the indexes and the number of entries */
-		/*
-		   tempInt = tree->nodes[i].indexOne;
-		   tempInt = htonl(tempInt);
-		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-		   tempInt = tree->nodes[i].indexTwo;
-		   tempInt = htonl(tempInt);
-		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-		   tempInt = tree->nodes[i].numEntries;
-		   tempInt = htonl(tempInt);
-		   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-		   */
-		fprintf(fp, "%d\t%d\t%d",
-				tree->nodes[i].indexOne,
-				tree->nodes[i].indexTwo,
-				tree->nodes[i].numEntries);
-		/* Print the entries */
-		for(j=0;j<tree->nodes[i].numEntries;j++) {
-			/*
-			   tempInt = tree->nodes[i].chromosomes[j];
-			   tempInt = htonl(tempInt);
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = tree->nodes[i].positions[j];
-			   tempInt = htonl(tempInt);
-			   fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-			   */
-			fprintf(fp, "\t%d\t%d",
-					tree->nodes[i].chromosomes[j],
-					tree->nodes[i].positions[j]);
+	}
+	else {
+		for(i=0;i<tree->numNodes;i++) {
+			/* Print the indexes and the number of entries */
+			tempInt = tree->nodes[i].indexOne;
+			tempInt = htonl(tempInt);
+			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+			tempInt = tree->nodes[i].indexTwo;
+			tempInt = htonl(tempInt);
+			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+			tempInt = tree->nodes[i].numEntries;
+			tempInt = htonl(tempInt);
+			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
+			/* Print the entries */
+			if(tree->nodes[i].numEntries > 0) {
+				if(tree->nodes[i].numEntries > tempIntArrLength) {
+					tempIntArrLength = tree->nodes[i].numEntries;
+					tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+				}
+				/* positions */
+				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					tempIntArr[j] = (unsigned int)tree->nodes[i].positions[j];
+					tempIntArr[j] = htonl(tempIntArr[j]);
+				}
+				fwrite(tempIntArr, sizeof(unsigned int), tree->nodes[i].numEntries, fp);
+				/* chromosomes */
+				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					tempIntArr[j] = (unsigned int)tree->nodes[i].chromosomes[j];
+					tempIntArr[j] = htonl(tempIntArr[j]);
+				}
+				fwrite(tempIntArr,sizeof(unsigned int), tree->nodes[i].numEntries, fp);
+			}
+		}
+		/* Free memory */
+		if(tempIntArrLength > 0) {
+			free(tempIntArr);
+			tempIntArr=NULL;
+			tempIntArrLength=0;
 		}
 	}
-	fprintf(fp, "\n");
 }
 
 /* TODO */
-int RGTreeReadTree(FILE *fp, RGTree *tree)
+int RGTreeReadTree(FILE *fp, RGTree *tree, int binaryInput)
 {
 	int i, j;
-	int tempInt;
-	/*
-	   unsigned int tempInt;
-	   */
+	unsigned int tempInt;
+	unsigned int *tempIntArr=NULL;
+	int tempIntArrLength=0;
+
 	/* Make sure memory of the root has been allocated */
 	assert(tree!=NULL);
 	assert(tree->nodes==NULL);
 
 	/* Read in the header */
-	RGTreeReadHeader(fp, tree);
+	RGTreeReadHeader(fp, tree, binaryInput);
 
 	assert(tree->numNodes > 0);
+
 	/* Allocate memory for the nodes */
 	tree->nodes = (RGTreeNode*)malloc(sizeof(RGTreeNode)*tree->numNodes);
 
 	/* Read in the nodes */
-	for(i=0;i<tree->numNodes;i++) {
-		/* Read in the indexes and the number of entries */
-		/*
-		   fread(&tempInt, sizeof(unsigned int), 1, fp);
-		   tempInt = ntohl(tempInt);
-		   tree->nodes[i].indexOne = tempInt;
-		   fread(&tempInt, sizeof(unsigned int), 1, fp);
-		   tempInt = ntohl(tempInt);
-		   tree->nodes[i].indexTwo = tempInt;
-		   fread(&tempInt, sizeof(unsigned int), 1, fp);
-		   tempInt = ntohl(tempInt);
-		   tree->nodes[i].numEntries = tempInt;
-		   */
-		if(fscanf(fp, "%d %d %d",
-					&tree->nodes[i].indexOne,
-					&tree->nodes[i].indexTwo,
-					&tree->nodes[i].numEntries)==EOF) {
-			fprintf(stderr, "Error.  Could not read in indexes and numEntries.  Terminating!\n");
-			exit(1);
-		}
-
-		/* Allocate memory for the positions and chromosomes */
-		tree->nodes[i].positions = (int*)malloc(sizeof(int)*tree->nodes[i].numEntries);
-		tree->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*tree->nodes[i].numEntries);
-
-		/* Read in positions and chromosomes */
-		for(j=0;j<tree->nodes[i].numEntries;j++) {
-			/*
-			   fread(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = ntohl(tempInt);
-			   tree->nodes[i].chromosomes[j] = tempInt;
-			   fread(&tempInt, sizeof(unsigned int), 1, fp);
-			   tempInt = ntohl(tempInt);
-			   tree->nodes[i].positions[j] = tempInt;
-			   */
-			if(fscanf(fp, "%d %d",
-						&tempInt,
-						&tree->nodes[i].positions[j])==EOF) {
-				fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
+	if(binaryInput == 0) {
+		for(i=0;i<tree->numNodes;i++) {
+			/* Read in the indexes and the number of entries */
+			if(fscanf(fp, "%d %d %d",
+						&tree->nodes[i].indexOne,
+						&tree->nodes[i].indexTwo,
+						&tree->nodes[i].numEntries)==EOF) {
+				fprintf(stderr, "Error.  Could not read in indexes and numEntries.  Terminating!\n");
 				exit(1);
 			}
-			tree->nodes[i].chromosomes[j] = tempInt;
+
+			if(tree->nodes[i].numEntries > 0) {
+				/* Allocate memory for the positions and chromosomes */
+				tree->nodes[i].positions = (int*)malloc(sizeof(int)*tree->nodes[i].numEntries);
+				tree->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*tree->nodes[i].numEntries);
+
+				/* Read in positions and chromosomes */
+				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					if(fscanf(fp, "%d %d",
+								&tempInt,
+								&tree->nodes[i].positions[j])==EOF) {
+						fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
+						exit(1);
+					}
+					tree->nodes[i].chromosomes[j] = tempInt;
+				}
+			}
+			else {
+				tree->nodes[i].positions = NULL;
+				tree->nodes[i].chromosomes = NULL;
+			}
 		}
+	}
+	else {
+		for(i=0;i<tree->numNodes;i++) {
+			/* Read in the indexes and the number of entries */
+			fread(&tempInt, sizeof(unsigned int), 1, fp);
+			tempInt = ntohl(tempInt);
+			tree->nodes[i].indexOne = tempInt;
+			fread(&tempInt, sizeof(unsigned int), 1, fp);
+			tempInt = ntohl(tempInt);
+			tree->nodes[i].indexTwo = tempInt;
+			fread(&tempInt, sizeof(unsigned int), 1, fp);
+			tempInt = ntohl(tempInt);
+			tree->nodes[i].numEntries = tempInt;
+
+			if(tree->nodes[i].numEntries > 0) {
+				/* Use a temp int array.  Expand when necessary. */
+				if(tree->nodes[i].numEntries > tempIntArrLength) {
+					/* Reallocate temp array */
+					tempIntArrLength = tree->nodes[i].numEntries;
+					tempIntArr = (unsigned int*)realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+				}
+
+				/* Allocate memory for the positions and chromosomes */
+				tree->nodes[i].positions = (int*)malloc(sizeof(int)*tree->nodes[i].numEntries);
+				tree->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*tree->nodes[i].numEntries);
+
+				/* Read in positions */
+				fread(tempIntArr, sizeof(unsigned int), tree->nodes[i].numEntries, fp);
+				/* Copy over positions */
+				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					tree->nodes[i].positions[j] = tempIntArr[j];
+				}
+				/* Read in chromosomes */
+				fread(tempIntArr, sizeof(unsigned int), tree->nodes[i].numEntries, fp);
+				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					tree->nodes[i].chromosomes[j] = (unsigned char)tempIntArr[j];
+				}
+			}
+			else {
+				tree->nodes[i].positions = NULL;
+				tree->nodes[i].chromosomes = NULL;
+			}
+		}
+		if(tempIntArrLength > 0) {
+			free(tempIntArr);
+			tempIntArr=NULL;
+		}
+
 	}
 	return 1;
 }
 
 /* TODO */
-void RGTreePrintHeader(FILE *fp, RGTree *tree)
+void RGTreePrintHeader(FILE *fp, RGTree *tree, int binaryOutput)
 {
 	unsigned int numNodes=(unsigned int)(tree->numNodes);
 	unsigned int subtractGapInformation=(unsigned int)(tree->gap<0)?(-1*tree->gap):0;
@@ -405,42 +469,43 @@ void RGTreePrintHeader(FILE *fp, RGTree *tree)
 				endPos);
 	}
 
-	/* Big Endian/Little Endian conversion */
-	/*
-	   numNodes=htonl(numNodes);
-	   subtractGapInformation=htonl(subtractGapInformation);
-	   addGapInformation=htonl(addGapInformation);
-	   matchLength=htonl(matchLength);
-	   startChr=htonl(startChr);
-	   startPos=htonl(startPos);
-	   endChr=htonl(endChr);
-	   endPos=htonl(endPos);
-	   */
+	if(binaryOutput == 0) {
+		fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",
+				numNodes,
+				subtractGapInformation,
+				addGapInformation,
+				matchLength,
+				startChr,
+				startPos,
+				endChr,
+				endPos);
+	}
+	else {
 
-	/* Print Header */
-	/*
-	   fwrite(&numNodes, sizeof(unsigned int), 1, fp);
-	   fwrite(&subtractGapInformation, sizeof(unsigned int), 1, fp);
-	   fwrite(&addGapInformation, sizeof(unsigned int), 1, fp);
-	   fwrite(&matchLength, sizeof(unsigned int), 1, fp);
-	   fwrite(&startChr, sizeof(unsigned int), 1, fp);
-	   fwrite(&startPos, sizeof(unsigned int), 1, fp);
-	   fwrite(&endChr, sizeof(unsigned int), 1, fp);
-	   fwrite(&endPos, sizeof(unsigned int), 1, fp);
-	   */
-	fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",
-			numNodes,
-			subtractGapInformation,
-			addGapInformation,
-			matchLength,
-			startChr,
-			startPos,
-			endChr,
-			endPos);
+		/* Big Endian/Little Endian conversion */
+		numNodes=htonl(numNodes);
+		subtractGapInformation=htonl(subtractGapInformation);
+		addGapInformation=htonl(addGapInformation);
+		matchLength=htonl(matchLength);
+		startChr=htonl(startChr);
+		startPos=htonl(startPos);
+		endChr=htonl(endChr);
+		endPos=htonl(endPos);
+
+		/* Print Header */
+		fwrite(&numNodes, sizeof(unsigned int), 1, fp);
+		fwrite(&subtractGapInformation, sizeof(unsigned int), 1, fp);
+		fwrite(&addGapInformation, sizeof(unsigned int), 1, fp);
+		fwrite(&matchLength, sizeof(unsigned int), 1, fp);
+		fwrite(&startChr, sizeof(unsigned int), 1, fp);
+		fwrite(&startPos, sizeof(unsigned int), 1, fp);
+		fwrite(&endChr, sizeof(unsigned int), 1, fp);
+		fwrite(&endPos, sizeof(unsigned int), 1, fp);
+	}
 }
 
 /* TODO */
-void RGTreeReadHeader(FILE *fp, RGTree *tree)
+void RGTreeReadHeader(FILE *fp, RGTree *tree, int binaryInput)
 {
 	int numNodes;
 	int subtractGapInformation;
@@ -452,65 +517,70 @@ void RGTreeReadHeader(FILE *fp, RGTree *tree)
 	int endPos;
 
 	/* Read in header */
-	/*
-	   if(fread(&numNodes, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&subtractGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&addGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&matchLength, sizeof(unsigned int), 1, fp)!=EOF 
-	   && fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
-	   && fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
-	   */
-	if(fscanf(fp, "%d %d %d %d %d %d %d %d",
-				&numNodes,
-				&subtractGapInformation,
-				&addGapInformation,
-				&matchLength,
-				&startChr,
-				&startPos,
-				&endChr,
-				&endPos)!=EOF) {
-
-		/* Big Endian/Little Endian conversion */
-		/*
-		   numNodes = ntohl(numNodes);
-		   subtractGapInformation = ntohl(subtractGapInformation);
-		   addGapInformation = ntohl(addGapInformation);
-		   startChr = ntohl(startChr);
-		   startPos = ntohl(startPos);
-		   endChr = ntohl(endChr);
-		   endPos = ntohl(endPos);
-		   matchLength = ntohl(matchLength);
-		   */
-
-		if(VERBOSE > 0) {
-			fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d,%d,%d\n",
-					numNodes,
-					subtractGapInformation,
-					addGapInformation,
-					matchLength,
-					startChr,
-					startPos,
-					endChr,
-					endPos);
+	if(binaryInput == 0) {
+		if(fscanf(fp, "%d %d %d %d %d %d %d %d",
+					&numNodes,
+					&subtractGapInformation,
+					&addGapInformation,
+					&matchLength,
+					&startChr,
+					&startPos,
+					&endChr,
+					&endPos)!=EOF) {
 		}
-
-		/* Adjust header - see bpreprocess */
-		tree->numNodes = numNodes;
-		tree->gap = addGapInformation - subtractGapInformation;
-		tree->matchLength = matchLength;
-		tree->startChr = startChr;
-		tree->startPos = startPos;
-		tree->endChr = endChr;
-		tree->endPos = endPos;
-
-		/* Error checking ? */
+		else {
+			fprintf(stderr, "Error.  Could not read header file in RGTreeReadFromFile.  Terminating!\n");
+			exit(1);
+		}
 	}
 	else {
-		fprintf(stderr, "Error.  Could not read header file in RGTreeReadFromFile.  Terminating!\n");
-		exit(1);
+		if(fread(&numNodes, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&subtractGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
+				&& fread(&addGapInformation, sizeof(unsigned int), 1, fp)!=EOF 
+				&& fread(&matchLength, sizeof(unsigned int), 1, fp)!=EOF 
+				&& fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
+				&& fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
+
+			/* Big Endian/Little Endian conversion */
+			numNodes = ntohl(numNodes);
+			subtractGapInformation = ntohl(subtractGapInformation);
+			addGapInformation = ntohl(addGapInformation);
+			startChr = ntohl(startChr);
+			startPos = ntohl(startPos);
+			endChr = ntohl(endChr);
+			endPos = ntohl(endPos);
+			matchLength = ntohl(matchLength);
+		}
+		else {
+			fprintf(stderr, "Error.  Could not read header file in RGTreeReadFromFile.  Terminating!\n");
+			exit(1);
+		}
 	}
+
+	if(VERBOSE > 0) {
+		fprintf(stderr, "Printing Header:%d,%d,%d,%d,%d,%d,%d,%d\n",
+				numNodes,
+				subtractGapInformation,
+				addGapInformation,
+				matchLength,
+				startChr,
+				startPos,
+				endChr,
+				endPos);
+	}
+
+	/* Adjust header - see bpreprocess */
+	tree->numNodes = numNodes;
+	tree->gap = addGapInformation - subtractGapInformation;
+	tree->matchLength = matchLength;
+	tree->startChr = startChr;
+	tree->startPos = startPos;
+	tree->endChr = endChr;
+	tree->endPos = endPos;
+
+	/* Error checking ? */
 }
 
 /* TODO */

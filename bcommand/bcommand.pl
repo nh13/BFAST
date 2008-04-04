@@ -1,4 +1,3 @@
-#!/usr/bin/perl -w
 use strict;
 use warnings;
 use Getopt::Long;
@@ -30,6 +29,8 @@ my @options = (
 	"COMMANDDIR",
 	"OUTPUTDIR",
 	"OUTPUTID",
+	"INPUTBINARY",
+	"OUTPUTBINARY",
 	"RGLISTANDLENGTHFILENAME",
 	"REGIONS",
 	"STARTCHR",
@@ -436,13 +437,15 @@ sub CreateRegions {
 		}
 		# Now, if we have found a legal end position, update 
 		if($curChr < $endChr || ($curChr == $endChr && $curPos <= $endPos)) {
-			# add to arrays 
-			push(@$startChrArr, $prevChr);
-			push(@$startPosArr, $prevPos);
-			push(@$endChrArr, $curChr);
-			push(@$endPosArr, $curPos);
+			if(($curChr != $prevChr) || ($curPos != $prevPos)) {
+				# add to arrays 
+				push(@$startChrArr, $prevChr);
+				push(@$startPosArr, $prevPos);
+				push(@$endChrArr, $curChr);
+				push(@$endPosArr, $curPos);
+			}
 		}
-		else {
+		elsif(($endChr != $prevChr) || ($endPos != $prevPos)) {
 			push(@$startChrArr, $prevChr);
 			push(@$startPosArr, $prevPos);
 			push(@$endChrArr, $endChr);
@@ -451,6 +454,16 @@ sub CreateRegions {
 		# Update prev
 		$prevChr = $curChr;
 		$prevPos = $curPos;
+	}
+
+	# Print regions
+	print "Regions (buggy):\n";
+	for(my $i=0;$i<scalar(@$startChrArr);$i++) {
+		print sprintf("From chr%d:%d to chr:%d:%d\n",
+			$$startChrArr[$i],
+			$$startPosArr[$i],
+			$$endChrArr[$i],
+			$$endPosArr[$i]);
 	}
 }
 
@@ -546,8 +559,14 @@ sub CreateBProcessCommandsAndFiles {
 		# BPREPROCESS - Create Indexes.
 		$command = $$data{"COMMANDDIR"}; # Command directory 
 		$command .= "bpreprocess/bpreprocess"; # Command 
-		$command .= " -i"; # Create Index 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
+		$command .= " -a 0"; # Create Index 
+		if($$data{"INPUTBINARY"}==1) {
+			$command .= " -b ";
+		}
+		if($$data{"OUTPUTBINARY"}==1) {
+			$command .= " -B ";
+		}
 		$command .= " -l ".$$data{"INDEXMATCHLENGTH"}; # The length of reads in the index 
 		$command .= " -s ".$$startChrArr[$i];
 		$command .= " -S ".$$startPosArr[$i];
@@ -573,6 +592,13 @@ sub CreateBProcessCommandsAndFiles {
 		$command = $$data{"COMMANDDIR"}; # Command directory 
 		$command .= "bpreprocess/bpreprocess"; # Command 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
+		$command .= " -a 1"; # Create Tree 
+		if($$data{"INPUTBINARY"}==1) {
+			$command .= " -b ";
+		}
+		if($$data{"OUTPUTBINARY"}==1) {
+			$command .= " -B ";
+		}
 		$command .= " -l ".$$data{"TREEMATCHLENGTH"}; # The length of reads in the index 
 		$command .= " -s ".$$startChrArr[$i];
 		$command .= " -S ".$$startPosArr[$i];
@@ -689,7 +715,7 @@ sub CreateBMatchesCommandsAndFiles {
 		$command .= " -e ".$i;
 		$command .= " -m ".$$data{"NUMMISMATCHES"};
 		$command .= " -i ".$$data{"NUMINSERTIONS"};
-		$command .= " -d ".$$data{"NUMDELETIONS"};
+		$command .= " -a ".$$data{"NUMDELETIONS"};
 		if($$data{"PAIREDEND"} == 1) {
 			$command .= " -2";
 		}
@@ -754,7 +780,7 @@ sub CreateBAlignCommandsAndFiles {
 	$command .= "balign/balign"; # Command
 	$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
 	$command .= " -m ".$$data{"MATCHESLISTFILENAME"};
-	$command .= " -s ".$$data{"OUTPUTDIR"}.$$data{"SCORINGMATRIXFILENAME"};
+	$command .= " -x ".$$data{"OUTPUTDIR"}.$$data{"SCORINGMATRIXFILENAME"};
 	$command .= " -a ".$$data{"ALGORITHM"};
 	$command .= " -O ".$$data{"ALIGNOFFSET"};
 	if($$data{"PAIREDEND"} == 1) {

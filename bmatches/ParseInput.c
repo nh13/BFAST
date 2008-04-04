@@ -36,6 +36,8 @@
 #include <sys/resource.h>
 #endif
 
+#include <time.h>
+
 #include "Definitions.h"
 #include "FindMatches.h"
 #include "ParseInput.h"
@@ -68,6 +70,7 @@ static struct argp_option options[] = {
 	{"blatterTreesFileName", 'T', "blatterTreesFileName", 0, "Specifies the file name holding the list of btf files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
+	{"binaryInput", 'b', 0, OPTION_NO_USAGE, 0, "Specifies that hte blatter input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
@@ -78,6 +81,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	{"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output should be in binary format", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
 	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
@@ -102,7 +106,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:s:I:O:R:T:2hp";
+"a:d:e:i:m:o:s:I:O:R:T:2bhpB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -117,6 +121,8 @@ main (int argc, char **argv)
 	char outputFileName[MAX_FILENAME_LENGTH];
 
 	struct arguments arguments;
+	time_t startTime = time(NULL);
+	time_t endTime;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -161,10 +167,12 @@ main (int argc, char **argv)
 
 						/* Run Matches */
 						RunMatches(outputFileName,
+								arguments.binaryOutput,
 								arguments.blatterIndexesFileName,
 								arguments.blatterTreesFileName,
 								arguments.readsFileName,
 								arguments.offsetsFileName,
+								arguments.binaryInput,
 								arguments.startReadNum,
 								arguments.endReadNum,
 								arguments.numMismatches,
@@ -172,7 +180,22 @@ main (int argc, char **argv)
 								arguments.numDeletions,
 								arguments.pairedEnd);
 
+						endTime = time(NULL);
+						int seconds = endTime - startTime;
+						int hours = seconds/3600;
+						seconds -= hours*3600;
+						int minutes = seconds/60;
+						seconds -= minutes*60;
+
+						fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
+								hours,
+								minutes,
+								seconds
+							   );
+
 						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
+
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
@@ -231,6 +254,8 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "offsetsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
+	assert(args->binaryInput == 0 || args->binaryOutput == 1);
+
 	if(args->numMismatches < 0) {
 		PrintError(FnName, "numMismatches", "Command line argument", Exit, OutOfRange);
 	}
@@ -260,6 +285,8 @@ int ValidateInputs(struct arguments *args) {
 		if(ValidateFileName(args->outputDir)==0) 
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
+
+	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
 
 	return 1;
 }
@@ -320,6 +347,8 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->offsetsFileName!=0);
 	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
+	args->binaryInput = 0;
+
 	args->startReadNum = -1;
 	args->endReadNum = -1;
 	args->numMismatches = 0;
@@ -337,6 +366,8 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
+	args->binaryOutput = 0;
+
 	return;
 }
 
@@ -352,6 +383,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "blatterTreesFileName\t\t\t%s\n", args->blatterTreesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
+	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
@@ -360,6 +392,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
 	fprintf(fp, BREAK_LINE);
 	return;
 }
@@ -424,6 +457,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->pairedEnd = 1;break;
 					case 'a':
 						arguments->numDeletions = atoi(OPTARG);break;
+					case 'b':
+						arguments->binaryInput = 1;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;break;
@@ -442,6 +477,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'B':
+						arguments->binaryOutput = 1;break;
 					case 'I':
 						if(arguments->blatterIndexesFileName) free(arguments->blatterIndexesFileName);
 						arguments->blatterIndexesFileName = OPTARG;break;

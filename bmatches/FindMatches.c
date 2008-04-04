@@ -10,10 +10,12 @@
 
 /* TODO */
 void RunMatches(char *outputFileName,
+		int binaryOutput,
 		char *rgIndexListFileName,
 		char *rgTreeListFileName,
 		char *sequenceFileName, 
 		char *offsetsFileName,
+		int binaryInput,
 		int startReadNum,
 		int endReadNum,
 		int numMismatches,

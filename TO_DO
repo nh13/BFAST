@@ -1,8 +1,19 @@
 Note: does not support match lengths > 16 when using the trees
 
 ===============================================================================
+General
+1. Add command line options to showing timing information.
+2. Add command line option for binary files.
+3. Add number of nodes to header (for indexes) for pre-allocation.
+4. Add doc/bcommand.1
+5. Modify docs.
+===============================================================================
+
+
+===============================================================================
 bpreprocess
 ===============================================================================
+1. Creates binary (2-bit) files for the reference genome (include a header...)
 
 ===============================================================================
 bmatches
@@ -18,6 +29,8 @@ Allow for combinations of insertions, deletions and mismatches (just combine
 Have a command line option that specifies a strict read length (otherwise, we
 		assume that the reads must have length matching the the matchLength
 		equal to that of the index(es)).
+5.
+Have a command line option that only outputs reads that had a candidate match.
 
 ===============================================================================
 balign
@@ -28,6 +41,8 @@ balign
 		3rd and 4th bits from the left: nt 1's sequence (a=0, c=1, g=2, t=3)
 		3rd and 4th bits from the right: nt 2's repeat (0, 1) or N (3)
 		right-most 2-bits: nt 2's sequence (a=0, c=1, g=2, t=3)
+2.
+Have a command line option that ignores reads with zero candidate matches.
 
 ===============================================================================
 bpostprocess
@@ -38,12 +53,7 @@ bpostprocess
 4. Write code.
 
 ===============================================================================
-1. Clean up the code.
-2. Comment the code.
-3. Add error checking routines.
-4. Add doc/bcommand.1
-5. Modify docs.
+bcommand
 ===============================================================================
-1. Add Makefile.am
-1. Add Makefile.am
+1. Update
 

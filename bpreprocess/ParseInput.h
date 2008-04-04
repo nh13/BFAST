@@ -7,6 +7,7 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *rgListFileName;					/* -r */
+	int algorithm;							/* -a */
 	int matchLength;						/* -l */
 	int startChr;							/* -s */
 	int startPos;							/* -S */
@@ -16,6 +17,8 @@ struct arguments
 	int programMode;						/* -h */ 
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
+	int binaryInput;						/* -b */
+	int binaryOutput;						/* -B */
 };
 
 /* Local functions */
@@ -65,7 +68,13 @@ struct argp_option {
 int getopt_parse(int, char**, char*, struct arguments*); 
 #endif
 
-extern void GenerateIndex(RGList*, int, char*, char*);
-extern void GenerateTree(RGList*, int, int*, int, char*, char*);
-extern void ReadReferenceGenome(char*, RGList*, int, int, int, int, int);
+/* From ReadInputFiles.h */
+extern void ReadReferenceGenome(char*, int, RGList*, int, int, int, int, int);
+extern void ReadGaps(char*, int**, int*, int*, int);
+
+/* From GenerateIndex.h */
+extern void GenerateIndex(RGList*, int, char*, char*, int);
+
+/* From GenerateTree.h */
+extern void GenerateTree(RGList*, int, int*, int, char*, char*, int);
 

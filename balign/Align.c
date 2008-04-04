@@ -204,7 +204,6 @@ int AlignmentGetScore(char *read,
 		}
 		assert(curRow < readLength || curCol < referenceLength);
 		if(curRow >= readLength) {
-			fprintf(stderr, "HERE 1\n");
 			assert(curRow != -1 && curCol != -1);
 			aEntry->read[aEntry->length] = '-';
 			aEntry->reference[aEntry->length] = reference[curCol];
@@ -214,7 +213,6 @@ int AlignmentGetScore(char *read,
 			aEntry->length++;
 		}
 		else if(curCol >= referenceLength) {
-			fprintf(stderr, "HERE 2\n");
 			assert(curRow != -1 && curCol != -1);
 			aEntry->read[aEntry->length] = read[curRow];
 			aEntry->reference[aEntry->length] = '-';
@@ -224,7 +222,6 @@ int AlignmentGetScore(char *read,
 			aEntry->length++;
 		}
 		else if(curRow != -1 && curCol != -1 && curRow < readLength && curCol < referenceLength) {
-			fprintf(stderr, "HERE 3\n");
 
 			/* We have three cases:
 			 * 1. Vertical move: curRow == prevRow && curCol == prevCol-1

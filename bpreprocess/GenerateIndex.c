@@ -5,14 +5,15 @@
 #include "../blib/RGIndex.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
-#include "GenerateTree.h"
+#include "ReadInputFiles.h"
 #include "GenerateIndex.h"
 
 /* TODO */
 void GenerateIndex(RGList *rgList,
 		int matchLength, 
 		char *outputID, 
-		char *outputDir)
+		char *outputDir,
+		int binaryOutput)
 {
 	int i, j, k;
 	char *curSequence=NULL;
@@ -107,7 +108,7 @@ void GenerateIndex(RGList *rgList,
 		exit(1);
 	}   
 
-	RGIndexPrintIndex(fp, &index);
+	RGIndexPrintIndex(fp, &index, binaryOutput);
 
 	/* Close the output file */
 	fclose(fp);

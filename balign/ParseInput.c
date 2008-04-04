@@ -119,6 +119,8 @@ main (int argc, char **argv)
 {
 	struct arguments arguments;
 	RGBinary rgList;
+	time_t startTime = time(NULL);
+	time_t endTime;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -163,12 +165,27 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.outputID,
 								arguments.outputDir);
-						fprintf(stderr, "Terminating successfully!\n");
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
 						exit(1);
 				}
+				endTime = time(NULL);
+				int seconds = endTime - startTime;
+				int hours = seconds/3600;
+				seconds -= hours*3600;
+				int minutes = seconds/60;
+				seconds -= minutes*60;
+
+				fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
+						hours,
+						minutes,
+						seconds
+					   );
+
+				fprintf(stderr, "Terminating successfully!\n");
+				fprintf(stderr, "%s", BREAK_LINE);
+
 			}
 			else {
 				fprintf(stderr, "PrintError parsing command line arguments!\n");
