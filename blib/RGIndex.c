@@ -398,6 +398,7 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 	assert(index->numNodes > 0);
 	/* Allocate memory for the nodes */
 	index->nodes = (RGIndexNode*)malloc(sizeof(RGIndexNode)*index->numNodes);
+	assert(index->nodes!=NULL);
 
 	if(binaryInput == 0) {
 		/* Preallocate as much as possible */

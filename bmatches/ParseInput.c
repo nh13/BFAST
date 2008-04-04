@@ -70,7 +70,7 @@ static struct argp_option options[] = {
 	{"blatterTreesFileName", 'T', "blatterTreesFileName", 0, "Specifies the file name holding the list of btf files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
-	{"binaryInput", 'b', 0, OPTION_NO_USAGE, 0, "Specifies that hte blatter input files will be in binary format", 1},
+	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that hte blatter input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
@@ -118,7 +118,7 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 	int
 main (int argc, char **argv)
 {
-	char outputFileName[MAX_FILENAME_LENGTH];
+	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 
 	struct arguments arguments;
 	time_t startTime = time(NULL);
@@ -254,7 +254,12 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "offsetsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	assert(args->binaryInput == 0 || args->binaryOutput == 1);
+	assert(args->binaryOutput == 0 || args->binaryOutput== 1);
+	/* binary output not currently supported */
+	if(args->binaryOutput == 1) {
+		fprintf(stderr, "Error.  Binary output not supported.  Terminating!\n");
+		exit(1);
+	}
 
 	if(args->numMismatches < 0) {
 		PrintError(FnName, "numMismatches", "Command line argument", Exit, OutOfRange);

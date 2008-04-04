@@ -96,6 +96,7 @@ void RunMatches(char *outputFileName,
 
 	/* Do step 1: search the indexes for all sequences */
 	numMatches=FindMatchesInIndexes(rgIndexFileNames,
+			binaryInput,
 			numRGIndexes,
 			pairedEnd,
 			&tempSeqFP,
@@ -112,6 +113,7 @@ void RunMatches(char *outputFileName,
 
 	/* Do step 2: search the trees for the remaining sequences */
 	numMatches+=FindMatchesInTrees(rgTreeFileNames,
+			binaryInput,
 			numRGTrees,
 			offsets,
 			numOffsets,
@@ -154,6 +156,7 @@ void RunMatches(char *outputFileName,
 }
 
 int FindMatchesInIndexes(char **rgIndexFileNames,
+		int binaryInput,
 		int numRGIndexes,
 		int pairedEnd,
 		FILE **tempSeqFP,
@@ -195,7 +198,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		index.endPos=0;
 
 		/* Read in the RG Index */
-		ReadRGIndex(rgIndexFileNames[i], &index);
+		ReadRGIndex(rgIndexFileNames[i], &index, binaryInput);
 
 		/* Check for the same match length across the indexes */
 		if(i==0) {
@@ -406,6 +409,7 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 
 /* TODO */
 int FindMatchesInTrees(char **rgTreeFileNames,
+		int binaryInput,
 		int numRGTrees,
 		int *offsets,
 		int numOffsets,
@@ -449,7 +453,7 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		tree.endPos=0;
 
 		/* Read in the RG Tree */
-		ReadRGTree(rgTreeFileNames[i], &tree);
+		ReadRGTree(rgTreeFileNames[i], &tree, binaryInput);
 
 		/* reset pointer to temp file to the beginning of the file */
 		fseek(tempSeqFP, 0, SEEK_SET);

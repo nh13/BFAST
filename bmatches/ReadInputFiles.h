@@ -7,8 +7,8 @@
 
 int ReadSequencesToTempFile(char*, FILE**, int, int, int);
 int ReadNextSequence(FILE*, char**, char**, char**, int);
-void ReadRGIndex(char*, RGIndex*);
-void ReadRGTree(char*, RGTree*);
+void ReadRGIndex(char*, RGIndex*, int);
+void ReadRGTree(char*, RGTree*, int);
 int ReadFileNames(char*, char***);
 int ReadOffsets(char*, int**);
 int ReadRGTreeFileNames(char*, char***, int**, int*);

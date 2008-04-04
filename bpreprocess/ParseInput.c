@@ -115,6 +115,7 @@ main (int argc, char **argv)
 {
 	struct arguments arguments;
 	RGList rgList;
+	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	int *gaps=NULL;
 	int numGaps=0;
 	int maxGap=0;
@@ -149,37 +150,39 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 
-						/* Read in the reference Genome */
-						/* Note: we add matchLenth to the end since we want to include the
-						 * start positions up to and including endPos */
-						if(VERBOSE >= 0) {
-							fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d].\n",
-									arguments.matchLength,
-									arguments.matchLength);
-						}
-						if(VERBOSE >= 0 && arguments.algorithm == 1) {
-							fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d] and the maximum gap supplied [%d].\n",
-									2*arguments.matchLength-1+maxGap,
-									arguments.matchLength,
-									maxGap);
-						}
-						ReadReferenceGenome(arguments.rgListFileName, 
-								arguments.binaryInput,
-								&rgList,
-								arguments.startChr,
-								arguments.startPos,
-								arguments.endChr,
-								arguments.endPos,
-								arguments.matchLength);
-
 						switch(arguments.algorithm) {
 							case 0:
+								/* Read in the reference Genome */
+								/* Note: we add matchLenth-1 to the end since we want to include the
+								 * start positions up to and including endPos */
+								if(VERBOSE >= 0) {
+									fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d].\n",
+											arguments.matchLength-1,
+											arguments.matchLength);
+								}
+								ReadReferenceGenome(arguments.rgListFileName, 
+										arguments.binaryInput,
+										&rgList,
+										arguments.startChr,
+										arguments.startPos,
+										arguments.endChr,
+										arguments.endPos,
+										arguments.matchLength-1);
+								/* Create the output file name */
+								sprintf(outputFileName, "%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s",
+										arguments.outputDir,
+										arguments.outputID,
+										rgList.startChr,
+										rgList.startPos,
+										rgList.endChr,
+										rgList.endPos-arguments.matchLength+1,
+										arguments.matchLength,
+										BLATTER_INDEX_FILE_EXTENSION);
 								/* Generate our index */
 								GenerateIndex(
 										&rgList,
 										arguments.matchLength,
-										arguments.outputID,
-										arguments.outputDir,
+										outputFileName,
 										arguments.binaryOutput);
 								break;
 							case 1: 
@@ -189,6 +192,23 @@ main (int argc, char **argv)
 										&numGaps,
 										&maxGap,
 										arguments.matchLength);
+								/* Read in the reference Genome */
+								/* Note: we add 2*matchLenth-1+maxGap to the end since we want to include the
+								 * start positions up to and including endPos (with gap) */
+								if(VERBOSE >= 0) {
+									fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d] and the maximum gap supplied [%d].\n",
+											2*arguments.matchLength-1+maxGap,
+											arguments.matchLength,
+											maxGap);
+								}
+								ReadReferenceGenome(arguments.rgListFileName, 
+										arguments.binaryInput,
+										&rgList,
+										arguments.startChr,
+										arguments.startPos,
+										arguments.endChr,
+										arguments.endPos,
+										2*arguments.matchLength-1+maxGap);
 
 								/* Generate our Tree */ 
 								GenerateTree(&rgList,
@@ -203,22 +223,22 @@ main (int argc, char **argv)
 								fprintf(stderr, "Warning.  Not implemented\n");
 								break;
 						}
-				/* Get the time information */
-				endTime = time(NULL);
-				int seconds = endTime - startTime;
-				int hours = seconds/3600;
-				seconds -= hours*3600;
-				int minutes = seconds/60;
-				seconds -= minutes*60;
+						/* Get the time information */
+						endTime = time(NULL);
+						int seconds = endTime - startTime;
+						int hours = seconds/3600;
+						seconds -= hours*3600;
+						int minutes = seconds/60;
+						seconds -= minutes*60;
 
-				fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
-						hours,
-						minutes,
-						seconds
-					   );
+						fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
+								hours,
+								minutes,
+								seconds
+							   );
 
-				fprintf(stderr, "Terminating successfully!\n");
-				fprintf(stderr, "%s", BREAK_LINE);
+						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
@@ -392,7 +412,7 @@ AssignDefaultValues(struct arguments *args)
 	void 
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgra", "ExecutePrintProgramParameters"};
+	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);

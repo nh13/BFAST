@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <limits.h>
 #include "../blib/RGTree.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
@@ -24,6 +25,7 @@ void GenerateTree(RGList *rgList,
 	FILE *fp;
 	RGTree tree;
 	int curGap;
+	int maxGap = INT_MIN;
 
 	assert(numGaps > 0);
 
@@ -39,6 +41,15 @@ void GenerateTree(RGList *rgList,
 				numGaps,
 				BLATTER_TREE_FILE_EXTENSION,
 				BREAK_LINE);
+	}
+	
+	/* Get the max gap */
+	assert(numGaps > 0);
+	maxGap = gaps[0];
+	for(i=1;i<numGaps;i++) {
+		if(gaps[i] > maxGap) {
+			maxGap = gaps[i];
+		}
 	}
 
 	/* For every gap between the two l-mers */
@@ -62,7 +73,7 @@ void GenerateTree(RGList *rgList,
 				tree.startChr,
 				tree.startPos,
 				tree.endChr,
-				tree.endPos,
+				tree.endPos-2*matchLength+1-maxGap,
 				curGap,
 				matchLength,
 				BLATTER_TREE_FILE_EXTENSION);
@@ -76,7 +87,8 @@ void GenerateTree(RGList *rgList,
 		for(j=0;j<rgList->numChrs;j++) {
 
 			/* For every starting position of the first l-mer */
-			for(k=rgList->chromosomes[j].startPos;k <= rgList->chromosomes[j].endPos - 2*matchLength - curGap + 1;k++) {
+			/* Note end position is really 2*matchLength+maxGap-1 to account for max gap */
+			for(k=rgList->chromosomes[j].startPos;k <= rgList->chromosomes[j].endPos - curGap + maxGap;k++) {
 				if(VERBOSE >=0 && k%GT_ROTATE_NUM==0) {
 					fprintf(stderr, "\r%3d\t%2d\t%12d\t%10.2lfMB", 
 							curGap,

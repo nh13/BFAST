@@ -11,13 +11,11 @@
 /* TODO */
 void GenerateIndex(RGList *rgList,
 		int matchLength, 
-		char *outputID, 
-		char *outputDir,
+		char *outputFileName, 
 		int binaryOutput)
 {
 	int i, j, k;
 	char *curSequence=NULL;
-	char outputFileName[1024];
 	FILE *fp;
 
 	RGIndex index;
@@ -37,17 +35,6 @@ void GenerateIndex(RGList *rgList,
 	index.startPos = rgList->startPos;
 	index.endChr = rgList->endChr;
 	index.endPos = rgList->endPos;
-
-	/* Create the output file name */
-	sprintf(outputFileName, "%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s", 
-			outputDir,
-			outputID,
-			index.startChr,
-			index.startPos,
-			index.endChr,
-			index.endPos,
-			matchLength,
-			BLATTER_INDEX_FILE_EXTENSION);
 
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Generating an index file, outputing to %s.\n",

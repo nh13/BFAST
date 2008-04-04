@@ -29,8 +29,9 @@ my @options = (
 	"COMMANDDIR",
 	"OUTPUTDIR",
 	"OUTPUTID",
-	"INPUTBINARY",
-	"OUTPUTBINARY",
+	"INPUTBINARYBPREPROCESS",
+	"OUTPUTBINARYBPREPROCESS",
+	"INPUTBINARYBMATCHES",
 	"RGLISTANDLENGTHFILENAME",
 	"REGIONS",
 	"STARTCHR",
@@ -561,11 +562,11 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= "bpreprocess/bpreprocess"; # Command 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
 		$command .= " -a 0"; # Create Index 
-		if($$data{"INPUTBINARY"}==1) {
-			$command .= " -b ";
+		if($$data{"INPUTBINARYBPREPROCESS"}==1) {
+			$command .= " -b";
 		}
-		if($$data{"OUTPUTBINARY"}==1) {
-			$command .= " -B ";
+		if($$data{"OUTPUTBINARYBPREPROCESS"}==1) {
+			$command .= " -B";
 		}
 		$command .= " -l ".$$data{"INDEXMATCHLENGTH"}; # The length of reads in the index 
 		$command .= " -s ".$$startChrArr[$i];
@@ -593,11 +594,11 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= "bpreprocess/bpreprocess"; # Command 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
 		$command .= " -a 1"; # Create Tree 
-		if($$data{"INPUTBINARY"}==1) {
-			$command .= " -b ";
+		if($$data{"INPUTBINARYBPREPROCESS"}==1) {
+			$command .= " -b";
 		}
-		if($$data{"OUTPUTBINARY"}==1) {
-			$command .= " -B ";
+		if($$data{"OUTPUTBINARYBPREPROCESS"}==1) {
+			$command .= " -B";
 		}
 		$command .= " -l ".$$data{"TREEMATCHLENGTH"}; # The length of reads in the index 
 		$command .= " -s ".$$startChrArr[$i];
@@ -711,6 +712,9 @@ sub CreateBMatchesCommandsAndFiles {
 		$command .= " -T ".$$data{"TREELISTFILENAME"};
 		$command .= " -R ".$$data{"OUTPUTDIR"}.$$data{"READSFILENAME"}; 
 		$command .= " -O ".$$data{"OFFSETSFILENAME"};
+		if($$data{"INPUTBINARYBMATCHES"} == 1) {
+			$command .= " -b";
+		}
 		$command .= " -s ".($i-$incReads+1);
 		$command .= " -e ".$i;
 		$command .= " -m ".$$data{"NUMMISMATCHES"};

@@ -117,7 +117,7 @@ int ReadNextSequence(FILE *fp, char **sequenceOne, char **sequenceTwo, char**seq
 
 /* TODO */
 /* Reads in a RGIndexfrom file */
-void ReadRGIndex(char *rgIndexFileName, RGIndex *index)
+void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput)
 {
 	FILE *fp;
 
@@ -133,7 +133,7 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index)
 	}
 
 	/* Read from file */
-	RGIndexReadIndex(fp, index);
+	RGIndexReadIndex(fp, index, binaryInput);
 
 	/* close file */
 	fclose(fp);
@@ -146,7 +146,7 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index)
 
 /* TODO */
 /* Reads in a RGTree from file */
-void ReadRGTree(char *rgTreeFileName, RGTree *tree)
+void ReadRGTree(char *rgTreeFileName, RGTree *tree, int binaryInput)
 {
 	FILE *fp;
 
@@ -162,7 +162,7 @@ void ReadRGTree(char *rgTreeFileName, RGTree *tree)
 	}
 
 	/* Read from file */
-	RGTreeReadTree(fp, tree);
+	RGTreeReadTree(fp, tree, binaryInput);
 
 	/* close file */
 	fclose(fp);
