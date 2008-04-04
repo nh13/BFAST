@@ -459,12 +459,12 @@ sub CreateRegions {
 
 	# Print regions
 	#for(my $i=0;$i<scalar(@$startChrArr);$i++) {
-		#		print sprintf("From chr%d:%d to chr:%d:%d\n",
-		#		$$startChrArr[$i],
-		#		$$startPosArr[$i],
-		#		$$endChrArr[$i],
-		#		$$endPosArr[$i]);
-		#}
+	#		print sprintf("From chr%d:%d to chr:%d:%d\n",
+	#		$$startChrArr[$i],
+	#		$$startPosArr[$i],
+	#		$$endChrArr[$i],
+	#		$$endPosArr[$i]);
+	#}
 }
 
 ############################################################
@@ -785,6 +785,10 @@ sub CreateBAlignCommandsAndFiles {
 	$command .= " -m ".$$data{"MATCHESLISTFILENAME"};
 	$command .= " -x ".$$data{"OUTPUTDIR"}.$$data{"SCORINGMATRIXFILENAME"};
 	$command .= " -a ".$$data{"ALGORITHM"};
+	$command .= " -s ".$$startChrArr[$i];
+	$command .= " -S ".$$startPosArr[$i];
+	$command .= " -e ".$$endChrArr[$i]; 
+	$command .= " -E ".$$endPosArr[$i];
 	$command .= " -O ".$$data{"ALIGNOFFSET"};
 	if($$data{"PAIREDEND"} == 1) {
 		$command .= " -2";
