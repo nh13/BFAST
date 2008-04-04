@@ -204,6 +204,10 @@ sub Main {
 	$alignCommandsFileName = $data{"OUTPUTDIR"}.$data{"ALIGNSH"};
 	CreateBAlignCommandsAndFiles(
 		$alignCommandsFileName,
+		\@startChr,
+		\@startPos,
+		\@endChr,
+		\@endPos,
 		\%data);
 
 }
@@ -752,6 +756,14 @@ sub CreateBMatchesCommandsAndFiles {
 # params:
 #	alignCommandsFileName - the name of the file in which 
 #		to store all balign commands.
+#	startChrArr - a reference to an array in which
+#		to store the start chromosome for reach region.
+#	startPosArr - a reference to an array in which
+#		to store the start positionfor reach region.
+#	endChrArr - a reference to an array in which
+#		to store the end chromosome for reach region.
+#	endPosArr - a reference to an array in which
+#		to store the start position for reach region.
 #	data - a reference to a hash to store the comands from
 #		the .ini file.
 #
@@ -760,6 +772,10 @@ sub CreateBMatchesCommandsAndFiles {
 ############################################################
 sub CreateBAlignCommandsAndFiles {
 	my $alignCommandsFileName = shift;
+	my $startChrArr = shift;
+	my $startPosArr = shift;
+	my $endChrArr = shift;
+	my $endPosArr = shift;
 	my $data = shift;
 
 	my $numReads = $$data{"NUMREADS"};
@@ -785,10 +801,10 @@ sub CreateBAlignCommandsAndFiles {
 	$command .= " -m ".$$data{"MATCHESLISTFILENAME"};
 	$command .= " -x ".$$data{"OUTPUTDIR"}.$$data{"SCORINGMATRIXFILENAME"};
 	$command .= " -a ".$$data{"ALGORITHM"};
-	$command .= " -s ".$$startChrArr[$i];
-	$command .= " -S ".$$startPosArr[$i];
-	$command .= " -e ".$$endChrArr[$i]; 
-	$command .= " -E ".$$endPosArr[$i];
+	$command .= " -s ".$$startChrArr[0];
+	$command .= " -S ".$$startPosArr[0];
+	$command .= " -e ".$$endChrArr[scalar(@$startPosArr)-1]; 
+	$command .= " -E ".$$endPosArr[scalar(@$startPosArr)-1];
 	$command .= " -O ".$$data{"ALIGNOFFSET"};
 	if($$data{"PAIREDEND"} == 1) {
 		$command .= " -2";
