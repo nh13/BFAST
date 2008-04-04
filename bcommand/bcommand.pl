@@ -458,14 +458,13 @@ sub CreateRegions {
 	}
 
 	# Print regions
-	print "Regions (buggy):\n";
-	for(my $i=0;$i<scalar(@$startChrArr);$i++) {
-		print sprintf("From chr%d:%d to chr:%d:%d\n",
-			$$startChrArr[$i],
-			$$startPosArr[$i],
-			$$endChrArr[$i],
-			$$endPosArr[$i]);
-	}
+	#for(my $i=0;$i<scalar(@$startChrArr);$i++) {
+		#		print sprintf("From chr%d:%d to chr:%d:%d\n",
+		#		$$startChrArr[$i],
+		#		$$startPosArr[$i],
+		#		$$endChrArr[$i],
+		#		$$endPosArr[$i]);
+		#}
 }
 
 ############################################################
