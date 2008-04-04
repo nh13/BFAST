@@ -423,11 +423,13 @@ int RGTreeReadTree(FILE *fp, RGTree *tree, int binaryInput)
 				fread(tempIntArr, sizeof(unsigned int), tree->nodes[i].numEntries, fp);
 				/* Copy over positions */
 				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					tempIntArr[j] = ntohl(tempIntArr[j]);
 					tree->nodes[i].positions[j] = tempIntArr[j];
 				}
 				/* Read in chromosomes */
 				fread(tempIntArr, sizeof(unsigned int), tree->nodes[i].numEntries, fp);
 				for(j=0;j<tree->nodes[i].numEntries;j++) {
+					tempIntArr[j] = ntohl(tempIntArr[j]);
 					tree->nodes[i].chromosomes[j] = (unsigned char)tempIntArr[j];
 				}
 			}

@@ -480,7 +480,6 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 					tempIntArr = (unsigned int*)realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
 				}
 
-
 				/* Allocate memory for the positions and chromosomes */
 				index->nodes[i].positions = (int*)malloc(sizeof(int)*index->nodes[i].numEntries);
 				index->nodes[i].chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*index->nodes[i].numEntries);
@@ -489,11 +488,13 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 				fread(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
 				/* Copy over positions */
 				for(j=0;j<index->nodes[i].numEntries;j++) {
+					tempIntArr[j] = ntohl(tempIntArr[j]);
 					index->nodes[i].positions[j] = tempIntArr[j];
 				}
 				/* Read in chromosomes */
 				fread(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
 				for(j=0;j<index->nodes[i].numEntries;j++) {
+					tempIntArr[j] = ntohl(tempIntArr[j]);
 					index->nodes[i].chromosomes[j] = (unsigned char)tempIntArr[j];
 				}
 			}

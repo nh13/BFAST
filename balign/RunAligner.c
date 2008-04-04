@@ -205,6 +205,7 @@ void RunDynamicProgramming(FILE *matchFP,
 						readMatch.positions[i],
 						readMatch.strand[i]);
 			}
+
 			/* Get the appropriate reference read */
 			GetSequenceFromReferenceGenome(rgBinary, 
 					readMatch.chromosomes[i], 
