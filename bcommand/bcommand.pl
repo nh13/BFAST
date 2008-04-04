@@ -401,7 +401,7 @@ sub CreateRegions {
 		$endPos = $$chrLengths[scalar(@$chrLengths)-1];
 	}
 	elsif($endPos <= 0) {
-		$endPos = $$chrLengths[scalar(@$chrLengths)-1];
+		$endPos = $$chrLengths[$endChr-1];
 	}
 
 	# Initialize arrays
