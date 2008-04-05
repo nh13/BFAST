@@ -17,9 +17,9 @@ void RGSeqPairGenerateDeletionsHelper(char*, int, char, int, int, int, int, int,
 void RGSeqPairGenerateInsertions(char*, int, char, int, int, int, int, RGSeqPair*);
 void RGSeqPairGenerateInsertionsHelper(char*, int, char, int, int, int, int, int, int, RGSeqPair*, char*, char*, int, int);
 void RGSeqPairGenerateGapDeletions(char*, int, char, int, int, int, int, RGSeqPair*);
-void RGSeqPairGenerateGapDeletionsHelper(char*, int, char, int, int, int, int, int, int, RGSeqPair*, char*, char*, int, int);
+void RGSeqPairGenerateGapDeletionsHelper(char*, int, char, int, int, int, int, RGSeqPair*, char*, char*);
 void RGSeqPairGenerateGapInsertions(char*, int, char, int, int, int, int, RGSeqPair*);
-void RGSeqPairGenerateGapInsertionsHelper(char*, int, char, int, int, int, int, int, int, RGSeqPair*, char*, char*, int, int);
+void RGSeqPairGenerateGapInsertionsHelper(char*, int, char, int, int, int, int, RGSeqPair*, char*, char*);
 
 void RGSeqPairRemoveDuplicates(RGSeqPair*);
 void RGSeqPairQuickSort(RGSeqPair*, int, int);

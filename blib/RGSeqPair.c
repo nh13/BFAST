@@ -14,7 +14,7 @@ char ALPHABET[ALPHABET_SIZE] = "acgt";
 /* TODO */
 void RGSeqPairFindMatchesInIndex(RGIndex *index, 
 		RGMatch *match,
-		char *sequence)
+		char *read)
 {
 	unsigned char *indexForward=NULL;
 	unsigned char *indexReverse=NULL;
@@ -26,11 +26,11 @@ void RGSeqPairFindMatchesInIndex(RGIndex *index,
 	indexReverse = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
 
 	/* DON'T FORGET TO ALIGN TO BOTH FORWARD AND REVERSE STRANDS */
-	assert(strlen(sequence)==index->matchLength);
-	GetReverseCompliment(sequence, reverseSequence, strlen(sequence));
+	assert(strlen(read)==index->matchLength);
+	GetReverseCompliment(read, reverseSequence, strlen(read));
 
 	/* Get indexes */
-	RGIndexGetIndexFromSequence(sequence, index->matchLength, indexForward); 
+	RGIndexGetIndexFromSequence(read, index->matchLength, indexForward); 
 	RGIndexGetIndexFromSequence(reverseSequence, index->matchLength, indexReverse); 
 
 	if(VERBOSE >= DEBUG) {
@@ -69,7 +69,7 @@ void RGSeqPairFindMatchesInIndex(RGIndex *index,
 /* TODO */
 void RGSeqPairFindMatchesInTree(RGTree *tree, 
 		RGMatch *match,
-		char *sequence,
+		char *read,
 		int **offsets,
 		int numOffsets,
 		int numMismatches,
@@ -81,12 +81,12 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 	int i;
 
 	/* DON'T FORGET TO ALIGN TO BOTH FORWARD AND REVERSE STRANDS */
-	RGSeqPair seqPairs;
-	seqPairs.numPairs=0;
-	seqPairs.indexOne=NULL;
-	seqPairs.indexTwo=NULL;
-	seqPairs.strand=NULL;
-	seqPairs.offset=NULL;
+	RGSeqPair readPairs;
+	readPairs.numPairs=0;
+	readPairs.indexOne=NULL;
+	readPairs.indexTwo=NULL;
+	readPairs.strand=NULL;
+	readPairs.offset=NULL;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "\nIn RGSeqPairFindMatchesInTree\n");
@@ -94,8 +94,8 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 
 	/* Note: we can speed this up by generating all pairs of l-mers to
 	 * search for and then removing duplicated pairs. */
-	RGSeqPairGeneratePairs(sequence,
-			&seqPairs,
+	RGSeqPairGeneratePairs(read,
+			&readPairs,
 			offsets,
 			numOffsets,
 			tree->matchLength,
@@ -107,20 +107,20 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 			numGapDeletions);
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generated %d pairs.\n",
-				seqPairs.numPairs);
+				readPairs.numPairs);
 	}
-	if(seqPairs.numPairs <= 0) { 
+	if(readPairs.numPairs <= 0) { 
 		/* No pairs generated, return */
 		return;
 	}
 	if(VERBOSE >= DEBUG) {
-		for(i=0;i<seqPairs.numPairs;i++) { /* For each pair */
+		for(i=0;i<readPairs.numPairs;i++) { /* For each pair */
 			fprintf(stderr, "%d:%d,%d,%c,%d\n",
 					i+1, 
-					seqPairs.indexOne[i],
-					seqPairs.indexTwo[i],
-					seqPairs.strand[i],
-					seqPairs.offset[i]);
+					readPairs.indexOne[i],
+					readPairs.indexTwo[i],
+					readPairs.strand[i],
+					readPairs.offset[i]);
 		}
 	}
 
@@ -133,17 +133,17 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 				0,
 				match->numEntries);
 	}
-	for(i=0;i<seqPairs.numPairs;i++) { /* For each pair */
-		if(seqPairs.strand[i] != FORWARD && seqPairs.strand[i] != REVERSE) {
+	for(i=0;i<readPairs.numPairs;i++) { /* For each pair */
+		if(readPairs.strand[i] != FORWARD && readPairs.strand[i] != REVERSE) {
 			fprintf(stderr, "Error,  Direction not recognized [%c].  Terminating!\n",
-					seqPairs.strand[i]);
+					readPairs.strand[i]);
 			exit(1);
 		}
 		RGTreeGetMatches(tree, 
-				seqPairs.indexOne[i],
-				seqPairs.indexTwo[i],
-				seqPairs.strand[i],
-				seqPairs.offset[i],
+				readPairs.indexOne[i],
+				readPairs.indexTwo[i],
+				readPairs.strand[i],
+				readPairs.offset[i],
 				match);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "After %d pairs, found %d matches.\n",
@@ -180,8 +180,8 @@ void RGSeqPairFindMatchesInTree(RGTree *tree,
 }
 
 /* TODO */
-void RGSeqPairGeneratePairs(char *sequence,
-		RGSeqPair *seqPairs,
+void RGSeqPairGeneratePairs(char *read,
+		RGSeqPair *readPairs,
 		int **offsets,
 		int numOffsets,
 		int matchLength,
@@ -194,11 +194,11 @@ void RGSeqPairGeneratePairs(char *sequence,
 {
 	/* DON'T FORGET TO ALIGN TO BOTH FORWARD AND REVERSE STRANDS */
 	int i;
-	int sequenceLength=strlen(sequence);
+	int readLength=strlen(read);
 	char reverseSequence[SEQUENCE_LENGTH];
 
-	/* Get the reverse compliment of the sequence */
-	GetReverseCompliment(sequence, reverseSequence, sequenceLength);
+	/* Get the reverse compliment of the read */
+	GetReverseCompliment(read, reverseSequence, readLength);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generating all possible pairs (%d offsets).\n",
@@ -222,77 +222,77 @@ void RGSeqPairGeneratePairs(char *sequence,
 		 * to when numMismatches>0.
 		 * */
 		/* Forward */
-		RGSeqPairGenerateMismatches(sequence,
-				sequenceLength,
+		RGSeqPairGenerateMismatches(read,
+				readLength,
 				FORWARD,
 				(*offsets)[i],
 				matchLength,
 				gap,
 				numMismatches,
-				seqPairs);
+				readPairs);
 		/* Reverse compliment */
 		RGSeqPairGenerateMismatches(reverseSequence,
-				sequenceLength,
+				readLength,
 				REVERSE,
 				(*offsets)[i],
 				matchLength,
 				gap,
 				numMismatches,
-				seqPairs);
+				readPairs);
 
 		/* Go through all insertions */
 		/* Note: we allow only contiguous insertions of length up to
 		 * numInsertions.  We also always start from the offset.  When
 		 * we model insertions, we have to remove a certain number of
-		 * bases in the sequence, and therefore we enumerate over all
-		 * possible insertions in the entire sequence.
+		 * bases in the read, and therefore we enumerate over all
+		 * possible insertions in the entire read.
 		 * */
 		if(numInsertions > 0) {
 			/* Forward */
-			RGSeqPairGenerateInsertions(sequence,
-					sequenceLength,
+			RGSeqPairGenerateInsertions(read,
+					readLength,
 					FORWARD,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numInsertions,
-					seqPairs);
+					readPairs);
 			/* Reverse compliment */
 			RGSeqPairGenerateInsertions(reverseSequence,
-					sequenceLength,
+					readLength,
 					REVERSE,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numInsertions,
-					seqPairs);
+					readPairs);
 		}
 
 		/* GO through all deletions */
 		/* Note: we allow only contiguous deletions of length up to 
 		 * numDeletions.  We also always start from the offset.  We
-		 * must add base to the sequences, and therfore we enumerate
-		 * over all possible deletions in the entire sequence.
+		 * must add base to the reads, and therfore we enumerate
+		 * over all possible deletions in the entire read.
 		 * */
 		if(numDeletions > 0) {
 			/* Forward */
-			RGSeqPairGenerateDeletions(sequence,
-					sequenceLength,
+			RGSeqPairGenerateDeletions(read,
+					readLength,
 					FORWARD,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numDeletions,
-					seqPairs);
+					readPairs);
 			/* Reverse compliment */
 			RGSeqPairGenerateDeletions(reverseSequence,
-					sequenceLength,
+					readLength,
 					REVERSE,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numDeletions,
-					seqPairs);
+					readPairs);
 		}
 
 		/* Go through all possible insertions in the gap between
@@ -301,23 +301,23 @@ void RGSeqPairGeneratePairs(char *sequence,
 		 * */
 		if(numGapInsertions > 0) {
 			/* Forward */
-			RGSeqPairGenerateGapInsertions(sequence,
-					sequenceLength,
+			RGSeqPairGenerateGapInsertions(read,
+					readLength,
 					FORWARD,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numGapInsertions,
-					seqPairs);
+					readPairs);
 			/* Reverse compliment */
 			RGSeqPairGenerateGapInsertions(reverseSequence,
-					sequenceLength,
+					readLength,
 					REVERSE,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numGapInsertions,
-					seqPairs);
+					readPairs);
 		}
 
 		/* Go through all possible deletions in the gap between
@@ -326,23 +326,23 @@ void RGSeqPairGeneratePairs(char *sequence,
 		 * */
 		if(numGapDeletions > 0) {
 			/* Forward */
-			RGSeqPairGenerateGapDeletions(sequence,
-					sequenceLength,
+			RGSeqPairGenerateGapDeletions(read,
+					readLength,
 					FORWARD,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numGapDeletions,
-					seqPairs);
+					readPairs);
 			/* Reverse compliment */
 			RGSeqPairGenerateGapDeletions(reverseSequence,
-					sequenceLength,
+					readLength,
 					REVERSE,
 					(*offsets)[i],
 					matchLength,
 					gap,
 					numGapDeletions,
-					seqPairs);
+					readPairs);
 		}
 	}
 
@@ -354,15 +354,15 @@ void RGSeqPairGeneratePairs(char *sequence,
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Calling RGSeqPairRemoveDuplicates\n");
 	}
-	RGSeqPairRemoveDuplicates(seqPairs);
+	RGSeqPairRemoveDuplicates(readPairs);
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Exited from RGSeqPairRemoveDuplicates\n");
 	}
 }
 
 /* TODO */
-void RGSeqPairGenerateMismatches(char *seq,
-		int seqLength,
+void RGSeqPairGenerateMismatches(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
@@ -378,7 +378,7 @@ void RGSeqPairGenerateMismatches(char *seq,
 				numMismatches);
 	}
 
-	if(offset+gap+matchLength*2 > seqLength) {
+	if(offset+gap+matchLength*2 > readLength) {
 		/* Out of bounds.  Don't add anything. */
 		return;
 	}
@@ -387,7 +387,7 @@ void RGSeqPairGenerateMismatches(char *seq,
 		curOne = (char*)malloc(sizeof(char)*matchLength);
 		curTwo = (char*)malloc(sizeof(char)*matchLength);
 
-		RGSeqPairGenerateMismatchesHelper(seq,
+		RGSeqPairGenerateMismatchesHelper(read,
 				direction,
 				offset,
 				matchLength,
@@ -408,7 +408,7 @@ void RGSeqPairGenerateMismatches(char *seq,
 }
 
 /* TODO */
-void RGSeqPairGenerateMismatchesHelper(char *seq,
+void RGSeqPairGenerateMismatchesHelper(char *read,
 		char direction,
 		int offset,
 		int matchLength,
@@ -456,12 +456,12 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 			for(i=0;i<ALPHABET_SIZE;i++) {
 				if(numFirstPrinted < matchLength) {
 					curOne[curOneIndex] = ALPHABET[i];
-					/* Use on first sequence */
-					if(seq[offset+numFirstPrinted] == ALPHABET[i]) {
+					/* Use on first read */
+					if(read[offset+numFirstPrinted] == ALPHABET[i]) {
 						/* No mismatch */
 
 						/* Keep going */
-						RGSeqPairGenerateMismatchesHelper(seq,
+						RGSeqPairGenerateMismatchesHelper(read,
 								direction,
 								offset,
 								matchLength,
@@ -479,7 +479,7 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 						/* Mismatch */
 
 						/* Keep going */
-						RGSeqPairGenerateMismatchesHelper(seq,
+						RGSeqPairGenerateMismatchesHelper(read,
 								direction,
 								offset,
 								matchLength,
@@ -497,12 +497,12 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 				else if(numLastPrinted < matchLength) {
 					curTwo[curTwoIndex] = ALPHABET[i];
 
-					/* Use on second sequence */
-					if(seq[offset+matchLength+gap+numLastPrinted] == ALPHABET[i]) {
+					/* Use on second read */
+					if(read[offset+matchLength+gap+numLastPrinted] == ALPHABET[i]) {
 						/* No mismatch */
 
 						/* Keep going */
-						RGSeqPairGenerateMismatchesHelper(seq,
+						RGSeqPairGenerateMismatchesHelper(read,
 								direction,
 								offset,
 								matchLength,
@@ -520,7 +520,7 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 						/* Mismatch */
 
 						/* Keep going */
-						RGSeqPairGenerateMismatchesHelper(seq,
+						RGSeqPairGenerateMismatchesHelper(read,
 								direction,
 								offset,
 								matchLength,
@@ -546,18 +546,18 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 	else {
 		/* print remaining */                                           
 		if(numFirstPrinted < matchLength) {
-			/* Print rest of the first sequence */
+			/* Print rest of the first read */
 			for(i=offset+numFirstPrinted;i<offset+matchLength;i++) {                                    
 				assert(curOneIndex<matchLength);
-				curOne[curOneIndex] = seq[i];
+				curOne[curOneIndex] = read[i];
 				curOneIndex++;                  
 			}
 		}                                       
 		if(numLastPrinted < matchLength) {      
-			/* Print rest of the second sequence */                                     
+			/* Print rest of the second read */                                     
 			for(i=offset+matchLength+gap+numLastPrinted;i<offset+2*matchLength+gap;i++) {                               
 				assert(curTwoIndex<matchLength);
-				curTwo[curTwoIndex] = seq[i];                curTwoIndex++;
+				curTwo[curTwoIndex] = read[i];                curTwoIndex++;
 			}                             
 		}
 		curOne[matchLength]='\0';                                         
@@ -586,8 +586,8 @@ void RGSeqPairGenerateMismatchesHelper(char *seq,
 
 /* TODO */
 /* Note: Deletions have occured, so insert bases */
-void RGSeqPairGenerateDeletions(char *seq,
-		int seqLength,
+void RGSeqPairGenerateDeletions(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
@@ -604,14 +604,14 @@ void RGSeqPairGenerateDeletions(char *seq,
 				numDeletions);
 	}
 
-	if(offset+gap+matchLength*2 > seqLength) {
+	if(offset+gap+matchLength*2 > readLength) {
 		/* Out of bounds.  Don't add anything. */
 		return;
 	}
 	else {
 
-		RGSeqPairGenerateDeletionsHelper(seq,
-				seqLength,
+		RGSeqPairGenerateDeletionsHelper(read,
+				readLength,
 				direction,
 				offset,
 				matchLength,
@@ -629,8 +629,8 @@ void RGSeqPairGenerateDeletions(char *seq,
 
 /* TODO */
 /* NOTE: no error checking yet! */
-void RGSeqPairGenerateDeletionsHelper(char *seq,
-		int seqLength,
+void RGSeqPairGenerateDeletionsHelper(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength, 
@@ -681,9 +681,9 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 				for(i=0;i<ALPHABET_SIZE;i++) {
 					if(remainingOne > 0) {
 						curOne[curOneIndex] = ALPHABET[i];
-						/* Use on first sequence */
-						RGSeqPairGenerateDeletionsHelper(seq,
-								seqLength,
+						/* Use on first read */
+						RGSeqPairGenerateDeletionsHelper(read,
+								readLength,
 								direction,
 								offset,
 								matchLength,
@@ -700,9 +700,9 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 					else if(remainingTwo > 0) {
 						curTwo[curTwoIndex] = ALPHABET[i];
 
-						/* Use on second sequence */
-						RGSeqPairGenerateDeletionsHelper(seq,
-								seqLength,
+						/* Use on second read */
+						RGSeqPairGenerateDeletionsHelper(read,
+								readLength,
 								direction,
 								offset,
 								matchLength,
@@ -723,61 +723,63 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 					}
 				}
 			}
-			/* Try not inserting a base */
-			if(remainingOne > 0) {
-				curOne[curOneIndex] = seq[offset+curOneIndex-deletionOffset];
-				/* Use on first sequence */
-				RGSeqPairGenerateDeletionsHelper(seq,
-						seqLength,
-						direction,
-						offset,
-						matchLength,
-						gap,
-						numDeletionsLeft,
-						numDeletions,
-						deletionOffset,
-						pairs,
-						curOne,
-						curTwo,
-						curOneIndex+1,
-						curTwoIndex);
-			}
-			else if(remainingTwo > 0) {
-				curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex-deletionOffset];
+			if(numDeletionsLeft == numDeletions) {
+				/* Try not inserting a base */
+				if(remainingOne > 0) {
+					curOne[curOneIndex] = read[offset+curOneIndex-deletionOffset];
+					/* Use on first read */
+					RGSeqPairGenerateDeletionsHelper(read,
+							readLength,
+							direction,
+							offset,
+							matchLength,
+							gap,
+							numDeletionsLeft,
+							numDeletions,
+							deletionOffset,
+							pairs,
+							curOne,
+							curTwo,
+							curOneIndex+1,
+							curTwoIndex);
+				}
+				else if(remainingTwo > 0) {
+					curTwo[curTwoIndex] = read[offset+gap+matchLength+curTwoIndex-deletionOffset];
 
-				/* Use on second sequence */
-				RGSeqPairGenerateDeletionsHelper(seq,
-						seqLength,
-						direction,
-						offset,
-						matchLength,
-						gap,
-						numDeletionsLeft,
-						numDeletions,
-						deletionOffset,
-						pairs,
-						curOne,
-						curTwo,
-						curOneIndex,
-						curTwoIndex+1);
+					/* Use on second read */
+					RGSeqPairGenerateDeletionsHelper(read,
+							readLength,
+							direction,
+							offset,
+							matchLength,
+							gap,
+							numDeletionsLeft,
+							numDeletions,
+							deletionOffset,
+							pairs,
+							curOne,
+							curTwo,
+							curOneIndex,
+							curTwoIndex+1);
+				}
 			}
 		}
 	}
 	else {
 		/* print remaining */        if(remainingOne > 0) {
-			/* Print rest of the first sequence */
+			/* Print rest of the first read */
 			for(i=0;i<remainingOne;i++) {
 				assert(curOneIndex<matchLength);
-				curOne[curOneIndex] = seq[offset+curOneIndex-deletionOffset];
+				curOne[curOneIndex] = read[offset+curOneIndex-deletionOffset];
 				curOneIndex++;
 			}
 		}
 		assert(curOneIndex == matchLength);
 		if(remainingTwo > 0) {
-			/* Print rest of the second sequence */
+			/* Print rest of the second read */
 			for(i=0;i<remainingTwo;i++) {
 				assert(curTwoIndex<matchLength);
-				curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex-deletionOffset];
+				curTwo[curTwoIndex] = read[offset+gap+matchLength+curTwoIndex-deletionOffset];
 				curTwoIndex++;
 			}
 		}
@@ -808,8 +810,8 @@ void RGSeqPairGenerateDeletionsHelper(char *seq,
 
 /* TODO */
 /* Note: Insertions have occured, so delete bases */
-void RGSeqPairGenerateInsertions(char *seq,
-		int seqLength,
+void RGSeqPairGenerateInsertions(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
@@ -829,7 +831,7 @@ void RGSeqPairGenerateInsertions(char *seq,
 
 	/* Bounds on this will be different, since if we need 
 	 * extra bases to compensate for the deletion */
-	minRemaining = seqLength-(offset+gap+matchLength*2);
+	minRemaining = readLength-(offset+gap+matchLength*2);
 	if(minRemaining <= 0) {
 		/* Out of bounds.  Don't add anything. */
 		return;
@@ -846,8 +848,8 @@ void RGSeqPairGenerateInsertions(char *seq,
 	curOne = (char*)malloc(sizeof(char)*matchLength);
 	curTwo = (char*)malloc(sizeof(char)*matchLength);
 
-	RGSeqPairGenerateInsertionsHelper(seq,
-			seqLength,
+	RGSeqPairGenerateInsertionsHelper(read,
+			readLength,
 			direction,
 			offset,
 			matchLength,
@@ -868,8 +870,8 @@ void RGSeqPairGenerateInsertions(char *seq,
 
 /* TODO */
 /* NOTE: no error checking yet! */
-void RGSeqPairGenerateInsertionsHelper(char *seq,
-		int seqLength,
+void RGSeqPairGenerateInsertionsHelper(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
@@ -920,9 +922,9 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 			/* Don't delete if the previous base is the same as the one we
 			 * are proposing to delete since we have already tried those permutations */
 			if(remainingOne > 0) {
-				if(curOneIndex == 0 || curOne[curOneIndex-1] != seq[curOneIndex+insertionOffset]) { 
-					RGSeqPairGenerateInsertionsHelper(seq,
-							seqLength,
+				if(curOneIndex == 0 || curOne[curOneIndex-1] != read[curOneIndex+insertionOffset]) { 
+					RGSeqPairGenerateInsertionsHelper(read,
+							readLength,
 							direction,
 							offset,
 							matchLength,
@@ -938,9 +940,9 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 				}
 			}
 			else if(remainingTwo > 0) {
-				if(curTwoIndex == 0 || curTwo[curTwoIndex-1] != seq[offset+gap+matchLength+curTwoIndex+insertionOffset]) {
-					RGSeqPairGenerateInsertionsHelper(seq,
-							seqLength,
+				if(curTwoIndex == 0 || curTwo[curTwoIndex-1] != read[offset+gap+matchLength+curTwoIndex+insertionOffset]) {
+					RGSeqPairGenerateInsertionsHelper(read,
+							readLength,
 							direction,
 							offset,
 							matchLength,
@@ -957,61 +959,64 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 			}
 		}
 		/* Try not deleting a base */
-		if(remainingOne > 0) {
-			curOne[curOneIndex] = seq[offset+curOneIndex+insertionOffset];
-			/* Use on first sequence */
-			RGSeqPairGenerateInsertionsHelper(seq,
-					seqLength,
-					direction,
-					offset,
-					matchLength,
-					gap,
-					numInsertionsLeft,
-					numInsertions,
-					insertionOffset,
-					pairs,
-					curOne,
-					curTwo,
-					curOneIndex+1,
-					curTwoIndex);
-		}
-		else if(remainingTwo > 0) {
-			curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex+insertionOffset];
+		/* Only do this if we haven't started deleting */ 
+		if(numInsertionsLeft == numInsertions) {
+			if(remainingOne > 0) {
+				curOne[curOneIndex] = read[offset+curOneIndex+insertionOffset];
+				/* Use on first read */
+				RGSeqPairGenerateInsertionsHelper(read,
+						readLength,
+						direction,
+						offset,
+						matchLength,
+						gap,
+						numInsertionsLeft,
+						numInsertions,
+						insertionOffset,
+						pairs,
+						curOne,
+						curTwo,
+						curOneIndex+1,
+						curTwoIndex);
+			}
+			else if(remainingTwo > 0) {
+				curTwo[curTwoIndex] = read[offset+gap+matchLength+curTwoIndex+insertionOffset];
 
-			/* Use on second sequence */            
-			RGSeqPairGenerateInsertionsHelper(seq,
-					seqLength,
-					direction,
-					offset,
-					matchLength,
-					gap,
-					numInsertionsLeft,
-					numInsertions,
-					insertionOffset,
-					pairs,
-					curOne,
-					curTwo,
-					curOneIndex,
-					curTwoIndex+1);
+				/* Use on second read */            
+				RGSeqPairGenerateInsertionsHelper(read,
+						readLength,
+						direction,
+						offset,
+						matchLength,
+						gap,
+						numInsertionsLeft,
+						numInsertions,
+						insertionOffset,
+						pairs,
+						curOne,
+						curTwo,
+						curOneIndex,
+						curTwoIndex+1);
+			}
 		}
 	}
 	else {
 		/* print remaining */
 
 		if(remainingOne > 0) {
-			/* Print rest of the first sequence */
+			/* Print rest of the first read */
 			for(i=0;i<remainingOne;i++) {
 				assert(curOneIndex<matchLength);
-				curOne[curOneIndex] = seq[offset+curOneIndex+insertionOffset];
+				curOne[curOneIndex] = read[offset+curOneIndex+insertionOffset];
 				curOneIndex++;
 			}
 		}
 		assert(curOneIndex == matchLength);
 		if(remainingTwo > 0) {
-			/* Print rest of the second sequence */
+			/* Print rest of the second read */
 			for(i=0;i<remainingTwo;i++) {
 				assert(curTwoIndex<matchLength);
-				curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex+insertionOffset];
+				curTwo[curTwoIndex] = read[offset+gap+matchLength+curTwoIndex+insertionOffset];
 				curTwoIndex++;
 			}
 		}
@@ -1042,8 +1047,8 @@ void RGSeqPairGenerateInsertionsHelper(char *seq,
 
 /* TODO */
 /* Note: Deletions have occured, so insert bases in the gap */
-void RGSeqPairGenerateGapDeletions(char *seq,
-		int seqLength,
+void RGSeqPairGenerateGapDeletions(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
@@ -1056,216 +1061,93 @@ void RGSeqPairGenerateGapDeletions(char *seq,
 
 	assert(direction == FORWARD || direction == REVERSE);
 	if(VERBOSE>=DEBUG) {
-		fprintf(stderr, "Generating pairs with %d deletions.\n",
+		fprintf(stderr, "Generating pairs with %d gap deletions.\n",
 				numGapDeletions);
 	}
 
-	if(offset+gap+matchLength*2 > seqLength) {
+	if(gap <= 0) {
 		/* Out of bounds.  Don't add anything. */
 		return;
 	}
 	else {
-
-		RGSeqPairGenerateGapDeletionsHelper(seq,
-				seqLength,
+		RGSeqPairGenerateGapDeletionsHelper(read,
+				readLength,
 				direction,
 				offset,
 				matchLength,
 				gap, 
 				numGapDeletions,
-				numGapDeletions,
-				0,
 				pairs,
 				curOne,
-				curTwo,
-				0,
-				0);
+				curTwo);
 	}
 }
 
 /* TODO */
 /* NOTE: no error checking yet! */
-void RGSeqPairGenerateGapDeletionsHelper(char *seq,
-		int seqLength,
+/* We assume that all insertions in the gap are grouped together */
+void RGSeqPairGenerateGapDeletionsHelper(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength, 
 		int gap,
-		int numGapDeletionsLeft,
 		int numGapDeletions,
-		int deletionOffset,
 		RGSeqPair *pairs,
 		char *curOne,
-		char *curTwo,
-		int curOneIndex,
-		int curTwoIndex)
+		char *curTwo)
 {
-	int i;
-	int remainingOne, remainingTwo;
+	int i, j, k;
+	assert(gap > 0);
 
-	remainingOne = matchLength-curOneIndex;
-	remainingTwo = matchLength-curTwoIndex;
-
-	if(numGapDeletionsLeft > 0) {
-		/* No more to print */
-		if(remainingOne <= 0 && remainingTwo <= 0 && numGapDeletionsLeft < numGapDeletions) {
-			curOne[matchLength]='\0';
-			curTwo[matchLength]='\0';
-			/* Allocate memory */                                                                             
-			pairs->numPairs++;
-			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
-			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
-			/* Copy over */
-			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
-			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Pair(deletion):%s[%d]\t%s[%d].\n",
-						curOne,
-						pairs->indexOne[pairs->numPairs-1],
-						curTwo,
-						pairs->indexTwo[pairs->numPairs-1]);
+	/* Choose the starting position of the gap insertion */ 
+	for(i=0;i<gap;i++) {
+		for(j=1;j<=numGapDeletions;j++) { /* For the total # of gaps we will insert */
+			if(numGapDeletions > gap) {
+				/* We will insert more than there is found in the gap.  This will cause a combinatorial
+				 * explosion since we can do a simplifying shift. */
+				/* Ignore for now */
 			}
-			pairs->strand[pairs->numPairs-1] = direction;
-			pairs->offset[pairs->numPairs-1] = offset;
-			return;
-		}
-		else {
-			/* try inserting a base */
-			if( (curOneIndex > 0 && curTwoIndex == 0 && curOneIndex < matchLength) || (curOneIndex >= matchLength && curTwoIndex > 0)) {
-				for(i=0;i<ALPHABET_SIZE;i++) {
-					if(remainingOne > 0) {
-						curOne[curOneIndex] = ALPHABET[i];
-						/* Use on first sequence */
-						RGSeqPairGenerateGapDeletionsHelper(seq,
-								seqLength,
-								direction,
-								offset,
-								matchLength,
-								gap,
-								numGapDeletionsLeft-1,
-								numGapDeletions,
-								deletionOffset+1,
-								pairs,
-								curOne,
-								curTwo,
-								curOneIndex+1,
-								curTwoIndex);
-					}
-					else if(remainingTwo > 0) {
-						curTwo[curTwoIndex] = ALPHABET[i];
-
-						/* Use on second sequence */
-						RGSeqPairGenerateGapDeletionsHelper(seq,
-								seqLength,
-								direction,
-								offset,
-								matchLength,
-								gap,
-								numGapDeletionsLeft-1,
-								numGapDeletions,
-								deletionOffset+1,
-								pairs,
-								curOne,
-								curTwo,
-								curOneIndex,
-								curTwoIndex+1);
-					}
-					else {
-						fprintf(stderr, "Error.  Control should not reach here. 012345.  Terminating!\n");
-						exit(1);
-						return;
-					}
+			else {
+				/* Copy over first read */
+				for(k=offset+i;k<offset+i+matchLength;k++) {
+					curOne[k-offset-i] = read[k];
 				}
-			}
-			/* Try not inserting a base */
-			if(remainingOne > 0) {
-				curOne[curOneIndex] = seq[offset+curOneIndex-deletionOffset];
-				/* Use on first sequence */
-				RGSeqPairGenerateGapDeletionsHelper(seq,
-						seqLength,
-						direction,
-						offset,
-						matchLength,
-						gap,
-						numGapDeletionsLeft,
-						numGapDeletions,
-						deletionOffset,
-						pairs,
-						curOne,
-						curTwo,
-						curOneIndex+1,
-						curTwoIndex);
-			}
-			else if(remainingTwo > 0) {
-				curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex-deletionOffset];
+				curOne[matchLength]='\0';
 
-				/* Use on second sequence */
-				RGSeqPairGenerateGapDeletionsHelper(seq,
-						seqLength,
-						direction,
-						offset,
-						matchLength,
-						gap,
-						numGapDeletionsLeft,
-						numGapDeletions,
-						deletionOffset,
-						pairs,
-						curOne,
-						curTwo,
-						curOneIndex,
-						curTwoIndex+1);
+				/* Copy over second read */
+				for(k=offset+matchLength+gap-j;k<offset+2*matchLength+gap-j;k++) {
+					curTwo[k-offset-matchLength-gap+j] = read[k];
+				}
+				curTwo[matchLength]='\0';
+
+				/* Allocate memory */                                                                             
+				pairs->numPairs++;
+				pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
+				pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+				pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+				pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+				/* Copy over */
+				pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+				pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "Pair(gap deletion):%s[%d]\t%s[%d].\n",
+							curOne,
+							pairs->indexOne[pairs->numPairs-1],
+							curTwo,
+							pairs->indexTwo[pairs->numPairs-1]);
+				}
+				pairs->strand[pairs->numPairs-1] = direction;
+				pairs->offset[pairs->numPairs-1] = offset+i;
 			}
 		}
-	}
-	else {
-		/* print remaining */        if(remainingOne > 0) {
-			/* Print rest of the first sequence */
-			for(i=0;i<remainingOne;i++) {
-				assert(curOneIndex<matchLength);
-				curOne[curOneIndex] = seq[offset+curOneIndex-deletionOffset];
-				curOneIndex++;
-			}
-		}
-		assert(curOneIndex == matchLength);
-		if(remainingTwo > 0) {
-			/* Print rest of the second sequence */
-			for(i=0;i<remainingTwo;i++) {
-				assert(curTwoIndex<matchLength);
-				curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex-deletionOffset];
-				curTwoIndex++;
-			}
-		}
-		assert(curTwoIndex == matchLength);
-		curOne[matchLength]='\0';
-		curTwo[matchLength]='\0';
-		/* Allocate memory */                                                                             
-		pairs->numPairs++;
-		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
-		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
-		/* Copy over */
-		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
-		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Pair(deletion):%s[%d]\t%s[%d].\n",
-					curOne,
-					pairs->indexOne[pairs->numPairs-1],
-					curTwo,
-					pairs->indexTwo[pairs->numPairs-1]);
-		}
-		pairs->strand[pairs->numPairs-1] = direction;
-		pairs->offset[pairs->numPairs-1] = offset;
-		return;
 	}
 }
 
 /* TODO */
 /* Note: Insertions have occured, so delete bases */
-void RGSeqPairGenerateGapInsertions(char *seq,
-		int seqLength,
+void RGSeqPairGenerateGapInsertions(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
@@ -1275,7 +1157,6 @@ void RGSeqPairGenerateGapInsertions(char *seq,
 {
 	char *curOne;
 	char *curTwo;
-	int minRemaining;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generating pairs with %d insertions\n",
@@ -1283,39 +1164,20 @@ void RGSeqPairGenerateGapInsertions(char *seq,
 	}
 	assert(direction == FORWARD || direction == REVERSE);
 
-	/* Bounds on this will be different, since if we need 
-	 * extra bases to compensateGap for the deletion */
-	minRemaining = seqLength-(offset+gap+matchLength*2);
-	if(minRemaining <= 0) {
-		/* Out of bounds.  Don't add anything. */
-		return;
-	}
-	else if(minRemaining < numGapInsertions) {
-		/* Adjust the number of insertions we can handle. We could
-		 * also just use bases infront of offset, but the user
-		 * specified offset for a reason. 
-		 * */
-		numGapInsertions = minRemaining;
-	}
-
 	/* Allocate memory */
 	curOne = (char*)malloc(sizeof(char)*matchLength);
 	curTwo = (char*)malloc(sizeof(char)*matchLength);
 
-	RGSeqPairGenerateGapInsertionsHelper(seq,
-			seqLength,
+	RGSeqPairGenerateGapInsertionsHelper(read,
+			readLength,
 			direction,
 			offset,
 			matchLength,
 			gap,
 			numGapInsertions,
-			numGapInsertions,
-			0,
 			pairs,
 			curOne,
-			curTwo,
-			0,
-			0);
+			curTwo);
 
 	/* Free memory */
 	free(curOne);
@@ -1324,33 +1186,51 @@ void RGSeqPairGenerateGapInsertions(char *seq,
 
 /* TODO */
 /* NOTE: no error checking yet! */
-void RGSeqPairGenerateGapInsertionsHelper(char *seq,
-		int seqLength,
+void RGSeqPairGenerateGapInsertionsHelper(char *read,
+		int readLength,
 		char direction,
 		int offset,
 		int matchLength,
 		int gap,
-		int numGapInsertionsLeft,
 		int numGapInsertions,
-		int insertionOffset,
 		RGSeqPair *pairs,
 		char *curOne,
-		char *curTwo,
-		int curOneIndex,
-		int curTwoIndex)
+		char *curTwo)
 {
-	int i;
-	int remainingOne, remainingTwo;
-
-	remainingOne = matchLength-curOneIndex;
-	remainingTwo = matchLength-curTwoIndex;
+	int i, j;
+	int startOffset = offset; /* The number of bases we can shift at the start of the read */
+	int endOffset = readLength - offset - 2*matchLength - gap; /* The number of bases we can shift at the end of the read */
 	assert(direction == FORWARD || direction == REVERSE);
 
-	if(numGapInsertionsLeft > 0) {
-		/* No more to print */
-		if(remainingOne <= 0 && remainingTwo <= 0 && numGapInsertionsLeft < numGapInsertions) {
+	/* Choose the number of insertions */
+	for(i=1;i<=numGapInsertions;i++) {
+		/* Always choose to towards the end */
+		int endShift = -1;
+		int startShift = -1;
+		if(endOffset >= i) {
+			/* Shift the second sequence all end */
+			startShift = 0;
+			endShift = i;
+		}
+		else {
+			startShift = endOffset - i;
+			endShift = endOffset;
+		}
+		if(startShift <= startOffset && endShift <= endOffset) {
+			/* Copy over first read */
+			for(j=offset-startShift;j<offset-startShift+matchLength;j++) {
+				assert(j>=0 && j<readLength);
+				curOne[j-offset+startShift] = read[j];
+			}
 			curOne[matchLength]='\0';
+
+			/* Copy over second read */
+			for(j=offset+matchLength+gap+endShift;j<offset+2*matchLength+gap+endShift;j++) {
+				assert(j>=0 && j<readLength);
+				curTwo[j-offset-matchLength-gap-endShift] = read[j];
+			}
 			curTwo[matchLength]='\0';
+
 			/* Allocate memory */                                                                             
 			pairs->numPairs++;
 			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
@@ -1361,138 +1241,15 @@ void RGSeqPairGenerateGapInsertionsHelper(char *seq,
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
 			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Pair(insertions):%s[%d]\t%s[%d].\n",
+				fprintf(stderr, "Pair(gap deletion):%s[%d]\t%s[%d].\n",
 						curOne,
 						pairs->indexOne[pairs->numPairs-1],
 						curTwo,
 						pairs->indexTwo[pairs->numPairs-1]);
 			}
 			pairs->strand[pairs->numPairs-1] = direction;
-			pairs->offset[pairs->numPairs-1] = offset;
-			return;
+			pairs->offset[pairs->numPairs-1] = offset-startShift;
 		}
-		else {
-			/* try deleting a base */
-			/* Don't delete if the previous base is the same as the one we
-			 * are proposing to delete since we have already tried those permutations */
-			if(remainingOne > 0) {
-				if(curOneIndex == 0 || curOne[curOneIndex-1] != seq[curOneIndex+insertionOffset]) { 
-					RGSeqPairGenerateGapInsertionsHelper(seq,
-							seqLength,
-							direction,
-							offset,
-							matchLength,
-							gap,
-							numGapInsertionsLeft-1,
-							numGapInsertions,
-							insertionOffset+1,
-							pairs,
-							curOne,
-							curTwo,
-							curOneIndex,
-							curTwoIndex);
-				}
-			}
-			else if(remainingTwo > 0) {
-				if(curTwoIndex == 0 || curTwo[curTwoIndex-1] != seq[offset+gap+matchLength+curTwoIndex+insertionOffset]) {
-					RGSeqPairGenerateGapInsertionsHelper(seq,
-							seqLength,
-							direction,
-							offset,
-							matchLength,
-							gap,
-							numGapInsertionsLeft-1,
-							numGapInsertions,
-							insertionOffset+1,
-							pairs,
-							curOne,
-							curTwo,
-							curOneIndex,
-							curTwoIndex);
-				}
-			}
-		}
-		/* Try not deleting a base */
-		if(remainingOne > 0) {
-			curOne[curOneIndex] = seq[offset+curOneIndex+insertionOffset];
-			/* Use on first sequence */
-			RGSeqPairGenerateGapInsertionsHelper(seq,
-					seqLength,
-					direction,
-					offset,
-					matchLength,
-					gap,
-					numGapInsertionsLeft,
-					numGapInsertions,
-					insertionOffset,
-					pairs,
-					curOne,
-					curTwo,
-					curOneIndex+1,
-					curTwoIndex);
-		}
-		else if(remainingTwo > 0) {
-			curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex+insertionOffset];
-
-			/* Use on second sequence */            
-			RGSeqPairGenerateGapInsertionsHelper(seq,
-					seqLength,
-					direction,
-					offset,
-					matchLength,
-					gap,
-					numGapInsertionsLeft,
-					numGapInsertions,
-					insertionOffset,
-					pairs,
-					curOne,
-					curTwo,
-					curOneIndex,
-					curTwoIndex+1);
-		}
-	}
-	else {
-		/* print remaining */
-
-		if(remainingOne > 0) {
-			/* Print rest of the first sequence */
-			for(i=0;i<remainingOne;i++) {
-				assert(curOneIndex<matchLength);
-				curOne[curOneIndex] = seq[offset+curOneIndex+insertionOffset];
-				curOneIndex++;
-			}
-		}
-		assert(curOneIndex == matchLength);
-		if(remainingTwo > 0) {
-			/* Print rest of the second sequence */
-			for(i=0;i<remainingTwo;i++) {
-				assert(curTwoIndex<matchLength);
-				curTwo[curTwoIndex] = seq[offset+gap+matchLength+curTwoIndex+insertionOffset];
-				curTwoIndex++;
-			}
-		}
-		assert(curTwoIndex == matchLength);
-		curOne[matchLength]='\0';
-		curTwo[matchLength]='\0';
-		/* Allocate memory */                                                                             
-		pairs->numPairs++;
-		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
-		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
-		/* Copy over */
-		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
-		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Pair(insertion):%s[%d]\t%s[%d].\n",
-					curOne,
-					pairs->indexOne[pairs->numPairs-1],
-					curTwo,
-					pairs->indexTwo[pairs->numPairs-1]);
-		}
-		pairs->strand[pairs->numPairs-1] = direction;
-		pairs->offset[pairs->numPairs-1] = offset;
-		return;
 	}
 }
 
@@ -1625,14 +1382,14 @@ void GetReverseCompliment(char *s,
 	int i;
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "sequence:");
+		fprintf(stderr, "read:");
 		for(i=0;i<length;i++) {
 			fprintf(stderr, "%c", s[i]);
 		}
 		fprintf(stderr, "\n");
 	}
 
-	/* Get reverse compliment sequence */
+	/* Get reverse compliment read */
 	for(i=length-1;i>=0;i--) {
 		switch(s[length-1-i]) {
 			case 'a':

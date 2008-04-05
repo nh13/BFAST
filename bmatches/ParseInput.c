@@ -414,8 +414,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
 	fprintf(fp, "numInsertions:\t\t\t\t%d\n", args->numInsertions);
 	fprintf(fp, "numDeletions:\t\t\t\t%d\n", args->numDeletions);
-	fprintf(fp, "numGapInsertions:\t\t\t\t%d\n", args->numGapInsertions);
-	fprintf(fp, "numGapDeletions:\t\t\t\t%d\n", args->numGapDeletions);
+	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
+	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
