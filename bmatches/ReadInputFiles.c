@@ -2,17 +2,25 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 
 /* TODO */
-int ReadSequencesToTempFile(char *sequenceFileName, FILE **tempSeqFP, int startReadNum, int endReadNum, int pairedEnd)
+int ReadSequencesToTempFile(char *sequenceFileName, 
+		FILE **tempSeqFP, 
+		int startReadNum, 
+		int endReadNum, 
+		int pairedEnd,
+		int timing)
 {
 	FILE *seqFP=NULL;
 	char sequenceName[SEQUENCE_NAME_LENGTH];
 	char sequence[SEQUENCE_LENGTH];
 	char pairedSequence[SEQUENCE_LENGTH];
 	int curReadNum = 1;
+	time_t startTime = time(NULL);
+	time_t endTime;
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reading reads from %s to a temp file.\n",
@@ -91,6 +99,22 @@ int ReadSequencesToTempFile(char *sequenceFileName, FILE **tempSeqFP, int startR
 				curReadNum,
 				sequenceFileName);
 	}
+
+	endTime = time(NULL);
+	int seconds = endTime - startTime;
+	int hours = seconds/3600;
+	seconds -= hours*3600;
+	int minutes = seconds/60;
+	seconds -= minutes*60;
+
+	if(timing == 1) {
+	fprintf(stderr, "Reading to temp file took: %d hours, %d minutes and %d seconds.\n",
+			hours,
+			minutes,
+			seconds
+		   );
+	}
+
 	return curReadNum;
 }
 

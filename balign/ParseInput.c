@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescPairedEnd,
-	DescOutputTitle, DescOutputID, DescOutputDir,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
 	DescMiscTitle, DescHelp
 };
 
@@ -79,6 +79,7 @@ static struct argp_option options[] = {
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -104,7 +105,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:o:r:s:x:E:H:O:S:2ph";
+"a:d:e:m:o:r:s:x:E:H:O:S:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -119,8 +120,13 @@ main (int argc, char **argv)
 {
 	struct arguments arguments;
 	RGBinary rgList;
-	time_t startTime = time(NULL);
+	time_t startTotalTime = time(NULL);
+	time_t endTotalTime;
+	time_t startTime;
 	time_t endTime;
+	int totalReferenceGenomeTime = 0; /* Total time to load and delete the reference genome */
+	int totalAlignTime = 0; /* Total time to align the reads */
+	int i, seconds, minutes, hours;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -150,13 +156,17 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
+						startTime = time(NULL);
 						ReadReferenceGenome(arguments.rgListFileName,
 								&rgList,
 								arguments.startChr,
 								arguments.startPos,
 								arguments.endChr,
 								arguments.endPos);
+						endTime = time(NULL);
+						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
+						startTime = time(NULL);
 						RunAligner(&rgList,
 								arguments.matchesFileName,
 								arguments.scoringMatrixFileName,
@@ -165,23 +175,58 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.outputID,
 								arguments.outputDir);
+						endTime = time(NULL);
+						totalAlignTime = endTime - startTime;
+						/* Free the Reference Genome */
+						for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
+							/* Free the sequence */
+							free(rgList.chromosomes[i].sequence);
+						}
+						free(rgList.chromosomes);
 						break;
 					default:
 						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
 						exit(1);
 				}
-				endTime = time(NULL);
-				int seconds = endTime - startTime;
-				int hours = seconds/3600;
-				seconds -= hours*3600;
-				int minutes = seconds/60;
-				seconds -= minutes*60;
 
-				fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
-						hours,
-						minutes,
-						seconds
-					   );
+				if(arguments.timing == 1) {
+					/* Output loading reference genome time */
+					seconds = totalReferenceGenomeTime;
+					hours = seconds/3600;
+					seconds -= hours*3600;
+					minutes = seconds/60;
+					seconds -= minutes*60;
+					fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n",
+							hours,
+							minutes,
+							seconds
+						   );
+
+					/* Output aligning time */
+					seconds = totalAlignTime;
+					hours = seconds/3600;
+					seconds -= hours*3600;
+					minutes = seconds/60;
+					seconds -= minutes*60;
+					fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
+							hours,
+							minutes,
+							seconds
+						   );
+
+					/* Output total time */
+					endTotalTime = time(NULL);
+					seconds = endTotalTime - startTotalTime;
+					hours = seconds/3600;
+					seconds -= hours*3600;
+					minutes = seconds/60;
+					seconds -= minutes*60;
+					fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+							hours,
+							minutes,
+							seconds
+						   );
+				}
 
 				fprintf(stderr, "Terminating successfully!\n");
 				fprintf(stderr, "%s", BREAK_LINE);
@@ -273,6 +318,9 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	/* If this does not hold, we have done something wrong internally */
+	assert(args->timing == 0 || args->timing == 1);
+
 	return 1;
 }
 
@@ -343,6 +391,8 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_FILENAME);
 
+	args->timing = 0;
+
 	return;
 }
 
@@ -365,6 +415,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
 
@@ -448,6 +499,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->rgListFileName = OPTARG;break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
+					case 't':
+						arguments->timing = 1;break;
 					case 'x':
 						if(arguments->scoringMatrixFileName) free(arguments->scoringMatrixFileName);
 						arguments->scoringMatrixFileName = OPTARG;break;

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 #include "../blib/RGIndex.h"
 #include "../blib/RGTree.h"
 #include "../blib/RGSeqPair.h"
@@ -21,7 +22,10 @@ void RunMatches(char *outputFileName,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
-		int pairedEnd
+		int numGapInsertions,
+		int numGapDeletions,
+		int pairedEnd,
+		int timing
 		)
 {
 	int numRGIndexes=0;
@@ -38,6 +42,11 @@ void RunMatches(char *outputFileName,
 
 	int numMatches;
 	int numReads;
+
+	int seconds, minutes, hours;
+	int totalDataStructureTime = 0; /* This will only give the to load and deleted the indexes and trees (excludes searching and other things) */
+	int totalSearchTime = 0; /* This will only give the time searching (excludes load times and other things) */
+	int totalOutputTime = 0; /* This wll only give the total time to merge and output */
 
 	/* Read in the RGIndex File Names */
 	numRGIndexes=ReadFileNames(rgIndexListFileName, &rgIndexFileNames);
@@ -56,6 +65,9 @@ void RunMatches(char *outputFileName,
 	/* TODO */
 	/* We should probably make sure the match length of the indexes are the same */
 	/* We should probably check that the chr/pos ranges of the trees is the same as the indexes */
+	/* We should probably check that the number of gap insertions (matchLength) and deletions (maxGap)
+	 * are within bounds. 
+	 */
 
 	/* Read in the offsets */
 	numOffsets=ReadOffsets(offsetsFileName, &offsets);
@@ -69,7 +81,8 @@ void RunMatches(char *outputFileName,
 			&tempSeqFP,
 			startReadNum,
 			endReadNum,
-			pairedEnd);
+			pairedEnd,
+			timing);
 
 	/* IDEA 
 	 * 		Use temp files to store the results for each index.  Once we have one
@@ -100,7 +113,11 @@ void RunMatches(char *outputFileName,
 			numRGIndexes,
 			pairedEnd,
 			&tempSeqFP,
-			outputFP
+			outputFP,
+			timing,
+			&totalDataStructureTime,
+			&totalSearchTime,
+			&totalOutputTime
 			);
 
 	if(VERBOSE >= 0) {
@@ -120,9 +137,15 @@ void RunMatches(char *outputFileName,
 			numMismatches,
 			numInsertions,
 			numDeletions,
+			numGapInsertions,
+			numGapDeletions,
 			pairedEnd,
 			tempSeqFP,
-			outputFP
+			outputFP,
+			timing,
+			&totalDataStructureTime,
+			&totalSearchTime,
+			&totalOutputTime
 			);
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -153,6 +176,40 @@ void RunMatches(char *outputFileName,
 
 	/* Free offsets */
 	free(offsets);
+
+	/* Print timing */
+	if(timing == 1) {
+		/* Data structure time */
+		seconds = totalDataStructureTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		fprintf(stderr, "Total time loading and deleting indexes and trees: %d hour, %d minutes and %d seconds.\n",
+				hours,
+				minutes,
+				seconds);
+		/* Search time */
+		seconds = totalSearchTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		fprintf(stderr, "Total time searching indexes and trees: %d hour, %d minutes and %d seconds.\n",
+				hours,
+				minutes,
+				seconds);
+		/* Output time */
+		seconds = totalOutputTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		fprintf(stderr, "Total time merging and writing output: %d hour, %d minutes and %d seconds.\n",
+				hours,
+				minutes,
+				seconds);
+	}
 }
 
 int FindMatchesInIndexes(char **rgIndexFileNames,
@@ -160,7 +217,11 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numRGIndexes,
 		int pairedEnd,
 		FILE **tempSeqFP,
-		FILE *outputFP)
+		FILE *outputFP,
+		int timing,
+		int *totalDataStructureTime,
+		int *totalSearchTime,
+		int *totalOutputTime)
 {
 	int i;
 	FILE **tempFPs=NULL;
@@ -168,6 +229,8 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	RGIndex index;
 	int numMatches=0;
 	int matchLength=-1;
+	int startTime;
+	int endTime;
 
 	/* Create temporary files */
 	if(VERBOSE >= DEBUG) {
@@ -198,7 +261,10 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		index.endPos=0;
 
 		/* Read in the RG Index */
+		startTime = time(NULL);
 		ReadRGIndex(rgIndexFileNames[i], &index, binaryInput);
+		endTime = time(NULL);
+		(*totalDataStructureTime)+=endTime - startTime;	
 
 		/* Check for the same match length across the indexes */
 		if(i==0) {
@@ -217,13 +283,19 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		fseek((*tempSeqFP), 0, SEEK_SET);
 
 		/* Execute */
+		startTime = time(NULL);
 		FindMatchesInIndex((*tempSeqFP),
 				tempFPs[i], 
 				&index,
 				pairedEnd);
+		endTime = time(NULL);
+		(*totalSearchTime)+=endTime - startTime;
 
 		/* Free memory of the RGIndex */
+		startTime = time(NULL);
 		RGIndexDelete(&index);
+		endTime = time(NULL);
+		(*totalDataStructureTime)+=endTime - startTime;	
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
@@ -233,10 +305,14 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Will enter RGMatchMergeFilesAndOutput from FindMatchesInIndexes\n");
 	}
+	startTime=time(NULL);
 	numMatches=RGMatchMergeFilesAndOutput(tempFPs,
 			numRGIndexes,
 			tempOutputFP,
 			pairedEnd);
+	endTime=time(NULL);
+	(*totalOutputTime)+=endTime-startTime;
+
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Exiting RGMatchMergeFilesAndOutput to FindMatchesInIndexes\n");
 	}
@@ -253,14 +329,16 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	/* Go through the temporary output file and output those sequences that have 
 	 * at least one match to the final output file.  For those sequences that have
 	 * zero matches, output them to the temporary sequence file */
+	startTime=time(NULL);
 	ReadTempSequencesAndOutput(tempOutputFP,
 			outputFP,
 			(*tempSeqFP),
 			pairedEnd);
+	endTime=time(NULL);
+	(*totalOutputTime)+=endTime-startTime;
 
 	/* Move to the beginning of the sequence file */
 	fseek((*tempSeqFP), 0, SEEK_SET);
-
 
 	/* Close temporary files - THEY WILL BE DELETED */
 	for(i=0;i<numRGIndexes;i++) {
@@ -388,13 +466,13 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 			numSkipped++;
 			/* Notify user ? */
 			/*
-			fprintf(stderr, "\nSequence:%s\nSequence length:%d\nmatchLength:%d\n",
-					sequence,
-					(int)strlen(sequence),
-					index->matchLength);
-			fprintf(stderr, "Error.  Sequence %d does not match 'matchLength'.  Terminating!\n", numRead);
-			exit(1);
-			*/
+			   fprintf(stderr, "\nSequence:%s\nSequence length:%d\nmatchLength:%d\n",
+			   sequence,
+			   (int)strlen(sequence),
+			   index->matchLength);
+			   fprintf(stderr, "Error.  Sequence %d does not match 'matchLength'.  Terminating!\n", numRead);
+			   exit(1);
+			   */
 		}
 	}
 	if(VERBOSE >= 0) {
@@ -416,14 +494,22 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
+		int numGapInsertions,
+		int numGapDeletions,
 		int pairedEnd,
 		FILE *tempSeqFP,
-		FILE *outputFP)
+		FILE *outputFP,
+		int timing,
+		int *totalDataStructureTime,
+		int *totalSearchTime,
+		int *totalOutputTime)
 {
 	int i;
 	FILE **tempFPs=NULL;
 	RGTree tree;
 	int numMatches=0;
+	time_t startTime;
+	time_t endTime;
 
 	/* Create temporary files */
 	if(VERBOSE >= DEBUG) {
@@ -439,7 +525,6 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		fprintf(stderr, "Temporary files opened\n");
 	}
 
-
 	/* For each RGTree, write temporary output */
 	for(i=0;i<numRGTrees;i++) { /* For each RGTree */
 
@@ -453,12 +538,16 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		tree.endPos=0;
 
 		/* Read in the RG Tree */
+		startTime=time(NULL);
 		ReadRGTree(rgTreeFileNames[i], &tree, binaryInput);
+		endTime=time(NULL);
+		(*totalDataStructureTime)+=endTime-startTime;
 
 		/* reset pointer to temp file to the beginning of the file */
 		fseek(tempSeqFP, 0, SEEK_SET);
 
 		/* Execute */
+		startTime=time(NULL);
 		FindMatchesInTree(tempSeqFP,
 				tempFPs[i], 
 				&tree,
@@ -467,20 +556,31 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 				numMismatches,
 				numInsertions,
 				numDeletions,
+				numGapInsertions,
+				numGapDeletions,
 				pairedEnd);
+		endTime=time(NULL);
+		(*totalSearchTime)+=endTime-startTime;
 
 		/* Free memory of the RGTree */
+		startTime=time(NULL);
 		RGTreeDelete(&tree);
+		endTime=time(NULL);
+		(*totalDataStructureTime)+=endTime-startTime;
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
 	}
 
 	/* Merge temporary output from each tree and output to the final output file. */
+	startTime=time(NULL);
 	numMatches=RGMatchMergeFilesAndOutput(tempFPs,
 			numRGTrees,
 			outputFP,
 			pairedEnd);
+	endTime=time(NULL);
+	(*totalOutputTime)+=endTime-startTime;
+
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Found matches for %d reads.\n", numMatches);
 	}
@@ -505,6 +605,8 @@ void FindMatchesInTree(FILE* tempSeqFP,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
+		int numGapInsertions,
+		int numGapDeletions,
 		int pairedEnd)
 {
 	char *sequenceName;
@@ -569,7 +671,9 @@ void FindMatchesInTree(FILE* tempSeqFP,
 				numOffsets,
 				numMismatches,
 				numInsertions,
-				numDeletions);
+				numDeletions,
+				numGapInsertions,
+				numGapDeletions);
 		if(pairedEnd==1) {
 			RGSeqPairFindMatchesInTree(tree,
 					&pairedSequenceMatch,
@@ -578,7 +682,9 @@ void FindMatchesInTree(FILE* tempSeqFP,
 					numOffsets,
 					numMismatches,
 					numInsertions,
-					numDeletions);
+					numDeletions,
+					numGapInsertions,
+					numGapDeletions);
 		}
 
 		if(VERBOSE >= DEBUG) {

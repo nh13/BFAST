@@ -12,14 +12,17 @@ struct arguments
 	int binaryInput;						/* -b */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */
-	int numMismatches;						/* -m */
-	int numInsertions;						/* -i */
-	int numDeletions;						/* -a */
+	int numMismatches;						/* -x */
+	int numInsertions;						/* -y */
+	int numDeletions;						/* -z */
+	int numGapInsertions;					/* -Y */
+	int numGapDeletions;					/* -Z */
 	int pairedEnd;							/* -2 */
-	int programMode;						/* -h */ 
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	int binaryOutput;						/* -B */
+	int timing;								/* -t */
+	int programMode;						/* -h */ 
 };
 
 /* Local functions */

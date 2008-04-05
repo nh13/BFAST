@@ -14,9 +14,10 @@ struct arguments
 	int endPos;                             /* -E */
 	int offsetLength;						/* -O */
 	int pairedEnd;                          /* -2 */
-	int programMode;						/* -h */ 
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
+	int timing;                             /* -t */
+	int programMode;						/* -h */ 
 };
 
 /* Local functions */

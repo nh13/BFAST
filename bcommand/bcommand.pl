@@ -51,7 +51,8 @@ my @options = (
 	"PAIREDEND",
 	"SCORINGMATRIXFILENAME",
 	"ALGORITHM",
-	"ALIGNOFFSET");
+	"ALIGNOFFSET",
+	"TIMING");
 
 # Global variables
 my $BLATTER_INDEX_FILE_EXTENSION = "bif";
@@ -578,6 +579,9 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= " -E ".$$endPosArr[$i];
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
+		if($$data{"TIMING"}==1) {
+			$command .= " -t";
+		}
 		# Print the command
 		print FHIndexCommands $command."\n";
 		# Print the index file name that this command will create. 
@@ -611,6 +615,9 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= " -g ".$$data{"GAPSFILENAME"};
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
+		if($$data{"TIMING"}==1) {
+			$command .= " -t";
+		}
 		# Print the command
 		print FHTreeCommands $command."\n";
 		# Print the tree file names of each tree that this command would create
@@ -728,6 +735,9 @@ sub CreateBMatchesCommandsAndFiles {
 		}
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
+		if($$data{"TIMING"}==1) {
+			$command .= " -t";
+		}
 		# Print the command
 		print FHMatchesCommands $command."\n";
 		# Print the file generated
@@ -811,6 +821,9 @@ sub CreateBAlignCommandsAndFiles {
 	}
 	$command .= " -o ".$$data{"OUTPUTID"};
 	$command .= " -d ".$$data{"OUTPUTDIR"};
+	if($$data{"TIMING"}==1) {
+		$command .= " -t";
+	}
 	print FHAlignCommands $command."\n";
 
 	# Close the output file

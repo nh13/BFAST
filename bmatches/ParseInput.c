@@ -55,8 +55,8 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescBlatterIndexesFileName, DescBlatterTreesFileName, DescReadsFileName, DescOffsetsFileName, 
-	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescPairedEnd,
-	DescOutputTitle, DescOutputID, DescOutputDir,
+	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -74,14 +74,17 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"numMismatches", 'm', "numMistmatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
-	{"numInsertions", 'i', "numInsertions", 0, "Specifies the number of insertions to allow when searching for candidates", 2},
-	{"numDeletions", 'a', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
+	{"numMismatches", 'x', "numMistmatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
+	{"numInsertions", 'y', "numInsertions", 0, "Specifies the number of insertions to allow when searching for candidates", 2},
+	{"numDeletions", 'z', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
+	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
+	{"numGapDeletions", 'Z', "numGapDeletions", 0, "Specifies the number of gap deletions allowd in the gap between paris", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output should be in binary format", 3},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
 	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
@@ -106,7 +109,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:s:I:O:R:T:2bhpB";
+"d:e:o:s:x:y:z:I:O:R:T:Y:Z:2bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -178,7 +181,10 @@ main (int argc, char **argv)
 								arguments.numMismatches,
 								arguments.numInsertions,
 								arguments.numDeletions,
-								arguments.pairedEnd);
+								arguments.numGapInsertions,
+								arguments.numGapDeletions,
+								arguments.pairedEnd,
+								arguments.timing);
 
 						endTime = time(NULL);
 						int seconds = endTime - startTime;
@@ -187,7 +193,7 @@ main (int argc, char **argv)
 						int minutes = seconds/60;
 						seconds -= minutes*60;
 
-						fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
+						fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
 								hours,
 								minutes,
 								seconds
@@ -269,12 +275,20 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "numInsertions", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->pairedEnd < 0 || args->pairedEnd > 1) {
-		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
-	}
-
 	if(args->numDeletions < 0) {
 		PrintError(FnName, "numDeletions", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->numGapInsertions < 0) {
+		PrintError(FnName, "numGapInsertions", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->numGapDeletions < 0) {
+		PrintError(FnName, "numGapDeletions", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->pairedEnd < 0 || args->pairedEnd > 1) {
+		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->outputID!=0) {
@@ -291,6 +305,8 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	/* If this does not hold, we have done something wrong internally */
+	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
 
 	return 1;
@@ -359,6 +375,8 @@ AssignDefaultValues(struct arguments *args)
 	args->numMismatches = 0;
 	args->numInsertions = 0;
 	args->numDeletions = 0;
+	args->numGapInsertions = 0;
+	args->numGapDeletions = 0;
 	args->pairedEnd = 0;
 
 	args->outputID =
@@ -372,6 +390,8 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
 	args->binaryOutput = 0;
+
+	args->timing = 0;
 
 	return;
 }
@@ -394,10 +414,13 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
 	fprintf(fp, "numInsertions:\t\t\t\t%d\n", args->numInsertions);
 	fprintf(fp, "numDeletions:\t\t\t\t%d\n", args->numDeletions);
+	fprintf(fp, "numGapInsertions:\t\t\t\t%d\n", args->numGapInsertions);
+	fprintf(fp, "numGapDeletions:\t\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
+	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
 }
@@ -460,8 +483,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case '2':
 						arguments->pairedEnd = 1;break;
-					case 'a':
-						arguments->numDeletions = atoi(OPTARG);break;
 					case 'b':
 						arguments->binaryInput = 1;break;
 					case 'd':
@@ -471,17 +492,21 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->endReadNum = atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
-					case 'i':
-						arguments->numInsertions=atoi(OPTARG);break;
-					case 'm':
-						arguments->numMismatches=atoi(OPTARG);break;
 					case 's':
 						arguments->startReadNum = atoi(OPTARG);break;
+					case 't':
+						arguments->timing = 1;break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'x':
+						arguments->numMismatches=atoi(OPTARG);break;
+					case 'y':
+						arguments->numInsertions=atoi(OPTARG);break;
+					case 'z':
+						arguments->numDeletions = atoi(OPTARG);break;
 					case 'B':
 						arguments->binaryOutput = 1;break;
 					case 'I':
@@ -496,6 +521,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'T':
 						if(arguments->blatterTreesFileName) free(arguments->blatterTreesFileName);
 						arguments->blatterTreesFileName = OPTARG;break;
+					case 'Y':
+						arguments->numGapInsertions = atoi(OPTARG);break;
+					case 'Z':
+						arguments->numGapDeletions = atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

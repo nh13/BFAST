@@ -31,6 +31,8 @@ Have a command line option that specifies a strict read length (otherwise, we
 		equal to that of the index(es)).
 5.
 Have a command line option that only outputs reads that had a candidate match.
+6.
+Allow for gaps "in between" the two l-mers to model insertions deletions
 
 ===============================================================================
 balign
@@ -55,5 +57,5 @@ bpostprocess
 ===============================================================================
 bcommand
 ===============================================================================
-1. Update
+1. Update for bmatches numGapInsertions and numGapDeletions
 

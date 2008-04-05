@@ -53,7 +53,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBinaryInput, 
 	DescAlgoTitle, DescAlgorithm, DescMatchLength, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescGapFileName, 
-	DescOutputTitle, DescOutputID, DescOutputDir, DescBinaryOutput,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescBinaryOutput, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -77,6 +77,7 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{"binaryOuput", 'B', 0, OPTION_NO_USAGE, "Specifies that we write the files as binary files", 3},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
 	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
@@ -101,7 +102,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:g:l:o:r:s:E:S:bhpB";
+"a:d:e:g:l:o:r:s:E:S:bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -119,6 +120,7 @@ main (int argc, char **argv)
 	int *gaps=NULL;
 	int numGaps=0;
 	int maxGap=0;
+	int i;
 	time_t startTime = time(NULL);
 	time_t endTime;
 	if(argc>1) {
@@ -184,6 +186,13 @@ main (int argc, char **argv)
 										arguments.matchLength,
 										outputFileName,
 										arguments.binaryOutput);
+								/* Free the Reference Genome */
+								for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
+									/* Free the sequence */
+									free(rgList.chromosomes[i].sequence);
+								}   
+								free(rgList.chromosomes);
+
 								break;
 							case 1: 
 								/* Read in the gap file */
@@ -218,24 +227,34 @@ main (int argc, char **argv)
 										arguments.outputID,
 										arguments.outputDir,
 										arguments.binaryOutput);
+								/* Free the Reference Genome */
+								for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
+									/* Free the sequence */
+									free(rgList.chromosomes[i].sequence);
+								}   
+								free(rgList.chromosomes);
+
 								break;
 							case 2:
 								fprintf(stderr, "Warning.  Not implemented\n");
 								break;
 						}
-						/* Get the time information */
-						endTime = time(NULL);
-						int seconds = endTime - startTime;
-						int hours = seconds/3600;
-						seconds -= hours*3600;
-						int minutes = seconds/60;
-						seconds -= minutes*60;
 
-						fprintf(stderr, "Time elapsed: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(arguments.timing == 1) {
+							/* Get the time information */
+							endTime = time(NULL);
+							int seconds = endTime - startTime;
+							int hours = seconds/3600;
+							seconds -= hours*3600;
+							int minutes = seconds/60;
+							seconds -= minutes*60;
+
+							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 
 						fprintf(stderr, "Terminating successfully!\n");
 						fprintf(stderr, "%s", BREAK_LINE);
@@ -323,6 +342,7 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* If this does not hold, we have done something wrong internally */
+	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == 0 || args->binaryInput == 1);
 	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
 
@@ -405,6 +425,8 @@ AssignDefaultValues(struct arguments *args)
 
 	args->binaryOutput = 0;
 
+	args->timing = 0;
+
 	return;
 }
 
@@ -426,8 +448,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "gapFileName:\t\t\t\t%s\n", args->gapFileName);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
-	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
+	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
 }
@@ -514,6 +537,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
+					case 't':
+						arguments->timing = 1;break;
 					case 'B':
 						arguments->binaryOutput=1;break;
 					case 'E':

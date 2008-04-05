@@ -7,6 +7,7 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *rgListFileName;					/* -r */
+	int binaryInput;						/* -b */
 	int algorithm;							/* -a */
 	int matchLength;						/* -l */
 	int startChr;							/* -s */
@@ -14,11 +15,11 @@ struct arguments
 	int endChr;								/* -e */
 	int endPos;								/* -E */
 	char *gapFileName;						/* -g */
-	int programMode;						/* -h */ 
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
-	int binaryInput;						/* -b */
 	int binaryOutput;						/* -B */
+	int timing;                             /* -t */
+	int programMode;						/* -h */ 
 };
 
 /* Local functions */
