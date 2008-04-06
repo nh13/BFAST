@@ -14,7 +14,8 @@ void GenerateTree(RGList *rgList,
 		int numGaps,
 		char *outputID, 
 		char *outputDir,
-		int binaryOutput)
+		int binaryOutput,
+		int reachedEnd)
 {
 	int i, j, k, l;
 	char *curSequenceOne=NULL;
@@ -73,7 +74,7 @@ void GenerateTree(RGList *rgList,
 				tree.startChr,
 				tree.startPos,
 				tree.endChr,
-				tree.endPos-2*matchLength+1-maxGap,
+				tree.endPos-((reachedEnd==1)?0:(2*matchLength+1-maxGap)),
 				curGap,
 				matchLength,
 				BLATTER_TREE_FILE_EXTENSION);

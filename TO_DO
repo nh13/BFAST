@@ -2,11 +2,8 @@ Note: does not support match lengths > 16 when using the trees
 
 ===============================================================================
 General
-1. Add command line options to showing timing information.
-2. Add command line option for binary files.
-3. Add number of nodes to header (for indexes) for pre-allocation.
-4. Add doc/bcommand.1
-5. Modify docs.
+1. Add doc/bcommand.1
+2. Modify docs.
 ===============================================================================
 
 
@@ -14,6 +11,8 @@ General
 bpreprocess
 ===============================================================================
 1. Creates binary (2-bit) files for the reference genome (include a header...)
+2. Better output to stderr for sorting (so we don't have to update on every 
+		call).
 
 ===============================================================================
 bmatches
@@ -22,28 +21,18 @@ bmatches
 Allow for errors (no calls) in the sequences (could model them as mismatches).
 2.
 Check that the range of blatter trees is the same as the blatter indexes.
-3.
-Allow for combinations of insertions, deletions and mismatches (just combine
-		the generate functions on top of eachother).
 4.
 Have a command line option that specifies a strict read length (otherwise, we
 		assume that the reads must have length matching the the matchLength
 		equal to that of the index(es)).
 5.
-Have a command line option that only outputs reads that had a candidate match.
-6.
-Allow for gaps "in between" the two l-mers to model insertions deletions
+Have a command line option that only outputs reads that had a candidate match
+(no zero matches).
 
 ===============================================================================
 balign
 ===============================================================================
-1. Change the RGBinaryChr to have it so that we only store 2 nts in each byte, 
-	where:
-		left-most 2-bits: nt 1's repeat (0, 1) or N (3)
-		3rd and 4th bits from the left: nt 1's sequence (a=0, c=1, g=2, t=3)
-		3rd and 4th bits from the right: nt 2's repeat (0, 1) or N (3)
-		right-most 2-bits: nt 2's sequence (a=0, c=1, g=2, t=3)
-2.
+1.
 Have a command line option that ignores reads with zero candidate matches.
 
 ===============================================================================
@@ -57,5 +46,3 @@ bpostprocess
 ===============================================================================
 bcommand
 ===============================================================================
-1. Update for bmatches numGapInsertions and numGapDeletions
-

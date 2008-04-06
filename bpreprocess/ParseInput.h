@@ -70,12 +70,12 @@ int getopt_parse(int, char**, char*, struct arguments*);
 #endif
 
 /* From ReadInputFiles.h */
-extern void ReadReferenceGenome(char*, int, RGList*, int, int, int, int, int);
+extern int ReadReferenceGenome(char*, int, RGList*, int, int, int, int, int);
 extern void ReadGaps(char*, int**, int*, int*, int);
 
 /* From GenerateIndex.h */
 extern void GenerateIndex(RGList*, int, char*, int);
 
 /* From GenerateTree.h */
-extern void GenerateTree(RGList*, int, int*, int, char*, char*, int);
+extern void GenerateTree(RGList*, int, int*, int, char*, char*, int, int);
 

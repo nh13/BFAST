@@ -120,7 +120,7 @@ main (int argc, char **argv)
 	int *gaps=NULL;
 	int numGaps=0;
 	int maxGap=0;
-	int i;
+	int i, reachedEnd;
 	time_t startTime = time(NULL);
 	time_t endTime;
 	if(argc>1) {
@@ -162,7 +162,7 @@ main (int argc, char **argv)
 											arguments.matchLength-1,
 											arguments.matchLength);
 								}
-								ReadReferenceGenome(arguments.rgListFileName, 
+								reachedEnd = ReadReferenceGenome(arguments.rgListFileName, 
 										arguments.binaryInput,
 										&rgList,
 										arguments.startChr,
@@ -177,7 +177,7 @@ main (int argc, char **argv)
 										rgList.startChr,
 										rgList.startPos,
 										rgList.endChr,
-										rgList.endPos-arguments.matchLength+1,
+										rgList.endPos-((reachedEnd==1)?0:arguments.matchLength+1),
 										arguments.matchLength,
 										BLATTER_INDEX_FILE_EXTENSION);
 								/* Generate our index */
@@ -210,7 +210,7 @@ main (int argc, char **argv)
 											arguments.matchLength,
 											maxGap);
 								}
-								ReadReferenceGenome(arguments.rgListFileName, 
+								reachedEnd = ReadReferenceGenome(arguments.rgListFileName, 
 										arguments.binaryInput,
 										&rgList,
 										arguments.startChr,
@@ -226,7 +226,8 @@ main (int argc, char **argv)
 										numGaps,
 										arguments.outputID,
 										arguments.outputDir,
-										arguments.binaryOutput);
+										arguments.binaryOutput,
+										reachedEnd);
 								/* Free the Reference Genome */
 								for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
 									/* Free the sequence */

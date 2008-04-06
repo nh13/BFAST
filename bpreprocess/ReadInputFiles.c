@@ -11,7 +11,7 @@
 /* TODO */
 /* Note: to save memory, we could store the genome in binary format (we reduce the size
  * required to store the genome by four */
-void ReadReferenceGenome(char *rgListFileName, 
+int ReadReferenceGenome(char *rgListFileName, 
 		int binaryInput,
 		RGList *rgList,
 		int startChr,
@@ -216,6 +216,7 @@ void ReadReferenceGenome(char *rgListFileName,
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
+	return continueReading;
 }
 
 void ReadGaps(char *gapFileName,

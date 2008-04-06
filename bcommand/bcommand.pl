@@ -1,3 +1,5 @@
+#!/usr/bin/perl
+
 use strict;
 use warnings;
 use Getopt::Long;
@@ -8,12 +10,15 @@ use Getopt::Long;
 #
 # Usage:
 # 	perl bcommand.pl -i <ini file name>
+#	perl bcommand.pl -o <output file name>
 #
 # For each of the options below, specify their values 
 # by including a line:
 # OPTION="VALUE"
 # where the OPTION specifies the option, and in quotes
 # is the OPTION's value (VALUE).
+#
+# The -o option will create a blank blatter.ini file for use
 #
 # Please see accompanying blatter.ini example file and man
 # page.
@@ -48,6 +53,8 @@ my @options = (
 	"NUMMISMATCHES",
 	"NUMINSERTIONS",
 	"NUMDELETIONS",
+	"NUMGAPINSERTIONS",
+	"NUMGAPDELETIONS",
 	"PAIREDEND",
 	"SCORINGMATRIXFILENAME",
 	"ALGORITHM",
@@ -61,14 +68,23 @@ my $BLATTER_MATCHES_FILE_EXTENSION = "bmf";
 
 # Command line variables
 my $iniFileName;
+my $outputFileName;
 
 #Command-line options
-GetOptions("iniFileName=s"=>\$iniFileName)
+GetOptions("iniFileName=s"=>\$iniFileName,
+	"outputFileName=s"=>\$outputFileName)
 	or PrintUsage();
-if(!defined($iniFileName)) {
+if(!defined($iniFileName) && !defined($outputFileName)) {
 	print "Option iniFileName was not given.\n";
+	print "Option outputFileName was not given.\n";
+	print "One of the two options must be given.\n";
 	die("***** Exiting due to errors *****\n");
-	exit(1);
+}
+if(defined($iniFileName)) {
+	Main($iniFileName);
+}
+elsif(defined($outputFileName)) {
+	PrintIniFile($outputFileName);
 }
 
 sub PrintUsage {
@@ -77,7 +93,6 @@ sub PrintUsage {
 	exit(1);
 }
 
-Main($iniFileName);
 
 ############################################################
 # Main function
@@ -727,9 +742,11 @@ sub CreateBMatchesCommandsAndFiles {
 		}
 		$command .= " -s ".($i-$incReads+1);
 		$command .= " -e ".$i;
-		$command .= " -m ".$$data{"NUMMISMATCHES"};
-		$command .= " -i ".$$data{"NUMINSERTIONS"};
-		$command .= " -a ".$$data{"NUMDELETIONS"};
+		$command .= " -x ".$$data{"NUMMISMATCHES"};
+		$command .= " -y ".$$data{"NUMINSERTIONS"};
+		$command .= " -z ".$$data{"NUMDELETIONS"};
+		$command .= " -Y ".$$data{"NUMGAPINSERTIONS"};
+		$command .= " -Z ".$$data{"NUMGAPDELETIONS"};
 		if($$data{"PAIREDEND"} == 1) {
 			$command .= " -2";
 		}
@@ -741,7 +758,7 @@ sub CreateBMatchesCommandsAndFiles {
 		# Print the command
 		print FHMatchesCommands $command."\n";
 		# Print the file generated
-		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%s\n",
+		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
 			$$data{"OUTPUTDIR"},
 			$$data{"OUTPUTID"},
 			($i-$incReads+1),
@@ -749,6 +766,8 @@ sub CreateBMatchesCommandsAndFiles {
 			$$data{"NUMMISMATCHES"},
 			$$data{"NUMINSERTIONS"},
 			$$data{"NUMDELETIONS"},
+			$$data{"NUMGAPINSERTIONS"},
+			$$data{"NUMGAPDELETIONS"},
 			$$data{"PAIREDEND"},
 			"bmf");
 
@@ -828,4 +847,31 @@ sub CreateBAlignCommandsAndFiles {
 
 	# Close the output file
 	close(FHAlignCommands);
+}
+
+############################################################
+# PrintIniFile
+#
+# Prints a sample .ini file to the output file
+#
+# params:
+#	outputFileName - the name of the output file
+#
+# return:
+#	null.
+############################################################
+sub PrintIniFile {
+	my $outputFileName = shift;
+	local *FH;
+
+	# Open the output file
+	open(FH, ">$outputFileName") || die("Error.  Could not open $outputFileName for writing.  Terminating!\n");
+
+	# Print the options
+	for(my $i=0;$i<scalar(@options);$i++) {
+		print FH $options[$i]."=\"\"\n";
+	}
+
+	# Close the output file
+	close(FH);
 }

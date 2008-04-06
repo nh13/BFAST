@@ -157,7 +157,7 @@ main (int argc, char **argv)
 						/* Execute Program */
 
 						/* Create output file name */
-						sprintf(outputFileName, "%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%s",
+						sprintf(outputFileName, "%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 								arguments.outputDir,
 								arguments.outputID,
 								arguments.startReadNum,
@@ -165,6 +165,8 @@ main (int argc, char **argv)
 								arguments.numMismatches,
 								arguments.numInsertions,
 								arguments.numDeletions,
+								arguments.numGapInsertions,
+								arguments.numGapDeletions,
 								arguments.pairedEnd,
 								BLATTER_MATCHES_FILE_EXTENSION);
 
