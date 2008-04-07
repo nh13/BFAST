@@ -74,11 +74,7 @@ void GenerateTree(RGList *rgList,
 				tree.startChr,
 				tree.startPos,
 				tree.endChr,
-<<<<<<< .mine
 				tree.endPos-((reachedEnd==1)?0:(2*matchLength-1+maxGap)),
-=======
-				tree.endPos-((reachedEnd==1)?0:(2*matchLength+1-maxGap)),
->>>>>>> .r31
 				curGap,
 				matchLength,
 				BLATTER_TREE_FILE_EXTENSION);

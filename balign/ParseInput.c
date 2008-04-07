@@ -55,13 +55,8 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
-<<<<<<< .mine
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
-=======
-	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescPairedEnd,
-	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
->>>>>>> .r31
 	DescMiscTitle, DescHelp
 };
 
@@ -111,11 +106,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-<<<<<<< .mine
 "a:d:e:m:o:r:s:x:E:H:M:O:S:2hpt";
-=======
-"a:d:e:m:o:r:s:x:E:H:O:S:2hpt";
->>>>>>> .r31
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
