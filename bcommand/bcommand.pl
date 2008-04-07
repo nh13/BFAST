@@ -420,9 +420,8 @@ sub CreateRegions {
 	}
 	if($endChr <= 0) {
 		$endChr = scalar(@$chrLengths);
-		$endPos = $$chrLengths[scalar(@$chrLengths)-1];
 	}
-	elsif($endPos <= 0) {
+	if($endPos <= 0) {
 		$endPos = $$chrLengths[$endChr-1];
 	}
 
@@ -436,6 +435,7 @@ sub CreateRegions {
 	$prevPos = $startPos;
 	$prevChr = $startChr;
 	$curChr = $startChr;
+	$curPos = $startPos;
 	$startPos = $startPos;
 
 	# While it is reasonable to continue
@@ -505,16 +505,16 @@ sub CreateGapsFile {
 	my $gaps = shift;
 	local *FH;
 
-	# Open the output file
+# Open the output file
 	open(FH, ">$fileName") || die("Error.  Could not open $fileName for writing.  Terminating!\n");
 
-	# Print each gap
+# Print each gap
 	for(my $i=0;$i<scalar(@$gaps);$i++) {
 		print FH $$gaps[$i]."\t";
 	}
 	print FH "\n";
 
-	# close the file
+# close the file
 	close(FH);
 }
 
@@ -566,17 +566,17 @@ sub CreateBProcessCommandsAndFiles {
 	my $indexListFileName = $$data{"INDEXLISTFILENAME"};
 	my $treeListFileName = $$data{"TREELISTFILENAME"};
 
-	# Open output files
+# Open output files
 	open(FHIndexes, ">$indexListFileName") || die("Error.  Could not open $indexListFileName for writing.  Terminating!\n");
 	open(FHTrees, ">$treeListFileName") || die("Error.  Could not open $treeListFileName for writing.  Terminating!\n");
 	open(FHIndexCommands, ">$indexCommandsFileName") || die("Error.  Could not open $indexCommandsFileName for writing.  Terminating!\n");
 	open(FHTreeCommands, ">$treeCommandsFileName") || die("Error.  Could not open $treeCommandsFileName for writing.  Terminating!\n");
 
-	# Generate indexes and trees for each starting/ending chr/pos
+# Generate indexes and trees for each starting/ending chr/pos
 	for(my $i=0;$i<scalar(@$startChrArr);$i++) {
 
-		############################################################
-		# BPREPROCESS - Create Indexes.
+############################################################
+# BPREPROCESS - Create Indexes.
 		$command = $$data{"COMMANDDIR"}; # Command directory 
 		$command .= "bpreprocess/bpreprocess"; # Command 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
@@ -594,12 +594,19 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= " -E ".$$endPosArr[$i];
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
+<<<<<<< .mine
+		if($$data{"TIMING"}==1) {
+			$command .= " -t";
+		}
+# Print the command
+=======
 		if($$data{"TIMING"}==1) {
 			$command .= " -t";
 		}
 		# Print the command
+>>>>>>> .r31
 		print FHIndexCommands $command."\n";
-		# Print the index file name that this command will create. 
+# Print the index file name that this command will create. 
 		print FHIndexes sprintf("%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s\n",
 			$$data{"OUTPUTDIR"},
 			$$data{"OUTPUTID"},
@@ -610,8 +617,8 @@ sub CreateBProcessCommandsAndFiles {
 			$$data{"INDEXMATCHLENGTH"},
 			$BLATTER_INDEX_FILE_EXTENSION);
 
-		############################################################
-		# BPREPROCESS - Create Trees.
+############################################################
+# BPREPROCESS - Create Trees.
 		$command = $$data{"COMMANDDIR"}; # Command directory 
 		$command .= "bpreprocess/bpreprocess"; # Command 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
@@ -630,12 +637,19 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= " -g ".$$data{"GAPSFILENAME"};
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
+<<<<<<< .mine
+		if($$data{"TIMING"}==1) {
+			$command .= " -t";
+		}
+# Print the command
+=======
 		if($$data{"TIMING"}==1) {
 			$command .= " -t";
 		}
 		# Print the command
+>>>>>>> .r31
 		print FHTreeCommands $command."\n";
-		# Print the tree file names of each tree that this command would create
+# Print the tree file names of each tree that this command would create
 		for(my $j=0;$j<scalar(@$gaps);$j++) { # Note: we have one file per gap
 			print FHTrees sprintf("%sblatter.tree.file.%s.%d.%d.%d.%d.%d.%d.%s\n",
 				$$data{"OUTPUTDIR"},
@@ -650,7 +664,7 @@ sub CreateBProcessCommandsAndFiles {
 		}
 
 	}
-	# Close the output files 
+# Close the output files 
 	close(FHIndexes);
 	close(FHTrees);
 	close(FHIndexCommands);
@@ -675,16 +689,16 @@ sub CreateOffsetsFile {
 	my $offsets = shift;
 	local *FH;
 
-	# Open the output file
+# Open the output file
 	open(FH, ">$fileName") || die("Error.  Could not open $fileName for writing.  Terminating!\n");
 
-	# Print each offset
+# Print each offset
 	for(my $i=0;$i<scalar(@$offsets);$i++) {
 		print FH $$offsets[$i]."\t";
 	}
 	print FH "\n";
 
-	# close the file
+# close the file
 	close(FH);
 }
 
@@ -719,18 +733,18 @@ sub CreateBMatchesCommandsAndFiles {
 	my $numProcesses = $$data{"NUMPROCESSES"};
 	my $command;
 
-	# Open the file in which to store the commands
+# Open the file in which to store the commands
 	open(FHMatchesCommands, ">$matchesCommandsFileName") || die("Error.  Could not open $matchesCommandsFileName for writing.  Terminating!\n");
 	open(FHMatchesList, ">$matchesListFileName") || die("Error.  Could not open $matchesListFileName for writing.  Terminating!\n");
 
-	# Initialize the number of reads per bmatches command to process.
+# Initialize the number of reads per bmatches command to process.
 	$incReads = $numReads/$numProcesses; 
 
-	# Create each bmatches command
+# Create each bmatches command
 	for(my $i=$incReads;$i<=$numReads;$i+=$incReads) {
-		############################################################
-		# BMATCHES - find candidate matches
-		############################################################
+############################################################
+# BMATCHES - find candidate matches
+############################################################
 		$command = $$data{"COMMANDDIR"}; # Command directory 
 		$command .= "bmatches/bmatches"; # Command
 		$command .= " -I ".$$data{"INDEXLISTFILENAME"};
@@ -752,13 +766,25 @@ sub CreateBMatchesCommandsAndFiles {
 		}
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
+<<<<<<< .mine
+		if($$data{"TIMING"}==1) {
+			$command .= " -t";
+		}
+# Print the command
+=======
 		if($$data{"TIMING"}==1) {
 			$command .= " -t";
 		}
 		# Print the command
+>>>>>>> .r31
 		print FHMatchesCommands $command."\n";
+<<<<<<< .mine
+# Print the file generated
+		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
+=======
 		# Print the file generated
 		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
+>>>>>>> .r31
 			$$data{"OUTPUTDIR"},
 			$$data{"OUTPUTID"},
 			($i-$incReads+1),
@@ -816,14 +842,14 @@ sub CreateBAlignCommandsAndFiles {
 
 	local *FHAlignCommands;
 
-	# Open the file in which to store the commands
+# Open the file in which to store the commands
 	open(FHAlignCommands, ">$alignCommandsFileName") || die("Error.  Could not open $alignCommandsFileName for writing.  Terminating!\n");
 
-	# Create balign command
+# Create balign command
 
-	############################################################
-	# BALIGN - align candidate align
-	####################################################################
+############################################################
+# BALIGN - align candidate align
+####################################################################
 	$command = $$data{"COMMANDDIR"}; # Command directory 
 	$command .= "balign/balign"; # Command
 	$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
@@ -845,9 +871,38 @@ sub CreateBAlignCommandsAndFiles {
 	}
 	print FHAlignCommands $command."\n";
 
-	# Close the output file
+# Close the output file
 	close(FHAlignCommands);
 }
+<<<<<<< .mine
+
+############################################################
+# PrintIniFile
+#
+# Prints a sample .ini file to the output file
+#
+# params:
+#	outputFileName - the name of the output file
+#
+# return:
+#	null.
+############################################################
+sub PrintIniFile {
+	my $outputFileName = shift;
+	local *FH;
+
+# Open the output file
+	open(FH, ">$outputFileName") || die("Error.  Could not open $outputFileName for writing.  Terminating!\n");
+
+# Print the options
+	for(my $i=0;$i<scalar(@options);$i++) {
+		print FH $options[$i]."=\"\"\n";
+	}
+
+	# Close the output file
+	close(FH);
+}
+=======
 
 ############################################################
 # PrintIniFile
@@ -875,3 +930,4 @@ sub PrintIniFile {
 	# Close the output file
 	close(FH);
 }
+>>>>>>> .r31

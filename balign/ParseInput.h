@@ -13,6 +13,7 @@ struct arguments
 	int endChr;                             /* -e */
 	int endPos;                             /* -E */
 	int offsetLength;						/* -O */
+	int maxNumMatches;						/* -M */
 	int pairedEnd;                          /* -2 */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */

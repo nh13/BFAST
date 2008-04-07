@@ -22,8 +22,10 @@ void RGSeqPairFindMatchesInIndex(RGIndex *index,
 	int numChars = (int)ceil((2.0/8.0*index->matchLength)/sizeof(unsigned char));
 
 	/* Allocate memory for the indexes */
-	indexForward = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
-	indexReverse = (unsigned char*)malloc(sizeof(unsigned char)*numChars);
+	indexForward = malloc(sizeof(unsigned char)*numChars);
+	assert(indexForward!=NULL);
+	indexReverse = malloc(sizeof(unsigned char)*numChars);
+	assert(indexReverse!=NULL);
 
 	/* DON'T FORGET TO ALIGN TO BOTH FORWARD AND REVERSE STRANDS */
 	assert(strlen(read)==index->matchLength);
@@ -61,6 +63,11 @@ void RGSeqPairFindMatchesInIndex(RGIndex *index,
 		fprintf(stderr, "Removed duplicates with %d matches remaining in RGSeqPairFindMatchesInIndex.\n",
 				match->numEntries);
 	}
+
+	/* Free memory */
+	free(indexForward);
+	free(indexReverse);
+
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Exiting RGSeqPairFindMatchesInIndex.\n");
 	}
@@ -384,8 +391,10 @@ void RGSeqPairGenerateMismatches(char *read,
 	}
 	else {
 		/* Allocate memory */
-		curOne = (char*)malloc(sizeof(char)*matchLength);
-		curTwo = (char*)malloc(sizeof(char)*matchLength);
+		curOne = malloc(sizeof(char)*matchLength);
+		assert(curOne!=NULL);
+		curTwo = malloc(sizeof(char)*matchLength);
+		assert(curTwo!=NULL);
 
 		RGSeqPairGenerateMismatchesHelper(read,
 				direction,
@@ -433,10 +442,13 @@ void RGSeqPairGenerateMismatchesHelper(char *read,
 			curTwo[matchLength]='\0';
 			/* Allocate memory */
 			pairs->numPairs++;
-			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+			pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexOne!=NULL);
+			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexTwo!=NULL);
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+			assert(pairs->strand!=NULL);
+			pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -564,10 +576,13 @@ void RGSeqPairGenerateMismatchesHelper(char *read,
 		curTwo[matchLength]='\0';
 		/* Allocate memory */                                                                             
 		pairs->numPairs++;
-		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+		pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+		assert(pairs->indexOne!=NULL);
+		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+		assert(pairs->indexTwo!=NULL);
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+		assert(pairs->strand!=NULL);
+		pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -595,8 +610,8 @@ void RGSeqPairGenerateDeletions(char *read,
 		int numDeletions,
 		RGSeqPair *pairs)
 {
-	char curOne[SEQUENCE_LENGTH];
-	char curTwo[SEQUENCE_LENGTH];
+	char *curOne=NULL;
+	char *curTwo=NULL;
 
 	assert(direction == FORWARD || direction == REVERSE);
 	if(VERBOSE>=DEBUG) {
@@ -609,6 +624,11 @@ void RGSeqPairGenerateDeletions(char *read,
 		return;
 	}
 	else {
+		/* Allocate memory */
+		curOne = malloc(sizeof(char)*matchLength);
+		assert(curOne!=NULL);
+		curTwo = malloc(sizeof(char)*matchLength);
+		assert(curTwo!=NULL);
 
 		RGSeqPairGenerateDeletionsHelper(read,
 				readLength,
@@ -624,6 +644,10 @@ void RGSeqPairGenerateDeletions(char *read,
 				curTwo,
 				0,
 				0);
+
+		/* Free memory */
+		free(curOne);
+		free(curTwo);
 	}
 }
 
@@ -657,10 +681,13 @@ void RGSeqPairGenerateDeletionsHelper(char *read,
 			curTwo[matchLength]='\0';
 			/* Allocate memory */                                                                             
 			pairs->numPairs++;
-			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+			pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexOne!=NULL);
+			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexTwo!=NULL);
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+			assert(pairs->strand!=NULL);
+			pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -788,10 +815,13 @@ void RGSeqPairGenerateDeletionsHelper(char *read,
 		curTwo[matchLength]='\0';
 		/* Allocate memory */                                                                             
 		pairs->numPairs++;
-		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+		pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+		assert(pairs->indexOne!=NULL);
+		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+		assert(pairs->indexTwo!=NULL);
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+		assert(pairs->strand!=NULL);
+		pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -845,8 +875,10 @@ void RGSeqPairGenerateInsertions(char *read,
 	}
 
 	/* Allocate memory */
-	curOne = (char*)malloc(sizeof(char)*matchLength);
-	curTwo = (char*)malloc(sizeof(char)*matchLength);
+	curOne = malloc(sizeof(char)*matchLength);
+	assert(curOne!=NULL);
+	curTwo = malloc(sizeof(char)*matchLength);
+	assert(curTwo!=NULL);
 
 	RGSeqPairGenerateInsertionsHelper(read,
 			readLength,
@@ -899,10 +931,13 @@ void RGSeqPairGenerateInsertionsHelper(char *read,
 			curTwo[matchLength]='\0';
 			/* Allocate memory */                                                                             
 			pairs->numPairs++;
-			pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+			pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexOne!=NULL);
+			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexTwo!=NULL);
 			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-			pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+			assert(pairs->strand!=NULL);
+			pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
 			/* Copy over */
 			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -1025,10 +1060,13 @@ void RGSeqPairGenerateInsertionsHelper(char *read,
 		curTwo[matchLength]='\0';
 		/* Allocate memory */                                                                             
 		pairs->numPairs++;
-		pairs->indexOne = realloc(pairs->indexOne, sizeof(int)*(pairs->numPairs));
-		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(int)*(pairs->numPairs));
+		pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+		assert(pairs->indexOne!=NULL);
+		pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+		assert(pairs->indexTwo!=NULL);
 		pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
-		pairs->offset = realloc(pairs->offset, sizeof(int)*(pairs->numPairs));
+		assert(pairs->strand!=NULL);
+		pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
 		/* Copy over */
 		pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
 		pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
@@ -1046,6 +1084,224 @@ void RGSeqPairGenerateInsertionsHelper(char *read,
 }
 
 /* TODO */
+<<<<<<< .mine
+/* Note: Deletions have occured, so insert bases in the gap */
+void RGSeqPairGenerateGapDeletions(char *read,
+		int readLength,
+		char direction,
+		int offset,
+		int matchLength,
+		int gap,
+		int numGapDeletions,
+		RGSeqPair *pairs)
+{
+	char curOne[SEQUENCE_LENGTH];
+	char curTwo[SEQUENCE_LENGTH];
+
+	assert(direction == FORWARD || direction == REVERSE);
+	if(VERBOSE>=DEBUG) {
+		fprintf(stderr, "Generating pairs with %d gap deletions.\n",
+				numGapDeletions);
+	}
+
+	if(gap <= 0) {
+		/* Out of bounds.  Don't add anything. */
+		return;
+	}
+	else {
+		RGSeqPairGenerateGapDeletionsHelper(read,
+				readLength,
+				direction,
+				offset,
+				matchLength,
+				gap, 
+				numGapDeletions,
+				pairs,
+				curOne,
+				curTwo);
+	}
+}
+
+/* TODO */
+/* NOTE: no error checking yet! */
+/* We assume that all insertions in the gap are grouped together */
+void RGSeqPairGenerateGapDeletionsHelper(char *read,
+		int readLength,
+		char direction,
+		int offset,
+		int matchLength, 
+		int gap,
+		int numGapDeletions,
+		RGSeqPair *pairs,
+		char *curOne,
+		char *curTwo)
+{
+	int i, j, k;
+	assert(gap > 0);
+
+	/* Choose the starting position of the gap insertion */ 
+	for(i=0;i<gap;i++) {
+		for(j=1;j<=numGapDeletions;j++) { /* For the total # of gaps we will insert */
+			if(numGapDeletions > gap) {
+				/* We will insert more than there is found in the gap.  This will cause a combinatorial
+				 * explosion since we can do a simplifying shift. */
+				/* Ignore for now */
+			}
+			else {
+				/* Copy over first read */
+				for(k=offset+i;k<offset+i+matchLength;k++) {
+					curOne[k-offset-i] = read[k];
+				}
+				curOne[matchLength]='\0';
+
+				/* Copy over second read */
+				for(k=offset+matchLength+gap-j;k<offset+2*matchLength+gap-j;k++) {
+					curTwo[k-offset-matchLength-gap+j] = read[k];
+				}
+				curTwo[matchLength]='\0';
+
+				/* Allocate memory */                                                                             
+				pairs->numPairs++;
+				pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+				assert(pairs->indexOne!=NULL);
+				pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+				assert(pairs->indexTwo!=NULL);
+				pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+				assert(pairs->strand!=NULL);
+				pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
+				/* Copy over */
+				pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+				pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "Pair(gap deletion):%s[%d]\t%s[%d].\n",
+							curOne,
+							pairs->indexOne[pairs->numPairs-1],
+							curTwo,
+							pairs->indexTwo[pairs->numPairs-1]);
+				}
+				pairs->strand[pairs->numPairs-1] = direction;
+				pairs->offset[pairs->numPairs-1] = offset+i;
+			}
+		}
+	}
+}
+
+/* TODO */
+/* Note: Insertions have occured, so delete bases */
+void RGSeqPairGenerateGapInsertions(char *read,
+		int readLength,
+		char direction,
+		int offset,
+		int matchLength,
+		int gap,
+		int numGapInsertions,
+		RGSeqPair *pairs)
+{
+	char *curOne;
+	char *curTwo;
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Generating pairs with %d insertions\n",
+				numGapInsertions);
+	}
+	assert(direction == FORWARD || direction == REVERSE);
+
+	/* Allocate memory */
+	curOne = malloc(sizeof(char)*matchLength);
+	assert(curOne!=NULL);
+	curTwo = malloc(sizeof(char)*matchLength);
+	assert(curTwo!=NULL);
+
+	RGSeqPairGenerateGapInsertionsHelper(read,
+			readLength,
+			direction,
+			offset,
+			matchLength,
+			gap,
+			numGapInsertions,
+			pairs,
+			curOne,
+			curTwo);
+
+	/* Free memory */
+	free(curOne);
+	free(curTwo);
+}
+
+/* TODO */
+/* NOTE: no error checking yet! */
+void RGSeqPairGenerateGapInsertionsHelper(char *read,
+		int readLength,
+		char direction,
+		int offset,
+		int matchLength,
+		int gap,
+		int numGapInsertions,
+		RGSeqPair *pairs,
+		char *curOne,
+		char *curTwo)
+{
+	int i, j;
+	int startOffset = offset; /* The number of bases we can shift at the start of the read */
+	int endOffset = readLength - offset - 2*matchLength - gap; /* The number of bases we can shift at the end of the read */
+	assert(direction == FORWARD || direction == REVERSE);
+
+	/* Choose the number of insertions */
+	for(i=1;i<=numGapInsertions;i++) {
+		/* Always choose to towards the end */
+		int endShift = -1;
+		int startShift = -1;
+		if(endOffset >= i) {
+			/* Shift the second sequence all end */
+			startShift = 0;
+			endShift = i;
+		}
+		else {
+			startShift = endOffset - i;
+			endShift = endOffset;
+		}
+		if(startShift <= startOffset && endShift <= endOffset) {
+			/* Copy over first read */
+			for(j=offset-startShift;j<offset-startShift+matchLength;j++) {
+				assert(j>=0 && j<readLength);
+				curOne[j-offset+startShift] = read[j];
+			}
+			curOne[matchLength]='\0';
+
+			/* Copy over second read */
+			for(j=offset+matchLength+gap+endShift;j<offset+2*matchLength+gap+endShift;j++) {
+				assert(j>=0 && j<readLength);
+				curTwo[j-offset-matchLength-gap-endShift] = read[j];
+			}
+			curTwo[matchLength]='\0';
+
+			/* Allocate memory */                                                                             
+			pairs->numPairs++;
+			pairs->indexOne = realloc(pairs->indexOne, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexOne!=NULL);
+			pairs->indexTwo = realloc(pairs->indexTwo, sizeof(unsigned int)*(pairs->numPairs));
+			assert(pairs->indexTwo!=NULL);
+			pairs->strand = realloc(pairs->strand, sizeof(char)*(pairs->numPairs));
+			assert(pairs->strand!=NULL);
+			pairs->offset = realloc(pairs->offset, sizeof(unsigned int)*(pairs->numPairs));
+			/* Copy over */
+			pairs->indexOne[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curOne, matchLength);
+			pairs->indexTwo[pairs->numPairs-1] = RGTreeGetIndexFromSequence(curTwo, matchLength);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Pair(gap deletion):%s[%d]\t%s[%d].\n",
+						curOne,
+						pairs->indexOne[pairs->numPairs-1],
+						curTwo,
+						pairs->indexTwo[pairs->numPairs-1]);
+			}
+			pairs->strand[pairs->numPairs-1] = direction;
+			pairs->offset[pairs->numPairs-1] = offset-startShift;
+		}
+	}
+}
+
+/* TODO */
+=======
 /* Note: Deletions have occured, so insert bases in the gap */
 void RGSeqPairGenerateGapDeletions(char *read,
 		int readLength,
@@ -1254,12 +1510,15 @@ void RGSeqPairGenerateGapInsertionsHelper(char *read,
 }
 
 /* TODO */
+>>>>>>> .r31
 void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 {
-	int i;
-	RGSeqPair t;
-	RGSeqPair prev;
-	int curIndex=0;
+	unsigned int i;
+	unsigned int prevIndex=0;
+
+	if(s->numPairs <= 0) {
+		return;
+	}
 
 	/* Sort the data structure */
 	if(VERBOSE >= DEBUG) {
@@ -1270,77 +1529,44 @@ void RGSeqPairRemoveDuplicates(RGSeqPair *s)
 		fprintf(stderr, "Sorted!\n");
 	}
 
-	/* Allocate prev */
-	prev.indexOne = (int*)malloc(sizeof(int));
-	prev.indexTwo = (int*)malloc(sizeof(int));
-	prev.strand = (char*)malloc(sizeof(char));
-	prev.offset = (int*)malloc(sizeof(int));
-	prev.numPairs = 1;
-	/* Allocate temporary */
-	t.indexOne = (int*)malloc(sizeof(int)*(s->numPairs));
-	t.indexTwo = (int*)malloc(sizeof(int)*(s->numPairs));
-	t.strand = (char*)malloc(sizeof(char)*(s->numPairs));
-	t.offset = (int*)malloc(sizeof(int)*(s->numPairs));
-	t.numPairs = s->numPairs;
-
-	/* Initialize prev */
-	prev.indexOne[0] = -1;
-	prev.indexTwo[0] = -1;
-	prev.strand[0] = 'z';
-	prev.offset[0]= 0;
-
 	/* Remove duplicates */
-	for(i=0;i<s->numPairs;i++) {
-		if(RGSeqPairCompareAtIndex(&prev, 0, s, i)==0) { 
+	prevIndex=0;
+	for(i=1;i<s->numPairs;i++) {
+		if(RGSeqPairCompareAtIndex(s, prevIndex, s, i)==0) { 
 			/* Ignore */
 		}
 		else {
+			prevIndex++;
 			/* Copy over to temporary pair */
-			RGSeqPairCopyAtIndex(s, i, &t, curIndex);
-			curIndex++;
-
-			/* Save previous */
-			RGSeqPairCopyAtIndex(s, i, &prev, 0);
+			RGSeqPairCopyAtIndex(s, i, s, prevIndex);
 		}
 	}
 
 	/* Reallocate pair */
-	s->indexOne = (int*)realloc(s->indexOne, sizeof(int)*curIndex);
-	s->indexTwo = (int*)realloc(s->indexTwo, sizeof(int)*curIndex);
-	s->strand = (char*)realloc(s->strand, sizeof(char)*curIndex);
-	s->offset = (int*)realloc(s->offset, sizeof(int)*curIndex);
-	s->numPairs = curIndex;
-
-	/* Copy over */
-	for(i=0;i<curIndex;i++) {
-		RGSeqPairCopyAtIndex(&t, i, s, i);
-	}
-
-	/* Free prev memory */
-	free(prev.indexOne);
-	free(prev.indexTwo);
-	free(prev.strand);
-	free(prev.offset);
-	/* Free temporary memory */
-	free(t.indexOne);
-	free(t.indexTwo);
-	free(t.strand);
-	free(t.offset);
+	s->indexOne = realloc(s->indexOne, sizeof(unsigned int)*(prevIndex+1));
+	assert(s->indexOne!=NULL);
+	s->indexTwo = realloc(s->indexTwo, sizeof(unsigned int)*(prevIndex+1));
+	assert(s->indexTwo!=NULL);
+	s->strand = realloc(s->strand, sizeof(char)*(prevIndex+1));
+	assert(s->strand!=NULL);
+	s->offset = realloc(s->offset, sizeof(unsigned int)*(prevIndex+1));
+	assert(s->offset!=NULL);
+	s->numPairs = prevIndex+1;
 }
 
 /* TO DO */
 void RGSeqPairQuickSort(RGSeqPair *s, int low, int high)
 {
-	int i;
-	int pivot=-1;
+	unsigned int i;
+	unsigned int pivot=-1;
 	RGSeqPair temp;
 
 	if(low < high) {
 		/* Allocate memory for the temp RGSeqPair indexes and strand */
-		temp.indexOne = (int*)malloc(sizeof(int));
-		temp.indexTwo = (int*)malloc(sizeof(int));
-		temp.strand = (char*)malloc(sizeof(char));
-		temp.offset = (int*)malloc(sizeof(int));
+		temp.indexOne = malloc(sizeof(unsigned int));
+		temp.indexTwo = malloc(sizeof(unsigned int));
+		temp.strand = malloc(sizeof(char));
+		temp.offset = malloc(sizeof(unsigned int));
 
 		pivot = (low + high)/2;
 

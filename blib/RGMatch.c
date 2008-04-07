@@ -56,9 +56,9 @@ void RGMatchRemoveDuplicates(RGMatch *s)
 
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
-		s->positions = (int*)realloc(s->positions, sizeof(int)*(prevIndex+1));
-		s->chromosomes = (unsigned char*)realloc(s->chromosomes, sizeof(unsigned char)*(prevIndex+1));
-		s->strand = (char*)realloc(s->strand, sizeof(char)*(prevIndex+1));
+		s->positions = realloc(s->positions, sizeof(unsigned int)*(prevIndex+1));
+		s->chromosomes = realloc(s->chromosomes, sizeof(unsigned char)*(prevIndex+1));
+		s->strand = realloc(s->strand, sizeof(char)*(prevIndex+1));
 		s->numEntries = prevIndex+1;
 	}
 	if(VERBOSE >= DEBUG) {
@@ -75,11 +75,11 @@ void RGMatchQuickSort(RGMatch *s, int low, int high)
 
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
-		temp=(RGMatch*)malloc(sizeof(RGMatch));
+		temp=malloc(sizeof(RGMatch));
 		temp->numEntries=1;
-		temp->chromosomes=(unsigned char*)malloc(sizeof(unsigned char));
-		temp->positions=(int*)malloc(sizeof(int));
-		temp->strand=(char*)malloc(sizeof(char));
+		temp->chromosomes=malloc(sizeof(unsigned char));
+		temp->positions=malloc(sizeof(unsigned int));
+		temp->strand=malloc(sizeof(char));
 
 		pivot = (low+high)/2;
 
@@ -201,13 +201,13 @@ int RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	int numMatches=0;
 
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
-	sequenceNames = (char**)malloc(sizeof(char*)*numFiles);
-	sequences= (char**)malloc(sizeof(char*)*numFiles);
-	pairedSequences = (char**)malloc(sizeof(char*)*numFiles);
+	sequenceNames = malloc(sizeof(char*)*numFiles);
+	sequences= malloc(sizeof(char*)*numFiles);
+	pairedSequences = malloc(sizeof(char*)*numFiles);
 	for(i=0;i<numFiles;i++) {
-		sequenceNames[i] = (char*)malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-		sequences[i] = (char*)malloc(sizeof(char)*SEQUENCE_LENGTH);
-		pairedSequences[i] = (char*)malloc(sizeof(char)*SEQUENCE_LENGTH);
+		sequenceNames[i] = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+		sequences[i] = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		pairedSequences[i] = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	}
 
 	/* Seek to the beginning of the files */
@@ -342,6 +342,7 @@ int RGMatchGetNextFromFile(FILE *fp,
 		fprintf(stderr, "Error.  Could not read in the number of matches.  Terminating!\n");
 		exit(1);
 	}
+	assert(sequenceMatch->numEntries >= 0);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "sequenceName:%s\nsequence:%s\nnumEntries:%d\n",
@@ -351,9 +352,9 @@ int RGMatchGetNextFromFile(FILE *fp,
 	}
 
 	/* Allocate memory for the matches */
-	sequenceMatch->positions = (int*)malloc(sizeof(int)*(sequenceMatch->numEntries));
-	sequenceMatch->chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*(sequenceMatch->numEntries));
-	sequenceMatch->strand = (char*)malloc(sizeof(char)*(sequenceMatch->numEntries));
+	sequenceMatch->positions = malloc(sizeof(unsigned int)*(sequenceMatch->numEntries));
+	sequenceMatch->chromosomes = malloc(sizeof(unsigned char)*(sequenceMatch->numEntries));
+	sequenceMatch->strand = malloc(sizeof(char)*(sequenceMatch->numEntries));
 
 	/* Read first sequence matches */
 	for(i=0;i<sequenceMatch->numEntries;i++) {
@@ -383,11 +384,12 @@ int RGMatchGetNextFromFile(FILE *fp,
 			fprintf(stderr, "Error.  Could not read in the number of paired matches.  Terminating!\n");
 			exit(1);
 		}
+		assert(pairedSequenceMatch->numEntries >= 0);
 
 		/* Allocate memory for the matches */
-		pairedSequenceMatch->positions = (int*)malloc(sizeof(int)*(pairedSequenceMatch->numEntries));
-		pairedSequenceMatch->chromosomes = (unsigned char*)malloc(sizeof(unsigned char)*(pairedSequenceMatch->numEntries));
-		pairedSequenceMatch->strand = (char*)malloc(sizeof(char)*(pairedSequenceMatch->numEntries));
+		pairedSequenceMatch->positions = malloc(sizeof(unsigned int)*(pairedSequenceMatch->numEntries));
+		pairedSequenceMatch->chromosomes = malloc(sizeof(unsigned char)*(pairedSequenceMatch->numEntries));
+		pairedSequenceMatch->strand = malloc(sizeof(char)*(pairedSequenceMatch->numEntries));
 
 		/* Read first pairedSequence matches */
 		for(i=0;i<pairedSequenceMatch->numEntries;i++) {

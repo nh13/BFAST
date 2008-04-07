@@ -47,23 +47,23 @@ enum {RGT_KILOBYTES, RGT_MEGABYTES, RGT_GIGABYTES};
  * numEntries and indexOne and indexTwo.
  * */
 typedef struct {
-	int indexOne;
-	int indexTwo;
-	int numEntries;
-	int *positions;
+	unsigned int indexOne;
+	unsigned int indexTwo;
+	unsigned int numEntries;
+	unsigned int *positions;
 	unsigned char *chromosomes;
 } RGTreeNode;
 
 /* TODO*/
 typedef struct {
 	RGTreeNode *nodes;
-	int numNodes;
-	int gap;
-	int matchLength;
-	int startChr;
-	int startPos;
-	int endChr;
-	int endPos;
+	unsigned int numNodes;
+	unsigned int gap;
+	unsigned int matchLength;
+	unsigned int startChr;
+	unsigned int startPos;
+	unsigned int endChr;
+	unsigned int endPos;
 } RGTree;
 
 /* TODO */
@@ -86,54 +86,54 @@ typedef struct {
 /* TODO */
 typedef struct {
 	char *sequence;
-	int startPos;
-	int endPos;
-	int chromosome;
+	unsigned int startPos;
+	unsigned int endPos;
+	unsigned int chromosome;
 } RGChr;
 
 /* TODO */
 typedef struct {
 	RGChr *chromosomes;
-	int numChrs;
-	int startChr;
-	int startPos;
-	int endChr;
-	int endPos;
+	unsigned int numChrs;
+	unsigned int startChr;
+	unsigned int startPos;
+	unsigned int endChr;
+	unsigned int endPos;
 } RGList;
 
 /* TODO */
 typedef struct {
-	int numEntries;
+	unsigned int numEntries;
 	unsigned char *index; 
-	int *positions;
+	unsigned int *positions;
 	unsigned char *chromosomes;
 } RGIndexNode;
 
 /* TODO */
 typedef struct {
 	RGIndexNode *nodes;
-	int numNodes;
-	int matchLength;
-	int startChr;
-	int startPos;
-	int endChr;
-	int endPos;
+	unsigned int numNodes;
+	unsigned int matchLength;
+	unsigned int startChr;
+	unsigned int startPos;
+	unsigned int endChr;
+	unsigned int endPos;
 } RGIndex;
 
 typedef struct {
-	int chromosome;
-	int startPos;
-	int endPos;
+	unsigned int chromosome;
+	unsigned int startPos;
+	unsigned int endPos;
 	unsigned char *sequence; /* Store in the bytes via two bits - four nt per char (assuming sizeof(char)==1) */
 } RGBinaryChr;
 
 typedef struct {
 	RGBinaryChr *chromosomes;
-	int numChrs;
-	int startChr;
-	int startPos;
-	int endChr;
-	int endPos;
+	unsigned int numChrs;
+	unsigned int startChr;
+	unsigned int startPos;
+	unsigned int endChr;
+	unsigned int endPos;
 } RGBinary;
 
 #endif

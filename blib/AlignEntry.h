@@ -9,9 +9,9 @@ typedef struct {
 	char readName[SEQUENCE_NAME_LENGTH];
 	char *read; /* The read */
 	char *reference;
-	int length; /* The length of the alignment */
-	int chromosome;
-	int position;
+	unsigned int length; /* The length of the alignment */
+	unsigned int chromosome;
+	unsigned int position;
 	char strand;
 	double score;
 } AlignEntry;

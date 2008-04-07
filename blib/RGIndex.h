@@ -4,10 +4,10 @@
 #include <stdio.h>
 #include "BLibDefinitions.h"
 
-int RGIndexInsert(RGIndex*, char*, int, int, int);
+int RGIndexInsert(RGIndex*, char*, unsigned int, unsigned int, unsigned int);
 void RGIndexCleanUpIndex(RGIndex *index);
-void RGIndexQuickSortNodes(RGIndex*, int, int, int); 
-int RGIndexGetIndex(RGIndex*, unsigned char*);
+void RGIndexQuickSortNodes(RGIndex*, unsigned int, unsigned int, unsigned int); 
+unsigned int RGIndexGetIndex(RGIndex*, unsigned char*);
 void RGIndexDelete(RGIndex*);
 double RGIndexGetSize(RGIndex*, int);
 void RGIndexPrintIndex(FILE*, RGIndex*, int);

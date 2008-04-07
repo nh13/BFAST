@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "math.h"
+#include <math.h>
+#include "sys/malloc.h"
 #include "../blib/RGIndex.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
@@ -48,7 +49,7 @@ void GenerateIndex(RGList *rgList,
 		/* For every starting position of the l-mer */
 		for(j=rgList->chromosomes[i].startPos;j <= rgList->chromosomes[i].endPos - matchLength + 1;j++) {
 			if(VERBOSE >=0 && j%GT_ROTATE_NUM==0) {
-				fprintf(stderr, "\r%2d\t%12d\t%10.2lfMB", 
+				fprintf(stderr, "\r%2d\t%12d\t%10.2lfMB",
 						rgList->chromosomes[i].chromosome,
 						j,
 						RGIndexGetSize(&index, RGT_MEGABYTES));

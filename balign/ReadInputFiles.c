@@ -258,6 +258,9 @@ char ToLower(char a)
 		case 'T':
 			return 't';
 			break;
+		case 'N':
+			return 'n';
+			break;
 		default:
 			return a;
 	}
@@ -315,11 +318,12 @@ void InsertSequenceLetterIntoByte(unsigned char *dest,
 					(*dest) = (*dest) | 0x40;
 					break;
 				case 'N':
+				case 'n':
 					/* two */
 					(*dest) = (*dest) | 0x80;
 					break;
 				default:
-					fprintf(stderr, "Error.  In InsertSequenceLetterIntoByte, could not undertsand repeat [%c].  Terminating!\n",
+					fprintf(stderr, "Error.  In InsertSequenceLetterIntoByte, could not understand repeat [%c].  Terminating!\n",
 							repeat);
 					exit(1);
 			}
@@ -359,6 +363,7 @@ void InsertSequenceLetterIntoByte(unsigned char *dest,
 					(*dest) = (*dest) | 0x04;
 					break;
 				case 'N':
+				case 'n':
 					/* two */
 					(*dest) = (*dest) | 0x08;
 					break;
@@ -421,22 +426,23 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 	/* Assume the key is acgt */
 	assert(ALPHABET_SIZE==4);
 	/* Allocate memory for the key */
-	sm->key = (char*)malloc(sizeof(char)*ALPHABET_SIZE);
+	sm->key = (char*)malloc(sizeof(char)*(ALPHABET_SIZE+1));
 	/* Read in the key */
 	/* Assume the key is acgt */
 	sm->key[0] = 'a';
 	sm->key[1] = 'c';
 	sm->key[2] = 'g';
 	sm->key[3] = 't';
+	sm->key[4] = 'n';
 
 	/* Allocate memory for the scores */
-	sm->scores = (double**)malloc(sizeof(double*)*ALPHABET_SIZE);
-	for(i=0;i<ALPHABET_SIZE;i++) {
-		sm->scores[i] = (double*)malloc(sizeof(double)*ALPHABET_SIZE);
+	sm->scores = (double**)malloc(sizeof(double*)*(ALPHABET_SIZE+1));
+	for(i=0;i<ALPHABET_SIZE+1;i++) {
+		sm->scores[i] = (double*)malloc(sizeof(double)*(ALPHABET_SIZE+1));
 	}
 	/* Read in the score matrix */
-	for(i=0;i<ALPHABET_SIZE;i++) { /* Read row */
-		for(j=0;j<ALPHABET_SIZE;j++) { /* Read column */
+	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
+		for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 			if(fscanf(fp, "%lf", &sm->scores[i][j])==EOF) {
 				fprintf(stderr, "Error.  Could not read scoring matrix cell [%d,%d].  Terminating!\n", i, j);
 				exit(1);
@@ -455,8 +461,8 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 		fprintf(stderr, "gapOpenPenalty:%lf\ngapExtensionPenalty:%lf\n",
 				sm->gapOpenPenalty,
 				sm->gapExtensionPenalty);
-		for(i=0;i<ALPHABET_SIZE;i++) { 
-			for(j=0;j<ALPHABET_SIZE;j++) { 
+		for(i=0;i<ALPHABET_SIZE+1;i++) { 
+			for(j=0;j<ALPHABET_SIZE+1;j++) { 
 				fprintf(stderr, "%lf\t", sm->scores[i][j]);
 			}
 			fprintf(stderr, "\n");

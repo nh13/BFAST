@@ -91,7 +91,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 
 		/* Reallocate pair */
 		length = prevIndex+1;
-		(*a) = (AlignEntry*)realloc((*a), sizeof(AlignEntry)*length);
+		realloc((*a), sizeof(AlignEntry)*length);
 
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Duplicates removed\n");
@@ -111,7 +111,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
-		temp=(AlignEntry*)malloc(sizeof(AlignEntry));
+		temp=malloc(sizeof(AlignEntry));
 		pivot = (low+high)/2;
 
 		AlignEntryCopyAtIndex((*a), pivot, temp, 0);

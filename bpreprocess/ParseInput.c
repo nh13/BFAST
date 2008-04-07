@@ -177,7 +177,11 @@ main (int argc, char **argv)
 										rgList.startChr,
 										rgList.startPos,
 										rgList.endChr,
+<<<<<<< .mine
+										rgList.endPos-((reachedEnd==1)?0:arguments.matchLength-1),
+=======
 										rgList.endPos-((reachedEnd==1)?0:arguments.matchLength+1),
+>>>>>>> .r31
 										arguments.matchLength,
 										BLATTER_INDEX_FILE_EXTENSION);
 								/* Generate our index */

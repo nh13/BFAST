@@ -17,6 +17,7 @@ void RunAligner(RGBinary *rgBinary,
 		char *scoringMatrixFileName,
 		int algorithm,
 		int offsetLength,
+		int maxNumMatches,
 		int pairedEnd,
 		char *outputID,
 		char *outputDir)
@@ -89,6 +90,7 @@ void RunAligner(RGBinary *rgBinary,
 						scoringMatrixFileName,
 						algorithm,
 						offsetLength,
+						maxNumMatches,
 						pairedEnd,
 						outputFP);
 				break;
@@ -123,6 +125,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		char *scoringMatrixFileName,
 		int algorithm,
 		int offsetLength,
+		int maxNumMatches,
 		int pairedEnd,
 		FILE *outputFP)
 {
@@ -174,6 +177,8 @@ void RunDynamicProgramming(FILE *matchFP,
 				pairedEnd)) {
 		numMatches++;
 
+		numAlignEntries = 0;
+
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%d", numMatches);
 		}
@@ -181,94 +186,94 @@ void RunDynamicProgramming(FILE *matchFP,
 			fprintf(stderr, "\nreadMatch.numEntries=%d.\n",
 					readMatch.numEntries);
 		}
+		if(readMatch.numEntries > 0 && (maxNumMatches == 0 || readMatch.numEntries < maxNumMatches)) {
 
-		/* Get the read length */
-		matchLength = strlen(read);
-		assert(matchLength+2*offsetLength < SEQUENCE_LENGTH);
+			/* Get the read length */
+			matchLength = strlen(read);
+			assert(matchLength+2*offsetLength < SEQUENCE_LENGTH);
 
-		/* Allocate memory for the AlignEntries */
-		if(readMatch.numEntries > 0) {
-			aEntry = (AlignEntry*)malloc(sizeof(AlignEntry)*readMatch.numEntries);
-		}
+			/* Allocate memory for the AlignEntries */
+			if(readMatch.numEntries > 0) {
+				aEntry = (AlignEntry*)malloc(sizeof(AlignEntry)*readMatch.numEntries);
+			}
 
-		/* Run the aligner */
-		assert(pairedEnd==0);
-		if(readMatch.numEntries > 0) {
-			numMatchesAligned++;
-		}
-		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "On entry %d out of %d.  chr%d:%d %c\n",
-						i+1,
-						readMatch.numEntries,
-						readMatch.chromosomes[i],
+			/* Run the aligner */
+			assert(pairedEnd==0);
+			if(readMatch.numEntries > 0) {
+				numMatchesAligned++;
+			}
+			for(i=0;i<readMatch.numEntries;i++) { /* For each match */
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "On entry %d out of %d.  chr%d:%d %c\n",
+							i+1,
+							readMatch.numEntries,
+							readMatch.chromosomes[i],
+							readMatch.positions[i],
+							readMatch.strand[i]);
+				}
+
+				/* Get the appropriate reference read */
+				GetSequenceFromReferenceGenome(rgBinary, 
+						readMatch.chromosomes[i], 
 						readMatch.positions[i],
-						readMatch.strand[i]);
+						readMatch.strand[i],
+						offsetLength,
+						reference,
+						matchLength,
+						&referenceLength,
+						&position);
+				assert(referenceLength > 0);
+
+				/* Get alignment */
+				adjustPosition=AlignmentGetScore(read,
+						matchLength,
+						reference,
+						referenceLength,
+						&sm,
+						&aEntry[i]);
+
+				/* Update chromosome, position, strand and sequence name*/
+				aEntry[i].chromosome = readMatch.chromosomes[i];
+				aEntry[i].position = position; /* remember to use the update position */
+				aEntry[i].position = (readMatch.strand[i] == FORWARD)?(aEntry[i].position+adjustPosition):(aEntry[i].position-adjustPosition); /* Adjust position */
+				aEntry[i].strand = readMatch.strand[i]; 
+				strcpy(aEntry[i].readName, readName);
+
+
+				/* Free memory */
+				/* Free AlignEntry */
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "aligned read:%s\naligned reference:%s\nposition:%d\n",
+							aEntry[i].read,
+							aEntry[i].reference,
+							aEntry[i].position);
+				}
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "Finished entry %d out of %d.\n",
+							i+1,
+							readMatch.numEntries);
+				}
 			}
-
-			/* Get the appropriate reference read */
-			GetSequenceFromReferenceGenome(rgBinary, 
-					readMatch.chromosomes[i], 
-					readMatch.positions[i],
-					readMatch.strand[i],
-					offsetLength,
-					reference,
-					matchLength,
-					&referenceLength,
-					&position);
-			assert(referenceLength > 0);
-
-			/* Get alignment */
-			adjustPosition=AlignmentGetScore(read,
-					matchLength,
-					reference,
-					referenceLength,
-					&sm,
-					&aEntry[i]);
-
-			/* Update chromosome, position, strand and sequence name*/
-			aEntry[i].chromosome = readMatch.chromosomes[i];
-			aEntry[i].position = position; /* remember to use the update position */
-			aEntry[i].position = (readMatch.strand[i] == FORWARD)?(aEntry[i].position+adjustPosition):(aEntry[i].position-adjustPosition); /* Adjust position */
-			aEntry[i].strand = readMatch.strand[i]; 
-			strcpy(aEntry[i].readName, readName);
-
-
+			/* Remove duplicate alignments */
+			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Outputting %d aligns.\n",
+						numAlignEntries);
+			}
+			/* Output alignment */
+			for(i=0;i<numAlignEntries;i++) {
+				AlignEntryPrint(&aEntry[i], outputFP);
+			}
 			/* Free memory */
-			/* Free AlignEntry */
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "aligned read:%s\naligned reference:%s\nposition:%d\n",
-						aEntry[i].read,
-						aEntry[i].reference,
-						aEntry[i].position);
+			for(i=0;i<numAlignEntries;i++) {
+				assert(aEntry[i].length>0);
+				free(aEntry[i].read);
+				free(aEntry[i].reference);
 			}
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Finished entry %d out of %d.\n",
-						i+1,
-						readMatch.numEntries);
-			}
-		}
-		/* Remove duplicate alignments */
-		numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Outputting %d aligns.\n",
-					numAlignEntries);
-		}
-		/* Output alignment */
-		for(i=0;i<numAlignEntries;i++) {
-			AlignEntryPrint(&aEntry[i], outputFP);
-		}
-		/* Free memory */
-		for(i=0;i<numAlignEntries;i++) {
-			assert(aEntry[i].length>0);
-			free(aEntry[i].read);
-			free(aEntry[i].reference);
 		}
 		/* Free match */
 		if(readMatch.numEntries > 0) {
 			/* Free AlignEntry */
-			free(aEntry);
-			aEntry = NULL;
 			free(readMatch.positions);
 			free(readMatch.chromosomes);
 			free(readMatch.strand);
@@ -277,6 +282,10 @@ void RunDynamicProgramming(FILE *matchFP,
 			free(pairedSequenceMatch.positions);
 			free(pairedSequenceMatch.chromosomes);
 			free(pairedSequenceMatch.strand);
+		}
+		if(numAlignEntries > 0) {
+			free(aEntry);
+			aEntry = NULL;
 		}
 		/* Initialize match */
 		readMatch.positions=NULL;

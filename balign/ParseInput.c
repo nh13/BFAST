@@ -55,8 +55,13 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
+<<<<<<< .mine
+	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
+=======
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescPairedEnd,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
+>>>>>>> .r31
 	DescMiscTitle, DescHelp
 };
 
@@ -76,6 +81,7 @@ static struct argp_option options[] = {
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
 	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
+	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initaite alignment for a given match", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
@@ -105,7 +111,11 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
+<<<<<<< .mine
+"a:d:e:m:o:r:s:x:E:H:M:O:S:2hpt";
+=======
 "a:d:e:m:o:r:s:x:E:H:O:S:2hpt";
+>>>>>>> .r31
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -172,6 +182,7 @@ main (int argc, char **argv)
 								arguments.scoringMatrixFileName,
 								arguments.algorithm,
 								arguments.offsetLength,
+								arguments.maxNumMatches,
 								arguments.pairedEnd,
 								arguments.outputID,
 								arguments.outputDir);
@@ -300,6 +311,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "offsetLength", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->maxNumMatches < 0) {
+		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->pairedEnd < 0 || args->pairedEnd > 1) {
 		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
@@ -379,6 +394,7 @@ AssignDefaultValues(struct arguments *args)
 	args->endChr=0;
 	args->endPos=0;
 	args->offsetLength=0;
+	args->maxNumMatches=0;
 	args->pairedEnd = 0;
 
 	args->outputID =
@@ -412,6 +428,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
+	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -506,6 +523,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->scoringMatrixFileName = OPTARG;break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
+					case 'M':
+						arguments->maxNumMatches=atoi(OPTARG);break;
 					case 'O':
 						arguments->offsetLength=atoi(OPTARG);break;
 					case 'S':

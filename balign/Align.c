@@ -313,6 +313,9 @@ double GetScoreFromMatrix(char a,
 		case 't':
 			indexA=3;
 			break;
+		case 'n':
+			indexA=4;
+			break;
 		default:
 			fprintf(stderr, "Error.  GetScoreFromMatrix (a) could not understand [%c].  Terminating!\n",
 					a);
@@ -333,6 +336,9 @@ double GetScoreFromMatrix(char a,
 			break;
 		case 't':
 			indexB=3;
+			break;
+		case 'n':
+			indexB=4;
 			break;
 		default:
 			fprintf(stderr, "Error.  GetScoreFromMatrix (b) could not understand [%c].  Terminating!\n",
