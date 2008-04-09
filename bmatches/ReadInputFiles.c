@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include "../blib/BError.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 
@@ -29,8 +30,11 @@ int ReadSequencesToTempFile(char *sequenceFileName,
 
 	/* open sequence file */
 	if((seqFP=fopen(sequenceFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", sequenceFileName);
-		exit(1);
+		PrintError("ReadSequencesToTempFile",
+				sequenceFileName,
+				"Could not open sequenceFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* open a temporary file */
@@ -152,8 +156,11 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput)
 
 	/* open file */
 	if((fp=fopen(rgIndexFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", rgIndexFileName);
-		exit(1);
+		PrintError("ReadRGIndex",
+				rgIndexFileName,
+				"Could not open rgIndexFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read from file */
@@ -181,8 +188,11 @@ void ReadRGTree(char *rgTreeFileName, RGTree *tree, int binaryInput)
 
 	/* open file */
 	if((fp=fopen(rgTreeFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", rgTreeFileName);
-		exit(1);
+		PrintError("ReadRGTree",
+				rgTreeFileName,
+				"Could not open rgTreeFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read from file */
@@ -211,8 +221,11 @@ int ReadFileNames(char *listFileName, char ***fileNames)
 
 	/* open file */
 	if((fp=fopen(listFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", listFileName);
-		exit(1);
+		PrintError("ReadFileNames",
+				listFileName,
+				"Could not open listFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read in the file names */
@@ -252,8 +265,11 @@ int ReadOffsets(char *offsetsFileName, int **offsets)
 
 	/* open file */
 	if((fp=fopen(offsetsFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", offsetsFileName);
-		exit(1);
+		PrintError("ReadOffsets",
+				offsetsFileName,
+				"Could not open offsetsFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	numOffsets=0;

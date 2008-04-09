@@ -29,5 +29,8 @@ void GetReverseCompliment(char*, char*, int);
 int RGSeqPairCompareAtIndex(RGSeqPair*, int, RGSeqPair*, int);
 void RGSeqPairCopyAtIndex(RGSeqPair*, int, RGSeqPair*, int);
 
+void RGSeqPairAllocate(RGSeqPair*, int);
+void RGSeqPairReallocate(RGSeqPair*, int);
+
 #endif
 

@@ -6,6 +6,7 @@ bpreprocess_SOURCES = \
 	GenerateIndex.c	GenerateIndex.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/RGTree.c	../blib/RGTree.h \
+	../blib/RGMatch.c	../blib/RGMatch.h \
 	../blib/BError.c	../blib/BError.h \
 	ParseInput.c	ParseInput.h \
 	Definitions.h

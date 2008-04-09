@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include "BLibDefinitions.h"
+#include "BError.h"
 #include "RGTree.h"
 #include "RGIndex.h"
 
@@ -20,6 +21,13 @@ int RGIndexInsert(RGIndex *index, char *sequence, unsigned int matchLength, unsi
 
 	/* Allocate memory for the curIndex */
 	curIndex = malloc(sizeof(unsigned char)*numChars);
+	if(curIndex == NULL) {
+		PrintError("RGIndexInsert",
+				"curIndex",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	RGIndexGetIndexFromSequence(sequence, matchLength, curIndex);
 
@@ -36,6 +44,13 @@ int RGIndexInsert(RGIndex *index, char *sequence, unsigned int matchLength, unsi
 
 	/* Allocate memory for a new node */
 	index->nodes = realloc(index->nodes, sizeof(RGIndexNode)*index->numNodes);
+	if(NULL == index->nodes) {
+		PrintError("RGIndexInsert",
+				"index->nodes",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
 
 	/* Initialize node */
 	index->nodes[index->numNodes-1].numEntries = 1;
@@ -45,8 +60,29 @@ int RGIndexInsert(RGIndex *index, char *sequence, unsigned int matchLength, unsi
 
 	/* Allocate memory for the node members */
 	index->nodes[index->numNodes-1].positions = malloc(sizeof(unsigned int));
+	if(NULL == index->nodes[index->numNodes-1].positions) {
+		PrintError("RGIndexInsert",
+				"index->nodes[index->numNodes-1].positions",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	index->nodes[index->numNodes-1].chromosomes = malloc(sizeof(unsigned char));
+	if(NULL == index->nodes[index->numNodes-1].chromosomes) {
+		PrintError("RGIndexInsert",
+				"index->nodes[index->numNodes-1].chromosomes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	index->nodes[index->numNodes-1].index = malloc(sizeof(unsigned char)*numChars);
+	if(NULL == index->nodes[index->numNodes-1].index) {
+		PrintError("RGIndexInsert",
+				"index->nodes[index->numNodes-1].index",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	/* Copy over */
 	index->nodes[index->numNodes-1].positions[0] = position;
@@ -91,7 +127,21 @@ void RGIndexCleanUpIndex(RGIndex *index)
 				/* Allocate memory for chromosomes and positions */
 				index->nodes[prevIndex].numEntries += index->nodes[i].numEntries;
 				index->nodes[prevIndex].positions = realloc(index->nodes[prevIndex].positions, sizeof(unsigned int)*index->nodes[prevIndex].numEntries);
+				if(NULL == index->nodes[prevIndex].positions) {
+					PrintError("RGIndexCleanUpIndex",
+							"index->nodes[prevIndex].positions",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
 				index->nodes[prevIndex].chromosomes = realloc(index->nodes[prevIndex].chromosomes, sizeof(unsigned char)*index->nodes[prevIndex].numEntries);
+				if(NULL == index->nodes[prevIndex].chromosomes) {
+					PrintError("RGIndexCleanUpIndex",
+							"index->nodes[prevIndex].chromosomes",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
 				/* Copy over chromosomes and positions */
 				for(j=start;j<index->nodes[prevIndex].numEntries;j++) {
 					index->nodes[prevIndex].positions[j] = index->nodes[i].positions[j-start];
@@ -123,6 +173,13 @@ void RGIndexCleanUpIndex(RGIndex *index)
 		index->numNodes = prevIndex+1;
 		/* Reallocate memory to reflect new number of nodes */
 		index->nodes = realloc(index->nodes, sizeof(RGIndexNode)*index->numNodes);
+		if(NULL == index->nodes) {
+			PrintError("RGIndexCleanUpIndex",
+					"index->nodes",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 
 		/* Sort each node */
 		for(i=0;i<index->numNodes;i++) {
@@ -145,6 +202,13 @@ void RGIndexQuickSortNodes(RGIndex *index, unsigned int low, unsigned int high, 
 	if(low < high) {
 		/* Allocate temp */
 		temp = malloc(sizeof(RGIndexNode));
+		if(NULL == temp) {
+			PrintError("RGIndexQuickSortNodes",
+					"temp",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the middle element for now.
@@ -190,10 +254,10 @@ void RGIndexQuickSortNodes(RGIndex *index, unsigned int low, unsigned int high, 
 
 		/* Call recursively */
 		if(pivot > 0) {
-		RGIndexQuickSortNodes(index, low, pivot-1, numComplete+1);
+			RGIndexQuickSortNodes(index, low, pivot-1, numComplete+1);
 		}
 		if(pivot < UINT_MAX) {
-		RGIndexQuickSortNodes(index, pivot+1, high, pivot+1);
+			RGIndexQuickSortNodes(index, pivot+1, high, pivot+1);
 		}
 	}
 
@@ -338,6 +402,13 @@ void RGIndexPrintIndex(FILE *fp, RGIndex *index, int binaryOutput)
 				/* Reallocate memory */
 				tempIntArrLength = numChars;
 				tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+				if(NULL == tempIntArr) {
+					PrintError("RGIndexPrintIndex",
+							"tempIntArr",
+							"Could not reallocate memory",
+							Exit,
+							MallocMemory);
+				}
 			}
 
 			/* print */
@@ -360,6 +431,13 @@ void RGIndexPrintIndex(FILE *fp, RGIndex *index, int binaryOutput)
 					/* Reallocate memory */
 					tempIntArrLength = index->nodes[i].numEntries;
 					tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+					if(NULL == tempIntArr) {
+						PrintError("RGIndexPrintIndex",
+								"tempIntArr",
+								"Could not reallocate memory",
+								Exit,
+								MallocMemory);
+					}
 				}
 
 				/* Print the positions */ 
@@ -409,6 +487,13 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 	assert(index->numNodes > 0);
 	/* Allocate memory for the nodes */
 	index->nodes = malloc(sizeof(RGIndexNode)*index->numNodes);
+	if(NULL == index->nodes) {
+		PrintError("RGIndexReadIndex",
+				"index->nodes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	assert(index->nodes!=NULL);
 
 	if(binaryInput == 0) {
@@ -416,6 +501,13 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 		for(i=0;i<index->numNodes;i++) {
 			/* Allocate memory for the index */
 			index->nodes[i].index = malloc(sizeof(unsigned char)*numChars);
+			if(NULL == index->nodes[i].index) {
+				PrintError("RGIndexReadIndex",
+						"index->nodes[i].index",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
 		}
 
 		/* Read in the nodes */
@@ -423,8 +515,11 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 			/* Read in the index */
 			for(j=0;j<numChars;j++) {
 				if(fscanf(fp, "%d", &tempInt)==EOF) {
-					fprintf(stderr, "Error.  Could not read in index (unsigned char %d).  Terminating!\n", j);
-					exit(1);
+					PrintError("RGIndexReadIndex",
+							"tempInt",
+							"Could not read in index of a node",
+							Exit,
+							EndOfFile);
 				}
 				index->nodes[i].index[j] = tempInt;
 			}
@@ -432,22 +527,42 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 			/* Read in the number of entries */
 			if(fscanf(fp, "%d",
 						&index->nodes[i].numEntries)==EOF) {
-				fprintf(stderr, "Error.  Could not read in the numEntries.  Terminating!\n");
-				exit(1);
+				PrintError("RGIndexReadIndex",
+						"index->nodes[i].numEntries",
+						"Could not read in the number of entries",
+						Exit,
+						EndOfFile);
 			}
 
 			/* Allocate memory for the positions and chromosomes */
 			if(index->nodes[i].numEntries > 0) {
 				index->nodes[i].positions = malloc(sizeof(unsigned int)*index->nodes[i].numEntries);
+				if(NULL == index->nodes[i].positions) {
+					PrintError("RGIndexReadIndex",
+							"index->nodes[i].positions",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
 				index->nodes[i].chromosomes = malloc(sizeof(unsigned char)*index->nodes[i].numEntries);
+				if(NULL == index->nodes[i].chromosomes) {
+					PrintError("RGIndexReadIndex",
+							"index->nodes[i].chromosomes",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
 
 				/* Read in positions and chromosomes */
 				for(j=0;j<index->nodes[i].numEntries;j++) {
 					if(fscanf(fp, "%d %d",
 								&tempInt,
 								&index->nodes[i].positions[j])==EOF) {
-						fprintf(stderr, "Error.  Could not read in position/chromosome %d.  Terminating!\n", j+1);
-						exit(1);
+						PrintError("RGIndexReadIndex",
+								NULL,
+								"Could not read in chromosome and position",
+								Exit,
+								EndOfFile);
 					}
 					index->nodes[i].chromosomes[j] = tempInt;
 				}
@@ -461,11 +576,25 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 	else {
 		/* This will hold the index temporarily */
 		tempIndex = malloc(sizeof(unsigned int)*numChars);
+		if(NULL == tempIndex) {
+			PrintError("RGIndexReadIndex",
+					"tempIndex",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 
 		/* Preallocate as much as possible */
 		for(i=0;i<index->numNodes;i++) {
 			/* Allocate memory for the index */
 			index->nodes[i].index = malloc(sizeof(unsigned char)*numChars);
+			if(NULL == index->nodes[i].index) {
+				PrintError("RGIndexReadIndex",
+						"index->nodes[i].index",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
 		}
 
 		/* Read in the nodes */
@@ -489,11 +618,32 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 					/* Reallocate temp array */
 					tempIntArrLength = index->nodes[i].numEntries;
 					tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+					if(NULL == tempIntArr) {
+						PrintError("RGIndexReadIndex",
+								"tempIntArr",
+								"Could not reallocate memory",
+								Exit,
+								ReallocMemory);
+					}
 				}
 
 				/* Allocate memory for the positions and chromosomes */
 				index->nodes[i].positions = malloc(sizeof(unsigned int)*index->nodes[i].numEntries);
+				if(NULL == index->nodes[i].positions) {
+					PrintError("RGIndexReadIndex",
+							"index->nodes[i].positions",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
 				index->nodes[i].chromosomes = malloc(sizeof(unsigned char)*index->nodes[i].numEntries);
+				if(NULL == index->nodes[i].chromosomes) {
+					PrintError("RGIndexReadIndex",
+							"index->nodes[i].chromosomes",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
 
 				/* Read in positions */
 				fread(tempIntArr, sizeof(unsigned int), index->nodes[i].numEntries, fp);
@@ -592,25 +742,26 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int binaryInput)
 					&startChr,
 					&startPos,
 					&endChr,
-					&endPos)!=EOF) {
-		}
-		else {
-			fprintf(stderr, "Error.  Could not read header file in RGIndexReadFromFile.  Terminating!\n");
-			exit(1);
+					&endPos)==EOF) {
+			PrintError("RGIndexReadHeader",
+					NULL,
+					"Could not read header",
+					Exit,
+					EndOfFile);
 		}
 	}
 	else {
-		if(fread(&numNodes, sizeof(unsigned int), 1, fp)!=EOF
-				&& fread(&matchLength, sizeof(unsigned int), 1, fp)!=EOF 
-				&& fread(&startChr, sizeof(unsigned int), 1, fp)!=EOF
-				&& fread(&startPos, sizeof(unsigned int), 1, fp)!=EOF
-				&& fread(&endChr, sizeof(unsigned int), 1, fp)!=EOF
-				&& fread(&endPos, sizeof(unsigned int), 1, fp)!=EOF) {
-
-		}
-		else {
-			fprintf(stderr, "Error.  Could not read header file in RGIndexReadFromFile.  Terminating!\n");
-			exit(1);
+		if(fread(&numNodes, sizeof(unsigned int), 1, fp)==EOF
+				|| fread(&matchLength, sizeof(unsigned int), 1, fp)==EOF 
+				|| fread(&startChr, sizeof(unsigned int), 1, fp)==EOF
+				|| fread(&startPos, sizeof(unsigned int), 1, fp)==EOF
+				|| fread(&endChr, sizeof(unsigned int), 1, fp)==EOF
+				|| fread(&endPos, sizeof(unsigned int), 1, fp)==EOF) {
+			PrintError("RGIndexReadHeader",
+					NULL,
+					"Could not read header",
+					Exit,
+					EndOfFile);
 		}
 		/* Big Endian/Little Endian conversion */
 		numNodes = ntohl(numNodes);
@@ -675,8 +826,29 @@ int RGIndexGetMatches(RGIndex *index, unsigned char *curIndex, char direction, R
 		startIndex = m->numEntries;
 		m->numEntries = m->numEntries + index->nodes[nodeIndex].numEntries;
 		m->positions = realloc(m->positions, sizeof(unsigned int)*(m->numEntries)); 
+		if(NULL == m->positions) {
+			PrintError("RGIndexGetMatches",
+					"m->positions",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		m->chromosomes = realloc(m->chromosomes, sizeof(unsigned char)*(m->numEntries)); 
+		if(NULL == m->chromosomes) {
+			PrintError("RGIndexGetMatches",
+					"m->chromosomes",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		m->strand = realloc(m->strand, sizeof(char)*(m->numEntries)); 
+		if(NULL == m->strand) {
+			PrintError("RGIndexGetMatches",
+					"m->strand",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 
 		/* Copy over */
 		for(i=startIndex;i<m->numEntries;i++) {
@@ -692,8 +864,11 @@ int RGIndexGetMatches(RGIndex *index, unsigned char *curIndex, char direction, R
 				m->strand[i] = direction;
 			}
 			else {
-				fprintf(stderr, "Error.  Could not understand direction [%c].  Terminating!\n", direction);
-				exit(1);
+				PrintError("RGIndexGetMatches",
+						"direction",
+						"Could not understand direction",
+						Exit,
+						OutOfRange);
 			}
 
 		}
@@ -775,10 +950,10 @@ void RGIndexQuickSortNode(RGIndex *index, int curNode, int low, int high)
 
 		/* Call recursively */
 		if(pivot > 0) {
-		RGIndexQuickSortNode(index, curNode, low, pivot-1);
+			RGIndexQuickSortNode(index, curNode, low, pivot-1);
 		}
 		if(pivot < UINT_MAX) {
-		RGIndexQuickSortNode(index, curNode, pivot+1, high);
+			RGIndexQuickSortNode(index, curNode, pivot+1, high);
 		}
 	}
 }
@@ -814,8 +989,11 @@ void RGIndexGetIndexFromSequence(char *sequence, int matchLength, unsigned char 
 					temp=3;
 					break;            
 				default:
-					fprintf(stderr, "Error: sequence not a proper character [%c] RGIndexGetIndexFromSequence.  Terminating!\n", sequence[cur]);
-					exit(1);
+					PrintError("RGIndexGetIndexFromSequence",
+							"sequence[cur]",
+							"Sequence is not a proper character",
+							Exit,
+							OutOfRange);
 					break;
 			}
 			number += temp*pow(ALPHABET_SIZE, j);

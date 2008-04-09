@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
+#include "../blib/BError.h"
 #include "../blib/RGMatch.h" /* To read in the matches */
 #include "../blib/RGSeqPair.h" /* To get the reverse compliment */
 #include "../blib/AlignEntry.h" /* For output */
@@ -33,8 +34,11 @@ void RunAligner(RGBinary *rgBinary,
 
 	/* Open matches file */
 	if((matchesFP=fopen(matchesFileName, "r"))==0) {
-		fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n", matchesFileName);
-		exit(1);
+		PrintError("RunAligner",
+				matchesFileName,
+				"Could not open matchesFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read in the list of file names*/
@@ -57,9 +61,11 @@ void RunAligner(RGBinary *rgBinary,
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "w"))==0) {
-		fprintf(stderr, "Error.  Could not open %s for writing.  Terminating!\n",
-				outputFileName);
-		exit(1);
+		PrintError("RunAligner",
+				outputFileName,
+				"Could not open outputFileName for writing",
+				Exit,
+				OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
@@ -77,9 +83,11 @@ void RunAligner(RGBinary *rgBinary,
 
 		/* Open current match file */
 		if((matchFP=fopen(matchFileNames[i], "r"))==0) {
-			fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
-					matchFileNames[i]);
-			exit(1);
+			PrintError("RunAligner",
+					matchFileNames[i],
+					"Could not open matchesFileNames[] for reading",
+					Exit,
+					OpenFileError);
 		}
 
 		/* Run selected algorithm */
@@ -95,9 +103,11 @@ void RunAligner(RGBinary *rgBinary,
 						outputFP);
 				break;
 			default:
-				fprintf(stderr, "Error.  Could not understand algorithm option %d.  Terminating!\n",
-						algorithm);
-				exit(1);
+				PrintError("RunAligner",
+						NULL,
+						"Could not understand algorithm option",
+						Exit,
+						OutOfRange);
 				break;
 		}
 		/* Close the match file */
@@ -335,6 +345,8 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 	numCharsPerByte=ALPHABET_SIZE/2;
 
 	/* Get the start and end positions */
+	startPos=-1;
+	endPos=-1;
 	if(FORWARD == strand) {
 		startPos = position - offsetLength;
 		endPos = position + matchLength - 1 + offsetLength;
@@ -344,9 +356,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 		endPos = position + offsetLength;
 	}
 	else {
-		fprintf(stderr, "Error.  Could not recognize strand [%c].  Terminating!\n",
-				strand);
-		exit(1);
+		PrintError("GetSequenceFromReferenceGenome",
+				NULL,
+				"Could not recognize strand",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Get chromosome index in rgBinary */
@@ -365,11 +379,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 
 	/* Check chromosome bounds */
 	if(chromosome < rgBinary->startChr || chromosome > rgBinary->endChr) {
-		fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome: chromosome [%d] out of range [%d,%d]\n",
-				chromosome,
-				rgBinary->startChr,
-				rgBinary->endChr);
-		exit(1);
+		PrintError("GetSequenceFromReferenceGenome",
+				NULL,
+				"Chromosome is out of range",
+				Exit,
+				OutOfRange);
 	}
 
 
@@ -400,12 +414,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 	}
 
 	if(position < rgBinary->chromosomes[chrIndex].startPos || position > rgBinary->chromosomes[chrIndex].endPos) {
-		fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome: end position [%d] out of range [%d,%d] for chromosome [%d].  Terminating!\n",
-				endPos,
-				rgBinary->chromosomes[chrIndex].startPos,
-				rgBinary->chromosomes[chrIndex].endPos,
-				chromosome);
-		exit(1);
+		PrintError("GetSequenceFromReferenceGenome",
+				NULL,
+				"Position out of range",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Get the reference sequence */
@@ -440,9 +453,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 						repeat = 2;
 						break;
 					default:
-						fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand repeat [%c].  Terminating!\n",
-								repeat);
-						exit(1);
+						PrintError("GetSequenceFromReferenceGenome",
+								NULL,
+								"Could not understand case 0 repeat",
+								Exit,
+								OutOfRange);
 						break;
 				}
 				/* third and fourth bits from the left */
@@ -461,9 +476,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 						c = 't';
 						break;
 					default:
-						fprintf(stderr, "Error.  Could not get third and fourth bits from the left of %x.  Terminating!\n",
-								curChar);
-						exit(1);
+						PrintError("GetSequenceFromReferenceGenome",
+								NULL,
+								"Could not understand case 0 base",
+								Exit,
+								OutOfRange);
 						break;
 				}
 				break;
@@ -481,9 +498,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 						repeat = 2;
 						break;
 					default:
-						fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand repeat [%c].  Terminating!\n",
-								repeat);
-						exit(1);
+						PrintError("GetSequenceFromReferenceGenome",
+								NULL,
+								"Could not understand case 1 repeat",
+								Exit,
+								OutOfRange);
 						break;
 				}
 				/* right-most 2-bits */
@@ -502,16 +521,20 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 						c = 't';
 						break;
 					default:
-						fprintf(stderr, "Error.  Could not get right-most 2-bits of %x.  Terminating!\n",
-								curChar);
-						exit(1);
+						PrintError("GetSequenceFromReferenceGenome",
+								NULL,
+								"Could not understand case 1 base",
+								Exit,
+								OutOfRange);
 						break;
 				}
 				break;
 			default:
-				fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand byteIndex [%d].  Terminating!\n",
-						byteIndex);
-				exit(1);
+				PrintError("GetSequenceFromReferenceGenome",
+						"byteIndex",
+						"Could not understand byteIndex",
+						Exit,
+						OutOfRange);
 		}
 		/* Update based on repeat */
 		switch(repeat) {
@@ -544,9 +567,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 			case 'N':
 				break;
 			default:
-				fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand final char [%c].  Terminating!\n",
-						c);
-				exit(1);
+				PrintError("GetSequenceFromReferenceGenome",
+						NULL,
+						"Could not understand base",
+						Exit,
+						OutOfRange);
 		}
 		/* Update reference */
 		reference[i-startPos] = c;
@@ -564,8 +589,11 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 		free(reverseCompliment);
 	}
 	else {
-		fprintf(stderr, "Error.  Could not understand strandedness [%c].  Terminating!\n", strand);
-		exit(1);
+		PrintError("GetSequenceFromReferenceGenome",
+				"strand",
+				"Could not understand strand",
+				Exit,
+				OutOfRange);
 	}
 	/* Update start pos and reference length */
 	(*returnReferenceLength) = referenceLength;
@@ -612,8 +640,11 @@ void GetReverseComplimentAnyCase(char *s,
 				r[i] = 'A';
 				break;
 			default:
-				fprintf(stderr, "Error.  In GetReverseComplimentAnyCase, could not understand %c.  Terminating!\n", s[length-1-i]);
-				exit(1);
+				PrintError("GetReverseComplimentAnyCase",
+						NULL,
+						"Could not understand sequence base",
+						Exit,
+						OutOfRange);
 				break;
 		}
 	}

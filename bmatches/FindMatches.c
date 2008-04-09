@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string.h>
 #include <time.h>
+#include "../blib/BError.h"
 #include "../blib/RGIndex.h"
 #include "../blib/RGTree.h"
 #include "../blib/RGSeqPair.h"
@@ -51,15 +52,21 @@ void RunMatches(char *outputFileName,
 	/* Read in the RGIndex File Names */
 	numRGIndexes=ReadFileNames(rgIndexListFileName, &rgIndexFileNames);
 	if(numRGIndexes<=0) {
-		fprintf(stderr, "Error.  Read zero indexes from %s.  Terminating!\n", rgIndexListFileName);
-		exit(1);
+		PrintError("RunMatches",
+				"numRGIndexes",
+				"Read zero indexes",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Read in the RGTree File Names */
 	numRGTrees=ReadFileNames(rgTreeListFileName, &rgTreeFileNames);
 	if(numRGTrees<=0) {
-		fprintf(stderr, "Error.  Read zero rgTrees from %s.  Terminating!\n", rgTreeListFileName);
-		exit(1);
+		PrintError("RunMatches",
+				"numRGTrees",
+				"Read zero trees",
+				Exit,
+				OutOfRange);
 	}
 
 	/* TODO */
@@ -96,8 +103,11 @@ void RunMatches(char *outputFileName,
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "w"))==0) {
-		fprintf(stderr, "Error opening %s for writing.  Terminating!\n", outputFileName);
-		exit(1);
+		PrintError("RunMatches",
+				outputFileName,
+				"Could not open outputFileName for writing",
+				Exit,
+				OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
@@ -271,12 +281,11 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 			matchLength = index.matchLength;
 		}
 		else if(matchLength != index.matchLength) {
-			fprintf(stderr, "Error.  Index %d [%s] has matchLength %d while other indexes had matchLength %d.  Terminating!\n",
-					i+1,
-					rgIndexFileNames[i],
-					index.matchLength,
-					matchLength);
-			exit(1);
+			PrintError("FindMatchesInIndexes",
+					"index.matchLength",
+					"Current index has a different matchlength than previous indexes",
+					Exit,
+					OutOfRange);
 		}
 
 		/* reset pointer to temp file to the beginning of the file */
@@ -369,8 +378,11 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 	int numSkipped = 0;
 
 	if(pairedEnd==1) {
-		fprintf(stderr, "Error.  Paired end not implemented for FindMatchesInIndex\n");
-		exit(1);
+		PrintError("FindMatchesInIndex",
+				"pairedEnd",
+				"Paired end not implemented",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Initialize match structures */
@@ -464,15 +476,6 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 		}
 		else {
 			numSkipped++;
-			/* Notify user ? */
-			/*
-			   fprintf(stderr, "\nSequence:%s\nSequence length:%d\nmatchLength:%d\n",
-			   sequence,
-			   (int)strlen(sequence),
-			   index->matchLength);
-			   fprintf(stderr, "Error.  Sequence %d does not match 'matchLength'.  Terminating!\n", numRead);
-			   exit(1);
-			   */
 		}
 	}
 	if(VERBOSE >= 0) {

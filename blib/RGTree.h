@@ -20,5 +20,7 @@ unsigned int RGTreeGetIndexFromSequence(char*, int);
 void RGTreeNodeCopy(RGTreeNode *src, RGTreeNode *dest);
 int RGTreeNodeCompare(RGTreeNode *a, RGTreeNode *b);
 void RGTreeQuickSortNode(RGTree*, unsigned int, unsigned int, unsigned int);
+void RGTreeNodeAllocate(RGTreeNode*, int);
+void RGTreeNodeReallocate(RGTreeNode*, int);
 
 #endif

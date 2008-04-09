@@ -6,6 +6,7 @@
 #include <math.h>
 #include "Definitions.h"
 #include "../blib/BLibDefinitions.h"
+#include "../blib/BError.h"
 #include "ReadInputFiles.h"
 
 /* TODO */
@@ -44,8 +45,11 @@ int ReadReferenceGenome(char *rgListFileName,
 
 	/* open file */
 	if((fpRG=fopen(rgListFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", rgListFileName);
-		exit(1);
+		PrintError("ReadReferenceGenome",
+				rgListFileName,
+				"Could not open rgListFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read in file names */
@@ -56,7 +60,21 @@ int ReadReferenceGenome(char *rgListFileName,
 	while(fscanf(fpRG, "%s", defaultFileName)!=EOF) {
 		numChrFileNames++;
 		chrFileNames = realloc(chrFileNames, sizeof(char*)*(numChrFileNames));
+		if(NULL==chrFileNames) {
+			PrintError("ReadReferenceGenome",
+					"chrFileNames",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		chrFileNames[numChrFileNames-1] = (char*)malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+		if(NULL==chrFileNames[numChrFileNames-1]) {
+			PrintError("ReadReferenceGenome",
+					"chrFileNames[]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		strcpy(chrFileNames[numChrFileNames-1], defaultFileName);
 		if(VERBOSE>1) {
 			fprintf(stderr, "%d:%s\n", numChrFileNames, chrFileNames[numChrFileNames-1]);
@@ -119,15 +137,20 @@ int ReadReferenceGenome(char *rgListFileName,
 		/* open file */
 		assert(curChr <= numChrFileNames);
 		if((fpRG=fopen(chrFileNames[curChr-1], "r"))==0) {
-			fprintf(stderr, "Error opening %s for reading.  Terminating!\n", chrFileNames[curChr-1]);
-			exit(1);
+			PrintError("ReadReferenceGenome",
+					chrFileNames[curChr-1],
+					"Could not open chromosome file name for reading",
+					Exit,
+					OpenFileError);
 		}
 
 		/* Read in header */
 		if(fscanf(fpRG, "%s", header) == EOF) {
-			fprintf(stderr, "Error.  Could not read header from %s.  Terminating!\n",
-					chrFileNames[curChr-1]);
-			exit(1);
+			PrintError("ReadReferenceGenome",
+					chrFileNames[curChr-1],
+					"Could not read in header from chromsome file",
+					Exit,
+					EndOfFile);
 		}
 
 		/* Update the number of chromosomes */
@@ -135,6 +158,13 @@ int ReadReferenceGenome(char *rgListFileName,
 
 		/* Reallocate memory */
 		rgList->chromosomes = (RGChr*)realloc(rgList->chromosomes, numChrs*sizeof(RGChr));
+		if(NULL == rgList->chromosomes) {
+			PrintError("ReadReferenceGenome",
+					"rgList->chromosomes",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		rgList->chromosomes[numChrs-1].sequence = NULL;
 
 		/* Read in Chromosome */
@@ -163,11 +193,18 @@ int ReadReferenceGenome(char *rgListFileName,
 				else {
 					if(numPosRead%RIF_REALLOCATE_INCREMENT==0) {
 						rgList->chromosomes[numChrs-1].sequence = realloc(rgList->chromosomes[numChrs-1].sequence, sizeof(char)*(numPosRead+RIF_REALLOCATE_INCREMENT));
+						if(NULL==rgList->chromosomes[numChrs-1].sequence) {
+							PrintError("ReadReferenceGenome",
+									"rgList->chromosomes[].sequence",
+									"Could not reallocate memory",
+									Exit,
+									ReallocMemory);
+						}
+						rgList->chromosomes[numChrs-1].sequence[numPosRead] = c;
+						numPosRead++;
 					}
-					rgList->chromosomes[numChrs-1].sequence[numPosRead] = c;
-					numPosRead++;
+					curPos++;
 				}
-				curPos++;
 			}
 		}
 		/* Decrement position */
@@ -195,6 +232,13 @@ int ReadReferenceGenome(char *rgListFileName,
 
 		/* Reallocate to reduce memory (fit exactly) */
 		rgList->chromosomes[numChrs-1].sequence = realloc(rgList->chromosomes[numChrs-1].sequence, sizeof(char)*(numPosRead));
+		if(NULL == rgList->chromosomes[numChrs-1].sequence) {
+			PrintError("ReadReferenceGenome",
+					"rgList->chromosomes[].sequence",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 
 		/* Close file */
 		fclose(fpRG);
@@ -229,20 +273,31 @@ void ReadGaps(char *gapFileName,
 	int tempGap;
 
 	if((fp=fopen(gapFileName, "r"))==0) {
-		fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
-				gapFileName);
-		exit(1);
+		PrintError("ReadGaps",
+				gapFileName,
+				"Could not open gapFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 	(*maxGap)=0;
 	(*numGaps)=0;
 	while(fscanf(fp, "%d", &tempGap)!=EOF) {
 		(*numGaps)++;
 		(*gaps)=realloc((*gaps), sizeof(int)*(*numGaps));
+		if(NULL == (*gaps)) {
+			PrintError("ReadGaps",
+					"(*gap)",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		(*gaps)[(*numGaps)-1] = tempGap;
 		if((*numGaps)>1 && (*gaps)[(*numGaps)-2] >= (*gaps)[(*numGaps)-1]) {
-			fprintf(stderr, "Error.  Gaps in %s must be in ascending order.  Terminating!\n",
-					gapFileName);
-			exit(1);
+			PrintError("ReadGaps",
+					gapFileName,
+					"Gaps in gapFileName must be in ascending order",
+					Exit,
+					OutOfRange);
 		}
 		/* Make sure that we don't go backwards */
 		assert((*gaps)[(*numGaps)-1] > -1.0*fabs(matchLength));
@@ -251,9 +306,11 @@ void ReadGaps(char *gapFileName,
 		}
 	}
 	if((*numGaps) <= 0) {
-		fprintf(stderr, "Error. Could not read any gaps from %s.  Terminating!\n",
-				gapFileName);
-		exit(1);
+		PrintError("ReadGaps",
+				gapFileName,
+				"Could not read any gaps from gapFileName",
+				Exit,
+				OutOfRange);
 	}
 	fclose(fp);
 

@@ -6,6 +6,8 @@
 #include <limits.h>
 #include <string.h>
 #include "BLibDefinitions.h"
+#include "BError.h"
+#include "RGMatch.h"
 #include "RGTree.h"
 
 /* TODO */
@@ -32,6 +34,13 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, unsigned in
 
 	/* Allocate memory for a new node */
 	tree->nodes = realloc(tree->nodes, sizeof(RGTreeNode)*tree->numNodes);
+	if(NULL == tree->nodes) {
+		PrintError("RGTreeInsert",
+				"tree->nodes",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
 
 	/* Initialize node */
 	tree->nodes[tree->numNodes-1].numEntries = 1;
@@ -41,8 +50,7 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, unsigned in
 	tree->nodes[tree->numNodes-1].chromosomes = NULL;
 
 	/* Allocate memory for the node members */
-	tree->nodes[tree->numNodes-1].positions = malloc(sizeof(unsigned int));
-	tree->nodes[tree->numNodes-1].chromosomes = malloc(sizeof(unsigned char));
+	RGTreeNodeAllocate(&tree->nodes[tree->numNodes-1], 1);
 
 	/* Copy over */
 	tree->nodes[tree->numNodes-1].positions[tree->nodes[tree->numNodes-1].numEntries-1] = position;
@@ -80,8 +88,7 @@ void RGTreeCleanUpTree(RGTree *tree)
 				unsigned int start = tree->nodes[prevIndex].numEntries;
 				/* Allocate memory for chromosomes and positions */
 				tree->nodes[prevIndex].numEntries += tree->nodes[i].numEntries;
-				tree->nodes[prevIndex].positions = realloc(tree->nodes[prevIndex].positions, sizeof(unsigned int)*tree->nodes[prevIndex].numEntries);
-				tree->nodes[prevIndex].chromosomes = realloc(tree->nodes[prevIndex].chromosomes, sizeof(unsigned char)*tree->nodes[prevIndex].numEntries);
+				RGTreeNodeAllocate(&tree->nodes[prevIndex], tree->nodes[prevIndex].numEntries);
 				/* Copy over chromosomes and positions */
 				for(j=start;j<tree->nodes[prevIndex].numEntries;j++) {
 					tree->nodes[prevIndex].positions[j] = tree->nodes[i].positions[j-start];
@@ -114,6 +121,13 @@ void RGTreeCleanUpTree(RGTree *tree)
 		tree->numNodes = prevIndex+1;
 		/* Reallocate memory to reflect new number of nodes */
 		tree->nodes = realloc(tree->nodes, sizeof(RGTreeNode)*tree->numNodes);
+		if(NULL == tree->nodes) {
+			PrintError("RGTreeCleanUpTree",
+					"tree->nodes",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 
 		/* Sort each node */
 		for(i=0;i<tree->numNodes;i++) {
@@ -137,7 +151,13 @@ void RGTreeQuickSortNodes(RGTree *tree, unsigned int low, unsigned int high, uns
 	if(low < high) {
 		/* Allocate temp */
 		temp = malloc(sizeof(RGTreeNode));
-		assert(temp!=NULL);
+		if(NULL == temp) {
+			PrintError("RGTreeQuickSortNodes",
+					"temp",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the middle element for now.
@@ -329,6 +349,13 @@ void RGTreePrintTree(FILE *fp, RGTree *tree, int binaryOutput)
 				if(tree->nodes[i].numEntries > tempIntArrLength) {
 					tempIntArrLength = tree->nodes[i].numEntries;
 					tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+					if(NULL == tempIntArr) {
+						PrintError("RGTreePrintTree",
+								"tempIntArr",
+								"Could not reallocate memory",
+								Exit,
+								ReallocMemory);
+					}
 				}
 				/* positions */
 				for(j=0;j<tree->nodes[i].numEntries;j++) {
@@ -372,6 +399,13 @@ int RGTreeReadTree(FILE *fp, RGTree *tree, int binaryInput)
 
 	/* Allocate memory for the nodes */
 	tree->nodes = malloc(sizeof(RGTreeNode)*tree->numNodes);
+	if(NULL == tree->nodes) {
+		PrintError("RGTreeReadTree",
+				"tree->nodes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	/* Read in the nodes */
 	if(binaryInput == 0) {
@@ -387,8 +421,7 @@ int RGTreeReadTree(FILE *fp, RGTree *tree, int binaryInput)
 
 			if(tree->nodes[i].numEntries > 0) {
 				/* Allocate memory for the positions and chromosomes */
-				tree->nodes[i].positions = malloc(sizeof(unsigned int)*tree->nodes[i].numEntries);
-				tree->nodes[i].chromosomes = malloc(sizeof(unsigned char)*tree->nodes[i].numEntries);
+				RGTreeNodeAllocate(&tree->nodes[i], tree->nodes[i].numEntries);
 
 				/* Read in positions and chromosomes */
 				for(j=0;j<tree->nodes[i].numEntries;j++) {
@@ -426,11 +459,17 @@ int RGTreeReadTree(FILE *fp, RGTree *tree, int binaryInput)
 					/* Reallocate temp array */
 					tempIntArrLength = tree->nodes[i].numEntries;
 					tempIntArr = realloc(tempIntArr, sizeof(unsigned int)*tempIntArrLength);
+					if(NULL == tempIntArr) {
+						PrintError("RGTreeReadTree",
+								"tempIntArr",
+								"Could not reallocate memory",
+								Exit,
+								ReallocMemory);
+					}
 				}
 
 				/* Allocate memory for the positions and chromosomes */
-				tree->nodes[i].positions = malloc(sizeof(unsigned int)*tree->nodes[i].numEntries);
-				tree->nodes[i].chromosomes = malloc(sizeof(unsigned char)*tree->nodes[i].numEntries);
+				RGTreeNodeAllocate(&tree->nodes[i], tree->nodes[i].numEntries);
 
 				/* Read in positions */
 				fread(tempIntArr, sizeof(unsigned int), tree->nodes[i].numEntries, fp);
@@ -626,9 +665,7 @@ int RGTreeGetMatches(RGTree *tree, unsigned int indexOne, unsigned int indexTwo,
 		/* (Re)Allocate memory for the new matches */
 		startIndex = m->numEntries;
 		m->numEntries = m->numEntries + tree->nodes[index].numEntries;
-		m->positions = realloc(m->positions, sizeof(unsigned int)*(m->numEntries)); 
-		m->chromosomes = realloc(m->chromosomes, sizeof(unsigned char)*(m->numEntries)); 
-		m->strand = realloc(m->strand, sizeof(char)*(m->numEntries)); 
+		RGMatchReallocate(m, m->numEntries);
 
 		/* Copy over */
 		for(i=startIndex;i<m->numEntries;i++) {
@@ -764,5 +801,48 @@ void RGTreeQuickSortNode(RGTree *tree, unsigned int index, unsigned int low, uns
 		if(pivot < UINT_MAX) {
 			RGTreeQuickSortNode(tree, index, pivot+1, high);
 		}
+	}
+}
+
+void RGTreeNodeAllocate(RGTreeNode *a, int numEntries) 
+{
+	a->numEntries = numEntries;
+	a->positions = malloc(sizeof(unsigned int)*numEntries);
+	if(NULL == a->positions) {
+		PrintError("RGTreeNodeAllocate",
+				"a->positions",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	a->chromosomes = malloc(sizeof(unsigned int)*numEntries);
+	if(NULL == a->chromosomes) {
+		PrintError("RGTreeNodeAllocate",
+				"a->chromosomes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+
+	}
+}
+
+void RGTreeNodeReallocate(RGTreeNode *a, int numEntries) 
+{
+	a->numEntries = numEntries;
+	a->positions = realloc(a->positions, sizeof(unsigned int)*numEntries);
+	if(NULL == a->positions) {
+		PrintError("RGTreeNodeAllocate",
+				"a->positions",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	a->chromosomes = realloc(a->chromosomes, sizeof(unsigned int)*numEntries);
+	if(NULL == a->chromosomes) {
+		PrintError("RGTreeNodeAllocate",
+				"a->chromosomes",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
 	}
 }

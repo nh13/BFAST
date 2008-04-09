@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>
+#include "../blib/BError.h"
 #include "../blib/RGTree.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
@@ -32,7 +33,21 @@ void GenerateTree(RGList *rgList,
 
 	/* Allocate memory for holding the temporary sequences */
 	curSequenceOne = (char*)malloc(sizeof(char)*matchLength);
+	if(NULL==curSequenceOne) {
+		PrintError("GenerateTree",
+				"curSequenceOne",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	curSequenceTwo = (char*)malloc(sizeof(char)*matchLength);
+	if(NULL==curSequenceTwo) {
+		PrintError("GenerateTree",
+				"curSequenceTwo",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -170,9 +185,11 @@ void GenerateTree(RGList *rgList,
 
 		/* Open the output file */
 		if(!(fp=fopen(outputFileName, "wb"))) {
-			fprintf(stderr, "Error. Could not open %s for writing.  Terminating!\n",
-					outputFileName);
-			exit(1);
+			PrintError("GenerateTree",
+					outputFileName,
+					"Could not open output file name for writing",
+					Exit,
+					OpenFileError);
 		}   
 
 		RGTreePrintTree(fp, &tree, binaryOutput);

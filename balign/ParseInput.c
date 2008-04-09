@@ -152,8 +152,12 @@ main (int argc, char **argv)
 							fprintf(stderr, BREAK_LINE);
 						}
 						else {
-							fprintf(stderr, "PrintError validating command-line inputs. Terminating!\n");
-							exit(1);
+							PrintError("PrintError",
+									NULL,
+									"validating command-line inputs",
+									Exit,
+									InputArguments);
+
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
@@ -187,8 +191,11 @@ main (int argc, char **argv)
 						free(rgList.chromosomes);
 						break;
 					default:
-						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
-						exit(1);
+						PrintError("PrintError",
+								"programMode",
+								"Could not determine program mode",
+								Exit,
+								OutOfRange);
 				}
 
 				if(arguments.timing == 1) {
@@ -235,8 +242,11 @@ main (int argc, char **argv)
 
 			}
 			else {
-				fprintf(stderr, "PrintError parsing command line arguments!\n");
-				exit(1);
+				PrintError("PrintError",
+						NULL,
+						"Could not parse command line argumnets",
+						Exit,
+						InputArguments);
 			}
 	}
 	else {

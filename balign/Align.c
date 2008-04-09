@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "ReadInputFiles.h"
+#include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
 #include "Align.h"
 
@@ -103,26 +104,6 @@ int AlignmentGetScore(char *read,
 			hScore = Entries[i][j].hScore;
 			vScore = Entries[i][j].vScore;
 			dScore = Entries[i-1][j-1].dScore + curMismatchScore;
-			/*
-			   if(i==12 && j==24) {
-			   fprintf(stderr, "HERE3:d(%c,%c)=%lf\t(h,v,d)=[%.1lf,%.1lf,%.1lf]\n",
-			   read[i-1],
-			   ToLower(reference[j-1]),
-			   curMismatchScore,
-			   hScore,
-			   vScore,
-			   dScore);
-			   for(i=0;i<12;i++) {
-			   fprintf(stderr, "%c", read[i]);
-			   }
-			   fprintf(stderr, "\n");
-			   for(j=0;j<24;j++) {
-			   fprintf(stderr, "%c", reference[j]);
-			   }
-			   fprintf(stderr, "\n");
-			   exit(1);
-			   }
-			   */
 			/* Get the maximum score of the three cases: horizontal, vertical and diagonal */
 			/* Intialize the maximum score to be the horizontal */
 			maxScore = hScore;
@@ -245,12 +226,11 @@ int AlignmentGetScore(char *read,
 				aEntry->reference[aEntry->length] = reference[curCol];
 			}
 			else {
-				fprintf(stderr, "Error.  In AlignmentGetScore, could not resolve move [%d,%d,%d,%d].  Terminating!\n",
-						curRow,
-						curCol,
-						prevRow,
-						prevCol);
-				exit(1);
+				PrintError("AlignmentGetScore",
+						NULL,
+						"Could not recover alignment path",
+						Exit,
+						OutOfRange);
 			}
 
 		/* Update the offset */
@@ -296,8 +276,8 @@ double GetScoreFromMatrix(char a,
 		char b, 
 		ScoringMatrix *sm)
 {
-	int indexA;
-	int indexB;
+	int indexA=-1;
+	int indexB=-1;
 
 	/* Get index for a */
 	switch(a) {
@@ -317,10 +297,11 @@ double GetScoreFromMatrix(char a,
 			indexA=4;
 			break;
 		default:
-			fprintf(stderr, "Error.  GetScoreFromMatrix (a) could not understand [%c].  Terminating!\n",
-					a);
-			exit(1);
-			break;
+			PrintError("GetScoreFromMatrix",
+					NULL,
+					"Could not understand 'a' key",
+					Exit,
+					OutOfRange);
 	}
 
 	/* Get index for b */
@@ -341,9 +322,11 @@ double GetScoreFromMatrix(char a,
 			indexB=4;
 			break;
 		default:
-			fprintf(stderr, "Error.  GetScoreFromMatrix (b) could not understand [%c].  Terminating!\n",
-					b);
-			exit(1);
+			PrintError("GetScoreFromMatrix",
+					NULL,
+					"Could not understand 'b' key",
+					Exit,
+					OutOfRange);
 			break;
 	}
 

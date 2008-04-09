@@ -26,15 +26,6 @@
 #define SRT_SEQUENCE_NAME_LENGTH 1024 
 #define SRT_SEQUENCE_LENGTH 1024
 
-/* For BError.c  */
-enum {Exit, Warn, LastActionType};
-enum {
-	Dummy,
-	OutOfRange, /* e.g. command line args */
-	IllegalFileName,   /*  KeepAdding */
-	LastErrorType
-};
-
 /* For RGTree.c */
 enum {RGT_KILOBYTES, RGT_MEGABYTES, RGT_GIGABYTES};
 

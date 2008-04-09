@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "Definitions.h"
+#include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "ReadInputFiles.h"
 
@@ -46,8 +47,11 @@ void ReadReferenceGenome(char *rgFileName,
 
 	/* open file */
 	if((fpRG=fopen(rgFileName, "r"))==0) {
-		fprintf(stderr, "Error opening %s for reading.  Terminating!\n", rgFileName);
-		exit(1);
+		PrintError("ReadReferenceGenome",
+				rgFileName,
+				"Could not open rgFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read in file names */
@@ -122,15 +126,20 @@ void ReadReferenceGenome(char *rgFileName,
 		/* open file */
 		assert(curChr <= numChrFileNames);
 		if((fpRG=fopen(chrFileNames[curChr-1], "r"))==0) {
-			fprintf(stderr, "Error opening %s for reading.  Terminating!\n", chrFileNames[curChr-1]);
-			exit(1);
+			PrintError("ReadReferenceGenome",
+					chrFileNames[curChr-1],
+					"Could not open chrFileNames[] for reading",
+					Exit,
+					OpenFileError);
 		}
 
 		/* Read in header */
 		if(fscanf(fpRG, "%s", header) == EOF) {
-			fprintf(stderr, "Error.  Could not read header from %s.  Terminating!\n",
-					chrFileNames[curChr-1]);
-			exit(1);
+			PrintError("ReadReferenceGenome",
+					chrFileNames[curChr-1],
+					"Could not read header from the current file",
+					Exit,
+					EndOfFile);
 		}
 
 		/* Update the number of chromosomes */
@@ -150,7 +159,7 @@ void ReadReferenceGenome(char *rgFileName,
 			repeat = c;
 			c=ToLower(c);
 
-		if(VERBOSE >= 0) {
+			if(VERBOSE >= 0) {
 				if(curPos%READ_ROTATE_NUM==0) {
 					fprintf(stderr, "\r[%d,%d]",
 							curChr,
@@ -323,9 +332,11 @@ void InsertSequenceLetterIntoByte(unsigned char *dest,
 					(*dest) = (*dest) | 0x80;
 					break;
 				default:
-					fprintf(stderr, "Error.  In InsertSequenceLetterIntoByte, could not understand repeat [%c].  Terminating!\n",
-							repeat);
-					exit(1);
+					PrintError("InsertSequenceLetterIntoByte",
+							NULL,
+							"Could not understand case 0 repeat",
+							Exit,
+							OutOfRange);
 			}
 			/* third and fourth bits from the left will hold the sequence */
 			switch(src) {
@@ -342,6 +353,11 @@ void InsertSequenceLetterIntoByte(unsigned char *dest,
 					(*dest) = (*dest) | 0x30;
 					break;
 				default:
+					PrintError("InsertSequenceLetterIntoByte",
+							NULL,
+							"Could not understand case 0 base",
+							Exit,
+							OutOfRange);
 					break;
 			}
 			break;
@@ -368,9 +384,11 @@ void InsertSequenceLetterIntoByte(unsigned char *dest,
 					(*dest) = (*dest) | 0x08;
 					break;
 				default:
-					fprintf(stderr, "Error.  In InsertSequenceLetterIntoByte, could not undertsand repeat [%c].  Terminating!\n",
-							repeat);
-					exit(1);
+					PrintError("InsertSequenceLetterIntoByte",
+							NULL,
+							"Could not understand case 1 repeat",
+							Exit,
+							OutOfRange);
 			}
 			/* right most 2-bits will hold the sequence */
 			switch(src) {
@@ -387,12 +405,19 @@ void InsertSequenceLetterIntoByte(unsigned char *dest,
 					(*dest) = (*dest) | 0x03;
 					break;
 				default:
-					break;
+					PrintError("InsertSequenceLetterIntoByte",
+							NULL,
+							"Could not understand case 1 base",
+							Exit,
+							OutOfRange);
 			}
 			break;
 		default:
-			fprintf(stderr, "Error.  Incorrect byteIndex [%d].  Terminating!\n", byteIndex);
-			exit(1);
+			PrintError("InsertSequenceLetterIntoByte",
+					NULL,
+					"Could not understand byteIndex",
+					Exit,
+					OutOfRange);
 	}
 }
 
@@ -404,23 +429,29 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 
 	/* Open the scoring matrix file */
 	if((fp=fopen(scoringMatrixFileName, "r"))==0) {
-		fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
-				scoringMatrixFileName);
-		exit(1);
+		PrintError("ReadScoringMatrix",
+				scoringMatrixFileName,
+				"Could not open scoringMatrixFileName for reading",
+				Exit,
+				OpenFileError);
 	}
 
 	/* Read in the gap open penalty */
 	if(fscanf(fp, "%lf", &sm->gapOpenPenalty)==EOF) {
-		fprintf(stderr, "Error.  Could not read gap open penalty from %s.  Terminating!\n",
-				scoringMatrixFileName);
-		exit(1);
+		PrintError("ReadScoringMatrix",
+				scoringMatrixFileName,
+				"Could not read in the gap open penalty",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Read in the gap close penalty */
 	if(fscanf(fp, "%lf", &sm->gapExtensionPenalty)==EOF) {
-		fprintf(stderr, "Error.  Could not read gap extension penalty from %s.  Terminating!\n",
-				scoringMatrixFileName);
-		exit(1);
+		PrintError("ReadScoringMatrix",
+				scoringMatrixFileName,
+				"Could not read in the gap extension penalty",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Assume the key is acgt */
@@ -444,8 +475,11 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 		for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 			if(fscanf(fp, "%lf", &sm->scores[i][j])==EOF) {
-				fprintf(stderr, "Error.  Could not read scoring matrix cell [%d,%d].  Terminating!\n", i, j);
-				exit(1);
+				PrintError("ReadScoringMatrix",
+						scoringMatrixFileName,
+						"Could not read in the scoring matrix",
+						Exit,
+						OutOfRange);
 			}
 		}
 	}

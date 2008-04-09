@@ -39,6 +39,7 @@
 #include <time.h>
 
 #include "Definitions.h"
+#include "../blib/BError.h"
 #include "FindMatches.h"
 #include "ParseInput.h"
 
@@ -150,8 +151,12 @@ main (int argc, char **argv)
 							fprintf(stderr, BREAK_LINE);
 						}
 						else {
-							fprintf(stderr, "PrintError validating command-line inputs. Terminating!\n");
-							exit(1);
+							PrintError("PrintError",
+									NULL,                                    
+									"validating command-line inputs",
+									Exit,
+									InputArguments);
+
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
@@ -206,13 +211,19 @@ main (int argc, char **argv)
 
 						break;
 					default:
-						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
-						exit(1);
+						PrintError("PrintError",
+								"programMode",
+								"Could not determine program mode",
+								Exit,
+								OutOfRange);
 				}
 			}
 			else {
-				fprintf(stderr, "PrintError parsing command line arguments!\n");
-				exit(1);
+				PrintError("PrintError",
+						NULL,
+						"Could not parse command line argumnets",
+						Exit,
+						InputArguments);
 			}
 	}
 	else {
@@ -265,8 +276,11 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->binaryOutput == 0 || args->binaryOutput== 1);
 	/* binary output not currently supported */
 	if(args->binaryOutput == 1) {
-		fprintf(stderr, "Error.  Binary output not supported.  Terminating!\n");
-		exit(1);
+		PrintError("ValidateInputs",
+				"binaryOutput",
+				"Binary output not supported",
+				Exit,
+				InputArguments);
 	}
 
 	if(args->numMismatches < 0) {

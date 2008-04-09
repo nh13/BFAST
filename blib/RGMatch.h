@@ -13,6 +13,8 @@ int RGMatchMergeFilesAndOutput(FILE**, int, FILE*, int);
 int RGMatchGetNextFromFile(FILE*, char*, char*, char*, RGMatch*, RGMatch*, int);
 int RGMatchCompareAtIndex(RGMatch*, int, RGMatch*, int);
 void RGMatchCopyAtIndex(RGMatch*, int, RGMatch*, int);
+void RGMatchAllocate(RGMatch*, int);
+void RGMatchReallocate(RGMatch*, int);
 
 #endif
 

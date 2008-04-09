@@ -37,6 +37,7 @@
 #endif
 
 #include "Definitions.h"
+#include "../blib/BError.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =
@@ -147,8 +148,11 @@ main (int argc, char **argv)
 							fprintf(stderr, BREAK_LINE);
 						}
 						else {
-							fprintf(stderr, "PrintError validating command-line inputs. Terminating!\n");
-							exit(1);
+							PrintError("PrintError",
+									NULL,
+									"validating command-line inputs",
+									Exit,
+									InputArguments);
 						}
 						PrintProgramParameters(stderr, &arguments);
 
@@ -261,14 +265,20 @@ main (int argc, char **argv)
 						fprintf(stderr, "%s", BREAK_LINE);
 						break;
 					default:
-						fprintf(stderr, "PrintError determining program mode. Terminating!\n");
-						exit(1);
+						PrintError("PrintError",
+								"programMode",
+								"Could not determine program mode",
+								Exit,
+								OutOfRange);
 				}
 
 			}
 			else {
-				fprintf(stderr, "PrintError parsing command line arguments!\n");
-				exit(1);
+				PrintError("PrintError",
+						NULL,
+						"Could not parse command line argumnets",
+						Exit,
+						InputArguments);
 			}
 	}
 	else {

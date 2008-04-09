@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "string.h"
-#include "math.h"
-#include "assert.h"
+#include <string.h>
+#include <math.h>
+#include <assert.h>
+#include "BError.h"
 #include "AlignEntry.h"
 
 /* TODO */
@@ -28,7 +29,7 @@ void AlignEntryPrint(AlignEntry *aEntry,
 int AlignEntryRead(AlignEntry *aEntry,
 		FILE *inputFP)
 {
-	/* Print the read name, alignment length, chromosome, position, strand, score */
+	/* Read the read name, alignment length, chromosome, position, strand, score */
 	if(fscanf(inputFP, "%s %d %d %d %c %lf\n",
 				aEntry->readName,
 				&aEntry->length,
@@ -39,14 +40,20 @@ int AlignEntryRead(AlignEntry *aEntry,
 		return EOF;
 	}
 
-	/* Print the reference and read alignment */
+	/* Read the reference and read alignment */
 	if(fscanf(inputFP, "%s", aEntry->reference)==EOF) {
-		fprintf(stderr, "Error.  Could not read reference alignent.  Terminating!\n");
-		exit(1);
+		PrintError("AlignEntryRead", 
+				NULL, 
+				"Could not read reference alignent",
+				Exit,
+				EndOfFile);
 	}
 	if(fscanf(inputFP, "%s", aEntry->read)==EOF) {
-		fprintf(stderr, "Error.  Could not read read alignment.  Terminating!\n");
-		exit(1);
+		PrintError("AlignEntryRead", 
+				NULL, 
+				"Could not read 'read' alignent",
+				Exit,
+				EndOfFile);
 	}
 
 	return 1;
@@ -91,7 +98,14 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 
 		/* Reallocate pair */
 		length = prevIndex+1;
-		realloc((*a), sizeof(AlignEntry)*length);
+		(*a) = realloc((*a), sizeof(AlignEntry)*length);
+		if(NULL == (*a)) {
+			PrintError("AlignEntryRemoveDuplicates",
+					"(*a)",
+					"Could not reallocate Align Entries while removing duplicates",
+					Exit,
+					ReallocMemory);
+		}
 
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Duplicates removed\n");
@@ -112,6 +126,14 @@ void AlignEntryQuickSort(AlignEntry **a,
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(AlignEntry));
+		if(NULL == temp) {
+			PrintError("AlignEntryQuickSort",
+					"temp",
+					"Could not allocate temp",
+					Exit,
+					MallocMemory);
+		}
+		
 		pivot = (low+high)/2;
 
 		AlignEntryCopyAtIndex((*a), pivot, temp, 0);

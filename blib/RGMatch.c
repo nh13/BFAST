@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include "BLibDefinitions.h"
+#include "BError.h"
 #include "RGMatch.h"
 #include "RGTree.h"
 #include "RGMatch.h"
@@ -56,10 +57,7 @@ void RGMatchRemoveDuplicates(RGMatch *s)
 
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
-		s->positions = realloc(s->positions, sizeof(unsigned int)*(prevIndex+1));
-		s->chromosomes = realloc(s->chromosomes, sizeof(unsigned char)*(prevIndex+1));
-		s->strand = realloc(s->strand, sizeof(char)*(prevIndex+1));
-		s->numEntries = prevIndex+1;
+		RGMatchReallocate(s, prevIndex+1);
 	}
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Exiting GMatchRemoveDuplicates\n");
@@ -76,10 +74,14 @@ void RGMatchQuickSort(RGMatch *s, int low, int high)
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(RGMatch));
-		temp->numEntries=1;
-		temp->chromosomes=malloc(sizeof(unsigned char));
-		temp->positions=malloc(sizeof(unsigned int));
-		temp->strand=malloc(sizeof(char));
+		if(NULL == temp) {
+			PrintError("RGMatchQuickSort",
+					"temp",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		RGMatchAllocate(temp, 1);
 
 		pivot = (low+high)/2;
 
@@ -202,12 +204,54 @@ int RGMatchMergeFilesAndOutput(FILE **tempFPs,
 
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
 	sequenceNames = malloc(sizeof(char*)*numFiles);
+	if(NULL == sequenceNames) {
+		PrintError("RGMatchMergeFilesAndOutput",
+				"sequenceNames",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	sequences= malloc(sizeof(char*)*numFiles);
+	if(NULL == sequences) {
+		PrintError("RGMatchMergeFilesAndOutput",
+				"sequences",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	pairedSequences = malloc(sizeof(char*)*numFiles);
+	if(NULL == pairedSequences) {
+		PrintError("RGMatchMergeFilesAndOutput",
+				"pairedSequences",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	for(i=0;i<numFiles;i++) {
 		sequenceNames[i] = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+		if(NULL == sequenceNames[i]) {
+			PrintError("RGMatchMergeFilesAndOutput",
+					"sequenceNames[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		sequences[i] = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == sequences[i]) {
+			PrintError("RGMatchMergeFilesAndOutput",
+					"sequences[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		pairedSequences[i] = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == pairedSequences[i]) {
+			PrintError("RGMatchMergeFilesAndOutput",
+					"pairedSequences[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 	}
 
 	/* Seek to the beginning of the files */
@@ -333,14 +377,20 @@ int RGMatchGetNextFromFile(FILE *fp,
 
 	/* Read first sequence */
 	if(fscanf(fp, "%s", sequence)==EOF) {
-		fprintf(stderr, "Error.  Could not read in sequence.  Terminating!\n");
-		exit(1);
+		PrintError("RGMatchGetNextFromFile",
+				"sequence",
+				"Could not read in sequence",
+				Exit,
+				EndOfFile);
 	}
 
 	/* Read in the number of matches */
 	if(fscanf(fp, "%d", &sequenceMatch->numEntries)==EOF) {
-		fprintf(stderr, "Error.  Could not read in the number of matches.  Terminating!\n");
-		exit(1);
+		PrintError("RGMatchGetNextFromFile",
+				"sequenceMatch->numEntries",
+				"Could not read in sequenceMatch->numEntries",
+				Exit,
+				EndOfFile);
 	}
 	assert(sequenceMatch->numEntries >= 0);
 
@@ -352,9 +402,7 @@ int RGMatchGetNextFromFile(FILE *fp,
 	}
 
 	/* Allocate memory for the matches */
-	sequenceMatch->positions = malloc(sizeof(unsigned int)*(sequenceMatch->numEntries));
-	sequenceMatch->chromosomes = malloc(sizeof(unsigned char)*(sequenceMatch->numEntries));
-	sequenceMatch->strand = malloc(sizeof(char)*(sequenceMatch->numEntries));
+	RGMatchAllocate(sequenceMatch, sequenceMatch->numEntries);
 
 	/* Read first sequence matches */
 	for(i=0;i<sequenceMatch->numEntries;i++) {
@@ -362,8 +410,11 @@ int RGMatchGetNextFromFile(FILE *fp,
 					&tempInt,
 					&sequenceMatch->positions[i],
 					&sequenceMatch->strand[i])==EOF) {
-			fprintf(stderr, "Error.  Could not readin the %dth match.  Terminating!\n", i);
-			exit(1);
+			PrintError("RGMatchGetNextFromFile",
+					NULL,
+					"Could not read inn match",
+					Exit,
+					EndOfFile);
 		}
 		sequenceMatch->chromosomes[i] = tempInt;
 		if(VERBOSE >= DEBUG) {
@@ -379,17 +430,26 @@ int RGMatchGetNextFromFile(FILE *fp,
 
 	/* Read Paired end if necessary */
 	if(pairedEnd == 1) {
+	/* Read paired sequence */
+	if(fscanf(fp, "%s", pairedSequence)==EOF) {
+		PrintError("RGMatchGetNextFromFile",
+				"pairedSequence",
+				"Could not read in pairedSequence",
+				Exit,
+				EndOfFile);
+	}
 		/* Read in the number of matches */
 		if(fscanf(fp, "%d", &pairedSequenceMatch->numEntries)==EOF) {
-			fprintf(stderr, "Error.  Could not read in the number of paired matches.  Terminating!\n");
-			exit(1);
+			PrintError("RGMatchGetNextFromFile",
+					"pairedSequenceMatch->numEntries",
+					"Could not read in the number of paired matches",
+					Exit,
+					EndOfFile);
 		}
 		assert(pairedSequenceMatch->numEntries >= 0);
 
 		/* Allocate memory for the matches */
-		pairedSequenceMatch->positions = malloc(sizeof(unsigned int)*(pairedSequenceMatch->numEntries));
-		pairedSequenceMatch->chromosomes = malloc(sizeof(unsigned char)*(pairedSequenceMatch->numEntries));
-		pairedSequenceMatch->strand = malloc(sizeof(char)*(pairedSequenceMatch->numEntries));
+		RGMatchAllocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
 
 		/* Read first pairedSequence matches */
 		for(i=0;i<pairedSequenceMatch->numEntries;i++) {
@@ -397,8 +457,11 @@ int RGMatchGetNextFromFile(FILE *fp,
 						&tempInt,
 						&pairedSequenceMatch->positions[i],
 						&pairedSequenceMatch->strand[i])==EOF) {
-				fprintf(stderr, "Error.  Could not readin the %dth paired match.  Terminating!\n", i);
-				exit(1);
+				PrintError("RGMatchGetNextFromFile",
+						NULL,
+						"Could not read in the paired match",
+						Exit,
+						EndOfFile);
 			}
 			pairedSequenceMatch->chromosomes[i] = tempInt;
 		}
@@ -448,4 +511,62 @@ void RGMatchCopyAtIndex(RGMatch *src, int srcIndex, RGMatch *dest, int destIndex
 	dest->positions[destIndex] = src->positions[srcIndex];
 	dest->chromosomes[destIndex] = src->chromosomes[srcIndex];
 	dest->strand[destIndex] = src->strand[srcIndex];
+}
+
+void RGMatchAllocate(RGMatch *m, int numEntries)
+{
+	m->numEntries = numEntries;
+	m->positions = malloc(sizeof(unsigned int)*numEntries); 
+	if(NULL == m->positions) {
+		PrintError("RGMatchAllocate",
+				"m->positions",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	m->chromosomes = malloc(sizeof(unsigned char)*numEntries); 
+	if(NULL == m->chromosomes) {
+		PrintError("RGMatchAllocate",
+				"m->chromosomes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	m->strand = malloc(sizeof(char)*numEntries); 
+	if(NULL == m->strand) {
+		PrintError("RGMatchAllocate",
+				"m->strand",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+}
+
+void RGMatchReallocate(RGMatch *m, int numEntries)
+{
+	m->numEntries = numEntries;
+	m->positions = realloc(m->positions, sizeof(unsigned int)*numEntries); 
+	if(NULL == m->positions) {
+		PrintError("RGMatchReaocate",
+				"m->positions",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	m->chromosomes = realloc(m->chromosomes, sizeof(unsigned char)*numEntries); 
+	if(NULL == m->chromosomes) {
+		PrintError("RGMatchReaocate",
+				"m->chromosomes",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	m->strand = realloc(m->strand, sizeof(char)*numEntries); 
+	if(NULL == m->strand) {
+		PrintError("RGMatchReaocate",
+				"m->strand",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
 }

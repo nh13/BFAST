@@ -47,6 +47,7 @@ AC_CHECK_FUNCS([sqrt])
 AC_C_CONST
 AC_FUNC_MALLOC 
 AC_FUNC_STRTOD
+AC_FUNC_REALLOC
 AC_HEADER_STDBOOL
 AC_CHECK_FUNCS([strchr])
 AC_CHECK_FUNCS([strstr])
@@ -92,6 +93,10 @@ AC_CHECK_HEADERS([sys/socket.h],
 		[AC_DEFINE([HAVE_SYS_SOCKET_H], 1,
 				[Define to 1 if you have <sys/socket.h> header file])],
 		[AC_MSG_WARN([sys/socket.h absent.])])
+AC_CHECK_HEADERS([limits.h],
+		[AC_DEFINE([HAVE_LIMITS_H], 1,
+				[Define to 1 if you have <limits.h> header file])],
+		[AC_MSG_WARN([limits.h absent.])])
 
 AC_CONFIG_FILES([
    Makefile

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <math.h>
 #include "sys/malloc.h"
+#include "../blib/BError.h"
 #include "../blib/RGIndex.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
@@ -23,6 +24,13 @@ void GenerateIndex(RGList *rgList,
 
 	/* Allocate memory for holding the temporary sequences */
 	curSequence = (char*)malloc(sizeof(char)*matchLength);
+	if(NULL==curSequence) {
+		PrintError("GenerateIndex",
+				"curSequence",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -91,9 +99,11 @@ void GenerateIndex(RGList *rgList,
 
 	/* Open the output file */
 	if(!(fp=fopen(outputFileName, "wb"))) {
-		fprintf(stderr, "Error. Could not open %s for writing.  Terminating!\n",
-				outputFileName);
-		exit(1);
+		PrintError("GenerateIndex",
+				outputFileName,
+				"Could not open outputFileName for writing",
+				Exit,
+				OpenFileError);
 	}   
 
 	RGIndexPrintIndex(fp, &index, binaryOutput);
