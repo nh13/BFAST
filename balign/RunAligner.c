@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <pthread.h>
 #include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -20,6 +21,7 @@ void RunAligner(RGBinary *rgBinary,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
+		int numThreads,
 		char *outputID,
 		char *outputDir)
 {
@@ -46,8 +48,22 @@ void RunAligner(RGBinary *rgBinary,
 		numMatchFileNames++;
 		/* Reallocate memory */
 		matchFileNames = (char**)realloc(matchFileNames, sizeof(char*)*numMatchFileNames);
+		if(NULL==matchFileNames) {
+			PrintError("RunAligner",
+					"matchFileNames",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		/* Allocate memory */
 		matchFileNames[numMatchFileNames-1] = (char*)malloc(sizeof(char)*(strlen(tempFileName+1)));
+		if(NULL==matchFileNames[numMatchFileNames-1]) {
+			PrintError("RunAligner",
+					"matchFileNames[numMatchFileNames-1]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		/* Copy over file name */
 		strcpy(matchFileNames[numMatchFileNames-1], tempFileName);
 	}
@@ -96,10 +112,10 @@ void RunAligner(RGBinary *rgBinary,
 				RunDynamicProgramming(matchFP,
 						rgBinary,
 						scoringMatrixFileName,
-						algorithm,
 						offsetLength,
 						maxNumMatches,
 						pairedEnd,
+						numThreads,
 						outputFP);
 				break;
 			default:
@@ -133,15 +149,264 @@ void RunAligner(RGBinary *rgBinary,
 void RunDynamicProgramming(FILE *matchFP,
 		RGBinary *rgBinary,
 		char *scoringMatrixFileName,
-		int algorithm,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
+		int numThreads,
 		FILE *outputFP)
 {
+	/* local variables */
+	ScoringMatrix sm;
+	char readName[SEQUENCE_NAME_LENGTH]="\0";
+	char read[SEQUENCE_LENGTH]="\0";
+	char pairedSequence[SEQUENCE_LENGTH]="\0";
+	RGMatch readMatch;
+	RGMatch pairedSequenceMatch;
+	int i, j;
+	int numMatches=0;
+	int continueReading=0;
+	int numAlignEntries;
+	int numAlignments=0;
+	AlignEntry aEntry;
+	/* Thread specific data */
+	ThreadData *data;
+	pthread_t *threads=NULL;
+	int errCode;
+	void *status;
+
+	/* Allocate memory for thread arguments */
+	data = malloc(sizeof(ThreadData)*numThreads);
+	if(NULL==data) {
+		PrintError("RunDynamicProgramming",
+				"data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for thread ids */
+	threads = malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError("RunDynamicProgramming",
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Read in scoring matrix */
+	ReadScoringMatrix(scoringMatrixFileName, &sm); 
+
+	/**/
+	/* Split the input file into equal temp files for each thread */
+	/**/
+
+	/* Open temp files for the threads */
+	for(i=0;i<numThreads;i++) {
+		data[i].inputFP = tmpfile();
+		data[i].outputFP = tmpfile();
+	}
+
+	/* Initialize match */
+	readMatch.positions=NULL;
+	readMatch.chromosomes=NULL;
+	readMatch.strand=NULL;
+	readMatch.numEntries=0;
+	pairedSequenceMatch.positions=NULL;
+	pairedSequenceMatch.chromosomes=NULL;
+	pairedSequenceMatch.strand=NULL;
+	pairedSequenceMatch.numEntries=0;
+
+	/* Go through each read in the match file */
+	numMatches=0;
+	while(EOF!=RGMatchGetNextFromFile(matchFP, 
+				readName, 
+				read, 
+				pairedSequence, 
+				&readMatch,
+				&pairedSequenceMatch,
+				pairedEnd)) {
+		/* Get the thread index - do this BEFORE incrementing */
+		int threadIndex = numMatches%numThreads;
+		/* increment */
+		numMatches++;
+
+		/* Print match to temp file */
+		RGMatchOutputToFile(data[threadIndex].inputFP,
+				readName,
+				read,
+				pairedSequence,
+				&readMatch,
+				&pairedSequenceMatch,
+				pairedEnd);
+
+		/* Free match */
+		if(readMatch.numEntries > 0) {
+			/* Free AlignEntry */
+			free(readMatch.positions);
+			free(readMatch.chromosomes);
+			free(readMatch.strand);
+		}
+		if(pairedSequenceMatch.numEntries > 0) {
+			free(pairedSequenceMatch.positions);
+			free(pairedSequenceMatch.chromosomes);
+			free(pairedSequenceMatch.strand);
+		}
+		/* Initialize match */
+		readMatch.positions=NULL;
+		readMatch.chromosomes=NULL;
+		readMatch.strand=NULL;
+		readMatch.numEntries=0;
+		pairedSequenceMatch.positions=NULL;
+		pairedSequenceMatch.chromosomes=NULL;
+		pairedSequenceMatch.strand=NULL;
+		pairedSequenceMatch.numEntries=0;
+	}
+
+	/* Create thread arguments */
+	for(i=0;i<numThreads;i++) {
+		fseek(data[i].inputFP, 0, SEEK_SET);
+		fseek(data[i].outputFP, 0, SEEK_SET);
+		data[i].rgBinary=rgBinary;
+		data[i].offsetLength=offsetLength;
+		data[i].maxNumMatches=maxNumMatches;
+		data[i].pairedEnd=pairedEnd;
+		data[i].sm = &sm;
+	}
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Performing alignment...\n");
+	}
+
+	/* Create threads */
+	for(i=0;i<numThreads;i++) {
+		/* Start thread */
+		errCode = pthread_create(&threads[i], /* thread struct */
+				NULL, /* default thread attributes */
+				RunDynamicProgrammingThread, /* start routine */
+				&data[i]); /* data to routine */
+		if(0!=errCode) {
+			PrintError("RunDynamicProgramming",
+					"pthread_create: errCode",
+					"Could not start thread",
+					Exit,
+					ThreadError);
+		}
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Created threadID:%d\n",
+					i);
+		}
+	}
+
+	/* Wait for the threads to finish */
+	for(i=0;i<numThreads;i++) {
+		/* Wait for the given thread to return */
+		errCode = pthread_join(threads[i],
+				&status);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "Thread returned with errCode:%d\n",
+					errCode);
+		}
+		/* Check the return code of the thread */
+		if(0!=errCode) {
+			PrintError("FindMatchesInIndexes",
+					"pthread_join: errCode",
+					"Thread returned an error",
+					Exit,
+					ThreadError);
+		}
+		/* Reinitialize file pointer */
+		fseek(data[i].outputFP, 0, SEEK_SET);
+		assert(NULL!=data[i].outputFP);
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Alignment complete.\n");
+	}
+
+	/* Allocate memory for the align entries */
+	aEntry.read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==aEntry.read) {
+		PrintError("RunDynamicProgramming",
+				"aEntry.read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	aEntry.reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==aEntry.reference) {
+		PrintError("RunDynamicProgramming",
+				"aEntry.reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	
+	if(VERBOSE >=0) {
+		fprintf(stderr, "Outputting...\n");
+	}
+
+	/* Merge all the outputs together */
+	numAlignments=0;
+	continueReading=1;
+	while(continueReading==1) {
+		/* Get one align from each thread */
+		continueReading=0;
+		for(i=0;i<numThreads;i++) {
+			/* First get the number of align entries */
+			if(EOF != fscanf(data[i].outputFP, "%d", &numAlignEntries)) {
+				continueReading=1;
+				assert(numAlignEntries >= 0);
+				numAlignments++;
+				for(j=0;j<numAlignEntries;j++) {
+					/* Read in the align entry */
+					if(EOF==AlignEntryRead(&aEntry,
+								data[i].outputFP)) {
+						PrintError("RunDynamicProgramming",
+								"AlignEntryRead",
+								"Could not read in the align entry",
+								Exit,
+								EndOfFile);
+					}
+					/* Print the align entry to file */
+					AlignEntryPrint(&aEntry,
+							outputFP);
+				}
+			}
+		}
+	}
+	
+	if(VERBOSE >=0) {
+		fprintf(stderr, "Outputted alignments for %d reads.\n", numAlignments);
+		fprintf(stderr, "Outputting complete.\n");
+	}
+
+	/* Free memory */
+	free(data);
+	free(threads);
+	free(aEntry.read);
+	free(aEntry.reference);
+	/* Free scores */
+	free(sm.key);
+	for(i=0;i<ALPHABET_SIZE+1;i++) {
+		free(sm.scores[i]);
+	}
+	free(sm.scores);
+}
+
+/* TODO */
+void *RunDynamicProgrammingThread(void *arg)
+{
+	/* Recover arguments */
+	ThreadData *data = (ThreadData *)(arg);
+	FILE *inputFP=data->inputFP;
+	FILE *outputFP=data->outputFP;
+	RGBinary *rgBinary=data->rgBinary;
+	int offsetLength=data->offsetLength;
+	int maxNumMatches=data->maxNumMatches;
+	int pairedEnd=data->pairedEnd;
+	ScoringMatrix *sm = data->sm;
+	/* Local variables */
 	AlignEntry *aEntry=NULL;
 	int numAlignEntries=0;
-	ScoringMatrix sm;
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
 	char pairedSequence[SEQUENCE_LENGTH]="\0";
@@ -159,10 +424,14 @@ void RunDynamicProgramming(FILE *matchFP,
 	/* Allocate memory for the reference */
 	referenceLength = 2*offsetLength + SEQUENCE_LENGTH + 1;
 	reference = (char*)malloc(sizeof(char)*(referenceLength+1));
+	if(NULL==reference) {
+		PrintError("RunDynamicProgrammingThread",
+				"reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	reference[referenceLength] = '\0'; /* Add null terminator */
-
-	/* Read in scoring matrix */
-	ReadScoringMatrix(scoringMatrixFileName, &sm); 
 
 	/* Initialize match */
 	readMatch.positions=NULL;
@@ -174,11 +443,8 @@ void RunDynamicProgramming(FILE *matchFP,
 	pairedSequenceMatch.strand=NULL;
 	pairedSequenceMatch.numEntries=0;
 
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Currently on match:\n0");
-	}
 	/* Go through each read in the match file */
-	while(EOF!=RGMatchGetNextFromFile(matchFP, 
+	while(EOF!=RGMatchGetNextFromFile(inputFP, 
 				readName, 
 				read, 
 				pairedSequence, 
@@ -189,9 +455,6 @@ void RunDynamicProgramming(FILE *matchFP,
 
 		numAlignEntries = 0;
 
-		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%d", numMatches);
-		}
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\nreadMatch.numEntries=%d.\n",
 					readMatch.numEntries);
@@ -205,6 +468,13 @@ void RunDynamicProgramming(FILE *matchFP,
 			/* Allocate memory for the AlignEntries */
 			if(readMatch.numEntries > 0) {
 				aEntry = (AlignEntry*)malloc(sizeof(AlignEntry)*readMatch.numEntries);
+				if(NULL == aEntry) {
+					PrintError("RunDynamicProgrammingThread",
+							"aEntry",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
 			}
 
 			/* Run the aligner */
@@ -239,7 +509,7 @@ void RunDynamicProgramming(FILE *matchFP,
 						matchLength,
 						reference,
 						referenceLength,
-						&sm,
+						sm,
 						&aEntry[i]);
 
 				/* Update chromosome, position, strand and sequence name*/
@@ -271,6 +541,7 @@ void RunDynamicProgramming(FILE *matchFP,
 						numAlignEntries);
 			}
 			/* Output alignment */
+			fprintf(outputFP, "%d\n", numAlignEntries); /* We need this when merging temp files */
 			for(i=0;i<numAlignEntries;i++) {
 				AlignEntryPrint(&aEntry[i], outputFP);
 			}
@@ -307,14 +578,11 @@ void RunDynamicProgramming(FILE *matchFP,
 		pairedSequenceMatch.strand=NULL;
 		pairedSequenceMatch.numEntries=0;
 	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\n");
-		fprintf(stderr, "There were %d empty matches.\n", numMatches - numMatchesAligned);
-		fprintf(stderr, "Aligned %d matches.\n", numMatchesAligned);
-	}
 
 	/* Free memory */
 	free(reference);
+
+	return arg;
 }
 
 /* TODO */
@@ -386,7 +654,6 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 				OutOfRange);
 	}
 
-
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "In GetSequenceFromReferenceGenome: start position [%d] range [%d,%d] and adjusted range [%d,%d]\n",
 				position,
@@ -428,6 +695,7 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 				endPos);
 	}
 	assert(startPos <= endPos);
+	assert(startPos >= 1);
 	for(i=startPos;i<=endPos;i++) {
 		/* Get position index in rgBinary */
 		posIndex = i - rgBinary->chromosomes[chrIndex].startPos;
@@ -584,6 +852,13 @@ void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
 	else if(strand == REVERSE) {
 		/* Get the reverse compliment */
 		reverseCompliment = (char*)malloc(sizeof(char)*(referenceLength+1));
+		if(NULL == reverseCompliment) {
+			PrintError("GetSequenceFromReferenceGenome",
+					"reverseCompliment",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		GetReverseComplimentAnyCase(reference, reverseCompliment, referenceLength);
 		strcpy(reference, reverseCompliment);
 		free(reverseCompliment);

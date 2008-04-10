@@ -236,7 +236,6 @@ main (int argc, char **argv)
 #endif
 	}
 
-	fprintf(stderr, "HERE 2\n");
 	return 0;
 }
 

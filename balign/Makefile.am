@@ -17,5 +17,5 @@ balign_SOURCES = \
 ##  the *_SOURCES above so we need to reference libm.a here
 
 balign_LDADD = -lm 
-AM_CFLAGS = -Wall -ansi -pg -g -O3
+AM_CFLAGS = -Wall -ansi -pg -g -O3 -pthread
 

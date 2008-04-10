@@ -180,6 +180,7 @@ main (int argc, char **argv)
 								arguments.offsetLength,
 								arguments.maxNumMatches,
 								arguments.pairedEnd,
+								arguments.numThreads,
 								arguments.outputID,
 								arguments.outputDir);
 						endTime = time(NULL);

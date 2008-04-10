@@ -57,8 +57,22 @@ int AlignmentGetScore(char *read,
 
 	/* Allocate memory - remember to include an extra row and column */
 	Entries = (MatrixEntry**)malloc(sizeof(MatrixEntry*)*numRows);
+	if(NULL == Entries) {
+		PrintError("AlignmentGetScore",
+				"Entries",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	for(i=0;i<numRows;i++) {
 		Entries[i] = (MatrixEntry*)malloc(sizeof(MatrixEntry)*numCols);
+	if(NULL == Entries[i]) {
+		PrintError("AlignmentGetScore",
+				"Entries[i]",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	}
 
 	/* Initialize:
@@ -167,7 +181,21 @@ int AlignmentGetScore(char *read,
 
 	/* First allocate the maximum length of the alignment, we can update later */
 	aEntry->read = (char*)malloc(sizeof(char)*(endRow+endCol+1));
+	if(NULL==aEntry->read) {
+		PrintError("AlignmentGetScore",
+				"aEntry->read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	aEntry->reference = (char*)malloc(sizeof(char)*(endRow+endCol+1));
+	if(NULL==aEntry->reference) {
+		PrintError("AlignmentGetScore",
+				"aEntry->reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	aEntry->length = 0; /* initialize length */
 	prevRow=endRow;
@@ -248,8 +276,22 @@ int AlignmentGetScore(char *read,
 	}
 	/* Reallocate memory for the read and reference */
 	aEntry->read = (char*)realloc(aEntry->read, sizeof(char)*(aEntry->length+1));
+	if(NULL==aEntry->read) {
+		PrintError("AlignmentGetScore",
+				"aEntry->read",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
 	aEntry->read[aEntry->length]='\0'; /* null terminator */
 	aEntry->reference = (char*)realloc(aEntry->reference, sizeof(char)*(aEntry->length+1));
+	if(NULL==aEntry->reference) {
+		PrintError("AlignmentGetScore",
+				"aEntry->reference",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
 	aEntry->reference[aEntry->length]='\0'; /* null terminator */
 	/* Reverse read and reference since we got them from the end of the path */
 	ReverseSequence(aEntry->read, aEntry->length);

@@ -112,19 +112,19 @@ typedef struct {
 } RGIndex;
 
 typedef struct {
-	unsigned int chromosome;
-	unsigned int startPos;
-	unsigned int endPos;
+	int chromosome;
+	int startPos;
+	int endPos;
 	unsigned char *sequence; /* Store in the bytes via two bits - four nt per char (assuming sizeof(char)==1) */
 } RGBinaryChr;
 
 typedef struct {
 	RGBinaryChr *chromosomes;
-	unsigned int numChrs;
-	unsigned int startChr;
-	unsigned int startPos;
-	unsigned int endChr;
-	unsigned int endPos;
+	int numChrs;
+	int startChr;
+	int startPos;
+	int endChr;
+	int endPos;
 } RGBinary;
 
 #endif

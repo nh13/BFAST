@@ -62,7 +62,21 @@ void ReadReferenceGenome(char *rgFileName,
 	while(fscanf(fpRG, "%s", defaultFileName)!=EOF) {
 		numChrFileNames++;
 		chrFileNames = realloc(chrFileNames, sizeof(char*)*(numChrFileNames));
+		if(NULL==chrFileNames) {
+			PrintError("ReadReferenceGenome",
+					"chrFileNames",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		chrFileNames[numChrFileNames-1] = (char*)malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+		if(NULL==chrFileNames[numChrFileNames-1]) {
+			PrintError("ReadReferenceGenome",
+					"chrFileNames[numChrFileNames-1]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		strcpy(chrFileNames[numChrFileNames-1], defaultFileName);
 		if(VERBOSE>1) {
 			fprintf(stderr, "%d:%s\n", numChrFileNames, chrFileNames[numChrFileNames-1]);
@@ -147,6 +161,13 @@ void ReadReferenceGenome(char *rgFileName,
 
 		/* Reallocate memory */
 		rg->chromosomes = (RGBinaryChr*)realloc(rg->chromosomes, numChrs*sizeof(RGBinaryChr));
+		if(NULL == rg->chromosomes) {
+			PrintError("ReadReferenceGenome",
+					"rg->chromosomes",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 		rg->chromosomes[numChrs-1].sequence = NULL;
 
 		/* Read in Chromosome */
@@ -190,6 +211,13 @@ void ReadReferenceGenome(char *rgFileName,
 					if(byteIndex==0) {
 						/* Allocate once we have filled up the byte */
 						rg->chromosomes[numChrs-1].sequence = (unsigned char*)realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(sequenceIndex+1));
+						if(NULL == rg->chromosomes[numChrs-1].sequence) {
+							PrintError("ReadReferenceGenome",
+									"rg->chromosomes[numChrs-1].sequence",
+									"Could not reallocate memory",
+									Exit,
+									ReallocMemory);
+						}
 						/* Initialize byte */
 						rg->chromosomes[numChrs-1].sequence[sequenceIndex] = 0;
 					}
@@ -228,6 +256,13 @@ void ReadReferenceGenome(char *rgFileName,
 
 		/* Reallocate to reduce memory (fit exactly) */
 		rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(char)*(numPosRead));
+		if(NULL == rg->chromosomes[numChrs-1].sequence) {
+			PrintError("ReadReferenceGenome",
+					"rg->chromosomes[numChrs-1].sequence",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 
 		/* Close file */
 		fclose(fpRG);
@@ -458,6 +493,13 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 	assert(ALPHABET_SIZE==4);
 	/* Allocate memory for the key */
 	sm->key = (char*)malloc(sizeof(char)*(ALPHABET_SIZE+1));
+	if(NULL == sm->key) {
+		PrintError("ReadScoringMatrix",
+				"sm->key",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	/* Read in the key */
 	/* Assume the key is acgt */
 	sm->key[0] = 'a';
@@ -468,8 +510,22 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 
 	/* Allocate memory for the scores */
 	sm->scores = (double**)malloc(sizeof(double*)*(ALPHABET_SIZE+1));
+	if(NULL==sm->scores) {
+		PrintError("ReadScoringMatrix",
+			"sm->scores",
+			"Could not allocate memory",
+			Exit,
+			MallocMemory);
+	}
 	for(i=0;i<ALPHABET_SIZE+1;i++) {
 		sm->scores[i] = (double*)malloc(sizeof(double)*(ALPHABET_SIZE+1));
+		if(NULL==sm->scores[i]) {
+			PrintError("ReadScoringMatrix",
+					"sm->scores[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 	}
 	/* Read in the score matrix */
 	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
