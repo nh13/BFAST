@@ -5,8 +5,10 @@
 #include "BLibDefinitions.h"
 
 int RGIndexInsert(RGIndex*, char*, unsigned int, unsigned int, unsigned int);
-void RGIndexCleanUpIndex(RGIndex *index);
-void RGIndexQuickSortNodes(RGIndex*, unsigned int, unsigned int, unsigned int); 
+void RGIndexCleanUpIndex(RGIndex*, int);
+void RGIndexSortNodes(RGIndex*, int);
+void *RGIndexQuickSortNodes(void*);
+void RGIndexQuickSortNodesHelper(RGIndex*, unsigned int, unsigned int);
 unsigned int RGIndexGetIndex(RGIndex*, unsigned char*);
 void RGIndexDelete(RGIndex*);
 double RGIndexGetSize(RGIndex*, int);

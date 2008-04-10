@@ -93,7 +93,7 @@ void GenerateIndex(RGList *rgList,
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Cleaning up the index.\n");
 	}
-	RGIndexCleanUpIndex(&index);
+	RGIndexCleanUpIndex(&index, numThreads);
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Outputting index to %s\n", outputFileName);

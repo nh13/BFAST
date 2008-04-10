@@ -153,7 +153,7 @@ void GenerateTree(RGList *rgList,
 			fprintf(stderr, "\n");
 			fprintf(stderr, "Cleaning up the tree.\n");
 		}
-		RGTreeCleanUpTree(&tree);
+		RGTreeCleanUpTree(&tree, numThreads);
 
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Outputting tree to %s\n", outputFileName);

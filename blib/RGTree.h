@@ -6,8 +6,10 @@
 #include "RGSeqPair.h"
 
 int RGTreeInsert(RGTree*, char*, char*, unsigned int, unsigned int, unsigned int);
-void RGTreeCleanUpTree(RGTree*);
-void RGTreeQuickSortNodes(RGTree*, unsigned int, unsigned int, unsigned int);
+void RGTreeCleanUpTree(RGTree*, int);
+void RGTreeSortNodes(RGTree*, int);
+void *RGTreeQuickSortNodes(void *arg);
+void RGTreeQuickSortNodesHelper(RGTree*, unsigned int, unsigned int);
 unsigned int RGTreeGetIndex(RGTree*, unsigned int, unsigned int);
 void RGTreeDelete(RGTree*);
 double RGTreeGetSize(RGTree*, int);

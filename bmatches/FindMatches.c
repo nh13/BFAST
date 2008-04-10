@@ -372,6 +372,10 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 					OutOfRange);
 		}
 
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Searching given index...\n");
+		}
+
 		/* Set position to read from the beginning of the file */
 		for(j=0;j<numThreads;j++) {
 			fseek((*tempSeqFPs)[j], 0, SEEK_SET);
@@ -453,9 +457,14 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		RGIndexDelete(&index);
 		endTime = time(NULL);
 		(*totalDataStructureTime)+=endTime - startTime;	
+
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Searching given index complete.\n");
 		}
+	}
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Merging the output from each index...\n");
 	}
 
 	/* Merge temporary output from each tree and output to the final output file. */
@@ -532,6 +541,10 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	/* Free thread data */
 	free(threads);
 	free(data);
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Searching indexes complete.\n");
+	}
 
 	return numWritten;
 }
@@ -750,6 +763,10 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		endTime=time(NULL);
 		(*totalDataStructureTime)+=endTime-startTime;
 
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Searching given tree...\n");
+		}
+
 		/* Set position to read from the beginning of the file */
 		for(j=0;j<numThreads;j++) {
 			fseek((*tempSeqFPs)[j], 0, SEEK_SET);
@@ -866,9 +883,14 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		RGTreeDelete(&tree);
 		endTime=time(NULL);
 		(*totalDataStructureTime)+=endTime-startTime;
+		
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Searching given tree complete.\n");
 		}
+	}
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Merging the output from each tree...\n");
 	}
 
 	/* Merge temporary output from each tree and output to the final output file. */
@@ -896,6 +918,9 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 	free(threads);
 	free(data);
 
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Searching trees complete.\n");
+	}
 
 	return numMatches;
 }

@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <string.h>
+#include <pthread.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "RGTree.h"
@@ -98,7 +99,7 @@ int RGIndexInsert(RGIndex *index, char *sequence, unsigned int matchLength, unsi
 }
 
 /* TODO */
-void RGIndexCleanUpIndex(RGIndex *index) 
+void RGIndexCleanUpIndex(RGIndex *index, int numThreads) 
 {
 	unsigned int i, j;
 	unsigned int prevIndex = 0;
@@ -107,16 +108,16 @@ void RGIndexCleanUpIndex(RGIndex *index)
 
 		/* Sort the nodes in the index */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Sorting (this will speed up):\n");
+			fprintf(stderr, "Sorting (this may take some time)...\n");
 		}
-		RGIndexQuickSortNodes(index, 0, index->numNodes-1, 0);
+		RGIndexSortNodes(index, numThreads);
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\nSorting complete\n");
+			fprintf(stderr, "Sorting complete.\n");
 		}
 
 		/* Remove duplicates */
 		/* Assumes the nodes are sorted */
-		if(VERBOSE >= 1) {
+		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging\n");
 		}
 		/* This will remove duplicates in-place and in O(n) time */
@@ -186,19 +187,181 @@ void RGIndexCleanUpIndex(RGIndex *index)
 			RGIndexQuickSortNode(index, i, 0, index->nodes[i].numEntries-1);
 		}
 
-		if(VERBOSE >= 1) {
+		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging complete\n");
 		}
 	}
 }
 
 /* TODO */
-void RGIndexQuickSortNodes(RGIndex *index, unsigned int low, unsigned int high, unsigned int numComplete) 
+void RGIndexSortNodes(RGIndex *index, int numThreads)
 {
+	int i, j;
+	RGIndexNode temp;
+	ThreadRGIndexSortData *data=NULL;
+	pthread_t *threads=NULL;
+	int errCode;
+	void *status=NULL;
+	int splitLengths=-1;
+	unsigned int *indexes=NULL;
+
+	/* Allocate memory for the thread arguments */
+	data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
+	if(NULL==data) {
+		PrintError("RGIndexSortNodes",
+				"data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for the thread pointers */
+	threads = malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError("RGIndexSortNodes",
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Split up sort int 1/numThreads parts */
+	splitLengths = index->numNodes/numThreads;
+
+	/* Initialize data */
+	for(i=0;i<numThreads;i++) {
+		data[i].index = index;
+		data[i].threadID = i;
+		data[i].low = i*splitLengths;
+		if(i==numThreads-1) {
+			data[i].high = index->numNodes-1;
+		}
+		else {
+			data[i].high = (i+1)*splitLengths - 1;
+		}
+		assert(data[i].low >= 0 && data[i].high < index->numNodes);
+		/*
+		   fprintf(stderr, "i:%d\tlow:%d\thigh:%d\n",
+		   i,
+		   data[i].low,
+		   data[i].high);
+		   */
+	}
+	/* Check that we split correctly */
+	for(i=1;i<numThreads;i++) {
+		assert(data[i-1].high < data[i].low);
+	}
+
+	/* Create threads */
+	for(i=0;i<numThreads;i++) {
+		/* Start thread */
+		errCode = pthread_create(&threads[i], /* thread struct */
+				NULL, /* default thread attributes */
+				RGIndexQuickSortNodes, /* start routine */
+				&data[i]); /* data to routine */
+		if(0!=errCode) {
+			PrintError("RGIndexSortNodes",
+					"pthread_create: errCode",
+					"Could not start thread",
+					Exit,
+					ThreadError);
+		}
+	}
+
+	/* Wait for the threads to finish */
+	for(i=0;i<numThreads;i++) {
+		/* Wait for the given thread to return */
+		errCode = pthread_join(threads[i],
+				&status);
+		/* Check the return code of the thread */
+		if(0!=errCode) {
+			PrintError("RGIndexSortNodes",
+					"pthread_join: errCode",
+					"Thread returned an error",
+					Exit,
+					ThreadError);
+		}
+	}
+
+	/* Allocate memory for indexes */
+	indexes = malloc(sizeof(unsigned int)*numThreads);
+	if(NULL==indexes) {
+		PrintError("RGIndexSOrtNodes",
+				"indexes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Initialize indexes */
+	for(i=0;i<numThreads;i++) {
+		indexes[i] = data[i].low;
+	}
+
+	/* Merge the individual sorts together */
+	for(i=0;i<index->numNodes;i++) { 
+		int whichThread = -1;
+		/* Check the result of each thread for the smallest element */
+		for(j=0;j<numThreads;j++) {
+			/* If the current item is valid, and the node is smaller */
+			if(indexes[j] < index->numNodes) {
+				if(whichThread == -1 || RGIndexNodeCompare(&index->nodes[indexes[j]], &index->nodes[indexes[whichThread]], index->matchLength) <= 0) {
+					whichThread = j;
+				}
+			}
+		}
+		assert(whichThread!=-1);
+		/* Update min index */
+		unsigned int minIndex = indexes[whichThread];
+
+		/* Store the current node to swap */
+		RGIndexNodeCopy(&index->nodes[minIndex], &temp, index->matchLength);
+		/* Shift all nodes up one starting at i and ending at minIndex */
+		for(j=minIndex-1;j>=i;j--) {
+			RGIndexNodeCopy(&index->nodes[j], &index->nodes[j+1], index->matchLength);
+		}
+		/* Store the current node at i */
+		RGIndexNodeCopy(&temp, &index->nodes[i], index->matchLength);
+		/* Update thread indexes if necessary */
+		for(j=0;j<numThreads;j++) {
+			if(indexes[j] <= minIndex) {
+				indexes[j]++;
+			}
+		}
+	}
+
+	/* Test that we sorted correctly */
+	for(i=1;i<index->numNodes;i++) {
+		assert(RGIndexNodeCompare(&index->nodes[i-1], &index->nodes[i], index->matchLength)<=0);
+	}
+
+	/* Free memory */
+	free(indexes);
+	free(threads);
+	free(data);
+}
+
+/* TODO */
+void *RGIndexQuickSortNodes(void *arg)
+{
+	/* thread arguments */
+	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
+	RGIndex *index = data->index;
+	unsigned int low = data->low;
+	unsigned int high = data->high;
+
+	/* Call helper */
+	RGIndexQuickSortNodesHelper(index, low, high);
+
+	return arg;
+}
+
+void RGIndexQuickSortNodesHelper(RGIndex *index,
+		unsigned int low,
+		unsigned int high) 
+{
+	/* local variables */
 	unsigned int i;
 	unsigned int pivot = -1;
 	RGIndexNode *temp=NULL;
-
 	if(low < high) {
 		/* Allocate temp */
 		temp = malloc(sizeof(RGIndexNode));
@@ -239,10 +402,6 @@ void RGIndexQuickSortNodes(RGIndex *index, unsigned int low, unsigned int high, 
 				pivot++;
 			}
 		}
-		if(VERBOSE>=0) {
-			fprintf(stderr, "\r%3.1lf percent complete",
-					(100.0*numComplete)/index->numNodes);
-		}
 
 		/* Move pivot element to correct place */
 		RGIndexNodeCopy(&index->nodes[pivot], temp, index->matchLength);
@@ -254,16 +413,11 @@ void RGIndexQuickSortNodes(RGIndex *index, unsigned int low, unsigned int high, 
 
 		/* Call recursively */
 		if(pivot > 0) {
-			RGIndexQuickSortNodes(index, low, pivot-1, numComplete+1);
+			RGIndexQuickSortNodesHelper(index, low, pivot-1);
 		}
 		if(pivot < UINT_MAX) {
-			RGIndexQuickSortNodes(index, pivot+1, high, pivot+1);
+			RGIndexQuickSortNodesHelper(index, pivot+1, high);
 		}
-	}
-
-	if(VERBOSE>=0) {
-		fprintf(stderr, "\r%3.1lf percent complete",
-				100.0*high/index->numNodes); 
 	}
 }
 

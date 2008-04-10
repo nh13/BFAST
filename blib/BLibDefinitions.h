@@ -127,4 +127,18 @@ typedef struct {
 	int endPos;
 } RGBinary;
 
+typedef struct {
+	RGIndex *index;
+	unsigned int low;
+	unsigned int high;
+	int threadID;
+} ThreadRGIndexSortData;
+
+typedef struct {
+	RGTree *tree;
+	unsigned int low;
+	unsigned int high;
+	int threadID;
+} ThreadRGTreeSortData;
+
 #endif

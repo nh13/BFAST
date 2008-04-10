@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <limits.h>
 #include <string.h>
+#include <pthread.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "RGMatch.h"
@@ -60,7 +61,7 @@ int RGTreeInsert(RGTree *tree, char *sequenceOne, char *sequenceTwo, unsigned in
 }
 
 /* TODO */
-void RGTreeCleanUpTree(RGTree *tree) 
+void RGTreeCleanUpTree(RGTree *tree, int numThreads) 
 {
 	unsigned int i, j;
 	unsigned int prevIndex = 0;
@@ -71,7 +72,7 @@ void RGTreeCleanUpTree(RGTree *tree)
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Sorting (this will speed up):\n");
 		}
-		RGTreeQuickSortNodes(tree, 0, tree->numNodes-1, 0);
+		RGTreeSortNodes(tree, numThreads);
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\nSorting complete\n");
 		}
@@ -141,7 +142,167 @@ void RGTreeCleanUpTree(RGTree *tree)
 }
 
 /* TODO */
-void RGTreeQuickSortNodes(RGTree *tree, unsigned int low, unsigned int high, unsigned int numComplete) 
+void RGTreeSortNodes(RGTree *tree, int numThreads)
+{
+	int i, j;
+	RGTreeNode temp;
+	ThreadRGTreeSortData *data=NULL;
+	pthread_t *threads=NULL;
+	int errCode;
+	void *status=NULL;
+	int splitLengths=-1;
+	unsigned int *indexes=NULL;
+
+	/* Allocate memory for the thread arguments */
+	data = malloc(sizeof(ThreadRGTreeSortData)*numThreads);
+	if(NULL==data) {
+		PrintError("RGTreeSortNodes",                "data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for the thread pointers */
+	threads = malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError("RGTreeSortNodes",
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Split up sort int 1/numThreads parts */
+	splitLengths = tree->numNodes/numThreads;
+
+	/* Initialize data */
+	for(i=0;i<numThreads;i++) {
+		data[i].tree = tree;
+		data[i].threadID = i;
+		data[i].low = i*splitLengths;
+		if(i==numThreads-1) {
+			data[i].high = tree->numNodes-1;
+		}
+		else {
+			data[i].high = (i+1)*splitLengths - 1;
+		}
+		assert(data[i].low >= 0 && data[i].high < tree->numNodes);
+		/*
+		 *            fprintf(stderr, "i:%d\tlow:%d\thigh:%d\n",
+		 *                       i,
+		 *                                  data[i].low,
+		 *                                             data[i].high);
+		 *                                                        */
+	}
+
+	/* Check that we split correctly */
+	for(i=1;i<numThreads;i++) {
+		assert(data[i-1].high < data[i].low);
+	}
+
+	/* Create threads */
+	for(i=0;i<numThreads;i++) {
+		/* Start thread */
+		errCode = pthread_create(&threads[i], /* thread struct */
+				NULL, /* default thread attributes */
+				RGTreeQuickSortNodes, /* start routine */
+				&data[i]); /* data to routine */
+		if(0!=errCode) {
+			PrintError("RGTreeSortNodes",
+					"pthread_create: errCode",
+					"Could not start thread",
+					Exit,
+					ThreadError);
+		}
+	}
+
+	/* Wait for the threads to finish */
+	for(i=0;i<numThreads;i++) {
+		/* Wait for the given thread to return */
+		errCode = pthread_join(threads[i],
+				&status);
+		/* Check the return code of the thread */
+		if(0!=errCode) {
+			PrintError("RGTreeSortNodes",
+					"pthread_join: errCode",
+					"Thread returned an error",
+					Exit,
+					ThreadError);
+		}
+	}
+	/* Allocate memory for indexes */
+	indexes = malloc(sizeof(unsigned int)*numThreads);
+	if(NULL==indexes) {
+		PrintError("RGTreeSOrtNodes",
+				"indexes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Initialize indexes */
+	for(i=0;i<numThreads;i++) {
+		indexes[i] = data[i].low;
+	}
+	/* Merge the individual sorts together */
+	for(i=0;i<tree->numNodes;i++) {
+		int whichThread = -1;
+		/* Check the result of each thread for the smallest element */
+		for(j=0;j<numThreads;j++) {
+			/* If the current item is valid, and the node is smaller */
+			if(indexes[j] < tree->numNodes) {
+				if(whichThread == -1 || RGTreeNodeCompare(&tree->nodes[indexes[j]], &tree->nodes[indexes[whichThread]]) <= 0) {
+					whichThread = j;
+				}
+			}
+		}
+		assert(whichThread!=-1);
+		/* Update min index */
+		unsigned int minIndex = indexes[whichThread];
+
+		/* Store the current node to swap */
+		RGTreeNodeCopy(&tree->nodes[minIndex], &temp);
+		/* Shift all nodes up one starting at i and ending at minIndex */
+		for(j=minIndex-1;j>=i;j--) {
+			RGTreeNodeCopy(&tree->nodes[j], &tree->nodes[j+1]);
+		}
+		/* Store the current node at i */
+		RGTreeNodeCopy(&temp, &tree->nodes[i]);
+		/* Update thread indexes if necessary */
+		for(j=0;j<numThreads;j++) {
+			if(indexes[j] <= minIndex) {
+				indexes[j]++;
+			}
+		}
+	}
+	/* Test that we sorted correctly */
+	for(i=1;i<tree->numNodes;i++) {
+		assert( RGTreeNodeCompare(&tree->nodes[i-1], &tree->nodes[i]) <=0);
+	}
+
+	/* Free memory */
+	free(indexes);
+	free(threads);
+	free(data);
+}
+
+
+/* TODO */
+void *RGTreeQuickSortNodes(void *arg)
+{
+	/* thread arguments */
+	ThreadRGTreeSortData *data = (ThreadRGTreeSortData*)(arg);
+	RGTree *tree = data->tree;
+	unsigned int low = data->low;
+	unsigned int high = data->high;
+
+	/* Call helper */
+	RGTreeQuickSortNodesHelper(tree, low, high);
+
+	return arg;
+}
+
+
+/* TODO */
+void RGTreeQuickSortNodesHelper(RGTree *tree, unsigned int low, unsigned int high) 
 {
 	unsigned int i;
 	unsigned int pivot = -1;
@@ -190,10 +351,6 @@ void RGTreeQuickSortNodes(RGTree *tree, unsigned int low, unsigned int high, uns
 				pivot++;
 			}
 		}
-		if(VERBOSE>=0) {
-			fprintf(stderr, "\r%3.1lf percent complete",
-					(100.0*numComplete)/tree->numNodes);
-		}
 		/* Move pivot element to correct place */
 		RGTreeNodeCopy(&tree->nodes[pivot], temp);
 		RGTreeNodeCopy(&tree->nodes[high], &tree->nodes[pivot]);
@@ -205,15 +362,11 @@ void RGTreeQuickSortNodes(RGTree *tree, unsigned int low, unsigned int high, uns
 
 		/* Call recursively */
 		if(pivot>0) {
-		RGTreeQuickSortNodes(tree, low, pivot-1, numComplete+1); 
+			RGTreeQuickSortNodesHelper(tree, low, pivot-1);
 		}
 		if(pivot < UINT_MAX) {
-		RGTreeQuickSortNodes(tree, pivot+1, high, pivot+1);
+			RGTreeQuickSortNodesHelper(tree, pivot+1, high);
 		}
-	}
-	if(VERBOSE>=0) {
-		fprintf(stderr, "\r%3.1lf percent complete",
-				100.0*high/tree->numNodes);
 	}
 }
 
