@@ -13,6 +13,7 @@ enum {
 	EndOfFile,
 	ReallocMemory,
 	MallocMemory,
+	ThreadError,
 	LastErrorType
 };
 

@@ -18,6 +18,7 @@ struct arguments
 	int numGapInsertions;					/* -Y */
 	int numGapDeletions;					/* -Z */
 	int pairedEnd;							/* -2 */
+	int numThreads;							/* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	int binaryOutput;						/* -B */

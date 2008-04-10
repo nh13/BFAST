@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
+#include <errno.h>
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
 #include "../blib/RGTree.h"
@@ -26,6 +28,7 @@ void RunMatches(char *outputFileName,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int numThreads,
 		int timing
 		)
 {
@@ -37,7 +40,8 @@ void RunMatches(char *outputFileName,
 	int *offsets=NULL;
 	int numOffsets=0;
 
-	FILE *tempSeqFP=NULL;
+	FILE *seqFP=NULL;
+	FILE **tempSeqFPs=NULL;
 	FILE *outputFP=NULL;
 	int i;
 
@@ -84,12 +88,44 @@ void RunMatches(char *outputFileName,
 	 * to a temporary file, thereby elmininating the need to iterate through the 
 	 * source sequence read file for each index or tree. 
 	 * */
-	numReads=ReadSequencesToTempFile(sequenceFileName,
-			&tempSeqFP,
+	/* Open sequence file */
+	/* open sequence file */
+	if((seqFP=fopen(sequenceFileName, "r"))==0) {
+		PrintError("RunMatches",
+				sequenceFileName,
+				"Could not open sequenceFileName for reading",
+				Exit,
+				OpenFileError);
+	}
+	/* Allocate memory for the temp file pointers - one for each thread */
+	tempSeqFPs=malloc(sizeof(FILE*)*numThreads);
+	if(NULL==tempSeqFPs) {
+		PrintError("RunMatches",
+				"tempSeqFPs",
+				"Could not allcoate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Read the sequences to the thread temp files */
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Reading %s into temp files.\n",
+				sequenceFileName);
+	}
+	numReads=ReadSequencesToTempFile(seqFP,
+			&tempSeqFPs,
 			startReadNum,
 			endReadNum,
 			pairedEnd,
+			numThreads,
 			timing);
+	assert(numReads >= numThreads);
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Read %d reads from %s.\n",
+				numReads,
+				sequenceFileName);
+	}
+	/* Close the sequence file */
+	fclose(seqFP);
 
 	/* IDEA 
 	 * 		Use temp files to store the results for each index.  Once we have one
@@ -122,7 +158,8 @@ void RunMatches(char *outputFileName,
 			binaryInput,
 			numRGIndexes,
 			pairedEnd,
-			&tempSeqFP,
+			numThreads,
+			&tempSeqFPs,
 			outputFP,
 			timing,
 			&totalDataStructureTime,
@@ -137,6 +174,7 @@ void RunMatches(char *outputFileName,
 				numReads-numMatches);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
+	assert(numReads-numMatches > numThreads);
 
 	/* Do step 2: search the trees for the remaining sequences */
 	numMatches+=FindMatchesInTrees(rgTreeFileNames,
@@ -150,7 +188,8 @@ void RunMatches(char *outputFileName,
 			numGapInsertions,
 			numGapDeletions,
 			pairedEnd,
-			tempSeqFP,
+			numThreads,
+			&tempSeqFPs,
 			outputFP,
 			timing,
 			&totalDataStructureTime,
@@ -166,8 +205,10 @@ void RunMatches(char *outputFileName,
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	/* Close temporary sequence file */
-	fclose(tempSeqFP);
+	/* Close temporary sequence files */
+	for(i=0;i<numThreads;i++) {
+		fclose(tempSeqFPs[i]);
+	}
 
 	/* Close output file */
 	fclose(outputFP);
@@ -226,33 +267,71 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int binaryInput,
 		int numRGIndexes,
 		int pairedEnd,
-		FILE **tempSeqFP,
+		int numThreads,
+		FILE ***tempSeqFPs,
 		FILE *outputFP,
 		int timing,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
 		int *totalOutputTime)
 {
-	int i;
-	FILE **tempFPs=NULL;
+	int i, j;
 	FILE *tempOutputFP=NULL;
+	FILE **tempOutputIndexFPs=NULL;
+	FILE **tempOutputThreadFPs=NULL;
 	RGIndex index;
-	int numMatches=0;
+	int numWritten, numRead;
 	int matchLength=-1;
 	int startTime;
 	int endTime;
+	int errCode;
+	ThreadIndexData *data=NULL;
+	pthread_t *threads=NULL;
+	FILE *tempSeqFP=NULL;
+	void *status;
 
-	/* Create temporary files */
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Creating temporary files (one for each index)\n");
+	/* IDEA: for each index, split search into threads generating one output file per thread.
+	 * After the threads have finished their searches, merge their output into one output file
+	 * specific for each index.  After all indexes have been searched, merge the index specific
+	 * output.
+	 * */
+
+	/* Allocate memory for threads */
+	threads=malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError("FindMatchesInIndexes",
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
-	tempFPs = (FILE**)malloc(sizeof(FILE*)*numRGIndexes);
-	for(i=0;i<numRGIndexes;i++) { /* For each RGIndex */
-		/* Open a temporary file (this is reentrant) */
-		tempFPs[i] = tmpfile();
-		assert(tempFPs[i]!=NULL);
+	/* Allocate memory to pass data to threads */
+	data=malloc(sizeof(ThreadIndexData)*numThreads);
+	if(NULL==data) {
+		PrintError("FindMatchesInIndexes",
+				"data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
-	tempOutputFP=tmpfile();
+	/* Allocate memory for the index specific file pointers */
+	tempOutputIndexFPs = (FILE**)malloc(sizeof(FILE*)*numRGIndexes);
+	if(NULL == tempOutputIndexFPs) {
+		PrintError("FindMatchesInIndexes",
+				"tempOutputIndexFPs",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for one file pointer per thread */
+	tempOutputThreadFPs=malloc(sizeof(FILE*)*numThreads); 
+	if(NULL == tempOutputThreadFPs) {
+		PrintError("FindMatchesInIndexes",
+				"tempOutputThreadFPs",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Temporary files opened\n");
@@ -260,6 +339,11 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 
 	/* For each RGIndex, write temporary output */
 	for(i=0;i<numRGIndexes;i++) { /* For each RGIndex */
+		/* Open files for thread output */
+		for(j=0;j<numThreads;j++) {
+			tempOutputThreadFPs[j] = tmpfile();
+			assert(tempOutputThreadFPs[j] != NULL);
+		}
 
 		/* Initialize index */
 		index.nodes = NULL;
@@ -288,17 +372,81 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 					OutOfRange);
 		}
 
-		/* reset pointer to temp file to the beginning of the file */
-		fseek((*tempSeqFP), 0, SEEK_SET);
+		/* Set position to read from the beginning of the file */
+		for(j=0;j<numThreads;j++) {
+			fseek((*tempSeqFPs)[j], 0, SEEK_SET);
+		}
 
 		/* Execute */
 		startTime = time(NULL);
-		FindMatchesInIndex((*tempSeqFP),
-				tempFPs[i], 
-				&index,
-				pairedEnd);
+		/* Initalize arguments to threads */
+		for(j=0;j<numThreads;j++) {
+			data[j].tempOutputFP= tempOutputThreadFPs[j];
+			data[j].index = &index;
+			data[j].pairedEnd = pairedEnd;
+			data[j].threadID = j;
+		}
+		/* Create threads */
+		for(j=0;j<numThreads;j++) {
+			data[j].tempSeqFP = (*tempSeqFPs)[j];
+			/* Start thread */
+			errCode = pthread_create(&threads[j], /* thread struct */
+					NULL, /* default thread attributes */
+					FindMatchesInIndex, /* start routine */
+					&data[j]); /* data to routine */
+			if(0!=errCode) {
+				PrintError("FindMatchesInIndexes",
+						"pthread_create: errCode",
+						"Could not start thread",
+						Exit,
+						ThreadError);
+			}
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Created threadID:%d\n",
+						j);
+			}
+		}
+		/* Wait for threads to return */
+		for(j=0;j<numThreads;j++) {
+			/* Wait for the given thread to return */
+			errCode = pthread_join(threads[j],
+					&status);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Thread returned with errCode:%d\n",
+						errCode);
+			}
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError("FindMatchesInIndexes",
+						"pthread_join: errCode",
+						"Thread returned an error",
+						Exit,
+						ThreadError);
+			}
+			/* Reinitialize file pointer */
+			tempOutputThreadFPs[j] = data[j].tempOutputFP;
+			fseek(tempOutputThreadFPs[j], 0, SEEK_SET);
+			assert(tempOutputThreadFPs[j]!=NULL);
+		}
 		endTime = time(NULL);
 		(*totalSearchTime)+=endTime - startTime;
+
+		/* Open a temporary file (this is reentrant) */
+		tempOutputIndexFPs[i] = tmpfile();
+		assert(tempOutputIndexFPs[i]!=NULL);
+		/* Merge temp thread output into temp index output */
+		/* Idea: the reads were apportioned in a given order,
+		 * so merge to recover the initial order.
+		 * */
+		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
+				numThreads,
+				tempOutputIndexFPs[i],
+				pairedEnd);
+
+		/* Close temp thread output */
+		for(j=0;j<numThreads;j++) {
+			fclose(tempOutputThreadFPs[j]);
+		}
 
 		/* Free memory of the RGIndex */
 		startTime = time(NULL);
@@ -315,7 +463,10 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		fprintf(stderr, "Will enter RGMatchMergeFilesAndOutput from FindMatchesInIndexes\n");
 	}
 	startTime=time(NULL);
-	numMatches=RGMatchMergeFilesAndOutput(tempFPs,
+	/* Open temporary file for the entire index search */
+	tempOutputFP=tmpfile();
+	/* Merge the temp index files into the all indexes file */
+	numWritten=RGMatchMergeFilesAndOutput(tempOutputIndexFPs,
 			numRGIndexes,
 			tempOutputFP,
 			pairedEnd);
@@ -326,14 +477,24 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		fprintf(stderr, "Exiting RGMatchMergeFilesAndOutput to FindMatchesInIndexes\n");
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Found matches for %d reads.\n", numMatches);
+		fprintf(stderr, "Found matches for %d reads.\n", numWritten);
 	}
 
-	/* Close the temporary sequence file */
-	fclose((*tempSeqFP));
+	/* Close the temporary index files */
+	for(i=0;i<numRGIndexes;i++) {
+		fclose(tempOutputIndexFPs[i]);
+	}
+
+	/* Close the temporary sequence files and open new ones */
+	for(i=0;i<numThreads;i++) {
+		/* Close temporary file */
+		fclose((*tempSeqFPs)[i]);
+		/* Open new temporary file */
+		(*tempSeqFPs)[i] = tmpfile();
+	}
 
 	/* Open a new temporary sequence file */
-	(*tempSeqFP) = tmpfile();
+	tempSeqFP = tmpfile();
 
 	/* Go through the temporary output file and output those sequences that have 
 	 * at least one match to the final output file.  For those sequences that have
@@ -341,33 +502,42 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	startTime=time(NULL);
 	ReadTempSequencesAndOutput(tempOutputFP,
 			outputFP,
-			(*tempSeqFP),
+			tempSeqFP,
 			pairedEnd);
 	endTime=time(NULL);
 	(*totalOutputTime)+=endTime-startTime;
 
 	/* Move to the beginning of the sequence file */
-	fseek((*tempSeqFP), 0, SEEK_SET);
+	fseek(tempSeqFP, 0, SEEK_SET);
 
-	/* Close temporary files - THEY WILL BE DELETED */
-	for(i=0;i<numRGIndexes;i++) {
-		fclose(tempFPs[i]);
-	}
+	/* Now apportion the remaining sequences into temp files for the threads when 
+	 * searching trees 
+	 * */
+	numRead=ReadSequencesToTempFile(tempSeqFP,
+			tempSeqFPs,
+			0,
+			0,
+			pairedEnd,
+			numThreads,
+			timing);
 
 	/* Close the temporary output file */
 	fclose(tempOutputFP);
+	/* Close the temporary sequence file */
+	fclose(tempSeqFP);
 
 	/* Free memory for temporary file pointers */
-	free(tempFPs);
+	free(tempOutputThreadFPs);
+	free(tempOutputIndexFPs);
+	/* Free thread data */
+	free(threads);
+	free(data);
 
-	return numMatches;
+	return numWritten;
 }
 
 /* TODO */
-void FindMatchesInIndex(FILE *tempSeqFP,
-		FILE *tempFP,
-		RGIndex *index,
-		int pairedEnd)
+void *FindMatchesInIndex(void *arg)
 {
 	char *sequenceName;
 	char *sequence;
@@ -376,6 +546,14 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 	RGMatch pairedSequenceMatch;
 	int numRead = 0;
 	int numSkipped = 0;
+	ThreadIndexData *data = (ThreadIndexData*)(arg);
+	/* Function arguments */
+	FILE *tempSeqFP = data->tempSeqFP;
+	FILE *tempOutputFP = data->tempOutputFP;
+	RGIndex *index = data->index;
+	int pairedEnd = data->pairedEnd;
+	int threadID = threadID;
+	data->numMatches = 0;
 
 	if(pairedEnd==1) {
 		PrintError("FindMatchesInIndex",
@@ -404,10 +582,6 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 		fprintf(stderr, "In FindMatchesInIndex\n");
 	}
 
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Currently on read:\n0");
-	}
-
 	/* For each sequence */
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
 		numRead++;
@@ -415,11 +589,6 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 			fprintf(stderr, "\nRead: %s\n%s\n",
 					sequenceName,
 					sequence);
-		}
-		if(VERBOSE >= 0){
-			if(numRead%FM_ROTATE_NUM == 0) {
-				fprintf(stderr, "\r%d", numRead);
-			}
 		}
 		/* Initialize match structures */
 		sequenceMatch.positions=NULL;
@@ -448,8 +617,12 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 				fprintf(stderr, "Outputting to a temp file.\n");
 			}
 
+			if(sequenceMatch.numEntries > 0) {
+				data->numMatches++;
+			}
+
 			/* Output to file */
-			RGMatchOutputToFile(tempFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
+			RGMatchOutputToFile(tempOutputFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
 
 			if(VERBOSE >= DEBUG) {
 				fprintf(stderr, "Freeing matches.\n");
@@ -478,14 +651,16 @@ void FindMatchesInIndex(FILE *tempSeqFP,
 			numSkipped++;
 		}
 	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d\nRead in %d reads with %d skipped.\n", numRead, numRead, numSkipped);
-	}
 
 	/* Free memory */
 	free(sequenceName);
 	free(sequence);
 	free(pairedSequence);
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Returning from FindMatchesInIndex\n");
+	}
+	return NULL;
 }
 
 /* TODO */
@@ -500,32 +675,61 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
-		FILE *tempSeqFP,
+		int numThreads,
+		FILE ***tempSeqFPs,
 		FILE *outputFP,
 		int timing,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
 		int *totalOutputTime)
 {
-	int i;
-	FILE **tempFPs=NULL;
+	int i, j;
+	FILE **tempOutputTreeFPs=NULL;
+	FILE **tempOutputThreadFPs=NULL;
 	RGTree tree;
 	int numMatches=0;
 	time_t startTime;
 	time_t endTime;
+	int errCode;
+	ThreadTreeData *data=NULL;
+	pthread_t *threads=NULL;
+	void *status;
 
-	/* Create temporary files */
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Creating temporary files (one for each tree)\n");
+	/* Allocate memory for threads */
+	threads=malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError("FindMatchesInTrees",
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
-	tempFPs = (FILE**)malloc(sizeof(FILE*)*numRGTrees);
-	for(i=0;i<numRGTrees;i++) { /* For each RGTree */
-		/* Open a temporary file (this is reentrant) */
-		tempFPs[i] = tmpfile();
-		assert(tempFPs[i]!=NULL);
+	/* Allocate memory to pass data to threads */
+	data=malloc(sizeof(ThreadIndexData)*numThreads);
+	if(NULL==data) {
+		PrintError("FindMatchesInTrees",
+				"data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Temporary files opened\n");
+	/* Allocate memory for temporary RGTree output files */
+	tempOutputTreeFPs=malloc(sizeof(FILE*)*numRGTrees);
+	if(NULL==tempOutputTreeFPs) {
+		PrintError("FindMatchesInTrees",
+				"tempOutputTreeFPs",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for temporary thread output files */
+	tempOutputThreadFPs=malloc(sizeof(FILE*)*numThreads);
+	if(NULL==tempOutputThreadFPs) {
+		PrintError("FindMatchesInTrees",
+				"tempOutputTreeFPs",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
 
 	/* For each RGTree, write temporary output */
@@ -546,24 +750,116 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 		endTime=time(NULL);
 		(*totalDataStructureTime)+=endTime-startTime;
 
-		/* reset pointer to temp file to the beginning of the file */
-		fseek(tempSeqFP, 0, SEEK_SET);
+		/* Set position to read from the beginning of the file */
+		for(j=0;j<numThreads;j++) {
+			fseek((*tempSeqFPs)[j], 0, SEEK_SET);
+		}
 
 		/* Execute */
 		startTime=time(NULL);
-		FindMatchesInTree(tempSeqFP,
-				tempFPs[i], 
-				&tree,
-				&offsets,
-				numOffsets,
-				numMismatches,
-				numInsertions,
-				numDeletions,
-				numGapInsertions,
-				numGapDeletions,
-				pairedEnd);
+		/* Initialize arguments to the thread */
+		for(j=0;j<numThreads;j++) {
+			/* Open file for thread output */
+			tempOutputThreadFPs[j] = tmpfile();
+			assert(tempOutputThreadFPs[j] != NULL);
+			data[j].tempSeqFP = (*tempSeqFPs)[j];
+			data[j].tempOutputFP = tempOutputThreadFPs[j];
+			data[j].tree = &tree;
+			data[j].offsets = offsets;
+			data[j].numOffsets = numOffsets;
+			data[j].numMismatches = numMismatches;
+			data[j].numInsertions = numInsertions;
+			data[j].numDeletions = numDeletions;
+			data[j].numGapInsertions = numGapInsertions;
+			data[j].numGapDeletions = numGapDeletions;
+			data[j].pairedEnd = pairedEnd;
+			data[j].threadID = j;
+		}
+		/* Create threads */
+		for(j=0;j<numThreads;j++) {
+			/* Start thread */
+			threads[j] = 0;
+			/*
+			fprintf(stderr, "HERE creating thread %d (%d) (uninit:%d)\n", 
+					j, 
+					data[j].threadID,
+					(int)threads[j]);
+			fflush(stderr);
+			*/
+			errCode = pthread_create(&threads[j], /* thread struct */
+					NULL, /* default thread attributes */
+					FindMatchesInTree, /* start routine */
+					&data[j]); /* data to routine */
+			/*
+			fprintf(stderr, "HERE created thread %d (pthread_t:%d)\n", j, (int)threads[j]);
+			fflush(stderr);
+			*/
+			if(0!=errCode) {
+				PrintError("FindMatchesInTrees",
+						"pthread_create: errCode",
+						"Could not start thread",
+						Exit,
+						ThreadError);
+			}
+		}
+		/*
+		for(j=0;j<numThreads;j++) {
+			fprintf(stderr, "(2) Testing thread %d.  Value:%d\n",
+					j,
+					data[j].threadID);
+			fflush(stderr);
+		}
+		*/
+		/* Wait for threads to return */
+		for(j=0;j<numThreads;j++) {
+			/* Wait for the given thread to return */
+			/*
+			fprintf(stderr, "Waiting for thread %d (pthread_t:%d) to exit.\n",
+					j,
+					(int)threads[j]);
+			fflush(stderr);
+			*/
+			errCode = pthread_join(threads[j],
+					&status);
+			/*
+			fprintf(stderr, "Caught return for thread %d (pthread_t:%d) to exit.\n",
+					j,
+					(int)threads[j]);
+			fflush(stderr);
+			*/
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError("FindMatchesInTrees",
+						"pthread_join: errCode",
+						"Thread returned an error",
+						Exit,
+						ThreadError);
+			}
+			assert(data[j].tempOutputFP != NULL);
+			/* Reinitialize file pointer */
+			tempOutputThreadFPs[j] = data[j].tempOutputFP;
+			fseek(tempOutputThreadFPs[j], 0, SEEK_SET);
+			assert(tempOutputThreadFPs[j]!=NULL);
+		}
 		endTime=time(NULL);
 		(*totalSearchTime)+=endTime-startTime;
+
+		/* Open a temporary file (this is reentrant) */
+		tempOutputTreeFPs[i] = tmpfile();
+		assert(tempOutputTreeFPs[i]!=NULL);
+		/* Merge temp thread output into temp index output */
+		/* Idea: the reads were apportioned in a given order,
+		 * so merge to recover the initial order.
+		 * */
+		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
+				numThreads,
+				tempOutputTreeFPs[i],
+				pairedEnd);
+
+		/* Close temp thread output */
+		for(j=0;j<numThreads;j++) {
+			fclose(tempOutputThreadFPs[j]);
+		}
 
 		/* Free memory of the RGTree */
 		startTime=time(NULL);
@@ -577,7 +873,7 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 
 	/* Merge temporary output from each tree and output to the final output file. */
 	startTime=time(NULL);
-	numMatches=RGMatchMergeFilesAndOutput(tempFPs,
+	numMatches=RGMatchMergeFilesAndOutput(tempOutputTreeFPs,
 			numRGTrees,
 			outputFP,
 			pairedEnd);
@@ -590,27 +886,22 @@ int FindMatchesInTrees(char **rgTreeFileNames,
 
 	/* Close temporary files - THEY WILL BE DELETED */
 	for(i=0;i<numRGTrees;i++) {
-		fclose(tempFPs[i]);
+		fclose(tempOutputTreeFPs[i]);
 	}
 
 	/* Free memory for temporary file pointers */
-	free(tempFPs);
+	free(tempOutputThreadFPs);
+	free(tempOutputTreeFPs);
+	/* Free thread data */
+	free(threads);
+	free(data);
+
 
 	return numMatches;
 }
 
 /* TODO */
-void FindMatchesInTree(FILE* tempSeqFP,
-		FILE *tempFP,
-		RGTree *tree,
-		int **offsets,
-		int numOffsets,
-		int numMismatches,
-		int numInsertions,
-		int numDeletions,
-		int numGapInsertions,
-		int numGapDeletions,
-		int pairedEnd)
+void *FindMatchesInTree(void *arg)
 {
 	char *sequenceName;
 	char *sequence;
@@ -618,6 +909,32 @@ void FindMatchesInTree(FILE* tempSeqFP,
 	RGMatch sequenceMatch;
 	RGMatch pairedSequenceMatch;
 	int numRead = 0;
+	ThreadTreeData *data = (ThreadTreeData*)(arg);
+	/* Function arguments */
+	FILE *tempSeqFP = data->tempSeqFP;
+	FILE *tempOutputFP = data->tempOutputFP;
+	RGTree *tree = data->tree;
+	int *offsets = data->offsets;
+	int numOffsets = data->numOffsets;
+	int numMismatches = data->numMismatches;
+	int numInsertions = data->numInsertions;
+	int numDeletions = data->numDeletions;
+	int numGapInsertions = data->numGapInsertions;
+	int numGapDeletions = data->numGapDeletions;
+	int pairedEnd = data->pairedEnd;
+	int threadID = data->threadID;
+	/*
+	fprintf(stderr, "HERE starting thread %d (self:%d)\n",
+			threadID,
+			(int)pthread_self());
+	fflush(stderr);
+	if(NULL==data->tempOutputFP) {
+		fprintf(stderr, "Assert will catch with %d (self:%d)\n",
+			threadID,
+			(int)pthread_self());
+	}
+	assert(data->tempOutputFP!=NULL);
+	*/
 
 	/* Initialize match structures */
 	sequenceMatch.positions=NULL;
@@ -638,22 +955,14 @@ void FindMatchesInTree(FILE* tempSeqFP,
 		fprintf(stderr, "In FindMatchesInTree\n");
 	}
 
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Currently on read:\n0");
-	}
-
 	/* For each sequence */
-	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
+	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) 
+	{
 		numRead++;
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\nRead: %s\t%s\n",
 					sequenceName,
 					sequence);
-		}
-		if(VERBOSE >= 0){
-			if(numRead%FM_ROTATE_NUM == 0) {
-				fprintf(stderr, "\r%d", numRead);
-			}
 		}
 
 		/* Initialize match structures */
@@ -670,7 +979,7 @@ void FindMatchesInTree(FILE* tempSeqFP,
 		RGSeqPairFindMatchesInTree(tree,
 				&sequenceMatch,
 				sequence,
-				offsets,
+				&offsets,
 				numOffsets,
 				numMismatches,
 				numInsertions,
@@ -681,7 +990,7 @@ void FindMatchesInTree(FILE* tempSeqFP,
 			RGSeqPairFindMatchesInTree(tree,
 					&pairedSequenceMatch,
 					pairedSequence,
-					offsets,
+					&offsets,
 					numOffsets,
 					numMismatches,
 					numInsertions,
@@ -695,7 +1004,7 @@ void FindMatchesInTree(FILE* tempSeqFP,
 		}
 
 		/* Output to file */
-		RGMatchOutputToFile(tempFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
+		RGMatchOutputToFile(tempOutputFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
 
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Freeing matches.\n");
@@ -720,12 +1029,17 @@ void FindMatchesInTree(FILE* tempSeqFP,
 			pairedSequenceMatch.numEntries=0;
 		}
 	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d\nRead in %d reads.\n", numRead, numRead);
-	}
 
 	/* Free memory */
 	free(sequenceName);
 	free(sequence);
 	free(pairedSequence);
+
+	/*
+	fprintf(stderr, "HERE thread %d returning\n",
+			data->threadID);
+	fflush(stderr);
+	*/
+
+	return NULL;
 }

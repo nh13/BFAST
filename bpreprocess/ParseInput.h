@@ -15,6 +15,7 @@ struct arguments
 	int endChr;								/* -e */
 	int endPos;								/* -E */
 	char *gapFileName;						/* -g */
+	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	int binaryOutput;						/* -B */
@@ -74,8 +75,8 @@ extern int ReadReferenceGenome(char*, int, RGList*, int, int, int, int, int);
 extern void ReadGaps(char*, int**, int*, int*, int);
 
 /* From GenerateIndex.h */
-extern void GenerateIndex(RGList*, int, char*, int);
+extern void GenerateIndex(RGList*, int, int, char*, int);
 
 /* From GenerateTree.h */
-extern void GenerateTree(RGList*, int, int*, int, char*, char*, int, int);
+extern void GenerateTree(RGList*, int, int*, int, int, char*, char*, int, int);
 

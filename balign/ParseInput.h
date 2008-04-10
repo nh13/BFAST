@@ -15,6 +15,7 @@ struct arguments
 	int offsetLength;						/* -O */
 	int maxNumMatches;						/* -M */
 	int pairedEnd;                          /* -2 */
+	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	int timing;                             /* -t */

@@ -4,7 +4,7 @@
 #include "BLibDefinitions.h"
 
 static char ErrorString[][20]=
-{ "\0", "OutOfRange", "InputArguments", "IllegalFileName", "OpenFileError", "EndOfFile", "ReallocMemory", "MallocMemory"}; 
+{ "\0", "OutOfRange", "InputArguments", "IllegalFileName", "OpenFileError", "EndOfFile", "ReallocMemory", "MallocMemory", "ThreadError"}; 
 static char ActionType[][20]={"Fatal Error", "Warning"};
 
 	void
@@ -17,11 +17,11 @@ PrintError(char* FunctionName, char *VariableName,
 
 	/* Only print variable name if is available */
 	if(VariableName) {
-		fprintf(stderr, "Variable/Value: %s\n", VariableName);
+		fprintf(stderr, "Variable/Value: %s.\n", VariableName);
 	}
 	/* Only print message name if is available */
 	if(Message) { 
-		fprintf(stderr, "Message: %s\n", Message);
+		fprintf(stderr, "Message: %s.\n", Message);
 	}
 
 	switch(Action) {

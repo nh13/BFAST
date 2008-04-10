@@ -222,9 +222,9 @@ unsigned int RGTreeGetIndex(RGTree *tree,
 		unsigned int indexOne,
 		unsigned int indexTwo)
 {
-	unsigned int low = 0;
-	unsigned int high = tree->numNodes-1;
-	unsigned int mid;
+	long long int low = 0;
+	long long int high = tree->numNodes-1;
+	long long int mid;
 
 	/* Binary search */
 	while(low <= high) {

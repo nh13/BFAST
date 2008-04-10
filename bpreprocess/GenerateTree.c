@@ -13,6 +13,7 @@ void GenerateTree(RGList *rgList,
 		int matchLength, 
 		int *gaps,
 		int numGaps,
+		int numThreads,
 		char *outputID, 
 		char *outputDir,
 		int binaryOutput,
@@ -137,30 +138,6 @@ void GenerateTree(RGList *rgList,
 				if(ValidateSequence(curSequenceOne, matchLength)==1 && ValidateSequence(curSequenceTwo, matchLength)) {
 					/* Insert pair into the tree */
 					RGTreeInsert(&tree, curSequenceOne, curSequenceTwo, matchLength, rgList->chromosomes[j].chromosome, startOne);
-
-					if(VERBOSE >= DEBUG) {
-						RGMatch match;
-						match.positions=NULL;
-						match.chromosomes=NULL;
-						match.strand=NULL;
-						match.numEntries=0;
-						RGTreeGetMatches(&tree,
-								RGTreeGetIndexFromSequence(curSequenceOne, matchLength),
-								RGTreeGetIndexFromSequence(curSequenceTwo, matchLength),
-								FORWARD,
-								0,
-								&match);
-						fprintf(stderr, "Found %d matches for %s\t%s\n",
-								match.numEntries,
-								curSequenceOne,
-								curSequenceTwo);
-						for(i=0;i<match.numEntries;i++) {
-							fprintf(stderr, "match at chr%d:%d strand:%c.\n",
-									(int)match.chromosomes[i],
-									match.positions[i],
-									match.strand[i]);
-						}
-					}
 				}
 			}
 			if(VERBOSE >=0) {

@@ -55,7 +55,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd,
+	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
 	DescMiscTitle, DescHelp
 };
@@ -78,6 +78,7 @@ static struct argp_option options[] = {
 	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initaite alignment for a given match", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
+	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
@@ -106,7 +107,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:o:r:s:x:E:H:M:O:S:2hpt";
+"a:d:e:m:n:o:r:s:x:E:H:M:O:S:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -320,6 +321,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->numThreads<=0) {
+		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
+	} 
+
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID path %s. \n",
 				args->outputID);
@@ -397,6 +402,7 @@ AssignDefaultValues(struct arguments *args)
 	args->offsetLength=0;
 	args->maxNumMatches=0;
 	args->pairedEnd = 0;
+	args->numThreads = 1;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -431,6 +437,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
@@ -507,6 +514,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'm':
 						if(arguments->matchesFileName) free(arguments->matchesFileName);
 						arguments->matchesFileName = OPTARG;break;
+					case 'n':
+						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;

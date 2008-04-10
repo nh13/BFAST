@@ -8,14 +8,16 @@
 #include "ReadInputFiles.h"
 
 /* TODO */
-int ReadSequencesToTempFile(char *sequenceFileName, 
-		FILE **tempSeqFP, 
+int ReadSequencesToTempFile(FILE *seqFP,
+		FILE ***tempSeqFPs, /* One for each thread */ 
 		int startReadNum, 
 		int endReadNum, 
 		int pairedEnd,
+		int numThreads,
 		int timing)
 {
-	FILE *seqFP=NULL;
+	int i;
+	int curSeqFPIndex=0;
 	char sequenceName[SEQUENCE_NAME_LENGTH];
 	char sequence[SEQUENCE_LENGTH];
 	char pairedSequence[SEQUENCE_LENGTH];
@@ -23,55 +25,58 @@ int ReadSequencesToTempFile(char *sequenceFileName,
 	time_t startTime = time(NULL);
 	time_t endTime;
 
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading reads from %s to a temp file.\n",
-				sequenceFileName);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "In ReadSequencesToTempFile\n");
 	}
 
-	/* open sequence file */
-	if((seqFP=fopen(sequenceFileName, "r"))==0) {
-		PrintError("ReadSequencesToTempFile",
-				sequenceFileName,
-				"Could not open sequenceFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-
-	/* open a temporary file */
-	(*tempSeqFP)=tmpfile();
-
-	if(VERBOSE >=0) {
-		fprintf(stderr, "Currently on read:\n0");
+	/* open one temporary file, one for each thread */
+	for(i=0;i<numThreads;i++) {
+		(*tempSeqFPs)[i] = tmpfile();
+		assert((*tempSeqFPs)[i]!=NULL);
 	}
 
 	/* NOTE: we could implement a counter */
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\n0");
+	}
 	while((endReadNum<=0 || endReadNum >= curReadNum) && EOF != fscanf(seqFP, "%s", sequenceName)) {
-		if(curReadNum%RIF_ROTATE_NUM==0 && VERBOSE >= 0) {
-			fprintf(stderr, "\r%d", curReadNum);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "\r%d",
+					curReadNum);
 		}
+		/* Get which tmp file to put the read in */
+		curSeqFPIndex = (curReadNum-1)%numThreads;
 
 		/* Read sequence label above */
 		/* Read sequence */
 		if(EOF==fscanf(seqFP, "%s", sequence)) {
-			fprintf(stderr, "Error.  Could not read sequence from %s.  Terminating!\n", sequenceFileName);
+			PrintError("ReadSequencesToTempFile",
+					"sequence",
+					"Could not read sequence",
+					Exit,
+					EndOfFile);
 		}
 		SequenceToLower(sequence, strlen(sequence));
 		/* Read paired sequence */
 		if(pairedEnd==1) {
 			if(EOF==fscanf(seqFP, "%s", pairedSequence)) {
-				fprintf(stderr, "Error.  Could not read sequence from %s.  Terminating!\n", sequenceFileName);
+				PrintError("ReadSequencesToTempFile",
+						"pairedSequence",
+						"Could not read sequence",
+						Exit,
+						EndOfFile);
 			}
 			SequenceToLower(pairedSequence, strlen(pairedSequence));
 		}
 		/* Print only if we are within the desired limit */
 		if(startReadNum<=0 || curReadNum >= startReadNum) {
 			/* Print sequence */
-			fprintf((*tempSeqFP), "%s\n", sequenceName);
+			fprintf((*tempSeqFPs)[curSeqFPIndex], "%s\n", sequenceName);
 			/* Print sequence */
-			fprintf((*tempSeqFP), "%s\n", sequence);
+			fprintf((*tempSeqFPs)[curSeqFPIndex], "%s\n", sequence);
 			/* Print paired sequence */
 			if(pairedEnd==1) {
-				fprintf((*tempSeqFP), "%s\n", pairedSequence);
+				fprintf((*tempSeqFPs)[curSeqFPIndex], "%s\n", pairedSequence);
 			}
 			if(VERBOSE >= DEBUG) {
 				fprintf(stderr, "sequenceName:%s\tsequence:%s",
@@ -88,20 +93,17 @@ int ReadSequencesToTempFile(char *sequenceFileName,
 		curReadNum++;
 	}
 	curReadNum--; /* decrement sequence number since we have +1 after the loop */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d\n", curReadNum);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "\r%d\n",
+				curReadNum);
 	}
 
 	/* close sequence file */
 	fclose(seqFP);
 
-	/* reset pointer to temp file to the beginning of the file */
-	fseek((*tempSeqFP), 0, SEEK_SET);
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Read %d reads from %s.\n",
-				curReadNum,
-				sequenceFileName);
+	/* reset pointer to temp files to the beginning of the file */
+	for(i=0;i<numThreads;i++) {
+		fseek((*tempSeqFPs)[i], 0, SEEK_SET);
 	}
 
 	endTime = time(NULL);
@@ -112,11 +114,15 @@ int ReadSequencesToTempFile(char *sequenceFileName,
 	seconds -= minutes*60;
 
 	if(timing == 1) {
-	fprintf(stderr, "Reading to temp file took: %d hours, %d minutes and %d seconds.\n",
-			hours,
-			minutes,
-			seconds
-		   );
+		fprintf(stderr, "Reading to temp file took: %d hours, %d minutes and %d seconds.\n",
+				hours,
+				minutes,
+				seconds
+			   );
+	}
+
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Exiting ReadSequencesToTempFile\n");
 	}
 
 	return curReadNum;

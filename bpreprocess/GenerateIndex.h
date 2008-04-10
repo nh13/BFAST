@@ -2,6 +2,6 @@
 #define GENERATE_TREE_H_
 #include "../blib/RGTree.h"
 
-void GenerateIndex(RGList*, int, char*, int);
+void GenerateIndex(RGList*, int, int, char*, int);
 
 #endif

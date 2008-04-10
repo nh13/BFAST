@@ -271,10 +271,10 @@ void RGIndexQuickSortNodes(RGIndex *index, unsigned int low, unsigned int high, 
 unsigned int RGIndexGetIndex(RGIndex *index,
 		unsigned char *curIndex)
 {
-	unsigned int low = 0;
-	unsigned int high = index->numNodes-1;
-	unsigned int mid;
-	unsigned int cmp;
+	long long int low = 0;
+	long long int high = index->numNodes-1;
+	long long int mid;
+	int cmp;
 
 	RGIndexNode cur;
 	cur.index = curIndex;
@@ -495,6 +495,10 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 				MallocMemory);
 	}
 	assert(index->nodes!=NULL);
+	if(VERBOSE >= DEBUG) {
+		fprintf(stderr, "Will read %d index nodes.\n",
+				index->numNodes);
+	}
 
 	if(binaryInput == 0) {
 		/* Preallocate as much as possible */
@@ -605,6 +609,13 @@ int RGIndexReadIndex(FILE *fp, RGIndex *index, int binaryInput)
 			for(j=0;j<numChars;j++) {
 				tempIndex[j] = ntohl(tempIndex[j]);
 				index->nodes[i].index[j] = (unsigned char)tempIndex[j];
+				if(VERBOSE >= DEBUG) {
+					fprintf(stderr, "%d\t",
+							(int)index->nodes[i].index[j]);
+				}
+			}
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "\n");
 			}
 
 			/* Read in the number of entries */
@@ -803,7 +814,7 @@ int RGIndexGetMatches(RGIndex *index, unsigned char *curIndex, char direction, R
 	unsigned int numChars = (int)ceil((2.0/8.0*index->matchLength)/sizeof(unsigned char));
 
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "RGIndexGetMatch.  Searching for index:");
+		fprintf(stderr, "RGIndexGetMatches.  Searching for index:");
 		for(i=0;i<numChars;i++) {
 			fprintf(stderr, "\t%d", curIndex[i]);
 		}

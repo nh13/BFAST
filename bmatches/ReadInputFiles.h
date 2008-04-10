@@ -5,7 +5,7 @@
 #include "../blib/RGTree.h"
 #include "../blib/RGIndex.h"
 
-int ReadSequencesToTempFile(char*, FILE**, int, int, int, int);
+int ReadSequencesToTempFile(FILE*, FILE***, int, int, int, int, int);
 int ReadNextSequence(FILE*, char**, char**, char**, int);
 void ReadRGIndex(char*, RGIndex*, int);
 void ReadRGTree(char*, RGTree*, int);

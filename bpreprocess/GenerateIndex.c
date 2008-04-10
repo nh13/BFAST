@@ -13,6 +13,7 @@
 /* TODO */
 void GenerateIndex(RGList *rgList,
 		int matchLength, 
+		int numThreads,
 		char *outputFileName, 
 		int binaryOutput)
 {
@@ -66,11 +67,13 @@ void GenerateIndex(RGList *rgList,
 			for(k=j;k<j+matchLength;k++) {
 				curSequence[k-j] = rgList->chromosomes[i].sequence[k-rgList->chromosomes[i].startPos];
 			}
+			curSequence[k] = '\0';
 			if(VERBOSE>=DEBUG) {
-				fprintf(stderr, "Inserting [%s] at chr%d:%d.\n",
+				fprintf(stderr, "Inserting [%s] at chr%d:%d matchLength:%d.\n",
 						curSequence,
 						rgList->chromosomes[i].chromosome,
-						j);
+						j,
+						matchLength);
 			}
 			/* Only insert if it is a valid sequence */
 			if(ValidateSequence(curSequence, matchLength)==1) {

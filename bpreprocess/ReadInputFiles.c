@@ -200,11 +200,11 @@ int ReadReferenceGenome(char *rgListFileName,
 									Exit,
 									ReallocMemory);
 						}
-						rgList->chromosomes[numChrs-1].sequence[numPosRead] = c;
-						numPosRead++;
 					}
-					curPos++;
+					rgList->chromosomes[numChrs-1].sequence[numPosRead] = c;
+					numPosRead++;
 				}
+				curPos++;
 			}
 		}
 		/* Decrement position */

@@ -55,7 +55,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescBlatterIndexesFileName, DescBlatterTreesFileName, DescReadsFileName, DescOffsetsFileName, 
+	DescInputFilesTitle, DescBlatterIndexesFileName, DescBlatterTreesFileName, DescReadsFileName, DescOffsetsFileName, DescNumThreads, 
 	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -81,6 +81,7 @@ static struct argp_option options[] = {
 	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
 	{"numGapDeletions", 'Z', "numGapDeletions", 0, "Specifies the number of gap deletions allowd in the gap between paris", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
+	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
@@ -110,7 +111,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:o:s:x:y:z:I:O:R:T:Y:Z:2bhptB";
+"d:e:n:o:s:x:y:z:I:O:R:T:Y:Z:2bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -191,6 +192,7 @@ main (int argc, char **argv)
 								arguments.numGapInsertions,
 								arguments.numGapDeletions,
 								arguments.pairedEnd,
+								arguments.numThreads,
 								arguments.timing);
 
 						endTime = time(NULL);
@@ -205,7 +207,6 @@ main (int argc, char **argv)
 								minutes,
 								seconds
 							   );
-
 						fprintf(stderr, "Terminating successfully!\n");
 						fprintf(stderr, "%s", BREAK_LINE);
 
@@ -234,6 +235,8 @@ main (int argc, char **argv)
 		/*     fprintf(stderr, "Type \"%s -h\" to see usage\n", argv[0]); */
 #endif
 	}
+
+	fprintf(stderr, "HERE 2\n");
 	return 0;
 }
 
@@ -306,6 +309,10 @@ int ValidateInputs(struct arguments *args) {
 	if(args->pairedEnd < 0 || args->pairedEnd > 1) {
 		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
+
+	if(args->numThreads<=0) {
+		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
+	} 
 
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
@@ -394,6 +401,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numGapInsertions = 0;
 	args->numGapDeletions = 0;
 	args->pairedEnd = 0;
+	args->numThreads = 1;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -433,6 +441,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
@@ -508,15 +517,17 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->endReadNum = atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
-					case 's':
-						arguments->startReadNum = atoi(OPTARG);break;
-					case 't':
-						arguments->timing = 1;break;
+					case 'n':
+						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 's':
+						arguments->startReadNum = atoi(OPTARG);break;
+					case 't':
+						arguments->timing = 1;break;
 					case 'x':
 						arguments->numMismatches=atoi(OPTARG);break;
 					case 'y':

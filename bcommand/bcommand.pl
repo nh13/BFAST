@@ -594,17 +594,10 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= " -E ".$$endPosArr[$i];
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
-<<<<<<< .mine
 		if($$data{"TIMING"}==1) {
 			$command .= " -t";
 		}
 # Print the command
-=======
-		if($$data{"TIMING"}==1) {
-			$command .= " -t";
-		}
-		# Print the command
->>>>>>> .r31
 		print FHIndexCommands $command."\n";
 # Print the index file name that this command will create. 
 		print FHIndexes sprintf("%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s\n",
@@ -637,17 +630,10 @@ sub CreateBProcessCommandsAndFiles {
 		$command .= " -g ".$$data{"GAPSFILENAME"};
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
-<<<<<<< .mine
 		if($$data{"TIMING"}==1) {
 			$command .= " -t";
 		}
 # Print the command
-=======
-		if($$data{"TIMING"}==1) {
-			$command .= " -t";
-		}
-		# Print the command
->>>>>>> .r31
 		print FHTreeCommands $command."\n";
 # Print the tree file names of each tree that this command would create
 		for(my $j=0;$j<scalar(@$gaps);$j++) { # Note: we have one file per gap
@@ -766,25 +752,13 @@ sub CreateBMatchesCommandsAndFiles {
 		}
 		$command .= " -o ".$$data{"OUTPUTID"};
 		$command .= " -d ".$$data{"OUTPUTDIR"};
-<<<<<<< .mine
 		if($$data{"TIMING"}==1) {
 			$command .= " -t";
 		}
 # Print the command
-=======
-		if($$data{"TIMING"}==1) {
-			$command .= " -t";
-		}
-		# Print the command
->>>>>>> .r31
 		print FHMatchesCommands $command."\n";
-<<<<<<< .mine
 # Print the file generated
 		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
-=======
-		# Print the file generated
-		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
->>>>>>> .r31
 			$$data{"OUTPUTDIR"},
 			$$data{"OUTPUTID"},
 			($i-$incReads+1),
@@ -874,7 +848,6 @@ sub CreateBAlignCommandsAndFiles {
 # Close the output file
 	close(FHAlignCommands);
 }
-<<<<<<< .mine
 
 ############################################################
 # PrintIniFile
@@ -902,32 +875,3 @@ sub PrintIniFile {
 	# Close the output file
 	close(FH);
 }
-=======
-
-############################################################
-# PrintIniFile
-#
-# Prints a sample .ini file to the output file
-#
-# params:
-#	outputFileName - the name of the output file
-#
-# return:
-#	null.
-############################################################
-sub PrintIniFile {
-	my $outputFileName = shift;
-	local *FH;
-
-	# Open the output file
-	open(FH, ">$outputFileName") || die("Error.  Could not open $outputFileName for writing.  Terminating!\n");
-
-	# Print the options
-	for(my $i=0;$i<scalar(@options);$i++) {
-		print FH $options[$i]."=\"\"\n";
-	}
-
-	# Close the output file
-	close(FH);
-}
->>>>>>> .r31

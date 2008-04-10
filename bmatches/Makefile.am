@@ -15,5 +15,5 @@ bmatches_SOURCES = \
 ##  the *_SOURCES above so we need to reference libm.a here
 
 bmatches_LDADD = -lm 
-AM_CFLAGS = -Wall -ansi -pg -g -O3
+AM_CFLAGS = -Wall -ansi -pg -g -O3 
 

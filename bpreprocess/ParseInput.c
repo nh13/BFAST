@@ -53,7 +53,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBinaryInput, 
-	DescAlgoTitle, DescAlgorithm, DescMatchLength, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescGapFileName, 
+	DescAlgoTitle, DescAlgorithm, DescMatchLength, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescGapFileName, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescBinaryOutput, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -74,6 +74,7 @@ static struct argp_option options[] = {
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
 	{"gapFileName", 'g', "gapFileName", 0, "Specifies the file to read in desired gaps (Algorithm 1)", 2},
+	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
@@ -103,7 +104,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:g:l:o:r:s:E:S:bhptB";
+"a:d:e:g:l:n:o:r:s:E:S:bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -188,6 +189,7 @@ main (int argc, char **argv)
 								GenerateIndex(
 										&rgList,
 										arguments.matchLength,
+										arguments.numThreads,
 										outputFileName,
 										arguments.binaryOutput);
 								/* Free the Reference Genome */
@@ -228,6 +230,7 @@ main (int argc, char **argv)
 										arguments.matchLength,
 										gaps,
 										numGaps,
+										arguments.numThreads,
 										arguments.outputID,
 										arguments.outputDir,
 										arguments.binaryOutput,
@@ -338,6 +341,10 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "gapFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
+	if(args->numThreads<=0) {
+		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
@@ -424,6 +431,8 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->gapFileName!=0);
 	strcpy(args->gapFileName, DEFAULT_FILENAME);
 
+	args->numThreads = 1;
+
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
 	assert(args->outputID!=0);
@@ -458,6 +467,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "gapFileName:\t\t\t\t%s\n", args->gapFileName);
+	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
@@ -538,14 +548,16 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'l':
 						arguments->matchLength=atoi(OPTARG);break;
-					case 'r':
-						if(arguments->rgListFileName) free(arguments->rgListFileName);
-						arguments->rgListFileName = OPTARG;break;
+					case 'n':
+						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'r':
+						if(arguments->rgListFileName) free(arguments->rgListFileName);
+						arguments->rgListFileName = OPTARG;break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
 					case 't':

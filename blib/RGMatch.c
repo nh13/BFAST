@@ -60,7 +60,7 @@ void RGMatchRemoveDuplicates(RGMatch *s)
 		RGMatchReallocate(s, prevIndex+1);
 	}
 	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Exiting GMatchRemoveDuplicates\n");
+		fprintf(stderr, "Exiting RGMatchRemoveDuplicates\n");
 	}
 }
 
@@ -355,6 +355,104 @@ int RGMatchMergeFilesAndOutput(FILE **tempFPs,
 }
 
 /* TODO */
+int RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
+		int numThreads,
+		FILE *outputFP,
+		int pairedEnd)
+{
+	int i;
+	RGMatch match;
+	RGMatch pairedMatch;
+	int continueReading = 1;
+	char *sequenceName;
+	char *sequence;
+	char *pairedSequence;
+
+	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
+	sequenceName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+	if(NULL == sequenceName) {
+		PrintError("RGMatchMergeThreadTempFilesIntoOutputTempFile",
+				"sequenceName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	sequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL == sequence) {
+		PrintError("RGMatchMergeThreadTempFilesIntoOutputTempFile",
+				"sequence",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	pairedSequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL == pairedSequence) {
+		PrintError("RGMatchMergeThreadTempFilesIntoOutputTempFile",
+				"pairedSequence",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	continueReading=1;
+	while(continueReading == 1) {
+
+		/* For each thread */
+		for(i=0;i<numThreads && 1==continueReading;i++) {
+
+			/* Initialize match */
+			match.positions=NULL;
+			match.chromosomes=NULL;
+			match.strand=NULL;
+			match.numEntries=0;
+			pairedMatch.positions=NULL;
+			pairedMatch.chromosomes=NULL;
+			pairedMatch.strand=NULL;
+			pairedMatch.numEntries=0;
+
+			if(RGMatchGetNextFromFile(threadFPs[i],
+						sequenceName,
+						sequence,
+						pairedSequence,
+						&match,
+						&pairedMatch,
+						pairedEnd)==EOF) {
+				continueReading=0;
+			}
+			if(continueReading==1) {
+
+				RGMatchOutputToFile(outputFP,
+						sequenceName,
+						sequence,
+						pairedSequence,
+						&match,
+						&pairedMatch,
+						pairedEnd);
+
+				/* Free memory */
+				if(match.numEntries > 0) {
+					free(match.positions);
+					free(match.chromosomes);
+					free(match.strand);
+				}
+				if(pairedMatch.numEntries > 0) {
+					free(pairedMatch.positions);
+					free(pairedMatch.chromosomes);
+					free(pairedMatch.strand);
+				}
+			}
+		}
+	}
+
+	/* Free memory */
+	free(sequenceName);
+	free(sequence);
+	free(pairedSequence);
+
+	return 1;
+}
+
+/* TODO */
 int RGMatchGetNextFromFile(FILE *fp,
 		char *sequenceName,
 		char *sequence,
@@ -430,14 +528,14 @@ int RGMatchGetNextFromFile(FILE *fp,
 
 	/* Read Paired end if necessary */
 	if(pairedEnd == 1) {
-	/* Read paired sequence */
-	if(fscanf(fp, "%s", pairedSequence)==EOF) {
-		PrintError("RGMatchGetNextFromFile",
-				"pairedSequence",
-				"Could not read in pairedSequence",
-				Exit,
-				EndOfFile);
-	}
+		/* Read paired sequence */
+		if(fscanf(fp, "%s", pairedSequence)==EOF) {
+			PrintError("RGMatchGetNextFromFile",
+					"pairedSequence",
+					"Could not read in pairedSequence",
+					Exit,
+					EndOfFile);
+		}
 		/* Read in the number of matches */
 		if(fscanf(fp, "%d", &pairedSequenceMatch->numEntries)==EOF) {
 			PrintError("RGMatchGetNextFromFile",

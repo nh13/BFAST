@@ -8,7 +8,4 @@
 #define RIF_REALLOCATE_INCREMENT 65536
 #define RIF_ROTATE_NUM 1000000
 
-/* For FindMatches.c */
-#define FM_ROTATE_NUM 1000
-
 #endif
