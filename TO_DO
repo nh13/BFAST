@@ -2,8 +2,11 @@ Note: does not support match lengths > 16 when using the trees
 
 ===============================================================================
 General
-1. Add doc/bcommand.1
-2. Modify docs.
+1. Suffix array representation of the indexes.  Have the key be a chr/pos, the
+location be chr/pos, and sort the array based on the string starting at the
+key.
+2. Add doc/bcommand.1
+3. Modify docs.
 ===============================================================================
 
 
