@@ -1,7 +1,9 @@
 #ifndef GENERATE_TREE_H_
 #define GENERATE_TREE_H_
-#include "../blib/RGTree.h"
 
-void GenerateIndex(RGList*, int, int, char*, int);
+#include <stdio.h>
+#include "../blib/BLibDefinitions.h"
+
+void GenerateIndex(RGBinary*, RGIndexLayout*, int, char*, char*, int);
 
 #endif

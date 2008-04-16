@@ -1,11 +1,12 @@
 bin_PROGRAMS = bmatches
 
 bmatches_SOURCES = \
-	../blib/BError.c	../blib/BError.h \
 	ReadInputFiles.c	ReadInputFiles.h \
+	../blib/BError.c	../blib/BError.h \
+	../blib/BLib.c	../blib/BLib.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
-	../blib/RGTree.c	../blib/RGTree.h \
-	../blib/RGSeqPair.c	../blib/RGSeqPair.h \
+	../blib/RGBinary.c	../blib/RGBinary.h \
+	../blib/RGReads.c	../blib/RGReads.h \
 	../blib/RGMatch.c	../blib/RGMatch.h \
 	FindMatches.c	FindMatches.h \
 	ParseInput.c	ParseInput.h \

@@ -48,6 +48,8 @@ balign
 Have a command line option that ignores reads with zero candidate matches.
 2.
 Multithread alignment.
+3. 
+Changed how we write bmatches...
 
 ===============================================================================
 bpostprocess

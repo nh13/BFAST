@@ -36,8 +36,12 @@
 #include <sys/resource.h>
 #endif
 
-#include "Definitions.h"
+#include "../blib/BLibDefinitions.h"
+#include "../blib/RGBinary.h"
+#include "../blib/RGIndexLayout.h"
 #include "../blib/BError.h"
+#include "Definitions.h"
+#include "GenerateIndex.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =
@@ -52,8 +56,8 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescBinaryInput, 
-	DescAlgoTitle, DescAlgorithm, DescMatchLength, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescGapFileName, DescNumThreads, 
+	DescInputFilesTitle, DescRGListFileName, DescBinaryInput, DescIndexLayoutFileName, 
+	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescBinaryOutput, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -65,15 +69,14 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
+	{"indexLayoutFileName", 'i', "indexLayOutFileName", 0, "Specifies the file name of the file that contains tile sizes and gaps", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies to expect the input files in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create an index 1: create a tree 2: create a 4-bit file from the reference chromosomes", 2},
-	{"matchLength", 'l', "matchLength", 0, "Specifies the length (in base pairs) to use for our matches (l-mer) (Algorithms 0 and 1)", 2},
+	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create an index 1: create a 4-bit file from the reference chromosomes", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
-	{"gapFileName", 'g', "gapFileName", 0, "Specifies the file to read in desired gaps (Algorithm 1)", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
@@ -104,7 +107,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:g:l:n:o:r:s:E:S:bhptB";
+"a:d:e:i:n:o:r:s:E:S:bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -117,12 +120,8 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 main (int argc, char **argv)
 {
 	struct arguments arguments;
-	RGList rgList;
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	int *gaps=NULL;
-	int numGaps=0;
-	int maxGap=0;
-	int i, reachedEnd;
+	RGBinary rg;
+	RGIndexLayout rgLayout;
 	time_t startTime = time(NULL);
 	time_t endTime;
 	if(argc>1) {
@@ -159,92 +158,35 @@ main (int argc, char **argv)
 
 						switch(arguments.algorithm) {
 							case 0:
-								/* Read in the reference Genome */
-								/* Note: we add matchLenth-1 to the end since we want to include the
-								 * start positions up to and including endPos */
-								if(VERBOSE >= 0) {
-									fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d].\n",
-											arguments.matchLength-1,
-											arguments.matchLength);
-								}
-								reachedEnd = ReadReferenceGenome(arguments.rgListFileName, 
-										arguments.binaryInput,
-										&rgList,
+								/* Read in the RGIndex layout */
+								RGIndexLayoutRead(arguments.indexLayoutFileName, &rgLayout);
+
+								/* Read in the reference genome */
+								RGBinaryRead(arguments.rgListFileName, 
+										&rg,
 										arguments.startChr,
 										arguments.startPos,
 										arguments.endChr,
-										arguments.endPos,
-										arguments.matchLength-1);
-								/* Create the output file name */
-								sprintf(outputFileName, "%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s",
-										arguments.outputDir,
-										arguments.outputID,
-										rgList.startChr,
-										rgList.startPos,
-										rgList.endChr,
-										rgList.endPos-((reachedEnd==1)?0:arguments.matchLength-1),
-										arguments.matchLength,
-										BLATTER_INDEX_FILE_EXTENSION);
-								/* Generate our index */
-								GenerateIndex(
-										&rgList,
-										arguments.matchLength,
+										arguments.endPos);
+
+								/* Generate the indexes */
+								GenerateIndex(&rg,
+										&rgLayout,
 										arguments.numThreads,
-										outputFileName,
+										arguments.outputID,
+										arguments.outputDir,
 										arguments.binaryOutput);
+
 								/* Free the Reference Genome */
-								for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
-									/* Free the sequence */
-									free(rgList.chromosomes[i].sequence);
-								}   
-								free(rgList.chromosomes);
+								RGBinaryDelete(&rg);
+
+								/* Free the RGIndex layout */
+								RGIndexLayoutDelete(&rgLayout);
 
 								break;
-							case 1: 
-								/* Read in the gap file */
-								ReadGaps(arguments.gapFileName,
-										&gaps,
-										&numGaps,
-										&maxGap,
-										arguments.matchLength);
-								/* Read in the reference Genome */
-								/* Note: we add 2*matchLenth-1+maxGap to the end since we want to include the
-								 * start positions up to and including endPos (with gap) */
-								if(VERBOSE >= 0) {
-									fprintf(stderr, "Will read an extra %d bases to account for matchLength [%d] and the maximum gap supplied [%d].\n",
-											2*arguments.matchLength-1+maxGap,
-											arguments.matchLength,
-											maxGap);
-								}
-								reachedEnd = ReadReferenceGenome(arguments.rgListFileName, 
-										arguments.binaryInput,
-										&rgList,
-										arguments.startChr,
-										arguments.startPos,
-										arguments.endChr,
-										arguments.endPos,
-										2*arguments.matchLength-1+maxGap);
-
-								/* Generate our Tree */ 
-								GenerateTree(&rgList,
-										arguments.matchLength,
-										gaps,
-										numGaps,
-										arguments.numThreads,
-										arguments.outputID,
-										arguments.outputDir,
-										arguments.binaryOutput,
-										reachedEnd);
-								/* Free the Reference Genome */
-								for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
-									/* Free the sequence */
-									free(rgList.chromosomes[i].sequence);
-								}   
-								free(rgList.chromosomes);
-
-								break;
-							case 2:
+							case 1:
 								fprintf(stderr, "Warning.  Not implemented\n");
+								exit(1);
 								break;
 						}
 
@@ -310,12 +252,15 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->algorithm < ALGORITHM_MIN || args->algorithm > ALGORITHM_MAX) {
-		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
+	if(args->indexLayoutFileName!=0) {
+		fprintf(stderr, "Validating indexLayoutFileName %s. \n",
+				args->indexLayoutFileName);
+		if(ValidateFileName(args->indexLayoutFileName)==0)
+			PrintError(FnName, "indexLayoutFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->matchLength <= 0) {
-		PrintError(FnName, "matchLength", "Command line argument", Exit, OutOfRange);
+	if(args->algorithm < ALGORITHM_MIN || args->algorithm > ALGORITHM_MAX) {
+		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startChr < 0) {
@@ -332,13 +277,6 @@ int ValidateInputs(struct arguments *args) {
 
 	if(args->endPos < 0) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->gapFileName!=0) {
-		fprintf(stderr, "Validating gapFileName %s. \n",
-				args->gapFileName);
-		if(ValidateFileName(args->gapFileName)==0)
-			PrintError(FnName, "gapFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->numThreads<=0) {
@@ -416,20 +354,19 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->rgListFileName!=0);
 	strcpy(args->rgListFileName, DEFAULT_FILENAME);
 
+	args->indexLayoutFileName = 
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->indexLayoutFileName!=0);
+	strcpy(args->indexLayoutFileName, DEFAULT_FILENAME);
+
 	args->binaryInput = 0;
 
 	args->algorithm = 0;
-	args->matchLength = DEFAULT_MATCH_LENGTH;
 
 	args->startChr=0;
 	args->startPos=0;
 	args->endChr=0;
 	args->endPos=0;
-
-	args->gapFileName = 
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->gapFileName!=0);
-	strcpy(args->gapFileName, DEFAULT_FILENAME);
 
 	args->numThreads = 1;
 
@@ -459,14 +396,13 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
+	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
-	fprintf(fp, "matchLength:\t\t\t\t%d\n", args->matchLength);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "gapFileName:\t\t\t\t%s\n", args->gapFileName);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -541,13 +477,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputDir = OPTARG;break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
-					case 'g':
-						if(arguments->gapFileName) free(arguments->gapFileName);
-						arguments->gapFileName = OPTARG;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
-					case 'l':
-						arguments->matchLength=atoi(OPTARG);break;
+					case 'i':
+						if(arguments->indexLayoutFileName) free(arguments->indexLayoutFileName);
+						arguments->indexLayoutFileName = OPTARG;break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':

@@ -364,6 +364,7 @@ double GetScoreFromMatrix(char a,
 			indexB=4;
 			break;
 		default:
+			fprintf(stderr, "b key:[%c]\n", b);
 			PrintError("GetScoreFromMatrix",
 					NULL,
 					"Could not understand 'b' key",

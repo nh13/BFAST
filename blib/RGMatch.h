@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 #include "BLibDefinitions.h"
-#include "RGTree.h"
-#include "RGSeqPair.h"
 
 void RGMatchRemoveDuplicates(RGMatch*);
 void RGMatchQuickSort(RGMatch*, int, int);

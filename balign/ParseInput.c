@@ -37,6 +37,7 @@
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
+#include "../blib/RGBinary.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 #include "RunAligner.h"
@@ -121,14 +122,14 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 main (int argc, char **argv)
 {
 	struct arguments arguments;
-	RGBinary rgList;
+	RGBinary rg;
 	time_t startTotalTime = time(NULL);
 	time_t endTotalTime;
 	time_t startTime;
 	time_t endTime;
 	int totalReferenceGenomeTime = 0; /* Total time to load and delete the reference genome */
 	int totalAlignTime = 0; /* Total time to align the reads */
-	int i, seconds, minutes, hours;
+	int seconds, minutes, hours;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -163,8 +164,8 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
 						startTime = time(NULL);
-						ReadReferenceGenome(arguments.rgListFileName,
-								&rgList,
+						RGBinaryRead(arguments.rgListFileName,
+								&rg,
 								arguments.startChr,
 								arguments.startPos,
 								arguments.endChr,
@@ -173,7 +174,7 @@ main (int argc, char **argv)
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
 						startTime = time(NULL);
-						RunAligner(&rgList,
+						RunAligner(&rg,
 								arguments.matchesFileName,
 								arguments.scoringMatrixFileName,
 								arguments.algorithm,
@@ -186,11 +187,7 @@ main (int argc, char **argv)
 						endTime = time(NULL);
 						totalAlignTime = endTime - startTime;
 						/* Free the Reference Genome */
-						for(i=0;i<rgList.numChrs;i++) { /* For each chromosome */
-							/* Free the sequence */
-							free(rgList.chromosomes[i].sequence);
-						}
-						free(rgList.chromosomes);
+						RGBinaryDelete(&rg);
 						break;
 					default:
 						PrintError("PrintError",

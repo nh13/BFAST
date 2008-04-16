@@ -6,8 +6,9 @@
 #include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
+#include "../blib/RGBinary.h"
 #include "../blib/RGMatch.h" /* To read in the matches */
-#include "../blib/RGSeqPair.h" /* To get the reverse compliment */
 #include "../blib/AlignEntry.h" /* For output */
 #include "Align.h"
 #include "Definitions.h"
@@ -339,7 +340,7 @@ void RunDynamicProgramming(FILE *matchFP,
 				Exit,
 				MallocMemory);
 	}
-	
+
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Outputting...\n");
 	}
@@ -373,7 +374,7 @@ void RunDynamicProgramming(FILE *matchFP,
 			}
 		}
 	}
-	
+
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Outputted alignments for %d reads.\n", numAlignments);
 		fprintf(stderr, "Outputting complete.\n");
@@ -409,6 +410,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int numAlignEntries=0;
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
+	char reverseRead[SEQUENCE_LENGTH]="\0";
 	char pairedSequence[SEQUENCE_LENGTH]="\0";
 	RGMatch readMatch;
 	RGMatch pairedSequenceMatch;
@@ -493,7 +495,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				}
 
 				/* Get the appropriate reference read */
-				GetSequenceFromReferenceGenome(rgBinary, 
+				RGBinaryGetSequence(rgBinary,
 						readMatch.chromosomes[i], 
 						readMatch.positions[i],
 						readMatch.strand[i],
@@ -504,13 +506,29 @@ void *RunDynamicProgrammingThread(void *arg)
 						&position);
 				assert(referenceLength > 0);
 
-				/* Get alignment */
-				adjustPosition=AlignmentGetScore(read,
-						matchLength,
-						reference,
-						referenceLength,
-						sm,
-						&aEntry[i]);
+				/* If the direction was reverse, then give the
+				 * reverse compliment.
+				 * */
+				if(readMatch.strand[i] == REVERSE) {
+					GetReverseComplimentAnyCase(read, reverseRead, strlen(read));
+					/* Get alignment */
+					adjustPosition=AlignmentGetScore(reverseRead,
+							matchLength,
+							reference,
+							referenceLength,
+							sm,
+							&aEntry[i]);
+				}
+				else {
+
+					/* Get alignment */
+					adjustPosition=AlignmentGetScore(read,
+							matchLength,
+							reference,
+							referenceLength,
+							sm,
+							&aEntry[i]);
+				}
 
 				/* Update chromosome, position, strand and sequence name*/
 				aEntry[i].chromosome = readMatch.chromosomes[i];
@@ -583,345 +601,4 @@ void *RunDynamicProgrammingThread(void *arg)
 	free(reference);
 
 	return arg;
-}
-
-/* TODO */
-void GetSequenceFromReferenceGenome(RGBinary *rgBinary,
-		int chromosome,
-		int position,
-		char strand,
-		int offsetLength,
-		char *reference,
-		int matchLength,
-		int *returnReferenceLength,
-		int *returnPosition)
-{
-	int i;
-	int chrIndex;
-	int posIndex;
-	int byteIndex;
-	int curByteIndex;
-	unsigned char curChar;
-	char c;
-	unsigned char repeat;
-	char *reverseCompliment;
-	int numCharsPerByte;
-	int startPos, endPos;
-	int referenceLength = 2*offsetLength + matchLength;
-	/* We assume that we can hold 2 [acgt] (nts) in each byte */
-	assert(ALPHABET_SIZE==4);
-	numCharsPerByte=ALPHABET_SIZE/2;
-
-	/* Get the start and end positions */
-	startPos=-1;
-	endPos=-1;
-	if(FORWARD == strand) {
-		startPos = position - offsetLength;
-		endPos = position + matchLength - 1 + offsetLength;
-	}
-	else if(REVERSE == strand) {
-		startPos = position - matchLength + 1 - offsetLength;
-		endPos = position + offsetLength;
-	}
-	else {
-		PrintError("GetSequenceFromReferenceGenome",
-				NULL,
-				"Could not recognize strand",
-				Exit,
-				OutOfRange);
-	}
-
-	/* Get chromosome index in rgBinary */
-	chrIndex = chromosome - rgBinary->startChr;
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In GetSequenceFromReferenceGenome: user chromosome [%d] position [%d] strand [%c].\n",
-				chromosome,
-				position,
-				strand);
-		fprintf(stderr, "In GetSequenceFromReferenceGenome: chromosome [%d] with range [%d,%d].\n",
-				chromosome,
-				rgBinary->startChr,
-				rgBinary->endChr);
-	}
-
-	/* Check chromosome bounds */
-	if(chromosome < rgBinary->startChr || chromosome > rgBinary->endChr) {
-		PrintError("GetSequenceFromReferenceGenome",
-				NULL,
-				"Chromosome is out of range",
-				Exit,
-				OutOfRange);
-	}
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In GetSequenceFromReferenceGenome: start position [%d] range [%d,%d] and adjusted range [%d,%d]\n",
-				position,
-				rgBinary->chromosomes[chrIndex].startPos,
-				rgBinary->chromosomes[chrIndex].endPos,
-				startPos,
-				endPos);
-	}
-
-	/* Check position bounds */
-	if(startPos < rgBinary->chromosomes[chrIndex].startPos || endPos > rgBinary->chromosomes[chrIndex].endPos) {
-		/* Adjust position bounds if possible */
-		if(startPos < rgBinary->chromosomes[chrIndex].startPos) {
-			/* Check that we have enough sequence */
-			startPos = rgBinary->chromosomes[chrIndex].startPos;
-			assert(startPos + matchLength - 1 + 2*offsetLength <= rgBinary->chromosomes[chrIndex].endPos);
-			endPos = startPos + matchLength - 1 + 2*offsetLength;
-		}
-		else if(endPos > rgBinary->chromosomes[chrIndex].endPos) {
-			/* Check that we have enough sequence */
-			endPos = rgBinary->chromosomes[chrIndex].endPos;
-			assert(endPos - matchLength + 1 - 2*offsetLength >= rgBinary->chromosomes[chrIndex].startPos);
-			startPos = endPos - matchLength + 1 - 2*offsetLength;
-		}
-	}
-
-	if(position < rgBinary->chromosomes[chrIndex].startPos || position > rgBinary->chromosomes[chrIndex].endPos) {
-		PrintError("GetSequenceFromReferenceGenome",
-				NULL,
-				"Position out of range",
-				Exit,
-				OutOfRange);
-	}
-
-	/* Get the reference sequence */
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "startPos:%d\tendPos:%d\n",
-				startPos,
-				endPos);
-	}
-	assert(startPos <= endPos);
-	assert(startPos >= 1);
-	for(i=startPos;i<=endPos;i++) {
-		/* Get position index in rgBinary */
-		posIndex = i - rgBinary->chromosomes[chrIndex].startPos;
-		byteIndex = posIndex%numCharsPerByte; /* Which bits in the byte */
-		curByteIndex = (posIndex - byteIndex)/numCharsPerByte; /* Get which byte */
-
-		/* Get the sequence */
-		curChar = rgBinary->chromosomes[chrIndex].sequence[curByteIndex];
-		repeat = 0;
-		c = 'E';
-		switch(byteIndex) {
-			case 0:
-				/* left-most 2-bits */
-				repeat = curChar & 0xC0; /* zero out the irrelevant bits */
-				switch(repeat) {
-					case 0x00:
-						repeat = 0; 
-						break;
-					case 0x40:
-						repeat = 1;
-						break;
-					case 0x80:
-						repeat = 2;
-						break;
-					default:
-						PrintError("GetSequenceFromReferenceGenome",
-								NULL,
-								"Could not understand case 0 repeat",
-								Exit,
-								OutOfRange);
-						break;
-				}
-				/* third and fourth bits from the left */
-				curChar = curChar & 0x30; /* zero out the irrelevant bits */
-				switch(curChar) {
-					case 0x00:
-						c = 'a';
-						break;
-					case 0x10:
-						c = 'c';
-						break;
-					case 0x20:
-						c = 'g';
-						break;
-					case 0x30:
-						c = 't';
-						break;
-					default:
-						PrintError("GetSequenceFromReferenceGenome",
-								NULL,
-								"Could not understand case 0 base",
-								Exit,
-								OutOfRange);
-						break;
-				}
-				break;
-			case 1:
-				/* third and fourth bits from the right */
-				repeat = curChar & 0x0C; /* zero out the irrelevant bits */
-				switch(repeat) {
-					case 0x00:
-						repeat = 0;
-						break;
-					case 0x04:
-						repeat = 1;
-						break;
-					case 0x08:
-						repeat = 2;
-						break;
-					default:
-						PrintError("GetSequenceFromReferenceGenome",
-								NULL,
-								"Could not understand case 1 repeat",
-								Exit,
-								OutOfRange);
-						break;
-				}
-				/* right-most 2-bits */
-				curChar = curChar & 0x03; /* zero out the irrelevant bits */
-				switch(curChar) {
-					case 0x00:
-						c = 'a';
-						break;
-					case 0x01:
-						c = 'c';
-						break;
-					case 0x02:
-						c = 'g';
-						break;
-					case 0x03:
-						c = 't';
-						break;
-					default:
-						PrintError("GetSequenceFromReferenceGenome",
-								NULL,
-								"Could not understand case 1 base",
-								Exit,
-								OutOfRange);
-						break;
-				}
-				break;
-			default:
-				PrintError("GetSequenceFromReferenceGenome",
-						"byteIndex",
-						"Could not understand byteIndex",
-						Exit,
-						OutOfRange);
-		}
-		/* Update based on repeat */
-		switch(repeat) {
-			case 0:
-				/* ignore, not a repeat */
-				break;
-			case 1:
-				/* repeat, convert char to upper */
-				c=ToUpper(c);
-				break;
-			case 2:
-				/* N character */
-				c='N';
-				break;
-			default:
-				fprintf(stderr, "Error.  In GetSequenceFromReferenceGenome, could not understand repeat indexed [%d].  Terminating!\n",
-						repeat);
-				break;
-		}
-		/* Error check */
-		switch(c) {
-			case 'a':
-			case 'c':
-			case 'g':
-			case 't':
-			case 'A':
-			case 'C':
-			case 'G':
-			case 'T':
-			case 'N':
-				break;
-			default:
-				PrintError("GetSequenceFromReferenceGenome",
-						NULL,
-						"Could not understand base",
-						Exit,
-						OutOfRange);
-		}
-		/* Update reference */
-		reference[i-startPos] = c;
-	}
-	reference[i-startPos] = '\0';
-	/* Get the reverse compliment if necessary */
-	if(strand == FORWARD) {
-		/* ignore */
-	}
-	else if(strand == REVERSE) {
-		/* Get the reverse compliment */
-		reverseCompliment = (char*)malloc(sizeof(char)*(referenceLength+1));
-		if(NULL == reverseCompliment) {
-			PrintError("GetSequenceFromReferenceGenome",
-					"reverseCompliment",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		GetReverseComplimentAnyCase(reference, reverseCompliment, referenceLength);
-		strcpy(reference, reverseCompliment);
-		free(reverseCompliment);
-	}
-	else {
-		PrintError("GetSequenceFromReferenceGenome",
-				"strand",
-				"Could not understand strand",
-				Exit,
-				OutOfRange);
-	}
-	/* Update start pos and reference length */
-	(*returnReferenceLength) = referenceLength;
-	(*returnPosition) = startPos;
-	if(VERBOSE>=DEBUG) {
-		fprintf(stderr, "Exiting GetSequenceFromReferenceGenome:[%s] length [%d] referenceLength [%d] and startPos [%d].\n",
-				reference,
-				(int)strlen(reference),
-				referenceLength,
-				startPos);
-	}
-}
-
-void GetReverseComplimentAnyCase(char *s, 
-		char *r,
-		int length)
-{
-	int i;
-	/* Get reverse compliment sequence */
-	for(i=length-1;i>=0;i--) {
-		switch(s[length-1-i]) {
-			case 'a':
-				r[i] = 't';
-				break;
-			case 'c':
-				r[i] = 'g';
-				break;
-			case 'g':
-				r[i] = 'c';
-				break;
-			case 't':
-				r[i] = 'a';
-				break;
-			case 'A':
-				r[i] = 'T';
-				break;
-			case 'C':
-				r[i] = 'G';
-				break;
-			case 'G':
-				r[i] = 'C';
-				break;
-			case 'T':
-				r[i] = 'A';
-				break;
-			default:
-				PrintError("GetReverseComplimentAnyCase",
-						NULL,
-						"Could not understand sequence base",
-						Exit,
-						OutOfRange);
-				break;
-		}
-	}
-	r[length]='\0';
 }

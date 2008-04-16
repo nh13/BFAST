@@ -1,12 +1,12 @@
 #include <stdio.h>
-#include "../blib/RGTree.h"
 
 /* This structure is used by main to communicate with parse_opt. */
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
+	char *rgListFileName;                   /* -r */
+	char *blatterMainIndexesFileName;		/* -i */
 	char *blatterIndexesFileName;			/* -I */
-	char *blatterTreesFileName;				/* -T */
 	char *readsFileName;					/* -R */
 	char *offsetsFileName;					/* -O */
 	int binaryInput;						/* -b */

@@ -7,8 +7,6 @@
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "RGMatch.h"
-#include "RGTree.h"
-#include "RGMatch.h"
 
 /* TODO */
 void RGMatchRemoveDuplicates(RGMatch *s)
@@ -419,6 +417,7 @@ int RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 						pairedEnd)==EOF) {
 				continueReading=0;
 			}
+
 			if(continueReading==1) {
 
 				RGMatchOutputToFile(outputFP,

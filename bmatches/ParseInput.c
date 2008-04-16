@@ -40,6 +40,7 @@
 
 #include "Definitions.h"
 #include "../blib/BError.h"
+#include "../blib/RGBinary.h"
 #include "FindMatches.h"
 #include "ParseInput.h"
 
@@ -55,7 +56,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescBlatterIndexesFileName, DescBlatterTreesFileName, DescReadsFileName, DescOffsetsFileName, DescNumThreads, 
+	DescInputFilesTitle, DescRGListFileName, DescBlatterMainIndexesFileName, DescBlatterIndexesFileName, DescReadsFileName, DescOffsetsFileName, DescNumThreads, 
 	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -67,8 +68,9 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
+	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
+	{"blatterMainIndexesFileName", 'i', "blatterMainIndexesFileName", 0, "Specifies the file name holding the list of main bif files", 1},
 	{"blatterIndexesFileName", 'I', "blatterIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
-	{"blatterTreesFileName", 'T', "blatterTreesFileName", 0, "Specifies the file name holding the list of btf files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that hte blatter input files will be in binary format", 1},
@@ -111,7 +113,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:n:o:s:x:y:z:I:O:R:T:Y:Z:2bhptB";
+"d:e:i:n:o:r:s:x:y:z:I:O:R:Y:Z:2bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -126,6 +128,7 @@ main (int argc, char **argv)
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 
 	struct arguments arguments;
+	RGBinary rg;
 	time_t startTime = time(NULL);
 	time_t endTime;
 	if(argc>1) {
@@ -162,6 +165,14 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
 
+						/* Read in the reference genome */
+						RGBinaryRead(arguments.rgListFileName,
+								&rg,
+								0,
+								0,
+								0,
+								0);
+
 						/* Create output file name */
 						sprintf(outputFileName, "%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 								arguments.outputDir,
@@ -179,8 +190,9 @@ main (int argc, char **argv)
 						/* Run Matches */
 						RunMatches(outputFileName,
 								arguments.binaryOutput,
+								&rg,
+								arguments.blatterMainIndexesFileName,
 								arguments.blatterIndexesFileName,
-								arguments.blatterTreesFileName,
 								arguments.readsFileName,
 								arguments.offsetsFileName,
 								arguments.binaryInput,
@@ -194,6 +206,9 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.numThreads,
 								arguments.timing);
+
+						/* Free the Reference Genome */
+						RGBinaryDelete(&rg);
 
 						endTime = time(NULL);
 						int seconds = endTime - startTime;
@@ -247,18 +262,25 @@ int ValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
+	if(args->rgListFileName!=0) {
+		fprintf(stderr, "Validating rgListFileName %s. \n",
+				args->rgListFileName);
+		if(ValidateFileName(args->rgListFileName)==0)
+			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->blatterMainIndexesFileName!=0) {
+		fprintf(stderr, "Validating blatterMainIndexesFileName %s. \n",
+				args->blatterMainIndexesFileName);
+		if(ValidateFileName(args->blatterMainIndexesFileName)==0)
+			PrintError(FnName, "blatterMainIndexesFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
 	if(args->blatterIndexesFileName!=0) {
 		fprintf(stderr, "Validating blatterIndexesFileName %s. \n",
 				args->blatterIndexesFileName);
 		if(ValidateFileName(args->blatterIndexesFileName)==0)
 			PrintError(FnName, "blatterIndexesFileName", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->blatterTreesFileName!=0) {
-		fprintf(stderr, "Validating blatterTreesFileName %s. \n",
-				args->blatterTreesFileName);
-		if(ValidateFileName(args->blatterTreesFileName)==0)
-			PrintError(FnName, "blatterTreesFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->readsFileName!=0) {
@@ -370,15 +392,20 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
+	args->rgListFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->rgListFileName!=0);
+	strcpy(args->rgListFileName, DEFAULT_FILENAME);
+
+	args->blatterMainIndexesFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->blatterMainIndexesFileName!=0);
+	strcpy(args->blatterMainIndexesFileName, DEFAULT_FILENAME);
+
 	args->blatterIndexesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->blatterIndexesFileName!=0);
 	strcpy(args->blatterIndexesFileName, DEFAULT_FILENAME);
-
-	args->blatterTreesFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->blatterTreesFileName!=0);
-	strcpy(args->blatterTreesFileName, DEFAULT_FILENAME);
 
 	args->readsFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -427,8 +454,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
+	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
+	fprintf(fp, "blatterMainIndexesFileName\t\t%s\n", args->blatterMainIndexesFileName);
 	fprintf(fp, "blatterIndexesFileName\t\t\t%s\n", args->blatterIndexesFileName);
-	fprintf(fp, "blatterTreesFileName\t\t\t%s\n", args->blatterTreesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
@@ -516,6 +544,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->endReadNum = atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
+					case 'i':
+						if(arguments->blatterMainIndexesFileName) free(arguments->blatterMainIndexesFileName);
+						arguments->blatterMainIndexesFileName = OPTARG;break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
@@ -523,6 +554,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'r':
+						if(arguments->rgListFileName) free(arguments->rgListFileName);
+						arguments->rgListFileName = OPTARG;break;
 					case 's':
 						arguments->startReadNum = atoi(OPTARG);break;
 					case 't':
@@ -544,9 +578,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'R':
 						if(arguments->readsFileName) free(arguments->readsFileName);
 						arguments->readsFileName = OPTARG;break;
-					case 'T':
-						if(arguments->blatterTreesFileName) free(arguments->blatterTreesFileName);
-						arguments->blatterTreesFileName = OPTARG;break;
 					case 'Y':
 						arguments->numGapInsertions = atoi(OPTARG);break;
 					case 'Z':

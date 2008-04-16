@@ -9,6 +9,9 @@
 #define BLATTER_MATCHES_FILE_EXTENSION "bmf"
 #define BLATTER_ALIGN_FILE_EXTENSION "baf"
 #define DEFAULT_MATCH_LENGTH 11
+#define READ_ROTATE_NUM 1000000
+#define RGINDEX_ROTATE_NUM 1000000
+#define SORT_ROTATE_INC 0.01
 #define BREAK_LINE "************************************************************\n"
 
 #define VERBOSE 0
@@ -22,40 +25,12 @@
 #define FORWARD '+'
 #define REVERSE '-'
 
-/* For SRTree.c */
-#define SRT_SEQUENCE_NAME_LENGTH 1024 
-#define SRT_SEQUENCE_LENGTH 1024
-
-/* For RGTree.c */
-enum {RGT_KILOBYTES, RGT_MEGABYTES, RGT_GIGABYTES};
+/* For RGIndex.c */
+enum {KILOBYTES, MEGABYTES, GIGABYTES};
 
 /************************************/
 /* 		Data structures 			*/
 /************************************/
-
-/* TODO*/
-/* We could package this better, i.e. pack
- * numEntries and indexOne and indexTwo.
- * */
-typedef struct {
-	unsigned int indexOne;
-	unsigned int indexTwo;
-	unsigned int numEntries;
-	unsigned int *positions;
-	unsigned char *chromosomes;
-} RGTreeNode;
-
-/* TODO*/
-typedef struct {
-	RGTreeNode *nodes;
-	unsigned int numNodes;
-	unsigned int gap;
-	unsigned int matchLength;
-	unsigned int startChr;
-	unsigned int startPos;
-	unsigned int endChr;
-	unsigned int endPos;
-} RGTree;
 
 /* TODO */
 typedef struct {
@@ -67,55 +42,17 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	int numPairs;
-	int *indexOne;
-	int *indexTwo;
+	int numReads;
+	char **reads;
 	char *strand;
 	int *offset;
-} RGSeqPair;
+} RGReads;
 
-/* TODO */
 typedef struct {
-	char *sequence;
-	unsigned int startPos;
-	unsigned int endPos;
 	unsigned int chromosome;
-} RGChr;
-
-/* TODO */
-typedef struct {
-	RGChr *chromosomes;
-	unsigned int numChrs;
-	unsigned int startChr;
 	unsigned int startPos;
-	unsigned int endChr;
 	unsigned int endPos;
-} RGList;
-
-/* TODO */
-typedef struct {
-	unsigned int numEntries;
-	unsigned char *index; 
-	unsigned int *positions;
-	unsigned char *chromosomes;
-} RGIndexNode;
-
-/* TODO */
-typedef struct {
-	RGIndexNode *nodes;
-	unsigned int numNodes;
-	unsigned int matchLength;
-	unsigned int startChr;
-	unsigned int startPos;
-	unsigned int endChr;
-	unsigned int endPos;
-} RGIndex;
-
-typedef struct {
-	int chromosome;
-	int startPos;
-	int endPos;
-	unsigned char *sequence; /* Store in the bytes via two bits - four nt per char (assuming sizeof(char)==1) */
+	unsigned char *sequence; 
 } RGBinaryChr;
 
 typedef struct {
@@ -127,18 +64,42 @@ typedef struct {
 	int endPos;
 } RGBinary;
 
+/* TODO */
+typedef struct {
+	/* Index storage */
+	unsigned int *positions;
+	unsigned char *chromosomes;
+	unsigned int length;
+
+	/* Index definition */
+	unsigned int totalLength;
+	unsigned int numTiles;
+	unsigned int *tileLengths;
+	unsigned int *gaps; /* There should be numTiles - 1 gaps */
+
+	/* Index range */
+	unsigned int startChr;
+	unsigned int startPos;
+	unsigned int endChr;
+	unsigned int endPos;
+} RGIndex;
+
+/* TODO */
+typedef struct {
+	int numIndexes;
+	int *numTiles;
+	int **tileLengths;
+	int **gaps;
+} RGIndexLayout;
+
+/* TODO */
 typedef struct {
 	RGIndex *index;
+	RGBinary *rg;
 	unsigned int low;
 	unsigned int high;
 	int threadID;
+	int showPercentComplete;
 } ThreadRGIndexSortData;
-
-typedef struct {
-	RGTree *tree;
-	unsigned int low;
-	unsigned int high;
-	int threadID;
-} ThreadRGTreeSortData;
 
 #endif

@@ -3,125 +3,130 @@
 #include <assert.h>
 #include <math.h>
 #include "sys/malloc.h"
+#include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
-#include "../blib/BLibDefinitions.h"
+#include "../blib/RGIndexLayout.h"
+#include "../blib/RGBinary.h"
 #include "Definitions.h"
-#include "ReadInputFiles.h"
 #include "GenerateIndex.h"
 
 /* TODO */
-void GenerateIndex(RGList *rgList,
-		int matchLength, 
+void GenerateIndex(RGBinary *rg,
+		RGIndexLayout *rgLayout,
 		int numThreads,
-		char *outputFileName, 
+		char *outputID,
+		char *outputDir,
 		int binaryOutput)
 {
-	int i, j, k;
-	char *curSequence=NULL;
-	FILE *fp;
+	int i, j;
+	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
+	FILE *fp=NULL;
 
 	RGIndex index;
 
-	/* Allocate memory for holding the temporary sequences */
-	curSequence = (char*)malloc(sizeof(char)*matchLength);
-	if(NULL==curSequence) {
-		PrintError("GenerateIndex",
-				"curSequence",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	/* Initialize the index */
-	index.nodes = NULL;
-	index.numNodes = 0;
-	index.matchLength = matchLength;
-	index.startChr = rgList->startChr;
-	index.startPos = rgList->startPos;
-	index.endChr = rgList->endChr;
-	index.endPos = rgList->endPos;
+	for(i=0;i<rgLayout->numIndexes;i++) { /* For each index to create */
 
-	if(VERBOSE >=0) {
-		fprintf(stderr, "Generating an index file, outputing to %s.\n",
-				outputFileName);
-		fprintf(stderr, "Currently on [chr, pos, size]:\n%d\t%d\t%d",
-				-1, -1, -1);
-	}
+		/* Initialize the index */
+		index.positions=NULL;
+		index.chromosomes=NULL;
+		index.length=0;
+		index.startChr = rg->startChr;
+		index.startPos = rg->startPos;
+		index.endChr = rg->endChr;
+		index.endPos = rg->endPos;
 
-	/* For every chromosome in the reference genome */
-	for(i=0;i<rgList->numChrs;i++) {
-		/* For every starting position of the l-mer */
-		for(j=rgList->chromosomes[i].startPos;j <= rgList->chromosomes[i].endPos - matchLength + 1;j++) {
-			if(VERBOSE >=0 && j%GT_ROTATE_NUM==0) {
-				fprintf(stderr, "\r%2d\t%12d\t%10.2lfMB",
-						rgList->chromosomes[i].chromosome,
-						j,
-						RGIndexGetSize(&index, RGT_MEGABYTES));
-			}
-			/* Copy over sequences */
-			for(k=j;k<j+matchLength;k++) {
-				curSequence[k-j] = rgList->chromosomes[i].sequence[k-rgList->chromosomes[i].startPos];
-			}
-			curSequence[k] = '\0';
-			if(VERBOSE>=DEBUG) {
-				fprintf(stderr, "Inserting [%s] at chr%d:%d matchLength:%d.\n",
-						curSequence,
-						rgList->chromosomes[i].chromosome,
-						j,
-						matchLength);
-			}
-			/* Only insert if it is a valid sequence */
-			if(ValidateSequence(curSequence, matchLength)==1) {
-				/* Insert sequence into the index */
-				RGIndexInsert(&index, curSequence, matchLength, rgList->chromosomes[i].chromosome, j);
-			}
+		/* Copy over index information */
+		index.totalLength = 0;
+		index.numTiles = (unsigned int)rgLayout->numTiles[i];
+		/* Allocate memory and copy over tile lengths */
+		index.tileLengths = malloc(sizeof(unsigned int)*rgLayout->numTiles[i]);
+		if(NULL == index.tileLengths) {
+			PrintError("GenerateIndex",
+					"index.tileLengths",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
 		}
+		for(j=0;j<rgLayout->numTiles[i];j++) {
+			index.tileLengths[j] = rgLayout->tileLengths[i][j];
+			index.totalLength += rgLayout->tileLengths[i][j];
+		}
+		/* Allocate memory and copy over gaps */
+		index.gaps = malloc(sizeof(unsigned int)*(rgLayout->numTiles[i]-1));
+		if(NULL == index.gaps) {
+			PrintError("GenerateIndex",
+					"index.gaps",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(j=0;j<rgLayout->numTiles[i]-1;j++) {
+			index.gaps[j] = rgLayout->gaps[i][j];
+			index.totalLength += rgLayout->gaps[i][j];
+		}
+
+		/* Create the index */
 		if(VERBOSE >=0) {
-			fprintf(stderr, "\r%2d\t%12d\t%10.2lfMB", 
-					rgList->chromosomes[i].chromosome,
-					j-1,
-					RGIndexGetSize(&index, RGT_MEGABYTES));
+			fprintf(stderr, "Creating the index...\n");
+		}
+		RGIndexCreate(&index, rg, 1, 0);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Insertions complete.\n");
+		}
+
+		/* Clean up the index */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Cleaning up...\n");
+		}
+		RGIndexCleanUpIndex(&index, rg, numThreads);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Finishing cleaning up.\n");
+			fprintf(stderr, "Index size is %.3lfGB.\n",
+					RGIndexGetSize(&index, GIGABYTES));
+		}
+
+		/* Create the file name */
+		sprintf(outputFileName, "%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s",
+				outputDir,
+				outputID,
+				index.startChr,
+				index.startPos,
+				index.endChr,
+				index.endPos,
+				i+1,
+				BLATTER_INDEX_FILE_EXTENSION);
+
+		/* Open the output file */
+		if(!(fp=fopen(outputFileName, "wb"))) {
+			PrintError("GenerateIndex",
+					outputFileName,
+					"Could not open outputFileName for writing",
+					Exit,
+					OpenFileError);
+		}   
+
+		/* Output the index to file */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Outputting index to %s\n", outputFileName);
+		}
+		RGIndexPrint(fp, &index, binaryOutput);
+		/* Close the output file */
+		fclose(fp);
+
+		/* Free memory */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Deleting index...\n");
+		}
+		RGIndexDelete(&index);
+
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Generated index successfully!\n");
+			fprintf(stderr, "%s", BREAK_LINE);
 		}
 	}
-	/* Clean up the index */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Cleaning up the index.\n");
-	}
-	RGIndexCleanUpIndex(&index, numThreads);
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Outputting index to %s\n", outputFileName);
-	}
-
-
-	/* Open the output file */
-	if(!(fp=fopen(outputFileName, "wb"))) {
-		PrintError("GenerateIndex",
-				outputFileName,
-				"Could not open outputFileName for writing",
-				Exit,
-				OpenFileError);
-	}   
-
-	RGIndexPrintIndex(fp, &index, binaryOutput);
-
-	/* Close the output file */
-	fclose(fp);
-
-	/* Free memory */
-	RGIndexDelete(&index);
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Generated index successfully!\n");
-		fprintf(stderr, "%s", BREAK_LINE);
-	}
-
-	/* Free memory */
-	free(curSequence);
 }

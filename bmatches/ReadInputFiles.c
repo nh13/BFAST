@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <time.h>
 #include "../blib/BError.h"
+#include "../blib/RGMatch.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 
@@ -170,7 +171,7 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput)
 	}
 
 	/* Read from file */
-	RGIndexReadIndex(fp, index, binaryInput);
+	RGIndexRead(fp, index, binaryInput);
 
 	/* close file */
 	fclose(fp);
@@ -178,38 +179,6 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput)
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Read index from %s.\n",
 				rgIndexFileName);
-	}
-}
-
-/* TODO */
-/* Reads in a RGTree from file */
-void ReadRGTree(char *rgTreeFileName, RGTree *tree, int binaryInput)
-{
-	FILE *fp;
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading tree from %s.\n",
-				rgTreeFileName);
-	}
-
-	/* open file */
-	if((fp=fopen(rgTreeFileName, "r"))==0) {
-		PrintError("ReadRGTree",
-				rgTreeFileName,
-				"Could not open rgTreeFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-
-	/* Read from file */
-	RGTreeReadTree(fp, tree, binaryInput);
-
-	/* close file */
-	fclose(fp);
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Read tree from %s.\n",
-				rgTreeFileName);
 	}
 }
 

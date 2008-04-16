@@ -1,20 +1,16 @@
-#include <stdio.h>
-#include "../blib/RGTree.h"
-#include "../blib/BError.h"
 
 /* This structure is used by main to communicate with parse_opt. */
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *rgListFileName;					/* -r */
+	char *indexLayoutFileName;				/* -i */
 	int binaryInput;						/* -b */
 	int algorithm;							/* -a */
-	int matchLength;						/* -l */
 	int startChr;							/* -s */
 	int startPos;							/* -S */
 	int endChr;								/* -e */
 	int endPos;								/* -E */
-	char *gapFileName;						/* -g */
 	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
@@ -69,14 +65,3 @@ struct argp_option {
 #define OPTION_NO_USAGE 0
 int getopt_parse(int, char**, char*, struct arguments*); 
 #endif
-
-/* From ReadInputFiles.h */
-extern int ReadReferenceGenome(char*, int, RGList*, int, int, int, int, int);
-extern void ReadGaps(char*, int**, int*, int*, int);
-
-/* From GenerateIndex.h */
-extern void GenerateIndex(RGList*, int, int, char*, int);
-
-/* From GenerateTree.h */
-extern void GenerateTree(RGList*, int, int*, int, int, char*, char*, int, int);
-
