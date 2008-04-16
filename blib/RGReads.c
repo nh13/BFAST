@@ -962,22 +962,22 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 						for(m=0;m<gaps[l];m++) {
 							curRead[curReadPos] = read[readPos];
 							curReadPos++;
-						readPos++;
+							readPos++;
 						}
 					}
 				}
 				assert(curReadPos == curPos);
 				for(m=0;m<j;m++) {
-							curRead[curReadPos] = read[readPos];
-							curReadPos++;
-						readPos++;
+					curRead[curReadPos] = read[readPos];
+					curReadPos++;
+					readPos++;
 				}
 				/* Move up to insertion point */
 				/* Insert bases into the gap - let's choose 'a' since it will not 
 				 * be used anyway */
 				for(m=0;m<k;m++) {
-							curRead[curReadPos] = 'a';
-							curReadPos++;
+					curRead[curReadPos] = 'a';
+					curReadPos++;
 				}
 				/* Copy over the bases after the current tile */
 				for(m=curReadPos;m<totalLength;m++) {
@@ -1232,9 +1232,11 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 
 		for(i=low;i<high;i++) {
 			if(RGReadsCompareAtIndex(s, i, s, high) <= 0) {
-				RGReadsCopyAtIndex(s, i, temp, 0);
-				RGReadsCopyAtIndex(s, pivot, s, i);
-				RGReadsCopyAtIndex(temp, 0, s, pivot);
+				if(i!=pivot) {
+					RGReadsCopyAtIndex(s, i, temp, 0);
+					RGReadsCopyAtIndex(s, pivot, s, i);
+					RGReadsCopyAtIndex(temp, 0, s, pivot);
+				}
 				pivot++;
 			}
 		}

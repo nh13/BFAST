@@ -91,9 +91,11 @@ void RGMatchQuickSort(RGMatch *s, int low, int high)
 
 		for(i=low;i<high;i++) {
 			if(RGMatchCompareAtIndex(s, i, s, high) <= 0) {
-				RGMatchCopyAtIndex(s, i, temp, 0);
-				RGMatchCopyAtIndex(s, pivot, s, i);
-				RGMatchCopyAtIndex(temp, 0, s, pivot);
+				if(i!=pivot) {
+					RGMatchCopyAtIndex(s, i, temp, 0);
+					RGMatchCopyAtIndex(s, pivot, s, i);
+					RGMatchCopyAtIndex(temp, 0, s, pivot);
+				}
 				pivot++;
 			}
 		}

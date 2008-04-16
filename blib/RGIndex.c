@@ -183,12 +183,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 			data[i].high = (i+1)*splitLengths - 1;
 		}
 		assert(data[i].low >= 0 && data[i].high < index->length);
-		/*
-		   fprintf(stderr, "i:%d\tlow:%d\thigh:%d\n",
-		   i,
-		   data[i].low,
-		   data[i].high);
-		   */
 	}
 	/* Check that we split correctly */
 	for(i=1;i<numThreads;i++) {
@@ -241,52 +235,55 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 	}
 
 	/* Merge the individual sorts together */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Merging sorts (this will speed up).\n0");
-	}
-	for(i=0;i<index->length;i++) { 
+	if(numThreads > 1) { /* Only merge if we have more than one thread */
+		/* Note: This is slow since it is O(n^2) */
 		if(VERBOSE >= 0) {
-			if(curPercent < 100.0*(i+1.0)/index->length) {
-				while(curPercent < 100.0*(i+1.0)/index->length) {
-					curPercent += SORT_ROTATE_INC;
-				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*(i+1.0)/index->length);
-			}
+			fprintf(stderr, "Merging sorts (this will speed up).\n0");
 		}
-		int whichThread = -1;
-		/* Check the result of each thread for the smallest element */
-		for(j=0;j<numThreads;j++) {
-			/* If the current item is valid, and the node is smaller */
-			if(indexes[j] < index->length) {
-				if(whichThread == -1 || RGIndexCompareAt(index, rg, indexes[j], indexes[whichThread]) <= 0) {
-					whichThread = j;
+		for(i=0;i<index->length;i++) { 
+			if(VERBOSE >= 0) {
+				if(curPercent < 100.0*(i+1.0)/index->length) {
+					while(curPercent < 100.0*(i+1.0)/index->length) {
+						curPercent += SORT_ROTATE_INC;
+					}
+					fprintf(stderr, "\r%3.2lf percent complete", 100.0*(i+1.0)/index->length);
 				}
 			}
-		}
-		assert(whichThread!=-1);
-		/* Update min index */
-		unsigned int minIndex = indexes[whichThread];
+			int whichThread = -1;
+			/* Check the result of each thread for the smallest element */
+			for(j=0;j<numThreads;j++) {
+				/* If the current item is valid, and the node is smaller */
+				if(indexes[j] < index->length) {
+					if(whichThread == -1 || RGIndexCompareAt(index, rg, indexes[j], indexes[whichThread]) <= 0) {
+						whichThread = j;
+					}
+				}
+			}
+			assert(whichThread!=-1);
+			/* Update min index */
+			unsigned int minIndex = indexes[whichThread];
 
-		/* Store the current node to swap */
-		tempPos = index->positions[minIndex];
-		tempChr = index->chromosomes[minIndex];
-		/* Shift all nodes up one starting at i and ending at minIndex */
-		for(j=minIndex-1;j>=i;j--) {
-			index->positions[j+1] = index->positions[j];
-			index->chromosomes[j+1] = index->chromosomes[j];
-		}
-		/* Store the current node at i */
-		index->positions[i] = tempPos;
-		index->chromosomes[i] = tempChr;
-		/* Update thread indexes if necessary */
-		for(j=0;j<numThreads;j++) {
-			if(indexes[j] <= minIndex) {
-				indexes[j]++;
+			/* Store the current node to swap */
+			tempPos = index->positions[minIndex];
+			tempChr = index->chromosomes[minIndex];
+			/* Shift all nodes up one starting at i and ending at minIndex */
+			for(j=minIndex-1;j>=i;j--) {
+				index->positions[j+1] = index->positions[j];
+				index->chromosomes[j+1] = index->chromosomes[j];
+			}
+			/* Store the current node at i */
+			index->positions[i] = tempPos;
+			index->chromosomes[i] = tempChr;
+			/* Update thread indexes if necessary */
+			for(j=0;j<numThreads;j++) {
+				if(indexes[j] <= minIndex) {
+					indexes[j]++;
+				}
 			}
 		}
-	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rMerged sorts.\n");
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rMerged sorts.\n");
+		}
 	}
 
 	/* Test that we sorted correctly */
@@ -372,12 +369,14 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		for(i=low;i<high;i++) {
 			if(RGIndexCompareAt(index, rg, i, high) <= 0) {
 				/* Swap node at i with node at the new pivot index */
-				tempPos = index->positions[pivot];
-				tempChr = index->chromosomes[pivot];
-				index->positions[pivot] = index->positions[i];
-				index->chromosomes[pivot] = index->chromosomes[i];
-				index->positions[i] = tempPos;
-				index->chromosomes[i] = tempChr;
+				if(pivot != i) {
+					tempPos = index->positions[pivot];
+					tempChr = index->chromosomes[pivot];
+					index->positions[pivot] = index->positions[i];
+					index->chromosomes[pivot] = index->chromosomes[i];
+					index->positions[i] = tempPos;
+					index->chromosomes[i] = tempChr;
+				}
 				/* Increment the new pivot index */
 				pivot++;
 			}
@@ -411,17 +410,6 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 				while((*curPercent) < 100.0*((double)high)/total) {
 					(*curPercent) += SORT_ROTATE_INC;
 				}
-				char ref[2048]="\0";
-				int temp1, temp2;
-				RGBinaryGetSequence(rg,
-						index->chromosomes[pivot],
-						index->positions[pivot],
-						FORWARD,
-						0,
-						ref,
-						index->totalLength,
-						&temp1,
-						&temp2);
 				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
 			}
 		}
