@@ -618,9 +618,8 @@ char RGBinaryGetBase(RGBinary *rg,
 		int chromosome,
 		int position) 
 {
-
 	assert(chromosome >= rg->startChr && chromosome <= rg->endChr);
-	assert(position >= rg->startPos && position <= rg->endPos);
+	assert(position >= rg->chromosomes[chromosome-1].startPos && position <= rg->chromosomes[chromosome-1].endPos);
 
 	int numCharsPerByte=ALPHABET_SIZE/2;
 	unsigned char curByte, curChar;
