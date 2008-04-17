@@ -114,7 +114,11 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 			}
 		}
 	}
-	fprintf(stderr, "\n");
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\r[%d,%d]\n",
+				curChr,
+				curPos);
+	}
 }
 
 /* TODO */
@@ -321,7 +325,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		 * but lets just choose the middle element for now.
 		 * */
 		pivot = (low + high)/2;
-		if(showPercentComplete == 1) {
+		if(showPercentComplete == 1 && VERBOSE >= 0) {
 			if((*curPercent) < 100.0*((double)low)/total) {
 				while((*curPercent) < 100.0*((double)low)/total) {
 					(*curPercent) += SORT_ROTATE_INC;
@@ -350,12 +354,12 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		for(i=low;i<high;i++) {
 			if(RGIndexCompareAt(index, rg, i, high) <= 0) {
 				/* Swap node at i with node at the new pivot index */
-					tempPos = index->positions[pivot];
-					tempChr = index->chromosomes[pivot];
-					index->positions[pivot] = index->positions[i];
-					index->chromosomes[pivot] = index->chromosomes[i];
-					index->positions[i] = tempPos;
-					index->chromosomes[i] = tempChr;
+				tempPos = index->positions[pivot];
+				tempChr = index->chromosomes[pivot];
+				index->positions[pivot] = index->positions[i];
+				index->chromosomes[pivot] = index->chromosomes[i];
+				index->positions[i] = tempPos;
+				index->chromosomes[i] = tempChr;
 				/* Increment the new pivot index */
 				pivot++;
 			}
@@ -382,7 +386,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			if(pivot > 0) {
 				RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, lowPivot, (lowPivot+highPivot)/2);
 			}
-			if(showPercentComplete == 1) {
+			if(showPercentComplete == 1 && VERBOSE >= 0) {
 				if((*curPercent) < 100.0*((double)pivot)/total) {
 					while((*curPercent) < 100.0*((double)pivot)/total) {
 						(*curPercent) += SORT_ROTATE_INC;
@@ -393,7 +397,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			if(pivot < UINT_MAX) {
 				RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, (lowPivot+highPivot)/2 + 1, highPivot);
 			}
-			if(showPercentComplete == 1) {
+			if(showPercentComplete == 1 && VERBOSE >= 0) {
 				if((*curPercent) < 100.0*((double)high)/total) {
 					while((*curPercent) < 100.0*((double)high)/total) {
 						(*curPercent) += SORT_ROTATE_INC;
