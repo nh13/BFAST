@@ -114,6 +114,9 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 			}
 		}
 	}
+	/* Decrement since they were incremented before exiting loops */
+	curChr--;
+	curPos--;
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r[%d,%d]\n",
 				curChr,
