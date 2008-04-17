@@ -2,11 +2,8 @@ Note: does not support match lengths > 16 when using the trees
 
 ===============================================================================
 General
-1. Suffix array representation of the indexes.  Have the key be a chr/pos, the
-location be chr/pos, and sort the array based on the string starting at the
-key.
-2. Add doc/bcommand.1
-3. Modify docs.
+1. Add doc/bcommand.1
+2. Modify docs.
 ===============================================================================
 
 
@@ -14,50 +11,36 @@ key.
 bpreprocess
 ===============================================================================
 1. Creates binary (2-bit) files for the reference genome (include a header...)
-2. Better output to stderr for sorting (so we don't have to update on every 
-call).
-3. Don't include repeat regions in index option (FLAG?).
-4. Multithread the sorting (faster).
 
 ===============================================================================
 bmatches
 ===============================================================================
 1.
 Allow for errors (no calls) in the sequences (could model them as mismatches).
-2.
-Check that the range of blatter trees is the same as the blatter indexes.
-4.
+2. 
+Reads chromosome position range from indexes so that not the whole reference
+genome must be loaded.
+3.
 Have a command line option that specifies a strict read length (otherwise, we
 		assume that the reads must have length matching the the matchLength
 		equal to that of the index(es)).
-5.
+4.
 Have a command line option that only outputs reads that had a candidate match
 (no zero matches).
-6.
-In RGMatch, when inserting more matches, exploit the fact that chr/pos are in
-sorted order and therefore we do not need to sort.
-7. 
+5. 
 Flag perfect matches so that the alignment score is already known. 
-8.
-Multithread searching.
 
 ===============================================================================
 balign
 ===============================================================================
 1.
 Have a command line option that ignores reads with zero candidate matches.
-2.
-Multithread alignment.
-3. 
-Changed how we write bmatches...
 
 ===============================================================================
 bpostprocess
 ===============================================================================
-1. Add Makefile.am
-2. Add doc/bpostprocess.1
-3. Modify docs
-4. Write code.
+1. Modify docs
+2. Write code.
 
 ===============================================================================
 bcommand
