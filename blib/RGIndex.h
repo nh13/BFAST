@@ -9,7 +9,7 @@ void RGIndexCreate(RGIndex*, RGBinary*, int, int);
 void RGIndexCleanUpIndex(RGIndex*, RGBinary*, int);
 void RGIndexSortNodes(RGIndex*, RGBinary*, int);
 void *RGIndexQuickSortNodes(void*);
-void RGIndexQuickSortNodesHelper(RGIndex*, RGBinary*, unsigned int, unsigned int, int, double*, unsigned int, int, unsigned int*, int, int);
+void RGIndexQuickSortNodesHelper(RGIndex*, RGBinary*, unsigned int, unsigned int, int, double*, unsigned int, unsigned int, int, unsigned int*, int, int);
 void RGIndexDelete(RGIndex*);
 double RGIndexGetSize(RGIndex*, int);
 void RGIndexPrint(FILE*, RGIndex*, int);

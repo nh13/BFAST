@@ -136,7 +136,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status=NULL;
-	unsigned int *indexes=NULL;
 	unsigned int *pivots;
 	int max, maxIndex;
 
@@ -180,6 +179,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 				index->length-1,
 				0,
 				NULL,
+				0,
 				index->length-1,
 				1,
 				pivots,
@@ -262,27 +262,12 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		}
 	}
 
-	/* Allocate memory for indexes */
-	indexes = malloc(sizeof(unsigned int)*numThreads);
-	if(NULL==indexes) {
-		PrintError("RGIndexSortNodes",
-				"indexes",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Initialize indexes */
-	for(i=0;i<numThreads;i++) {
-		indexes[i] = data[i].low;
-	}
-
 	/* Test that we sorted correctly */
 	for(i=1;i<index->length;i++) {
 		assert(RGIndexCompareAt(index, rg, i-1, i) <= 0);
 	}
 
 	/* Free memory */
-	free(indexes);
 	free(threads);
 	free(data);
 }
@@ -303,7 +288,7 @@ void *RGIndexQuickSortNodes(void *arg)
 	if(showPercentComplete == 1) {
 		fprintf(stderr, "0 percent complete");
 	}
-	RGIndexQuickSortNodesHelper(index, rg, low, high, showPercentComplete, &curPercent, high, 0, NULL, 0, 0);
+	RGIndexQuickSortNodesHelper(index, rg, low, high, showPercentComplete, &curPercent, low, high, 0, NULL, 0, 0);
 	if(showPercentComplete == 1) {
 		fprintf(stderr, "\r");
 	}
@@ -317,7 +302,8 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		unsigned int high,
 		int showPercentComplete,
 		double *curPercent,
-		unsigned int total,
+		unsigned int lowTotal,
+		unsigned int highTotal,
 		int savePivots,
 		unsigned int *pivots,
 		int lowPivot,
@@ -328,6 +314,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 	unsigned int pivot = 0;
 	unsigned int tempPos;
 	unsigned char tempChr;
+	unsigned int total = highTotal-lowTotal;
 
 	if(low < high) {
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
@@ -363,14 +350,12 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		for(i=low;i<high;i++) {
 			if(RGIndexCompareAt(index, rg, i, high) <= 0) {
 				/* Swap node at i with node at the new pivot index */
-				if(pivot != i) {
 					tempPos = index->positions[pivot];
 					tempChr = index->chromosomes[pivot];
 					index->positions[pivot] = index->positions[i];
 					index->chromosomes[pivot] = index->chromosomes[i];
 					index->positions[i] = tempPos;
 					index->chromosomes[i] = tempChr;
-				}
 				/* Increment the new pivot index */
 				pivot++;
 			}
@@ -395,7 +380,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 
 			/* Call recursively */
 			if(pivot > 0) {
-				RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, total, savePivots, pivots, lowPivot, (lowPivot+highPivot)/2);
+				RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, lowPivot, (lowPivot+highPivot)/2);
 			}
 			if(showPercentComplete == 1) {
 				if((*curPercent) < 100.0*((double)pivot)/total) {
@@ -406,7 +391,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 				}
 			}
 			if(pivot < UINT_MAX) {
-				RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, total, savePivots, pivots, (lowPivot+highPivot)/2 + 1, highPivot);
+				RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, (lowPivot+highPivot)/2 + 1, highPivot);
 			}
 			if(showPercentComplete == 1) {
 				if((*curPercent) < 100.0*((double)high)/total) {
