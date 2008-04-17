@@ -113,3 +113,24 @@ int ValidateBasePair(char c) {
 			break;
 	}
 }
+
+int IsAPowerOfTwo(unsigned int a) {
+	int i;
+
+	for(i=0;i<8*sizeof(unsigned int);i++) {
+		/*
+		   fprintf(stderr, "i:%d\ta:%d\tshifted:%d\tres:%d\n",
+		   i,
+		   a,
+		   a>>i,
+		   (a >> i)%2);
+		   */
+		if( (a >> i) == 2) {
+			return 1;
+		}
+		else if( (a >> i)%2 != 0) {
+			return 0;
+		}
+	}
+	return 1;
+}

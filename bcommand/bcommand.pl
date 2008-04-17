@@ -71,7 +71,8 @@ my @options = (
 	"BALIGN",
 	"SCORINGMATRIXFILENAME",
 	"ALGORITHM",
-	"ALIGNOFFSET");
+	"ALIGNOFFSET",
+	"MAXNUMMATCHES");
 
 # Global variables
 my $BLATTER_INDEX_FILE_EXTENSION = "bif";
@@ -398,6 +399,10 @@ sub CreateRegions {
 	my $startPos = shift;
 	my $endChr = shift;
 	my $endPos = shift;
+
+	if($regionLength == 0) {
+		$regionLength = 4000000000;
+	}
 
 	my $cont = 1;
 	my $curChr=0;
@@ -773,6 +778,7 @@ sub CreateBAlignCommandsAndFiles {
 	$command .= " -e ".$$endChrArr[scalar(@$startPosArr)-1]; 
 	$command .= " -E ".$$endPosArr[scalar(@$startPosArr)-1];
 	$command .= " -O ".$$data{"ALIGNOFFSET"};
+	$command .= " -M ".$$data{"MAXNUMMATCHES"};
 	if($$data{"PAIREDEND"} == 1) {
 		$command .= " -2";
 	}

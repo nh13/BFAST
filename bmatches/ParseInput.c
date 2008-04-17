@@ -188,7 +188,7 @@ main (int argc, char **argv)
 								BLATTER_MATCHES_FILE_EXTENSION);
 
 						/* Run Matches */
-						RunMatches(outputFileName,
+						FindMatches(outputFileName,
 								arguments.binaryOutput,
 								&rg,
 								arguments.blatterMainIndexesFileName,

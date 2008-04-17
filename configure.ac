@@ -104,6 +104,7 @@ AC_CONFIG_FILES([
    bpreprocess/Makefile
    bmatches/Makefile
    balign/Makefile
+   bpostprocess/Makefile
 ])
 
 AC_OUTPUT

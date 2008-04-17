@@ -40,6 +40,7 @@ int ReadSequencesToTempFile(FILE *seqFP,
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "\n0");
 	}
+
 	while((endReadNum<=0 || endReadNum >= curReadNum) && EOF != fscanf(seqFP, "%s", sequenceName)) {
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\r%d",

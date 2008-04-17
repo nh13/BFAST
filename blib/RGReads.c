@@ -276,8 +276,13 @@ void RGReadsGenerateMismatches(char *read,
 		fprintf(stderr, "Generating indexes with %d mismatches\n",
 				numMismatches);
 	}
-	assert(readLength >= totalLength+offset);
 
+	/* Check bounds */
+	if(readLength < totalLength+offset) {
+		return;
+	}
+
+	assert(readLength >= totalLength+offset);
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(readLength+1));
 	if(NULL == curRead) {

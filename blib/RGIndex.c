@@ -131,16 +131,14 @@ void RGIndexCleanUpIndex(RGIndex *index, RGBinary *rg, int numThreads)
 /* TODO */
 void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 {
-	int i, j;
-	unsigned char tempChr;
-	unsigned int tempPos;
+	int i;
 	ThreadRGIndexSortData *data=NULL;
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status=NULL;
-	int splitLengths=-1;
 	unsigned int *indexes=NULL;
-	double curPercent = 0.0;
+	unsigned int *pivots;
+	int max, maxIndex;
 
 	/* Allocate memory for the thread arguments */
 	data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
@@ -161,29 +159,70 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 				MallocMemory);
 	}
 
-	/* Split up sort int 1/numThreads parts */
-	splitLengths = index->length/numThreads;
+	/* Should check that the number of threads is a power of 4 */
+	assert(IsAPowerOfTwo(numThreads)==1);
+
+	/* Allocate memory for the pivots */
+	pivots = malloc(sizeof(unsigned int)*(2*numThreads));
+	if(NULL == pivots) {
+		PrintError("RGIndexSortNodes",
+				"pivots",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Get the pivots and presort */
+	if(numThreads > 1) {
+		RGIndexQuickSortNodesHelper(index,
+				rg,
+				0,
+				index->length-1,
+				0,
+				NULL,
+				index->length-1,
+				1,
+				pivots,
+				1,
+				numThreads);
+		/* The last one must be less than index->length */
+		pivots[2*numThreads-1]--;
+	}
+	else {
+		assert(numThreads == 1);
+		pivots[0] = 0;
+		pivots[1] = index->length - 1;
+	}
+	for(i=0;i<2*numThreads;i+=2) {
+		assert(pivots[i] >= 0 && pivots[i] < index->length);
+		assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
+		assert(pivots[i] <= pivots[i+1]);
+		if(i==0) {
+			assert(pivots[i] == 0);
+		}
+		if(i==2*numThreads-2) {
+			assert(pivots[i+1] == index->length-1);
+		}
+		if(i>1) {
+			assert(pivots[i] > pivots[i-1]);
+		}
+	}
 
 	/* Initialize data */
+	maxIndex=0;
+	max = data[0].high-data[i].low;
 	for(i=0;i<numThreads;i++) {
 		data[i].index = index;
 		data[i].rg = rg;
 		data[i].threadID = i;
-		data[i].low = i*splitLengths;
-		if(i == 0) {
-			data[i].showPercentComplete = 1;
-		}
-		else {
-			data[i].showPercentComplete = 0;
-		}
-		if(i==numThreads-1) {
-			data[i].high = index->length-1;
-		}
-		else {
-			data[i].high = (i+1)*splitLengths - 1;
-		}
+		data[i].low = pivots[2*i];
+		data[i].high = pivots[2*i+1];
 		assert(data[i].low >= 0 && data[i].high < index->length);
+		if(data[i].high - data[i].low >= max) {
+			maxIndex = i;
+		}
 	}
+	data[maxIndex].showPercentComplete = 1;
 	/* Check that we split correctly */
 	for(i=1;i<numThreads;i++) {
 		assert(data[i-1].high < data[i].low);
@@ -218,6 +257,9 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 					Exit,
 					ThreadError);
 		}
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rWaiting for other threads to complete...");
+		}
 	}
 
 	/* Allocate memory for indexes */
@@ -232,58 +274,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 	/* Initialize indexes */
 	for(i=0;i<numThreads;i++) {
 		indexes[i] = data[i].low;
-	}
-
-	/* Merge the individual sorts together */
-	if(numThreads > 1) { /* Only merge if we have more than one thread */
-		/* Note: This is slow since it is O(n^2) */
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "Merging sorts (this will speed up).\n0");
-		}
-		for(i=0;i<index->length;i++) { 
-			if(VERBOSE >= 0) {
-				if(curPercent < 100.0*(i+1.0)/index->length) {
-					while(curPercent < 100.0*(i+1.0)/index->length) {
-						curPercent += SORT_ROTATE_INC;
-					}
-					fprintf(stderr, "\r%3.2lf percent complete", 100.0*(i+1.0)/index->length);
-				}
-			}
-			int whichThread = -1;
-			/* Check the result of each thread for the smallest element */
-			for(j=0;j<numThreads;j++) {
-				/* If the current item is valid, and the node is smaller */
-				if(indexes[j] < index->length) {
-					if(whichThread == -1 || RGIndexCompareAt(index, rg, indexes[j], indexes[whichThread]) <= 0) {
-						whichThread = j;
-					}
-				}
-			}
-			assert(whichThread!=-1);
-			/* Update min index */
-			unsigned int minIndex = indexes[whichThread];
-
-			/* Store the current node to swap */
-			tempPos = index->positions[minIndex];
-			tempChr = index->chromosomes[minIndex];
-			/* Shift all nodes up one starting at i and ending at minIndex */
-			for(j=minIndex-1;j>=i;j--) {
-				index->positions[j+1] = index->positions[j];
-				index->chromosomes[j+1] = index->chromosomes[j];
-			}
-			/* Store the current node at i */
-			index->positions[i] = tempPos;
-			index->chromosomes[i] = tempChr;
-			/* Update thread indexes if necessary */
-			for(j=0;j<numThreads;j++) {
-				if(indexes[j] <= minIndex) {
-					indexes[j]++;
-				}
-			}
-		}
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rMerged sorts.\n");
-		}
 	}
 
 	/* Test that we sorted correctly */
@@ -313,7 +303,7 @@ void *RGIndexQuickSortNodes(void *arg)
 	if(showPercentComplete == 1) {
 		fprintf(stderr, "0 percent complete");
 	}
-	RGIndexQuickSortNodesHelper(index, rg, low, high, showPercentComplete, &curPercent, high);
+	RGIndexQuickSortNodesHelper(index, rg, low, high, showPercentComplete, &curPercent, high, 0, NULL, 0, 0);
 	if(showPercentComplete == 1) {
 		fprintf(stderr, "\r");
 	}
@@ -327,7 +317,11 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		unsigned int high,
 		int showPercentComplete,
 		double *curPercent,
-		unsigned int total)
+		unsigned int total,
+		int savePivots,
+		unsigned int *pivots,
+		int lowPivot,
+		int highPivot)
 {
 	/* local variables */
 	unsigned int i;
@@ -390,27 +384,37 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		index->positions[high] = tempPos;
 		index->chromosomes[high] = tempChr;
 
-		/* Call recursively */
-		if(pivot > 0) {
-			RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, total);
+		if(savePivots == 1 && lowPivot >= highPivot) {
+			assert(pivots!=NULL);
+			/* Save pivots if necessary */
+			pivots[2*lowPivot-2] = low;
+			pivots[2*lowPivot-1] = high+1;
+			return;
 		}
-		if(showPercentComplete == 1) {
-			if((*curPercent) < 100.0*((double)pivot)/total) {
-				while((*curPercent) < 100.0*((double)pivot)/total) {
-					(*curPercent) += SORT_ROTATE_INC;
-				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)pivot)/total);
+		else {
+
+			/* Call recursively */
+			if(pivot > 0) {
+				RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, total, savePivots, pivots, lowPivot, (lowPivot+highPivot)/2);
 			}
-		}
-		if(pivot < UINT_MAX) {
-			RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, total);
-		}
-		if(showPercentComplete == 1) {
-			if((*curPercent) < 100.0*((double)high)/total) {
-				while((*curPercent) < 100.0*((double)high)/total) {
-					(*curPercent) += SORT_ROTATE_INC;
+			if(showPercentComplete == 1) {
+				if((*curPercent) < 100.0*((double)pivot)/total) {
+					while((*curPercent) < 100.0*((double)pivot)/total) {
+						(*curPercent) += SORT_ROTATE_INC;
+					}
+					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)pivot)/total);
 				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
+			}
+			if(pivot < UINT_MAX) {
+				RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, total, savePivots, pivots, (lowPivot+highPivot)/2 + 1, highPivot);
+			}
+			if(showPercentComplete == 1) {
+				if((*curPercent) < 100.0*((double)high)/total) {
+					while((*curPercent) < 100.0*((double)high)/total) {
+						(*curPercent) += SORT_ROTATE_INC;
+					}
+					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
+				}
 			}
 		}
 	}

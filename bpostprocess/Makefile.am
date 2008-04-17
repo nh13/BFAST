@@ -1,0 +1,14 @@
+bin_PROGRAMS = bpostprocess
+
+bpostprocess_SOURCES = \
+	../blib/BError.c	../blib/BError.h \
+	ParseInput.c	ParseInput.h \
+	Definitions.h
+	
+##  LDADD only lists those object files which are NOT compiled from 
+##  the *_SOURCES above so we need to reference libm.a here
+
+bpostprocess_LDADD = -lm 
+AM_CFLAGS = -Wall -ansi -pg -g -O3
+
+

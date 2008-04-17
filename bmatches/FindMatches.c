@@ -13,7 +13,7 @@
 #include "FindMatches.h"
 
 /* TODO */
-void RunMatches(char *outputFileName,
+void FindMatches(char *outputFileName,
 		int binaryOutput,
 		RGBinary *rg,
 		char *rgIndexMainListFileName,
@@ -58,7 +58,7 @@ void RunMatches(char *outputFileName,
 	/* Read in the main RGIndex File Names */
 	numMainRGIndexes=ReadFileNames(rgIndexMainListFileName, &rgIndexMainFileNames);
 	if(numMainRGIndexes<=0) {
-		PrintError("RunMatches",
+		PrintError("FindMatches",
 				"numMainRGIndexes",
 				"Read zero indexes",
 				Exit,
@@ -68,7 +68,7 @@ void RunMatches(char *outputFileName,
 	/* Read in the RGIndex File Names */
 	numRGIndexes=ReadFileNames(rgIndexListFileName, &rgIndexFileNames);
 	if(numRGIndexes<=0) {
-		PrintError("RunMatches",
+		PrintError("FindMatches",
 				"numRGIndexes",
 				"Read zero indexes",
 				Exit,
@@ -89,7 +89,7 @@ void RunMatches(char *outputFileName,
 	 * */
 	/* open sequence file */
 	if((seqFP=fopen(sequenceFileName, "r"))==0) {
-		PrintError("RunMatches",
+		PrintError("FindMatches",
 				sequenceFileName,
 				"Could not open sequenceFileName for reading",
 				Exit,
@@ -98,7 +98,7 @@ void RunMatches(char *outputFileName,
 	/* Allocate memory for the temp file pointers - one for each thread */
 	tempSeqFPs=malloc(sizeof(FILE*)*numThreads);
 	if(NULL==tempSeqFPs) {
-		PrintError("RunMatches",
+		PrintError("FindMatches",
 				"tempSeqFPs",
 				"Could not allcoate memory",
 				Exit,
@@ -137,7 +137,7 @@ void RunMatches(char *outputFileName,
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "w"))==0) {
-		PrintError("RunMatches",
+		PrintError("FindMatches",
 				outputFileName,
 				"Could not open outputFileName for writing",
 				Exit,
@@ -401,6 +401,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 			data[j].pairedEnd = pairedEnd;
 			data[j].threadID = j;
 		}
+
 		/* Create threads */
 		for(j=0;j<numThreads;j++) {
 			data[j].tempSeqFP = (*tempSeqFPs)[j];
@@ -597,8 +598,11 @@ void *FindMatchesInIndex(void *arg)
 	int numGapInsertions = data->numGapInsertions;
 	int numGapDeletions = data->numGapDeletions;
 	int pairedEnd = data->pairedEnd;
-	int threadID = threadID;
+	int threadID = data->threadID;
 	data->numMatches = 0;
+
+	fprintf(stderr, "\rStarting thread %d",
+			threadID);
 
 	if(pairedEnd==1) {
 		PrintError("FindMatchesInIndex",
@@ -630,6 +634,11 @@ void *FindMatchesInIndex(void *arg)
 	/* For each sequence */
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
 		numRead++;
+		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM == 0) {
+			fprintf(stderr, "\rthread:%d\tnumRead:%d",
+					threadID,
+					numRead);
+		}
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\nRead: %s\n%s\n",
 					sequenceName,
@@ -703,6 +712,12 @@ void *FindMatchesInIndex(void *arg)
 			pairedSequenceMatch.strand=NULL;
 			pairedSequenceMatch.numEntries=0;
 		}
+	}
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "threadID:%d\tnumRead:%d\n",
+				threadID,
+				numRead);
 	}
 
 	/* Free memory */
