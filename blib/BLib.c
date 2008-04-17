@@ -134,3 +134,42 @@ int IsAPowerOfTwo(unsigned int a) {
 	}
 	return 1;
 }
+
+char TransformFromIUPAC(char a) 
+{
+	switch(a) {
+		case 'U':
+			return 'T';
+			break;
+		case 'u':
+			return 'u';
+			break;
+		case 'R':
+		case 'Y':
+		case 'M':
+		case 'K':
+		case 'W':
+		case 'S':
+		case 'B':
+		case 'D':
+		case 'H':
+		case 'V':
+			return 'N';
+			break;
+		case 'r':
+		case 'y':
+		case 'm':
+		case 'k':
+		case 'w':
+		case 's':
+		case 'b':
+		case 'd':
+		case 'h':
+		case 'v':
+			return 'n';
+			break;
+		default:
+			return a;
+			break;
+	}
+}

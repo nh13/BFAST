@@ -194,6 +194,8 @@ void RGBinaryRead(char *rgFileName,
 			 * Null Character: N,n
 			 * */
 
+			original=TransformFromIUPAC(original);
+
 			/* Save the character as lower */
 			c=ToLower(original);
 
