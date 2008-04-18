@@ -20,7 +20,9 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 	 * includeRepeats and includeNs
 	 * */
 
-	unsigned int curPos, curChr, insert, i, j, curTilePos;
+	unsigned int curPos=-1;
+	unsigned int curChr=-1;
+	unsigned int insert, i, j, curTilePos;
 	unsigned int chrIndex = 0;
 
 	index->positions=NULL;
@@ -166,7 +168,9 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 	}
 
 	/* Should check that the number of threads is a power of 4 */
-	assert(IsAPowerOfTwo(numThreads)==1);
+	if(numThreads > 1) {
+		assert(IsAPowerOfTwo(numThreads)==1);
+	}
 
 	/* Allocate memory for the pivots */
 	pivots = malloc(sizeof(unsigned int)*(2*numThreads));
@@ -201,6 +205,12 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		pivots[1] = index->length - 1;
 	}
 	for(i=0;i<2*numThreads;i+=2) {
+		/*
+		   fprintf(stderr, "HERE\t%d\t%d\t%d\n",
+		   i,
+		   pivots[i],
+		   pivots[i+1]);
+		   */
 		assert(pivots[i] >= 0 && pivots[i] < index->length);
 		assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
 		assert(pivots[i] <= pivots[i+1]);
@@ -329,11 +339,12 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		 * */
 		pivot = (low + high)/2;
 		if(showPercentComplete == 1 && VERBOSE >= 0) {
-			if((*curPercent) < 100.0*((double)low)/total) {
-				while((*curPercent) < 100.0*((double)low)/total) {
+			assert(NULL!=curPercent);
+			if((*curPercent) < 100.0*((double)(low - lowTotal))/total) {
+				while((*curPercent) < 100.0*((double)(low - lowTotal))/total) {
 					(*curPercent) += SORT_ROTATE_INC;
 				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)low)/total);
+				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)(low - lowTotal))/total);
 			}
 		}
 
@@ -357,12 +368,14 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		for(i=low;i<high;i++) {
 			if(RGIndexCompareAt(index, rg, i, high) <= 0) {
 				/* Swap node at i with node at the new pivot index */
-				tempPos = index->positions[pivot];
-				tempChr = index->chromosomes[pivot];
-				index->positions[pivot] = index->positions[i];
-				index->chromosomes[pivot] = index->chromosomes[i];
-				index->positions[i] = tempPos;
-				index->chromosomes[i] = tempChr;
+				if(i!=pivot) {
+					tempPos = index->positions[pivot];
+					tempChr = index->chromosomes[pivot];
+					index->positions[pivot] = index->positions[i];
+					index->chromosomes[pivot] = index->chromosomes[i];
+					index->positions[i] = tempPos;
+					index->chromosomes[i] = tempChr;
+				}
 				/* Increment the new pivot index */
 				pivot++;
 			}
@@ -390,19 +403,21 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 				RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, lowPivot, (lowPivot+highPivot)/2);
 			}
 			if(showPercentComplete == 1 && VERBOSE >= 0) {
-				if((*curPercent) < 100.0*((double)pivot)/total) {
-					while((*curPercent) < 100.0*((double)pivot)/total) {
+				assert(NULL!=curPercent);
+				if((*curPercent) < 100.0*((double)(pivot - lowTotal))/total) {
+					while((*curPercent) < 100.0*((double)(pivot - lowTotal))/total) {
 						(*curPercent) += SORT_ROTATE_INC;
 					}
-					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)pivot)/total);
+					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)(pivot - lowTotal))/total);
 				}
 			}
 			if(pivot < UINT_MAX) {
 				RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, (lowPivot+highPivot)/2 + 1, highPivot);
 			}
 			if(showPercentComplete == 1 && VERBOSE >= 0) {
-				if((*curPercent) < 100.0*((double)high)/total) {
-					while((*curPercent) < 100.0*((double)high)/total) {
+				assert(NULL!=curPercent);
+				if((*curPercent) < 100.0*((double)(high - lowTotal))/total) {
+					while((*curPercent) < 100.0*((double)(high - lowTotal))/total) {
 						(*curPercent) += SORT_ROTATE_INC;
 					}
 					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
