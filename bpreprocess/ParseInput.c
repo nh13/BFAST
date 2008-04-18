@@ -185,8 +185,11 @@ main (int argc, char **argv)
 
 								break;
 							case 1:
-								fprintf(stderr, "Warning.  Not implemented\n");
-								exit(1);
+								PrintError("main",
+										NULL,
+										"Not implemented",
+										Exit,
+										OutOfRange);
 								break;
 						}
 
@@ -281,6 +284,9 @@ int ValidateInputs(struct arguments *args) {
 
 	if(args->numThreads<=0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
+	}
+	if(args->numThreads>1) {
+		PrintError(FnName, "numThreads", "Will run with only one thread", Warn, OutOfRange);
 	}
 
 	if(args->outputID!=0) {
