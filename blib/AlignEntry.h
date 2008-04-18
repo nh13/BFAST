@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include "BLibDefinitions.h"
 
+
+enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
+
 /* TODO */
 typedef struct {
 	char readName[SEQUENCE_NAME_LENGTH];
@@ -18,8 +21,11 @@ typedef struct {
 
 void AlignEntryPrint(AlignEntry*, FILE*);
 int AlignEntryRead(AlignEntry*, FILE*);
-int AlignEntryRemoveDuplicates(AlignEntry**, int);
-void AlignEntryQuickSort(AlignEntry**, int, int);
+int AlignEntryRemoveDuplicates(AlignEntry**, int, int);
+void AlignEntryQuickSort(AlignEntry**, int, int, int);
 void AlignEntryCopyAtIndex(AlignEntry*, int, AlignEntry*, int);
-int AlignEntryCompareAtIndex(AlignEntry*, int, AlignEntry*, int);
+int AlignEntryCompareAtIndex(AlignEntry*, int, AlignEntry*, int, int);
+int AlignEntryGetOneRead(AlignEntry**, FILE*);
+int AlignEntryGetAll(AlignEntry**, FILE*);
+void AlignEntryCopy(AlignEntry*, AlignEntry*);
 #endif

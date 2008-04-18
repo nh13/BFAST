@@ -1,4 +1,5 @@
 #ifndef BLIBDEFINITIONS_H_
+#include <sys/types.h>
 #define BLIBDEFINITIONS_H_
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
@@ -45,7 +46,7 @@ typedef struct {
 	int numReads;
 	char **reads;
 	char *strand;
-	int *offset;
+	unsigned int *offset;
 } RGReads;
 
 typedef struct {

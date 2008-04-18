@@ -154,7 +154,7 @@ sub Main {
 
 	############################################################
 	# Read in chromsomes with list and lengths
-	ReadChrAndLengths($data{"OUTPUTDIR"}."".$data{"RGLISTANDLENGTHFILENAME"}, \@chrFileNames, \@chrLengths); 
+	ReadChrAndLengths($data{"RGLISTANDLENGTHFILENAME"}, \@chrFileNames, \@chrLengths); 
 
 	############################################################
 	# Add a new command to our data 
@@ -315,7 +315,7 @@ sub ReadChrAndLengths {
 	@$chrLengths = ();
 
 	# open the file for reading
-	open(FH, "$fileName") || die("Error.  Could not ope $fileName for reading.  Terminating!\n");
+	open(FH, "$fileName") || die("Error.  Could not open $fileName for reading.  Terminating!\n");
 	while(defined(my $line = <FH>)) {
 		chomp($line);
 		if($line =~ m/^(.*)\t(.*)$/) {

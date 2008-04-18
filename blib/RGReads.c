@@ -80,6 +80,7 @@ void RGReadsFindMatches(RGIndex *index,
 				rg,
 				reads.reads[i],
 				reads.strand[i],
+				reads.offset[i],
 				match);
 	}
 
@@ -1255,6 +1256,7 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 		}
 		free(temp->reads);
 		free(temp->offset);
+		free(temp->strand);
 		free(temp);
 		temp=NULL;
 

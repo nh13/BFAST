@@ -12,7 +12,8 @@ struct arguments
 	int startPos;                           /* -S */
 	int endChr;                             /* -e */
 	int endPos;                             /* -E */
-	char *outputFileName;					/* -o */
+	char *outputID;							/* -o */
+	char *outputDir;                        /* -d */
 	int outputFormat;						/* -O */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 

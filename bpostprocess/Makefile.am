@@ -2,6 +2,9 @@ bin_PROGRAMS = bpostprocess
 
 bpostprocess_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
+	../blib/AlignEntry.c	../blib/AlignEntry.h \
+	PrintOutputFiles.c	PrintOutputFiles.h \
+	FilterAlignments.c	FilterAlignments.h \
 	ParseInput.c	ParseInput.h \
 	Definitions.h
 	

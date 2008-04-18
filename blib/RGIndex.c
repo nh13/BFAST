@@ -147,43 +147,44 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 	void *status=NULL;
 	unsigned int *pivots;
 	int max, maxIndex;
+	double curPercent=0.0;
 
-	/* Allocate memory for the thread arguments */
-	data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
-	if(NULL==data) {
-		PrintError("RGIndexSortNodes",
-				"data",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Allocate memory for the thread pointers */
-	threads = malloc(sizeof(pthread_t)*numThreads);
-	if(NULL==threads) {
-		PrintError("RGIndexSortNodes",
-				"threads",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
-	/* Should check that the number of threads is a power of 4 */
+	/* Only use threads if we want to divide and conquer */
 	if(numThreads > 1) {
+
+		/* Allocate memory for the thread arguments */
+		data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
+		if(NULL==data) {
+			PrintError("RGIndexSortNodes",
+					"data",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Allocate memory for the thread pointers */
+		threads = malloc(sizeof(pthread_t)*numThreads);
+		if(NULL==threads) {
+			PrintError("RGIndexSortNodes",
+					"threads",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Should check that the number of threads is a power of 4 */
 		assert(IsAPowerOfTwo(numThreads)==1);
-	}
 
-	/* Allocate memory for the pivots */
-	pivots = malloc(sizeof(unsigned int)*(2*numThreads));
-	if(NULL == pivots) {
-		PrintError("RGIndexSortNodes",
-				"pivots",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
+		/* Allocate memory for the pivots */
+		pivots = malloc(sizeof(unsigned int)*(2*numThreads));
+		if(NULL == pivots) {
+			PrintError("RGIndexSortNodes",
+					"pivots",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 
-	/* Get the pivots and presort */
-	if(numThreads > 1) {
+		/* Get the pivots and presort */
 		RGIndexQuickSortNodesHelper(index,
 				rg,
 				0,
@@ -198,84 +199,97 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 				numThreads);
 		/* The last one must be less than index->length */
 		pivots[2*numThreads-1]--;
+
+		/* Check pivots */
+		for(i=0;i<2*numThreads;i+=2) {
+			/*
+			   fprintf(stderr, "HERE\t%d\t%d\t%d\n",
+			   i,
+			   pivots[i],
+			   pivots[i+1]);
+			   */
+			assert(pivots[i] >= 0 && pivots[i] < index->length);
+			assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
+			assert(pivots[i] <= pivots[i+1]);
+			if(i==0) {
+				assert(pivots[i] == 0);
+			}
+			if(i==2*numThreads-1) {
+				assert(pivots[i+1] == index->length-1);
+			}
+			if(i==2*numThreads-2) {
+				assert(pivots[i+1] == index->length-1);
+			}
+			if(i>1) {
+				assert(pivots[i] > pivots[i-1]);
+			}
+		}
+
+		/* Initialize data */
+		maxIndex=0;
+		max = data[0].high-data[0].low;
+		for(i=0;i<numThreads;i++) {
+			data[i].index = index;
+			data[i].rg = rg;
+			data[i].threadID = i;
+			data[i].low = pivots[2*i];
+			data[i].high = pivots[2*i+1];
+			assert(data[i].low >= 0 && data[i].high < index->length);
+			if(data[i].high - data[i].low >= max) {
+				maxIndex = i;
+			}
+		}
+		data[maxIndex].showPercentComplete = 1;
+		/* Check that we split correctly */
+		for(i=1;i<numThreads;i++) {
+			assert(data[i-1].high < data[i].low);
+		}
+
+		/* Create threads */
+		for(i=0;i<numThreads;i++) {
+			/* Start thread */
+			errCode = pthread_create(&threads[i], /* thread struct */
+					NULL, /* default thread attributes */
+					RGIndexQuickSortNodes, /* start routine */
+					&data[i]); /* data to routine */
+			if(0!=errCode) {
+				PrintError("RGIndexSortNodes",
+						"pthread_create: errCode",
+						"Could not start thread",
+						Exit,
+						ThreadError);
+			}
+		}
+
+		/* Wait for the threads to finish */
+		for(i=0;i<numThreads;i++) {
+			/* Wait for the given thread to return */
+			errCode = pthread_join(threads[i],
+					&status);
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError("RGIndexSortNodes",
+						"pthread_join: errCode",
+						"Thread returned an error",
+						Exit,
+						ThreadError);
+			}
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\rWaiting for other threads to complete...");
+			}
+		}
+
+		/* Free memory */
+		free(threads);
+		free(data);
 	}
 	else {
-		assert(numThreads == 1);
-		pivots[0] = 0;
-		pivots[1] = index->length - 1;
-	}
-	for(i=0;i<2*numThreads;i+=2) {
-		/*
-		   fprintf(stderr, "HERE\t%d\t%d\t%d\n",
-		   i,
-		   pivots[i],
-		   pivots[i+1]);
-		   */
-		assert(pivots[i] >= 0 && pivots[i] < index->length);
-		assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
-		assert(pivots[i] <= pivots[i+1]);
-		if(i==0) {
-			assert(pivots[i] == 0);
-		}
-		if(i==2*numThreads-2) {
-			assert(pivots[i+1] == index->length-1);
-		}
-		if(i>1) {
-			assert(pivots[i] > pivots[i-1]);
-		}
-	}
-
-	/* Initialize data */
-	maxIndex=0;
-	max = data[0].high-data[i].low;
-	for(i=0;i<numThreads;i++) {
-		data[i].index = index;
-		data[i].rg = rg;
-		data[i].threadID = i;
-		data[i].low = pivots[2*i];
-		data[i].high = pivots[2*i+1];
-		assert(data[i].low >= 0 && data[i].high < index->length);
-		if(data[i].high - data[i].low >= max) {
-			maxIndex = i;
-		}
-	}
-	data[maxIndex].showPercentComplete = 1;
-	/* Check that we split correctly */
-	for(i=1;i<numThreads;i++) {
-		assert(data[i-1].high < data[i].low);
-	}
-
-	/* Create threads */
-	for(i=0;i<numThreads;i++) {
-		/* Start thread */
-		errCode = pthread_create(&threads[i], /* thread struct */
-				NULL, /* default thread attributes */
-				RGIndexQuickSortNodes, /* start routine */
-				&data[i]); /* data to routine */
-		if(0!=errCode) {
-			PrintError("RGIndexSortNodes",
-					"pthread_create: errCode",
-					"Could not start thread",
-					Exit,
-					ThreadError);
-		}
-	}
-
-	/* Wait for the threads to finish */
-	for(i=0;i<numThreads;i++) {
-		/* Wait for the given thread to return */
-		errCode = pthread_join(threads[i],
-				&status);
-		/* Check the return code of the thread */
-		if(0!=errCode) {
-			PrintError("RGIndexSortNodes",
-					"pthread_join: errCode",
-					"Thread returned an error",
-					Exit,
-					ThreadError);
-		}
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rWaiting for other threads to complete...");
+			fprintf(stderr, "\r0 percent complete");
+		}
+		RGIndexQuickSortNodesHelper(index, rg, 0, index->length-1, 1, &curPercent, 0, index->length-1, 0, NULL, 0, 0);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\r100.00 percent complete\n");
 		}
 	}
 
@@ -284,9 +298,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		assert(RGIndexCompareAt(index, rg, i-1, i) <= 0);
 	}
 
-	/* Free memory */
-	free(threads);
-	free(data);
 }
 
 /* TODO */
@@ -302,11 +313,11 @@ void *RGIndexQuickSortNodes(void *arg)
 	double curPercent = 0.0;
 
 	/* Call helper */
-	if(showPercentComplete == 1) {
+	if(showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "0 percent complete");
 	}
 	RGIndexQuickSortNodesHelper(index, rg, low, high, showPercentComplete, &curPercent, low, high, 0, NULL, 0, 0);
-	if(showPercentComplete == 1) {
+	if(showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
 	}
 
@@ -828,7 +839,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, RGMatch *m)
+int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, int offset, RGMatch *m)
 {
 	unsigned int i;
 	long long int startIndex=-1;
@@ -892,7 +903,7 @@ int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, 
 
 		/* Copy over */
 		for(i=startIndex;i<m->numEntries;i++) {
-			m->positions[i] = index->positions[nodeIndex];
+			m->positions[i] = index->positions[nodeIndex] - offset;
 			m->chromosomes[i] = index->chromosomes[nodeIndex];
 			m->strand[i] = direction;
 		}

@@ -6,6 +6,8 @@
 #include <errno.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
+#include "../blib/RGBinary.h"
 #include "../blib/RGIndex.h"
 #include "../blib/RGReads.h"
 #include "Definitions.h"
@@ -15,7 +17,7 @@
 /* TODO */
 void FindMatches(char *outputFileName,
 		int binaryOutput,
-		RGBinary *rg,
+		char *rgListFileName,
 		char *rgIndexMainListFileName,
 		char *rgIndexListFileName,
 		char *sequenceFileName, 
@@ -55,6 +57,9 @@ void FindMatches(char *outputFileName,
 	int totalSearchTime = 0; /* This will only give the time searching (excludes load times and other things) */
 	int totalOutputTime = 0; /* This wll only give the total time to merge and output */
 
+	RGBinary rg;
+	int startChr, startPos, endChr, endPos;
+
 	/* Read in the main RGIndex File Names */
 	numMainRGIndexes=ReadFileNames(rgIndexMainListFileName, &rgIndexMainFileNames);
 	if(numMainRGIndexes<=0) {
@@ -75,9 +80,26 @@ void FindMatches(char *outputFileName,
 				OutOfRange);
 	}
 
-	/* TODO */
-	/* We should probably make sure the header of the indexes are the same */
-	/* We should probably check that the chr/pos ranges of the indexes are the same or match somehow */
+	/* Check the indexes.
+	 * 1. We want the two sets of files to have the same range.
+	 * */
+	CheckRGIndexes(rgIndexMainFileNames, 
+			numMainRGIndexes,
+			rgIndexFileNames,
+			numRGIndexes,
+			binaryInput,
+			&startChr,
+			&startPos,
+			&endChr,
+			&endPos);
+
+	/* Read in the reference genome */
+	RGBinaryRead(rgListFileName,
+			&rg,
+			startChr,
+			startPos,
+			endChr,
+			endPos);
 
 	/* Read in the offsets */
 	numOffsets=ReadOffsets(offsetsFileName, &offsets);
@@ -154,7 +176,7 @@ void FindMatches(char *outputFileName,
 	/* Do step 1: search the main indexes for all sequences */
 	numMatches=FindMatchesInIndexes(rgIndexMainFileNames,
 			binaryInput,
-			rg,
+			&rg,
 			numMainRGIndexes,
 			offsets,
 			numOffsets,
@@ -177,7 +199,7 @@ void FindMatches(char *outputFileName,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Procesing remaining %d reads using indexes.\n",
+		fprintf(stderr, "Procesing remaining %d reads using secondary indexes.\n",
 				numReads-numMatches);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
@@ -185,7 +207,7 @@ void FindMatches(char *outputFileName,
 	/* Do step 2: search the indexes for all sequences */
 	numMatches+=FindMatchesInIndexes(rgIndexFileNames,
 			binaryInput,
-			rg,
+			&rg,
 			numRGIndexes,
 			offsets,
 			numOffsets,
@@ -228,6 +250,9 @@ void FindMatches(char *outputFileName,
 		free(rgIndexFileNames[i]);
 	}
 	free(rgIndexFileNames);
+
+	/* Free reference genome */
+	RGBinaryDelete(&rg);
 
 	/* Free offsets */
 	free(offsets);
@@ -601,9 +626,6 @@ void *FindMatchesInIndex(void *arg)
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
-	fprintf(stderr, "\rStarting thread %d",
-			threadID);
-
 	if(pairedEnd==1) {
 		PrintError("FindMatchesInIndex",
 				"pairedEnd",
@@ -634,11 +656,13 @@ void *FindMatchesInIndex(void *arg)
 	/* For each sequence */
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
 		numRead++;
-		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM == 0) {
-			fprintf(stderr, "\rthread:%d\tnumRead:%d",
+
+		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
+			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
 					threadID,
 					numRead);
 		}
+
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\nRead: %s\n%s\n",
 					sequenceName,
@@ -713,9 +737,8 @@ void *FindMatchesInIndex(void *arg)
 			pairedSequenceMatch.numEntries=0;
 		}
 	}
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "threadID:%d\tnumRead:%d\n",
+	if(VERBOSE>=0) {
+		fprintf(stderr, "\rthreadID:%d\tnumRead:%d\n",
 				threadID,
 				numRead);
 	}

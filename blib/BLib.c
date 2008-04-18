@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <assert.h>
 #include "BLibDefinitions.h"
+#include "RGIndex.h"
 #include "BError.h"
 #include "BLib.h"
 
@@ -172,4 +174,122 @@ char TransformFromIUPAC(char a)
 			return a;
 			break;
 	}
+}
+
+void CheckRGIndexes(char **mainFileNames,
+		int numMainFileNames,
+		char **secondaryFileNames,
+		int numSecondaryFileNames,
+		int binaryInput,
+		int *startChr,
+		int *startPos,
+		int *endChr,
+		int *endPos)
+{
+	int i;
+	unsigned int mainStartChr, mainStartPos, mainEndChr, mainEndPos;
+	unsigned int secondaryStartChr, secondaryStartPos, secondaryEndChr, secondaryEndPos;
+	mainStartChr = mainStartPos = mainEndChr = mainEndPos = 0;
+	secondaryStartChr = secondaryStartPos = secondaryEndChr = secondaryEndPos = 0;
+
+	RGIndex tempIndex;
+	FILE *fp;
+
+	/* Read in main indexes */
+	for(i=0;i<numMainFileNames;i++) {
+		/* Open file */
+		if((fp=fopen(mainFileNames[i], "r"))==0) {
+			PrintError("CheckRGIndexes",
+					"mainFileNames[i]",
+					"Could not open file for reading",
+					Exit,
+					OpenFileError);
+		}
+
+		/* Get the header */
+		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
+
+		assert(tempIndex.startChr < tempIndex.endChr ||
+				(tempIndex.startChr == tempIndex.endChr && tempIndex.startPos <= tempIndex.endPos));
+
+		if(i==0) {
+			mainStartChr = tempIndex.startChr;
+			mainStartPos = tempIndex.startPos;
+			mainEndChr = tempIndex.endChr;
+			mainEndPos = tempIndex.endPos;
+		}
+		else {
+			/* Update bounds if necessary */
+			if(tempIndex.startChr < mainStartChr ||
+					(tempIndex.startChr == mainStartChr && tempIndex.startPos < mainStartPos)) {
+				mainStartChr = tempIndex.startChr;
+				mainStartPos = tempIndex.startPos;
+			}
+			if(tempIndex.endChr < mainStartChr ||
+					(tempIndex.endChr == mainStartChr && tempIndex.endPos < mainStartPos)) {
+				mainEndChr = tempIndex.endChr;
+				mainEndPos = tempIndex.endPos;
+			}
+		}
+
+		/* Close file */
+		fclose(fp);
+	}
+	/* Read in secondary indexes */
+	for(i=0;i<numSecondaryFileNames;i++) {
+		/* Open file */
+		if((fp=fopen(secondaryFileNames[i], "r"))==0) {
+			PrintError("CheckRGIndexes",
+					"secondaryFileNames[i]",
+					"Could not open file for reading",
+					Exit,
+					OpenFileError);
+		}
+
+		/* Get the header */
+		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
+
+		assert(tempIndex.startChr < tempIndex.endChr ||
+				(tempIndex.startChr == tempIndex.endChr && tempIndex.startPos <= tempIndex.endPos));
+
+		if(i==0) {
+			secondaryStartChr = tempIndex.startChr;
+			secondaryStartPos = tempIndex.startPos;
+			secondaryEndChr = tempIndex.endChr;
+			secondaryEndPos = tempIndex.endPos;
+		}
+		else {
+			/* Update bounds if necessary */
+			if(tempIndex.startChr < secondaryStartChr ||
+					(tempIndex.startChr == secondaryStartChr && tempIndex.startPos < secondaryStartPos)) {
+				secondaryStartChr = tempIndex.startChr;
+				secondaryStartPos = tempIndex.startPos;
+			}
+			if(tempIndex.endChr < secondaryStartChr ||
+					(tempIndex.endChr == secondaryStartChr && tempIndex.endPos < secondaryStartPos)) {
+				secondaryEndChr = tempIndex.endChr;
+				secondaryEndPos = tempIndex.endPos;
+			}
+		}
+
+		/* Close file */
+		fclose(fp);
+	}
+
+	/* Check the bounds between main and secondary indexes */
+	if(mainStartChr != secondaryStartChr ||
+			mainStartPos != secondaryStartPos ||
+			mainEndChr != secondaryEndChr ||
+			mainEndPos != secondaryEndPos) {
+		PrintError("CheckRGIndexes",
+				NULL,
+				"The ranges between main and secondary indexes differ",
+				Exit,
+				OutOfRange);
+	}
+
+	(*startChr) = mainStartChr;
+	(*startPos) = mainStartPos;
+	(*endChr) = mainEndChr;
+	(*endPos) = mainEndPos;
 }

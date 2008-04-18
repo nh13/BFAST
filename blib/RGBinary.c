@@ -619,12 +619,13 @@ char RGBinaryGetBase(RGBinary *rg,
 		int position) 
 {
 	assert(chromosome >= rg->startChr && chromosome <= rg->endChr);
-	assert(position >= rg->chromosomes[chromosome-1].startPos && position <= rg->chromosomes[chromosome-1].endPos);
 
 	int numCharsPerByte=ALPHABET_SIZE/2;
 	unsigned char curByte, curChar;
 	int repeat;
 	int chrIndex = chromosome - rg->startChr;
+
+	assert(position >= rg->chromosomes[chrIndex].startPos && position <= rg->chromosomes[chrIndex].endPos);
 
 	/* For DNA */
 	assert(numCharsPerByte == 2);

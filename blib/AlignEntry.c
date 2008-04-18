@@ -61,7 +61,8 @@ int AlignEntryRead(AlignEntry *aEntry,
 
 /* TODO */
 int AlignEntryRemoveDuplicates(AlignEntry **a,
-		int length)
+		int length,
+		int sortOrder)
 {
 	int i, prevIndex;
 
@@ -70,7 +71,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Sorting... %d\n", length);
 		}
-		AlignEntryQuickSort(a, 0, length-1);
+		AlignEntryQuickSort(a, 0, length-1, sortOrder);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Sorted\n");
 		}
@@ -81,7 +82,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		}
 		prevIndex=0;
 		for(i=1;i<length;i++) {
-			if(AlignEntryCompareAtIndex((*a), prevIndex, (*a), i)==0) {
+			if(AlignEntryCompareAtIndex((*a), prevIndex, (*a), i, sortOrder)==0) {
 				/* Free memory */
 				assert((*a)[i].read!=NULL);
 				free((*a)[i].read);
@@ -117,7 +118,8 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 /* TODO */
 void AlignEntryQuickSort(AlignEntry **a,
 		int low,
-		int high)
+		int high,
+		int sortOrder)
 {
 	int i;
 	int pivot=-1;
@@ -133,7 +135,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 					Exit,
 					MallocMemory);
 		}
-		
+
 		pivot = (low+high)/2;
 
 		AlignEntryCopyAtIndex((*a), pivot, temp, 0);
@@ -143,7 +145,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 		pivot = low;
 
 		for(i=low;i<high;i++) {
-			if(AlignEntryCompareAtIndex((*a), i, (*a), high) <= 0) {
+			if(AlignEntryCompareAtIndex((*a), i, (*a), high, sortOrder) <= 0) {
 				AlignEntryCopyAtIndex((*a), i, temp, 0);
 				AlignEntryCopyAtIndex((*a), pivot, (*a), i);
 				AlignEntryCopyAtIndex(temp, 0, (*a), pivot);
@@ -159,11 +161,12 @@ void AlignEntryQuickSort(AlignEntry **a,
 		 * */
 		free(temp);
 
-		AlignEntryQuickSort(a, low, pivot-1);
-		AlignEntryQuickSort(a, pivot+1, high);
+		AlignEntryQuickSort(a, low, pivot-1, sortOrder);
+		AlignEntryQuickSort(a, pivot+1, high, sortOrder);
 	}
 }
 
+/* TODO */
 void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int destIndex)
 {
 	strcpy(dest[destIndex].readName, src[srcIndex].readName);
@@ -177,38 +180,246 @@ void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int 
 
 }
 
-int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int indexB)
+/* TODO */
+int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int indexB, int sortOrder)
 {
 	int cmp[8];
 	int result;
 	int i;
 
-	cmp[0] = strcmp(a[indexA].readName, b[indexB].readName);
-	cmp[1] = strcmp(a[indexA].read, b[indexB].read);
-	cmp[2] = strcmp(a[indexA].reference, b[indexB].reference);
-	cmp[3] = (a[indexA].length <= b[indexB].length)?((a[indexA].length<b[indexB].length)?-1:0):1;
-	cmp[4] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
-	cmp[5] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-	cmp[6] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
-	/* Do not compare score */
-	/*
-	cmp[7] = (a[indexA].score <= b[indexB].score)?((a[indexA].score<b[indexB].score)?-1:0):1;
-	*/
+	if(sortOrder == AlignEntrySortByAll) {
 
-	/* ingenious */
-	result = 0;
-	for(i=0;i<7;i++) {
-		result += pow(10, 8-i-1)*cmp[i];
-	}
+		cmp[0] = strcmp(a[indexA].readName, b[indexB].readName);
+		cmp[1] = strcmp(a[indexA].read, b[indexB].read);
+		cmp[2] = strcmp(a[indexA].reference, b[indexB].reference);
+		cmp[3] = (a[indexA].length <= b[indexB].length)?((a[indexA].length<b[indexB].length)?-1:0):1;
+		cmp[4] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		cmp[5] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+		cmp[6] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
+		/* Do not compare score */
+		/*
+		   cmp[7] = (a[indexA].score <= b[indexB].score)?((a[indexA].score<b[indexB].score)?-1:0):1;
+		   */
 
-	if(result < 0) {
-		return -1;
-	}
-	else if(result == 0) {
-		return 0;
+		/* ingenious */
+		result = 0;
+		for(i=0;i<7;i++) {
+			result += pow(10, 8-i-1)*cmp[i];
+		}
+
+		if(result < 0) {
+			return -1;
+		}
+		else if(result == 0) {
+			return 0;
+		}
+		else {
+			return 1;
+		}
 	}
 	else {
-		return 1;
+		assert(sortOrder == AlignEntrySortByChrPos);
+		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+
+		if(cmp[0] < 0 || 
+				(cmp[0] == 0 && cmp[1] < 0)) {
+			return -1;
+		}
+		else if(cmp[0] == 0 && cmp[1] == 1) {
+			return 0;
+		}
+		else {
+			return 1;
+		}
 	}
 }
 
+/* TODO */
+int AlignEntryGetOneRead(AlignEntry **entries, FILE *fp)
+{
+	char *FnName="AlignEntryGetOne";
+	int cont = 1;
+	int numEntries = 0;
+	fpos_t position;
+	AlignEntry temp;
+
+	/* Initialize temp */
+	temp.read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==temp.read) {
+		PrintError(FnName,
+				"temp.read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	temp.reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==temp.reference) {
+		PrintError(FnName,
+				"temp.reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Try to read in the first entry */
+	if(EOF != AlignEntryRead(&temp, fp)) {
+
+		/* Initialize the first entry */
+		numEntries++;
+		(*entries) = malloc(sizeof(AlignEntry)*numEntries);
+		if(NULL == (*entries)) {
+			PrintError(FnName,
+					"(*entries)",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		(*entries)[numEntries-1].read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL==(*entries)[numEntries-1].read) {
+			PrintError(FnName,
+					"(*entries)[numEntries-1].read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		(*entries)[numEntries-1].reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL==(*entries)[numEntries-1].reference) {
+			PrintError(FnName,
+					"(*entries)[numEntries-1].reference",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Copy over from temp */
+		AlignEntryCopy(&temp, &(*entries)[numEntries-1]);
+
+		/* Save current position */
+		fgetpos(fp, &position);
+
+		while(cont == 1 && EOF != AlignEntryRead(&temp, fp)) {
+			/* Check that the read name matches the previous */
+			if(strcmp(temp.readName, (*entries)[numEntries-1].readName)==0) {
+				/* Save current position */
+				fgetpos(fp, &position);
+				/* Copy over */
+				numEntries++;
+				(*entries) = realloc((*entries), sizeof(AlignEntry)*numEntries);
+				if(NULL == (*entries)) {
+					PrintError(FnName,
+							"(*entries)",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
+				(*entries)[numEntries-1].read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+				if(NULL==(*entries)[numEntries-1].read) {
+					PrintError(FnName,
+							"(*entries)[numEntries-1].read",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				(*entries)[numEntries-1].reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+				if(NULL==(*entries)[numEntries-1].reference) {
+					PrintError(FnName,
+							"(*entries)[numEntries-1].reference",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				/* Copy over from temp */
+				AlignEntryCopy(&temp, &(*entries)[numEntries-1]);
+			}
+			else {
+				/* Exit the loop */
+				cont = 0;
+				/* Reset position in the file */
+				fsetpos(fp, &position);
+			}
+		}
+	}
+
+	/* Free memory */
+	free(temp.read);
+	free(temp.reference);
+
+	return numEntries;
+}
+
+/* TODO */
+int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
+{
+	char *FnName="AlignEntryAll";
+	int numEntries = 0;
+	AlignEntry temp;
+
+	/* Initialize temp */
+	temp.read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==temp.read) {
+		PrintError(FnName,
+				"temp.read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	temp.reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==temp.reference) {
+		PrintError(FnName,
+				"temp.reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Try to read in the first entry */
+	while(EOF != AlignEntryRead(&temp, fp)) {
+
+		/* Initialize the first entry */
+		numEntries++;
+		(*entries) = malloc(sizeof(AlignEntry)*numEntries);
+		if(NULL == (*entries)) {
+			PrintError(FnName,
+					"(*entries)",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		(*entries)[numEntries-1].read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL==(*entries)[numEntries-1].read) {
+			PrintError(FnName,
+					"(*entries)[numEntries-1].read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		(*entries)[numEntries-1].reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL==(*entries)[numEntries-1].reference) {
+			PrintError(FnName,
+					"(*entries)[numEntries-1].reference",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Copy over from temp */
+		AlignEntryCopy(&temp, &(*entries)[numEntries-1]);
+	}
+
+	/* Free memory */
+	free(temp.read);
+	free(temp.reference);
+
+	return numEntries;
+}
+
+void AlignEntryCopy(AlignEntry *src, AlignEntry *dst)
+{
+	strcpy(dst->readName, src->readName);
+	strcpy(dst->read, src->read);
+	strcpy(dst->reference, src->reference);
+	dst->length = src->length;
+	dst->chromosome = src->chromosome;
+	dst->position = src->position;
+	dst->strand = src->strand;
+	dst->score = src->score;
+}

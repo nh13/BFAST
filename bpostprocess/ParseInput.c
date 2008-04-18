@@ -39,6 +39,7 @@
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
+#include "FilterAlignments.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =
@@ -55,7 +56,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescInputFileName, DescInputFormat,
 	DescAlgoTitle, DescUniqueMatches, DescBestScore, DescMinScore, DescStartChr, DescStartPos, DescEndChr, DescEndPos,
-	DescOutputTitle, DescOutputFileName, DescOutputFormat, DescTiming,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -76,7 +77,8 @@ static struct argp_option options[] = {
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
-	{"outputFileName", 'o', "outputFileName", 0, "Specifies the name to identify the output files", 3},
+	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 3},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
@@ -150,6 +152,18 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
+						FilterAlignments(arguments.inputFileName,
+								arguments.inputFormat,
+								arguments.uniqueMatches,
+								arguments.bestScore,
+								arguments.minScore,
+								arguments.startChr,
+								arguments.startPos,
+								arguments.endChr,
+								arguments.endPos,
+								arguments.outputID,
+								arguments.outputDir,
+								arguments.outputFormat);
 
 						if(arguments.timing == 1) {
 							/* Get the time information */
@@ -231,27 +245,34 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "uniqueMatches and bestScore", "Command line argument: must use one of the two command line arguments", Exit, OutOfRange);
 	}
 
-	if(args->startChr < 0) {
+	if(args->startChr <= 0) {
 		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->startPos < 0) {
+	if(args->startPos <= 0) {
 		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endChr < 0) {
+	if(args->endChr <= 0) {
 		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endPos < 0) {
+	if(args->endPos <= 0) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->outputFileName!=0) {
-		fprintf(stderr, "Validating outputFileName %s. \n",
-				args->outputFileName);
-		if(ValidateFileName(args->outputFileName)==0)
-			PrintError(FnName, "outputFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->outputID!=0) {
+		fprintf(stderr, "Validating outputID %s. \n",
+				args->outputID);
+		if(ValidateFileName(args->outputID)==0)
+			PrintError(FnName, "outputID", "Command line argument", Exit, IllegalFileName);
+	}
+
+	if(args->outputDir!=0) {
+		fprintf(stderr, "Validating outputDir path %s. \n",
+				args->outputDir);
+		if(ValidateFileName(args->outputDir)==0)
+			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->outputFormat < 0) {
@@ -315,10 +336,15 @@ AssignDefaultValues(struct arguments *args)
 	args->endChr=0;
 	args->endPos=0;
 
-	args->outputFileName = 
+	args->outputID = 
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->outputFileName!=0);
-	strcpy(args->outputFileName, DEFAULT_FILENAME);
+	assert(args->outputID!=0);
+	strcpy(args->outputID, DEFAULT_FILENAME);
+
+	args->outputDir =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->outputDir!=0);
+	strcpy(args->outputDir, DEFAULT_FILENAME);
 
 	args->outputFormat=0;
 
@@ -344,7 +370,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "outputFileName:\t\t\t\t%s\n", args->outputFileName);
+	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
+	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t\t\t%d\n", args->outputFormat);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
@@ -409,6 +436,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case 'b':
 						arguments->bestScore = 1;break;
+					case 'd':
+						if(arguments->outputDir) free(arguments->outputDir);
+						arguments->outputDir = OPTARG;break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
 					case 'h':
@@ -419,8 +449,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'm':
 						arguments->minScore = atoi(OPTARG);break;
 					case 'o':
-						if(arguments->outputFileName) free(arguments->outputFileName);
-						arguments->outputFileName = OPTARG;break;
+						if(arguments->outputID) free(arguments->outputID);
+						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 's':

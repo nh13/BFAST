@@ -40,7 +40,6 @@
 
 #include "Definitions.h"
 #include "../blib/BError.h"
-#include "../blib/RGBinary.h"
 #include "FindMatches.h"
 #include "ParseInput.h"
 
@@ -128,7 +127,6 @@ main (int argc, char **argv)
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 
 	struct arguments arguments;
-	RGBinary rg;
 	time_t startTime = time(NULL);
 	time_t endTime;
 	if(argc>1) {
@@ -165,14 +163,6 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
 
-						/* Read in the reference genome */
-						RGBinaryRead(arguments.rgListFileName,
-								&rg,
-								0,
-								0,
-								0,
-								0);
-
 						/* Create output file name */
 						sprintf(outputFileName, "%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 								arguments.outputDir,
@@ -190,7 +180,7 @@ main (int argc, char **argv)
 						/* Run Matches */
 						FindMatches(outputFileName,
 								arguments.binaryOutput,
-								&rg,
+								arguments.rgListFileName,
 								arguments.blatterMainIndexesFileName,
 								arguments.blatterIndexesFileName,
 								arguments.readsFileName,
@@ -206,9 +196,6 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.numThreads,
 								arguments.timing);
-
-						/* Free the Reference Genome */
-						RGBinaryDelete(&rg);
 
 						endTime = time(NULL);
 						int seconds = endTime - startTime;

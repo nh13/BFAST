@@ -66,13 +66,13 @@ int AlignmentGetScore(char *read,
 	}
 	for(i=0;i<numRows;i++) {
 		Entries[i] = (MatrixEntry*)malloc(sizeof(MatrixEntry)*numCols);
-	if(NULL == Entries[i]) {
-		PrintError("AlignmentGetScore",
-				"Entries[i]",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
+		if(NULL == Entries[i]) {
+			PrintError("AlignmentGetScore",
+					"Entries[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 	}
 
 	/* Initialize:
@@ -146,19 +146,19 @@ int AlignmentGetScore(char *read,
 
 	if(VERBOSE >= DEBUG) {
 		/*
-		for(i=0;i<numRows;i++) { 
-			for(j=0;j<numCols;j++) { 
-				fprintf(stderr, "(row,col)=[%d,%d]\t(v,d,h)=[%.2lf,%.2lf,%.2lf]\t(prevRow,prevCol)=[%d,%d]\n",
-						i,
-						j,
-						Entries[i][j].vScore,
-						Entries[i][j].dScore,
-						Entries[i][j].hScore,
-						Entries[i][j].prevRow,
-						Entries[i][j].prevCol);
-			}
-		}
-		*/
+		   for(i=0;i<numRows;i++) { 
+		   for(j=0;j<numCols;j++) { 
+		   fprintf(stderr, "(row,col)=[%d,%d]\t(v,d,h)=[%.2lf,%.2lf,%.2lf]\t(prevRow,prevCol)=[%d,%d]\n",
+		   i,
+		   j,
+		   Entries[i][j].vScore,
+		   Entries[i][j].dScore,
+		   Entries[i][j].hScore,
+		   Entries[i][j].prevRow,
+		   Entries[i][j].prevCol);
+		   }
+		   }
+		   */
 	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then
@@ -212,6 +212,7 @@ int AlignmentGetScore(char *read,
 					reference[curCol]);
 		}
 		assert(curRow < readLength || curCol < referenceLength);
+
 		if(curRow >= readLength) {
 			assert(curRow != -1 && curCol != -1);
 			aEntry->read[aEntry->length] = '-';
@@ -245,7 +246,7 @@ int AlignmentGetScore(char *read,
 			}
 			else if(curRow == prevRow-1 && curCol == prevCol) {
 				/* Horizontal - gap in read */
-				aEntry->read[aEntry->length] = read[curCol];
+				aEntry->read[aEntry->length] = read[curRow];
 				aEntry->reference[aEntry->length] = '-';
 			}
 			else if(curRow == prevRow-1 && curCol == prevCol-1) {
@@ -261,7 +262,7 @@ int AlignmentGetScore(char *read,
 						OutOfRange);
 			}
 
-		/* Update the offset */
+			/* Update the offset */
 			offset=curCol;
 			/* Update the length */
 			aEntry->length++;

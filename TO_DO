@@ -11,6 +11,7 @@ General
 bpreprocess
 ===============================================================================
 1. Creates binary (2-bit) files for the reference genome (include a header...)
+2. Allocate in chunks.
 
 ===============================================================================
 bmatches

@@ -553,7 +553,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				}
 			}
 			/* Remove duplicate alignments */
-			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries);
+			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
 			if(VERBOSE >= DEBUG) {
 				fprintf(stderr, "Outputting %d aligns.\n",
 						numAlignEntries);
