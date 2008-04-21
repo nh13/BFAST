@@ -485,20 +485,12 @@ void *RunDynamicProgrammingThread(void *arg)
 				numMatchesAligned++;
 			}
 			for(i=0;i<readMatch.numEntries;i++) { /* For each match */
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "On entry %d out of %d.  chr%d:%d %c\n",
-							i+1,
-							readMatch.numEntries,
-							readMatch.chromosomes[i],
-							readMatch.positions[i],
-							readMatch.strand[i]);
-				}
 
 				/* Get the appropriate reference read */
 				RGBinaryGetSequence(rgBinary,
 						readMatch.chromosomes[i], 
 						readMatch.positions[i],
-						readMatch.strand[i],
+						FORWARD, /* We have been just reversing the read instead of the reference */
 						offsetLength,
 						reference,
 						matchLength,
@@ -532,11 +524,9 @@ void *RunDynamicProgrammingThread(void *arg)
 
 				/* Update chromosome, position, strand and sequence name*/
 				aEntry[i].chromosome = readMatch.chromosomes[i];
-				aEntry[i].position = position; /* remember to use the update position */
-				aEntry[i].position = (readMatch.strand[i] == FORWARD)?(aEntry[i].position+adjustPosition):(aEntry[i].position-adjustPosition); /* Adjust position */
+				aEntry[i].position = position+adjustPosition; /* Adjust position */
 				aEntry[i].strand = readMatch.strand[i]; 
 				strcpy(aEntry[i].readName, readName);
-
 
 				/* Free memory */
 				/* Free AlignEntry */

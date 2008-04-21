@@ -3,17 +3,32 @@
 
 #include <stdio.h>
 #include "../blib/AlignEntry.h"
+#include "Definitions.h"
 
-void ConvertAndPrint(void *,
+void PrintAlignEntriesToTempFiles(FILE*,
 		int,
 		int,
+		int,
+		int,
+		int,
+		int,
+		int,
+		ChrFiles*);
+
+void PrintAlignEntries(ChrFiles*,
 		int,
 		char*,
 		char*,
 		int);
 
-void ConvertAndPrintAlignEntryToWig(AlignEntry*,
+void PrintSortedAlignEntriesToWig(AlignEntry*,
+		int,
 		int,
 		FILE*);
 
+void PrintSortedAlignEntriesToBed(AlignEntry*,
+		int,
+		int,
+		FILE**,
+		int);
 #endif

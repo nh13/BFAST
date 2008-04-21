@@ -58,41 +58,51 @@ void GetReverseComplimentAnyCase(char *s,
 	int i;
 	/* Get reverse compliment sequence */
 	for(i=length-1;i>=0;i--) {
-		switch(s[length-1-i]) {
-			case 'a':
-				r[i] = 't';
-				break;
-			case 'c':
-				r[i] = 'g';
-				break;
-			case 'g':
-				r[i] = 'c';
-				break;
-			case 't':
-				r[i] = 'a';
-				break;
-			case 'A':
-				r[i] = 'T';
-				break;
-			case 'C':
-				r[i] = 'G';
-				break;
-			case 'G':
-				r[i] = 'C';
-				break;
-			case 'T':
-				r[i] = 'A';
-				break;
-			default:
-				PrintError("GetReverseComplimentAnyCase",
-						NULL,
-						"Could not understand sequence base",
-						Exit,
-						OutOfRange);
-				break;
-		}
+		r[i] = GetReverseComplimentAnyCaseBase(s[length-1-i]);
 	}
 	r[length]='\0';
+}
+
+char GetReverseComplimentAnyCaseBase(char a) {
+	switch(a) {
+		case 'a':
+			return 't';
+			break;
+		case 'c':
+			return 'g';
+			break;
+		case 'g':
+			return 'c';
+			break;
+		case 't':
+			return 'a';
+			break;
+		case 'A':
+			return 'T';
+			break;
+		case 'C':
+			return 'G';
+			break;
+		case 'G':
+			return 'C';
+			break;
+		case 'T':
+			return 'A';
+			break;
+		default:
+			PrintError("GetReverseComplimentAnyCaseBase",
+					NULL,
+					"Could not understand sequence base",
+					Exit,
+					OutOfRange);
+			break;
+	}
+	PrintError("GetReverseComplimentAnyCaseBase",
+			NULL,
+			"Control should not reach here",
+			Exit,
+			OutOfRange);
+	return '0';
 }
 
 /* TODO */

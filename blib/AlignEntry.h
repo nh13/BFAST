@@ -13,6 +13,7 @@ typedef struct {
 	char *read; /* The read */
 	char *reference;
 	unsigned int length; /* The length of the alignment */
+	unsigned int referenceLength; /* The number of bases excluding gaps in the reference string */
 	unsigned int chromosome;
 	unsigned int position;
 	char strand;
@@ -22,7 +23,7 @@ typedef struct {
 void AlignEntryPrint(AlignEntry*, FILE*);
 int AlignEntryRead(AlignEntry*, FILE*);
 int AlignEntryRemoveDuplicates(AlignEntry**, int, int);
-void AlignEntryQuickSort(AlignEntry**, int, int, int);
+void AlignEntryQuickSort(AlignEntry**, int, int, int, int, double*, int);
 void AlignEntryCopyAtIndex(AlignEntry*, int, AlignEntry*, int);
 int AlignEntryCompareAtIndex(AlignEntry*, int, AlignEntry*, int, int);
 int AlignEntryGetOneRead(AlignEntry**, FILE*);

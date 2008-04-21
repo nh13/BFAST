@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "ReadInputFiles.h"
+#include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
 #include "Align.h"
@@ -198,6 +199,7 @@ int AlignmentGetScore(char *read,
 	}
 
 	aEntry->length = 0; /* initialize length */
+	aEntry->referenceLength = 0; /* initialize reference length */
 	prevRow=endRow;
 	prevCol=endCol;
 	while(prevRow != -1 && prevCol != -1) {
@@ -215,21 +217,23 @@ int AlignmentGetScore(char *read,
 
 		if(curRow >= readLength) {
 			assert(curRow != -1 && curCol != -1);
-			aEntry->read[aEntry->length] = '-';
+			aEntry->read[aEntry->length] = GAP;
 			aEntry->reference[aEntry->length] = reference[curCol];
 			/* Update the offset */
 			offset=curCol;
 			/* Update the length */
 			aEntry->length++;
+			aEntry->referenceLength++;
 		}
 		else if(curCol >= referenceLength) {
 			assert(curRow != -1 && curCol != -1);
 			aEntry->read[aEntry->length] = read[curRow];
-			aEntry->reference[aEntry->length] = '-';
+			aEntry->reference[aEntry->length] = GAP;
 			/* Update the offset */
 			offset=curCol;
 			/* Update the length */
 			aEntry->length++;
+			/* Do not update reference length since there was a gap */
 		}
 		else if(curRow != -1 && curCol != -1 && curRow < readLength && curCol < referenceLength) {
 
@@ -241,18 +245,21 @@ int AlignmentGetScore(char *read,
 
 			if(curRow == prevRow && curCol == prevCol-1) {
 				/* Vertical - gap in reference */
-				aEntry->read[aEntry->length] = '-';
+				aEntry->read[aEntry->length] = GAP;
 				aEntry->reference[aEntry->length] = reference[curCol];
+			aEntry->referenceLength++;
 			}
 			else if(curRow == prevRow-1 && curCol == prevCol) {
 				/* Horizontal - gap in read */
 				aEntry->read[aEntry->length] = read[curRow];
-				aEntry->reference[aEntry->length] = '-';
+				aEntry->reference[aEntry->length] = GAP;
+			/* Do not update reference length since there was a gap */
 			}
 			else if(curRow == prevRow-1 && curCol == prevCol-1) {
 				/* Diagonal */
 				aEntry->read[aEntry->length] = read[curRow]; 
 				aEntry->reference[aEntry->length] = reference[curCol];
+				aEntry->referenceLength++;
 			}
 			else {
 				PrintError("AlignmentGetScore",

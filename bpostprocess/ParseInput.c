@@ -67,7 +67,7 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file", 1},
-	{"inputFormat", 'I', "inputFormat", 0, "Specifies the input format", 1},
+	{"inputFormat", 'I', "inputFormat", 0, "Specifies the input format 0: baf", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"uniqueMatches", 'u', 0, OPTION_NO_USAGE, "Specifies to only consider unique matches", 2},
 	{"bestScore", 'b', 0, OPTION_NO_USAGE, "Specifies to choose the best score from the possible matches", 2},
@@ -79,7 +79,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format", 3},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 1: wig 2: bed", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},

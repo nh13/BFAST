@@ -11,9 +11,10 @@ void AlignEntryPrint(AlignEntry *aEntry,
 		FILE *outputFP)
 {
 	/* Print the read name, alignment length, chromosome, position, strand, score */
-	fprintf(outputFP, "%s\t%d\t%d\t%d\t%c\t%lf\n",
+	fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\t%c\t%lf\n",
 			aEntry->readName,
 			aEntry->length,
+			aEntry->referenceLength,
 			aEntry->chromosome,
 			aEntry->position,
 			aEntry->strand,
@@ -30,9 +31,10 @@ int AlignEntryRead(AlignEntry *aEntry,
 		FILE *inputFP)
 {
 	/* Read the read name, alignment length, chromosome, position, strand, score */
-	if(fscanf(inputFP, "%s %d %d %d %c %lf\n",
+	if(fscanf(inputFP, "%s %d %d %d %d %c %lf\n",
 				aEntry->readName,
 				&aEntry->length,
+				&aEntry->referenceLength,
 				&aEntry->chromosome,
 				&aEntry->position,
 				&aEntry->strand,
@@ -71,7 +73,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Sorting... %d\n", length);
 		}
-		AlignEntryQuickSort(a, 0, length-1, sortOrder);
+		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Sorted\n");
 		}
@@ -119,7 +121,10 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 void AlignEntryQuickSort(AlignEntry **a,
 		int low,
 		int high,
-		int sortOrder)
+		int sortOrder,
+		int showPercentComplete,
+		double *curPercent,
+		int total)
 {
 	int i;
 	int pivot=-1;
@@ -137,6 +142,15 @@ void AlignEntryQuickSort(AlignEntry **a,
 		}
 
 		pivot = (low+high)/2;
+		if(showPercentComplete == 1 && VERBOSE >= 0) {
+			assert(NULL!=curPercent);
+			if((*curPercent) < 100.0*((double)low)/total) {
+				while((*curPercent) < 100.0*((double)low)/total) {
+					(*curPercent) += SORT_ROTATE_INC;
+				}
+				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)low)/total);
+			}
+		}
 
 		AlignEntryCopyAtIndex((*a), pivot, temp, 0);
 		AlignEntryCopyAtIndex((*a), high, (*a), pivot);
@@ -146,9 +160,11 @@ void AlignEntryQuickSort(AlignEntry **a,
 
 		for(i=low;i<high;i++) {
 			if(AlignEntryCompareAtIndex((*a), i, (*a), high, sortOrder) <= 0) {
-				AlignEntryCopyAtIndex((*a), i, temp, 0);
-				AlignEntryCopyAtIndex((*a), pivot, (*a), i);
-				AlignEntryCopyAtIndex(temp, 0, (*a), pivot);
+				if(i!=pivot) {
+					AlignEntryCopyAtIndex((*a), i, temp, 0);
+					AlignEntryCopyAtIndex((*a), pivot, (*a), i);
+					AlignEntryCopyAtIndex(temp, 0, (*a), pivot);
+				}
 				pivot++;
 			}
 		}
@@ -161,8 +177,26 @@ void AlignEntryQuickSort(AlignEntry **a,
 		 * */
 		free(temp);
 
-		AlignEntryQuickSort(a, low, pivot-1, sortOrder);
-		AlignEntryQuickSort(a, pivot+1, high, sortOrder);
+		AlignEntryQuickSort(a, low, pivot-1, sortOrder, showPercentComplete, curPercent, total);
+		if(showPercentComplete == 1 && VERBOSE >= 0) {
+			assert(NULL!=curPercent);
+			if((*curPercent) < 100.0*((double)pivot)/total) {
+				while((*curPercent) < 100.0*((double)pivot)/total) {
+					(*curPercent) += SORT_ROTATE_INC;
+				}
+				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)pivot)/total);
+			}
+		}
+		AlignEntryQuickSort(a, pivot+1, high, sortOrder, showPercentComplete, curPercent, total);
+		if(showPercentComplete == 1 && VERBOSE >= 0) {
+			assert(NULL!=curPercent);
+			if((*curPercent) < 100.0*((double)high)/total) {
+				while((*curPercent) < 100.0*((double)high)/total) {
+					(*curPercent) += SORT_ROTATE_INC;
+				}
+				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
+			}
+		}
 	}
 }
 
@@ -173,6 +207,7 @@ void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int 
 	dest[destIndex].read = src[srcIndex].read;
 	dest[destIndex].reference = src[srcIndex].reference;
 	dest[destIndex].length = src[srcIndex].length;
+	dest[destIndex].referenceLength = src[srcIndex].referenceLength;
 	dest[destIndex].chromosome = src[srcIndex].chromosome;
 	dest[destIndex].position = src[srcIndex].position;
 	dest[destIndex].strand = src[srcIndex].strand;
@@ -183,7 +218,7 @@ void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int 
 /* TODO */
 int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int indexB, int sortOrder)
 {
-	int cmp[8];
+	int cmp[6];
 	int result;
 	int i;
 
@@ -192,18 +227,13 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		cmp[0] = strcmp(a[indexA].readName, b[indexB].readName);
 		cmp[1] = strcmp(a[indexA].read, b[indexB].read);
 		cmp[2] = strcmp(a[indexA].reference, b[indexB].reference);
-		cmp[3] = (a[indexA].length <= b[indexB].length)?((a[indexA].length<b[indexB].length)?-1:0):1;
-		cmp[4] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
-		cmp[5] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		cmp[6] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
-		/* Do not compare score */
-		/*
-		   cmp[7] = (a[indexA].score <= b[indexB].score)?((a[indexA].score<b[indexB].score)?-1:0):1;
-		   */
+		cmp[3] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		cmp[4] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+		cmp[5] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
 
 		/* ingenious */
 		result = 0;
-		for(i=0;i<7;i++) {
+		for(i=0;i<6;i++) {
 			result += pow(10, 8-i-1)*cmp[i];
 		}
 
@@ -221,12 +251,16 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		assert(sortOrder == AlignEntrySortByChrPos);
 		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
 		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+		cmp[2] = (a[indexA].referenceLength <= b[indexB].referenceLength)?((a[indexA].referenceLength<b[indexB].referenceLength)?-1:0):1;
+		result = 0;
+		for(i=0;i<3;i++) {
+			result += pow(10, 8-i-1)*cmp[i];
+		}
 
-		if(cmp[0] < 0 || 
-				(cmp[0] == 0 && cmp[1] < 0)) {
+		if(result < 0) {
 			return -1;
 		}
-		else if(cmp[0] == 0 && cmp[1] == 1) {
+		else if(result == 0) {
 			return 0;
 		}
 		else {
@@ -341,7 +375,9 @@ int AlignEntryGetOneRead(AlignEntry **entries, FILE *fp)
 	}
 
 	/* Free memory */
+	assert(temp.read!=NULL);
 	free(temp.read);
+	assert(temp.reference!=NULL);
 	free(temp.reference);
 
 	return numEntries;
@@ -350,7 +386,7 @@ int AlignEntryGetOneRead(AlignEntry **entries, FILE *fp)
 /* TODO */
 int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
 {
-	char *FnName="AlignEntryAll";
+	char *FnName="AlignEntryGetAll";
 	int numEntries = 0;
 	AlignEntry temp;
 
@@ -373,17 +409,18 @@ int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
 	}
 
 	/* Try to read in the first entry */
+	numEntries=0;
 	while(EOF != AlignEntryRead(&temp, fp)) {
 
 		/* Initialize the first entry */
 		numEntries++;
-		(*entries) = malloc(sizeof(AlignEntry)*numEntries);
+		(*entries) = realloc((*entries), sizeof(AlignEntry)*numEntries);
 		if(NULL == (*entries)) {
 			PrintError(FnName,
 					"(*entries)",
-					"Could not allocate memory",
+					"Could not reallocate memory",
 					Exit,
-					MallocMemory);
+					ReallocMemory);
 		}
 		(*entries)[numEntries-1].read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL==(*entries)[numEntries-1].read) {
@@ -406,7 +443,9 @@ int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
 	}
 
 	/* Free memory */
+	assert(NULL!=temp.read);
 	free(temp.read);
+	assert(NULL!=temp.reference);
 	free(temp.reference);
 
 	return numEntries;
@@ -418,6 +457,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dst)
 	strcpy(dst->read, src->read);
 	strcpy(dst->reference, src->reference);
 	dst->length = src->length;
+	dst->referenceLength = src->referenceLength;
 	dst->chromosome = src->chromosome;
 	dst->position = src->position;
 	dst->strand = src->strand;

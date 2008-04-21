@@ -274,7 +274,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 						Exit,
 						ThreadError);
 			}
-			if(VERBOSE >= 0) {
+			if(i==maxIndex && VERBOSE >= 0) {
 				fprintf(stderr, "\rWaiting for other threads to complete...");
 			}
 		}

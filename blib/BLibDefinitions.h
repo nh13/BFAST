@@ -26,6 +26,8 @@
 #define FORWARD '+'
 #define REVERSE '-'
 
+#define GAP '-'
+
 /* For RGIndex.c */
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 
