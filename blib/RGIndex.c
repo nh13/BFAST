@@ -234,6 +234,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 			data[i].threadID = i;
 			data[i].low = pivots[2*i];
 			data[i].high = pivots[2*i+1];
+			data[i].showPercentComplete = 0;
 			assert(data[i].low >= 0 && data[i].high < index->length);
 			if(data[i].high - data[i].low >= max) {
 				maxIndex = i;
