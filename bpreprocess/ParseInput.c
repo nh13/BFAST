@@ -285,9 +285,6 @@ int ValidateInputs(struct arguments *args) {
 	if(args->numThreads<=0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	}
-	if(args->numThreads>1) {
-		PrintError(FnName, "numThreads", "Will run with only one thread", Warn, OutOfRange);
-	}
 
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
