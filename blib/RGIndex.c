@@ -40,16 +40,6 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 	/* For each chromosome */
 	for(curChr=rg->startChr, chrIndex=0;curChr <= rg->endChr;curChr++, chrIndex++) { 
 
-		/* Allocate a new chromosome */
-		rg->chromosomes = realloc(rg->chromosomes, sizeof(unsigned char)*(chrIndex+1));
-		if(NULL == rg->chromosomes) {
-			PrintError("RGIndexCreate",
-					"rg->chromosomes",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-
 		/* For each position */
 		for(curPos=rg->chromosomes[chrIndex].startPos;curPos<=rg->chromosomes[chrIndex].endPos;curPos++) {
 			if(VERBOSE >= 0) {
@@ -283,6 +273,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		/* Free memory */
 		free(threads);
 		free(data);
+		free(pivots);
 	}
 	else {
 		if(VERBOSE >= 0) {
@@ -987,7 +978,7 @@ int RGIndexCompareAt(RGIndex *index,
 			aBase = ToLower(RGBinaryGetBase(rg,
 						aChr,
 						aCurTilePos));
-			bBase =ToLower( RGBinaryGetBase(rg,
+			bBase = ToLower( RGBinaryGetBase(rg,
 						bChr,
 						bCurTilePos));
 

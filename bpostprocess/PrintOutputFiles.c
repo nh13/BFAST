@@ -44,6 +44,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 		}
 
 		/* Apply filtering */
+			fprintf(stderr, "HERE 1\t%d\n", curRead);
 		numEntries = FilterEntries(&entries,
 				numEntries,
 				uniqueMatches,
@@ -53,6 +54,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 				startPos,
 				endChr,
 				endPos);
+			fprintf(stderr, "HERE 2\t%d\n", curRead);
 
 		/* Output if there is only one entry left after filtering */
 		if(numEntries==1) {

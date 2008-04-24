@@ -16,6 +16,7 @@ void RGBinaryRead(char *rgFileName,
 		int endChr,
 		int endPos)
 {
+	int i;
 	FILE *fpRG=NULL;
 	char c;
 	char original;
@@ -238,7 +239,7 @@ void RGBinaryRead(char *rgFileName,
 					sequenceIndex = (numPosRead - byteIndex)/2;
 					if(byteIndex==0) {
 						/* Allocate once we have filled up the byte */
-						rg->chromosomes[numChrs-1].sequence = (unsigned char*)realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(sequenceIndex+1));
+						rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(sequenceIndex+1));
 						if(NULL == rg->chromosomes[numChrs-1].sequence) {
 							PrintError("RGBinaryRead",
 									"rg->chromosomes[numChrs-1].sequence",
@@ -311,6 +312,14 @@ void RGBinaryRead(char *rgFileName,
 				rg->endChr,
 				rg->endPos);
 		fprintf(stderr, "%s", BREAK_LINE);
+	}
+
+	/* Free memory */
+	for(i=0;i<numChrFileNames;i++) {
+		free(chrFileNames[i]);
+	}
+	if(numChrFileNames>0) {
+		free(chrFileNames);
 	}
 }
 
@@ -592,6 +601,7 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 		}
 		GetReverseComplimentAnyCase(reference, reverseCompliment, referenceLength);
 		strcpy(reference, reverseCompliment);
+		/* Free the memory */
 		free(reverseCompliment);
 	}
 	else {
