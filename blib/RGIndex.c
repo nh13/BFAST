@@ -135,7 +135,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status=NULL;
-	unsigned int *pivots;
+	unsigned long long int *pivots;
 	int max, maxIndex;
 	double curPercent=0.0;
 
@@ -165,7 +165,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		assert(IsAPowerOfTwo(numThreads)==1);
 
 		/* Allocate memory for the pivots */
-		pivots = malloc(sizeof(unsigned int)*(2*numThreads));
+		pivots = malloc(sizeof(unsigned long long int)*(2*numThreads));
 		if(NULL == pivots) {
 			PrintError("RGIndexSortNodes",
 					"pivots",
@@ -318,29 +318,32 @@ void *RGIndexQuickSortNodes(void *arg)
 
 void RGIndexQuickSortNodesHelper(RGIndex *index,
 		RGBinary *rg,
-		unsigned int low,
-		unsigned int high,
+		unsigned long long int low,
+		unsigned long long int high,
 		int showPercentComplete,
 		double *curPercent,
-		unsigned int lowTotal,
-		unsigned int highTotal,
+		unsigned long long int lowTotal,
+		unsigned long long int highTotal,
 		int savePivots,
-		unsigned int *pivots,
+		unsigned long long int *pivots,
 		int lowPivot,
 		int highPivot)
 {
 	/* local variables */
 	unsigned int i;
-	unsigned int pivot = 0;
+	unsigned long long int pivot = 0;
 	unsigned int tempPos;
 	unsigned char tempChr;
-	unsigned int total = highTotal-lowTotal;
+	unsigned long long int total = highTotal-lowTotal;
 
 	if(low < high) {
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the middle element for now.
 		 * */
 		pivot = (low + high)/2;
+		assert(pivot >=0 && pivot<index->length);
+		assert(low >=0 && low<index->length);
+		assert(high >=0 && high<index->length);
 		if(showPercentComplete == 1 && VERBOSE >= 0) {
 			assert(NULL!=curPercent);
 			if((*curPercent) < 100.0*((double)(low - lowTotal))/total) {
@@ -369,6 +372,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		pivot = low;
 
 		for(i=low;i<high;i++) {
+			assert(pivot >= 0 && pivot <= high); 
 			if(RGIndexCompareAt(index, rg, i, high) <= 0) {
 				/* Swap node at i with node at the new pivot index */
 				if(i!=pivot) {
