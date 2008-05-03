@@ -15,4 +15,4 @@ bpreprocess_SOURCES = \
 ##  the *_SOURCES above so we need to reference libm.a here
 
 bpreprocess_LDADD = -lm 
-AM_CFLAGS = -Wall -ansi -g -O3 -pthread -arch x86_64
+AM_CFLAGS = -Wall -ansi -g -O3 -pthread -m64

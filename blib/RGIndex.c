@@ -204,11 +204,11 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 			if(i==0) {
 				assert(pivots[i] == 0);
 			}
-			if(i==2*numThreads-1) {
+			if(i+1==2*numThreads-1) {
 				assert(pivots[i+1] == index->length-1);
 			}
-			if(i==2*numThreads-2) {
-				assert(pivots[i+1] == index->length-1);
+			if(i>1 && i%2==0) {
+				assert(pivots[i] == pivots[i-1] + 1);
 			}
 			if(i>1) {
 				assert(pivots[i] > pivots[i-1]);
@@ -279,7 +279,18 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\r0 percent complete");
 		}
-		RGIndexQuickSortNodesHelper(index, rg, 0, index->length-1, 1, &curPercent, 0, index->length-1, 0, NULL, 0, 0);
+		RGIndexQuickSortNodesHelper(index,
+				rg,
+				0,
+				index->length-1,
+				1,
+				&curPercent,
+				0,
+				index->length-1,
+				0,
+				NULL,
+				0,
+				0);
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\r100.00 percent complete\n");
 		}
@@ -330,7 +341,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		int highPivot)
 {
 	/* local variables */
-	unsigned int i;
+	unsigned long long int i;
 	unsigned long long int pivot = 0;
 	unsigned int tempPos;
 	unsigned char tempChr;
@@ -373,6 +384,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 
 		for(i=low;i<high;i++) {
 			assert(pivot >= 0 && pivot <= high); 
+			assert(i>=0 && i <= high);
 			if(RGIndexCompareAt(index, rg, i, high) <= 0) {
 				/* Swap node at i with node at the new pivot index */
 				if(i!=pivot) {
@@ -442,6 +454,7 @@ void RGIndexDelete(RGIndex *index)
 	free(index->chromosomes);
 	index->chromosomes = NULL;
 	index->length = 0;
+	index->totalLength = 0;
 
 	index->numTiles=0;
 	free(index->tileLengths);
@@ -956,8 +969,8 @@ long long int RGIndexGetFirstIndex(RGIndex *index,
 /* TODO */
 int RGIndexCompareAt(RGIndex *index,
 		RGBinary *rg,
-		unsigned int a,
-		unsigned int b)
+		unsigned long long int a,
+		unsigned long long int b)
 {
 	assert(a>=0 && a<index->length);
 	assert(b>=0 && b<index->length);
@@ -1013,7 +1026,7 @@ int RGIndexCompareAt(RGIndex *index,
 int RGIndexCompareRead(RGIndex *index,
 		RGBinary *rg,
 		char *read,
-		unsigned int a)
+		unsigned long long int a)
 {
 	assert(a>=0 && a<index->length);
 

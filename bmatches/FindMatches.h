@@ -5,8 +5,12 @@
  *   _REENTRANT to grab thread-safe libraries
  *   _POSIX_SOURCE to get POSIX semantics
  */
+#ifndef _REENTRANT
 #define _REENTRANT
+#endif
+#ifndef _POSIX_SOURCE
 #define _POSIX_SOURCE
+#endif
 
 #include <stdio.h>
 #include "../blib/BLibDefinitions.h"

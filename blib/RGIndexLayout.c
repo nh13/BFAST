@@ -35,7 +35,7 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 	}
 
 	/* Allocate memory for the number of tiles */
-	rgLayout->numTiles = realloc(rgLayout->numTiles, sizeof(int)*rgLayout->numIndexes);
+	rgLayout->numTiles = malloc(sizeof(int)*rgLayout->numIndexes);
 	if(NULL==rgLayout->numTiles) {
 		PrintError("RGIndexLayoutRead",
 				"rgLayout->numTiles",
@@ -44,7 +44,7 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 				MallocMemory);
 	}
 	/* Allocate memory for tileLengths */
-	rgLayout->tileLengths = realloc(rgLayout->tileLengths, sizeof(int*)*rgLayout->numIndexes);
+	rgLayout->tileLengths = malloc(sizeof(int*)*rgLayout->numIndexes);
 	if(NULL==rgLayout->tileLengths) {
 		PrintError("RGIndexLayoutRead",
 				"rgLayout->tileLengths",
@@ -53,7 +53,7 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 				MallocMemory);
 	}
 	/* Allocate memory for gaps */
-	rgLayout->gaps = realloc(rgLayout->gaps, sizeof(int*)*rgLayout->numIndexes);
+	rgLayout->gaps = malloc(sizeof(int*)*rgLayout->numIndexes);
 	if(NULL==rgLayout->gaps) {
 		PrintError("RGIndexLayoutRead",
 				"rgLayout->gaps",
@@ -120,14 +120,19 @@ void RGIndexLayoutDelete(RGIndexLayout *rgLayout)
 {
 	int i;
 
-	/* Free the tile lengths and gaps */
+	/* Free the tile lengths for each layout*/
 	for(i=0;i<rgLayout->numIndexes;i++) {
 		free(rgLayout->tileLengths[i]);
+		rgLayout->tileLengths[i]=NULL;
+	}
+	/* Free the gaps */
+	for(i=0;i<rgLayout->numIndexes-1;i++) {
 		free(rgLayout->gaps[i]);
+		rgLayout->gaps=NULL;
 	}
 	free(rgLayout->tileLengths);
-	free(rgLayout->gaps);
 	rgLayout->tileLengths = NULL;
+	free(rgLayout->gaps);
 	rgLayout->gaps = NULL;
 	/* Free the numTiles */
 	free(rgLayout->numTiles);

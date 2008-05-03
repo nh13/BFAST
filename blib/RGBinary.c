@@ -74,7 +74,7 @@ void RGBinaryRead(char *rgFileName,
 					Exit,
 					ReallocMemory);
 		}
-		chrFileNames[numChrFileNames-1] = (char*)malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+		chrFileNames[numChrFileNames-1] = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 		if(NULL==chrFileNames[numChrFileNames-1]) {
 			PrintError("RGBinaryRead",
 					"chrFileNames[numChrFileNames-1]",
@@ -172,7 +172,7 @@ void RGBinaryRead(char *rgFileName,
 		numChrs++;
 
 		/* Reallocate memory to store one more chromosome. */
-		rg->chromosomes = (RGBinaryChr*)realloc(rg->chromosomes, numChrs*sizeof(RGBinaryChr));
+		rg->chromosomes = realloc(rg->chromosomes, numChrs*sizeof(RGBinaryChr));
 		if(NULL == rg->chromosomes) {
 			PrintError("RGBinaryRead",
 					"rg->chromosomes",
@@ -315,10 +315,10 @@ void RGBinaryRead(char *rgFileName,
 	}
 
 	/* Free memory */
-	for(i=0;i<numChrFileNames;i++) {
-		free(chrFileNames[i]);
-	}
 	if(numChrFileNames>0) {
+		for(i=0;i<numChrFileNames;i++) {
+			free(chrFileNames[i]);
+		}
 		free(chrFileNames);
 	}
 }

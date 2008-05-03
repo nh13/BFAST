@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
-#include "sys/malloc.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
@@ -34,6 +33,7 @@ void GenerateIndex(RGBinary *rg,
 		/* Initialize the index */
 		index.positions=NULL;
 		index.chromosomes=NULL;
+		index.totalLength=0;
 		index.length=0;
 		index.startChr = rg->startChr;
 		index.startPos = rg->startPos;

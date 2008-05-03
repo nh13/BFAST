@@ -18,7 +18,7 @@ void RGIndexPrintHeader(FILE*, RGIndex*, int);
 void RGIndexReadHeader(FILE*, RGIndex*, int);
 int RGIndexGetMatches(RGIndex*, RGBinary*, char*, char, int, RGMatch*);
 long long int RGIndexGetFirstIndex(RGIndex*, RGBinary*, char*);
-int RGIndexCompareAt(RGIndex*, RGBinary*, unsigned int, unsigned int);
-int RGIndexCompareRead(RGIndex*, RGBinary*, char*, unsigned int);
+int RGIndexCompareAt(RGIndex*, RGBinary*, unsigned long long int, unsigned long long int);
+int RGIndexCompareRead(RGIndex*, RGBinary*, char*, unsigned long long int);
 #endif
 
