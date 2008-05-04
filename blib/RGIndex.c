@@ -372,6 +372,8 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		/* Reallocate memory */
 		lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
 		if(NULL==lowStack) {
+			fprintf(stderr, "length:%Ld\n",
+					stackLength);
 			PrintError("RGIndexQuickSortNodesHelper",
 					"lowStack",
 					"Could not reallocate memory",
@@ -447,10 +449,17 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			}
 
 			/* Add to the stack */
-			stackLength+=2;
+			if(curLow < pivot-1) {
+				stackLength++;
+			}
+			if(pivot+1 < curHigh) {
+				stackLength++;
+			}
 			/* Reallocate memory */
 			lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
 			if(NULL==lowStack) {
+				fprintf(stderr, "length2:%Ld\n",
+					stackLength);
 				PrintError("RGIndexQuickSortNodesHelper",
 						"lowStack",
 						"Could not reallocate memory",
