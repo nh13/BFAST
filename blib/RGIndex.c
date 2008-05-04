@@ -130,14 +130,13 @@ void RGIndexCleanUpIndex(RGIndex *index, RGBinary *rg, int32_t numThreads)
 /* TODO */
 void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 {
-	uint64_t i;
+	int64_t i;
 	ThreadRGIndexSortData *data=NULL;
 	pthread_t *threads=NULL;
 	int32_t errCode;
 	void *status=NULL;
 	int64_t *pivots;
 	int64_t max, maxIndex;
-	double curPercent=0.0;
 
 	/* Only use threads if we want to divide and conquer */
 	if(numThreads > 1) {
@@ -165,7 +164,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 		assert(IsAPowerOfTwo(numThreads)==1);
 
 		/* Allocate memory for the pivots */
-		pivots = malloc(sizeof(uint64_t)*(2*numThreads));
+		pivots = malloc(sizeof(int64_t)*(2*numThreads));
 		if(NULL == pivots) {
 			PrintError("RGIndexSortNodes",
 					"pivots",
@@ -175,15 +174,11 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 		}
 
 		/* Get the pivots and presort */
-		RGIndexQuickSortNodesHelper(index,
+		fprintf(stderr, "\rInitializing...");
+		RGIndexQuickSortNodesGetPivots(index,
 				rg,
 				0,
 				index->length-1,
-				0,
-				NULL,
-				0,
-				index->length-1,
-				1,
 				pivots,
 				1,
 				numThreads);
@@ -193,7 +188,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 		/* Check pivots */
 		for(i=0;i<2*numThreads;i+=2) {
 			/*
-			   fprintf(stderr, "HERE\t%d\t%d\t%d\n",
+			   fprintf(stderr, "HERE\t%Ld\t%Ld\t%Ld\n",
 			   i,
 			   pivots[i],
 			   pivots[i+1]);
@@ -242,7 +237,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 			errCode = pthread_create(&threads[i], /* thread struct */
 					NULL, /* default thread attributes */
 					RGIndexQuickSortNodes, /* start routine */
-					&data[i]); /* data to routine */
+					(void*)(&data[i])); /* data to routine */
 			if(0!=errCode) {
 				PrintError("RGIndexSortNodes",
 						"pthread_create: errCode",
@@ -283,14 +278,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 				rg,
 				0,
 				index->length-1,
-				1,
-				&curPercent,
-				0,
-				index->length-1,
-				0,
-				NULL,
-				0,
-				0);
+				1);
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\r100.00 percent complete\n");
 		}
@@ -308,24 +296,22 @@ void *RGIndexQuickSortNodes(void *arg)
 {
 	/* thread arguments */
 	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
-	double curPercent = 0.0;
 
 	/* Call helper */
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
-		fprintf(stderr, "0 percent complete");
+		fprintf(stderr, "\r0 percent complete");
 	}
+	/*
+	fprintf(stderr, "HERE: threadID:%d\tlow:%Ld\thigh:%Ld\n",
+			data->threadID,
+			data->low,
+			data->high);
+			*/
 	RGIndexQuickSortNodesHelper(data->index,
 			data->rg,
 			data->low,
 			data->high,
-			data->showPercentComplete,
-			&curPercent, 
-			data->low,
-			data->high,
-			0, 
-			NULL, 
-			0, 
-			0);
+			data->showPercentComplete);
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
 	}
@@ -333,15 +319,167 @@ void *RGIndexQuickSortNodes(void *arg)
 	return arg;
 }
 
+/* TODO */
+/* Call stack was getting too big, implement non-recursive sort */
 void RGIndexQuickSortNodesHelper(RGIndex *index,
 		RGBinary *rg,
 		int64_t low,
 		int64_t high,
-		int32_t showPercentComplete,
-		double *curPercent,
-		int64_t lowTotal,
-		int64_t highTotal,
-		int32_t savePivots,
+		int32_t showPercentComplete)
+{
+	/* Stack for log n space and non-recursive implementation */
+	int64_t *lowStack=NULL;
+	int64_t *highStack=NULL;
+	int64_t stackLength=0;
+
+	/* Local Variables */
+	int64_t i;
+	int64_t pivot = 0;
+	uint32_t tempPos;
+	uint8_t tempChr;
+	int64_t total = high-low+1;
+	int64_t curLow, curHigh;
+	double curPercent = 0.0;
+
+	/* Initialize stack */
+	stackLength=1;
+	lowStack = malloc(sizeof(int64_t));
+	if(NULL==lowStack) {
+		PrintError("RGIndexQuickSortNodesHelper",
+				"lowStack",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	highStack = malloc(sizeof(int64_t));
+	if(NULL==highStack) {
+		PrintError("RGIndexQuickSortNodesHelper",
+				"highStack",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	lowStack[0] = low;
+	highStack[0] = high;
+
+	/* Continue while the stack is not empty */
+	while(stackLength > 0) {
+		/* Pop off the stack */
+		curLow = lowStack[stackLength-1];
+		curHigh = highStack[stackLength-1];
+		stackLength--;
+
+		/* Reallocate memory */
+		lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
+		if(NULL==lowStack) {
+			PrintError("RGIndexQuickSortNodesHelper",
+					"lowStack",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		highStack = realloc(highStack, sizeof(int64_t)*stackLength);
+		if(NULL==highStack) {
+			PrintError("RGIndexQuickSortNodesHelper",
+					"highStack",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+
+		/* Proceed if we are with range */
+		if(curLow < curHigh) {
+			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
+			 * but lets just choose the middle element for now.
+			 * */
+			pivot = (curLow + curHigh)/2;
+			assert(pivot >=0 && pivot<index->length);
+			assert(curLow >=0 && curLow<index->length);
+			assert(curHigh >=0 && curHigh<index->length);
+
+
+			if(showPercentComplete == 1 && VERBOSE >= 0) {
+				if(curPercent < 100.0*((double)(curLow - low))/total) {
+					while(curPercent < 100.0*((double)(curLow - low))/total) {
+						curPercent += SORT_ROTATE_INC;
+					}
+					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)(curLow - low))/total);
+				}
+			}
+
+			/* Swap the node at pivot with the node at curHigh */
+			tempPos = index->positions[pivot];
+			tempChr = index->chromosomes[pivot];
+			index->positions[pivot] = index->positions[curHigh];
+			index->chromosomes[pivot] = index->chromosomes[curHigh];
+			index->positions[curHigh] = tempPos;
+			index->chromosomes[curHigh] = tempChr;
+
+			/* Store where the pivot should be */
+			pivot = curLow;
+
+			for(i=curLow;i<curHigh;i++) {
+				assert(pivot >= 0 && pivot <= curHigh); 
+				assert(i>=0 && i <= curHigh);
+				if(RGIndexCompareAt(index, rg, i, curHigh) <= 0) {
+					/* Swap node at i with node at the new pivot index */
+					if(i!=pivot) {
+						tempPos = index->positions[pivot];
+						tempChr = index->chromosomes[pivot];
+						index->positions[pivot] = index->positions[i];
+						index->chromosomes[pivot] = index->chromosomes[i];
+						index->positions[i] = tempPos;
+						index->chromosomes[i] = tempChr;
+					}
+					/* Increment the new pivot index */
+					pivot++;
+				}
+			}
+
+			/* Move pivot element to correct place */
+			if(pivot != curHigh) {
+				tempPos = index->positions[pivot];
+				tempChr = index->chromosomes[pivot];
+				index->positions[pivot] = index->positions[curHigh];
+				index->chromosomes[pivot] = index->chromosomes[curHigh];
+				index->positions[curHigh] = tempPos;
+				index->chromosomes[curHigh] = tempChr;
+			}
+
+			/* Add to the stack */
+			stackLength+=2;
+			/* Reallocate memory */
+			lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
+			if(NULL==lowStack) {
+				PrintError("RGIndexQuickSortNodesHelper",
+						"lowStack",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			highStack = realloc(highStack, sizeof(int64_t)*stackLength);
+			if(NULL==highStack) {
+				PrintError("RGIndexQuickSortNodesHelper",
+						"highStack",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			/* Add sub array below */
+			lowStack[stackLength-1] = curLow;
+			highStack[stackLength-1] = pivot-1;
+			/* Add sub array above */
+			lowStack[stackLength-2] = pivot+1;
+			highStack[stackLength-2] = curHigh;
+		}
+	}
+}
+
+/* TODO */
+void RGIndexQuickSortNodesGetPivots(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t high,
 		int64_t *pivots,
 		int32_t lowPivot,
 		int32_t highPivot)
@@ -351,9 +489,8 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 	int64_t pivot = 0;
 	uint32_t tempPos;
 	uint8_t tempChr;
-	int64_t total = highTotal-lowTotal;
 
-	if(low < high) {
+	if(low < high ) {
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the middle element for now.
 		 * */
@@ -361,15 +498,6 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		assert(pivot >=0 && pivot<index->length);
 		assert(low >=0 && low<index->length);
 		assert(high >=0 && high<index->length);
-		if(showPercentComplete == 1 && VERBOSE >= 0) {
-			assert(NULL!=curPercent);
-			if((*curPercent) < 100.0*((double)(low - lowTotal))/total) {
-				while((*curPercent) < 100.0*((double)(low - lowTotal))/total) {
-					(*curPercent) += SORT_ROTATE_INC;
-				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)(low - lowTotal))/total);
-			}
-		}
 
 		/* Partition the array.
 		 * Basically, arrange everything from low to high so that everything that
@@ -414,7 +542,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		index->positions[high] = tempPos;
 		index->chromosomes[high] = tempChr;
 
-		if(savePivots == 1 && lowPivot >= highPivot) {
+		if(lowPivot >= highPivot) {
 			assert(pivots!=NULL);
 			/* Save pivots if necessary */
 			pivots[2*lowPivot-2] = low;
@@ -422,32 +550,99 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			return;
 		}
 		else {
-
 			/* Call recursively */
-			if(pivot > 0) {
-				RGIndexQuickSortNodesHelper(index, rg, low, pivot-1, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, lowPivot, (lowPivot+highPivot)/2);
+
+			/* Sort below */
+			assert(pivot-1 < high);
+			RGIndexQuickSortNodesGetPivots(index, 
+					rg, 
+					low, 
+					pivot-1,
+					pivots, 
+					lowPivot, 
+					(lowPivot+highPivot)/2);
+			/* Sort above */
+			assert(pivot+1 > low);
+			RGIndexQuickSortNodesGetPivots(index, 
+					rg, 
+					pivot+1, 
+					high, 
+					pivots, 
+					(lowPivot+highPivot)/2 + 1, 
+					highPivot);
+		}
+	}
+}
+
+/* TODO */
+/* Do not use this function.  It is too slow. 
+ * */
+void RGIndexShellSortNodesHelper(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t high,
+		int32_t showPercentComplete,
+		double *curPercent,
+		int64_t lowTotal,
+		int64_t highTotal)
+{
+	/* local variables */
+	int64_t i, j, increment, length;
+	uint32_t tempPos;
+	uint8_t tempChr;
+
+	length = high - low + 1;
+
+	increment = length/2;
+
+	fprintf(stderr, "low:%Ld\thigh:%Ld\tlength:%Ld\n",
+			low,
+			high,
+			length);
+
+	while(increment > 0) {
+		assert(increment < length);
+		/* Perform insertion sort with jump size as increment */
+		if(showPercentComplete==1 && VERBOSE >= 0) {
+			fprintf(stderr, "\rincrement:%Ld\tlength:%Ld\n",
+					increment,
+					length);
+		}
+		for(i=increment+low;i<=high;i+=increment) {
+			if(showPercentComplete==1 && VERBOSE >= 0 && (i-low-increment)%1000==0) {
+				fprintf(stderr, "\r%Ld",
+						i-low-increment);
 			}
-			if(showPercentComplete == 1 && VERBOSE >= 0) {
-				assert(NULL!=curPercent);
-				if((*curPercent) < 100.0*((double)(pivot - lowTotal))/total) {
-					while((*curPercent) < 100.0*((double)(pivot - lowTotal))/total) {
-						(*curPercent) += SORT_ROTATE_INC;
-					}
-					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)(pivot - lowTotal))/total);
-				}
+			j=i;
+			while( (j>=increment+low) && RGIndexCompareAt(index, rg, j-increment, j) > 0) {
+				/*
+				   if(showPercentComplete==1 && VERBOSE >= 0) {
+				   fprintf(stderr, "\rincrement:%Ld\ti:%Ld\tj:%Ld\tlow:%Ld\thigh:%Ld\n",
+				   increment,
+				   i,
+				   j,
+				   low,
+				   high);
+				   }
+				   */
+				/* Swap */
+				tempPos = index->positions[j];
+				tempChr = index->chromosomes[j];
+				index->positions[j] = index->positions[j-increment];
+				index->chromosomes[j] = index->chromosomes[j-increment];
+				index->positions[j-increment] = tempPos;
+				index->chromosomes[j-increment] = tempChr;
+				j = j-increment;
 			}
-			if(pivot < UINT_MAX) {
-				RGIndexQuickSortNodesHelper(index, rg, pivot+1, high, showPercentComplete, curPercent, lowTotal, highTotal, savePivots, pivots, (lowPivot+highPivot)/2 + 1, highPivot);
-			}
-			if(showPercentComplete == 1 && VERBOSE >= 0) {
-				assert(NULL!=curPercent);
-				if((*curPercent) < 100.0*((double)(high - lowTotal))/total) {
-					while((*curPercent) < 100.0*((double)(high - lowTotal))/total) {
-						(*curPercent) += SORT_ROTATE_INC;
-					}
-					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
-				}
-			}
+		}
+
+		/* Update the increment */
+		if(increment == 2) {
+			/* Will perform insertion sort */
+			increment = 1;
+		}
+		else { 
+			increment = (int64_t) (increment/2.2);
 		}
 	}
 }
@@ -558,7 +753,7 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 /* TODO */
 void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
-	uint64_t i;
+	int64_t i;
 	uint32_t tempInt;
 
 	/* Read in the header */

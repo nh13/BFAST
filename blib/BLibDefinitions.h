@@ -100,7 +100,7 @@ typedef struct {
 typedef struct {
 	RGIndex *index;
 	RGBinary *rg;
-	int32_t low;
+	int64_t low;
 	int64_t high;
 	int32_t threadID;
 	int32_t showPercentComplete;
