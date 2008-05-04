@@ -18,7 +18,7 @@ void GenerateIndex(RGBinary *rg,
 		char *outputDir,
 		int binaryOutput)
 {
-	int i, j;
+	int32_t i, j;
 	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
 	FILE *fp=NULL;
 
@@ -42,9 +42,9 @@ void GenerateIndex(RGBinary *rg,
 
 		/* Copy over index information */
 		index.totalLength = 0;
-		index.numTiles = (unsigned int)rgLayout->numTiles[i];
+		index.numTiles = rgLayout->numTiles[i];
 		/* Allocate memory and copy over tile lengths */
-		index.tileLengths = malloc(sizeof(unsigned int)*rgLayout->numTiles[i]);
+		index.tileLengths = malloc(sizeof(int32_t)*rgLayout->numTiles[i]);
 		if(NULL == index.tileLengths) {
 			PrintError("GenerateIndex",
 					"index.tileLengths",
@@ -57,7 +57,7 @@ void GenerateIndex(RGBinary *rg,
 			index.totalLength += rgLayout->tileLengths[i][j];
 		}
 		/* Allocate memory and copy over gaps */
-		index.gaps = malloc(sizeof(unsigned int)*(rgLayout->numTiles[i]-1));
+		index.gaps = malloc(sizeof(int32_t)*(rgLayout->numTiles[i]-1));
 		if(NULL == index.gaps) {
 			PrintError("GenerateIndex",
 					"index.gaps",

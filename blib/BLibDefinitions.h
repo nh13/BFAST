@@ -1,5 +1,6 @@
 #ifndef BLIBDEFINITIONS_H_
 #include <sys/types.h>
+#include <stdint.h>
 #define BLIBDEFINITIONS_H_
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
@@ -37,72 +38,72 @@ enum {KILOBYTES, MEGABYTES, GIGABYTES};
 
 /* TODO */
 typedef struct {
-	int *positions;
-	unsigned char *chromosomes;
-	char *strand;
-	int numEntries;
+	uint32_t *positions;
+	uint8_t *chromosomes;
+	int8_t *strand;
+	int32_t numEntries;
 } RGMatch;
 
 /* TODO */
 typedef struct {
-	int numReads;
+	int32_t numReads;
 	char **reads;
-	char *strand;
-	unsigned int *offset;
+	int8_t *strand;
+	int32_t *offset;
 } RGReads;
 
 typedef struct {
-	unsigned int chromosome;
-	unsigned int startPos;
-	unsigned int endPos;
-	unsigned char *sequence; 
+	int32_t chromosome;
+	int32_t startPos;
+	int32_t endPos;
+	uint8_t *sequence; 
 } RGBinaryChr;
 
 typedef struct {
 	RGBinaryChr *chromosomes;
-	int numChrs;
-	int startChr;
-	int startPos;
-	int endChr;
-	int endPos;
+	int32_t numChrs;
+	int32_t startChr;
+	int32_t startPos;
+	int32_t endChr;
+	int32_t endPos;
 } RGBinary;
 
 /* TODO */
 typedef struct {
 	/* Index storage */
-	unsigned int *positions;
-	unsigned char *chromosomes;
-	unsigned int length;
+	uint32_t *positions;
+	uint8_t *chromosomes;
+	int64_t length;
 
 	/* Index definition */
-	unsigned int totalLength;
-	unsigned int numTiles;
-	unsigned int *tileLengths;
-	unsigned int *gaps; /* There should be numTiles - 1 gaps */
+	int32_t totalLength;
+	int32_t numTiles;
+	int32_t *tileLengths;
+	int32_t *gaps; /* There should be numTiles - 1 gaps */
 
 	/* Index range */
-	unsigned int startChr;
-	unsigned int startPos;
-	unsigned int endChr;
-	unsigned int endPos;
+	int32_t startChr;
+	int32_t startPos;
+	int32_t endChr;
+	int32_t endPos;
 } RGIndex;
 
 /* TODO */
 typedef struct {
-	int numIndexes;
-	int *numTiles;
-	int **tileLengths;
-	int **gaps;
+	int32_t numIndexes;
+	int32_t *numTiles;
+	int32_t **tileLengths;
+	int32_t **gaps;
 } RGIndexLayout;
 
 /* TODO */
 typedef struct {
 	RGIndex *index;
 	RGBinary *rg;
-	unsigned int low;
-	unsigned int high;
-	int threadID;
-	int showPercentComplete;
+	int32_t low;
+	int64_t high;
+	int32_t threadID;
+	int32_t showPercentComplete;
 } ThreadRGIndexSortData;
 
 #endif

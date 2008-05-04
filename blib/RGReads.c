@@ -264,10 +264,10 @@ void RGReadsGenerateMismatches(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numMismatches,
 		RGReads *reads)
 {
@@ -318,10 +318,10 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numMismatchesLeft,
 		int readIndex,
 		RGReads *reads,
@@ -460,10 +460,10 @@ void RGReadsGenerateDeletions(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numDeletions,
 		RGReads *reads)
 {
@@ -512,10 +512,10 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numDeletionsLeft,
 		int numDeletions,
 		int deletionOffset,
@@ -652,10 +652,10 @@ void RGReadsGenerateInsertions(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numInsertions,
 		RGReads *reads)
 {
@@ -716,10 +716,10 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numInsertionsLeft,
 		int numInsertions,
 		int insertionOffset,
@@ -859,10 +859,10 @@ void RGReadsGenerateGapDeletions(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numGapDeletions,
 		RGReads *reads)
 {
@@ -928,10 +928,10 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numGapDeletions,
 		RGReads *reads,
 		char *curRead)
@@ -1022,10 +1022,10 @@ void RGReadsGenerateGapInsertions(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numGapInsertions,
 		RGReads *reads)
 {
@@ -1097,10 +1097,10 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		unsigned int numTiles,
-		unsigned int *tileLengths,
-		unsigned int *gaps,
-		unsigned int totalLength,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
 		int numGapInsertions,
 		RGReads *reads,
 		char *curRead)
@@ -1168,8 +1168,8 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 /* TODO */
 void RGReadsRemoveDuplicates(RGReads *s)
 {
-	unsigned int i;
-	unsigned int prevIndex=0;
+	int32_t i;
+	int32_t prevIndex=0;
 
 	if(s->numReads <= 0) {
 		return;
@@ -1204,8 +1204,8 @@ void RGReadsRemoveDuplicates(RGReads *s)
 /* TO DO */
 void RGReadsQuickSort(RGReads *s, int low, int high)
 {
-	unsigned int i;
-	unsigned int pivot=-1;
+	int32_t i;
+	int32_t pivot=-1;
 	RGReads *temp;
 
 	if(low < high) {
@@ -1302,7 +1302,7 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 				Exit,
 				MallocMemory);
 	}
-	reads->offset = malloc(sizeof(unsigned int)*(reads->numReads));
+	reads->offset = malloc(sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->offset) {
 		PrintError("RGReadsAllocate",
 				"reads->offset",
@@ -1310,7 +1310,7 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 				Exit,
 				MallocMemory);
 	}
-	reads->strand = malloc(sizeof(char)*(reads->numReads));
+	reads->strand = malloc(sizeof(int8_t)*(reads->numReads));
 	if(NULL == reads->strand) {
 		PrintError("RGReadsAllocate",
 				"reads->strand",
@@ -1331,7 +1331,7 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 				Exit,
 				MallocMemory);
 	}
-	reads->offset = realloc(reads->offset, sizeof(unsigned int)*(reads->numReads));
+	reads->offset = realloc(reads->offset, sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->offset) {
 		PrintError("RGReadsReallocate",
 				"reads->offset",
@@ -1339,7 +1339,7 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 				Exit,
 				MallocMemory);
 	}
-	reads->strand = realloc(reads->strand, sizeof(char)*(reads->numReads));
+	reads->strand = realloc(reads->strand, sizeof(int8_t)*(reads->numReads));
 	if(NULL == reads->strand) {
 		PrintError("RGReadsReallocate",
 				"reads->strand",

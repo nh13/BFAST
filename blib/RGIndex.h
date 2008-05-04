@@ -5,20 +5,20 @@
 #include "RGBinary.h"
 #include "BLibDefinitions.h"
 
-void RGIndexCreate(RGIndex*, RGBinary*, int, int);
-void RGIndexCleanUpIndex(RGIndex*, RGBinary*, int);
-void RGIndexSortNodes(RGIndex*, RGBinary*, int);
+void RGIndexCreate(RGIndex*, RGBinary*, int32_t, int32_t);
+void RGIndexCleanUpIndex(RGIndex*, RGBinary*, int32_t);
+void RGIndexSortNodes(RGIndex*, RGBinary*, int32_t);
 void *RGIndexQuickSortNodes(void*);
-void RGIndexQuickSortNodesHelper(RGIndex*, RGBinary*, unsigned long long int, unsigned long long int, int, double*, unsigned long long int, unsigned long long int, int, unsigned long long int*, int, int);
+void RGIndexQuickSortNodesHelper(RGIndex*, RGBinary*, int64_t, int64_t, int32_t, double*, int64_t, int64_t, int32_t, int64_t*, int32_t, int32_t);
 void RGIndexDelete(RGIndex*);
-double RGIndexGetSize(RGIndex*, int);
-void RGIndexPrint(FILE*, RGIndex*, int);
-int RGIndexRead(FILE*, RGIndex*, int);
-void RGIndexPrintHeader(FILE*, RGIndex*, int);
-void RGIndexReadHeader(FILE*, RGIndex*, int);
-int RGIndexGetMatches(RGIndex*, RGBinary*, char*, char, int, RGMatch*);
-long long int RGIndexGetFirstIndex(RGIndex*, RGBinary*, char*);
-int RGIndexCompareAt(RGIndex*, RGBinary*, unsigned long long int, unsigned long long int);
-int RGIndexCompareRead(RGIndex*, RGBinary*, char*, unsigned long long int);
+double RGIndexGetSize(RGIndex*, int32_t);
+void RGIndexPrint(FILE*, RGIndex*, int32_t);
+void RGIndexRead(FILE*, RGIndex*, int32_t);
+void RGIndexPrintHeader(FILE*, RGIndex*, int32_t);
+void RGIndexReadHeader(FILE*, RGIndex*, int32_t);
+void RGIndexGetMatches(RGIndex*, RGBinary*, char*, int8_t, int32_t, RGMatch*);
+int64_t RGIndexGetFirstIndex(RGIndex*, RGBinary*, char*);
+int32_t RGIndexCompareAt(RGIndex*, RGBinary*, int64_t, int64_t);
+int32_t RGIndexCompareRead(RGIndex*, RGBinary*, char*, int64_t);
 #endif
 

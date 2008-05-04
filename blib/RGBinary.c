@@ -11,26 +11,26 @@
 /* TODO */
 void RGBinaryRead(char *rgFileName, 
 		RGBinary *rg,
-		int startChr,
-		int startPos,
-		int endChr,
-		int endPos)
+		int32_t startChr,
+		int32_t startPos,
+		int32_t endChr,
+		int32_t endPos)
 {
-	int i;
+	int32_t i;
 	FILE *fpRG=NULL;
-	char c;
-	char original;
-	int curChr;
-	int curPos;
-	int numChrs=0;
-	int numPosRead=0;
-	int continueReading=1;
-	int byteIndex;
-	int numCharsPerByte;
-	int sequenceIndex;
+	int8_t c;
+	int8_t original;
+	int32_t curChr;
+	int32_t curPos;
+	int32_t numChrs=0;
+	int32_t numPosRead=0;
+	int32_t continueReading=1;
+	int32_t byteIndex;
+	int32_t numCharsPerByte;
+	int32_t sequenceIndex;
 
 	char **chrFileNames=NULL;
-	int numChrFileNames=0;
+	int32_t numChrFileNames=0;
 	char defaultFileName[MAX_FILENAME_LENGTH]="\0";
 	char header[MAX_FILENAME_LENGTH]="\0";
 
@@ -239,7 +239,7 @@ void RGBinaryRead(char *rgFileName,
 					sequenceIndex = (numPosRead - byteIndex)/2;
 					if(byteIndex==0) {
 						/* Allocate once we have filled up the byte */
-						rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(unsigned char)*(sequenceIndex+1));
+						rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(uint8_t)*(sequenceIndex+1));
 						if(NULL == rg->chromosomes[numChrs-1].sequence) {
 							PrintError("RGBinaryRead",
 									"rg->chromosomes[numChrs-1].sequence",
@@ -284,7 +284,7 @@ void RGBinaryRead(char *rgFileName,
 		}
 
 		/* Reallocate to reduce memory (fit exactly) */
-		rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(char)*(numPosRead));
+		rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(int8_t)*(numPosRead));
 		if(NULL == rg->chromosomes[numChrs-1].sequence) {
 			PrintError("RGBinaryRead",
 					"rg->chromosomes[numChrs-1].sequence",
@@ -326,7 +326,7 @@ void RGBinaryRead(char *rgFileName,
 /* TODO */
 void RGBinaryDelete(RGBinary *rg)
 {
-	int i;
+	int32_t i;
 
 	/* Free each chromosome */
 	for(i=0;i<rg->numChrs;i++) {
@@ -345,10 +345,10 @@ void RGBinaryDelete(RGBinary *rg)
 }
 
 /* TODO */
-void RGBinaryInsertBase(unsigned char *dest,
-		int byteIndex,
-		char src,
-		char repeat)
+void RGBinaryInsertBase(uint8_t *dest,
+		int32_t byteIndex,
+		int8_t src,
+		int8_t repeat)
 {
 	/*********************************
 	 * In four bits we hold two no:
@@ -366,7 +366,7 @@ void RGBinaryInsertBase(unsigned char *dest,
 	 * 		3 - t
 	 *********************************
 	 * */
-	int numCharsPerByte;
+	int32_t numCharsPerByte;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
 	numCharsPerByte=ALPHABET_SIZE/2;
@@ -489,21 +489,21 @@ void RGBinaryInsertBase(unsigned char *dest,
 
 /* TODO */
 void RGBinaryGetSequence(RGBinary *rgBinary,
-		int chromosome,
-		int position,
-		char strand,
-		int offsetLength,
+		int32_t chromosome,
+		int32_t position,
+		int8_t strand,
+		int32_t offsetLength,
 		char *reference,
-		int matchLength,
-		int *returnReferenceLength,
-		int *returnPosition)
+		int32_t matchLength,
+		int32_t *returnReferenceLength,
+		int32_t *returnPosition)
 {
-	int chrIndex;
+	int32_t chrIndex;
 	char *reverseCompliment;
-	int numCharsPerByte;
-	int startPos, endPos;
-	int referenceLength = 2*offsetLength + matchLength;
-	int curPos;
+	int32_t numCharsPerByte;
+	int32_t startPos, endPos;
+	int32_t referenceLength = 2*offsetLength + matchLength;
+	int32_t curPos;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
 	numCharsPerByte=ALPHABET_SIZE/2;
@@ -591,7 +591,7 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 	}
 	else if(strand == REVERSE) {
 		/* Get the reverse compliment */
-		reverseCompliment = (char*)malloc(sizeof(char)*(referenceLength+1));
+		reverseCompliment = malloc(sizeof(char)*(referenceLength+1));
 		if(NULL == reverseCompliment) {
 			PrintError("RGBinaryGetSequence",
 					"reverseCompliment",
@@ -624,16 +624,16 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 	assert(referenceLength==strlen(reference));
 }
 
-char RGBinaryGetBase(RGBinary *rg,
-		int chromosome,
-		int position) 
+int8_t RGBinaryGetBase(RGBinary *rg,
+		int32_t chromosome,
+		int32_t position) 
 {
 	assert(chromosome >= rg->startChr && chromosome <= rg->endChr);
 
-	int numCharsPerByte=ALPHABET_SIZE/2;
-	unsigned char curByte, curChar;
-	int repeat;
-	int chrIndex = chromosome - rg->startChr;
+	int32_t numCharsPerByte=ALPHABET_SIZE/2;
+	uint8_t curByte, curChar;
+	int32_t repeat;
+	int32_t chrIndex = chromosome - rg->startChr;
 
 	assert(position >= rg->chromosomes[chrIndex].startPos && position <= rg->chromosomes[chrIndex].endPos);
 
@@ -641,8 +641,8 @@ char RGBinaryGetBase(RGBinary *rg,
 	assert(numCharsPerByte == 2);
 
 	/* The index in the sequence for the given position */
-	int posIndex = position - rg->chromosomes[chrIndex].startPos;
-	int byteIndex = posIndex%numCharsPerByte; /* Which bits in the byte */
+	int32_t posIndex = position - rg->chromosomes[chrIndex].startPos;
+	int32_t byteIndex = posIndex%numCharsPerByte; /* Which bits in the byte */
 	posIndex = (posIndex - byteIndex)/numCharsPerByte; /* Get which byte */
 
 	/* Get the current byte */
@@ -754,11 +754,11 @@ char RGBinaryGetBase(RGBinary *rg,
 			/* ignore, not a repeat */
 			break;
 		case 1:
-			/* repeat, convert char to upper */
+			/* repeat, convert int8_t to upper */
 			curChar=ToUpper(curChar);
 			break;
 		case 2:
-			/* N character */
+			/* N int8_tacter */
 			curChar='N';
 			break;
 		default:
@@ -788,11 +788,11 @@ char RGBinaryGetBase(RGBinary *rg,
 	return curChar;
 }
 
-int RGBinaryIsRepeat(RGBinary *rg,
-		int chromosome,
-		int position)
+int32_t RGBinaryIsRepeat(RGBinary *rg,
+		int32_t chromosome,
+		int32_t position)
 {
-	char curBase = RGBinaryGetBase(rg,
+	int8_t curBase = RGBinaryGetBase(rg,
 			chromosome,
 			position);
 
@@ -809,11 +809,11 @@ int RGBinaryIsRepeat(RGBinary *rg,
 	}
 }
 
-int RGBinaryIsN(RGBinary *rg,
-		int chromosome, 
-		int position) 
+int32_t RGBinaryIsN(RGBinary *rg,
+		int32_t chromosome, 
+		int32_t position) 
 {
-	char curBase = RGBinaryGetBase(rg,
+	int8_t curBase = RGBinaryGetBase(rg,
 			chromosome,
 			position);
 

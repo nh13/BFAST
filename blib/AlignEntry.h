@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "BLibDefinitions.h"
 
-
 enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
 
 /* TODO */
@@ -14,8 +13,8 @@ typedef struct {
 	char *reference;
 	unsigned int length; /* The length of the alignment */
 	unsigned int referenceLength; /* The number of bases excluding gaps in the reference string */
-	unsigned int chromosome;
-	unsigned int position;
+	int32_t chromosome;
+	int32_t position;
 	char strand;
 	double score;
 } AlignEntry;

@@ -13,17 +13,17 @@
 #include "RGIndex.h"
 
 /* TODO */
-void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int includeNs) {
+void RGIndexCreate(RGIndex *index, RGBinary *rg, int32_t includeRepeats, int32_t includeNs) {
 
 	/* The sort will take care of most of the work.  We just want 
 	 * to make sure that we only include sequence that agrees with
 	 * includeRepeats and includeNs
 	 * */
 
-	unsigned int curPos=-1;
-	unsigned int curChr=-1;
-	unsigned int insert, i, j, curTilePos;
-	unsigned int chrIndex = 0;
+	int32_t curPos=-1;
+	int32_t curChr=-1;
+	int32_t insert, i, j, curTilePos;
+	int32_t chrIndex = 0;
 
 	index->positions=NULL;
 	index->chromosomes=NULL;
@@ -83,7 +83,7 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 				index->length++;
 
 				/* Allocate memory */
-				index->positions = realloc(index->positions, sizeof(unsigned int)*index->length);
+				index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
 				if(NULL == index->positions) {
 					PrintError("RGBinaryCreate",
 							"index->positions",
@@ -91,7 +91,7 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 							Exit,
 							ReallocMemory);
 				}
-				index->chromosomes = realloc(index->chromosomes, sizeof(unsigned char)*index->length);
+				index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
 				if(NULL == index->chromosomes) {
 					PrintError("RGBinaryCreate",
 							"index->chromosomes",
@@ -117,7 +117,7 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int includeRepeats, int include
 }
 
 /* TODO */
-void RGIndexCleanUpIndex(RGIndex *index, RGBinary *rg, int numThreads) 
+void RGIndexCleanUpIndex(RGIndex *index, RGBinary *rg, int32_t numThreads) 
 {
 	if(index->length > 0) {
 		/* Sort the nodes in the index */
@@ -128,15 +128,15 @@ void RGIndexCleanUpIndex(RGIndex *index, RGBinary *rg, int numThreads)
 }
 
 /* TODO */
-void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
+void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 {
-	int i;
+	uint64_t i;
 	ThreadRGIndexSortData *data=NULL;
 	pthread_t *threads=NULL;
-	int errCode;
+	int32_t errCode;
 	void *status=NULL;
-	unsigned long long int *pivots;
-	int max, maxIndex;
+	int64_t *pivots;
+	int64_t max, maxIndex;
 	double curPercent=0.0;
 
 	/* Only use threads if we want to divide and conquer */
@@ -151,7 +151,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 					Exit,
 					MallocMemory);
 		}
-		/* Allocate memory for the thread pointers */
+		/* Allocate memory for the thread point32_ters */
 		threads = malloc(sizeof(pthread_t)*numThreads);
 		if(NULL==threads) {
 			PrintError("RGIndexSortNodes",
@@ -165,7 +165,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int numThreads)
 		assert(IsAPowerOfTwo(numThreads)==1);
 
 		/* Allocate memory for the pivots */
-		pivots = malloc(sizeof(unsigned long long int)*(2*numThreads));
+		pivots = malloc(sizeof(uint64_t)*(2*numThreads));
 		if(NULL == pivots) {
 			PrintError("RGIndexSortNodes",
 					"pivots",
@@ -308,19 +308,25 @@ void *RGIndexQuickSortNodes(void *arg)
 {
 	/* thread arguments */
 	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
-	RGIndex *index = data->index;
-	RGBinary *rg = data->rg;
-	unsigned int low = data->low;
-	unsigned int high = data->high;
-	int showPercentComplete = data->showPercentComplete;
 	double curPercent = 0.0;
 
 	/* Call helper */
-	if(showPercentComplete == 1 && VERBOSE >= 0) {
+	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "0 percent complete");
 	}
-	RGIndexQuickSortNodesHelper(index, rg, low, high, showPercentComplete, &curPercent, low, high, 0, NULL, 0, 0);
-	if(showPercentComplete == 1 && VERBOSE >= 0) {
+	RGIndexQuickSortNodesHelper(data->index,
+			data->rg,
+			data->low,
+			data->high,
+			data->showPercentComplete,
+			&curPercent, 
+			data->low,
+			data->high,
+			0, 
+			NULL, 
+			0, 
+			0);
+	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
 	}
 
@@ -329,23 +335,23 @@ void *RGIndexQuickSortNodes(void *arg)
 
 void RGIndexQuickSortNodesHelper(RGIndex *index,
 		RGBinary *rg,
-		unsigned long long int low,
-		unsigned long long int high,
-		int showPercentComplete,
+		int64_t low,
+		int64_t high,
+		int32_t showPercentComplete,
 		double *curPercent,
-		unsigned long long int lowTotal,
-		unsigned long long int highTotal,
-		int savePivots,
-		unsigned long long int *pivots,
-		int lowPivot,
-		int highPivot)
+		int64_t lowTotal,
+		int64_t highTotal,
+		int32_t savePivots,
+		int64_t *pivots,
+		int32_t lowPivot,
+		int32_t highPivot)
 {
 	/* local variables */
-	unsigned long long int i;
-	unsigned long long int pivot = 0;
-	unsigned int tempPos;
-	unsigned char tempChr;
-	unsigned long long int total = highTotal-lowTotal;
+	int64_t i;
+	int64_t pivot = 0;
+	uint32_t tempPos;
+	uint8_t tempChr;
+	int64_t total = highTotal-lowTotal;
 
 	if(low < high) {
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
@@ -469,15 +475,15 @@ void RGIndexDelete(RGIndex *index)
 }
 
 /* TODO */
-double RGIndexGetSize(RGIndex *index, int outputSize) 
+double RGIndexGetSize(RGIndex *index, int32_t outputSize) 
 {
 	double total=0;
 
 	total += sizeof(RGIndex); /* memory used by the index base structure */
-	total += sizeof(unsigned int)*index->length;/* memory used by positions */
-	total += sizeof(unsigned char)*index->length;/* memory used by positions */
-	total += sizeof(unsigned int)*index->numTiles;/* memory used by tileLengths */
-	total += sizeof(int)*(index->numTiles-1);/* memory used by gaps */
+	total += sizeof(uint32_t)*index->length;/* memory used by positions */
+	total += sizeof(uint8_t)*index->length;/* memory used by positions */
+	total += sizeof(int32_t)*index->numTiles;/* memory used by tileLengths */
+	total += sizeof(int32_t)*(index->numTiles-1);/* memory used by gaps */
 
 	switch(outputSize) {
 		case KILOBYTES:
@@ -496,10 +502,9 @@ double RGIndexGetSize(RGIndex *index, int outputSize)
 }
 
 /* TODO */
-void RGIndexPrint(FILE *fp, RGIndex *index, int binaryOutput)
+void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
-	unsigned int i;
-	unsigned int tempInt;
+	int64_t i;
 
 	/* Print header */
 	RGIndexPrintHeader(fp, index, binaryOutput);
@@ -510,7 +515,7 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int binaryOutput)
 		for(i=0;i<index->length;i++) {
 			fprintf(fp, "%u\t%u\n", 
 					index->positions[i],
-					(unsigned int)index->chromosomes[i]);
+					(uint32_t)index->chromosomes[i]);
 		}
 
 		/* Print the tileLengths */
@@ -536,51 +541,25 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int binaryOutput)
 		}
 	}
 	else {
-
-		/* We could just separate everything into huge arrays, but then we would double memory requirements when writing */
-
-		/* Print the chromosomes first (better for reading since
-		 * we can just use the allocated positions to read in the
-		 * chromosomes.) */
-		for(i=0;i<index->length;i++) {
-			tempInt = index->chromosomes[i];
-			tempInt = htonl(tempInt);
-			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-		}
+		/* Print chomosomes */
+		fwrite(index->chromosomes, sizeof(uint8_t), index->length, fp);
 
 		/* Print positions */
-		/* Convert to network order */
-		for(i=0;i<index->length;i++) {
-			index->positions[i] = htonl(index->positions[i]);
-		}
-		/* Print the whole array */
-		fwrite(index->positions, sizeof(unsigned int), index->length, fp);
-		/* Convert back */
-		for(i=0;i<index->length;i++) {
-			index->positions[i] = htonl(index->positions[i]);
-		}
+		fwrite(index->positions, sizeof(uint32_t), index->length, fp);
 
 		/* Print the tileLengths */
-		for(i=0;i<index->numTiles;i++) {
-			tempInt = index->tileLengths[i];
-			tempInt = htonl(tempInt);
-			fwrite(&tempInt, sizeof(unsigned int), 1, fp);
-		}
+		fwrite(index->tileLengths, sizeof(int32_t), index->numTiles, fp);
 
 		/* Print the gaps */
-		for(i=0;i<index->numTiles-1;i++) {
-			tempInt = index->gaps[i];
-			tempInt = htonl(tempInt);
-			fwrite(&tempInt, sizeof(int), 1, fp);
-		}
+		fwrite(index->gaps, sizeof(int32_t), index->numTiles-1, fp);
 	}
 }
 
 /* TODO */
-int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
+void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
-	unsigned int i;
-	unsigned int tempInt;
+	uint64_t i;
+	uint32_t tempInt;
 
 	/* Read in the header */
 	RGIndexReadHeader(fp, index, binaryInput);
@@ -588,7 +567,7 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 	assert(index->length > 0);
 
 	/* Allocate memory for the positions */
-	index->positions = malloc(sizeof(unsigned int)*index->length);
+	index->positions = malloc(sizeof(uint32_t)*index->length);
 	if(NULL == index->positions) {
 		PrintError("RGIndexRead",
 				"index->positions",
@@ -597,7 +576,7 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 				MallocMemory);
 	}
 	/* Allocate memory for the chromosomes */
-	index->chromosomes = malloc(sizeof(unsigned int)*index->length);
+	index->chromosomes = malloc(sizeof(uint8_t)*index->length);
 	if(NULL == index->chromosomes) {
 		PrintError("RGIndexRead",
 				"index->chromosomes",
@@ -606,7 +585,7 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 				MallocMemory);
 	}
 	/* Allocate memory for the tile lengths */
-	index->tileLengths = malloc(sizeof(unsigned int)*index->numTiles);
+	index->tileLengths = malloc(sizeof(int32_t)*index->numTiles);
 	if(NULL == index->tileLengths) {
 		PrintError("RGIndexRead",
 				"index->tileLengths",
@@ -615,7 +594,7 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 				MallocMemory);
 	}
 	/* Allocate memory for the gaps */
-	index->gaps = malloc(sizeof(unsigned int)*(index->numTiles-1));
+	index->gaps = malloc(sizeof(int32_t)*(index->numTiles-1));
 	if(NULL == index->gaps) {
 		PrintError("RGIndexRead",
 				"index->gaps",
@@ -636,12 +615,12 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 						Exit,
 						EndOfFile);
 			}
-			index->chromosomes[i] = (unsigned char)tempInt;
+			index->chromosomes[i] = (uint8_t)tempInt;
 		}
 
 		/* Read the tileLengths */
 		for(i=0;i<index->numTiles;i++) {
-			if(fscanf(fp, "%u",
+			if(fscanf(fp, "%d",
 						&index->tileLengths[i])==EOF) {
 				PrintError("RGIndexRead",
 						NULL,
@@ -653,7 +632,7 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 
 		/* Read the gaps */
 		for(i=0;i<index->numTiles-1;i++) {
-			if(fscanf(fp, "%u",
+			if(fscanf(fp, "%d",
 						&index->gaps[i])==EOF) {
 				PrintError("RGIndexRead",
 						NULL,
@@ -666,125 +645,81 @@ int RGIndexRead(FILE *fp, RGIndex *index, int binaryInput)
 	else {
 		/* Read in the chromosomes.  Use the position array as temp
 		 * storage */
-		if(fread(index->positions, sizeof(unsigned int), index->length, fp)==EOF) {
+		if(fread(index->chromosomes, sizeof(uint8_t), index->length, fp)==EOF) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in chromosomes",
 					Exit,
 					EndOfFile);
 		}
-		/* Convert to host order and copy over */
-		for(i=0;i<index->length;i++) {
-			index->positions[i] = ntohl(index->positions[i]);
-			index->chromosomes[i] = (unsigned char)index->positions[i];
-		}
 
 		/* Read in positions */
-		if(fread(index->positions, sizeof(unsigned int), index->length, fp)==EOF) {
+		if(fread(index->positions, sizeof(uint32_t), index->length, fp)==EOF) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in positions",
 					Exit,
 					EndOfFile);
 		}
-		/* Convert to host order  */
-		for(i=0;i<index->length;i++) {
-			index->positions[i] = ntohl(index->positions[i]);
-		}
 
 		/* Read the tileLengths */
-		if(fread(index->tileLengths, sizeof(unsigned int), index->numTiles, fp)==EOF) {
+		if(fread(index->tileLengths, sizeof(int32_t), index->numTiles, fp)==EOF) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in tile lengths",
 					Exit,
 					EndOfFile);
 		}
-		/* Convert to host order */
-		for(i=0;i<index->numTiles;i++) {
-			index->tileLengths[i] = ntohl(index->tileLengths[i]);
-		}
 
 		/* Read the gaps */
-		for(i=0;i<index->numTiles-1;i++) {
-			if(fread(&index->gaps[i], sizeof(unsigned int), 1, fp)==EOF) {
-				PrintError("RGIndexRead",
-						NULL,
-						"Could not read in gap",
-						Exit,
-						EndOfFile);
-			}
-			/* Convert to host order */
-			index->gaps[i] = ntohl(index->gaps[i]);
+		if(fread(&index->gaps, sizeof(int32_t), index->numTiles-1, fp)==EOF) {
+			PrintError("RGIndexRead",
+					NULL,
+					"Could not read in gaps",
+					Exit,
+					EndOfFile);
 		}
 	}
-	return 1;
 }
 
 /* TODO */
-void RGIndexPrintHeader(FILE *fp, RGIndex *index, int binaryOutput)
+void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
-	unsigned int length=index->length;
-	unsigned int totalLength=index->totalLength;
-	unsigned int numTiles=index->numTiles;
-	unsigned int startChr=index->startChr;
-	unsigned int startPos=index->startPos;
-	unsigned int endChr=index->endChr;
-	unsigned int endPos=index->endPos; 
-
 	if(binaryOutput == 0) {
-		fprintf(fp, "%u\t%u\t%u\t%u\t%u\t%u\t%u\n",
-				length,
-				totalLength,
-				numTiles,
-				startChr,
-				startPos,
-				endChr,
-				endPos);
+		fprintf(fp, "%Ld\t%d\t%d\t%d\t%d\t%d\t%d\n",
+				index->length,
+				index->totalLength,
+				index->numTiles,
+				index->startChr,
+				index->startPos,
+				index->endChr,
+				index->endPos);
 	}
 	else {
-
-		/* Big Endian/Little Endian conversion */
-		length=htonl(length);
-		totalLength=htonl(totalLength);
-		numTiles=htonl(numTiles);
-		startChr=htonl(startChr);
-		startPos=htonl(startPos);
-		endChr=htonl(endChr);
-		endPos=htonl(endPos);
-
 		/* Print Header */
-		fwrite(&length, sizeof(unsigned int), 1, fp);
-		fwrite(&totalLength, sizeof(unsigned int), 1, fp);
-		fwrite(&numTiles, sizeof(unsigned int), 1, fp);
-		fwrite(&startChr, sizeof(unsigned int), 1, fp);
-		fwrite(&startPos, sizeof(unsigned int), 1, fp);
-		fwrite(&endChr, sizeof(unsigned int), 1, fp);
-		fwrite(&endPos, sizeof(unsigned int), 1, fp);
+		fwrite(&index->length, sizeof(int64_t), 1, fp);
+		fwrite(&index->totalLength, sizeof(int32_t), 1, fp);
+		fwrite(&index->numTiles, sizeof(int32_t), 1, fp);
+		fwrite(&index->startChr, sizeof(int32_t), 1, fp);
+		fwrite(&index->startPos, sizeof(int32_t), 1, fp);
+		fwrite(&index->endChr, sizeof(int32_t), 1, fp);
+		fwrite(&index->endPos, sizeof(int32_t), 1, fp);
 	}
 }
 
 /* TODO */
-void RGIndexReadHeader(FILE *fp, RGIndex *index, int binaryInput)
+void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
-	unsigned int length;
-	unsigned int totalLength;
-	unsigned int numTiles;
-	unsigned int startChr;
-	unsigned int startPos;
-	unsigned int endChr;
-	unsigned int endPos;
-
 	/* Read in header */
 	if(binaryInput == 0) {
-		if(fscanf(fp, "%u %u %u %u %u %u %u",
-					&length,
-					&totalLength,
-					&numTiles,
-					&startChr,
-					&startPos,
-					&endChr,
-					&endPos)==EOF) {
+		if(fscanf(fp, "%Ld %d %d %d %d %d %d",
+					&index->length,
+					&index->totalLength,
+					&index->numTiles,
+					&index->startChr,
+					&index->startPos,
+					&index->endChr,
+					&index->endPos)==EOF) {
 			PrintError("RGIndexReadHeader",
 					NULL,
 					"Could not read header",
@@ -793,50 +728,22 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int binaryInput)
 		}
 	}
 	else {
-		if(fread(&length, sizeof(unsigned int), 1, fp)==EOF
-				|| fread(&totalLength, sizeof(unsigned int), 1, fp)==EOF
-				|| fread(&numTiles, sizeof(unsigned int), 1, fp)==EOF 
-				|| fread(&startChr, sizeof(unsigned int), 1, fp)==EOF
-				|| fread(&startPos, sizeof(unsigned int), 1, fp)==EOF
-				|| fread(&endChr, sizeof(unsigned int), 1, fp)==EOF
-				|| fread(&endPos, sizeof(unsigned int), 1, fp)==EOF) {
+		if(fread(&index->length, sizeof(int64_t), 1, fp)==EOF
+				|| fread(&index->totalLength, sizeof(int32_t), 1, fp)==EOF
+				|| fread(&index->numTiles, sizeof(int32_t), 1, fp)==EOF 
+				|| fread(&index->startChr, sizeof(int32_t), 1, fp)==EOF
+				|| fread(&index->startPos, sizeof(int32_t), 1, fp)==EOF
+				|| fread(&index->endChr, sizeof(int32_t), 1, fp)==EOF
+				|| fread(&index->endPos, sizeof(int32_t), 1, fp)==EOF) {
 			PrintError("RGIndexReadHeader",
 					NULL,
 					"Could not read header",
 					Exit,
 					EndOfFile);
 		}
-		/* Big Endian/Little Endian conversion */
-		length = ntohl(length);
-		totalLength = ntohl(totalLength);
-		numTiles = ntohl(numTiles);
-		startChr = ntohl(startChr);
-		startPos = ntohl(startPos);
-		endChr = ntohl(endChr);
-		endPos = ntohl(endPos);
 	}
 
-	if(VERBOSE > 0) {
-		fprintf(stderr, "Read Header:%u,%u,%u,%u,%u,%u,%u\n",
-				length,
-				totalLength,
-				numTiles,
-				startChr,
-				startPos,
-				endChr,
-				endPos);
-	}
-
-	/* Adjust header - see bpreprocess */
-	index->length = length;
-	index->totalLength = totalLength;
-	index->numTiles = numTiles;
-	index->startChr = startChr;
-	index->startPos = startPos;
-	index->endChr = endChr;
-	index->endPos = endPos;
-
-	/* Error checking ? */
+	/* Error checking */
 	assert(index->length > 0);
 	assert(index->totalLength > 0);
 	assert(index->numTiles > 0);
@@ -848,11 +755,11 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, int offset, RGMatch *m)
+void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t direction, int32_t offset, RGMatch *m)
 {
-	unsigned int i;
-	long long int startIndex=-1;
-	long long int nodeIndex=-1;
+	int64_t i;
+	int64_t startIndex=-1;
+	int64_t nodeIndex=-1;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "RGIndexGetMatches.  Searching for read:%s.\n",
@@ -868,7 +775,7 @@ int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, 
 		else {
 			fprintf(stderr, "Found index:%lld\tchr:%d\tpos:%d\n", 
 					nodeIndex,
-					(int)index->chromosomes[nodeIndex],
+					(int32_t)index->chromosomes[nodeIndex],
 					index->positions[nodeIndex]);
 		}
 	}
@@ -885,7 +792,7 @@ int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, 
 		/* (Re)Allocate memory for the new matches */
 		startIndex = m->numEntries;
 		m->numEntries++;
-		m->positions = realloc(m->positions, sizeof(unsigned int)*(m->numEntries)); 
+		m->positions = realloc(m->positions, sizeof(uint32_t)*(m->numEntries)); 
 		if(NULL == m->positions) {
 			PrintError("RGIndexGetMatches",
 					"m->positions",
@@ -893,7 +800,7 @@ int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, 
 					Exit,
 					ReallocMemory);
 		}
-		m->chromosomes = realloc(m->chromosomes, sizeof(unsigned char)*(m->numEntries)); 
+		m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*(m->numEntries)); 
 		if(NULL == m->chromosomes) {
 			PrintError("RGIndexGetMatches",
 					"m->chromosomes",
@@ -901,7 +808,7 @@ int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, 
 					Exit,
 					ReallocMemory);
 		}
-		m->strand = realloc(m->strand, sizeof(char)*(m->numEntries)); 
+		m->strand = realloc(m->strand, sizeof(int8_t)*(m->numEntries)); 
 		if(NULL == m->strand) {
 			PrintError("RGIndexGetMatches",
 					"m->strand",
@@ -920,20 +827,18 @@ int RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, char direction, 
 		/* Update to the next node */
 		nodeIndex++;
 	}
-
-	return 1;
 }
 
 /* TODO */
-long long int RGIndexGetFirstIndex(RGIndex *index,
+int64_t RGIndexGetFirstIndex(RGIndex *index,
 		RGBinary *rg,
 		char *read)
 {
-	long long int low=0;;
-	long long int high=index->length-1;
-	long long int mid=-1;
-	int cmp;
-	int cont = 1;
+	int64_t low=0;
+	int64_t high=index->length-1;
+	int64_t mid=-1;
+	int32_t cmp;
+	int32_t cont = 1;
 
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
@@ -967,24 +872,24 @@ long long int RGIndexGetFirstIndex(RGIndex *index,
 }
 
 /* TODO */
-int RGIndexCompareAt(RGIndex *index,
+int32_t RGIndexCompareAt(RGIndex *index,
 		RGBinary *rg,
-		unsigned long long int a,
-		unsigned long long int b)
+		int64_t a,
+		int64_t b)
 {
 	assert(a>=0 && a<index->length);
 	assert(b>=0 && b<index->length);
 
-	int i, j;
-	int aChr = index->chromosomes[a];
-	int aPos = index->positions[a];
-	int bChr = index->chromosomes[b];
-	int bPos = index->positions[b];
+	int32_t i, j;
+	uint32_t aChr = index->chromosomes[a];
+	uint32_t aPos = index->positions[a];
+	uint32_t bChr = index->chromosomes[b];
+	uint32_t bPos = index->positions[b];
 
-	int aCurTilePos;
-	int bCurTilePos;
-	char aBase;
-	char bBase;
+	uint32_t aCurTilePos;
+	uint32_t bCurTilePos;
+	uint8_t aBase;
+	uint8_t bBase;
 
 	/* Compare base by base */
 	aCurTilePos = aPos;
@@ -1023,22 +928,22 @@ int RGIndexCompareAt(RGIndex *index,
 }
 
 /* TODO */
-int RGIndexCompareRead(RGIndex *index,
+int32_t RGIndexCompareRead(RGIndex *index,
 		RGBinary *rg,
 		char *read,
-		unsigned long long int a)
+		int64_t a)
 {
 	assert(a>=0 && a<index->length);
 
-	int i, j;
-	int curReadPos=0;
-	int readLength = strlen(read);
-	int aChr = index->chromosomes[a];
-	int aPos = index->positions[a];
+	int32_t i, j;
+	int32_t curReadPos=0;
+	int32_t readLength = strlen((char*)read);
+	uint32_t aChr = index->chromosomes[a];
+	uint32_t aPos = index->positions[a];
 
-	int aCurTilePos;
-	char aBase;
-	char readBase;
+	uint32_t aCurTilePos;
+	uint8_t aBase;
+	uint8_t readBase;
 
 	/* Compare base by base */
 	aCurTilePos = aPos;

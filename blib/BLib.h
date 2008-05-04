@@ -8,6 +8,6 @@ char GetReverseComplimentAnyCaseBase(char);
 int ValidateBasePair(char);
 int IsAPowerOfTwo(unsigned int);
 char TransformFromIUPAC(char);
-void CheckRGIndexes(char**, int, char**, int, int, int*, int*, int*, int*);
+void CheckRGIndexes(char**, int, char**, int, int, int32_t*, int32_t*, int32_t*, int32_t*);
 
 #endif

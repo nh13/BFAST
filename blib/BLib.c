@@ -191,14 +191,14 @@ void CheckRGIndexes(char **mainFileNames,
 		char **secondaryFileNames,
 		int numSecondaryFileNames,
 		int binaryInput,
-		int *startChr,
-		int *startPos,
-		int *endChr,
-		int *endPos)
+		int32_t *startChr,
+		int32_t *startPos,
+		int32_t *endChr,
+		int32_t *endPos)
 {
 	int i;
-	unsigned int mainStartChr, mainStartPos, mainEndChr, mainEndPos;
-	unsigned int secondaryStartChr, secondaryStartPos, secondaryEndChr, secondaryEndPos;
+	int32_t mainStartChr, mainStartPos, mainEndChr, mainEndPos;
+	int32_t secondaryStartChr, secondaryStartPos, secondaryEndChr, secondaryEndPos;
 	mainStartChr = mainStartPos = mainEndChr = mainEndPos = 0;
 	secondaryStartChr = secondaryStartPos = secondaryEndChr = secondaryEndPos = 0;
 

@@ -5,15 +5,15 @@
 #include "BLibDefinitions.h"
 
 void RGMatchRemoveDuplicates(RGMatch*);
-void RGMatchQuickSort(RGMatch*, int, int);
-void RGMatchOutputToFile(FILE*, char*, char*, char*, RGMatch*, RGMatch*, int);
-int RGMatchMergeFilesAndOutput(FILE**, int, FILE*, int);
-int RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE**, int, FILE*, int);
-int RGMatchGetNextFromFile(FILE*, char*, char*, char*, RGMatch*, RGMatch*, int);
-int RGMatchCompareAtIndex(RGMatch*, int, RGMatch*, int);
-void RGMatchCopyAtIndex(RGMatch*, int, RGMatch*, int);
-void RGMatchAllocate(RGMatch*, int);
-void RGMatchReallocate(RGMatch*, int);
+void RGMatchQuickSort(RGMatch*, int32_t, int32_t);
+void RGMatchOutputToFile(FILE*, char*, char*, char*, RGMatch*, RGMatch*, int32_t);
+int32_t RGMatchMergeFilesAndOutput(FILE**, int32_t, FILE*, int32_t);
+int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE**, int32_t, FILE*, int32_t);
+int32_t RGMatchGetNextFromFile(FILE*, char*, char*, char*, RGMatch*, RGMatch*, int32_t);
+int32_t RGMatchCompareAtIndex(RGMatch*, int32_t, RGMatch*, int32_t);
+void RGMatchCopyAtIndex(RGMatch*, int32_t, RGMatch*, int32_t);
+void RGMatchAllocate(RGMatch*, int32_t);
+void RGMatchReallocate(RGMatch*, int32_t);
 
 #endif
 
