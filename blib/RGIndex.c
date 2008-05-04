@@ -388,7 +388,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		}
 
 		/* Proceed if we are with range */
-		if(curLow < curHigh) {
+		if(curLow < curHigh && curLow >= low && curHigh <= high) {
 			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 			 * but lets just choose the middle element for now.
 			 * */
