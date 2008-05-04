@@ -14,5 +14,4 @@ bpreprocess_SOURCES = \
 ##  LDADD only lists those object files which are NOT compiled from 
 ##  the *_SOURCES above so we need to reference libm.a here
 
-bpreprocess_LDADD = -lm 
-AM_CFLAGS = -Wall -ansi -g -O0 -pthread -m64
+AM_CFLAGS = -Wall -ansi -g -O3 -pthread -m64
