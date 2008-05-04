@@ -36,6 +36,8 @@
 #include <sys/resource.h>
 #endif
 
+#include <time.h>
+
 #include "../blib/BLibDefinitions.h"
 #include "../blib/RGBinary.h"
 #include "../blib/RGIndexLayout.h"

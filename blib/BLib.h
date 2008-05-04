@@ -1,6 +1,8 @@
 #ifndef BLIB_H_
 #define BLIB_H_
 
+#include <stdint.h>
+
 char ToLower(char);
 char ToUpper(char);
 void GetReverseComplimentAnyCase(char*, char*, int);

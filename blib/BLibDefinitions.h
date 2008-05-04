@@ -11,8 +11,8 @@
 #define BLATTER_MATCHES_FILE_EXTENSION "bmf"
 #define BLATTER_ALIGN_FILE_EXTENSION "baf"
 #define DEFAULT_MATCH_LENGTH 11
-#define READ_ROTATE_NUM 1000000
-#define RGINDEX_ROTATE_NUM 1000000
+#define READ_ROTATE_NUM 1000
+#define RGINDEX_ROTATE_NUM 1000
 #define SORT_ROTATE_INC 0.01
 #define BREAK_LINE "************************************************************\n"
 

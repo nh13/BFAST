@@ -302,11 +302,11 @@ void *RGIndexQuickSortNodes(void *arg)
 		fprintf(stderr, "\r0 percent complete");
 	}
 	/*
-	fprintf(stderr, "HERE: threadID:%d\tlow:%Ld\thigh:%Ld\n",
-			data->threadID,
-			data->low,
-			data->high);
-			*/
+	   fprintf(stderr, "HERE: threadID:%d\tlow:%Ld\thigh:%Ld\n",
+	   data->threadID,
+	   data->low,
+	   data->high);
+	   */
 	RGIndexQuickSortNodesHelper(data->index,
 			data->rg,
 			data->low,
@@ -466,11 +466,15 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 						ReallocMemory);
 			}
 			/* Add sub array below */
-			lowStack[stackLength-1] = curLow;
-			highStack[stackLength-1] = pivot-1;
+			if(curLow < pivot-1) {
+				lowStack[stackLength-1] = curLow;
+				highStack[stackLength-1] = pivot-1;
+			}
 			/* Add sub array above */
-			lowStack[stackLength-2] = pivot+1;
-			highStack[stackLength-2] = curHigh;
+			if(pivot+1 < curHigh) {
+				lowStack[stackLength-2] = pivot+1;
+				highStack[stackLength-2] = curHigh;
+			}
 		}
 	}
 }
@@ -595,24 +599,30 @@ void RGIndexShellSortNodesHelper(RGIndex *index,
 
 	increment = length/2;
 
-	fprintf(stderr, "low:%Ld\thigh:%Ld\tlength:%Ld\n",
-			low,
-			high,
-			length);
+	/*
+	   fprintf(stderr, "low:%Ld\thigh:%Ld\tlength:%Ld\n",
+	   low,
+	   high,
+	   length);
+	   */
 
 	while(increment > 0) {
 		assert(increment < length);
 		/* Perform insertion sort with jump size as increment */
-		if(showPercentComplete==1 && VERBOSE >= 0) {
-			fprintf(stderr, "\rincrement:%Ld\tlength:%Ld\n",
-					increment,
-					length);
-		}
+		/*
+		   if(showPercentComplete==1 && VERBOSE >= 0) {
+		   fprintf(stderr, "\rincrement:%Ld\tlength:%Ld\n",
+		   increment,
+		   length);
+		   }
+		   */
 		for(i=increment+low;i<=high;i+=increment) {
-			if(showPercentComplete==1 && VERBOSE >= 0 && (i-low-increment)%1000==0) {
-				fprintf(stderr, "\r%Ld",
-						i-low-increment);
-			}
+			/*
+			   if(showPercentComplete==1 && VERBOSE >= 0 && (i-low-increment)%1000==0) {
+			   fprintf(stderr, "\r%Ld",
+			   i-low-increment);
+			   }
+			   */
 			j=i;
 			while( (j>=increment+low) && RGIndexCompareAt(index, rg, j-increment, j) > 0) {
 				/*
