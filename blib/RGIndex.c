@@ -371,9 +371,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 
 		/* Reallocate memory */
 		lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
-		if(NULL==lowStack) {
-			fprintf(stderr, "length:%Ld\n",
-					stackLength);
+		if(NULL==lowStack && stackLength > 0) {
 			PrintError("RGIndexQuickSortNodesHelper",
 					"lowStack",
 					"Could not reallocate memory",
@@ -381,7 +379,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 					ReallocMemory);
 		}
 		highStack = realloc(highStack, sizeof(int64_t)*stackLength);
-		if(NULL==highStack) {
+		if(NULL==highStack && stackLength > 0) {
 			PrintError("RGIndexQuickSortNodesHelper",
 					"highStack",
 					"Could not reallocate memory",
@@ -403,9 +401,9 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			if(showPercentComplete == 1 && VERBOSE >= 0) {
 				if(curPercent < 100.0*((double)(curLow - low))/total) {
 					while(curPercent < 100.0*((double)(curLow - low))/total) {
-						curPercent += SORT_ROTATE_INC;
+						curPercent += RGINDEX_SORT_ROTATE_INC;
 					}
-					fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)(curLow - low))/total);
+					fprintf(stderr, "\r%3.3lf percent complete", 100.0*((double)(curLow - low))/total);
 				}
 			}
 
@@ -457,9 +455,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			}
 			/* Reallocate memory */
 			lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
-			if(NULL==lowStack) {
-				fprintf(stderr, "length2:%Ld\n",
-					stackLength);
+			if(NULL==lowStack && stackLength > 0) {
 				PrintError("RGIndexQuickSortNodesHelper",
 						"lowStack",
 						"Could not reallocate memory",
@@ -467,7 +463,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 						ReallocMemory);
 			}
 			highStack = realloc(highStack, sizeof(int64_t)*stackLength);
-			if(NULL==highStack) {
+			if(NULL==highStack && stackLength > 0) {
 				PrintError("RGIndexQuickSortNodesHelper",
 						"highStack",
 						"Could not reallocate memory",
