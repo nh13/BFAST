@@ -447,15 +447,10 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			}
 
 			/* Add to the stack */
-			if(curLow < pivot-1) {
-				stackLength++;
-			}
-			if(pivot+1 < curHigh) {
-				stackLength++;
-			}
+			stackLength+=2;
 			/* Reallocate memory */
 			lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
-			if(NULL==lowStack && stackLength > 0) {
+			if(NULL==lowStack) {
 				PrintError("RGIndexQuickSortNodesHelper",
 						"lowStack",
 						"Could not reallocate memory",
@@ -463,7 +458,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 						ReallocMemory);
 			}
 			highStack = realloc(highStack, sizeof(int64_t)*stackLength);
-			if(NULL==highStack && stackLength > 0) {
+			if(NULL==highStack) {
 				PrintError("RGIndexQuickSortNodesHelper",
 						"highStack",
 						"Could not reallocate memory",
@@ -471,15 +466,11 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 						ReallocMemory);
 			}
 			/* Add sub array below */
-			if(curLow < pivot-1) {
-				lowStack[stackLength-1] = curLow;
-				highStack[stackLength-1] = pivot-1;
-			}
+			lowStack[stackLength-1] = curLow;
+			highStack[stackLength-1] = pivot-1;
 			/* Add sub array above */
-			if(pivot+1 < curHigh) {
-				lowStack[stackLength-2] = pivot+1;
-				highStack[stackLength-2] = curHigh;
-			}
+			lowStack[stackLength-2] = pivot+1;
+			highStack[stackLength-2] = curHigh;
 		}
 	}
 }
