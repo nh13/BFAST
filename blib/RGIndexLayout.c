@@ -21,6 +21,7 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 
 	/* Initialize the layout data structure */
 	rgLayout->numIndexes=0;
+	rgLayout->hashLengths=0;
 	rgLayout->numTiles=NULL;
 	rgLayout->tileLengths=NULL;
 	rgLayout->gaps=NULL;
@@ -34,6 +35,15 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 				EndOfFile);
 	}
 
+	/* Allocate memory for the hashLengths */
+	rgLayout->hashLengths = malloc(sizeof(int)*rgLayout->numIndexes);
+	if(NULL==rgLayout->hashLengths) {
+		PrintError("RGIndexLayoutRead",
+				"rgLayout->hashLengths",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	/* Allocate memory for the number of tiles */
 	rgLayout->numTiles = malloc(sizeof(int)*rgLayout->numIndexes);
 	if(NULL==rgLayout->numTiles) {
@@ -64,11 +74,20 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 
 	/* Read the indexes */
 	for(i=0;i<rgLayout->numIndexes;i++) {
+		/* Read in the hash length */
+		if(EOF==fscanf(fp, "%d", &rgLayout->hashLengths[i])) {
+			PrintError("RGIndexLayoutRead",
+					NULL,
+					"Could not read the hashLengths",
+					Exit,
+					EndOfFile);
+		}
+
 		/* Read in the number of tiles */
 		if(EOF==fscanf(fp, "%d", &rgLayout->numTiles[i])) {
 			PrintError("RGIndexLayoutRead",
 					NULL,
-					"Could not read the number of indexes",
+					"Could not read the number of tiles",
 					Exit,
 					EndOfFile);
 		}
@@ -130,6 +149,8 @@ void RGIndexLayoutDelete(RGIndexLayout *rgLayout)
 		free(rgLayout->gaps[i]);
 		rgLayout->gaps=NULL;
 	}
+	free(rgLayout->hashLengths);
+	rgLayout->hashLengths = NULL;
 	free(rgLayout->tileLengths);
 	rgLayout->tileLengths = NULL;
 	free(rgLayout->gaps);

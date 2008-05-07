@@ -74,7 +74,13 @@ typedef struct {
 	/* Index storage */
 	uint32_t *positions;
 	uint8_t *chromosomes;
-	int64_t length;
+	uint32_t length;
+
+	/* Hash storage */
+	uint32_t hashWidth; /* in bases */
+	uint32_t hashLength; /* in base 4 */
+	uint32_t *starts;
+	uint32_t *ends;
 
 	/* Index definition */
 	int32_t totalLength;
@@ -92,6 +98,7 @@ typedef struct {
 /* TODO */
 typedef struct {
 	int32_t numIndexes;
+	int32_t *hashLengths;
 	int32_t *numTiles;
 	int32_t **tileLengths;
 	int32_t **gaps;

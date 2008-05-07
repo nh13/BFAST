@@ -13,21 +13,71 @@
 #include "RGIndex.h"
 
 /* TODO */
-void RGIndexCreate(RGIndex *index, RGBinary *rg, int32_t includeRepeats, int32_t includeNs) {
+void RGIndexCreate(RGIndex *index, 
+		RGBinary *rg, 
+		RGIndexLayout *rgLayout, 
+		int32_t layoutIndex,
+		int32_t numThreads,
+		int32_t includeRepeats, 
+		int32_t includeNs) 
+{
 
 	/* The sort will take care of most of the work.  We just want 
 	 * to make sure that we only include sequence that agrees with
 	 * includeRepeats and includeNs
 	 * */
 
+	char *FnName = "RGIndexCreate";
 	int32_t curPos=-1;
 	int32_t curChr=-1;
 	int32_t insert, i, j, curTilePos;
 	int32_t chrIndex = 0;
+	uint32_t start, end, hashIndex;
 
+	/* Initialize the index */
 	index->positions=NULL;
 	index->chromosomes=NULL;
 	index->length=0;
+	index->totalLength=0;
+
+	/* Copy over index information from the rg */
+	index->startChr = rg->startChr;
+	index->startPos = rg->startPos;
+	index->endChr = rg->endChr;
+	index->endPos = rg->endPos;
+
+	/* Copy over index information from the layout */
+	index->totalLength = 0;
+	index->hashWidth = rgLayout->hashLengths[layoutIndex];
+	index->hashLength = pow(4, index->hashWidth);
+	index->numTiles = rgLayout->numTiles[layoutIndex];
+	/* Allocate memory and copy over tile lengths */
+	index->tileLengths = malloc(sizeof(int32_t)*rgLayout->numTiles[layoutIndex]);
+	if(NULL == index->tileLengths) {
+		PrintError(FnName,
+				"index->tileLengths",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	for(i=0;i<rgLayout->numTiles[layoutIndex];i++) {
+		index->tileLengths[i] = rgLayout->tileLengths[layoutIndex][i];
+		index->totalLength += rgLayout->tileLengths[layoutIndex][i];
+	}
+	/* Allocate memory and copy over gaps */
+	index->gaps = malloc(sizeof(int32_t)*(rgLayout->numTiles[layoutIndex]-1));
+	if(NULL == index->gaps) {
+		PrintError(FnName,
+				"index->gaps",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	for(i=0;i<rgLayout->numTiles[layoutIndex]-1;i++) {
+		index->gaps[i] = rgLayout->gaps[layoutIndex][i];
+		index->totalLength += rgLayout->gaps[layoutIndex][i];
+	}
+
 	assert(index->numTiles > 0);
 	assert(index->tileLengths != NULL);
 
@@ -114,17 +164,77 @@ void RGIndexCreate(RGIndex *index, RGBinary *rg, int32_t includeRepeats, int32_t
 				curChr,
 				curPos);
 	}
-}
 
-/* TODO */
-void RGIndexCleanUpIndex(RGIndex *index, RGBinary *rg, int32_t numThreads) 
-{
-	if(index->length > 0) {
-		/* Sort the nodes in the index */
+	assert(index->length > 0);
+
+	/* Sort the nodes in the index */
+	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorting...\n");
-		RGIndexSortNodes(index, rg, numThreads);
+	}
+	RGIndexSortNodes(index, rg, numThreads);
+	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorted.\n");
 	}
+
+	/* Create hash table from the index */
+
+	/* Allocate memory for the hash */
+	index->starts = malloc(sizeof(uint32_t)*index->hashLength);
+	if(NULL==index->starts) {
+		PrintError(FnName,
+				"index->starts",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	index->ends = malloc(sizeof(uint32_t)*index->hashLength);
+	if(NULL==index->ends) {
+		PrintError(FnName,
+				"index->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* initialize */
+	for(i=0;i<index->hashLength;i++) {
+		/* Can't use -1, so use UINT_MAX */
+		index->starts[i] = UINT_MAX;
+		index->ends[i] = UINT_MAX;
+	}
+
+	/* Go through index and update the hash */
+	for(end=1, start=0;end < index->length;end++) {
+		if(RGIndexCompareAt(index, rg, start, end) == 0 && end != index->length-1) {
+			/* Do nothing */
+		}
+		else {
+			/* Get the index in the hash */
+			hashIndex = RGIndexGetHashIndex(index, rg, start);
+			assert(hashIndex > 0 && hashIndex < index->hashLength);
+			/* Store start and end */
+			index->starts[hashIndex] = start;
+			if(end == index->length-1) {
+				/* Boundary condition */
+				index->ends[hashIndex] = end;
+				/* Update start */
+				start = end;
+			}
+			else {
+				index->ends[hashIndex] = end-1;
+				/* Update start */
+				start = end;
+			}
+		}
+	}
+
+	/* Check hash creation */
+	for(i=0;i<index->hashLength;i++) {
+		assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
+				(index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
+	}
+
 }
 
 /* TODO */
@@ -663,6 +773,13 @@ void RGIndexDelete(RGIndex *index)
 	index->length = 0;
 	index->totalLength = 0;
 
+	index->hashLength=0;
+	index->hashWidth=0;
+	free(index->starts);
+	index->starts=NULL;
+	free(index->ends);
+	index->ends=NULL;
+
 	index->numTiles=0;
 	free(index->tileLengths);
 	index->tileLengths=NULL;
@@ -678,23 +795,25 @@ void RGIndexDelete(RGIndex *index)
 /* TODO */
 double RGIndexGetSize(RGIndex *index, int32_t outputSize) 
 {
-	double total=0;
+	double total=0.0;
 
 	total += sizeof(RGIndex); /* memory used by the index base structure */
 	total += sizeof(uint32_t)*index->length;/* memory used by positions */
 	total += sizeof(uint8_t)*index->length;/* memory used by positions */
+	total += sizeof(uint32_t)*index->hashLength;/* memory used by starts */
+	total += sizeof(uint32_t)*index->hashLength;/* memory used by ends */
 	total += sizeof(int32_t)*index->numTiles;/* memory used by tileLengths */
 	total += sizeof(int32_t)*(index->numTiles-1);/* memory used by gaps */
 
 	switch(outputSize) {
 		case KILOBYTES:
-			return (total/1024);
+			return (total/pow(2, 10));
 			break;
 		case MEGABYTES:
-			return (total/1048576);
+			return (total/pow(2, 20));
 			break;
 		case GIGABYTES:
-			return (total/1073741824);
+			return (total/pow(2, 30));
 			break;
 		default:
 			return total;
@@ -717,6 +836,13 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 			fprintf(fp, "%u\t%u\n", 
 					index->positions[i],
 					(uint32_t)index->chromosomes[i]);
+		}
+
+		/* Print the starts and ends */
+		for(i=0;i<index->hashLength;i++) {
+			fprintf(fp, "%u\t%u\n",
+					index->starts[i],
+					index->ends[i]);
 		}
 
 		/* Print the tileLengths */
@@ -742,11 +868,17 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 		}
 	}
 	else {
+		/* Print positions */
+		fwrite(index->positions, sizeof(uint32_t), index->length, fp);
+
 		/* Print chomosomes */
 		fwrite(index->chromosomes, sizeof(uint8_t), index->length, fp);
 
-		/* Print positions */
-		fwrite(index->positions, sizeof(uint32_t), index->length, fp);
+		/* Print the starts */
+		fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp);
+
+		/* Print the ends */
+		fwrite(index->ends, sizeof(uint32_t), index->hashLength, fp);
 
 		/* Print the tileLengths */
 		fwrite(index->tileLengths, sizeof(int32_t), index->numTiles, fp);
@@ -785,6 +917,24 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 				Exit,
 				MallocMemory);
 	}
+	/* Allocate memory for the starts */
+	index->starts = malloc(sizeof(uint32_t)*index->hashLength);
+	if(NULL == index->starts) {
+		PrintError("RGIndexRead",
+				"index->starts",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for the ends */
+	index->ends = malloc(sizeof(uint32_t)*index->hashLength);
+	if(NULL == index->ends) {
+		PrintError("RGIndexRead",
+				"index->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	/* Allocate memory for the tile lengths */
 	index->tileLengths = malloc(sizeof(int32_t)*index->numTiles);
 	if(NULL == index->tileLengths) {
@@ -819,6 +969,19 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 			index->chromosomes[i] = (uint8_t)tempInt;
 		}
 
+		/* Read the positions and chromosomes */
+		for(i=0;i<index->hashLength;i++) {
+			if(fscanf(fp, "%u\t%u\n",
+						&index->starts[i],
+						&index->ends[i])==EOF) {
+				PrintError("RGIndexRead",
+						NULL,
+						"Could not read in starts and ends",
+						Exit,
+						EndOfFile);
+			}
+		}
+
 		/* Read the tileLengths */
 		for(i=0;i<index->numTiles;i++) {
 			if(fscanf(fp, "%d",
@@ -844,8 +1007,16 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 		}
 	}
 	else {
-		/* Read in the chromosomes.  Use the position array as temp
-		 * storage */
+		/* Read in positions */
+		if(fread(index->positions, sizeof(uint32_t), index->length, fp)==EOF) {
+			PrintError("RGIndexRead",
+					NULL,
+					"Could not read in positions",
+					Exit,
+					EndOfFile);
+		}
+
+		/* Read in the chromosomes */
 		if(fread(index->chromosomes, sizeof(uint8_t), index->length, fp)==EOF) {
 			PrintError("RGIndexRead",
 					NULL,
@@ -854,11 +1025,20 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 					EndOfFile);
 		}
 
-		/* Read in positions */
-		if(fread(index->positions, sizeof(uint32_t), index->length, fp)==EOF) {
+		/* Read in starts */
+		if(fread(index->starts, sizeof(uint32_t), index->hashLength, fp)==EOF) {
 			PrintError("RGIndexRead",
 					NULL,
-					"Could not read in positions",
+					"Could not read in starts",
+					Exit,
+					EndOfFile);
+		}
+
+		/* Read in ends */
+		if(fread(index->ends, sizeof(uint32_t), index->hashLength, fp)==EOF) {
+			PrintError("RGIndexRead",
+					NULL,
+					"Could not read in ends",
 					Exit,
 					EndOfFile);
 		}
@@ -887,8 +1067,10 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
 	if(binaryOutput == 0) {
-		fprintf(fp, "%Ld\t%d\t%d\t%d\t%d\t%d\t%d\n",
+		fprintf(fp, "%u\t%u\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
 				index->length,
+				index->hashWidth,
+				index->hashLength,
 				index->totalLength,
 				index->numTiles,
 				index->startChr,
@@ -898,7 +1080,9 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 	}
 	else {
 		/* Print Header */
-		fwrite(&index->length, sizeof(int64_t), 1, fp);
+		fwrite(&index->length, sizeof(uint32_t), 1, fp);
+		fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp);
+		fwrite(&index->hashLength, sizeof(uint32_t), 1, fp);
 		fwrite(&index->totalLength, sizeof(int32_t), 1, fp);
 		fwrite(&index->numTiles, sizeof(int32_t), 1, fp);
 		fwrite(&index->startChr, sizeof(int32_t), 1, fp);
@@ -913,8 +1097,10 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
 	/* Read in header */
 	if(binaryInput == 0) {
-		if(fscanf(fp, "%Ld %d %d %d %d %d %d",
+		if(fscanf(fp, "%u %u %u %d %d %d %d %d %d",
 					&index->length,
+					&index->hashWidth,
+					&index->hashLength,
 					&index->totalLength,
 					&index->numTiles,
 					&index->startChr,
@@ -929,7 +1115,9 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 		}
 	}
 	else {
-		if(fread(&index->length, sizeof(int64_t), 1, fp)==EOF
+		if(fread(&index->length, sizeof(uint32_t), 1, fp)==EOF
+				|| fread(&index->hashWidth, sizeof(uint32_t), 1, fp)==EOF
+				|| fread(&index->hashLength, sizeof(uint32_t), 1, fp)==EOF
 				|| fread(&index->totalLength, sizeof(int32_t), 1, fp)==EOF
 				|| fread(&index->numTiles, sizeof(int32_t), 1, fp)==EOF 
 				|| fread(&index->startChr, sizeof(int32_t), 1, fp)==EOF
@@ -946,6 +1134,8 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 	/* Error checking */
 	assert(index->length > 0);
+	assert(index->hashWidth > 0);
+	assert(index->hashLength > 0);
 	assert(index->totalLength > 0);
 	assert(index->numTiles > 0);
 	assert(index->startChr > 0);
@@ -967,76 +1157,92 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 				read);
 	}
 
-	/* Get the index of the index */
-	nodeIndex = RGIndexGetFirstIndex(index, rg, read);
-	if(VERBOSE >= DEBUG) {
-		if(nodeIndex < 0) {
-			fprintf(stderr, "Found index:%lld\n", nodeIndex);
-		}
-		else {
-			fprintf(stderr, "Found index:%lld\tchr:%d\tpos:%d\n", 
-					nodeIndex,
-					(int32_t)index->chromosomes[nodeIndex],
-					index->positions[nodeIndex]);
-		}
+	/* Get the hash index */
+	/* The hope is that the hash will give better smaller bounds (if not
+	 * zero bounds for the binary search on the index */
+	uint32_t hashIndex = RGIndexGetHashIndexFromRead(index, rg, read);
+	assert(hashIndex >= 0 && hashIndex < index->hashLength);
+
+	if(index->starts[hashIndex] == UINT_MAX || 
+			index->ends[hashIndex] == UINT_MAX) {
+		/* Skip */
 	}
-
-	/* Copy over all matches */
-	while(nodeIndex >= 0 && 
-			nodeIndex < index->length &&
-			RGIndexCompareRead(index, rg, read, nodeIndex)==0) {
-
+	else {
+		/* Search the index using the bounds from the hash */
+		nodeIndex = RGIndexGetFirstIndex(index, 
+				rg, 
+				index->starts[hashIndex],  
+				index->ends[hashIndex],
+				read);
 		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Will append...\n");
-		}
-		/* Copy over the matches */
-		/* (Re)Allocate memory for the new matches */
-		startIndex = m->numEntries;
-		m->numEntries++;
-		m->positions = realloc(m->positions, sizeof(uint32_t)*(m->numEntries)); 
-		if(NULL == m->positions) {
-			PrintError("RGIndexGetMatches",
-					"m->positions",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-		m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*(m->numEntries)); 
-		if(NULL == m->chromosomes) {
-			PrintError("RGIndexGetMatches",
-					"m->chromosomes",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-		m->strand = realloc(m->strand, sizeof(int8_t)*(m->numEntries)); 
-		if(NULL == m->strand) {
-			PrintError("RGIndexGetMatches",
-					"m->strand",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			if(nodeIndex < 0) {
+				fprintf(stderr, "Found index:%lld\n", nodeIndex);
+			}
+			else {
+				fprintf(stderr, "Found index:%lld\tchr:%d\tpos:%d\n", 
+						nodeIndex,
+						(int32_t)index->chromosomes[nodeIndex],
+						index->positions[nodeIndex]);
+			}
 		}
 
-		/* Copy over */
-		for(i=startIndex;i<m->numEntries;i++) {
-			m->positions[i] = index->positions[nodeIndex] - offset;
-			m->chromosomes[i] = index->chromosomes[nodeIndex];
-			m->strand[i] = direction;
-		}
+		/* Copy over all matches */
+		while(nodeIndex >= 0 && 
+				nodeIndex < index->length &&
+				RGIndexCompareRead(index, rg, read, nodeIndex)==0) {
 
-		/* Update to the next node */
-		nodeIndex++;
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Will append...\n");
+			}
+			/* Copy over the matches */
+			/* (Re)Allocate memory for the new matches */
+			startIndex = m->numEntries;
+			m->numEntries++;
+			m->positions = realloc(m->positions, sizeof(uint32_t)*(m->numEntries)); 
+			if(NULL == m->positions) {
+				PrintError("RGIndexGetMatches",
+						"m->positions",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*(m->numEntries)); 
+			if(NULL == m->chromosomes) {
+				PrintError("RGIndexGetMatches",
+						"m->chromosomes",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			m->strand = realloc(m->strand, sizeof(int8_t)*(m->numEntries)); 
+			if(NULL == m->strand) {
+				PrintError("RGIndexGetMatches",
+						"m->strand",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+
+			/* Copy over */
+			for(i=startIndex;i<m->numEntries;i++) {
+				m->positions[i] = index->positions[nodeIndex] - offset;
+				m->chromosomes[i] = index->chromosomes[nodeIndex];
+				m->strand[i] = direction;
+			}
+
+			/* Update to the next node */
+			nodeIndex++;
+		}
 	}
 }
 
 /* TODO */
 int64_t RGIndexGetFirstIndex(RGIndex *index,
 		RGBinary *rg,
+		int64_t low,
+		int64_t high,
 		char *read)
 {
-	int64_t low=0;
-	int64_t high=index->length-1;
 	int64_t mid=-1;
 	int32_t cmp;
 	int32_t cont = 1;
@@ -1177,4 +1383,122 @@ int32_t RGIndexCompareRead(RGIndex *index,
 
 	/* All bases were equal, return 0 */
 	return 0;
+}
+
+/* TODO */
+uint32_t RGIndexGetHashIndex(RGIndex *index,
+		RGBinary *rg,
+		uint32_t a)
+{
+	assert(a>=0 && a<index->length);
+
+	int32_t i, j;
+	uint32_t aChr = index->chromosomes[a];
+	uint32_t aPos = index->positions[a];
+
+	uint32_t aCurTilePos;
+	uint8_t aBase;
+
+	uint32_t cur = 0;
+	uint32_t hashIndex = 0;
+
+	/* Compare base by base */
+	aCurTilePos = aPos;
+
+	assert(ALPHABET_SIZE == 4);
+
+	for(i=0;cur < index->hashWidth && i < index->numTiles;i++) { /* For each tile */
+		for(j=0;cur < index->hashWidth && j<index->tileLengths[i];j++) { /* For each position in the tile */
+			aBase = ToLower(RGBinaryGetBase(rg,
+						aChr,
+						aCurTilePos));
+
+			switch(aBase) {
+				case 'a':
+					/* Do nothing since a is zero base 4 */
+					break;
+				case 'c':
+					hashIndex += pow(ALPHABET_SIZE, cur);
+					break;
+				case 'g':
+					hashIndex += pow(ALPHABET_SIZE, cur)+1;
+					break;
+				case 't':
+					hashIndex += pow(ALPHABET_SIZE, cur)+2;
+					break;
+				default:
+					PrintError("RGIndexGetHashIndex",
+							"aBase",
+							"Could not understand base",
+							Exit,
+							OutOfRange);
+					break;
+			}
+
+			cur++;
+
+			/* Update */
+			aCurTilePos++;
+		}
+		if(i<index->numTiles-1) { /* Add gap */
+			aCurTilePos += index->gaps[i];
+		}
+	}
+
+	assert(cur == index->hashWidth);
+
+	/* All bases were equal, return 0 */
+	return hashIndex;
+}
+
+/* TODO */
+uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
+		RGBinary *rg,
+		char *read)
+{
+	int32_t i, j;
+	int32_t curReadPos=0;
+	int32_t readLength = strlen((char*)read);
+	uint8_t readBase;
+
+	uint32_t cur = 0;
+	uint32_t hashIndex = 0;
+
+	for(i=0;cur < index->hashWidth && i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
+		for(j=0;cur < index->hashWidth &&  j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
+			readBase = ToLower(read[curReadPos]);
+
+			switch(readBase) {
+				case 'a':
+					/* Do nothing since a is zero base 4 */
+					break;
+				case 'c':
+					hashIndex += pow(ALPHABET_SIZE, cur);
+					break;
+				case 'g':
+					hashIndex += pow(ALPHABET_SIZE, cur)+1;
+					break;
+				case 't':
+					hashIndex += pow(ALPHABET_SIZE, cur)+2;
+					break;
+				default:
+					PrintError("RGIndexGetHashIndexFromRead",
+							"aBase",
+							"Could not understand base",
+							Exit,
+							OutOfRange);
+					break;
+			}
+
+			curReadPos++;
+		}
+		if(i<index->numTiles-1) { /* Add gap */
+			curReadPos += index->gaps[i];
+		}
+	}
+
+	assert(cur == index->hashWidth);
+
+	/* All bases were equal, return 0 */
+	return hashIndex;
 }

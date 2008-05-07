@@ -18,7 +18,7 @@ void GenerateIndex(RGBinary *rg,
 		char *outputDir,
 		int binaryOutput)
 {
-	int32_t i, j;
+	int32_t i;
 	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
 	FILE *fp=NULL;
 
@@ -30,62 +30,20 @@ void GenerateIndex(RGBinary *rg,
 
 	for(i=0;i<rgLayout->numIndexes;i++) { /* For each index to create */
 
-		/* Initialize the index */
-		index.positions=NULL;
-		index.chromosomes=NULL;
-		index.totalLength=0;
-		index.length=0;
-		index.startChr = rg->startChr;
-		index.startPos = rg->startPos;
-		index.endChr = rg->endChr;
-		index.endPos = rg->endPos;
-
-		/* Copy over index information */
-		index.totalLength = 0;
-		index.numTiles = rgLayout->numTiles[i];
-		/* Allocate memory and copy over tile lengths */
-		index.tileLengths = malloc(sizeof(int32_t)*rgLayout->numTiles[i]);
-		if(NULL == index.tileLengths) {
-			PrintError("GenerateIndex",
-					"index.tileLengths",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		for(j=0;j<rgLayout->numTiles[i];j++) {
-			index.tileLengths[j] = rgLayout->tileLengths[i][j];
-			index.totalLength += rgLayout->tileLengths[i][j];
-		}
-		/* Allocate memory and copy over gaps */
-		index.gaps = malloc(sizeof(int32_t)*(rgLayout->numTiles[i]-1));
-		if(NULL == index.gaps) {
-			PrintError("GenerateIndex",
-					"index.gaps",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		for(j=0;j<rgLayout->numTiles[i]-1;j++) {
-			index.gaps[j] = rgLayout->gaps[i][j];
-			index.totalLength += rgLayout->gaps[i][j];
-		}
-
 		/* Create the index */
 		if(VERBOSE >=0) {
 			fprintf(stderr, "Creating the index...\n");
 		}
-		RGIndexCreate(&index, rg, 1, 0);
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "Insertions complete.\n");
-		}
+		RGIndexCreate(&index, 
+				rg, 
+				rgLayout,
+				i,
+				numThreads,
+				1, /* Include repeat masker */
+				0); /* Do not include Ns */
 
-		/* Clean up the index */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Cleaning up...\n");
-		}
-		RGIndexCleanUpIndex(&index, rg, numThreads);
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "Finishing cleaning up.\n");
+			fprintf(stderr, "Index created.\n");
 			fprintf(stderr, "Index size is %.3lfGB.\n",
 					RGIndexGetSize(&index, GIGABYTES));
 		}
