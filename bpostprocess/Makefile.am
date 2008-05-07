@@ -15,4 +15,4 @@ bpostprocess_SOURCES = \
 ##  the *_SOURCES above so we need to reference libm.a here
 
 bpostprocess_LDADD = -lm 
-AM_CFLAGS = -Wall -ansi -g -O3 -m64
+AM_CFLAGS = -Wall -ansi -g -O3 -m64 -pthread
