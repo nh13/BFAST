@@ -212,7 +212,7 @@ void RGIndexCreate(RGIndex *index,
 		else {
 			/* Get the index in the hash */
 			hashIndex = RGIndexGetHashIndex(index, rg, start);
-			assert(hashIndex > 0 && hashIndex < index->hashLength);
+			assert(hashIndex >= 0 && hashIndex < index->hashLength);
 			/* Store start and end */
 			index->starts[hashIndex] = start;
 			if(end == index->length-1) {
@@ -449,6 +449,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 	uint8_t tempChr;
 	int64_t total = high-low+1;
 	int64_t curLow, curHigh;
+	int32_t cmp[3];
 	double curPercent = 0.0;
 
 	/* Initialize stack */
@@ -500,9 +501,54 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		/* Proceed if we are with range */
 		if(curLow < curHigh && curLow >= low && curHigh <= high) {
 			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
-			 * but lets just choose the middle element for now.
+			 * but lets just choose the median of the front, middle and end 
 			 * */
 			pivot = (curLow + curHigh)/2;
+			cmp[0] = RGIndexCompareAt(index, rg, curLow, pivot);
+			cmp[1] = RGIndexCompareAt(index, rg, curLow, curHigh);
+			cmp[2] = RGIndexCompareAt(index, rg, pivot, curHigh);
+			if(cmp[0] <= 0) {
+				/* curLow <= pivot */
+				if(cmp[1] >= 0) {
+					/* curHigh <= curLow */
+					/* so curHigh <= curLow <= pivot */
+					pivot = curLow;
+				}
+				else {
+					/* curLow < curHigh */
+					if(cmp[2] <= 0) {
+						/* pivot <= curHigh */
+						/* so curLow <= pivot <= curHigh */
+						/* choose pivot */
+					}
+					else {
+						/* curHigh < pivot */
+						/* so curLow < curHigh < pivot */
+						pivot = curHigh;
+					}
+				}
+			}
+			else {
+				/* pivot < curLow */
+				if(cmp[1] <= 0) {
+					/* curLow <= curHigh */
+					/* so pivot < curLow <= curHigh */
+					pivot = curLow;
+				}
+				else {
+					/* curHigh < curLow */
+					if(cmp[2] <= 0) {
+						/* pivot <= curHigh */
+						/* so pivot <= curHigh < curLow */
+						pivot = curHigh;
+					}
+					else {
+						/* curHigh < pivot */
+						/* so curHigh < pivot < curLow */
+						/* choose pivot */
+					}
+				}
+			}
 			assert(pivot >=0 && pivot<index->length);
 			assert(curLow >=0 && curLow<index->length);
 			assert(curHigh >=0 && curHigh<index->length);
@@ -599,12 +645,61 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 	int64_t pivot = 0;
 	uint32_t tempPos;
 	uint8_t tempChr;
+	int32_t cmp[3];
 
 	if(low < high ) {
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the middle element for now.
 		 * */
+			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
+			 * but lets just choose the median of the front, middle and end 
+			 * */
 		pivot = (low + high)/2;
+			cmp[0] = RGIndexCompareAt(index, rg, low, pivot);
+			cmp[1] = RGIndexCompareAt(index, rg, low, high);
+			cmp[2] = RGIndexCompareAt(index, rg, pivot, high);
+			if(cmp[0] <= 0) {
+				/* low <= pivot */
+				if(cmp[1] >= 0) {
+					/* high <= low */
+					/* so high <= low <= pivot */
+					pivot = low;
+				}
+				else {
+					/* low < high */
+					if(cmp[2] <= 0) {
+						/* pivot <= high */
+						/* so low <= pivot <= high */
+						/* choose pivot */
+					}
+					else {
+						/* high < pivot */
+						/* so low < high < pivot */
+						pivot = high;
+					}
+				}
+			}
+			else {
+				/* pivot < low */
+				if(cmp[1] <= 0) {
+					/* low <= high */
+					/* so pivot < low <= high */
+					pivot = low;
+				}
+				else {
+					/* high < low */
+					if(cmp[2] <= 0) {
+						/* pivot <= high */
+						/* so pivot <= high < low */
+						pivot = high;
+					}
+					else {
+						/* high < pivot */
+						/* so high < pivot < low */
+						/* choose pivot */
+					}
+				}
+			}
 		assert(pivot >=0 && pivot<index->length);
 		assert(low >=0 && low<index->length);
 		assert(high >=0 && high<index->length);

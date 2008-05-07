@@ -75,7 +75,7 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 	/* Read the indexes */
 	for(i=0;i<rgLayout->numIndexes;i++) {
 		/* Read in the hash length */
-		if(EOF==fscanf(fp, "%d", &rgLayout->hashLengths[i])) {
+		if(EOF==fscanf(fp, "%u", &rgLayout->hashLengths[i])) {
 			PrintError("RGIndexLayoutRead",
 					NULL,
 					"Could not read the hashLengths",
@@ -145,9 +145,9 @@ void RGIndexLayoutDelete(RGIndexLayout *rgLayout)
 		rgLayout->tileLengths[i]=NULL;
 	}
 	/* Free the gaps */
-	for(i=0;i<rgLayout->numIndexes-1;i++) {
+	for(i=0;i<rgLayout->numIndexes;i++) {
 		free(rgLayout->gaps[i]);
-		rgLayout->gaps=NULL;
+		rgLayout->gaps[i]=NULL;
 	}
 	free(rgLayout->hashLengths);
 	rgLayout->hashLengths = NULL;
