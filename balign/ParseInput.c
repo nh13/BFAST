@@ -448,7 +448,7 @@ void
 GetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "\nUsage: danalyze [options]\n");
+	fprintf(stderr, "\nUsage: balign [options]\n");
 	while((*a).group>0) {
 		switch((*a).key) {
 			case 0:
@@ -466,7 +466,7 @@ PrintGetOptHelp() {
 
 	struct argp_option *a=options;
 	fprintf(stderr, "%s\n", argp_program_version);
-	fprintf(stderr, "\nUsage: danalyze [options]\n");
+	fprintf(stderr, "\nUsage: balign [options]\n");
 	while((*a).group>0) {
 		switch((*a).key) {
 			case 0:
