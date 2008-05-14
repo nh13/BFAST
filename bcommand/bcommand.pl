@@ -541,7 +541,7 @@ sub CreateBProcessCommandsAndFiles {
 		$command = $$data{"COMMANDDIR"}; # Command directory 
 		$command .= "bpreprocess/bpreprocess"; # Command 
 		$command .= " -r ".$$data{"RGLISTFILENAME"}; # The reference genome file list 
-		$command .= " -i ".$$data{"LAYOUTFILENAME"}; # The layout file name
+		$command .= " -i ".$$data{"OUTPUTDIR"}.$$data{"LAYOUTFILENAME"}; # The layout file name
 		$command .= " -a 0"; # Create Index 
 		if($$data{"BPREPROCESSINPUTBINARY"}==1) {
 			$command .= " -b";

@@ -32,7 +32,8 @@ void RGIndexCreate(RGIndex *index,
 	int32_t curChr=-1;
 	int32_t insert, i, j, curTilePos;
 	int32_t chrIndex = 0;
-	uint32_t start, end, hashIndex;
+	uint32_t start, end;
+	uint32_t curHash, startHash;
 
 	/* Initialize the index */
 	index->positions=NULL;
@@ -207,26 +208,32 @@ void RGIndexCreate(RGIndex *index,
 	}
 
 	/* Go through index and update the hash */
+	startHash = RGIndexGetHashIndex(index, rg, 0);
 	for(end=1, start=0;end < index->length;end++) {
-		if(RGIndexCompareAt(index, rg, start, end) == 0 && end != index->length-1) {
+		curHash = RGIndexGetHashIndex(index, rg, end);
+		if(curHash == startHash) {
 			/* Do nothing */
 		}
 		else {
 			/* Get the index in the hash */
-			hashIndex = RGIndexGetHashIndex(index, rg, start);
-			assert(hashIndex >= 0 && hashIndex < index->hashLength);
+			assert(startHash >= 0 && startHash < index->hashLength);
+			assert(index->starts[startHash] == UINT_MAX);
+			assert(index->ends[startHash] == UINT_MAX);
+
 			/* Store start and end */
-			index->starts[hashIndex] = start;
+			index->starts[startHash] = start;
 			if(end == index->length-1) {
 				/* Boundary condition */
-				index->ends[hashIndex] = end;
+				index->ends[startHash] = end;
 				/* Update start */
 				start = end;
+				startHash = curHash;
 			}
 			else {
-				index->ends[hashIndex] = end-1;
+				index->ends[startHash] = end-1;
 				/* Update start */
 				start = end;
+				startHash = curHash;
 			}
 		}
 	}
@@ -1276,11 +1283,11 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 				read);
 		if(VERBOSE >= DEBUG) {
 			if(nodeIndex < 0) {
-				fprintf(stderr, "Found index:%lld\n", nodeIndex);
+				fprintf(stderr, "Found index:%lld\n", (long long int)nodeIndex);
 			}
 			else {
 				fprintf(stderr, "Found index:%lld\tchr:%d\tpos:%d\n", 
-						nodeIndex,
+						(long long int)nodeIndex,
 						(int32_t)index->chromosomes[nodeIndex],
 						index->positions[nodeIndex]);
 			}
@@ -1352,9 +1359,9 @@ int64_t RGIndexGetFirstIndex(RGIndex *index,
 		cmp = RGIndexCompareRead(index, rg, read, mid);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "low:%lld\tmid:%lld\thigh:%lld\tcmp:%d\n",
-					low,
-					mid,
-					high,
+					(long long int)low,
+					(long long int)mid,
+					(long long int)high,
 					cmp);
 		}
 		if(cmp == 0) {
