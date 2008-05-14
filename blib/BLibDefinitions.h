@@ -78,7 +78,7 @@ typedef struct {
 
 	/* Hash storage */
 	uint32_t hashWidth; /* in bases */
-	uint32_t hashLength; /* in base 4 */
+	int64_t hashLength; 
 	uint32_t *starts;
 	uint32_t *ends;
 

@@ -211,32 +211,49 @@ void RGIndexCreate(RGIndex *index,
 	startHash = RGIndexGetHashIndex(index, rg, 0);
 	for(end=1, start=0;end < index->length;end++) {
 		curHash = RGIndexGetHashIndex(index, rg, end);
+		assert(curHash >= startHash);
 		if(curHash == startHash) {
 			/* Do nothing */
 		}
 		else {
-			/* Get the index in the hash */
+			/* Paranoia check */
+			assert(curHash != startHash);
+			/* Check that it is within bounds */
+			if(startHash < 0 || startHash >= index->hashLength) {
+				fprintf(stderr, "%s: %lld\t%lld\n",
+						FnName,
+						(long long int)startHash,
+						(long long int)index->hashLength);
+			}
 			assert(startHash >= 0 && startHash < index->hashLength);
+			/* Check that it has not been already initialized */
+			if(index->starts[startHash] != UINT_MAX) {
+				fprintf(stderr, "%s: %lld\t%lld\n",
+						FnName,
+						(long long int)startHash,
+						(long long int)index->starts[startHash]);
+			}
 			assert(index->starts[startHash] == UINT_MAX);
+			if(index->ends[startHash] != UINT_MAX) {
+				fprintf(stderr, "%s: %lld\t%lld\n",
+						FnName,
+						(long long int)startHash,
+						(long long int)index->ends[startHash]);
+			}
 			assert(index->ends[startHash] == UINT_MAX);
 
 			/* Store start and end */
 			index->starts[startHash] = start;
-			if(end == index->length-1) {
-				/* Boundary condition */
-				index->ends[startHash] = end;
-				/* Update start */
-				start = end;
-				startHash = curHash;
-			}
-			else {
-				index->ends[startHash] = end-1;
-				/* Update start */
-				start = end;
-				startHash = curHash;
-			}
+			index->ends[startHash] = end-1;
+			/* Update start */
+			start = end;
+			startHash = curHash;
 		}
 	}
+	/* In the boundary case... */
+			/* Store start and end */
+			index->starts[startHash] = start;
+			index->ends[startHash] = end-1;
 
 	/* Check hash creation */
 	for(i=0;i<index->hashLength;i++) {
@@ -1174,10 +1191,10 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
 	if(binaryOutput == 0) {
-		fprintf(fp, "%u\t%u\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n",
+		fprintf(fp, "%u\t%u\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\n",
 				index->length,
 				index->hashWidth,
-				index->hashLength,
+				(long long int)index->hashLength,
 				index->totalLength,
 				index->numTiles,
 				index->startChr,
@@ -1189,7 +1206,7 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 		/* Print Header */
 		fwrite(&index->length, sizeof(uint32_t), 1, fp);
 		fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp);
-		fwrite(&index->hashLength, sizeof(uint32_t), 1, fp);
+		fwrite(&index->hashLength, sizeof(int64_t), 1, fp);
 		fwrite(&index->totalLength, sizeof(int32_t), 1, fp);
 		fwrite(&index->numTiles, sizeof(int32_t), 1, fp);
 		fwrite(&index->startChr, sizeof(int32_t), 1, fp);
@@ -1204,10 +1221,10 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
 	/* Read in header */
 	if(binaryInput == 0) {
-		if(fscanf(fp, "%u %u %u %d %d %d %d %d %d",
+		if(fscanf(fp, "%u %u %lld %d %d %d %d %d %d",
 					&index->length,
 					&index->hashWidth,
-					&index->hashLength,
+					(long long int *)&index->hashLength,
 					&index->totalLength,
 					&index->numTiles,
 					&index->startChr,
@@ -1224,7 +1241,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 	else {
 		if(fread(&index->length, sizeof(uint32_t), 1, fp)==EOF
 				|| fread(&index->hashWidth, sizeof(uint32_t), 1, fp)==EOF
-				|| fread(&index->hashLength, sizeof(uint32_t), 1, fp)==EOF
+				|| fread(&index->hashLength, sizeof(int64_t), 1, fp)==EOF
 				|| fread(&index->totalLength, sizeof(int32_t), 1, fp)==EOF
 				|| fread(&index->numTiles, sizeof(int32_t), 1, fp)==EOF 
 				|| fread(&index->startChr, sizeof(int32_t), 1, fp)==EOF
