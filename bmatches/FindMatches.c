@@ -401,6 +401,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		(*totalDataStructureTime)+=endTime - startTime;	
 
 		if(VERBOSE >= 0) {
+			fprintf(stderr, "\n");
 			fprintf(stderr, "Searching given index...\n");
 		}
 
@@ -738,7 +739,7 @@ void *FindMatchesInIndex(void *arg)
 		}
 	}
 	if(VERBOSE>=0) {
-		fprintf(stderr, "\rthreadID:%d\tnumRead:%d\n",
+		fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
 				threadID,
 				numRead);
 	}

@@ -120,7 +120,7 @@ void RGBinaryRead(char *rgFileName,
 	assert(startPos>=1);
 	assert(endChr>=1 && endChr<=numChrFileNames);
 	assert(endPos >= 1);
-	assert(startPos <= endPos);
+	assert(startChr!=endChr || startPos <= endPos);
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);

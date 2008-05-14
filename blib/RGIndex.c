@@ -65,17 +65,19 @@ void RGIndexCreate(RGIndex *index,
 		index->totalLength += rgLayout->tileLengths[layoutIndex][i];
 	}
 	/* Allocate memory and copy over gaps */
-	index->gaps = malloc(sizeof(int32_t)*(rgLayout->numTiles[layoutIndex]-1));
-	if(NULL == index->gaps) {
-		PrintError(FnName,
-				"index->gaps",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	for(i=0;i<rgLayout->numTiles[layoutIndex]-1;i++) {
-		index->gaps[i] = rgLayout->gaps[layoutIndex][i];
-		index->totalLength += rgLayout->gaps[layoutIndex][i];
+	if(rgLayout->numTiles[layoutIndex] > 1) {
+		index->gaps = malloc(sizeof(int32_t)*(rgLayout->numTiles[layoutIndex]-1));
+		if(NULL == index->gaps) {
+			PrintError(FnName,
+					"index->gaps",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<rgLayout->numTiles[layoutIndex]-1;i++) {
+			index->gaps[i] = rgLayout->gaps[layoutIndex][i];
+			index->totalLength += rgLayout->gaps[layoutIndex][i];
+		}
 	}
 
 	assert(index->numTiles > 0);
@@ -651,55 +653,55 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the middle element for now.
 		 * */
-			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
-			 * but lets just choose the median of the front, middle and end 
-			 * */
+		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
+		 * but lets just choose the median of the front, middle and end 
+		 * */
 		pivot = (low + high)/2;
-			cmp[0] = RGIndexCompareAt(index, rg, low, pivot);
-			cmp[1] = RGIndexCompareAt(index, rg, low, high);
-			cmp[2] = RGIndexCompareAt(index, rg, pivot, high);
-			if(cmp[0] <= 0) {
-				/* low <= pivot */
-				if(cmp[1] >= 0) {
-					/* high <= low */
-					/* so high <= low <= pivot */
-					pivot = low;
-				}
-				else {
-					/* low < high */
-					if(cmp[2] <= 0) {
-						/* pivot <= high */
-						/* so low <= pivot <= high */
-						/* choose pivot */
-					}
-					else {
-						/* high < pivot */
-						/* so low < high < pivot */
-						pivot = high;
-					}
-				}
+		cmp[0] = RGIndexCompareAt(index, rg, low, pivot);
+		cmp[1] = RGIndexCompareAt(index, rg, low, high);
+		cmp[2] = RGIndexCompareAt(index, rg, pivot, high);
+		if(cmp[0] <= 0) {
+			/* low <= pivot */
+			if(cmp[1] >= 0) {
+				/* high <= low */
+				/* so high <= low <= pivot */
+				pivot = low;
 			}
 			else {
-				/* pivot < low */
-				if(cmp[1] <= 0) {
-					/* low <= high */
-					/* so pivot < low <= high */
-					pivot = low;
+				/* low < high */
+				if(cmp[2] <= 0) {
+					/* pivot <= high */
+					/* so low <= pivot <= high */
+					/* choose pivot */
 				}
 				else {
-					/* high < low */
-					if(cmp[2] <= 0) {
-						/* pivot <= high */
-						/* so pivot <= high < low */
-						pivot = high;
-					}
-					else {
-						/* high < pivot */
-						/* so high < pivot < low */
-						/* choose pivot */
-					}
+					/* high < pivot */
+					/* so low < high < pivot */
+					pivot = high;
 				}
 			}
+		}
+		else {
+			/* pivot < low */
+			if(cmp[1] <= 0) {
+				/* low <= high */
+				/* so pivot < low <= high */
+				pivot = low;
+			}
+			else {
+				/* high < low */
+				if(cmp[2] <= 0) {
+					/* pivot <= high */
+					/* so pivot <= high < low */
+					pivot = high;
+				}
+				else {
+					/* high < pivot */
+					/* so high < pivot < low */
+					/* choose pivot */
+				}
+			}
+		}
 		assert(pivot >=0 && pivot<index->length);
 		assert(low >=0 && low<index->length);
 		assert(high >=0 && high<index->length);
@@ -875,11 +877,14 @@ void RGIndexDelete(RGIndex *index)
 	free(index->ends);
 	index->ends=NULL;
 
+	/* Only free if we have allocated gaps */
+	if(index->numTiles>1) {
+		free(index->gaps);
+	}
+	index->gaps=NULL;
 	index->numTiles=0;
 	free(index->tileLengths);
 	index->tileLengths=NULL;
-	free(index->gaps);
-	index->gaps=NULL;
 
 	index->startChr=0;
 	index->startPos=0;
@@ -1148,7 +1153,7 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 		}
 
 		/* Read the gaps */
-		if(fread(&index->gaps, sizeof(int32_t), index->numTiles-1, fp)==EOF) {
+		if(fread(index->gaps, sizeof(int32_t), index->numTiles-1, fp)==EOF) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in gaps",
@@ -1584,6 +1589,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 							OutOfRange);
 					break;
 			}
+			cur++;
 
 			curReadPos++;
 		}

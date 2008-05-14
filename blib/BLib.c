@@ -210,7 +210,7 @@ void CheckRGIndexes(char **mainFileNames,
 		/* Open file */
 		if((fp=fopen(mainFileNames[i], "r"))==0) {
 			PrintError("CheckRGIndexes",
-					"mainFileNames[i]",
+					mainFileNames[i],
 					"Could not open file for reading",
 					Exit,
 					OpenFileError);
