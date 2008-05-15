@@ -209,8 +209,15 @@ void RGIndexCreate(RGIndex *index,
 
 	/* Go through index and update the hash */
 	startHash = RGIndexGetHashIndex(index, rg, 0);
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Creating a hash...\n0");
+	}
 	for(end=1, start=0;end < index->length;end++) {
+		if(VERBOSE >= 0 && end%RGINDEX_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d", end);
+		}
 		curHash = RGIndexGetHashIndex(index, rg, end);
+		RGIndexGetHashIndex(index, rg, start);
 		assert(curHash >= startHash);
 		if(curHash == startHash) {
 			/* Do nothing */
@@ -250,10 +257,13 @@ void RGIndexCreate(RGIndex *index,
 			startHash = curHash;
 		}
 	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rHash created.\n");
+	}
 	/* In the boundary case... */
-			/* Store start and end */
-			index->starts[startHash] = start;
-			index->ends[startHash] = end-1;
+	/* Store start and end */
+	index->starts[startHash] = start;
+	index->ends[startHash] = end-1;
 
 	/* Check hash creation */
 	for(i=0;i<index->hashLength;i++) {
@@ -450,6 +460,7 @@ void *RGIndexQuickSortNodes(void *arg)
 			data->showPercentComplete);
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
+		fprintf(stderr, "thread %3.3lf percent complete", 100.0);
 	}
 
 	return arg;
@@ -1523,7 +1534,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 	uint32_t aCurTilePos;
 	uint8_t aBase;
 
-	uint32_t cur = 0;
+	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
 
 	/* Compare base by base */
@@ -1531,8 +1542,8 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 
 	assert(ALPHABET_SIZE == 4);
 
-	for(i=0;cur < index->hashWidth && i < index->numTiles;i++) { /* For each tile */
-		for(j=0;cur < index->hashWidth && j<index->tileLengths[i];j++) { /* For each position in the tile */
+	for(i=0;cur >= 0 && i < index->numTiles;i++) { /* For each tile */
+		for(j=0;cur >= 0 && j<index->tileLengths[i];j++) { /* For each position in the tile */
 			aBase = ToLower(RGBinaryGetBase(rg,
 						aChr,
 						aCurTilePos));
@@ -1545,10 +1556,10 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 					hashIndex += pow(ALPHABET_SIZE, cur);
 					break;
 				case 'g':
-					hashIndex += pow(ALPHABET_SIZE, cur)+1;
+					hashIndex += pow(ALPHABET_SIZE, cur)*2;
 					break;
 				case 't':
-					hashIndex += pow(ALPHABET_SIZE, cur)+2;
+					hashIndex += pow(ALPHABET_SIZE, cur)*3;
 					break;
 				default:
 					PrintError("RGIndexGetHashIndex",
@@ -1558,8 +1569,15 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 							OutOfRange);
 					break;
 			}
+			/*
+			fprintf(stderr, "%c\t%d\t%lf\t%d\n",
+					aBase,
+					cur,
+					pow(ALPHABET_SIZE, cur),
+					hashIndex);
+					*/
 
-			cur++;
+			cur--;
 
 			/* Update */
 			aCurTilePos++;
@@ -1569,9 +1587,10 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 		}
 	}
 
-	assert(cur == index->hashWidth);
-
 	/* All bases were equal, return 0 */
+	/*
+	fprintf(stderr, "HERE returning %u\n", hashIndex);
+	*/
 	return hashIndex;
 }
 
@@ -1585,11 +1604,11 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 	int32_t readLength = strlen((char*)read);
 	uint8_t readBase;
 
-	uint32_t cur = 0;
+	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
 
-	for(i=0;cur < index->hashWidth && i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
-		for(j=0;cur < index->hashWidth &&  j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
+	for(i=0;cur >= 0 && i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
+		for(j=0;cur >= 0 &&  j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
 			readBase = ToLower(read[curReadPos]);
 
 			switch(readBase) {
@@ -1600,10 +1619,10 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 					hashIndex += pow(ALPHABET_SIZE, cur);
 					break;
 				case 'g':
-					hashIndex += pow(ALPHABET_SIZE, cur)+1;
+					hashIndex += pow(ALPHABET_SIZE, cur)*2;
 					break;
 				case 't':
-					hashIndex += pow(ALPHABET_SIZE, cur)+2;
+					hashIndex += pow(ALPHABET_SIZE, cur)*3;
 					break;
 				default:
 					PrintError("RGIndexGetHashIndexFromRead",
@@ -1613,7 +1632,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 							OutOfRange);
 					break;
 			}
-			cur++;
+			cur--;
 
 			curReadPos++;
 		}
@@ -1621,8 +1640,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 			curReadPos += index->gaps[i];
 		}
 	}
-
-	assert(cur == index->hashWidth);
 
 	/* All bases were equal, return 0 */
 	return hashIndex;
