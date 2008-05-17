@@ -210,11 +210,12 @@ void RGIndexCreate(RGIndex *index,
 	/* Go through index and update the hash */
 	startHash = RGIndexGetHashIndex(index, rg, 0);
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Creating a hash...\n0");
+		fprintf(stderr, "Creating a hash. Out of %u, currently on:\n0",
+				(uint32_t)index->length);
 	}
 	for(end=1, start=0;end < index->length;end++) {
 		if(VERBOSE >= 0 && end%RGINDEX_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%d", end);
+			fprintf(stderr, "\r%u", end);
 		}
 		curHash = RGIndexGetHashIndex(index, rg, end);
 		RGIndexGetHashIndex(index, rg, start);
