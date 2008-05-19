@@ -18,9 +18,9 @@ use Getopt::Long;
 # where the OPTION specifies the option, and in quotes
 # is the OPTION's value (VALUE).
 #
-# The -o option will create a blank blatter.ini file for use
+# The -o option will create a blank bfast.ini file for use
 #
-# Please see accompanying blatter.ini example file and man
+# Please see accompanying bfast.ini example file and man
 # page.
 #
 ############################################################
@@ -75,9 +75,9 @@ my @options = (
 	"MAXNUMMATCHES");
 
 # Global variables
-my $BLATTER_INDEX_FILE_EXTENSION = "bif";
-my $BLATTER_TREE_FILE_EXTENSION = "btf";
-my $BLATTER_MATCHES_FILE_EXTENSION = "bmf";
+my $BFAST_INDEX_FILE_EXTENSION = "bif";
+my $BFAST_TREE_FILE_EXTENSION = "btf";
+my $BFAST_MATCHES_FILE_EXTENSION = "bmf";
 
 # Command line variables
 my $iniFileName;
@@ -566,7 +566,7 @@ sub CreateBProcessCommandsAndFiles {
 		for(my $j=0;$j<$$data{"NUMLAYOUTS"};$j++) {
 
 			if($j==0) {
-				print FHMainIndexes sprintf("%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s\n",
+				print FHMainIndexes sprintf("%sbfast.index.file.%s.%d.%d.%d.%d.%d.%s\n",
 					$$data{"OUTPUTDIR"},
 					$$data{"OUTPUTID"},
 					$$startChrArr[$i],
@@ -574,10 +574,10 @@ sub CreateBProcessCommandsAndFiles {
 					$$endChrArr[$i],
 					$$endPosArr[$i],
 					$j+1,
-					$BLATTER_INDEX_FILE_EXTENSION);
+					$BFAST_INDEX_FILE_EXTENSION);
 			}
 			else {
-				print FHIndexes sprintf("%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s\n",
+				print FHIndexes sprintf("%sbfast.index.file.%s.%d.%d.%d.%d.%d.%s\n",
 					$$data{"OUTPUTDIR"},
 					$$data{"OUTPUTID"},
 					$$startChrArr[$i],
@@ -585,7 +585,7 @@ sub CreateBProcessCommandsAndFiles {
 					$$endChrArr[$i],
 					$$endPosArr[$i],
 					$j+1,
-					$BLATTER_INDEX_FILE_EXTENSION);
+					$BFAST_INDEX_FILE_EXTENSION);
 			}
 		}
 	}
@@ -701,7 +701,7 @@ sub CreateBMatchesCommandsAndFiles {
 		# Print the command
 		print FHMatchesCommands $command."\n";
 		# Print the file generated
-		print FHMatchesList sprintf("%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
+		print FHMatchesList sprintf("%sbfast.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s\n",
 			$$data{"OUTPUTDIR"},
 			$$data{"OUTPUTID"},
 			($i-$incReads+1),

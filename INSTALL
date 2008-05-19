@@ -1,6 +1,8 @@
-Welcome to Deciphia.
+Welcome to bfast.
 
 This package is not intended for distribution.  Please refer to the man pages for documentation:
-doc/deciphia.1
-doc/dextract.1
-doc/danalyze.1
+doc/bfast.1
+doc/bpreprocess.1
+doc/bmatches.1
+doc/balign.1
+doc/bpostprocess.1

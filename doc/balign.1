@@ -1,5 +1,5 @@
 \#  For more details on the layout of this page and how to process it
-\#  to create PDF and HTML, see the comment header for blatter.1
+\#  to create PDF and HTML, see the comment header for bfast.1
 \#
 \#
 \# .TP
@@ -9,55 +9,141 @@
 \" Turn off justification and hyphenation
 .na
 .hy 0
-.TH balign 1 "Sep 01, 2007" "version 0.1.1" "UCLA Blatter"
+.TH balign 1 "Jul 01, 2008" "version 0.1.1" "UCLA bfast"
 .SH NAME
-balign \- aligns the potential alignments to the reference genome.
+balign \- aligns candidate alignment locations to the reference genome.
 .SH SYNOPSIS
 .P
 .fam C
 .nf
 balign
-	[\fB\-o\fR \fIFILENAME\fR] [\fB\-\-OutputFileName\fR\fIFILENAME\fR]
-	[\fB\-h\fR] [\fB\-\-Help\fR]
+	[\fB\-r\fR \fIFILENAME\fR]	[\fB\-\-rgListFileName=\fIFILENAME\fR]
+	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchesFileName=\fIFILENAME\fR]
+	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
+	[\fB\-b\fR]			[\fB\-\-binaryInput\fR]
+	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm=\fIINTEGER\fR]
+	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startChr=\fIINTEGER\fR]
+	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
+	[\fB\-e\fR \fIINTEGER\fR]	[\fB\-\-endChr=\fIINTEGER\fR]
+	[\fB\-E\fR \fIINTEGER\fR]	[\fB\-\-endPos=\fIINTEGER\fR]
+	[\fB\-O\fR \fIINTEGER\fR]	[\fB\-\-offset=\fIINTEGER\fR]
+	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fIINTEGER\fR]
+	[\fB\-2\fR]			[\fB\-\-pairedEnd\fR]
+	[\fB\-n\fR \fIINTEGER\fR]	[\fB\-\-numThreads=\fINTEGER\fR]
+	[\fB\-o\fR \fISTRING\fR]	[\fB\-\-outputID=\fISTRING\fR]
+	[\fB\-d\fR \fIDIRECTORY\fR]	[\fB\-\-outputDir=\fIDIRECTORY\fR]
+	[\fB\-t\fR]			[\fB\-\-timing\fR]
+	[\fB\-p\fR]			[\fB\-\-Parameters\fR]
+	[\fB\-h\fR]			[\fB\-\-Help\fR]
 .fi
 .fam
 .
 .SH DESCRIPTION
 .B balign
-is the third of three programs in the Blatter system.
+is the fourth of three programs in the bfast system.
+.
+.P
+.B balign
+requires three input files.
+The first file (\fB-r\fR) contains the list of files specifying the sequence of the reference genome.
+The second file (\fB\-m\fR) contains the list of files containing the output from 
+.B bmatches.
+The third file (\fB\-x\fR) contains the scoring matrix used with \fB\-a\fR.
+.
+.P
+The user can specify a range in the genome as to filter out candidate alignment locations (\fB\-s\fR, \fB\-S\fR, \fB\-e\fR, and \fB\-E\fR).
+.
+.P
+When aligning th read to the candidate alignment, location it is useful to include surrounding bases to obtain a more accurate alignment.
+Therefore the user can also specify an offset (\fB\-O\fR).  
+.
+.P
+Paired end alignments can be specified by using the option \fB\-2\fR.
+Paired end is not yet supported.
+.
+.P
+If multiple cores or processors are available, one can use \fB\-n\fR to parallelize the computation by specifying the number of threads.
 .
 .
 .SH OPTIONS
 .
-.P
-Many of the options listed here show short and long formats, for example
-the
-.B \-p
-option can also be specified using
-.BR \-\-Cluster "."
-.
-This behaviour relies on the
-.B argp
-library which does not appear to exist in the GNU Compiler Collection
-.RB "(" gcc ")"
-on all platforms so if you have any problems trying to use the long 
-format options, try swapping back to the short forms.
-.
-.P
-Mandatory or optional arguments to long options are also mandatory or
-optional for any corresponding short options.
+.TP 4
+\fB\-r\fR \fIFILENAME\fR, \fB\-\-rgListFileName=\fIFILENAME\fR
+The file specified contains the list of files specifying the sequence of the reference geno
 .
 .TP 4
-\fB\-o\fR, \fB\-\-OutputFileName\fR=\fIFILENAME\fR
+\fB\-m\fR \fIFILENAME\fR, \fB\-\-matchesFileName=\fIFILENAME\fR
+Specifies a file containing a list of matches files.
+.
+.TP 4
+\fB\-x\fR \fIFILENAME\fR, \fB\-\-scoringMatrixFileName=\fIFILENAME\fR
+Specifies the scoring matrix file.
+.
+.TP 4
+\fB\-b\fR, \fB\-\-binaryInput\fR
+Specifies that the matches file will be in binary format.
+.
+.TP 4
+\fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR
+Specifies the algorithm to use when scoring alignments.
+Currently only the Dynamic Programming algorithm is available and is specified using the value \fB0\fR.
+.
+.TP 4
+\fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
+Specifies the start chromosome of candidate alignment locations to consider.
+.
+.TP 4
+\fB\-S\fR \fIINTEGER\fR, \fB\-\-startPos=\fIINTEGER\fR
+Specifies the start position of candidate alignment locations to consider.
+.
+.TP 4
+\fB\-e\fR \fIINTEGER\fR, \fB\-\-endChr=\fIINTEGER\fR
+Specifies the end chromosome of candidate alignment locations to consider.
+.
+.TP 4
+\fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
+Specifies the end position of candidate alignment locations to consider.
+.
+.TP 4
+\fB\-O\fR \fIINTEGER\fR, \fB\-\-offset=\fIINTEGER\fR
+Specifies the number of bases before and after the candidate alignment to consider when aligning.
+.
+.TP 4
+\fB\-M\fR \fIINTEGER\fR, \fB\-\-maxNumMatches=\fIINTEGER\fR
+.
+.TP 4
+\fB\-2\fR, \fB\-\-pairedEnd\fR
+Specifies that the reads are in paired end format.
+This option is not yet supported.
+.
+.TP 4
+\fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fINTEGER\fR
+Specifies the number of threads to create.
+This will allow the reads to be aligned in parallel.
+.
+.TP 4
+\fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
+Specifies a string to include when naming the output files.
+.
+.TP 4
+\fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
+Specifies the directory in which to output.
+.
+.TP 4
+\fB\-t\fR, \fB\-\-timing\fR
+Output timing information for the execution of the program.
+.
+.TP 4
+\fB\-p\fR, \fB\-\-Parameters\fR
+Prints the program parameters but does not execute.
 .
 .TP 4
 \fB\-h\fR, \fB\-\-Help\fR
-Print out a help screen showing the short-form descriptions 
-of each command line option.
+Prints the help message.
 .
 .SH KNOWN ISSUES
 Please see the
-.BR blatter (1) 
+.BR bfast (1) 
 manpage.
 .
 .SH AUTHORS
@@ -65,15 +151,21 @@ manpage.
 Nils Homer <nhomer@cs.ucla.edu.org>
 .br
 Barry Merriman <barrym@ucla.edu>
+.br
+Stanley F. Nelson <snelson@ucla.edu>
 .
 .SH SEE ALSO
 .P
+.
+.BR bfast "(1), "
+.BR bcommand "(1), "
 .BR bpreprocess "(1), "
-.BR bmatches "(1) "
+.BR bmatches "(1), "
+.BR bpostprocess "(1)."
 .
 .SH COPYRIGHT
 .P
-Dicephia is copyright 2007 by The University of California - Los
+bfast is copyright 2008 by The University of California - Los
 Angeles.  All rights reserved.  This License is limited to, and you
 may use the Software solely for, your own internal and non-commercial
 use for academic and research purposes.  Without limiting the foregoing,

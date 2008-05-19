@@ -46,7 +46,7 @@
 
 const char *argp_program_version =
 "balign version 0.1.1\n"
-"Copyright 2007.";
+"Copyright 2008.";
 
 const char *argp_program_bug_address =
 "Nils Homer <nhomer@cs.ucla.edu>";
@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
+	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, DescBinaryInput, 
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -71,6 +71,7 @@ static struct argp_option options[] = {
 	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
 	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of bmf files", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
+	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to use 0: Dynamic Programming", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
@@ -83,8 +84,8 @@ static struct argp_option options[] = {
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
 	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
@@ -99,7 +100,7 @@ static char args_doc[] = "";
 /*
    DOC.  Field 4 in ARGP.  Program documentation.
    */
-static char doc[] ="This program was created by Nils Homer and is not intended for distribution.";
+static char doc[] = "";
 
 #ifdef HAVE_ARGP_H
 /*
@@ -109,7 +110,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:n:o:r:s:x:E:H:M:O:S:2hpt";
+"a:d:e:m:n:o:r:s:x:E:H:M:O:S:2bhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -288,6 +289,14 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
+	/* binary input not currently supported */
+	if(args->binaryInput == 1) {
+		PrintError("ValidateInputs",
+				"binaryInput",
+				"Binary input not supported",
+				Exit,
+				InputArguments);
+	}
 	if(args->algorithm < MIN_ALGORITHM || args->algorithm > MAX_ALGORITHM) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
@@ -393,6 +402,8 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 
+	args->binaryInput = 0;
+
 	args->algorithm = DEFAULT_ALGORITHM;
 	args->startChr=0;
 	args->startPos=0;
@@ -428,6 +439,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
 	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
+	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -449,23 +461,6 @@ void
 GetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "\nUsage: balign [options]\n");
-	while((*a).group>0) {
-		switch((*a).key) {
-			case 0:
-				fprintf(stderr, "\n%s\n", (*a).doc); break;
-			default:
-				fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); break;
-		}
-		a++;
-	}
-	return;
-}
-
-void
-PrintGetOptHelp() {
-
-	struct argp_option *a=options;
 	fprintf(stderr, "%s\n", argp_program_version);
 	fprintf(stderr, "\nUsage: balign [options]\n");
 	while((*a).group>0) {
@@ -477,7 +472,7 @@ PrintGetOptHelp() {
 		}
 		a++;
 	}
-	fprintf(stderr, "\n%s\n", argp_program_bug_address);
+	fprintf(stderr, "\n send bugs to %s\n", argp_program_bug_address);
 	return;
 }
 
@@ -503,6 +498,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
+					case 'b':
+						arguments->binaryInput = 1;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;break;

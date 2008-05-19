@@ -1,5 +1,5 @@
 \#  For more details on the layout of this page and how to process it
-\#  to create PDF and HTML, see the comment header for blatter.1
+\#  to create PDF and HTML, see the comment header for bfast.1
 \#
 \#
 \# .TP
@@ -9,55 +9,192 @@
 \" Turn off justification and hyphenation
 .na
 .hy 0
-.TH bmatches 1 "Sep 01, 2007" "version 0.1.1" "UCLA Blatter"
+.TH bmatches 1 "Jul 01, 2008" "version 0.1.1" "UCLA bfast"
 .SH NAME
-bmatches \- finds potential alignments in the reference genome.
+bmatches \- finds candidate alignment locations.
 .SH SYNOPSIS
 .P
 .fam C
 .nf
 bmatches
-	[\fB\-o\fR \fIFILENAME\fR] [\fB\-\-OutputFileName\fR\fIFILENAME\fR]
-	[\fB\-h\fR] [\fB\-\-Help\fR]
+	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-rgListFileName=\fIFILENAME\fR]
+	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-bfastMainIndexesFileName=\fIFILENAME\fR]
+	[\fB\-I\fR \fIFILENAME\fR] 	[\fB\-\-bfastSecondaryIndexesFileName=\fIFILENAME\fR]
+	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-readsFileName=\fIFILENAME\fR]
+	[\fB\-O\fR \fIFILENAME\fR] 	[\fB\-\-offsetsFileName=\fIFILENAME\fR]
+	[\fB\-b\fR] 		[\fB\-\-binaryInput\fR]
+	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startReadNum=\fIINTEGER\fR]
+	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endReadNum=\fIINTEGER\fR]
+	[\fB\-x\fR \fIINTEGER\fR] 	[\fB\-\-numMismatches=\fIINTEGER\fR]
+	[\fB\-y\fR \fIINTEGER\fR] 	[\fB\-\-numInsertions=\fINTEGER\fR]
+	[\fB\-z\fR \fIINTEGER\fR] 	[\fB\-\-numDeletions=\fINTEGER\fR]
+	[\fB\-Y\fR \fIINTEGER\fR] 	[\fB\-\-numGapInsertions=\fINTEGER\fR]
+	[\fB\-Z\fR \fIINTEGER\fR] 	[\fB\-\-numGapDeletions=\fINTEGER\fR]
+	[\fB\-2\fR] 		[\fB\-\-pairedEnd\fR]
+	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fINTEGER\fR]
+	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
+	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
+	[\fB\-B\fR] 		[\fB\-\-outputBinary\fR]
+	[\fB\-t\fR] 		[\fB\-\-timing\fR]
+	[\fB\-p\fR] 		[\fB\-\-Parameters\fR]
+	[\fB\-h\fR] 		[\fB\-\-Help\fR]
+
 .fi
 .fam
 .
 .SH DESCRIPTION
 .B bmatches
-is the second of three programs in the Blatter system.
+is the second of four programs in the bfast system.
+.
+.P
+.B bmatches
+requires five input files.
+The first file (\fB\-r\fR) contains the list of files specifying the sequence of the reference genome.
+The second file (\fB\-i\fR) contains the list of primary indexes.
+The third file (\fB\-I\fR) contains the list of secondary indexes.
+The fourth file (\fB\-r\fR) contains the reads to be aligned.
+The fifth file (\fB\-O\fR) contains the offsets to be used when searching.
+.
+.P
+For each read, a list of candidate alignment locations (CALs) is compiled and outputted.
+The reads are first searched using the main indexes.
+If no CAL is found then the read is searched using the secondary indexes.
+The offsets are used to specify the number of bases to skip over at the beginning of the read.
+For example, if an index had a layout of one tile of length twenty, then one could specify offsets of zero, ten, and twenty as to perform three searches:
+.br
+	1. Search using the first twenty bases.
+.br
+	2. Search using bases 10-29.
+.br
+	3. Search using bases 30-49.
+.br
+In this manner, separate indexes do not need to be generated for a different offsets but similar layouts.
+The purpose of the main indexes is to find alignments for reads that match perfectly, or near perfectly to the reference genome.
+In this fashion, the layouts for the main indexes should have total length (sum of the tile lengths) equal or near when compared to the read length.
+.
+.P
+The options \fB\-s\fR and \fB\-e\fR can be used to divide up the read file for parallel processing across a cluster.
+The option \fB\-n\fR is used to parallelize computation among processors (or cores) that share the same memory.
+For example, if there are one-million reads and there exists eight nodes each with quad-core processors, then one could run 
+.B bmatches
+eight times, setting \fB\-n 4\fR as well as well as dividing the reads up into equal parts:
+.br
+\fB\-s 1\fR \fB\-e 125000\fR
+.br
+\fB\-s 125001\fR \fB\-e 250000\fR
+.br
+\fB\-s 250001\fR \fB\-e 375000\fR
+.br
+\fB\-s 375001\fR...
+.br
+In this manner, we are able to distribute the computation across the cluster by dividing up the reads, as well as across local cores/processors by utilizing multi-threading.
+.
+.P
+It is of utmost importance to design the layouts of the indexes as to be complimentary.
+One layout may be robust against events at the end of the read but not at the beginning of the read.
+Therefore we should also use an index that is robust against events at the beginning of the read.
+Typically, no events (mismatches, insertions or deletions) are allowed within the layout of an index.
+Nevertheless, to increase accuracy we can also specify a maximum number allowable events within the tiles (\fB\-x\fR, \fB\-y\fR, and \fB\-z\fR) as well as within the gaps between the tiles (\fB\-Y\fR and \fB\-Z\fR).
+If specified, from a given read we will generate all possible combinations of potential reads with these events.
+This will significantly slow computation down (exponentially) and therefore it is recommended to instead create a robust layout and use less allowable events.
+For aligning billions of reads this is important but the added computation time may be acceptable for less reads.
+.
+.P 
+Paired end reads are specified using the \fB\-2\fR option but is not yet supported.
 .
 .
 .SH OPTIONS
 .
-.P
-Many of the options listed here show short and long formats, for example
-the
-.B \-p
-option can also be specified using
-.BR \-\-Cluster "."
-.
-This behaviour relies on the
-.B argp
-library which does not appear to exist in the GNU Compiler Collection
-.RB "(" gcc ")"
-on all platforms so if you have any problems trying to use the long 
-format options, try swapping back to the short forms.
-.
-.P
-Mandatory or optional arguments to long options are also mandatory or
-optional for any corresponding short options.
+.TP 4
+\fB\-r\fR \fIFILENAME\fR, \fB\-\-rgListFileName=\fIFILENAME\fR
+The file specified contains the list of files specifying the sequence of the reference genome.
 .
 .TP 4
-\fB\-o\fR, \fB\-\-OutputFileName\fR=\fIFILENAME\fR
+\fB\-i\fR \fIFILENAME\fR, \fB\-\-bfastMainIndexesFileName=\fIFILENAME\fR
+Specifies the file containing the list of main indexes.
+.
+.TP 4
+\fB\-I\fR \fIFILENAME\fR, \fB\-\-bfastSecondaryIndexesFileName=\fIFILENAME\fR
+Specifies the file containing the list of secondary indexes.
+.
+.TP 4
+\fB\-r\fR \fIFILENAME\fR, \fB\-\-readsFileName=\fIFILENAME\fR
+Specifies the file containing the reads.
+.
+.TP 4
+\fB\-O\fR \fIFILENAME\fR, \fB\-\-offsetsFileName=\fIFILENAME\fR
+Specifies the file containing the offsets.
+.
+.TP 4
+\fB\-b\fR, \fB\-\-binaryInput\fR
+Specifies that indexes are expected to be in binary format.
+.
+.TP 4
+\fB\-s\fR \fIINTEGER\fR, \fB\-\-startReadNum=\fIINTEGER\fR
+Specifies the first read to which to process.
+.
+.TP 4
+\fB\-e\fR \fIINTEGER\fR, \fB\-\-endReadNum=\fIINTEGER\fR
+Specifies the last read to which to process.
+.
+.TP 4
+\fB\-x\fR \fIINTEGER\fR, \fB\-\-numMismatches=\fIINTEGER\fR
+Specifies the maximum number of mismatches to allow in the tiles.
+.
+.TP 4
+\fB\-y\fR \fIINTEGER\fR, \fB\-\-numInsertions=\fINTEGER\fR
+Specifies the maximum number of insertions to allow in the tiles.
+.
+.TP 4
+\fB\-z\fR \fIINTEGER\fR, \fB\-\-numDeletions=\fINTEGER\fR
+Specifies the maximum number of deletions to allow in the tiles.
+.
+.TP 4
+\fB\-Y\fR \fIINTEGER\fR, \fB\-\-numGapInsertions=\fINTEGER\fR
+Specifies the maximum number of insertions to allow in the gaps between tiles.
+.
+.TP 4
+\fB\-Z\fR \fIINTEGER\fR, \fB\-\-numGapDeletions=\fINTEGER\fR
+Specifies the maximum number of deletions to allow in the gaps between tiles.
+.
+.TP 4
+\fB\-2\fR, \fB\-\-pairedEnd\fR
+Specifies that the reads will be given in paired end format.
+This option is not yet supported.
+.
+.TP 4
+\fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fINTEGER\fR
+Specifies the number of threads to create.
+This will allow the reads to be processed in parallel.
+.
+.TP 4
+\fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
+Specifies a string to include when naming the output files.
+.
+.TP 4
+\fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
+Specifies the directory in which to output.
+.
+.TP 4
+\fB\-B\fR, \fB\-\-outputBinary\fR
+Specifies the output files should be outputted in binary format.
+This will save considerable space and will improve subsequent loading times.
+.
+.TP 4
+\fB\-t\fR, \fB\-\-timing\fR
+Output timing information for the execution of the program.
+.
+.TP 4
+\fB\-p\fR, \fB\-\-Parameters\fR
+Prints the program parameters but does not execute.
 .
 .TP 4
 \fB\-h\fR, \fB\-\-Help\fR
-Print out a help screen showing the short-form descriptions 
-of each command line option.
+Prints the help message.
 .
 .SH KNOWN ISSUES
 Please see the
-.BR blatter (1) 
+.BR bfast (1) 
 manpage.
 .
 .SH AUTHORS
@@ -65,15 +202,20 @@ manpage.
 Nils Homer <nhomer@cs.ucla.edu.org>
 .br
 Barry Merriman <barrym@ucla.edu>
+.br
+Stanley F. Nelson <snelson@ucla.edu>
 .
 .SH SEE ALSO
 .P
+.BR bfast "(1), "
+.BR bcommand "(1), "
 .BR bpreprocess "(1), "
-.BR balign "(1) "
+.BR balign "(1), "
+.BR bpostprocess "(1)."
 .
 .SH COPYRIGHT
 .P
-Dicephia is copyright 2007 by The University of California - Los
+bfast is copyright 2008 by The University of California - Los
 Angeles.  All rights reserved.  This License is limited to, and you
 may use the Software solely for, your own internal and non-commercial
 use for academic and research purposes.  Without limiting the foregoing,

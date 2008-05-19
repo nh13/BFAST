@@ -5,8 +5,8 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *rgListFileName;                   /* -r */
-	char *blatterMainIndexesFileName;		/* -i */
-	char *blatterIndexesFileName;			/* -I */
+	char *bfastMainIndexesFileName;			/* -i */
+	char *bfastSecondaryIndexesFileName;	/* -I */
 	char *readsFileName;					/* -R */
 	char *offsetsFileName;					/* -O */
 	int binaryInput;						/* -b */

@@ -1,0 +1,143 @@
+\#  For more details on the layout of this page and how to process it
+\#  to create PDF and HTML, see the comment header for bfast.1
+\#
+\#
+\# .TP
+\# \fB\-I\fR, \fB\-\-ignore\fR=\fIPATTERN\fR
+\# do not list implied entries matching shell PATTERN
+\#
+\" Turn off justification and hyphenation
+.na
+.hy 0
+.TH bpostprocess 1 "Jul 01, 2008" "version 0.1.1" "UCLA bfast"
+.SH NAME
+bpostprocess \- converts alignment files to the user-specified format.
+.SH SYNOPSIS
+.P
+.fam C
+.nf
+bpostprocess
+	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-inputFileName=\fIFILENAME\fR]
+	[\fB\-I\fR \fIFILENAME\fR] 	[\fB\-\-inputFormat=\fIFILENAME\fR]
+	[\fB\-b\fR] 		[\fB\-\-binaryInput\fR]
+	[\fB\-u\fR] 		[\fB\-\-uniqueMatches\fR]
+	[\fB\-B\fR] 		[\fB\-\-bestScore\fR]
+	[\fB\-m\fR \fIINTEGER\fR] 	[\fB\-\-minScore=\fIINTEGER\fR]
+	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startChr=\fIINTEGER\fR]
+	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
+	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endChr=\fIINTEGER\fR]
+	[\fB\-E\fR \fIINTEGER\fR] 	[\fB\-\-endPos=\fIINTEGER\fR]
+	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
+	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
+	[\fB\-O\fR \fIINTEGER\fR] 	[\fB\-\-outputFormat=\fIINTEGER\fR]
+	[\fB\-B\fR] 		[\fB\-\-outputBinary\fR]
+	[\fB\-t\fR] 		[\fB\-\-timing\fR]
+	[\fB\-p\fR] 		[\fB\-\-Parameters\fR]
+	[\fB\-h\fR] 		[\fB\-\-Help\fR]
+.fi
+.fam
+.
+.SH DESCRIPTION
+.B bpostprocess
+is the fourth of four programs in the bfast system.
+.
+.P 
+Documentation for 
+.B bpostprocess
+is not yet complete.
+.
+.
+.SH OPTIONS
+.TP 4
+\fB\-i\fR \fIFILENAME\fR, \fB\-\-inputFileName=\fIFILENAME\fR
+.
+.TP 4
+\fB\-I\fR \fIFILENAME\fR, \fB\-\-inputFormat=\fIFILENAME\fR
+.
+.TP 4
+\fB\-b\fR, \fB\-\-binaryInput\fR
+.
+.TP 4
+\fB\-u\fR, \fB\-\-uniqueMatches\fR
+.
+.TP 4
+\fB\-B\fR, \fB\-\-bestScore\fR
+.
+.TP 4
+\fB\-m\fR \fIINTEGER\fR, \fB\-\-minScore=\fIINTEGER\fR
+.
+.TP 4
+\fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
+.
+.TP 4
+\fB\-S\fR \fIINTEGER\fR, \fB\-\-startPos=\fIINTEGER\fR
+.
+.TP 4
+\fB\-e\fR \fIINTEGER\fR, \fB\-\-endChr=\fIINTEGER\fR
+.
+.TP 4
+\fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
+.
+.TP 4
+\fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
+.
+.TP 4
+\fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
+.
+.TP 4
+\fB\-O\fR \fIINTEGER\fR, \fB\-\-outputFormat=\fIINTEGER\fR
+.
+.TP 4
+\fB\-B\fR, \fB\-\-outputBinary\fR
+.
+.TP 4
+\fB\-t\fR, \fB\-\-timing\fR
+.
+.TP 4
+\fB\-p\fR, \fB\-\-Parameters\fR
+.
+.TP 4
+\fB\-h\fR, \fB\-\-Help\fR
+Print out a help screen showing the short-form descriptions 
+of each command line option.
+.
+.SH KNOWN ISSUES
+Please see the
+.BR bfast (1) 
+manpage.
+.
+.SH AUTHORS
+.P
+Nils Homer <nhomer@cs.ucla.edu.org>
+.br
+Barry Merriman <barrym@ucla.edu>
+.br
+Stanley F. Nelson <snelson@ucla.edu>
+.
+.SH SEE ALSO
+.P
+.BR bfast "(1), "
+.BR bcommand "(1), "
+.BR bpreprocess "(1), "
+.BR balign "(1), "
+.BR bmatches "(1)."
+.
+.SH COPYRIGHT
+.P
+bfast is copyright 2008 by The University of California - Los
+Angeles.  All rights reserved.  This License is limited to, and you
+may use the Software solely for, your own internal and non-commercial
+use for academic and research purposes.  Without limiting the foregoing,
+you may not use the Software as part of, or in any way in connection
+with the production, marketing, sale or support of any commercial
+product or service.  For commercial use, please contact
+nhomer@cs.ucla.edu.org.  By installing this Software you are agreeing to
+the terms of the LICENSE file distributed with this software.
+.
+.P
+In any work or product derived from the use of this Software, proper
+attribution of the authors as the source of the software or data must
+be made.  The following URL should be cited:
+.
+.P
+.I <insert address here>

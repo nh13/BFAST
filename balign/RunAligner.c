@@ -70,7 +70,7 @@ void RunAligner(RGBinary *rgBinary,
 	}
 
 	/* Create output file name */
-	sprintf(outputFileName, "%sblatter.aligned.file.%s.%d.%s",
+	sprintf(outputFileName, "%sbfast.aligned.file.%s.%d.%s",
 			outputDir,
 			outputID,
 			algorithm,

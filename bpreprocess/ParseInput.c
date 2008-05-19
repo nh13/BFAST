@@ -47,8 +47,7 @@
 #include "ParseInput.h"
 
 const char *argp_program_version =
-"bpreprocess version 0.1.1\n"
-"Copyright 2007.";
+"bpreprocess version 0.1.1\nCopyright 2008.";
 
 const char *argp_program_bug_address =
 "Nils Homer <nhomer@cs.ucla.edu>";
@@ -96,10 +95,11 @@ static struct argp_option options[] = {
    Not complete yet. So empty string
    */
 static char args_doc[] = "";
+
 /*
    DOC.  Field 4 in ARGP.  Program documentation.
-   */
-static char doc[] ="This program was created by Nils Homer and is not intended for distribution.";
+*/
+static char doc[] = "";
 
 #ifdef HAVE_ARGP_H
 /*
@@ -422,24 +422,6 @@ void
 GetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "\nUsage: bpreprocess [options]\n");
-	while((*a).group>0) {
-		switch((*a).key) {
-			case 0:
-				fprintf(stderr, "\n%s\n", (*a).doc); break;
-			default:
-				fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); break;
-		}
-		a++;
-	}
-	return;
-}
-
-/* TODO */
-void
-PrintGetOptHelp() {
-
-	struct argp_option *a=options;
 	fprintf(stderr, "%s\n", argp_program_version);
 	fprintf(stderr, "\nUsage: bpreprocess [options]\n");
 	while((*a).group>0) {
@@ -451,7 +433,7 @@ PrintGetOptHelp() {
 		}
 		a++;
 	}
-	fprintf(stderr, "\n%s\n", argp_program_bug_address);
+	fprintf(stderr, "\nsend bugs to %s\n", argp_program_bug_address);
 	return;
 }
 

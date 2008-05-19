@@ -44,7 +44,7 @@
 
 const char *argp_program_version =
 "bpostprocess version 0.1.1\n"
-"Copyright 2007.";
+"Copyright 2008.";
 
 const char *argp_program_bug_address =
 "Nils Homer <nhomer@cs.ucla.edu>";
@@ -54,7 +54,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescInputFileName, DescInputFormat,
+	DescInputFilesTitle, DescInputFileName, DescInputFormat, DescBinaryInput,
 	DescAlgoTitle, DescUniqueMatches, DescBestScore, DescMinScore, DescStartChr, DescStartPos, DescEndChr, DescEndPos,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -68,9 +68,10 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file", 1},
 	{"inputFormat", 'I', "inputFormat", 0, "Specifies the input format 0: baf", 1},
+	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"uniqueMatches", 'u', 0, OPTION_NO_USAGE, "Specifies to only consider unique matches", 2},
-	{"bestScore", 'b', 0, OPTION_NO_USAGE, "Specifies to choose the best score from the possible matches", 2},
+	{"bestScore", 'B', 0, OPTION_NO_USAGE, "Specifies to choose the best score from the possible matches", 2},
 	{"minScore", 'm', "minScore", 0, "Specifies the minimum score to consider", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -95,7 +96,7 @@ static char args_doc[] = "";
 /*
    DOC.  Field 4 in ARGP.  Program documentation.
    */
-static char doc[] ="This program was created by Nils Homer and is not intended for distribution.";
+static char doc[] = "";
 
 #ifdef HAVE_ARGP_H
 /*
@@ -105,7 +106,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:o:s:E:I:O:S:bhptu";
+"d:e:i:m:o:s:E:I:O:S:bhptuB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -231,6 +232,15 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "inputFormat", "Command line argument", Exit, OutOfRange);
 	}
 
+	/* binary input not currently supported */
+	if(args->binaryInput == 1) {
+		PrintError("ValidateInputs",
+				"binaryInput",
+				"Binary input not supported",
+				Exit,
+				InputArguments);
+	}
+
 	/* This should hold internally */
 	assert(args->uniqueMatches == 0 || args->uniqueMatches == 1);
 	assert(args->bestScore == 0 || args->bestScore == 1);
@@ -326,6 +336,7 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->inputFileName, DEFAULT_FILENAME);
 
 	args->inputFormat=0;
+	args->binaryInput = 0;
 
 	args->uniqueMatches=0;
 	args->bestScore=0;
@@ -363,6 +374,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "inputFileName:\t\t\t\t%s\n", args->inputFileName);
 	fprintf(fp, "inputFormat:\t\t\t\t%d\n", args->inputFormat);
+	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "uniqueMatches:\t\t\t\t%d\n", args->uniqueMatches);
 	fprintf(fp, "bestScore:\t\t\t\t%d\n", args->bestScore);
 	fprintf(fp, "minScore:\t\t\t\t%d\n", args->minScore);
@@ -383,24 +395,6 @@ void
 GetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "\nUsage: bpostprocess [options]\n");
-	while((*a).group>0) {
-		switch((*a).key) {
-			case 0:
-				fprintf(stderr, "\n%s\n", (*a).doc); break;
-			default:
-				fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); break;
-		}
-		a++;
-	}
-	return;
-}
-
-/* TODO */
-void
-PrintGetOptHelp() {
-
-	struct argp_option *a=options;
 	fprintf(stderr, "%s\n", argp_program_version);
 	fprintf(stderr, "\nUsage: bpostprocess [options]\n");
 	while((*a).group>0) {
@@ -412,7 +406,7 @@ PrintGetOptHelp() {
 		}
 		a++;
 	}
-	fprintf(stderr, "\n%s\n", argp_program_bug_address);
+	fprintf(stderr, "\nsend bugs to %s\n", argp_program_bug_address);
 	return;
 }
 
@@ -435,7 +429,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 #endif
 				switch (key) {
 					case 'b':
-						arguments->bestScore = 1;break;
+						arguments->binaryInput = 1;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;break;
@@ -459,6 +453,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->timing = 1;break;
 					case 'u':
 						arguments->uniqueMatches = 1;break;
+					case 'B':
+						arguments->bestScore = 1;break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'I':

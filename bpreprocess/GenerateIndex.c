@@ -49,7 +49,7 @@ void GenerateIndex(RGBinary *rg,
 		}
 
 		/* Create the file name */
-		sprintf(outputFileName, "%sblatter.index.file.%s.%d.%d.%d.%d.%d.%s",
+		sprintf(outputFileName, "%sbfast.index.file.%s.%d.%d.%d.%d.%d.%s",
 				outputDir,
 				outputID,
 				index.startChr,

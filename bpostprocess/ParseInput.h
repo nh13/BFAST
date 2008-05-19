@@ -5,8 +5,9 @@ struct arguments
 	char *args[1];							/* No arguments to this function */
 	char *inputFileName;					/* -i */
 	int inputFormat;						/* -I */
+	int binaryInput;                        /* -b */
 	int uniqueMatches;						/* -u */
-	int bestScore;							/* -b */
+	int bestScore;							/* -B */
 	int minScore;							/* -m */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */

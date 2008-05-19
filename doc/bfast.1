@@ -1,0 +1,253 @@
+\#  This page is is written in groff however many of the control
+\#  commands (.TH, .SH, .SS etc) are taken from the "man" macro package
+\#  The man pages for roff and groff are of minimal use.  The primary
+\#  information source for the groff control commands and macros is the
+\#  "info groff" pages.  I have no idea what you're going to do for
+\#  groff documentation if you're not using some flavour of unix.
+\#
+\#  Aide memoire for groff:
+\#    .XX[X*]   - "request" control command for groff or macro package 
+\#                convention - lower case for groff, upper case for macros
+\#    \$n, \$(nn, \$[nnn] - retrieve argument by number from macro call
+\#    \XX[X*]   - "escape" control command for inline use
+\#    .\"       - deprecated comment line via "undefined request"
+\#    \#        - comment line
+\#    .ig .END  - ignore all text between tags, block level commenting
+\#    .nf .fi   - don't screw with text - verbatim spacing kept
+\#
+\#  Aide memoire for navigating "info":
+\#    space     - forward a page (will move on to next node)
+\#    backspace - backward a page (will go back to previous node)
+\#    tab       - skip cursor to next "link" in node document
+\#    return    - follow "link" cursor is sitting on
+\#    arrows    - move cursor left, right, up, down within page
+\#    b         - go to top of current node document
+\#    u         - up one level of nodes
+\#    n         - next node in current chain
+\#    p         - previous node in current chain
+\#    q         - quit info system
+\#
+\#  Converting this document into output formats:
+\#    man page:    groff -man -Tascii bfast.1
+\#    postscript:  groff -man -Tps bfast.1
+\#    HTML:        groff -man -Thtml bfast.1
+\#
+\#  Turn off justification and hyphenation
+.na
+.hy 0
+.TH bfast 1 "Jul 01, 2008" "version 0.1.1" "ULCA bfast"
+.SH NAME
+bfast \- blat-like fast alignment search tool
+.SH SYNOPSIS
+.P
+.fam C
+.nf 
+bcommand [\fBoptions\fR]
+bpreprocess [\fBoptions\fR]
+bmatches [\fBoptions\fR]
+balign [\fBoptions\fR]
+bpostprocess [\fBoptions\fR]
+.fi
+.fam
+.
+.SH DESCRIPTION
+.P
+bfast is a software package that provides alignment tools.
+The bfast system consists of four executable programs:
+.BR bpreprocess "," 
+.BR bmatches "," 
+.BR bpalign "," 
+and
+.BR bpostprocess "."
+.
+.P
+.BR bcommand
+will automatically generate the necessary scripts and files needed to run the four executables.
+.
+.P
+\fBbpreprocess\fR
+is used to pre-compute indexes needed to perform alignment.
+The indexes are stored in binary format and can then be re-used to align new reads using the previous settings.
+.
+.P
+\fBbmatches\fR
+is used to find the candidate alignment locations using the indexes generated from 
+\fBbpreprocess\fR.
+.
+.P
+\fBbalign\fR
+is used to give the final alignment score for each read and its associated candidate alignment location generated from
+\fBbmatches\fR.
+.
+.P
+\fBbpostprocess\fR
+is used to reformat the output from
+\fBbalign\fR
+into a user-specified format.
+.
+.SH INSTALLATION
+.P
+\fBbfast\fR uses the GNU Build System.
+To install from source, go to the main directory and type in 
+.br 
+\fB./configure\fR
+.br
+\fBmake\fR
+.br
+\fBmake install\fR
+.br
+To generated \fBconfigure\fR, type in
+.br
+\fBautoreconf\fR
+.
+.SH FILE FORMATS
+.
+.TP
+.B Reference Genome List
+This file contains the list of files specifying the sequence of the reference genome.
+Each line will correspond to one chromosome beginning with chromosome 1 and continuing in increasing order.
+The reference files for each chromosome should be in fasta format.
+For example, the file could be of the form:
+.br
+chr1.fa
+.br
+chr2.fa
+.br
+chr3.fa
+.br
+chr...
+.
+.TP
+.B Index Layout
+The file specified will contain the layout for each index that you wish to generate.
+The first line in the file will be the number of indexes you wish to generate.
+Each subsequent line will be a layout for the index.
+The output file names for the indexes will be labeled according to this order (i.e. *.$i.bif where $i is the index number in the layouts file).
+The entries in a line should be tab or space deliminated.
+The first entry is the size of the index hash.
+The second entry is the number of tiles to use.
+The subsequent entries correspond to a tile length, then a gap length, and so on until the last tile length is specified.
+An example would be:
+.br
+3
+.br
+14 1 32
+.br
+14 1 20
+.br
+14 2 10 12 10
+.br
+Here we will generate three indexes.
+Each index will have a index hash size of fourteen.
+The first index will have one tile of length thirty-two, the second index will have one tile of length twenty, and the third index will have two tiles both with lengths ten and a gap of twelve between them.
+.
+.TP
+.B Reads FASTA File
+The file containing the reads will be in FASTA format.
+The first line will contain the read name.
+The read name must have no whitespace characters.
+The second line will contain the sequence of the read.
+The third line will contain the sequence of the paired end read, if available.
+An example is:
+.br
+>chr22:28454027-28454058
+.br
+CTCCTTTCACTCTGTGTTGAGAAGTTTTAAAG
+.br
+>chr22:26189283-26189314
+.br
+ATCGCTTcaggggttggcaaactcatgctgta
+.br
+>chr22:26230468-26230499
+.br
+GAAGACCAGCCAGGCCTGCTGTGATATATGAC
+.br
+Three reads are specified above, with there names in this example corresponding to their known position in the genome.
+Typically, the read name will be dependent on the sequence technology used.
+.
+.TP
+.B Offsets File
+The offsets file contains the list of offsets to use when searching with the indexes.
+The offsets are stored in one line and are separated by whitespaces.
+An example is:
+.br
+0	5	10
+.br
+Three offsets are specified above.
+.
+.TP
+.B Scoring Matrix File
+The scoring matrix file is used when aligning the reads to their respective candidate alignment locations.
+For nucleotide alignments or four letter alphabets there will be seven lines.
+The first line specifies the gap open penalty.
+The second line specifies the gap extension penalty.
+The third to the seventh line gives the substitution matrix for the four letters plus "anything else".
+The rows labels on the rows and columns of the substitution matrix is A,C,G,T, and N, where N stands for "anything else".
+For example:
+.br
+-2
+.br
+-1
+.br
+2   -1  -1  -1  -1
+.br
+-1  2   -1  -1  -1
+.br
+-1  -1  2   -1  -1
+.br
+-1  -1  -1  2   -1
+.br
+-1  -1  -1  -1  0
+.br
+would specify a gap open penalty of -2, and a gap extension penalty of -1.
+The penalty to substitute a read base of A for a reference base C would be -1 (row 1 column 2 of the substitution matrix).
+The penalty to substitute a read base of C for a reference base N would be -1 (row 2 column 5 of the substitution matrix).
+.
+.
+.SH KNOWN ISSUES
+.TP
+.B Compiler limitations
+The target compilation environment is gcc and a number of gcc-specific 
+features are used including the argp commandline argument processing 
+system so bfast may not compile on non-gcc C/C++ compilers.
+.TP
+.B Paired End
+Paired end support is currently not tested.  
+As such, it is not supported.
+.
+.
+.SH AUTHORS
+.P
+Nils Homer <nhomer@cs.ucla.edu>
+.br
+Barry Merriman <barrym@ucla.edu>
+.br
+Stanley F. Nelson <snelson@ucla.edu>
+.
+.SH "SEE ALSO"
+.P
+.BR bcommand "(1), "
+.BR bpreprocess "(1), " 
+.BR bmatches "(1), "
+.BR balign "(1), "
+.BR bpostprocess "(1)."
+.
+.SH COPYRIGHT
+.P
+bfast is copyright 2008 by The University of California - Los 
+Angeles.  All rights reserved.  This License is limited to, and you
+may use the Software solely for, your own internal and non-commercial
+use for academic and research purposes.  Without limiting the foregoing,
+you may not use the Software as part of, or in any way in connection
+with the production, marketing, sale or support of any commercial
+product or service.  For commercial use, please contact
+licensing@ucla.edu.  By installing this Software you are agreeing to
+the terms of the LICENSE file distributed with this software.
+.
+.P
+In any work or product derived from the use of this Software, proper
+attribution of the authors as the source of the software or data must
+be made.  The following URL should be cited:
+.
+.P
+.I <insert address here>

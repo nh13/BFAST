@@ -19,7 +19,7 @@ void FindMatches(char *outputFileName,
 		int binaryOutput,
 		char *rgListFileName,
 		char *rgIndexMainListFileName,
-		char *rgIndexListFileName,
+		char *rgIndexSecondaryListFileName,
 		char *sequenceFileName, 
 		char *offsetsFileName,
 		int binaryInput,
@@ -38,7 +38,7 @@ void FindMatches(char *outputFileName,
 	int numMainRGIndexes=0;
 	char **rgIndexMainFileNames=NULL;
 
-	int numRGIndexes=0;
+	int numSecondaryIndexes=0;
 	char **rgIndexFileNames=NULL;
 
 	int *offsets=NULL;
@@ -71,10 +71,10 @@ void FindMatches(char *outputFileName,
 	}
 
 	/* Read in the RGIndex File Names */
-	numRGIndexes=ReadFileNames(rgIndexListFileName, &rgIndexFileNames);
-	if(numRGIndexes<=0) {
+	numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &rgIndexFileNames);
+	if(numSecondaryIndexes<=0) {
 		PrintError("FindMatches",
-				"numRGIndexes",
+				"numSecondaryIndexes",
 				"Read zero indexes",
 				Exit,
 				OutOfRange);
@@ -86,7 +86,7 @@ void FindMatches(char *outputFileName,
 	CheckRGIndexes(rgIndexMainFileNames, 
 			numMainRGIndexes,
 			rgIndexFileNames,
-			numRGIndexes,
+			numSecondaryIndexes,
 			binaryInput,
 			&startChr,
 			&startPos,
@@ -208,7 +208,7 @@ void FindMatches(char *outputFileName,
 	numMatches+=FindMatchesInIndexes(rgIndexFileNames,
 			binaryInput,
 			&rg,
-			numRGIndexes,
+			numSecondaryIndexes,
 			offsets,
 			numOffsets,
 			numMismatches,
@@ -246,7 +246,7 @@ void FindMatches(char *outputFileName,
 	free(rgIndexMainFileNames);
 
 	/* Free RGIndex file names */
-	for(i=0;i<numRGIndexes;i++) {
+	for(i=0;i<numSecondaryIndexes;i++) {
 		free(rgIndexFileNames[i]);
 	}
 	free(rgIndexFileNames);
@@ -295,7 +295,7 @@ void FindMatches(char *outputFileName,
 int FindMatchesInIndexes(char **rgIndexFileNames,
 		int binaryInput,
 		RGBinary *rg,
-		int numRGIndexes,
+		int numSecondaryIndexes,
 		int *offsets,
 		int numOffsets,
 		int numMismatches,
@@ -352,7 +352,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 				MallocMemory);
 	}
 	/* Allocate memory for the index specific file pointers */
-	tempOutputIndexFPs = (FILE**)malloc(sizeof(FILE*)*numRGIndexes);
+	tempOutputIndexFPs = (FILE**)malloc(sizeof(FILE*)*numSecondaryIndexes);
 	if(NULL == tempOutputIndexFPs) {
 		PrintError("FindMatchesInIndexes",
 				"tempOutputIndexFPs",
@@ -375,7 +375,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	}
 
 	/* For each RGIndex, write temporary output */
-	for(i=0;i<numRGIndexes;i++) { /* For each RGIndex */
+	for(i=0;i<numSecondaryIndexes;i++) { /* For each RGIndex */
 		/* Open files for thread output */
 		for(j=0;j<numThreads;j++) {
 			tempOutputThreadFPs[j] = tmpfile();
@@ -522,7 +522,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	}
 	/* Merge the temp index files into the all indexes file */
 	numWritten=RGMatchMergeFilesAndOutput(tempOutputIndexFPs,
-			numRGIndexes,
+			numSecondaryIndexes,
 			tempOutputFP,
 			pairedEnd);
 	endTime=time(NULL);
@@ -536,7 +536,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	}
 
 	/* Close the temporary index files */
-	for(i=0;i<numRGIndexes;i++) {
+	for(i=0;i<numSecondaryIndexes;i++) {
 		fclose(tempOutputIndexFPs[i]);
 	}
 

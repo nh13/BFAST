@@ -45,7 +45,7 @@
 
 const char *argp_program_version =
 "bmatches version 0.1.1\n"
-"Copyright 2007.";
+"Copyright 2008.";
 
 const char *argp_program_bug_address =
 "Nils Homer <nhomer@cs.ucla.edu>";
@@ -55,8 +55,8 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGListFileName, DescBlatterMainIndexesFileName, DescBlatterIndexesFileName, DescReadsFileName, DescOffsetsFileName, DescNumThreads, 
-	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd,
+	DescInputFilesTitle, DescRGListFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, DescBinaryInput, 
+	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -68,15 +68,15 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
-	{"blatterMainIndexesFileName", 'i', "blatterMainIndexesFileName", 0, "Specifies the file name holding the list of main bif files", 1},
-	{"blatterIndexesFileName", 'I', "blatterIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
+	{"bfastMainIndexesFileName", 'i', "bfastMainIndexesFileName", 0, "Specifies the file name holding the list of main bif files", 1},
+	{"bfastSecondaryIndexesFileName", 'I', "bfastSecondaryIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
-	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that hte blatter input files will be in binary format", 1},
+	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"numMismatches", 'x', "numMistmatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
+	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
 	{"numInsertions", 'y', "numInsertions", 0, "Specifies the number of insertions to allow when searching for candidates", 2},
 	{"numDeletions", 'z', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
 	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
@@ -102,7 +102,7 @@ static char args_doc[] = "";
 /*
    DOC.  Field 4 in ARGP.  Program documentation.
    */
-static char doc[] ="This program was created by Nils Homer and is not intended for distribution.";
+static char doc[] = "";
 
 #ifdef HAVE_ARGP_H
 /*
@@ -164,7 +164,7 @@ main (int argc, char **argv)
 						/* Execute Program */
 
 						/* Create output file name */
-						sprintf(outputFileName, "%sblatter.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+						sprintf(outputFileName, "%sbfast.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 								arguments.outputDir,
 								arguments.outputID,
 								arguments.startReadNum,
@@ -181,8 +181,8 @@ main (int argc, char **argv)
 						FindMatches(outputFileName,
 								arguments.binaryOutput,
 								arguments.rgListFileName,
-								arguments.blatterMainIndexesFileName,
-								arguments.blatterIndexesFileName,
+								arguments.bfastMainIndexesFileName,
+								arguments.bfastSecondaryIndexesFileName,
 								arguments.readsFileName,
 								arguments.offsetsFileName,
 								arguments.binaryInput,
@@ -256,18 +256,18 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->blatterMainIndexesFileName!=0) {
-		fprintf(stderr, "Validating blatterMainIndexesFileName %s. \n",
-				args->blatterMainIndexesFileName);
-		if(ValidateFileName(args->blatterMainIndexesFileName)==0)
-			PrintError(FnName, "blatterMainIndexesFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->bfastMainIndexesFileName!=0) {
+		fprintf(stderr, "Validating bfastMainIndexesFileName %s. \n",
+				args->bfastMainIndexesFileName);
+		if(ValidateFileName(args->bfastMainIndexesFileName)==0)
+			PrintError(FnName, "bfastMainIndexesFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->blatterIndexesFileName!=0) {
-		fprintf(stderr, "Validating blatterIndexesFileName %s. \n",
-				args->blatterIndexesFileName);
-		if(ValidateFileName(args->blatterIndexesFileName)==0)
-			PrintError(FnName, "blatterIndexesFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->bfastSecondaryIndexesFileName!=0) {
+		fprintf(stderr, "Validating bfastSecondaryIndexesFileName %s. \n",
+				args->bfastSecondaryIndexesFileName);
+		if(ValidateFileName(args->bfastSecondaryIndexesFileName)==0)
+			PrintError(FnName, "bfastSecondaryIndexesFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->readsFileName!=0) {
@@ -384,15 +384,15 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->rgListFileName!=0);
 	strcpy(args->rgListFileName, DEFAULT_FILENAME);
 
-	args->blatterMainIndexesFileName =
+	args->bfastMainIndexesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->blatterMainIndexesFileName!=0);
-	strcpy(args->blatterMainIndexesFileName, DEFAULT_FILENAME);
+	assert(args->bfastMainIndexesFileName!=0);
+	strcpy(args->bfastMainIndexesFileName, DEFAULT_FILENAME);
 
-	args->blatterIndexesFileName =
+	args->bfastSecondaryIndexesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->blatterIndexesFileName!=0);
-	strcpy(args->blatterIndexesFileName, DEFAULT_FILENAME);
+	assert(args->bfastSecondaryIndexesFileName!=0);
+	strcpy(args->bfastSecondaryIndexesFileName, DEFAULT_FILENAME);
 
 	args->readsFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -442,8 +442,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
-	fprintf(fp, "blatterMainIndexesFileName\t\t%s\n", args->blatterMainIndexesFileName);
-	fprintf(fp, "blatterIndexesFileName\t\t\t%s\n", args->blatterIndexesFileName);
+	fprintf(fp, "bfastMainIndexesFileName\t\t%s\n", args->bfastMainIndexesFileName);
+	fprintf(fp, "bfastSecondaryIndexesFileName\t\t\t%s\n", args->bfastSecondaryIndexesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
@@ -469,24 +469,6 @@ void
 GetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "\nUsage: bmatches [options]\n");
-	while((*a).group>0) {
-		switch((*a).key) {
-			case 0:
-				fprintf(stderr, "\n%s\n", (*a).doc); break;
-			default:
-				fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); break;
-		}
-		a++;
-	}
-	return;
-}
-
-/* TODO */
-void
-PrintGetOptHelp() {
-
-	struct argp_option *a=options;
 	fprintf(stderr, "%s\n", argp_program_version);
 	fprintf(stderr, "\nUsage: bmatches [options]\n");
 	while((*a).group>0) {
@@ -498,7 +480,7 @@ PrintGetOptHelp() {
 		}
 		a++;
 	}
-	fprintf(stderr, "\n%s\n", argp_program_bug_address);
+	fprintf(stderr, "\nsend bugs to %s\n", argp_program_bug_address);
 	return;
 }
 
@@ -532,8 +514,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
 					case 'i':
-						if(arguments->blatterMainIndexesFileName) free(arguments->blatterMainIndexesFileName);
-						arguments->blatterMainIndexesFileName = OPTARG;break;
+						if(arguments->bfastMainIndexesFileName) free(arguments->bfastMainIndexesFileName);
+						arguments->bfastMainIndexesFileName = OPTARG;break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
@@ -557,8 +539,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'B':
 						arguments->binaryOutput = 1;break;
 					case 'I':
-						if(arguments->blatterIndexesFileName) free(arguments->blatterIndexesFileName);
-						arguments->blatterIndexesFileName = OPTARG;break;
+						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
+						arguments->bfastSecondaryIndexesFileName = OPTARG;break;
 					case 'O':
 						if(arguments->offsetsFileName) free(arguments->offsetsFileName);
 						arguments->offsetsFileName = OPTARG;break;
