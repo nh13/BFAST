@@ -13,9 +13,5 @@ balign_SOURCES = \
 	Align.c		Align.h \
 	Definitions.h
 	
-##  LDADD only lists those object files which are NOT compiled from 
-##  the *_SOURCES above so we need to reference libm.a here
-
 balign_LDADD = -lm 
-AM_CFLAGS = -Wall -ansi -g -O3 -pthread -m64
 

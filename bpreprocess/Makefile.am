@@ -11,4 +11,4 @@ bpreprocess_SOURCES = \
 	ParseInput.c	ParseInput.h \
 	Definitions.h
 	
-AM_CFLAGS = -lm -Wall -ansi -g -O3 -pthread -m64
+bpreprocess_LDADD = -lm
