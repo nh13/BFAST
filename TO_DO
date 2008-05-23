@@ -4,11 +4,10 @@ General
 say 2000 exons.
 ===============================================================================
 
-
 ===============================================================================
 bpreprocess
 ===============================================================================
-1. Creates binary (2-bit) files for the reference genome (include a header...)
+1. Create binary (2-bit) files for the reference genome (include a header...)
 
 ===============================================================================
 bmatches
@@ -31,12 +30,18 @@ Flag perfect matches so that the alignment score is already known.
 Only read in reference genome needed by the indexes.
 7.
 Paired end testing.
+8.
+Binary output file.
 
 ===============================================================================
 balign
 ===============================================================================
 1.
 Have a command line option that ignores reads with zero candidate matches.
+2. 
+Paired end.
+3. 
+ABI support.
 
 ===============================================================================
 bpostprocess

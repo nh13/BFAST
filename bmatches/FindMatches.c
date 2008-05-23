@@ -131,6 +131,7 @@ void FindMatches(char *outputFileName,
 		fprintf(stderr, "Reading %s into temp files.\n",
 				sequenceFileName);
 	}
+	/* This will close the sequences file */
 	numReads=ReadSequencesToTempFile(seqFP,
 			&tempSeqFPs,
 			startReadNum,
@@ -144,8 +145,6 @@ void FindMatches(char *outputFileName,
 				numReads,
 				sequenceFileName);
 	}
-	/* Close the sequence file */
-	fclose(seqFP);
 
 	/* IDEA 
 	 * 		Use temp files to store the results for each index.  Once we have one

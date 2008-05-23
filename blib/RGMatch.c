@@ -291,9 +291,6 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			for(i=1;i<numFiles;i++) {
 				/* Make sure we are reading the same sequence */
 				assert(strcmp(sequenceNames[i], sequenceNames[0])==0);
-				if(pairedEnd==1) {
-					assert(strcmp(sequences[i], pairedSequences[i])==0);
-				}
 			}
 
 			/* Remove duplicates */
