@@ -578,9 +578,6 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 				pairedEnd,
 				numThreads,
 				timing);
-
-		/* Close the temporary sequence file */
-		fclose(tempSeqFP);
 	}
 
 	/* Close the temporary output file */
