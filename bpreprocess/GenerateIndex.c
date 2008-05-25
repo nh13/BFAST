@@ -57,7 +57,7 @@ void GenerateIndex(RGBinary *rg,
 				index.endChr,
 				index.endPos,
 				i+1,
-				BLATTER_INDEX_FILE_EXTENSION);
+				BFAST_INDEX_FILE_EXTENSION);
 
 		/* Open the output file */
 		if(!(fp=fopen(outputFileName, "wb"))) {

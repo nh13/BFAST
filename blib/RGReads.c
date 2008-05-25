@@ -28,7 +28,8 @@ void RGReadsFindMatches(RGIndex *index,
 		int numInsertions,
 		int numDeletions,
 		int numGapInsertions,
-		int numGapDeletions)
+		int numGapDeletions,
+		int maxMatches)
 {
 	int i;
 	char reverseRead[SEQUENCE_LENGTH]="\0";
@@ -74,13 +75,14 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapDeletions);
 
 	/* Get the matches */
-	for(i=0;i<reads.numReads;i++) {
+	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
 		RGIndexGetMatches(index, 
 				rg,
 				reads.reads[i],
 				reads.strand[i],
 				reads.offset[i],
-				match);
+				match,
+				maxMatches);
 	}
 
 	if(VERBOSE >= DEBUG) {
@@ -92,7 +94,7 @@ void RGReadsFindMatches(RGIndex *index,
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Removing duplicates\n");
 	}
-	RGMatchRemoveDuplicates(match);
+	RGMatchRemoveDuplicates(match, maxMatches);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Removed duplicates with %d matches remaining in RGReadsFindMatchesInIndex.\n",

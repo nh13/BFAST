@@ -14,10 +14,10 @@
 #define SEQUENCE_NAME_LENGTH 4028
 
 /* File extensions */
-#define BLATTER_TREE_FILE_EXTENSION "btf"
-#define BLATTER_INDEX_FILE_EXTENSION "bif"
-#define BLATTER_MATCHES_FILE_EXTENSION "bmf"
-#define BLATTER_ALIGN_FILE_EXTENSION "baf"
+#define BFAST_TREE_FILE_EXTENSION "btf"
+#define BFAST_INDEX_FILE_EXTENSION "bif"
+#define BFAST_MATCHES_FILE_EXTENSION "bmf"
+#define BFAST_ALIGN_FILE_EXTENSION "baf"
 
 #define READ_ROTATE_NUM 1000000
 #define RGINDEX_ROTATE_NUM 1000000
@@ -48,6 +48,7 @@ typedef struct {
 	uint8_t *chromosomes;
 	int8_t *strand;
 	int32_t numEntries;
+	int32_t maxReached;
 } RGMatch;
 
 /* TODO */

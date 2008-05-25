@@ -10,6 +10,7 @@
 #include "BError.h"
 #include "BLib.h"
 #include "RGBinary.h"
+#include "RGMatch.h"
 #include "RGIndex.h"
 
 /* TODO */
@@ -1298,7 +1299,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t direction, int32_t offset, RGMatch *m)
+void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t direction, int32_t offset, RGMatch *m, int32_t maxMatches)
 {
 	int64_t i;
 	int64_t startIndex=-1;
@@ -1306,16 +1307,22 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 	int64_t nodeIndex=-1;
 	int64_t foundIndex=0;
 	int64_t tmpIndex=-1;
+	uint32_t hashIndex=0;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "RGIndexGetMatches.  Searching for read:%s.\n",
 				read);
 	}
 
+	/* Don't search if we have reached the maximum number of matches */
+	if(m->maxReached==1) {
+		return;
+	}
+
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
 	 * zero bounds for the binary search on the index */
-	uint32_t hashIndex = RGIndexGetHashIndexFromRead(index, rg, read);
+	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read);
 	assert(hashIndex >= 0 && hashIndex < index->hashLength);
 
 	if(index->starts[hashIndex] == UINT_MAX || 
@@ -1335,8 +1342,15 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 				&startIndex,
 				&endIndex);
 
-
 		if(foundIndex>0) {
+
+			/* Check to see if we add the current number of matches, if we would go over the limit */
+			if(m->numEntries + (endIndex - startIndex +1) > maxMatches) {
+				RGMatchFree(m);
+				m->maxReached=1;
+				return;
+			}
+
 			/* Copy over */
 			/* (Re)Allocate memory for the new matches */
 			tmpIndex = m->numEntries;
@@ -1497,26 +1511,26 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		/* adjust endIndex */
 		(*endIndex) = low;
 		/*
-		if((endIndex) == index->length-1) {
-			fprintf(stderr, "endIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
-					low,
-					mid,
-					high,
-					(*endIndex),
-					RGIndexCompareRead(index, rg, read, (*endIndex)-1),
-					RGIndexCompareRead(index, rg, read, (*endIndex)),
-					RGIndexCompareRead(index, rg, read, (*endIndex)+1));
-		}
-		else {
-			fprintf(stderr, "endIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
-					low,
-					mid,
-					high,
-					(*endIndex),
-					RGIndexCompareRead(index, rg, read, (*endIndex)-1),
-					RGIndexCompareRead(index, rg, read, (*endIndex)));
-		}
-		*/
+		   if((endIndex) == index->length-1) {
+		   fprintf(stderr, "endIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
+		   low,
+		   mid,
+		   high,
+		   (*endIndex),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)+1));
+		   }
+		   else {
+		   fprintf(stderr, "endIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
+		   low,
+		   mid,
+		   high,
+		   (*endIndex),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)));
+		   }
+		   */
 
 		assert(RGIndexCompareRead(index, rg, read, (*endIndex))==0);
 		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0);

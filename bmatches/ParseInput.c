@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGListFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, DescBinaryInput, 
-	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, DescNumThreads, 
+	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, DescMaxMatches, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -82,6 +82,7 @@ static struct argp_option options[] = {
 	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
 	{"numGapDeletions", 'Z', "numGapDeletions", 0, "Specifies the number of gap deletions allowd in the gap between paris", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
+	{"maxMatches", 'm', "maxMatches", 0, "Specifies the maximum number of matches to consider", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
@@ -112,7 +113,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:n:o:r:s:x:y:z:I:O:R:Y:Z:2bhptB";
+"d:e:i:m:n:o:r:s:x:y:z:I:O:R:Y:Z:2bhptB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -175,7 +176,7 @@ main (int argc, char **argv)
 								arguments.numGapInsertions,
 								arguments.numGapDeletions,
 								arguments.pairedEnd,
-								BLATTER_MATCHES_FILE_EXTENSION);
+								BFAST_MATCHES_FILE_EXTENSION);
 
 						/* Run Matches */
 						FindMatches(outputFileName,
@@ -194,6 +195,7 @@ main (int argc, char **argv)
 								arguments.numGapInsertions,
 								arguments.numGapDeletions,
 								arguments.pairedEnd,
+								arguments.maxMatches,
 								arguments.numThreads,
 								arguments.timing);
 
@@ -318,6 +320,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->maxMatches <= 0) {
+		PrintError(FnName, "maxMatches", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->numThreads<=0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	} 
@@ -414,6 +420,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numGapInsertions = 0;
 	args->numGapDeletions = 0;
 	args->pairedEnd = 0;
+	args->maxMatches = INT_MAX;
 	args->numThreads = 1;
 
 	args->outputID =
@@ -455,6 +462,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "maxMatches:\t\t\t\t%d\n", args->maxMatches);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -517,7 +525,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						if(arguments->bfastMainIndexesFileName) free(arguments->bfastMainIndexesFileName);
 						arguments->bfastMainIndexesFileName = OPTARG;break;
 					case 'n':
-						arguments->numThreads=atoi(OPTARG); break;
+						arguments->numThreads=atoi(OPTARG);break;
+					case 'm':
+						arguments->maxMatches=atoi(OPTARG);break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;

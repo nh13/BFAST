@@ -74,7 +74,7 @@ void RunAligner(RGBinary *rgBinary,
 			outputDir,
 			outputID,
 			algorithm,
-			BLATTER_ALIGN_FILE_EXTENSION);
+			BFAST_ALIGN_FILE_EXTENSION);
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "w"))==0) {
@@ -212,10 +212,12 @@ void RunDynamicProgramming(FILE *matchFP,
 	readMatch.chromosomes=NULL;
 	readMatch.strand=NULL;
 	readMatch.numEntries=0;
+	readMatch.maxReached=0;
 	pairedSequenceMatch.positions=NULL;
 	pairedSequenceMatch.chromosomes=NULL;
 	pairedSequenceMatch.strand=NULL;
 	pairedSequenceMatch.numEntries=0;
+	pairedSequenceMatch.maxReached=0;
 
 	/* Go through each read in the match file */
 	numMatches=0;
@@ -241,26 +243,10 @@ void RunDynamicProgramming(FILE *matchFP,
 				pairedEnd);
 
 		/* Free match */
-		if(readMatch.numEntries > 0) {
-			/* Free AlignEntry */
-			free(readMatch.positions);
-			free(readMatch.chromosomes);
-			free(readMatch.strand);
+		RGMatchFree(&readMatch);
+		if(pairedEnd==1) {
+			RGMatchFree(&pairedSequenceMatch);
 		}
-		if(pairedSequenceMatch.numEntries > 0) {
-			free(pairedSequenceMatch.positions);
-			free(pairedSequenceMatch.chromosomes);
-			free(pairedSequenceMatch.strand);
-		}
-		/* Initialize match */
-		readMatch.positions=NULL;
-		readMatch.chromosomes=NULL;
-		readMatch.strand=NULL;
-		readMatch.numEntries=0;
-		pairedSequenceMatch.positions=NULL;
-		pairedSequenceMatch.chromosomes=NULL;
-		pairedSequenceMatch.strand=NULL;
-		pairedSequenceMatch.numEntries=0;
 	}
 
 	/* Create thread arguments */
@@ -440,10 +426,12 @@ void *RunDynamicProgrammingThread(void *arg)
 	readMatch.chromosomes=NULL;
 	readMatch.strand=NULL;
 	readMatch.numEntries=0;
+	readMatch.maxReached=0;
 	pairedSequenceMatch.positions=NULL;
 	pairedSequenceMatch.chromosomes=NULL;
 	pairedSequenceMatch.strand=NULL;
 	pairedSequenceMatch.numEntries=0;
+	pairedSequenceMatch.maxReached=0;
 
 	/* Go through each read in the match file */
 	while(EOF!=RGMatchGetNextFromFile(inputFP, 
@@ -461,7 +449,8 @@ void *RunDynamicProgrammingThread(void *arg)
 			fprintf(stderr, "\nreadMatch.numEntries=%d.\n",
 					readMatch.numEntries);
 		}
-		if(readMatch.numEntries > 0 && (maxNumMatches == 0 || readMatch.numEntries < maxNumMatches)) {
+		/* This does not work for paired end */
+		if(readMatch.maxReached == 0 && readMatch.numEntries > 0 && (maxNumMatches == 0 || readMatch.numEntries < maxNumMatches)) {
 
 			/* Get the read length */
 			matchLength = strlen(read);
@@ -561,30 +550,14 @@ void *RunDynamicProgrammingThread(void *arg)
 			}
 		}
 		/* Free match */
-		if(readMatch.numEntries > 0) {
-			/* Free AlignEntry */
-			free(readMatch.positions);
-			free(readMatch.chromosomes);
-			free(readMatch.strand);
-		}
-		if(pairedSequenceMatch.numEntries > 0) {
-			free(pairedSequenceMatch.positions);
-			free(pairedSequenceMatch.chromosomes);
-			free(pairedSequenceMatch.strand);
+		RGMatchFree(&readMatch);
+		if(pairedEnd==1) {
+			RGMatchFree(&pairedSequenceMatch);
 		}
 		if(numAlignEntries > 0) {
 			free(aEntry);
 			aEntry = NULL;
 		}
-		/* Initialize match */
-		readMatch.positions=NULL;
-		readMatch.chromosomes=NULL;
-		readMatch.strand=NULL;
-		readMatch.numEntries=0;
-		pairedSequenceMatch.positions=NULL;
-		pairedSequenceMatch.chromosomes=NULL;
-		pairedSequenceMatch.strand=NULL;
-		pairedSequenceMatch.numEntries=0;
 	}
 
 	/* Free memory */

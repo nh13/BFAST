@@ -28,11 +28,12 @@ typedef struct {
 	int numGapInsertions;
 	int numGapDeletions;
 	int pairedEnd;
+	int maxMatches;
 	int numMatches;
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(char*, int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int);
+void FindMatches(char*, int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int);
 int FindMatchesInIndexes(char **rgIndexFileNames,
 		int binaryInput,
 		RGBinary *rg,
@@ -45,6 +46,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int maxMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *outputFP,

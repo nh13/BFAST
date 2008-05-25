@@ -292,10 +292,12 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 	sequenceMatch.chromosomes=NULL;
 	sequenceMatch.strand=NULL;
 	sequenceMatch.numEntries=0;
+	sequenceMatch.maxReached=0;
 	pairedSequenceMatch.positions=NULL;
 	pairedSequenceMatch.chromosomes=NULL;
 	pairedSequenceMatch.strand=NULL;
 	pairedSequenceMatch.numEntries=0;
+	pairedSequenceMatch.maxReached=0;
 
 	/* Go to the beginning of the temporary output file */
 	fseek(tempOutputFP, 0, SEEK_SET);

@@ -31,6 +31,7 @@ void FindMatches(char *outputFileName,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int maxMatches,
 		int numThreads,
 		int timing
 		)
@@ -185,6 +186,7 @@ void FindMatches(char *outputFileName,
 			numGapInsertions,
 			numGapDeletions,
 			pairedEnd,
+			maxMatches,
 			numThreads,
 			&tempSeqFPs,
 			outputFP,
@@ -217,6 +219,7 @@ void FindMatches(char *outputFileName,
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
+			maxMatches,
 				numThreads,
 				&tempSeqFPs,
 				outputFP,
@@ -305,6 +308,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int maxMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *outputFP,
@@ -425,6 +429,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 			data[j].numGapInsertions = numGapInsertions;
 			data[j].numGapDeletions = numGapDeletions;
 			data[j].pairedEnd = pairedEnd;
+			data[j].maxMatches = maxMatches;
 			data[j].threadID = j;
 		}
 
@@ -524,7 +529,8 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	numWritten=RGMatchMergeFilesAndOutput(tempOutputIndexFPs,
 			numSecondaryIndexes,
 			tempOutputFP,
-			pairedEnd);
+			pairedEnd,
+			maxMatches);
 	endTime=time(NULL);
 	(*totalOutputTime)+=endTime-startTime;
 
@@ -621,6 +627,7 @@ void *FindMatchesInIndex(void *arg)
 	int numGapInsertions = data->numGapInsertions;
 	int numGapDeletions = data->numGapDeletions;
 	int pairedEnd = data->pairedEnd;
+	int maxMatches = data->maxMatches;
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
@@ -637,10 +644,12 @@ void *FindMatchesInIndex(void *arg)
 	sequenceMatch.chromosomes=NULL;
 	sequenceMatch.strand=NULL;
 	sequenceMatch.numEntries=0;
+	sequenceMatch.maxReached=0;
 	pairedSequenceMatch.positions=NULL;
 	pairedSequenceMatch.chromosomes=NULL;
 	pairedSequenceMatch.strand=NULL;
 	pairedSequenceMatch.numEntries=0;
+	pairedSequenceMatch.maxReached=0;
 
 	/* Allocate memory for the data */
 	sequenceName = (char*)malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
@@ -671,10 +680,12 @@ void *FindMatchesInIndex(void *arg)
 		sequenceMatch.chromosomes=NULL;
 		sequenceMatch.strand=NULL;
 		sequenceMatch.numEntries=0;
+		sequenceMatch.maxReached=0;
 		pairedSequenceMatch.positions=NULL;
 		pairedSequenceMatch.chromosomes=NULL;
 		pairedSequenceMatch.strand=NULL;
 		pairedSequenceMatch.numEntries=0;
+		pairedSequenceMatch.maxReached=0;
 
 		RGReadsFindMatches(index,
 				rg,
@@ -686,7 +697,8 @@ void *FindMatchesInIndex(void *arg)
 				numInsertions,
 				numDeletions,
 				numGapInsertions,
-				numGapDeletions);
+				numGapDeletions,
+				maxMatches);
 		if(pairedEnd==1) {
 			RGReadsFindMatches(index,
 					rg,
@@ -698,7 +710,8 @@ void *FindMatchesInIndex(void *arg)
 					numInsertions,
 					numDeletions,
 					numGapInsertions,
-					numGapDeletions);
+					numGapDeletions,
+					maxMatches);
 		}
 
 		if(VERBOSE >= DEBUG) {
@@ -716,23 +729,9 @@ void *FindMatchesInIndex(void *arg)
 			fprintf(stderr, "Freeing matches.\n");
 		}
 		/* Free matches */
-		if(sequenceMatch.numEntries > 0) {
-			free(sequenceMatch.positions);
-			sequenceMatch.positions=NULL;
-			free(sequenceMatch.chromosomes);
-			sequenceMatch.chromosomes=NULL;
-			free(sequenceMatch.strand);
-			sequenceMatch.strand=NULL;
-			sequenceMatch.numEntries=0;
-		}
-		if(pairedEnd == 1 && pairedSequenceMatch.numEntries > 0) {
-			free(pairedSequenceMatch.positions);
-			pairedSequenceMatch.positions=NULL;
-			free(pairedSequenceMatch.chromosomes);
-			pairedSequenceMatch.chromosomes=NULL;
-			free(pairedSequenceMatch.strand);
-			pairedSequenceMatch.strand=NULL;
-			pairedSequenceMatch.numEntries=0;
+		RGMatchFree(&sequenceMatch);
+		if(pairedEnd == 1) {
+			RGMatchFree(&pairedSequenceMatch);
 		}
 	}
 	if(VERBOSE>=0) {
