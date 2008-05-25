@@ -195,36 +195,38 @@ void FindMatches(char *outputFileName,
 			&totalOutputTime
 			);
 
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Procesing remaining %d reads using secondary indexes.\n",
-				numReads-numMatches);
-		fprintf(stderr, "%s", BREAK_LINE);
-	}
+	if(numReads-numMatches > 0) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Procesing remaining %d reads using secondary indexes.\n",
+					numReads-numMatches);
+			fprintf(stderr, "%s", BREAK_LINE);
+		}
 
-	/* Do step 2: search the indexes for all sequences */
-	numMatches+=FindMatchesInIndexes(rgIndexFileNames,
-			binaryInput,
-			&rg,
-			numSecondaryIndexes,
-			offsets,
-			numOffsets,
-			numMismatches,
-			numInsertions,
-			numDeletions,
-			numGapInsertions,
-			numGapDeletions,
-			pairedEnd,
-			numThreads,
-			&tempSeqFPs,
-			outputFP,
-			0,
-			timing,
-			&totalDataStructureTime,
-			&totalSearchTime,
-			&totalOutputTime
-			);
+		/* Do step 2: search the indexes for all sequences */
+		numMatches+=FindMatchesInIndexes(rgIndexFileNames,
+				binaryInput,
+				&rg,
+				numSecondaryIndexes,
+				offsets,
+				numOffsets,
+				numMismatches,
+				numInsertions,
+				numDeletions,
+				numGapInsertions,
+				numGapDeletions,
+				pairedEnd,
+				numThreads,
+				&tempSeqFPs,
+				outputFP,
+				0,
+				timing,
+				&totalDataStructureTime,
+				&totalSearchTime,
+				&totalOutputTime
+				);
+	}
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);

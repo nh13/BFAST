@@ -73,7 +73,6 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapInsertions,
 			numGapDeletions);
 
-
 	/* Get the matches */
 	for(i=0;i<reads.numReads;i++) {
 		RGIndexGetMatches(index, 

@@ -1302,7 +1302,10 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 {
 	int64_t i;
 	int64_t startIndex=-1;
+	int64_t endIndex=-1;
 	int64_t nodeIndex=-1;
+	int64_t foundIndex=0;
+	int64_t tmpIndex=-1;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "RGIndexGetMatches.  Searching for read:%s.\n",
@@ -1320,36 +1323,27 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 		/* Skip */
 	}
 	else {
+		assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
+		assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
+
 		/* Search the index using the bounds from the hash */
-		nodeIndex = RGIndexGetFirstIndex(index, 
+		foundIndex=RGIndexGetIndex(index, 
 				rg, 
 				index->starts[hashIndex],  
 				index->ends[hashIndex],
-				read);
-		if(VERBOSE >= DEBUG) {
-			if(nodeIndex < 0) {
-				fprintf(stderr, "Found index:%lld\n", (long long int)nodeIndex);
-			}
-			else {
-				fprintf(stderr, "Found index:%lld\tchr:%d\tpos:%d\n", 
-						(long long int)nodeIndex,
-						(int32_t)index->chromosomes[nodeIndex],
-						index->positions[nodeIndex]);
-			}
-		}
+				read,
+				&startIndex,
+				&endIndex);
 
-		/* Copy over all matches */
-		while(nodeIndex >= 0 && 
-				nodeIndex < index->length &&
-				RGIndexCompareRead(index, rg, read, nodeIndex)==0) {
 
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Will append...\n");
-			}
-			/* Copy over the matches */
+		if(foundIndex>0) {
+			/* Copy over */
 			/* (Re)Allocate memory for the new matches */
-			startIndex = m->numEntries;
-			m->numEntries++;
+			tmpIndex = m->numEntries;
+			assert(endIndex >= startIndex);
+			assert(startIndex >= 0 && startIndex < index->length);
+			assert(endIndex >= 0 && endIndex < index->length);
+			m->numEntries += (endIndex-startIndex+1);
 			m->positions = realloc(m->positions, sizeof(uint32_t)*(m->numEntries)); 
 			if(NULL == m->positions) {
 				PrintError("RGIndexGetMatches",
@@ -1376,28 +1370,28 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int8_t directio
 			}
 
 			/* Copy over */
-			for(i=startIndex;i<m->numEntries;i++) {
+			for(i=tmpIndex, nodeIndex = startIndex;i < m->numEntries && nodeIndex <= endIndex;i++, nodeIndex++) {
 				m->positions[i] = index->positions[nodeIndex] - offset;
 				m->chromosomes[i] = index->chromosomes[nodeIndex];
 				m->strand[i] = direction;
 			}
-
-			/* Update to the next node */
-			nodeIndex++;
 		}
 	}
 }
 
 /* TODO */
-int64_t RGIndexGetFirstIndex(RGIndex *index,
+int64_t RGIndexGetIndex(RGIndex *index,
 		RGBinary *rg,
 		int64_t low,
 		int64_t high,
-		char *read)
+		char *read,
+		int64_t *startIndex,
+		int64_t *endIndex)
 {
 	int64_t mid=-1;
 	int32_t cmp;
 	int32_t cont = 1;
+	int64_t tmpLow, tmpMid, tmpHigh;
 
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
@@ -1419,15 +1413,119 @@ int64_t RGIndexGetFirstIndex(RGIndex *index,
 			low = mid + 1;
 		}
 	}
-	if(1 == cont) {
-		return -1;
+	/* If we found an entry that matches, get the bounds (start and end indexes */
+	if(cont == 0) {
+		tmpLow = low;
+		tmpMid = mid;
+		tmpHigh = high;
+		/*
+		   fprintf(stderr, "Getting start and end:\t%lld\t%lld\t%lld\n",
+		   low,
+		   mid,
+		   high);
+		   */
+		/* Get lower start Index */
+		low = tmpLow;
+		high = tmpMid;
+		while(low < high) {
+			mid = (low+high)/2;
+			cmp = RGIndexCompareRead(index, rg, read, mid);
+			assert(cmp >= 0);
+			/*
+			   fprintf(stderr, "start:%lld\t%lld\t%lld\t%d\n",
+			   low,
+			   mid,
+			   high,
+			   cmp);
+			   */
+			if(cmp == 0) {
+				high = mid;
+			}
+			else {
+				/* mid is less than */
+				low = mid+1;
+			}
+		}
+		(*startIndex) = low;
+		assert(low == high);
+		/*
+		   if((*startIndex) == 0) {
+		   fprintf(stderr, "startIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
+		   low,
+		   mid,
+		   high,
+		   (*startIndex),
+		   RGIndexCompareRead(index, rg, read, (*startIndex)),
+		   RGIndexCompareRead(index, rg, read, (*startIndex)+1));
+		   }
+		   else {
+		   fprintf(stderr, "startIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
+		   low,
+		   mid,
+		   high,
+		   (*startIndex),
+		   RGIndexCompareRead(index, rg, read, (*startIndex)-1),
+		   RGIndexCompareRead(index, rg, read, (*startIndex)),
+		   RGIndexCompareRead(index, rg, read, (*startIndex)+1));
+		   }
+		   */
+		assert(RGIndexCompareRead(index, rg, read, (*startIndex))==0);
+		assert((*startIndex) == 0 || RGIndexCompareRead(index, rg, read, (*startIndex)-1)>0);
+		/* Get upper start Index */
+		low = tmpMid;
+		high = tmpHigh;
+		while(low < high) {
+			mid = (low+high)/2+1;
+			cmp = RGIndexCompareRead(index, rg, read, mid);
+			assert(cmp <= 0);
+			/*
+			   fprintf(stderr, "end:%lld\t%lld\t%lld\t%d\n",
+			   low,
+			   mid,
+			   high,
+			   cmp);
+			   */
+			if(cmp == 0) {
+				low = mid;
+			}
+			else {
+				/* mid is less than */
+				high = mid-1;
+			}
+		}
+		assert(low == high);
+		/* adjust endIndex */
+		(*endIndex) = low;
+		/*
+		if((endIndex) == index->length-1) {
+			fprintf(stderr, "endIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
+					low,
+					mid,
+					high,
+					(*endIndex),
+					RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+					RGIndexCompareRead(index, rg, read, (*endIndex)),
+					RGIndexCompareRead(index, rg, read, (*endIndex)+1));
+		}
+		else {
+			fprintf(stderr, "endIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
+					low,
+					mid,
+					high,
+					(*endIndex),
+					RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+					RGIndexCompareRead(index, rg, read, (*endIndex)));
+		}
+		*/
+
+		assert(RGIndexCompareRead(index, rg, read, (*endIndex))==0);
+		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0);
+		return 1;
 	}
 	else {
-		while(mid > 0 && RGIndexCompareRead(index, rg, read, mid-1) == 0) {
-			mid--;
-		}
-		return mid;
+		return 0;
 	}
+
 }
 
 /* TODO */
@@ -1587,12 +1685,12 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 					break;
 			}
 			/*
-			fprintf(stderr, "%c\t%d\t%lf\t%d\n",
-					aBase,
-					cur,
-					pow(ALPHABET_SIZE, cur),
-					hashIndex);
-					*/
+			   fprintf(stderr, "%c\t%d\t%lf\t%d\n",
+			   aBase,
+			   cur,
+			   pow(ALPHABET_SIZE, cur),
+			   hashIndex);
+			   */
 
 			cur--;
 
@@ -1605,9 +1703,6 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 	}
 
 	/* All bases were equal, return 0 */
-	/*
-	fprintf(stderr, "HERE returning %u\n", hashIndex);
-	*/
 	return hashIndex;
 }
 
