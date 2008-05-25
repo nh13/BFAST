@@ -664,7 +664,10 @@ void *FindMatchesInIndex(void *arg)
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
 		numRead++;
 
+		if(VERBOSE >= 0) {
+			/*
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
+		*/
 			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
 					threadID,
 					numRead);

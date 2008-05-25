@@ -235,8 +235,8 @@ void CheckRGIndexes(char **mainFileNames,
 				mainStartChr = tempIndex.startChr;
 				mainStartPos = tempIndex.startPos;
 			}
-			if(tempIndex.endChr < mainStartChr ||
-					(tempIndex.endChr == mainStartChr && tempIndex.endPos < mainStartPos)) {
+			if(tempIndex.endChr > mainEndChr ||
+					(tempIndex.endChr == mainEndChr && tempIndex.endPos > mainEndPos)) {
 				mainEndChr = tempIndex.endChr;
 				mainEndPos = tempIndex.endPos;
 			}
@@ -275,8 +275,8 @@ void CheckRGIndexes(char **mainFileNames,
 				secondaryStartChr = tempIndex.startChr;
 				secondaryStartPos = tempIndex.startPos;
 			}
-			if(tempIndex.endChr < secondaryStartChr ||
-					(tempIndex.endChr == secondaryStartChr && tempIndex.endPos < secondaryStartPos)) {
+			if(tempIndex.endChr > secondaryEndChr ||
+					(tempIndex.endChr == secondaryEndChr && tempIndex.endPos > secondaryEndPos)) {
 				secondaryEndChr = tempIndex.endChr;
 				secondaryEndPos = tempIndex.endPos;
 			}
