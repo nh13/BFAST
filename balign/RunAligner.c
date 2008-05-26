@@ -58,7 +58,7 @@ void RunAligner(RGBinary *rgBinary,
 					ReallocMemory);
 		}
 		/* Allocate memory */
-		matchFileNames[numMatchFileNames-1] = (char*)malloc(sizeof(char)*(strlen(tempFileName+1)));
+		matchFileNames[numMatchFileNames-1] = (char*)malloc(sizeof(char)*(strlen(tempFileName)+1));
 		if(NULL==matchFileNames[numMatchFileNames-1]) {
 			PrintError("RunAligner",
 					"matchFileNames[numMatchFileNames-1]",
