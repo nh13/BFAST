@@ -277,7 +277,8 @@ int ReadOffsets(char *offsetsFileName, int **offsets)
 void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 		FILE *outputFP,
 		FILE *tempSeqFP,
-		int pairedEnd)
+		int pairedEnd,
+		int binaryOutput)
 {
 	char sequenceName[SEQUENCE_NAME_LENGTH];
 	char sequence[SEQUENCE_LENGTH];
@@ -308,7 +309,8 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 				pairedSequence, 
 				&sequenceMatch, 
 				&pairedSequenceMatch,
-				pairedEnd)!=EOF) {
+				pairedEnd,
+				binaryOutput)!=EOF) {
 		if(sequenceMatch.numEntries > 0) {
 			/* Output to final output file */
 			RGMatchOutputToFile(outputFP,
@@ -317,7 +319,8 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 					pairedSequence,
 					&sequenceMatch,
 					&pairedSequenceMatch,
-					pairedEnd);
+					pairedEnd,
+					binaryOutput);
 		}
 		else {
 			/* Put back in the sequence file */
@@ -331,24 +334,10 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 		}
 
 		/* Free match memory and reinitialize match structures */
-		if(sequenceMatch.numEntries>0) {
-			free(sequenceMatch.positions);
-			sequenceMatch.positions=NULL;
-			free(sequenceMatch.chromosomes);
-			sequenceMatch.chromosomes=NULL;
-			free(sequenceMatch.strand);
-			sequenceMatch.strand=NULL;
+		RGMatchFree(&sequenceMatch);
+		if(pairedEnd==1) {
+			RGMatchFree(&pairedSequenceMatch);
 		}
-		sequenceMatch.numEntries=0;
-		if(pairedSequenceMatch.numEntries > 0) {
-			pairedSequenceMatch.positions=NULL;
-			free(pairedSequenceMatch.positions);
-			pairedSequenceMatch.chromosomes=NULL;
-			free(pairedSequenceMatch.chromosomes);
-			pairedSequenceMatch.strand=NULL;
-			free(pairedSequenceMatch.strand);
-		}
-		pairedSequenceMatch.numEntries=0;
 	}
 }
 

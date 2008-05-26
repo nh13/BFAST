@@ -27,7 +27,6 @@ void RGBinaryRead(char *rgFileName,
 	int32_t continueReading=1;
 	int32_t byteIndex;
 	int32_t numCharsPerByte;
-	int32_t sequenceIndex;
 
 	char **chrFileNames=NULL;
 	int32_t numChrFileNames=0;
@@ -181,6 +180,7 @@ void RGBinaryRead(char *rgFileName,
 					ReallocMemory);
 		}
 		rg->chromosomes[numChrs-1].sequence = NULL;
+		rg->chromosomes[numChrs-1].numBytes = 0;
 
 		/* Read in chromosome. */
 		if(VERBOSE >= 0) {
@@ -236,10 +236,10 @@ void RGBinaryRead(char *rgFileName,
 				}
 				else {
 					byteIndex = numPosRead%numCharsPerByte;
-					sequenceIndex = (numPosRead - byteIndex)/2;
 					if(byteIndex==0) {
+						rg->chromosomes[numChrs-1].numBytes++;
 						/* Allocate once we have filled up the byte */
-						rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(uint8_t)*(sequenceIndex+1));
+						rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(uint8_t)*(rg->chromosomes[numChrs-1].numBytes));
 						if(NULL == rg->chromosomes[numChrs-1].sequence) {
 							PrintError("RGBinaryRead",
 									"rg->chromosomes[numChrs-1].sequence",
@@ -248,10 +248,10 @@ void RGBinaryRead(char *rgFileName,
 									ReallocMemory);
 						}
 						/* Initialize byte */
-						rg->chromosomes[numChrs-1].sequence[sequenceIndex] = 0;
+						rg->chromosomes[numChrs-1].sequence[rg->chromosomes[numChrs-1].numBytes-1] = 0;
 					}
 					/* Insert the sequence correctly (as opposed to incorrectly) */
-					RGBinaryInsertBase(&rg->chromosomes[numChrs-1].sequence[sequenceIndex], byteIndex, c, original);
+					RGBinaryInsertBase(&rg->chromosomes[numChrs-1].sequence[rg->chromosomes[numChrs-1].numBytes-1], byteIndex, c, original);
 					numPosRead++;
 				}
 				curPos++;
@@ -284,7 +284,17 @@ void RGBinaryRead(char *rgFileName,
 		}
 
 		/* Reallocate to reduce memory (fit exactly) */
-		rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(int8_t)*(numPosRead));
+		assert(numCharsPerByte==2);
+		if(rg->chromosomes[numChrs-1].numBytes != (1+rg->chromosomes[numChrs-1].endPos - rg->chromosomes[numChrs-1].startPos + 1)/numCharsPerByte) {
+			fprintf(stderr, "%d\t%d\t%d\t%d\n",
+					rg->chromosomes[numChrs-1].numBytes,
+					rg->chromosomes[numChrs-1].startPos,
+					rg->chromosomes[numChrs-1].endPos,
+					rg->chromosomes[numChrs-1].endPos-rg->chromosomes[numChrs-1].startPos+1);
+		}
+		/* we must add one since there could be an odd number of positions */
+		assert(rg->chromosomes[numChrs-1].numBytes == (1+rg->chromosomes[numChrs-1].endPos - rg->chromosomes[numChrs-1].startPos + 1)/numCharsPerByte);
+		rg->chromosomes[numChrs-1].sequence = realloc(rg->chromosomes[numChrs-1].sequence, sizeof(int8_t)*(rg->chromosomes[numChrs-1].numBytes));
 		if(NULL == rg->chromosomes[numChrs-1].sequence) {
 			PrintError("RGBinaryRead",
 					"rg->chromosomes[numChrs-1].sequence",
@@ -321,6 +331,146 @@ void RGBinaryRead(char *rgFileName,
 		}
 		free(chrFileNames);
 	}
+}
+
+void RGBinaryReadBinary(RGBinary *rg,
+		char *rgFileName)
+{
+	char *FnName="RGBinaryReadBinary";
+	FILE *fpRG;
+	int i;
+	int32_t numCharsPerByte;
+	/* We assume that we can hold 2 [acgt] (nts) in each byte */
+	assert(ALPHABET_SIZE==4);
+	numCharsPerByte=ALPHABET_SIZE/2;
+
+	if(VERBOSE>=0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Reading in reference genome from %s.\n", rgFileName);
+	}
+
+	/* Open output file */
+	if((fpRG=fopen(rgFileName, "rb"))==0) {
+		PrintError(FnName,
+				rgFileName,
+				"Could not open rgFileName for writing",
+				Exit,
+				OpenFileError);
+	}
+
+	/* Read RGBinary information */
+	if( fread(&rg->numChrs, sizeof(int32_t), 1, fpRG)==EOF ||
+			fread(&rg->startChr, sizeof(int32_t), 1, fpRG)==EOF ||
+			fread(&rg->startPos, sizeof(int32_t), 1, fpRG)==EOF ||
+			fread(&rg->endChr, sizeof(int32_t), 1, fpRG)==EOF ||
+			fread(&rg->endPos, sizeof(int32_t), 1, fpRG)==EOF) {
+		PrintError(FnName,
+				NULL,
+				"Could not read RGBinary information",
+				Exit,
+				EndOfFile);
+	}
+
+	/* Allocate memory for the chromosomes */
+	rg->chromosomes = malloc(sizeof(RGBinaryChr)*rg->numChrs);
+	if(NULL==rg->chromosomes) {
+		PrintError(FnName,
+				"rg->chromosomes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Read each chromosome */
+	for(i=0;i<rg->numChrs;i++) {
+		/* Read RGChr information */
+		if(fread(&rg->chromosomes[i].chromosome, sizeof(int32_t), 1, fpRG)==EOF ||
+				fread(&rg->chromosomes[i].startPos, sizeof(int32_t), 1, fpRG)==EOF ||
+				fread(&rg->chromosomes[i].endPos, sizeof(int32_t), 1, fpRG)==EOF ||
+				fread(&rg->chromosomes[i].numBytes, sizeof(uint32_t), 1, fpRG)==EOF) {
+			PrintError(FnName,
+					NULL,
+					"Could not read RGChr information",
+					Exit,
+					EndOfFile);
+		}
+		/* Allocate memory for the sequence */
+		rg->chromosomes[i].sequence = malloc(sizeof(uint8_t)*rg->chromosomes[i].numBytes);
+		if(NULL==rg->chromosomes[i].sequence) {
+			PrintError(FnName,
+					"rg->chromosomes[i].sequence",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Read sequence */
+		if(fread(rg->chromosomes[i].sequence, sizeof(uint8_t), rg->chromosomes[i].numBytes, fpRG)==EOF) {
+			PrintError(FnName,
+					NULL,
+					"Could not read seuqence",
+					Exit,
+					EndOfFile);
+		}
+	}
+
+	/* Close the output file */
+	fclose(fpRG);
+
+	if(VERBOSE>=0) {
+		fprintf(stderr, "In total read from chr%d:%d to chr%d:%d.\n",
+				rg->startChr,
+				rg->startPos,
+				rg->endChr,
+				rg->endPos);
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
+}
+
+void RGBinaryWriteBinary(RGBinary *rg,
+		char *rgFileName) 
+{
+	char *FnName="RGBinaryWriteBinary";
+	FILE *fpRG;
+	int i;
+	int32_t numCharsPerByte;
+	/* We assume that we can hold 2 [acgt] (nts) in each byte */
+	assert(ALPHABET_SIZE==4);
+	numCharsPerByte=ALPHABET_SIZE/2;
+
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Outputting to %s\n", rgFileName);
+
+	/* Open output file */
+	if((fpRG=fopen(rgFileName, "wb"))==0) {
+		PrintError(FnName,
+				rgFileName,
+				"Could not open rgFileName for writing",
+				Exit,
+				OpenFileError);
+	}
+
+	/* Output RGBinary information */
+	fwrite(&rg->numChrs, sizeof(int32_t), 1, fpRG);
+	fwrite(&rg->startChr, sizeof(int32_t), 1, fpRG);
+	fwrite(&rg->startPos, sizeof(int32_t), 1, fpRG);
+	fwrite(&rg->endChr, sizeof(int32_t), 1, fpRG);
+	fwrite(&rg->endPos, sizeof(int32_t), 1, fpRG);
+
+	/* Output each chromosome */
+	for(i=0;i<rg->numChrs;i++) {
+		/* Output RGChr information */
+		fwrite(&rg->chromosomes[i].chromosome, sizeof(int32_t), 1, fpRG);
+		fwrite(&rg->chromosomes[i].startPos, sizeof(int32_t), 1, fpRG);
+		fwrite(&rg->chromosomes[i].endPos, sizeof(int32_t), 1, fpRG);
+		fwrite(&rg->chromosomes[i].numBytes, sizeof(uint32_t), 1, fpRG);
+		/* Output sequence */
+		fwrite(rg->chromosomes[i].sequence, sizeof(uint8_t), rg->chromosomes[i].numBytes, fpRG);
+	}
+
+	fclose(fpRG);
+
+	fprintf(stderr, "Output complete.\n");
+	fprintf(stderr, "%s", BREAK_LINE);
 }
 
 /* TODO */
@@ -646,6 +796,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 	posIndex = (posIndex - byteIndex)/numCharsPerByte; /* Get which byte */
 
 	/* Get the current byte */
+	assert(posIndex >= 0 && posIndex < rg->chromosomes[chrIndex].numBytes);
 	curByte= rg->chromosomes[chrIndex].sequence[posIndex];
 
 	/* Extract base */

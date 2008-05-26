@@ -18,6 +18,7 @@
 typedef struct {
 	FILE *tempSeqFP;
 	FILE *tempOutputFP;
+	int binaryOutput;
 	RGIndex *index;
 	RGBinary *rg;
 	int *offsets;
@@ -50,6 +51,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *outputFP,
+		int binaryOutput,
 		int MainIndexes,
 		int timing,
 		int *totalDataStructureTime,

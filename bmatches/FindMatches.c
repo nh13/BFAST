@@ -17,7 +17,7 @@
 /* TODO */
 void FindMatches(char *outputFileName,
 		int binaryOutput,
-		char *rgListFileName,
+		char *rgFileName,
 		char *rgIndexMainListFileName,
 		char *rgIndexSecondaryListFileName,
 		char *sequenceFileName, 
@@ -97,15 +97,11 @@ void FindMatches(char *outputFileName,
 			&endPos);
 
 	/* Read in the reference genome */
-		startTime = time(NULL);
-	RGBinaryRead(rgListFileName,
-			&rg,
-			startChr,
-			startPos,
-			endChr,
-			endPos);
-		endTime = time(NULL);
-		totalReadRGTime = endTime - startTime;
+	startTime = time(NULL);
+	RGBinaryReadBinary(&rg,
+			rgFileName);
+	endTime = time(NULL);
+	totalReadRGTime = endTime - startTime;
 
 	/* Read in the offsets */
 	numOffsets=ReadOffsets(offsetsFileName, &offsets);
@@ -195,12 +191,13 @@ void FindMatches(char *outputFileName,
 			numThreads,
 			&tempSeqFPs,
 			outputFP,
+			binaryOutput,
 			1,
 			timing,
 			&totalDataStructureTime,
 			&totalSearchTime,
 			&totalOutputTime
-			);
+				);
 
 	if(numReads-numMatches > 0) {
 		if(VERBOSE >= 0) {
@@ -224,16 +221,17 @@ void FindMatches(char *outputFileName,
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
-			maxMatches,
+				maxMatches,
 				numThreads,
 				&tempSeqFPs,
 				outputFP,
+				binaryOutput,
 				0,
 				timing,
 				&totalDataStructureTime,
 				&totalSearchTime,
 				&totalOutputTime
-				);
+					);
 	}
 
 	if(VERBOSE>=0) {
@@ -324,6 +322,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *outputFP,
+		int binaryOutput,
 		int MainIndexes,
 		int timing,
 		int *totalDataStructureTime,
@@ -431,6 +430,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		/* Initialize arguments to threads */
 		for(j=0;j<numThreads;j++) {
 			data[j].tempOutputFP= tempOutputThreadFPs[j];
+			data[j].binaryOutput = binaryOutput;
 			data[j].index = &index;
 			data[j].rg = rg;
 			data[j].offsets = offsets;
@@ -497,10 +497,14 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		/* Idea: the reads were apportioned in a given order,
 		 * so merge to recover the initial order.
 		 * */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Merging thread temp files...\n");
+		}
 		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
 				tempOutputIndexFPs[i],
-				pairedEnd);
+				pairedEnd,
+				binaryOutput);
 
 		/* Close temp thread output */
 		for(j=0;j<numThreads;j++) {
@@ -542,6 +546,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 			numSecondaryIndexes,
 			tempOutputFP,
 			pairedEnd,
+			binaryOutput,
 			maxMatches);
 	endTime=time(NULL);
 	(*totalOutputTime)+=endTime-startTime;
@@ -580,7 +585,8 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		ReadTempSequencesAndOutput(tempOutputFP,
 				outputFP,
 				tempSeqFP,
-				pairedEnd);
+				pairedEnd,
+				binaryOutput);
 		endTime=time(NULL);
 		(*totalOutputTime)+=endTime-startTime;
 
@@ -638,6 +644,7 @@ void *FindMatchesInIndex(void *arg)
 	int numDeletions = data->numDeletions;
 	int numGapInsertions = data->numGapInsertions;
 	int numGapDeletions = data->numGapDeletions;
+	int binaryOutput = data->binaryOutput;
 	int pairedEnd = data->pairedEnd;
 	int maxMatches = data->maxMatches;
 	int threadID = data->threadID;
@@ -676,10 +683,10 @@ void *FindMatchesInIndex(void *arg)
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
 		numRead++;
 
-		if(VERBOSE >= 0) {
-			/*
+		/*
+		   if(VERBOSE >= 0) {
+		   */
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
-		*/
 			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
 					threadID,
 					numRead);
@@ -738,7 +745,14 @@ void *FindMatchesInIndex(void *arg)
 		}
 
 		/* Output to file */
-		RGMatchOutputToFile(tempOutputFP, sequenceName, sequence, pairedSequence, &sequenceMatch, &pairedSequenceMatch, pairedEnd); 
+		RGMatchOutputToFile(tempOutputFP, 
+				sequenceName, 
+				sequence, 
+				pairedSequence, 
+				&sequenceMatch, 
+				&pairedSequenceMatch, 
+				pairedEnd, 
+				binaryOutput); 
 
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Freeing matches.\n");

@@ -138,74 +138,122 @@ void RGMatchOutputToFile(FILE *fp,
 		char *pairedSequence,
 		RGMatch *sequenceMatch,
 		RGMatch *pairedSequenceMatch,
-		int32_t pairedEnd)
+		int32_t pairedEnd,
+		int32_t binaryOutput)
 {
 	int32_t i;
+	int32_t tempInt;
 	assert(fp!=NULL);
 	/* Print the matches to the output file */
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "In RGMatchOutputToFile.\n");
 	}
 
-	/* Print sequence name */
-	fprintf(fp, "%s\n", sequenceName);
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "sequenceName:%s\n", sequenceName);
-	}
+	if(binaryOutput == 0) {
 
-	/* Print first sequence */
-	fprintf(fp, "%s", sequence);
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "sequence:%s", sequence);
-	}
-
-	/* Print if the maximum number of matches was reached */
-	fprintf(fp, "\t%d", sequenceMatch->maxReached);
-
-	/* Print the number of matches */
-	fprintf(fp, "\t%d", sequenceMatch->numEntries);
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "\t%d", sequenceMatch->numEntries);
-	}
-
-	/* Print first sequence matches */
-	for(i=0;i<sequenceMatch->numEntries;i++) {
-		fprintf(fp, "\t%d\t%d\t%c", 
-				sequenceMatch->chromosomes[i],
-				sequenceMatch->positions[i],
-				sequenceMatch->strand[i]);
+		/* Print sequence name */
+		fprintf(fp, "%s\n", sequenceName);
 		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "\t%d\t%d\t%c", 
+			fprintf(stderr, "sequenceName:%s\n", sequenceName);
+		}
+
+		/* Print first sequence */
+		fprintf(fp, "%s", sequence);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "sequence:%s", sequence);
+		}
+
+		/* Print if the maximum number of matches was reached */
+		fprintf(fp, "\t%d", sequenceMatch->maxReached);
+
+		/* Print the number of matches */
+		fprintf(fp, "\t%d", sequenceMatch->numEntries);
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "\t%d", sequenceMatch->numEntries);
+		}
+
+		/* Print first sequence matches */
+		for(i=0;i<sequenceMatch->numEntries;i++) {
+			fprintf(fp, "\t%d\t%d\t%c", 
 					sequenceMatch->chromosomes[i],
 					sequenceMatch->positions[i],
 					sequenceMatch->strand[i]);
-		}
-	}
-	fprintf(fp, "\n");
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "\n");
-	}
-
-	/* Print Paired end if necessary */
-	if(pairedEnd == 1) {
-		/* Print paired sequence */
-		fprintf(fp, "%s", pairedSequence);
-
-		/* Print if the maximum number of matches was reached */
-		fprintf(fp, "\t%d", pairedSequenceMatch->maxReached);
-
-		/* Print the number of matches for the paired end */
-		fprintf(fp, "\t%d", pairedSequenceMatch->numEntries);
-
-		/* Print first pairedSequence matches */
-		fprintf(fp, "\t%d", pairedSequenceMatch->numEntries);
-		for(i=0;i<pairedSequenceMatch->numEntries;i++) {
-			fprintf(fp, "\t%d\t%d\t%c", 
-					pairedSequenceMatch->chromosomes[i],
-					pairedSequenceMatch->positions[i],
-					pairedSequenceMatch->strand[i]);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "\t%d\t%d\t%c", 
+						sequenceMatch->chromosomes[i],
+						sequenceMatch->positions[i],
+						sequenceMatch->strand[i]);
+			}
 		}
 		fprintf(fp, "\n");
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "\n");
+		}
+
+		/* Print Paired end if necessary */
+		if(pairedEnd == 1) {
+			/* Print paired sequence */
+			fprintf(fp, "%s", pairedSequence);
+
+			/* Print if the maximum number of matches was reached */
+			fprintf(fp, "\t%d", pairedSequenceMatch->maxReached);
+
+			/* Print the number of matches for the paired end */
+			fprintf(fp, "\t%d", pairedSequenceMatch->numEntries);
+
+			/* Print first pairedSequence matches */
+			fprintf(fp, "\t%d", pairedSequenceMatch->numEntries);
+			for(i=0;i<pairedSequenceMatch->numEntries;i++) {
+				fprintf(fp, "\t%d\t%d\t%c", 
+						pairedSequenceMatch->chromosomes[i],
+						pairedSequenceMatch->positions[i],
+						pairedSequenceMatch->strand[i]);
+			}
+			fprintf(fp, "\n");
+		}
+	}
+	else {
+		/* Print sequence name */
+		tempInt = strlen(sequenceName)+1;
+		assert(tempInt>0);
+		fwrite(&tempInt, sizeof(int32_t), 1, fp);
+		fwrite(sequenceName, sizeof(int8_t), tempInt, fp);
+
+		/* Print first sequence */
+		tempInt = strlen(sequence)+1;
+		assert(tempInt>0);
+		fwrite(&tempInt, sizeof(int32_t), 1, fp);
+		fwrite(sequence, sizeof(int8_t), tempInt, fp);
+
+		/* Print if the maximum number of matches was reached */
+		fwrite(&sequenceMatch->maxReached, sizeof(int32_t), 1, fp);
+
+		/* Print the number of matches */
+		fwrite(&sequenceMatch->numEntries, sizeof(int32_t), 1, fp);
+
+		/* Print first sequence matches */
+		fwrite(sequenceMatch->chromosomes, sizeof(uint8_t), sequenceMatch->numEntries, fp);
+		fwrite(sequenceMatch->positions, sizeof(uint32_t), sequenceMatch->numEntries, fp);
+		fwrite(sequenceMatch->strand, sizeof(int8_t), sequenceMatch->numEntries, fp);
+
+		/* Print Paired end if necessary */
+		if(pairedEnd == 1) {
+			/* Print first paired sequence */
+			tempInt = strlen(pairedSequence)+1;
+			fwrite(&tempInt, sizeof(int32_t), 1, fp);
+			fwrite(pairedSequence, sizeof(int8_t), tempInt, fp);
+
+			/* Print if the maximum number of matches was reached */
+			fwrite(&pairedSequenceMatch->maxReached, sizeof(int32_t), 1, fp);
+
+			/* Print the number of matches */
+			fwrite(&pairedSequenceMatch->numEntries, sizeof(int32_t), 1, fp);
+
+			/* Print first paired sequence matches */
+			fwrite(pairedSequenceMatch->chromosomes, sizeof(uint8_t), pairedSequenceMatch->numEntries, fp);
+			fwrite(pairedSequenceMatch->positions, sizeof(uint32_t), pairedSequenceMatch->numEntries, fp);
+			fwrite(pairedSequenceMatch->strand, sizeof(int8_t), pairedSequenceMatch->numEntries, fp);
+		}
 	}
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "\nExiting RGMatchOutputToFile.\n");
@@ -217,6 +265,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 		int32_t numFiles,
 		FILE *outputFP,
 		int32_t pairedEnd,
+		int32_t binaryOutput,
 		int32_t maxMatches)
 {
 	int32_t i;
@@ -308,7 +357,8 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 						pairedSequences[i],
 						&match,
 						&pairedMatch,
-						pairedEnd)==EOF) {
+						pairedEnd,
+						binaryOutput)==EOF) {
 				continueReading=0;
 			}
 		}
@@ -341,13 +391,14 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 					pairedSequences[0],
 					&match,
 					&pairedMatch,
-					pairedEnd);
+					pairedEnd,
+					binaryOutput);
 
-			/* Free memory */
-			RGMatchFree(&match);
-			if(pairedEnd == 1) {
-				RGMatchFree(&pairedMatch);
-			}
+		}
+		/* Free memory */
+		RGMatchFree(&match);
+		if(pairedEnd == 1) {
+			RGMatchFree(&pairedMatch);
 		}
 	}
 
@@ -368,7 +419,8 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 		int32_t numThreads,
 		FILE *outputFP,
-		int32_t pairedEnd)
+		int32_t pairedEnd,
+		int32_t binaryOutput)
 {
 	int32_t i;
 	RGMatch match;
@@ -428,7 +480,8 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 						pairedSequence,
 						&match,
 						&pairedMatch,
-						pairedEnd)==EOF) {
+						pairedEnd,
+						binaryOutput)==EOF) {
 				continueReading=0;
 			}
 
@@ -440,13 +493,14 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 						pairedSequence,
 						&match,
 						&pairedMatch,
-						pairedEnd);
+						pairedEnd,
+						binaryOutput);
 
-				/* Free memory */
-				RGMatchFree(&match);
-				if(pairedEnd) {
-					RGMatchFree(&pairedMatch);
-				}
+			}
+			/* Free memory */
+			RGMatchFree(&match);
+			if(pairedEnd == 1) {
+				RGMatchFree(&pairedMatch);
 			}
 		}
 	}
@@ -467,7 +521,8 @@ int32_t RGMatchGetNextFromFile(FILE *fp,
 		char *pairedSequence,
 		RGMatch *sequenceMatch,
 		RGMatch *pairedSequenceMatch,
-		int32_t pairedEnd)
+		int32_t pairedEnd,
+		int32_t binaryInput)
 {
 	int32_t i;
 	int32_t tempInt;
@@ -479,132 +534,305 @@ int32_t RGMatchGetNextFromFile(FILE *fp,
 		fprintf(stderr, "In RGMatchGetNextFromFile.\n");
 	}
 
-	/* Read sequence name */
-	if(fscanf(fp, "%s", sequenceName)==EOF) {
-		return EOF;
-	}
+	if(binaryInput == 0) {
+		/* Read sequence name */
+		if(fscanf(fp, "%s", sequenceName)==EOF) {
+			return EOF;
+		}
 
-	/* Read first sequence */
-	if(fscanf(fp, "%s", sequence)==EOF) {
-		PrintError("RGMatchGetNextFromFile",
-				"sequence",
-				"Could not read in sequence",
-				Exit,
-				EndOfFile);
-	}
-
-	/* Read in if we have reached the maximum number of matches */
-	if(fscanf(fp, "%d", &tempMaxReached)==EOF) {
-		PrintError("RGMatchGetNextFromFile",
-				"sequenceMatch->maxReached",
-				"Could not read in sequenceMatch->maxReached",
-				Exit,
-				EndOfFile);
-	}
-	/* Update max reached */
-	if(tempMaxReached==1) {
-		sequenceMatch->maxReached = 1;
-	}
-
-	/* Read in the number of matches */
-	if(fscanf(fp, "%d", &tempInt)==EOF) {
-		PrintError("RGMatchGetNextFromFile",
-				"sequenceMatch->numEntries",
-				"Could not read in sequenceMatch->numEntries",
-				Exit,
-				EndOfFile);
-	}
-	assert(tempInt >= 0);
-	tempStart = sequenceMatch->numEntries;
-	sequenceMatch->numEntries += tempInt;
-	assert(sequenceMatch->numEntries >= 0);
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "sequenceName:%s\nsequence:%s\nnumEntries:%d\n",
-				sequenceName,
-				sequence,
-				sequenceMatch->numEntries);
-	}
-
-	/* Allocate memory for the matches */
-	RGMatchAllocate(sequenceMatch, sequenceMatch->numEntries);
-
-	/* Read first sequence matches */
-	for(i=tempStart;i<sequenceMatch->numEntries;i++) {
-		if(fscanf(fp, "%d %d %c", 
-					&tempInt,
-					&sequenceMatch->positions[i],
-					&sequenceMatch->strand[i])==EOF) {
+		/* Read first sequence */
+		if(fscanf(fp, "%s", sequence)==EOF) {
 			PrintError("RGMatchGetNextFromFile",
-					NULL,
-					"Could not read in match",
+					"sequence",
+					"Could not read in sequence",
 					Exit,
 					EndOfFile);
 		}
-		sequenceMatch->chromosomes[i] = tempInt;
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "chr%d:%d:%c\t",
-					sequenceMatch->chromosomes[i],
-					sequenceMatch->positions[i],
-					sequenceMatch->strand[i]);
-		}
-	}
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "\n");
-	}
 
-	/* Read Paired end if necessary */
-	if(pairedEnd == 1) {
-		/* Read paired sequence */
-		if(fscanf(fp, "%s", pairedSequence)==EOF) {
-			PrintError("RGMatchGetNextFromFile",
-					"pairedSequence",
-					"Could not read in pairedSequence",
-					Exit,
-					EndOfFile);
-		}
 		/* Read in if we have reached the maximum number of matches */
 		if(fscanf(fp, "%d", &tempMaxReached)==EOF) {
 			PrintError("RGMatchGetNextFromFile",
-					"pairedSequenceMatch->maxReached",
-					"Could not read in pairedSequenceMatch->maxReached",
+					"sequenceMatch->maxReached",
+					"Could not read in sequenceMatch->maxReached",
 					Exit,
 					EndOfFile);
 		}
 		/* Update max reached */
 		if(tempMaxReached==1) {
-			pairedSequenceMatch->maxReached = 1;
+			sequenceMatch->maxReached = 1;
 		}
 
 		/* Read in the number of matches */
 		if(fscanf(fp, "%d", &tempInt)==EOF) {
 			PrintError("RGMatchGetNextFromFile",
-					"pairedSequenceMatch->numEntries",
-					"Could not read in the number of paired matches",
+					"sequenceMatch->numEntries",
+					"Could not read in sequenceMatch->numEntries",
 					Exit,
 					EndOfFile);
 		}
 		assert(tempInt >= 0);
-		tempStart = pairedSequenceMatch->numEntries;
-		pairedSequenceMatch->numEntries += tempInt;
-		assert(pairedSequenceMatch->numEntries >= 0);
+		tempStart = sequenceMatch->numEntries;
+		sequenceMatch->numEntries += tempInt;
+		assert(sequenceMatch->numEntries >= 0);
+
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "sequenceName:%s\nsequence:%s\nnumEntries:%d\n",
+					sequenceName,
+					sequence,
+					sequenceMatch->numEntries);
+		}
 
 		/* Allocate memory for the matches */
-		RGMatchAllocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
+		RGMatchReallocate(sequenceMatch, sequenceMatch->numEntries);
 
-		/* Read first pairedSequence matches */
-		for(i=tempStart;i<pairedSequenceMatch->numEntries;i++) {
+		/* Read first sequence matches */
+		for(i=tempStart;i<sequenceMatch->numEntries;i++) {
 			if(fscanf(fp, "%d %d %c", 
 						&tempInt,
-						&pairedSequenceMatch->positions[i],
-						&pairedSequenceMatch->strand[i])==EOF) {
+						&sequenceMatch->positions[i],
+						&sequenceMatch->strand[i])==EOF) {
 				PrintError("RGMatchGetNextFromFile",
 						NULL,
-						"Could not read in the paired match",
+						"Could not read in match",
 						Exit,
 						EndOfFile);
 			}
-			pairedSequenceMatch->chromosomes[i] = tempInt;
+			sequenceMatch->chromosomes[i] = tempInt;
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "chr%d:%d:%c\t",
+						sequenceMatch->chromosomes[i],
+						sequenceMatch->positions[i],
+						sequenceMatch->strand[i]);
+			}
+		}
+		if(VERBOSE >= DEBUG) {
+			fprintf(stderr, "\n");
+		}
+
+		/* Read Paired end if necessary */
+		if(pairedEnd == 1) {
+			/* Read paired sequence */
+			if(fscanf(fp, "%s", pairedSequence)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						"pairedSequence",
+						"Could not read in pairedSequence",
+						Exit,
+						EndOfFile);
+			}
+			/* Read in if we have reached the maximum number of matches */
+			if(fscanf(fp, "%d", &tempMaxReached)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						"pairedSequenceMatch->maxReached",
+						"Could not read in pairedSequenceMatch->maxReached",
+						Exit,
+						EndOfFile);
+			}
+			/* Update max reached */
+			if(tempMaxReached==1) {
+				pairedSequenceMatch->maxReached = 1;
+			}
+
+			/* Read in the number of matches */
+			if(fscanf(fp, "%d", &tempInt)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						"pairedSequenceMatch->numEntries",
+						"Could not read in the number of paired matches",
+						Exit,
+						EndOfFile);
+			}
+			assert(tempInt >= 0);
+			tempStart = pairedSequenceMatch->numEntries;
+			pairedSequenceMatch->numEntries += tempInt;
+			assert(pairedSequenceMatch->numEntries >= 0);
+
+			/* Allocate memory for the matches */
+			RGMatchReallocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
+
+			/* Read first pairedSequence matches */
+			for(i=tempStart;i<pairedSequenceMatch->numEntries;i++) {
+				if(fscanf(fp, "%d %d %c", 
+							&tempInt,
+							&pairedSequenceMatch->positions[i],
+							&pairedSequenceMatch->strand[i])==EOF) {
+					PrintError("RGMatchGetNextFromFile",
+							NULL,
+							"Could not read in the paired match",
+							Exit,
+							EndOfFile);
+				}
+				pairedSequenceMatch->chromosomes[i] = tempInt;
+			}
+		}
+	}
+	else {
+		tempInt=-1;
+		if(fread(&tempInt, sizeof(int32_t), 1, fp)!=1) {
+			assert(feof(fp)!=0);
+			return EOF;
+		}
+		assert(tempInt>0);
+		sequenceName[0]='\0';
+		if(fread(sequenceName, sizeof(int8_t), tempInt, fp)==EOF) {
+			PrintError("RGMatchGetNextFromFile",
+					"sequenceName",
+					"Could not read in sequence name",
+					Exit,
+					EndOfFile);
+		}
+
+		/* Read first sequence */
+		if(fread(&tempInt, sizeof(int32_t), 1, fp)==EOF) {
+			PrintError("RGMatchGetNextFromFile",
+					NULL,
+					"Could not read in sequence length",
+					Exit,
+					EndOfFile);
+		}
+		assert(tempInt>0);
+		if(fread(sequence, sizeof(int8_t), tempInt, fp)==EOF) {
+			PrintError("RGMatchGetNextFromFile",
+					"sequence",
+					"Could not read in sequence",
+					Exit,
+					EndOfFile);
+		}
+
+		/* Read in if we have reached the maximum number of matches */
+		if(fread(&tempMaxReached, sizeof(int32_t), 1, fp)==EOF) {
+			PrintError("RGMatchGetNextFromFile",
+					"sequenceMatch->maxReached",
+					"Could not read in sequenceMatch->maxReached",
+					Exit,
+					EndOfFile);
+		}
+		/* Update max reached */
+		if(tempMaxReached==1) {
+			sequenceMatch->maxReached = 1;
+		}
+
+		/* Read in the number of matches */
+		if(fread(&tempInt, sizeof(int32_t), 1, fp)==EOF) {
+			PrintError("RGMatchGetNextFromFile",
+					"sequenceMatch->numEntries",
+					"Could not read in sequenceMatch->numEntries",
+					Exit,
+					EndOfFile);
+		}
+		assert(tempInt >= 0);
+		tempStart = sequenceMatch->numEntries;
+		sequenceMatch->numEntries += tempInt;
+		assert(sequenceMatch->numEntries >= 0);
+
+		/* Allocate memory for the matches */
+		RGMatchReallocate(sequenceMatch, sequenceMatch->numEntries);
+
+		/* Read first sequence matches */
+		for(i=tempStart;i<sequenceMatch->numEntries;i++) {
+			if(fread(&tempInt, sizeof(uint8_t), 1, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						NULL,
+						"Could not read in chromosome",
+						Exit,
+						EndOfFile);
+			}
+			sequenceMatch->chromosomes[i] = tempInt;
+		}
+		for(i=tempStart;i<sequenceMatch->numEntries;i++) {
+			if(fread(&sequenceMatch->positions[i], sizeof(uint32_t), 1, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						NULL,
+						"Could not read in position",
+						Exit,
+						EndOfFile);
+			}
+		}
+		for(i=tempStart;i<sequenceMatch->numEntries;i++) {
+			if(fread(&sequenceMatch->strand[i], sizeof(int8_t), 1, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						NULL,
+						"Could not read in strand",
+						Exit,
+						EndOfFile);
+			}
+		}
+
+		/* Read Paired end if necessary */
+		if(pairedEnd == 1) {
+
+			/* Read first pairedSequence */
+			if(fread(&tempInt, sizeof(int32_t), 1, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						NULL,
+						"Could not read in pairedSequence length",
+						Exit,
+						EndOfFile);
+			}
+			if(fread(pairedSequence, sizeof(int8_t), tempInt, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						"pairedSequence",
+						"Could not read in pairedSequence",
+						Exit,
+						EndOfFile);
+			}
+
+			/* Read in if we have reached the maximum number of matches */
+			if(fread(&tempMaxReached, sizeof(int32_t), 1, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						"pairedSequenceMatch->maxReached",
+						"Could not read in pairedSequenceMatch->maxReached",
+						Exit,
+						EndOfFile);
+			}
+			/* Update max reached */
+			if(tempMaxReached==1) {
+				pairedSequenceMatch->maxReached = 1;
+			}
+
+			/* Read in the number of matches */
+			if(fread(&tempInt, sizeof(int32_t), 1, fp)==EOF) {
+				PrintError("RGMatchGetNextFromFile",
+						"pairedSequenceMatch->numEntries",
+						"Could not read in pairedSequenceMatch->numEntries",
+						Exit,
+						EndOfFile);
+			}
+			assert(tempInt >= 0);
+			tempStart = pairedSequenceMatch->numEntries;
+			pairedSequenceMatch->numEntries += tempInt;
+			assert(pairedSequenceMatch->numEntries >= 0);
+
+			/* Allocate memory for the matches */
+			RGMatchReallocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
+
+			/* Read first pairedSequence matches */
+			for(i=tempStart;i<pairedSequenceMatch->numEntries;i++) {
+				if(fread(&tempInt, sizeof(uint8_t), 1, fp)==EOF) {
+					PrintError("RGMatchGetNextFromFile",
+							NULL,
+							"Could not read in chromosome",
+							Exit,
+							EndOfFile);
+				}
+				pairedSequenceMatch->chromosomes[i] = tempInt;
+			}
+			for(i=tempStart;i<pairedSequenceMatch->numEntries;i++) {
+				if(fread(&pairedSequenceMatch->positions[i], sizeof(uint32_t), 1, fp)==EOF) {
+					PrintError("RGMatchGetNextFromFile",
+							NULL,
+							"Could not read in position",
+							Exit,
+							EndOfFile);
+				}
+			}
+			for(i=tempStart;i<pairedSequenceMatch->numEntries;i++) {
+				if(fread(&pairedSequenceMatch->strand[i], sizeof(int8_t), 1, fp)==EOF) {
+					PrintError("RGMatchGetNextFromFile",
+							NULL,
+							"Could not read in strand",
+							Exit,
+							EndOfFile);
+				}
+			}
 		}
 	}
 

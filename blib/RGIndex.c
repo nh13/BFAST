@@ -376,6 +376,11 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 		}
 		data[maxIndex].showPercentComplete = 1;
 
+		/* Check that we split correctly */
+		for(i=1;i<numThreads;i++) {
+			assert(data[i-1].high < data[i].low);
+		}
+
 		/* Copy maxIndex to the front so that it is the first that we wait for... */
 		tempData.low = data[0].low;
 		tempData.high = data[0].high;
@@ -389,11 +394,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 		data[maxIndex].high = tempData.high;
 		data[maxIndex].threadID = tempData.threadID;
 		data[maxIndex].showPercentComplete = tempData.showPercentComplete;
-
-		/* Check that we split correctly */
-		for(i=1;i<numThreads;i++) {
-			assert(data[i-1].high < data[i].low);
-		}
 
 		/* Create threads */
 		for(i=0;i<numThreads;i++) {

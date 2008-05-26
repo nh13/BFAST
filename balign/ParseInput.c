@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, DescBinaryInput, 
+	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -68,7 +68,7 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
+	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
 	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of bmf files", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
@@ -110,7 +110,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:n:o:r:s:x:E:H:M:O:S:2bhpt";
+"a:d:e:m:n:o:r:s:x:E:H:M:O:S:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -166,12 +166,8 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
 						startTime = time(NULL);
-						RGBinaryRead(arguments.rgListFileName,
-								&rg,
-								arguments.startChr,
-								arguments.startPos,
-								arguments.endChr,
-								arguments.endPos);
+						RGBinaryReadBinary(&rg,
+								arguments.rgFileName);
 						endTime = time(NULL);
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
@@ -183,6 +179,7 @@ main (int argc, char **argv)
 								arguments.offsetLength,
 								arguments.maxNumMatches,
 								arguments.pairedEnd,
+								arguments.binaryInput,
 								arguments.numThreads,
 								arguments.outputID,
 								arguments.outputDir);
@@ -268,11 +265,11 @@ int ValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->rgListFileName!=0) {
-		fprintf(stderr, "Validating rgListFileName %s. \n",
-				args->rgListFileName);
-		if(ValidateFileName(args->rgListFileName)==0)
-			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->rgFileName!=0) {
+		fprintf(stderr, "Validating rgFileName %s. \n",
+				args->rgFileName);
+		if(ValidateFileName(args->rgFileName)==0)
+			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->matchesFileName!=0) {
@@ -289,14 +286,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	/* binary input not currently supported */
-	if(args->binaryInput == 1) {
-		PrintError("ValidateInputs",
-				"binaryInput",
-				"Binary input not supported",
-				Exit,
-				InputArguments);
-	}
 	if(args->algorithm < MIN_ALGORITHM || args->algorithm > MAX_ALGORITHM) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
@@ -349,6 +338,7 @@ int ValidateInputs(struct arguments *args) {
 
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
+	assert(args->binaryInput == 0 || args->binaryInput == 1);
 
 	return 1;
 }
@@ -387,10 +377,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->rgListFileName =
+	args->rgFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->rgListFileName!=0);
-	strcpy(args->rgListFileName, DEFAULT_FILENAME);
+	assert(args->rgFileName!=0);
+	strcpy(args->rgFileName, DEFAULT_FILENAME);
 
 	args->matchesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -402,7 +392,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 0;
+	args->binaryInput = 1;
 
 	args->algorithm = DEFAULT_ALGORITHM;
 	args->startChr=0;
@@ -436,10 +426,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
+	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
+	/*
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -498,8 +490,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
+						/*
 					case 'b':
 						arguments->binaryInput = 1;break;
+						*/
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;break;
@@ -518,8 +512,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters; break;
 					case 'r':
-						if(arguments->rgListFileName) free(arguments->rgListFileName);
-						arguments->rgListFileName = OPTARG;break;
+						if(arguments->rgFileName) free(arguments->rgFileName);
+						arguments->rgFileName = OPTARG;break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
 					case 't':

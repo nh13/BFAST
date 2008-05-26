@@ -4,12 +4,12 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *rgListFileName;                   /* -r */
+	char *rgFileName;                   	/* -r */
 	char *bfastMainIndexesFileName;			/* -i */
 	char *bfastSecondaryIndexesFileName;	/* -I */
 	char *readsFileName;					/* -R */
 	char *offsetsFileName;					/* -O */
-	int binaryInput;						/* -b */
+	int binaryInput;						/* -b - not used */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */
 	int numMismatches;						/* -x */
@@ -22,7 +22,7 @@ struct arguments
 	int numThreads;							/* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
-	int binaryOutput;						/* -B */
+	int binaryOutput;						/* -B - not used */
 	int timing;								/* -t */
 	int programMode;						/* -h */ 
 };

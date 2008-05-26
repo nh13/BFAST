@@ -17,12 +17,11 @@ bmatches \- finds candidate alignment locations.
 .fam C
 .nf
 bmatches
-	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-rgListFileName=\fIFILENAME\fR]
+	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-rgFileName=\fIFILENAME\fR]
 	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-bfastMainIndexesFileName=\fIFILENAME\fR]
 	[\fB\-I\fR \fIFILENAME\fR] 	[\fB\-\-bfastSecondaryIndexesFileName=\fIFILENAME\fR]
 	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-readsFileName=\fIFILENAME\fR]
 	[\fB\-O\fR \fIFILENAME\fR] 	[\fB\-\-offsetsFileName=\fIFILENAME\fR]
-	[\fB\-b\fR] 		[\fB\-\-binaryInput\fR]
 	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startReadNum=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endReadNum=\fIINTEGER\fR]
 	[\fB\-x\fR \fIINTEGER\fR] 	[\fB\-\-numMismatches=\fIINTEGER\fR]
@@ -50,7 +49,7 @@ is the second of four programs in the bfast system.
 .P
 .B bmatches
 requires five input files.
-The first file (\fB\-r\fR) contains the list of files specifying the sequence of the reference genome.
+The first file (\fB\-r\fR) contains the list of files specifying the sequence of the reference genome in bfast binary format.
 The second file (\fB\-i\fR) contains the list of primary indexes.
 The third file (\fB\-I\fR) contains the list of secondary indexes.
 The fourth file (\fB\-r\fR) contains the reads to be aligned.
@@ -107,8 +106,9 @@ Paired end reads are specified using the \fB\-2\fR option but is not yet support
 .SH OPTIONS
 .
 .TP 4
-\fB\-r\fR \fIFILENAME\fR, \fB\-\-rgListFileName=\fIFILENAME\fR
-The file specified contains the list of files specifying the sequence of the reference genome.
+\fB\-r\fR \fIFILENAME\fR, \fB\-\-rgFileName=\fIFILENAME\fR
+The file specified is the bfast binary reference genome generated from
+.BR bpreprocess(1) "."
 .
 .TP 4
 \fB\-i\fR \fIFILENAME\fR, \fB\-\-bfastMainIndexesFileName=\fIFILENAME\fR
@@ -125,10 +125,6 @@ Specifies the file containing the reads.
 .TP 4
 \fB\-O\fR \fIFILENAME\fR, \fB\-\-offsetsFileName=\fIFILENAME\fR
 Specifies the file containing the offsets.
-.
-.TP 4
-\fB\-b\fR, \fB\-\-binaryInput\fR
-Specifies that indexes are expected to be in binary format.
 .
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startReadNum=\fIINTEGER\fR
@@ -180,11 +176,6 @@ Specifies a string to include when naming the output files.
 .TP 4
 \fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
 Specifies the directory in which to output.
-.
-.TP 4
-\fB\-B\fR, \fB\-\-outputBinary\fR
-Specifies the output files should be outputted in binary format.
-This will save considerable space and will improve subsequent loading times.
 .
 .TP 4
 \fB\-t\fR, \fB\-\-timing\fR

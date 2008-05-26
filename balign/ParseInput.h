@@ -4,10 +4,10 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *rgListFileName;                   /* -r */
+	char *rgFileName;                   	/* -r */
 	char *matchesFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
-	int binaryInput;                        /* -b */
+	int binaryInput;                        /* -b - not used*/
 	int algorithm;							/* -a */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */

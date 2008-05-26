@@ -14,7 +14,7 @@
 #define SEQUENCE_NAME_LENGTH 4028
 
 /* File extensions */
-#define BFAST_TREE_FILE_EXTENSION "btf"
+#define BFAST_RG_FILE_EXTENSION "brg"
 #define BFAST_INDEX_FILE_EXTENSION "bif"
 #define BFAST_MATCHES_FILE_EXTENSION "bmf"
 #define BFAST_ALIGN_FILE_EXTENSION "baf"
@@ -63,6 +63,7 @@ typedef struct {
 	int32_t chromosome;
 	int32_t startPos;
 	int32_t endPos;
+	uint32_t numBytes;
 	uint8_t *sequence; 
 } RGBinaryChr;
 

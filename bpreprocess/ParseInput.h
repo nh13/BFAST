@@ -3,9 +3,9 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *rgListFileName;					/* -r */
+	char *rgFileName;						/* -r */
 	char *indexLayoutFileName;				/* -i */
-	int binaryInput;						/* -b */
+	int binaryInput;						/* -b - not used */
 	int algorithm;							/* -a */
 	int startChr;							/* -s */
 	int startPos;							/* -S */
@@ -14,7 +14,7 @@ struct arguments
 	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
-	int binaryOutput;						/* -B */
+	int binaryOutput;						/* -B - not used */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

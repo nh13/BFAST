@@ -17,10 +17,9 @@ balign \- aligns candidate alignment locations to the reference genome.
 .fam C
 .nf
 balign
-	[\fB\-r\fR \fIFILENAME\fR]	[\fB\-\-rgListFileName=\fIFILENAME\fR]
+	[\fB\-r\fR \fIFILENAME\fR]	[\fB\-\-rgFileName=\fIFILENAME\fR]
 	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchesFileName=\fIFILENAME\fR]
 	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
-	[\fB\-b\fR]			[\fB\-\-binaryInput\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm=\fIINTEGER\fR]
 	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startChr=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
@@ -40,12 +39,12 @@ balign
 .
 .SH DESCRIPTION
 .B balign
-is the fourth of three programs in the bfast system.
+is the third of four programs in the bfast system.
 .
 .P
 .B balign
 requires three input files.
-The first file (\fB-r\fR) contains the list of files specifying the sequence of the reference genome.
+The first file (\fB-r\fR) contains the list of files specifying the sequence of the reference genome in bfast binary format.
 The second file (\fB\-m\fR) contains the list of files containing the output from 
 .B bmatches.
 The third file (\fB\-x\fR) contains the scoring matrix used with \fB\-a\fR.
@@ -68,8 +67,8 @@ If multiple cores or processors are available, one can use \fB\-n\fR to parallel
 .SH OPTIONS
 .
 .TP 4
-\fB\-r\fR \fIFILENAME\fR, \fB\-\-rgListFileName=\fIFILENAME\fR
-The file specified contains the list of files specifying the sequence of the reference geno
+\fB\-r\fR \fIFILENAME\fR, \fB\-\-rgFileName=\fIFILENAME\fR
+The file specified contains the list of files specifying the sequence of the reference genome in bfast binary format.
 .
 .TP 4
 \fB\-m\fR \fIFILENAME\fR, \fB\-\-matchesFileName=\fIFILENAME\fR
@@ -78,10 +77,6 @@ Specifies a file containing a list of matches files.
 .TP 4
 \fB\-x\fR \fIFILENAME\fR, \fB\-\-scoringMatrixFileName=\fIFILENAME\fR
 Specifies the scoring matrix file.
-.
-.TP 4
-\fB\-b\fR, \fB\-\-binaryInput\fR
-Specifies that the matches file will be in binary format.
 .
 .TP 4
 \fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR

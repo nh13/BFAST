@@ -22,6 +22,7 @@ void RunAligner(RGBinary *rgBinary,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
+		int binaryInput,
 		int numThreads,
 		char *outputID,
 		char *outputDir)
@@ -116,6 +117,7 @@ void RunAligner(RGBinary *rgBinary,
 						offsetLength,
 						maxNumMatches,
 						pairedEnd,
+						binaryInput,
 						numThreads,
 						outputFP);
 				break;
@@ -153,6 +155,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
+		int binaryInput,
 		int numThreads,
 		FILE *outputFP)
 {
@@ -227,7 +230,8 @@ void RunDynamicProgramming(FILE *matchFP,
 				pairedSequence, 
 				&readMatch,
 				&pairedSequenceMatch,
-				pairedEnd)) {
+				pairedEnd,
+				binaryInput)) {
 		/* Get the thread index - do this BEFORE incrementing */
 		int threadIndex = numMatches%numThreads;
 		/* increment */
@@ -240,7 +244,8 @@ void RunDynamicProgramming(FILE *matchFP,
 				pairedSequence,
 				&readMatch,
 				&pairedSequenceMatch,
-				pairedEnd);
+				pairedEnd,
+				binaryInput);
 
 		/* Free match */
 		RGMatchFree(&readMatch);
@@ -257,6 +262,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].offsetLength=offsetLength;
 		data[i].maxNumMatches=maxNumMatches;
 		data[i].pairedEnd=pairedEnd;
+		data[i].binaryInput=binaryInput;
 		data[i].sm = &sm;
 	}
 
@@ -390,6 +396,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int offsetLength=data->offsetLength;
 	int maxNumMatches=data->maxNumMatches;
 	int pairedEnd=data->pairedEnd;
+	int binaryInput=data->binaryInput;
 	ScoringMatrix *sm = data->sm;
 	/* Local variables */
 	AlignEntry *aEntry=NULL;
@@ -440,7 +447,8 @@ void *RunDynamicProgrammingThread(void *arg)
 				pairedSequence, 
 				&readMatch,
 				&pairedSequenceMatch,
-				pairedEnd)) {
+				pairedEnd,
+				binaryInput)) {
 		numMatches++;
 
 		numAlignEntries = 0;

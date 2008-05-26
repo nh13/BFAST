@@ -55,7 +55,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGListFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, DescBinaryInput, 
+	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, DescMaxMatches, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -67,12 +67,14 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"rgListFileName", 'r', "rgListFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
+	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file", 1},
 	{"bfastMainIndexesFileName", 'i', "bfastMainIndexesFileName", 0, "Specifies the file name holding the list of main bif files", 1},
 	{"bfastSecondaryIndexesFileName", 'I', "bfastSecondaryIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
+	/*
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
+	*/
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
@@ -87,7 +89,9 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	/*
 	{"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output should be in binary format", 3},
+	*/
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -113,7 +117,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:x:y:z:I:O:R:Y:Z:2bhptB";
+"d:e:i:m:n:o:r:s:x:y:z:I:O:R:Y:Z:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -181,7 +185,7 @@ main (int argc, char **argv)
 						/* Run Matches */
 						FindMatches(outputFileName,
 								arguments.binaryOutput,
-								arguments.rgListFileName,
+								arguments.rgFileName,
 								arguments.bfastMainIndexesFileName,
 								arguments.bfastSecondaryIndexesFileName,
 								arguments.readsFileName,
@@ -251,11 +255,11 @@ int ValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->rgListFileName!=0) {
-		fprintf(stderr, "Validating rgListFileName %s. \n",
-				args->rgListFileName);
-		if(ValidateFileName(args->rgListFileName)==0)
-			PrintError(FnName, "rgListFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->rgFileName!=0) {
+		fprintf(stderr, "Validating rgFileName %s. \n",
+				args->rgFileName);
+		if(ValidateFileName(args->rgFileName)==0)
+			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->bfastMainIndexesFileName!=0) {
@@ -287,14 +291,6 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	assert(args->binaryOutput == 0 || args->binaryOutput== 1);
-	/* binary output not currently supported */
-	if(args->binaryOutput == 1) {
-		PrintError("ValidateInputs",
-				"binaryOutput",
-				"Binary output not supported",
-				Exit,
-				InputArguments);
-	}
 
 	if(args->numMismatches < 0) {
 		PrintError(FnName, "numMismatches", "Command line argument", Exit, OutOfRange);
@@ -385,10 +381,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->rgListFileName =
+	args->rgFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->rgListFileName!=0);
-	strcpy(args->rgListFileName, DEFAULT_FILENAME);
+	assert(args->rgFileName!=0);
+	strcpy(args->rgFileName, DEFAULT_FILENAME);
 
 	args->bfastMainIndexesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -410,7 +406,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->offsetsFileName!=0);
 	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 0;
+	args->binaryInput = 1;
 
 	args->startReadNum = -1;
 	args->endReadNum = -1;
@@ -433,7 +429,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
-	args->binaryOutput = 0;
+	args->binaryOutput = 1;
 
 	args->timing = 0;
 
@@ -448,12 +444,14 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "rgListFileName:\t\t\t\t%s\n", args->rgListFileName);
+	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "bfastMainIndexesFileName\t\t%s\n", args->bfastMainIndexesFileName);
 	fprintf(fp, "bfastSecondaryIndexesFileName\t\t\t%s\n", args->bfastSecondaryIndexesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
+	/*
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	*/
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
@@ -466,7 +464,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	/*
 	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
+	*/
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -512,8 +512,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case '2':
 						arguments->pairedEnd = 1;break;
+						/*
 					case 'b':
 						arguments->binaryInput = 1;break;
+						*/
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;break;
@@ -534,8 +536,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 'r':
-						if(arguments->rgListFileName) free(arguments->rgListFileName);
-						arguments->rgListFileName = OPTARG;break;
+						if(arguments->rgFileName) free(arguments->rgFileName);
+						arguments->rgFileName = OPTARG;break;
 					case 's':
 						arguments->startReadNum = atoi(OPTARG);break;
 					case 't':
@@ -546,8 +548,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->numInsertions=atoi(OPTARG);break;
 					case 'z':
 						arguments->numDeletions = atoi(OPTARG);break;
+						/*
 					case 'B':
 						arguments->binaryOutput = 1;break;
+						*/
 					case 'I':
 						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
 						arguments->bfastSecondaryIndexesFileName = OPTARG;break;
