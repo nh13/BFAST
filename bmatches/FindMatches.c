@@ -53,7 +53,9 @@ void FindMatches(char *outputFileName,
 	int numMatches;
 	int numReads;
 
+	int startTime, endTime;
 	int seconds, minutes, hours;
+	int totalReadRGTime = 0;
 	int totalDataStructureTime = 0; /* This will only give the to load and deleted the indexes and trees (excludes searching and other things) */
 	int totalSearchTime = 0; /* This will only give the time searching (excludes load times and other things) */
 	int totalOutputTime = 0; /* This wll only give the total time to merge and output */
@@ -95,12 +97,15 @@ void FindMatches(char *outputFileName,
 			&endPos);
 
 	/* Read in the reference genome */
+		startTime = time(NULL);
 	RGBinaryRead(rgListFileName,
 			&rg,
 			startChr,
 			startPos,
 			endChr,
 			endPos);
+		endTime = time(NULL);
+		totalReadRGTime = endTime - startTime;
 
 	/* Read in the offsets */
 	numOffsets=ReadOffsets(offsetsFileName, &offsets);
@@ -260,13 +265,23 @@ void FindMatches(char *outputFileName,
 
 	/* Print timing */
 	if(timing == 1) {
+		/* Read RG time */
+		seconds = totalReadRGTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		fprintf(stderr, "Total time loading the reference genome: %d hour, %d minutes and %d seconds.\n",
+				hours,
+				minutes,
+				seconds);
 		/* Data structure time */
 		seconds = totalDataStructureTime;
 		hours = seconds/3600;
 		seconds -= hours*3600;
 		minutes = seconds/60;
 		seconds -= minutes*60;
-		fprintf(stderr, "Total time loading and deleting indexes and trees: %d hour, %d minutes and %d seconds.\n",
+		fprintf(stderr, "Total time loading and deleting indexes: %d hour, %d minutes and %d seconds.\n",
 				hours,
 				minutes,
 				seconds);
@@ -276,7 +291,7 @@ void FindMatches(char *outputFileName,
 		seconds -= hours*3600;
 		minutes = seconds/60;
 		seconds -= minutes*60;
-		fprintf(stderr, "Total time searching indexes and trees: %d hour, %d minutes and %d seconds.\n",
+		fprintf(stderr, "Total time searching indexes: %d hour, %d minutes and %d seconds.\n",
 				hours,
 				minutes,
 				seconds);
