@@ -915,7 +915,8 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 {
 	m->numEntries = numEntries;
 	m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
-	if(NULL == m->positions) {
+	if(numEntries > 0 && NULL == m->positions) {
+		fprintf(stderr, "numEntries:%d\n", numEntries);
 		PrintError("RGMatchReaocate",
 				"m->positions",
 				"Could not reallocate memory",
@@ -923,7 +924,7 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 				ReallocMemory);
 	}
 	m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*numEntries); 
-	if(NULL == m->chromosomes) {
+	if(numEntries > 0 && NULL == m->chromosomes) {
 		PrintError("RGMatchReaocate",
 				"m->chromosomes",
 				"Could not reallocate memory",
@@ -931,7 +932,7 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 				ReallocMemory);
 	}
 	m->strand = realloc(m->strand, sizeof(int8_t)*numEntries); 
-	if(NULL == m->strand) {
+	if(numEntries > 0 && NULL == m->strand) {
 		PrintError("RGMatchReaocate",
 				"m->strand",
 				"Could not reallocate memory",
