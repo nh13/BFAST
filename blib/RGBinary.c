@@ -307,9 +307,8 @@ void RGBinaryRead(char *rgFileName,
 		fclose(fpRG);
 
 	}
-	assert(numChrs == rg->numChrs);
-
 	/* Add final metadata */
+	rg->numChrs = numChrs;
 	rg->startChr = rg->chromosomes[0].chromosome;
 	rg->startPos = rg->chromosomes[0].startPos;
 	rg->endChr = rg->chromosomes[rg->numChrs-1].chromosome;
