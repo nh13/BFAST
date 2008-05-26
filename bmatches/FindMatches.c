@@ -240,9 +240,6 @@ void FindMatches(char *outputFileName,
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	/* Close output file */
-	fclose(outputFP);
-
 	/* Free main RGIndex file names */
 	for(i=0;i<numMainRGIndexes;i++) {
 		free(rgIndexMainFileNames[i]);
