@@ -30,7 +30,6 @@ bmatches
 	[\fB\-Y\fR \fIINTEGER\fR] 	[\fB\-\-numGapInsertions=\fINTEGER\fR]
 	[\fB\-Z\fR \fIINTEGER\fR] 	[\fB\-\-numGapDeletions=\fINTEGER\fR]
 	[\fB\-2\fR] 		[\fB\-\-pairedEnd\fR]
-	[\fB\-m\fR \fIINTEGER\fR] 	[\fB\-\-maxMatches=\fINTEGER\fR]
 	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
@@ -158,11 +157,6 @@ Specifies the maximum number of deletions to allow in the gaps between tiles.
 \fB\-2\fR, \fB\-\-pairedEnd\fR
 Specifies that the reads will be given in paired end format.
 This option is not yet supported.
-.
-.TP 4
-\fB\-m\fR \fIINTEGER\fR, \fB\-\-maxMatches=\fINTEGER\fR
-Specifies the maximum number of matches to allow.
-To reduce time spent on aligning reads that match highly repetitive sequence, set this option low.
 .
 .TP 4
 \fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fINTEGER\fR

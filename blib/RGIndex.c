@@ -271,8 +271,13 @@ void RGIndexCreate(RGIndex *index,
 	for(i=0;i<index->hashLength;i++) {
 		assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
 				(index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
+		if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
+			assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i]) < 0);
+		}
+		if(index->ends[i] < index->length && index->ends[i] != UINT_MAX) {
+			assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1) < 0);
+		}
 	}
-
 }
 
 /* TODO */
@@ -1531,8 +1536,38 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		   RGIndexCompareRead(index, rg, read, (*endIndex)));
 		   }
 		   */
-
 		assert(RGIndexCompareRead(index, rg, read, (*endIndex))==0);
+		/*
+		if(!((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0)) {
+		   if((endIndex) == index->length-1) {
+		   fprintf(stderr, "1\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
+		   low,
+		   mid,
+		   high,
+		   (*endIndex),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)));
+		   }
+		   else {
+		   fprintf(stderr, "2\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
+		   low,
+		   mid,
+		   high,
+		   (*endIndex),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)),
+		   RGIndexCompareRead(index, rg, read, (*endIndex)+1));
+			   fprintf(stderr, "%lld\t%lld\t%lld\n",
+					   tmpLow,
+					   tmpMid,
+					   tmpHigh);
+		   }
+		   while(mid < index->length && RGIndexCompareRead(index, rg, read, mid) == 0) {
+			   mid++;
+		   }
+		   fprintf(stderr, "HERE:%lld\n", mid);
+		}
+		   */
 		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0);
 		return 1;
 	}
