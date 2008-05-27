@@ -5,7 +5,7 @@
 #include "RGBinary.h"
 #include "BLibDefinitions.h"
 
-void RGIndexCreate(RGIndex*, RGBinary*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t);
+void RGIndexCreate(RGIndex*, RGBinary*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 void RGIndexSortNodes(RGIndex*, RGBinary*, int32_t);
 void *RGIndexQuickSortNodes(void*);
 void RGIndexQuickSortNodesHelper(RGIndex*, RGBinary*, int64_t, int64_t, int32_t);

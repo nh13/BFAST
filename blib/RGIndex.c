@@ -17,6 +17,10 @@
 void RGIndexCreate(RGIndex *index, 
 		RGBinary *rg, 
 		RGIndexLayout *rgLayout, 
+		int32_t startChr,
+		int32_t startPos,
+		int32_t endChr,
+		int32_t endPos,
 		int32_t layoutIndex,
 		int32_t numThreads,
 		int32_t includeRepeats, 
@@ -30,6 +34,8 @@ void RGIndexCreate(RGIndex *index,
 
 	char *FnName = "RGIndexCreate";
 	int32_t curPos=-1;
+	int32_t curStartPos=-1;
+	int32_t curEndPos=-1;
 	int32_t curChr=-1;
 	int32_t insert, i, j, curTilePos;
 	int32_t chrIndex = 0;
@@ -42,11 +48,17 @@ void RGIndexCreate(RGIndex *index,
 	index->length=0;
 	index->totalLength=0;
 
+	assert(startChr <= endChr);
+	assert(startChr < endChr || (startChr == endChr && startPos <= endPos));
+
 	/* Copy over index information from the rg */
-	index->startChr = rg->startChr;
-	index->startPos = rg->startPos;
-	index->endChr = rg->endChr;
-	index->endPos = rg->endPos;
+	index->startChr = startChr;
+	index->startPos = startPos;
+	index->endChr = endChr;
+	index->endPos = endPos;
+
+	assert(index->startChr > rg->startChr || (index->startChr == rg->startChr && index->startPos >= rg->startPos));
+	assert(index->endChr < rg->endChr || (index->endChr == rg->endChr && index->endPos <= rg->endPos));
 
 	/* Copy over index information from the layout */
 	index->totalLength = 0;
@@ -92,10 +104,26 @@ void RGIndexCreate(RGIndex *index,
 				-1);
 	}
 	/* For each chromosome */
-	for(curChr=rg->startChr, chrIndex=0;curChr <= rg->endChr;curChr++, chrIndex++) { 
+	for(curChr=index->startChr;curChr <= index->endChr;curChr++) { 
+		/* Update chr index */
+		chrIndex = curChr - rg->startChr;
+		assert(chrIndex >=0 && chrIndex < rg->numChrs);
 
+		/* Update start and end bounds for this chromosome */
+		if(curChr == startChr) {
+			curStartPos = startPos;
+		}
+		else {
+			curStartPos = rg->chromosomes[chrIndex].startPos;
+		}
+		if(curChr == endChr) {
+			curEndPos = endPos;
+		}
+		else {
+			curEndPos = rg->chromosomes[chrIndex].endPos;
+		}
 		/* For each position */
-		for(curPos=rg->chromosomes[chrIndex].startPos;curPos<=rg->chromosomes[chrIndex].endPos;curPos++) {
+		for(curPos=curStartPos;curPos<=curEndPos;curPos++) {
 			if(VERBOSE >= 0) {
 				if(curPos%RGINDEX_ROTATE_NUM==0) {
 					fprintf(stderr, "\r[%d,%d]",
@@ -274,7 +302,7 @@ void RGIndexCreate(RGIndex *index,
 		if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
 			assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i]) < 0);
 		}
-		if(index->ends[i] < index->length && index->ends[i] != UINT_MAX) {
+		if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
 			assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1) < 0);
 		}
 	}

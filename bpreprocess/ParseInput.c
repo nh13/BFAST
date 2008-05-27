@@ -174,6 +174,10 @@ main (int argc, char **argv)
 								/* Generate the indexes */
 								GenerateIndex(&rg,
 										&rgLayout,
+										arguments.startChr,
+										arguments.startPos,
+										arguments.endChr,
+										arguments.endPos,
 										arguments.numThreads,
 										arguments.outputID,
 										arguments.outputDir,
@@ -383,10 +387,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->algorithm = 0;
 
-	args->startChr=0;
-	args->startPos=0;
-	args->endChr=0;
-	args->endPos=0;
+	args->startChr=1;
+	args->startPos=1;
+	args->endChr=1;
+	args->endPos=1;
 
 	args->numThreads = 1;
 
