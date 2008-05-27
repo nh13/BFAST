@@ -4,6 +4,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
+#include <limits.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
@@ -221,7 +222,7 @@ void FindMatches(char *outputFileName,
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
-				maxMatches,
+				INT_MAX,
 				numThreads,
 				&tempSeqFPs,
 				outputFP,
@@ -498,7 +499,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		 * so merge to recover the initial order.
 		 * */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Merging thread temp files...\n");
+			fprintf(stderr, "\rMerging thread temp files...\n");
 		}
 		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
@@ -762,11 +763,6 @@ void *FindMatchesInIndex(void *arg)
 		if(pairedEnd == 1) {
 			RGMatchFree(&pairedSequenceMatch);
 		}
-	}
-	if(VERBOSE>=0) {
-		fprintf(stderr, "\rthreadID:%d\tnumRead:%d\n",
-				threadID,
-				numRead);
 	}
 
 	/* Free memory */
