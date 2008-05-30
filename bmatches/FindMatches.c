@@ -774,4 +774,4 @@ void *FindMatchesInIndex(void *arg)
 		fprintf(stderr, "Returning from FindMatchesInIndex\n");
 	}
 	return NULL;
-}
+	}

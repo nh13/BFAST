@@ -39,8 +39,6 @@ void RGIndexCreate(RGIndex *index,
 	int32_t curChr=-1;
 	int32_t insert, i, j, curTilePos;
 	int32_t chrIndex = 0;
-	uint32_t start, end;
-	uint32_t curHash, startHash;
 
 	/* Initialize the index */
 	index->positions=NULL;
@@ -209,6 +207,16 @@ void RGIndexCreate(RGIndex *index,
 	}
 
 	/* Create hash table from the index */
+	RGIndexCreateHash(index, rg);
+}
+
+/* TODO */
+void RGIndexCreateHash(RGIndex *index, RGBinary *rg) 
+{
+	char *FnName = "RGIndexCreateHash";
+	uint32_t start, end;
+	uint32_t curHash, startHash;
+	int64_t i;
 
 	/* Allocate memory for the hash */
 	index->starts = malloc(sizeof(uint32_t)*index->hashLength);
@@ -1567,20 +1575,20 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		assert(RGIndexCompareRead(index, rg, read, (*endIndex))==0);
 		/*
 		if(!((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0)) {
-		   if((endIndex) == index->length-1) {
+		   if((*endIndex) == index->length-1) {
 		   fprintf(stderr, "1\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
-		   low,
-		   mid,
-		   high,
+		   tmpLow,
+		   tmpMid,
+		   tmpHigh,
 		   (*endIndex),
 		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
 		   RGIndexCompareRead(index, rg, read, (*endIndex)));
 		   }
 		   else {
 		   fprintf(stderr, "2\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
-		   low,
-		   mid,
-		   high,
+		   tmpLow,
+		   tmpMid,
+		   tmpHigh,
 		   (*endIndex),
 		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
 		   RGIndexCompareRead(index, rg, read, (*endIndex)),
@@ -1595,7 +1603,7 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		   }
 		   fprintf(stderr, "HERE:%lld\n", mid);
 		}
-		   */
+		*/
 		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0);
 		return 1;
 	}
