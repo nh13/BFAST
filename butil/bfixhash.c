@@ -25,6 +25,9 @@ int main(int argc, char *argv[])
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
 
+		/* Read the index */
+		fprintf(stderr, "Reading in index from %s.\n",
+				indexFileName);
 		if(!(fp=fopen(indexFileName, "rb"))) {
 			PrintError("bfixhash",
 					indexFileName,
@@ -32,21 +35,38 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
-
-		/* Read the index */
 		RGIndexRead(fp, &index, 1);
 		fclose(fp);
 
 		/* Test that it is sorted correctly */
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Testing if the index is sorted properly.\nOut of %lld, currently on:\n0",
+				(long long int)index.length);
 		for(i=1;i<index.length;i++) {
+			if(i%1000==0) {
+				fprintf(stderr, "\r%lld", 
+						(long long int)i);
+			}
 			assert(RGIndexCompareAt(&index, &rg, i-1, i) <= 0);
 		}
+		fprintf(stderr, "\r%lld\n", 
+				(long long int)index.length);
 
+		/* Free hash */
+		free(index.starts);
+		index.starts=NULL;
+		free(index.ends);
+		index.ends=NULL;
+		assert(index.hashLength > 0);
 
 		/* Fix the hash by recreating it */
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Fixing hash.\n");
 		RGIndexCreateHash(&index, &rg);
 
 		/* Print the new index */ 
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Outputting to %s.\n", indexFileName);
 		if(!(fp=fopen(indexFileName, "wb"))) {
 			PrintError("bfixhash",
 					indexFileName,
@@ -57,12 +77,12 @@ int main(int argc, char *argv[])
 		RGIndexPrint(fp, &index, 1);
 		fclose(fp);
 
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Cleaning up.\n");
 		/* Delete the index */
 		RGIndexDelete(&index);
-
 		/* Delete the rg */
 		RGBinaryDelete(&rg);
-
 	}
 	else {
 		fprintf(stdout, "Please give a reference genome file name then an index file name.  Terminating!\n");
