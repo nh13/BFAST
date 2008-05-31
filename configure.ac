@@ -143,6 +143,7 @@ AC_CONFIG_FILES([Makefile
 				 bmatches/Makefile
 				 balign/Makefile
 				 bpostprocess/Makefile
+				 butil/Makefile
 				 ])
 
 AC_OUTPUT
