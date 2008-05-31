@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
 		fclose(fp);
 
 		/* Test that it is sorted correctly */
+		/*
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Testing if the index is sorted properly.\nOut of %lld, currently on:\n0",
 				(long long int)index.length);
@@ -51,6 +52,7 @@ int main(int argc, char *argv[])
 		}
 		fprintf(stderr, "\r%lld\n", 
 				(long long int)index.length);
+				*/
 
 		/* Free hash */
 		free(index.starts);
