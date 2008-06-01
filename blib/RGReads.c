@@ -4,6 +4,7 @@
 #include <math.h>
 #include <sys/types.h>
 #include <string.h>
+#include <assert.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -46,7 +47,7 @@ void RGReadsFindMatches(RGIndex *index,
 	}
 
 	/* Get the reverse compliment */
-	GetReverseComplimentAnyCase(read, reverseRead, strlen(read));
+	GetReverseComplimentAnyCase(read, reverseRead, (int)strlen(read));
 
 	/* Generate reads */
 	RGReadsGenerateReads(read,
@@ -76,6 +77,7 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
+		assert(strlen(reads.reads[i]) >= index->totalLength);
 		RGIndexGetMatches(index, 
 				rg,
 				reads.reads[i],
@@ -627,23 +629,26 @@ void RGReadsGenerateDeletionsHelper(char *read,
 			curRead[i] = read[i+offset-deletionOffset];
 		}
 		curRead[totalLength]='\0';
-		/* Update the number of reads */
-		reads->numReads++;
-		/* Allocate memory */
-		RGReadsReallocate(reads, reads->numReads);
-		reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
-		if(NULL == reads->reads[reads->numReads-1]) {
-			PrintError("RGReadsGenerateDeletionsHelper",
-					"reads->reads[reads->numReads-1]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+		if(strlen(curRead) == totalLength) {
+			/* Update the number of reads */
+			reads->numReads++;
+			/* Allocate memory */
+			RGReadsReallocate(reads, reads->numReads);
+			reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+			if(NULL == reads->reads[reads->numReads-1]) {
+				PrintError("RGReadsGenerateDeletionsHelper",
+						"reads->reads[reads->numReads-1]",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+			/* Copy over */
+			strcpy(reads->reads[reads->numReads-1], curRead);
+			reads->offset[reads->numReads-1] = offset;
+			reads->strand[reads->numReads-1] = direction;
+			return;
 		}
-		/* Copy over */
-		strcpy(reads->reads[reads->numReads-1], curRead);
-		reads->offset[reads->numReads-1] = offset;
-		reads->strand[reads->numReads-1] = direction;
-		return;
+
 	}
 }
 
@@ -992,24 +997,25 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 					curReadPos++;
 					readPos++;
 				}
-				curRead[readLength]='\0';
-				assert(curReadPos == totalLength);
-				/* Update the number of reads */
-				reads->numReads++;
-				/* Allocate memory */
-				RGReadsReallocate(reads, reads->numReads);
-				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
-				if(NULL == reads->reads[reads->numReads-1]) {
-					PrintError("RGReadsGenerateGapDeletionsHelper",
-							"reads->reads[reads->numReads-1]",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
+				curRead[curReadPos]='\0';
+				if(strlen(curRead) >= totalLength) {
+					/* Update the number of reads */
+					reads->numReads++;
+					/* Allocate memory */
+					RGReadsReallocate(reads, reads->numReads);
+					reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+					if(NULL == reads->reads[reads->numReads-1]) {
+						PrintError("RGReadsGenerateGapDeletionsHelper",
+								"reads->reads[reads->numReads-1]",
+								"Could not allocate memory",
+								Exit,
+								MallocMemory);
+					}
+					/* Copy over */
+					strcpy(reads->reads[reads->numReads-1], curRead);
+					reads->offset[reads->numReads-1] = offset;
+					reads->strand[reads->numReads-1] = direction;
 				}
-				/* Copy over */
-				strcpy(reads->reads[reads->numReads-1], curRead);
-				reads->offset[reads->numReads-1] = offset;
-				reads->strand[reads->numReads-1] = direction;
 			}
 		}
 		/* Add the gap to our current position */
@@ -1145,23 +1151,25 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 					curReadPos++;
 				}
 			}
-			curRead[totalLength]='\0';
-			/* Update the number of reads */
-			reads->numReads++;
-			/* Allocate memory */
-			RGReadsReallocate(reads, reads->numReads);
-			reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
-			if(NULL == reads->reads[reads->numReads-1]) {
-				PrintError("RGReadsGenerateGapDeletionsHelper",
-						"reads->reads[reads->numReads-1]",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+			curRead[curReadPos]='\0';
+			if(strlen(curRead) >= totalLength) {
+				/* Update the number of reads */
+				reads->numReads++;
+				/* Allocate memory */
+				RGReadsReallocate(reads, reads->numReads);
+				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+				if(NULL == reads->reads[reads->numReads-1]) {
+					PrintError("RGReadsGenerateGapDeletionsHelper",
+							"reads->reads[reads->numReads-1]",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				/* Copy over */
+				strcpy(reads->reads[reads->numReads-1], curRead);
+				reads->offset[reads->numReads-1] = offset;
+				reads->strand[reads->numReads-1] = direction;
 			}
-			/* Copy over */
-			strcpy(reads->reads[reads->numReads-1], curRead);
-			reads->offset[reads->numReads-1] = offset;
-			reads->strand[reads->numReads-1] = direction;
 		}
 	}
 }

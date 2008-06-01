@@ -10,7 +10,6 @@
 
 int main(int argc, char *argv[]) 
 {
-	int64_t i;
 	FILE *fp=NULL;
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
@@ -37,22 +36,6 @@ int main(int argc, char *argv[])
 		}
 		RGIndexRead(fp, &index, 1);
 		fclose(fp);
-
-		/* Test that it is sorted correctly */
-		/*
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Testing if the index is sorted properly.\nOut of %lld, currently on:\n0",
-				(long long int)index.length);
-		for(i=1;i<index.length;i++) {
-			if(i%1000==0) {
-				fprintf(stderr, "\r%lld", 
-						(long long int)i);
-			}
-			assert(RGIndexCompareAt(&index, &rg, i-1, i) <= 0);
-		}
-		fprintf(stderr, "\r%lld\n", 
-				(long long int)index.length);
-				*/
 
 		/* Free hash */
 		free(index.starts);
