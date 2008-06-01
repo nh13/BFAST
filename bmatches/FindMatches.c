@@ -499,7 +499,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		 * so merge to recover the initial order.
 		 * */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rMerging thread temp files...\n");
+			fprintf(stderr, "\nMerging thread temp files...\n");
 		}
 		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
@@ -513,6 +513,9 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		}
 
 		/* Free memory of the RGIndex */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Cleaning up index.\n");
+		}
 		startTime = time(NULL);
 		RGIndexDelete(&index);
 		endTime = time(NULL);

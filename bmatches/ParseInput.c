@@ -431,8 +431,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
-	/* Debugging */
-	args->binaryOutput = 0;
+	args->binaryOutput = 1;
 
 	args->timing = 0;
 

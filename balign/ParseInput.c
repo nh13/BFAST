@@ -392,7 +392,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 0;
+	args->binaryInput = 1;
 
 	args->algorithm = DEFAULT_ALGORITHM;
 	args->startChr=0;
