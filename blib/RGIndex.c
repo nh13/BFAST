@@ -310,8 +310,14 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 		if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
 			assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i]) < 0);
 		}
+		if(index->starts[i] < index->length-1 && index->starts[i] != UINT_MAX) {
+			assert( RGIndexCompareAt(index, rg, index->starts[i], index->starts[i]+1) < 0);
+		}
 		if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
 			assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1) < 0);
+		}
+		if(index->ends[i] > 0 && index->ends[i] != UINT_MAX) {
+			assert( RGIndexCompareAt(index, rg, index->ends[i]-1, index->ends[i]) < 0);
 		}
 	}
 }
@@ -377,12 +383,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 
 		/* Check pivots */
 		for(i=0;i<2*numThreads;i+=2) {
-			/*
-			   fprintf(stderr, "HERE\t%Ld\t%Ld\t%Ld\n",
-			   i,
-			   pivots[i],
-			   pivots[i+1]);
-			   */
 			assert(pivots[i] >= 0 && pivots[i] < index->length);
 			assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
 			assert(pivots[i] <= pivots[i+1]);
@@ -506,12 +506,6 @@ void *RGIndexQuickSortNodes(void *arg)
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r0 percent complete");
 	}
-	/*
-	   fprintf(stderr, "HERE: threadID:%d\tlow:%Ld\thigh:%Ld\n",
-	   data->threadID,
-	   data->low,
-	   data->high);
-	   */
 	RGIndexQuickSortNodesHelper(data->index,
 			data->rg,
 			data->low,
@@ -1448,6 +1442,39 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	int32_t cont = 1;
 	int64_t tmpLow, tmpMid, tmpHigh;
 
+	assert(low==0 || RGIndexCompareRead(index, rg, read, low-1) > 0);
+	if(!(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1) < 0)) { 
+		/* HERE */
+		uint32_t hashIndex = RGIndexGetHashIndexFromRead(index, rg, read);
+		fprintf(stderr, "hashindex:%u\n", hashIndex);
+		fprintf(stderr, "start:%lld\tend:%lld\n",
+				(long long int)index->starts[hashIndex],
+				(long long int)index->ends[hashIndex]);
+		fprintf(stderr, "low:%lld\thigh:%lld\n",
+				(long long int)low,
+				(long long int)high);
+		int64_t i;
+		/* Check hash creation */
+		for(i=0;i<index->hashLength;i++) {
+			assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
+					(index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
+			if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
+				assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i]) < 0);
+			}
+			if(index->starts[i] < index->length-1 && index->starts[i] != UINT_MAX) {
+				assert( RGIndexCompareAt(index, rg, index->starts[i], index->starts[i]+1) < 0);
+			}
+			if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
+				assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1) < 0);
+			}
+			if(index->ends[i] > 0 && index->ends[i] != UINT_MAX) {
+				assert( RGIndexCompareAt(index, rg, index->ends[i]-1, index->ends[i]) < 0);
+			}
+		}
+		fprintf(stderr, "Hash OK\n");
+	}
+	assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1) < 0); 
+
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
 		cmp = RGIndexCompareRead(index, rg, read, mid);
@@ -1470,6 +1497,9 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	}
 	/* If we found an entry that matches, get the bounds (start and end indexes */
 	if(cont == 0) {
+		assert(low==0 || RGIndexCompareRead(index, rg, read, low-1) > 0);
+		assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1) < 0); 
+		assert(RGIndexCompareRead(index, rg, read, mid) == 0);
 		tmpLow = low;
 		tmpMid = mid;
 		tmpHigh = high;
@@ -1573,37 +1603,58 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		   }
 		   */
 		assert(RGIndexCompareRead(index, rg, read, (*endIndex))==0);
-		/*
 		if(!((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0)) {
-		   if((*endIndex) == index->length-1) {
-		   fprintf(stderr, "1\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
-		   tmpLow,
-		   tmpMid,
-		   tmpHigh,
-		   (*endIndex),
-		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
-		   RGIndexCompareRead(index, rg, read, (*endIndex)));
-		   }
-		   else {
-		   fprintf(stderr, "2\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
-		   tmpLow,
-		   tmpMid,
-		   tmpHigh,
-		   (*endIndex),
-		   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
-		   RGIndexCompareRead(index, rg, read, (*endIndex)),
-		   RGIndexCompareRead(index, rg, read, (*endIndex)+1));
+			/*
+			   if((*endIndex) == index->length-1) {
+			   fprintf(stderr, "1\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\n",
+			   (long long int)tmpLow,
+			   (long long int)tmpMid,
+			   (long long int)tmpHigh,
+			   (long long int)(*endIndex),
+			   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+			   RGIndexCompareRead(index, rg, read, (*endIndex)));
+			   }
+			   else {
+			   fprintf(stderr, "2\tendIndex:%lld\t%lld\t%lld\t%lld\t%d\t%d\t%d\n",
+			   (long long int)tmpLow,
+			   (long long int)tmpMid,
+			   (long long int)tmpHigh,
+			   (long long int)(*endIndex),
+			   RGIndexCompareRead(index, rg, read, (*endIndex)-1),
+			   RGIndexCompareRead(index, rg, read, (*endIndex)),
+			   RGIndexCompareRead(index, rg, read, (*endIndex)+1));
 			   fprintf(stderr, "%lld\t%lld\t%lld\n",
-					   tmpLow,
-					   tmpMid,
-					   tmpHigh);
-		   }
-		   while(mid < index->length && RGIndexCompareRead(index, rg, read, mid) == 0) {
+			   (long long int)tmpLow,
+			   (long long int)tmpMid,
+			   (long long int)tmpHigh);
+			   }
+			   while(mid < index->length && RGIndexCompareRead(index, rg, read, mid) == 0) {
 			   mid++;
-		   }
-		   fprintf(stderr, "HERE:%lld\n", mid);
+			   }
+			   fprintf(stderr, "HERE:%lld\n", (long long int)mid);
+			   uint32_t hashIndex = RGIndexGetHashIndexFromRead(index, rg, read);
+			   fprintf(stderr, "hashindex:%u\n", hashIndex);
+			   fprintf(stderr, "start:%d\tend:%d\n",
+			   index->starts[hashIndex],
+			   index->ends[hashIndex]);
+			   int64_t i;
+			   for(i=0;i<index->hashLength;i++) {
+			   assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
+			   (index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
+			   if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
+			   assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i]) < 0);
+			   }
+			   if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
+			   assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1) < 0);
+			   }
+			   }
+			   fprintf(stderr, "Hash OK\n");
+			   for(i=1;i<index->length;i++) {
+			   assert(RGIndexCompareAt(index, rg, i-1, i) <= 0);
+			   }
+			   fprintf(stderr, "Index OK\n");
+			   */
 		}
-		*/
 		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1)<0);
 		return 1;
 	}

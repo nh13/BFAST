@@ -23,6 +23,7 @@
 #define RGINDEX_ROTATE_NUM 1000000
 #define SORT_ROTATE_INC 0.01
 #define RGINDEX_SORT_ROTATE_INC 0.001
+#define ALIGN_ROTATE_NUM 1000
 
 /* For printing to stderr */
 #define VERBOSE 0

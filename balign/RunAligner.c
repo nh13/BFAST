@@ -264,10 +264,12 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].pairedEnd=pairedEnd;
 		data[i].binaryInput=binaryInput;
 		data[i].sm = &sm;
+		data[i].threadID = i;
 	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Performing alignment...\n");
+		fprintf(stderr, "Currently on:\n0");
 	}
 
 	/* Create threads */
@@ -312,6 +314,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		assert(NULL!=data[i].outputFP);
 	}
 	if(VERBOSE >= 0) {
+		fprintf(stderr, "\n");
 		fprintf(stderr, "Alignment complete.\n");
 	}
 
@@ -397,6 +400,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int maxNumMatches=data->maxNumMatches;
 	int pairedEnd=data->pairedEnd;
 	int binaryInput=data->binaryInput;
+	int threadID=data->threadID;
 	ScoringMatrix *sm = data->sm;
 	/* Local variables */
 	AlignEntry *aEntry=NULL;
@@ -452,6 +456,10 @@ void *RunDynamicProgrammingThread(void *arg)
 		numMatches++;
 
 		numAlignEntries = 0;
+
+		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
+			fprintf(stderr, "\rthread:%d\t%d", threadID, numMatches);
+		}
 
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "\nreadMatch.numEntries=%d.\n",

@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
 		RGIndexCreateHash(&index, &rg);
 
 		/* Print the new index */ 
+		/*
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Outputting to %s.\n", indexFileName);
 		if(!(fp=fopen(indexFileName, "wb"))) {
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
 		}
 		RGIndexPrint(fp, &index, 1);
 		fclose(fp);
+		*/
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Cleaning up.\n");
