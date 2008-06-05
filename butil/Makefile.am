@@ -1,4 +1,4 @@
-bin_PROGRAMS = bheader bfixhash
+bin_PROGRAMS = bheader bfixhash bindexstat
 
 bheader_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
@@ -19,3 +19,14 @@ bfixhash_SOURCES = \
 	bfixhash.c	bfixhash.h
 
 bfixhash_LDADD =
+
+bindexstat_SOURCES = \
+	../blib/BError.c	../blib/BError.h \
+	../blib/RGIndex.c	../blib/RGIndex.h \
+	../blib/BLib.c	../blib/BLib.h \
+	../blib/RGBinary.c ../blib/RGBinary.h \
+	../blib/RGMatch.c ../blib/RGMatch.h \
+	bindexstat.c	bindexstat.h
+
+bindexstat_LDADD =
+
