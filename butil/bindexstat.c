@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <limits.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -58,13 +59,21 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 {
 	int64_t start, end;
 	int64_t numEntries;
+	int64_t max, min;
 	long double sum;
 	long double mean, variance;
 
+
 	/* Get the mean */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Getting the mean. Out of %lld, currently on:\n0",
+			(long long int)index->length);
 	numEntries = 0;
 	start = 0;
 	for(end=1;end < index->length;end++) {
+		if(end%RGINDEX_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%lld", (long long int)end);
+		}
 		int cmp = RGIndexCompareAt(index, rg, start, end);
 		assert(cmp <= 0);
 		if(cmp < 0) {
@@ -75,14 +84,30 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 	}
 	mean = (index->length*1.0)/numEntries;
 
-	/* Get the variance */
+	/* Get the variance, max, and min */
+	fprintf(stderr, "Getting the mean. Out of %lld, currently on:\n0",
+			(long long int)index->length);
+	min = UINT_MAX;
+	max = -1;
 	sum = 0.0;
 	start = 0;
 	for(end=1;end < index->length;end++) {
+		if(end%RGINDEX_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%lld", (long long int)end);
+		}
 		int cmp = RGIndexCompareAt(index, rg, start, end);
 		assert(cmp <= 0);
 		if(cmp < 0) {
 			int val = ( (end-1) - start + 1);
+			/* Get max */
+			if(val > max) {
+				max = val;
+			}
+			/* Get min */
+			if(val < min) {
+				min = val;
+			}
+			/* Update variance sum */
 			sum += (val - mean)*(val - mean);
 			/* Update */
 			start = end;
@@ -90,8 +115,10 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 	}
 	variance = sum/numEntries;
 
-	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\n",
+	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\n",
 			mean,
-			variance);
+			variance,
+			(long long int)max,
+			(long long int)min);
 }
 
