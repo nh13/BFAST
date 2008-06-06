@@ -2,6 +2,6 @@
 #define BREPEAT_H_
 
 #define MAX_UNIT_LENGTH 2048
-#define BREPEAT_ROTATE_INC 1000000
+#define BREPEAT_ROTATE_NUM 1000
 
 #endif
