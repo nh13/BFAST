@@ -23,6 +23,7 @@ void RGReadsFindMatches(RGIndex *index,
 		RGBinary *rg,
 		RGMatch *match,
 		char *read,
+		int readLength,
 		int *offsets,
 		int numOffsets,
 		int numMismatches,
@@ -47,10 +48,11 @@ void RGReadsFindMatches(RGIndex *index,
 	}
 
 	/* Get the reverse compliment */
-	GetReverseComplimentAnyCase(read, reverseRead, (int)strlen(read));
+	GetReverseComplimentAnyCase(read, reverseRead, readLength);
 
 	/* Generate reads */
 	RGReadsGenerateReads(read,
+			readLength,
 			index,
 			&reads,
 			FORWARD,
@@ -64,6 +66,7 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Generate reads */
 	RGReadsGenerateReads(reverseRead,
+			readLength,
 			index,
 			&reads,
 			REVERSE,
@@ -77,7 +80,6 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
-		assert(strlen(reads.reads[i]) >= index->totalLength);
 		RGIndexGetMatches(index, 
 				rg,
 				reads.reads[i],
@@ -103,17 +105,8 @@ void RGReadsFindMatches(RGIndex *index,
 				match->numEntries);
 	}
 
-	/* Free memory from reads */
-	for(i=0;i<reads.numReads;i++) {
-		free(reads.reads[i]);
-		reads.reads[i] = NULL;
-	}
-	free(reads.reads);
-	reads.reads=NULL;
-	free(reads.strand);
-	reads.strand=NULL;
-	free(reads.offset);
-	reads.offset=NULL;
+	/* Free memory */
+	RGReadsFree(&reads);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Exiting RGReadsFindMatchesInIndex.\n");
@@ -122,6 +115,7 @@ void RGReadsFindMatches(RGIndex *index,
 
 /* TODO */
 void RGReadsGenerateReads(char *read,
+		int readLength,
 		RGIndex *index,
 		RGReads *reads,
 		char direction,
@@ -134,7 +128,6 @@ void RGReadsGenerateReads(char *read,
 		int numGapDeletions)
 {
 	int i;
-	int readLength=strlen(read);
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generating all possible reads (%d offsets).\n",
@@ -148,13 +141,8 @@ void RGReadsGenerateReads(char *read,
 					offsets[i]);
 		}
 
-		/* Go through all mismatches */
-		/* Note: we allow any number (including zero) of mismatches up to
-		 * numMismatches.  We also note that when mismatches is zero, this 
-		 * will just insert an unaltered pair, so no need to restrict calling
-		 * to when numMismatches>0.
-		 * */
-		RGReadsGenerateMismatches(read,
+		/* Insert the perfect match */
+		RGReadsGeneratePerfectMatch(read,
 				readLength,
 				direction,
 				offsets[i],
@@ -164,6 +152,23 @@ void RGReadsGenerateReads(char *read,
 				index->totalLength,
 				numMismatches,
 				reads);
+
+		/* Go through all mismatches */
+		/* Note: we allow any number (including zero) of mismatches up to
+		 * numMismatches.  
+		 * */
+		if(numMismatches > 0) {
+			RGReadsGenerateMismatches(read,
+					readLength,
+					direction,
+					offsets[i],
+					index->numTiles,
+					index->tileLengths,
+					index->gaps,
+					index->totalLength,
+					numMismatches,
+					reads);
+		}
 
 		/* Go through all insertions */
 		/* Note: we allow only contiguous insertions of length up to
@@ -256,10 +261,54 @@ void RGReadsGenerateReads(char *read,
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Calling RGReadsRemoveDuplicates\n");
 	}
-	RGReadsRemoveDuplicates(reads);
+	if(numMismatches > 0 || 
+			numInsertions > 0 ||
+			numDeletions > 0 ||
+			numGapInsertions > 0 ||
+			numGapDeletions > 0) {
+		RGReadsRemoveDuplicates(reads);
+	}
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Exited from RGReadsRemoveDuplicates\n");
 	}
+}
+
+void RGReadsGeneratePerfectMatch(char *read,
+		int readLength,
+		char direction,
+		int offset,
+		int32_t numTiles,
+		int32_t *tileLengths,
+		int32_t *gaps,
+		int64_t totalLength,
+		int numMismatches,
+		RGReads *reads)
+{
+	int32_t i;
+
+	/* Check bounds */
+	if(readLength < totalLength+offset) {
+		return;
+	}
+	/* Update the number of reads */
+	reads->numReads++;
+	/* Allocate memory */
+	RGReadsReallocate(reads, reads->numReads);
+	reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
+	if(NULL == reads->reads[reads->numReads-1]) {
+		PrintError("RGReadsGenerateMismatchesHelper",
+				"reads->reads[reads->numReads-1]",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Copy over */
+	for(i=offset;i<totalLength+offset;i++) {
+		reads->reads[reads->numReads-1][i-offset] = read[i];
+	}
+	reads->reads[reads->numReads-1][totalLength] = '\0';
+	reads->offset[reads->numReads-1] = offset;
+	reads->strand[reads->numReads-1] = direction;
 }
 
 /* TODO */
@@ -288,7 +337,7 @@ void RGReadsGenerateMismatches(char *read,
 
 	assert(readLength >= totalLength+offset);
 	/* Allocate memory */
-	curRead = malloc(sizeof(char)*(readLength+1));
+	curRead = malloc(sizeof(char)*(totalLength+1));
 	if(NULL == curRead) {
 		PrintError("RGReadsGenerateMismatches",
 				"curRead",
@@ -343,12 +392,11 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		assert(readIndex <= totalLength);
 		if(readIndex == totalLength) {
 			curRead[totalLength]='\0';
-			assert(strlen(curRead) == totalLength);
 			/* Update the number of reads */
 			reads->numReads++;
 			/* Allocate memory */
 			RGReadsReallocate(reads, reads->numReads);
-			reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+			reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
 			if(NULL == reads->reads[reads->numReads-1]) {
 				PrintError("RGReadsGenerateMismatchesHelper",
 						"reads->reads[reads->numReads-1]",
@@ -433,16 +481,18 @@ void RGReadsGenerateMismatchesHelper(char *read,
 	}
 	else {
 		/* print remaining */                                           
-		for(i=readIndex;i<totalLength;i++) {
-			curRead[i] = read[i+offset];
+		while(readIndex < totalLength) {
+			curRead[readIndex] = read[readIndex+offset];
+			readIndex++;
+
 		}
+		assert(readIndex == totalLength);
 		curRead[totalLength]='\0';
-		assert(strlen(curRead) == totalLength);
 		/* Update the number of reads */
 		reads->numReads++;
 		/* Allocate memory */
 		RGReadsReallocate(reads, reads->numReads);
-		reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+		reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
 		if(NULL == reads->reads[reads->numReads-1]) {
 			PrintError("RGReadsGenerateMismatchesHelper",
 					"reads->reads[reads->numReads-1]",
@@ -478,7 +528,7 @@ void RGReadsGenerateDeletions(char *read,
 	}
 
 	/* Allocate memory */
-	curRead = malloc(sizeof(char)*(readLength+1));
+	curRead = malloc(sizeof(char)*(totalLength+1));
 	if(NULL == curRead) {
 		PrintError("RGReadsGenerateDeletions",
 				"curRead",
@@ -539,11 +589,10 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		if(readIndex == totalLength) {
 			if(numDeletionsLeft != numDeletions) {
 				curRead[totalLength]='\0';
-				assert(strlen(curRead) == totalLength);
 				reads->numReads++;
 				/* Allocate memory */
 				RGReadsReallocate(reads, reads->numReads);
-				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
 				if(NULL == reads->reads[reads->numReads-1]) {
 					PrintError("RGReadsGenerateDeletionsHelper",
 							"reads->reads[reads->numReads-1]",
@@ -625,29 +674,29 @@ void RGReadsGenerateDeletionsHelper(char *read,
 	}
 	else {
 		/* print remaining */                                           
-		for(i=readIndex;i<totalLength;i++) {
-			curRead[i] = read[i+offset-deletionOffset];
+		while(readIndex < totalLength) {
+			curRead[readIndex] = read[readIndex+offset-deletionOffset];
+			readIndex++;
 		}
 		curRead[totalLength]='\0';
-		if(strlen(curRead) == totalLength) {
-			/* Update the number of reads */
-			reads->numReads++;
-			/* Allocate memory */
-			RGReadsReallocate(reads, reads->numReads);
-			reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
-			if(NULL == reads->reads[reads->numReads-1]) {
-				PrintError("RGReadsGenerateDeletionsHelper",
-						"reads->reads[reads->numReads-1]",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-			/* Copy over */
-			strcpy(reads->reads[reads->numReads-1], curRead);
-			reads->offset[reads->numReads-1] = offset;
-			reads->strand[reads->numReads-1] = direction;
-			return;
+		assert(readIndex == totalLength);
+		/* Update the number of reads */
+		reads->numReads++;
+		/* Allocate memory */
+		RGReadsReallocate(reads, reads->numReads);
+		reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
+		if(NULL == reads->reads[reads->numReads-1]) {
+			PrintError("RGReadsGenerateDeletionsHelper",
+					"reads->reads[reads->numReads-1]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
 		}
+		/* Copy over */
+		strcpy(reads->reads[reads->numReads-1], curRead);
+		reads->offset[reads->numReads-1] = offset;
+		reads->strand[reads->numReads-1] = direction;
+		return;
 
 	}
 }
@@ -686,7 +735,7 @@ void RGReadsGenerateInsertions(char *read,
 	}
 
 	/* Allocate memory */
-	curRead = malloc(sizeof(char)*(readLength+1));
+	curRead = malloc(sizeof(char)*(totalLength+1));
 	if(NULL == curRead) {
 		PrintError("RGReadsGenerateInsertions",
 				"curRead",
@@ -746,11 +795,10 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		if(readIndex >= totalLength) {
 			if(numInsertionsLeft != numInsertions) {
 				curRead[totalLength]='\0';
-				assert(strlen(curRead) == totalLength);
 				reads->numReads++;
 				/* Allocate memory */
 				RGReadsReallocate(reads, reads->numReads);
-				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
 				if(NULL == reads->reads[reads->numReads-1]) {
 					PrintError("RGReadsGenerateInsertionsHelper",
 							"reads->reads[reads->numReads-1]",
@@ -833,28 +881,28 @@ void RGReadsGenerateInsertionsHelper(char *read,
 	}
 	else {
 		/* print remaining */                                           
-		for(i=readIndex;i<totalLength;i++) {
-			curRead[i] = read[i+offset+insertionOffset];
+		while(readIndex<totalLength) {
+			curRead[readIndex] = read[readIndex+offset+insertionOffset];
+			readIndex++;
 		}
 		curRead[totalLength]='\0';
-		if(strlen(curRead) == totalLength) {
-			/* Update the number of reads */
-			reads->numReads++;
-			/* Allocate memory */
-			RGReadsReallocate(reads, reads->numReads);
-			reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
-			if(NULL == reads->reads[reads->numReads-1]) {
-				PrintError("RGReadsGenerateInsertionsHelper",
-						"reads->reads[reads->numReads-1]",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-			/* Copy over */
-			strcpy(reads->reads[reads->numReads-1], curRead);
-			reads->offset[reads->numReads-1] = offset;
-			reads->strand[reads->numReads-1] = direction;
+		assert(readIndex == totalLength);
+		/* Update the number of reads */
+		reads->numReads++;
+		/* Allocate memory */
+		RGReadsReallocate(reads, reads->numReads);
+		reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
+		if(NULL == reads->reads[reads->numReads-1]) {
+			PrintError("RGReadsGenerateInsertionsHelper",
+					"reads->reads[reads->numReads-1]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
 		}
+		/* Copy over */
+		strcpy(reads->reads[reads->numReads-1], curRead);
+		reads->offset[reads->numReads-1] = offset;
+		reads->strand[reads->numReads-1] = direction;
 		return;
 	}
 }
@@ -998,7 +1046,7 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 					readPos++;
 				}
 				curRead[curReadPos]='\0';
-				if(strlen(curRead) >= totalLength) {
+				if(curReadPos >= totalLength) {
 					/* Update the number of reads */
 					reads->numReads++;
 					/* Allocate memory */
@@ -1152,7 +1200,7 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 				}
 			}
 			curRead[curReadPos]='\0';
-			if(strlen(curRead) >= totalLength) {
+			if(curReadPos >= totalLength) {
 				/* Update the number of reads */
 				reads->numReads++;
 				/* Allocate memory */
@@ -1208,6 +1256,7 @@ void RGReadsRemoveDuplicates(RGReads *s)
 
 	/* Reallocate pair */
 	RGReadsReallocate(s, prevIndex+1);
+
 }
 
 /* TO DO */
@@ -1356,4 +1405,21 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 				Exit,
 				MallocMemory);
 	}
+}
+
+void RGReadsFree(RGReads *reads) 
+{
+	int i;
+
+	/* Free memory from reads */
+	for(i=0;i<reads->numReads;i++) {
+		free(reads->reads[i]);
+		reads->reads[i] = NULL;
+	}
+	free(reads->reads);
+	reads->reads=NULL;
+	free(reads->strand);
+	reads->strand=NULL;
+	free(reads->offset);
+	reads->offset=NULL;
 }

@@ -268,7 +268,9 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 		int32_t binaryOutput,
 		int32_t maxMatches)
 {
+	char *FnName="RGMatchMergeFilesAndOutput";
 	int32_t i;
+	int32_t counter;
 	RGMatch match;
 	RGMatch pairedMatch;
 	int32_t continueReading = 1;
@@ -280,7 +282,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
 	sequenceNames = malloc(sizeof(char*)*numFiles);
 	if(NULL == sequenceNames) {
-		PrintError("RGMatchMergeFilesAndOutput",
+		PrintError(FnName,
 				"sequenceNames",
 				"Could not allocate memory",
 				Exit,
@@ -288,7 +290,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	}
 	sequences= malloc(sizeof(char*)*numFiles);
 	if(NULL == sequences) {
-		PrintError("RGMatchMergeFilesAndOutput",
+		PrintError(FnName,
 				"sequences",
 				"Could not allocate memory",
 				Exit,
@@ -296,7 +298,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	}
 	pairedSequences = malloc(sizeof(char*)*numFiles);
 	if(NULL == pairedSequences) {
-		PrintError("RGMatchMergeFilesAndOutput",
+		PrintError(FnName,
 				"pairedSequences",
 				"Could not allocate memory",
 				Exit,
@@ -305,7 +307,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	for(i=0;i<numFiles;i++) {
 		sequenceNames[i] = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 		if(NULL == sequenceNames[i]) {
-			PrintError("RGMatchMergeFilesAndOutput",
+			PrintError(FnName,
 					"sequenceNames[i]",
 					"Could not allocate memory",
 					Exit,
@@ -313,7 +315,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 		}
 		sequences[i] = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == sequences[i]) {
-			PrintError("RGMatchMergeFilesAndOutput",
+			PrintError(FnName,
 					"sequences[i]",
 					"Could not allocate memory",
 					Exit,
@@ -321,7 +323,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 		}
 		pairedSequences[i] = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == pairedSequences[i]) {
-			PrintError("RGMatchMergeFilesAndOutput",
+			PrintError(FnName,
 					"pairedSequences[i]",
 					"Could not allocate memory",
 					Exit,
@@ -335,7 +337,15 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	}
 
 	/* Read in each sequence/match one at a time */
+	counter = 0;
+	if(VERBOSE >=0) {
+		fprintf(stderr, "%d", 0);
+	}
 	while(continueReading == 1) {
+		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
+			fprintf(stderr, "\r%d", counter);
+		}
+		counter++;
 
 		/* Initialize match */
 		match.positions=NULL;
@@ -368,6 +378,18 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			/* Error checking */
 			for(i=1;i<numFiles;i++) {
 				/* Make sure we are reading the same sequence */
+				if(strcmp(sequenceNames[i], sequenceNames[0])!=0) {
+					PrintError(FnName,
+							NULL,
+							"Sequence names are not the same",
+							Warn,
+							OutOfRange);
+					fprintf(stderr, "sequenceNames[%d]:%s\nsequenceNames[%d]:%s\n",
+							i,
+							sequenceNames[i],
+							0,
+							sequenceNames[0]);
+				}
 				assert(strcmp(sequenceNames[i], sequenceNames[0])==0);
 			}
 
@@ -401,6 +423,9 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			RGMatchFree(&pairedMatch);
 		}
 	}
+		if(VERBOSE >=0) {
+			fprintf(stderr, "\r%d\n", counter);
+		}
 
 	/* Free memory */
 	for(i=0;i<numFiles;i++) {

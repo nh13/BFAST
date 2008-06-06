@@ -6,8 +6,9 @@
 #include "RGMatch.h"
 #include "RGIndex.h"
 
-void RGReadsFindMatches(RGIndex*, RGBinary*, RGMatch*, char*, int*, int, int, int, int, int, int, int);
-void RGReadsGenerateReads(char*, RGIndex*, RGReads*, char, int*, int, int, int, int, int, int);
+void RGReadsFindMatches(RGIndex*, RGBinary*, RGMatch*, char*, int, int*, int, int, int, int, int, int, int);
+void RGReadsGenerateReads(char*, int, RGIndex*, RGReads*, char, int*, int, int, int, int, int, int);
+void RGReadsGeneratePerfectMatch(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
 void RGReadsGenerateMismatches(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
 void RGReadsGenerateMismatchesHelper(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, int, RGReads*, char*, int, int);
 void RGReadsGenerateDeletions(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
@@ -27,6 +28,7 @@ void RGReadsCopyAtIndex(RGReads*, int, RGReads*, int);
 
 void RGReadsAllocate(RGReads*, int);
 void RGReadsReallocate(RGReads*, int);
+void RGReadsFree(RGReads*);
 
 #endif
 

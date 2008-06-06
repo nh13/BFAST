@@ -132,21 +132,25 @@ int ReadSequencesToTempFile(FILE *seqFP,
 
 /* TODO */
 /* Read the next sequence from the stream */
-int ReadNextSequence(FILE *fp, char **sequenceOne, char **sequenceTwo, char**sequenceName, int pairedEnd)
+int ReadNextSequence(FILE *fp, char **sequenceOne, int *sequenceOneLength, char **sequenceTwo, int *sequenceTwoLength,  char**sequenceName, int pairedEnd)
 {
 	if(pairedEnd == 1) {
 		if(EOF==fscanf(fp, "%s", (*sequenceName)) || EOF==fscanf(fp, "%s", (*sequenceOne)) || EOF==fscanf(fp, "%s", (*sequenceTwo))) {
 			return EOF;
 		}
-		SequenceToLower((*sequenceOne), strlen((*sequenceOne)));
-		SequenceToLower((*sequenceTwo), strlen((*sequenceTwo)));
+		(*sequenceOneLength) = strlen((*sequenceOne));
+		(*sequenceTwoLength) = strlen((*sequenceTwo));
+		SequenceToLower((*sequenceOne), (*sequenceOneLength));
+		SequenceToLower((*sequenceTwo), (*sequenceTwoLength));
 	}
 	else {
 		if(EOF==fscanf(fp, "%s", (*sequenceName)) || EOF==fscanf(fp, "%s", (*sequenceOne))) {
 			return EOF;
 		}
-		SequenceToLower((*sequenceOne), strlen((*sequenceOne)));
+		(*sequenceOneLength) = strlen((*sequenceOne));
+		SequenceToLower((*sequenceOne), (*sequenceOneLength));
 		(*sequenceTwo)=NULL;
+		(*sequenceTwoLength)=0;
 	}
 	return 1;
 }

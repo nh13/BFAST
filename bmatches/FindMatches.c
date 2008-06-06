@@ -636,6 +636,8 @@ void *FindMatchesInIndex(void *arg)
 	RGMatch pairedSequenceMatch;
 	int numRead = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
+	int sequenceLength;
+	int pairedSequenceLength;
 	/* Function arguments */
 	FILE *tempSeqFP = data->tempSeqFP;
 	FILE *tempOutputFP = data->tempOutputFP;
@@ -684,7 +686,7 @@ void *FindMatchesInIndex(void *arg)
 	}
 
 	/* For each sequence */
-	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &pairedSequence, &sequenceName, pairedEnd)) {
+	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &sequenceLength, &pairedSequence, &pairedSequenceLength, &sequenceName, pairedEnd)) {
 		numRead++;
 
 		/*
@@ -717,6 +719,7 @@ void *FindMatchesInIndex(void *arg)
 				rg,
 				&sequenceMatch,
 				sequence,
+				sequenceLength,
 				offsets,
 				numOffsets,
 				numMismatches,
@@ -730,6 +733,7 @@ void *FindMatchesInIndex(void *arg)
 					rg,
 					&pairedSequenceMatch,
 					pairedSequence,
+					pairedSequenceLength,
 					offsets,
 					numOffsets,
 					numMismatches,
