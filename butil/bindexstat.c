@@ -85,7 +85,7 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 	mean = (index->length*1.0)/numEntries;
 
 	/* Get the variance, max, and min */
-	fprintf(stderr, "Getting the mean. Out of %lld, currently on:\n0",
+	fprintf(stderr, "Getting the variance. Out of %lld, currently on:\n0",
 			(long long int)index->length);
 	min = UINT_MAX;
 	max = -1;
@@ -113,6 +113,7 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 			start = end;
 		}
 	}
+	fprintf(stderr, "\r%lld\n", (long long int)end);
 	variance = sum/numEntries;
 
 	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\n",

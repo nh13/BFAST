@@ -1,4 +1,4 @@
-bin_PROGRAMS = bheader bfixhash bindexstat
+bin_PROGRAMS = bheader bfixhash bindexstat brepeat
 
 bheader_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
@@ -30,3 +30,12 @@ bindexstat_SOURCES = \
 
 bindexstat_LDADD =
 
+brepeat_SOURCES = \
+	../blib/BError.c	../blib/BError.h \
+	../blib/RGIndex.c	../blib/RGIndex.h \
+	../blib/BLib.c	../blib/BLib.h \
+	../blib/RGBinary.c ../blib/RGBinary.h \
+	../blib/RGMatch.c ../blib/RGMatch.h \
+	brepeat.c	brepeat.h
+
+brepeat_LDADD = 
