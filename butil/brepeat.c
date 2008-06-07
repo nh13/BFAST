@@ -29,6 +29,12 @@ int main(int argc, char *argv[])
 		assert(minUnitLength <= maxUnitLength);
 		assert(maxUnitLength <= MAX_UNIT_LENGTH);
 
+		fprintf(stderr, "minUnitLength:%d\nmaxUnitLength:%d\nminLength:%d\noutput:%s\n",
+				minUnitLength,
+				maxUnitLength,
+				minLength,
+				argv[5]);
+
 		if(!(fp = fopen(argv[5], "w"))) {
 			PrintError("Main",
 					argv[5],
@@ -107,7 +113,8 @@ int main(int argc, char *argv[])
 						}
 
 					}
-					if(bestEnd > 0 && bestUnitLength < (bestEnd-curPos+1)) {
+					if(bestEnd > 0 && 
+							bestUnitLength < (bestEnd - curPos + 1)) {
 						assert(bestEnd-curPos+1 >= minLength);
 
 						if(curPos == prevBestStart + 1 &&
