@@ -58,7 +58,10 @@ int main(int argc, char *argv[])
 			int prevBestStart=-1;
 			int prevBestLength=-1;
 			int prevBestEnd=-1;
+			/*
 			for(curPos=rg.chromosomes[curChrIndex].startPos;
+			*/
+			for(curPos=44576;
 					curPos <= rg.chromosomes[curChrIndex].endPos;
 					curPos++) {
 				if(curPos%BREPEAT_ROTATE_NUM==0) {
@@ -104,12 +107,12 @@ int main(int argc, char *argv[])
 							}
 
 							if(end-curPos+1 >= minLength && 
+									(end - curPos +1 ) > curUnitLength && 
 									(bestEnd <= 0 || end-curPos+1 > (bestEnd - curPos + 1))) {
 								bestEnd = end;
 								strcpy(bestUnit, unit);
 								bestUnitLength = curUnitLength;
 							}
-
 						}
 
 					}
