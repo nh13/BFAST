@@ -493,9 +493,11 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 	}
 
 	/* Test that we sorted correctly */
+	/*
 	for(i=1;i<index->length;i++) {
 		assert(RGIndexCompareAt(index, rg, i-1, i) <= 0);
 	}
+	*/
 
 }
 
