@@ -307,7 +307,7 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 	/* Go to the beginning of the temporary output file */
 	fseek(tempOutputFP, 0, SEEK_SET);
 
-	while(RGMatchGetNextFromFile(tempOutputFP, 
+	while(RGMatchRead(tempOutputFP, 
 				sequenceName, 
 				sequence, 
 				pairedSequence, 
@@ -317,7 +317,7 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 				binaryOutput)!=EOF) {
 		if(sequenceMatch.numEntries > 0) {
 			/* Output to final output file */
-			RGMatchOutputToFile(outputFP,
+			RGMatchPrint(outputFP,
 					sequenceName,
 					sequence,
 					pairedSequence,

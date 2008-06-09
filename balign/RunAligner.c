@@ -224,7 +224,7 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Go through each read in the match file */
 	numMatches=0;
-	while(EOF!=RGMatchGetNextFromFile(matchFP, 
+	while(EOF!=RGMatchRead(matchFP, 
 				readName, 
 				read, 
 				pairedSequence, 
@@ -238,7 +238,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		numMatches++;
 
 		/* Print match to temp file */
-		RGMatchOutputToFile(data[threadIndex].inputFP,
+		RGMatchPrint(data[threadIndex].inputFP,
 				readName,
 				read,
 				pairedSequence,
@@ -445,7 +445,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	pairedSequenceMatch.maxReached=0;
 
 	/* Go through each read in the match file */
-	while(EOF!=RGMatchGetNextFromFile(inputFP, 
+	while(EOF!=RGMatchRead(inputFP, 
 				readName, 
 				read, 
 				pairedSequence, 

@@ -494,6 +494,14 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 			fprintf(stderr, "\n");
 		}
 
+		/*
+		for(j=0;j<numThreads;j++) {
+			fprintf(stderr, "Thread %d found %d num matches.\n",
+					data[j].threadID,
+					data[j].numMatches);
+		}
+		*/
+
 		/* Open a temporary file (this is reentrant) */
 		tempOutputIndexFPs[i] = tmpfile();
 		assert(tempOutputIndexFPs[i]!=NULL);
@@ -504,11 +512,14 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging thread temp files...\n");
 		}
-		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
+		j=RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
 				tempOutputIndexFPs[i],
 				pairedEnd,
 				binaryOutput);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\nMerged %d reads from threads.\n", j);
+		}
 
 		/* Close temp thread output */
 		for(j=0;j<numThreads;j++) {
@@ -689,17 +700,14 @@ void *FindMatchesInIndex(void *arg)
 	}
 
 	/* For each sequence */
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
-					threadID,
-					numRead);
-		}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
+				threadID,
+				numRead);
+	}
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &sequenceLength, &pairedSequence, &pairedSequenceLength, &sequenceName, pairedEnd)) {
 		numRead++;
 
-		/*
-		   if(VERBOSE >= 0) {
-		   */
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
 			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
 					threadID,
@@ -761,7 +769,7 @@ void *FindMatchesInIndex(void *arg)
 		}
 
 		/* Output to file */
-		RGMatchOutputToFile(tempOutputFP, 
+		RGMatchPrint(tempOutputFP, 
 				sequenceName, 
 				sequence, 
 				pairedSequence, 
@@ -779,6 +787,11 @@ void *FindMatchesInIndex(void *arg)
 			RGMatchFree(&pairedSequenceMatch);
 		}
 	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
+				threadID,
+				numRead);
+	}
 
 	/* Free memory */
 	free(sequenceName);
@@ -789,4 +802,4 @@ void *FindMatchesInIndex(void *arg)
 		fprintf(stderr, "Returning from FindMatchesInIndex\n");
 	}
 	return NULL;
-	}
+}

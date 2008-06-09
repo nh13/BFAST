@@ -46,8 +46,8 @@ enum {KILOBYTES, MEGABYTES, GIGABYTES};
 
 /* TODO */
 typedef struct {
-	uint32_t *positions;
 	uint8_t *chromosomes;
+	uint32_t *positions;
 	int8_t *strand;
 	int32_t numEntries;
 	int32_t maxReached;
