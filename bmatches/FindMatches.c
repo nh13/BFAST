@@ -499,7 +499,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		 * so merge to recover the initial order.
 		 * */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\nMerging thread temp files...\n");
+			fprintf(stderr, "Merging thread temp files...\n");
 		}
 		RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
