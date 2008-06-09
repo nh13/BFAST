@@ -18,11 +18,11 @@ void RGIndexPrint(FILE*, RGIndex*, int32_t);
 void RGIndexRead(FILE*, RGIndex*, int32_t);
 void RGIndexPrintHeader(FILE*, RGIndex*, int32_t);
 void RGIndexReadHeader(FILE*, RGIndex*, int32_t);
-void RGIndexGetMatches(RGIndex*, RGBinary*, char*, int8_t, int32_t, RGMatch*, int32_t);
+void RGIndexGetMatches(RGIndex*, RGBinary*, char*, int32_t, int8_t, int32_t, RGMatch*, int32_t);
 int64_t RGIndexGetIndex(RGIndex*, RGBinary*, int64_t, int64_t, char*, int64_t*, int64_t*);
-int32_t RGIndexCompareAt(RGIndex*, RGBinary*, int64_t, int64_t);
-int32_t RGIndexCompareRead(RGIndex*, RGBinary*, char*, int64_t);
-uint32_t RGIndexGetHashIndex(RGIndex*, RGBinary*, uint32_t);
-uint32_t RGIndexGetHashIndexFromRead(RGIndex*, RGBinary*, char*);
+int32_t RGIndexCompareAt(RGIndex*, RGBinary*, int64_t, int64_t, int);
+int32_t RGIndexCompareRead(RGIndex*, RGBinary*, char*, int64_t, int);
+uint32_t RGIndexGetHashIndex(RGIndex*, RGBinary*, uint32_t, int);
+uint32_t RGIndexGetHashIndexFromRead(RGIndex*, RGBinary*, char*, int32_t, int);
 #endif
 

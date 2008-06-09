@@ -40,6 +40,7 @@ void RGReadsFindMatches(RGIndex *index,
 	/* Initialize reads */ 
 	reads.numReads = 0;
 	reads.reads = NULL;
+	reads.readLength = NULL;
 	reads.strand = NULL;
 	reads.offset = NULL;
 
@@ -80,9 +81,17 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
+		if(!(strlen(reads.reads[i]) >= index->totalLength)) {
+			fprintf(stderr, "HERE:%s\t%d\t%d\n",
+					reads.reads[i],
+					(int)strlen(reads.reads[i]),
+					index->totalLength);
+		}
+		assert(strlen(reads.reads[i]) >= index->totalLength);
 		RGIndexGetMatches(index, 
 				rg,
 				reads.reads[i],
+				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
 				match,
@@ -307,6 +316,7 @@ void RGReadsGeneratePerfectMatch(char *read,
 		reads->reads[reads->numReads-1][i-offset] = read[i];
 	}
 	reads->reads[reads->numReads-1][totalLength] = '\0';
+	reads->readLength[reads->numReads-1] = totalLength;
 	reads->offset[reads->numReads-1] = offset;
 	reads->strand[reads->numReads-1] = direction;
 }
@@ -406,6 +416,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 			}
 			/* Copy over */
 			strcpy(reads->reads[reads->numReads-1], curRead);
+			reads->readLength[reads->numReads-1] = totalLength;
 			reads->offset[reads->numReads-1] = offset;
 			reads->strand[reads->numReads-1] = direction;
 			return;
@@ -502,6 +513,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		}
 		/* Copy over */
 		strcpy(reads->reads[reads->numReads-1], curRead);
+		reads->readLength[reads->numReads-1] = totalLength;
 		reads->offset[reads->numReads-1] = offset;
 		reads->strand[reads->numReads-1] = direction;
 	}
@@ -602,6 +614,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 				}
 				/* Copy over */
 				strcpy(reads->reads[reads->numReads-1], curRead);
+				reads->readLength[reads->numReads-1] = totalLength;
 				reads->offset[reads->numReads-1] = offset;
 				reads->strand[reads->numReads-1] = direction;
 			}
@@ -694,6 +707,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		}
 		/* Copy over */
 		strcpy(reads->reads[reads->numReads-1], curRead);
+		reads->readLength[reads->numReads-1] = totalLength;
 		reads->offset[reads->numReads-1] = offset;
 		reads->strand[reads->numReads-1] = direction;
 		return;
@@ -799,6 +813,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 				/* Allocate memory */
 				RGReadsReallocate(reads, reads->numReads);
 				reads->reads[reads->numReads-1] = malloc(sizeof(char)*(totalLength+1));
+				reads->readLength[reads->numReads-1] = totalLength;
 				if(NULL == reads->reads[reads->numReads-1]) {
 					PrintError("RGReadsGenerateInsertionsHelper",
 							"reads->reads[reads->numReads-1]",
@@ -901,6 +916,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		}
 		/* Copy over */
 		strcpy(reads->reads[reads->numReads-1], curRead);
+		reads->readLength[reads->numReads-1] = totalLength;
 		reads->offset[reads->numReads-1] = offset;
 		reads->strand[reads->numReads-1] = direction;
 		return;
@@ -1006,63 +1022,66 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 			 * is found in the gap.  This will cause a combinatorial
 			 * explosion since we can do a simplifying shift. */
 			for(k=1;k<=numGapDeletions && k <= gaps[i];k++) {
-				/* Copy over */
+				/* Do this only if we have enough bases */
+				if(totalLength <= readLength - (offset + k - 1)) {
+					/* Copy over */
+					curReadPos = 0;
+					readPos = offset + k - 1;
 
-				curReadPos = 0;
-				readPos = offset + k - 1;
-
-				/* First copy over the bases up to the current insertion point */
-				for(l=0;l<=i;l++) { /* For the given tile */
-					for(m=0;m<tileLengths[l];m++) { /* For each base in the tile */
-						curRead[curReadPos] = read[readPos];
-						curReadPos++;
-						readPos++;
-					}
-					if(l<i) { /* For each gap up to (not including) the current one */
-						for(m=0;m<gaps[l];m++) {
+					/* First copy over the bases up to the current insertion point */
+					for(l=0;l<=i;l++) { /* For the given tile */
+						for(m=0;m<tileLengths[l];m++) { /* For each base in the tile */
 							curRead[curReadPos] = read[readPos];
 							curReadPos++;
 							readPos++;
 						}
+						if(l<i) { /* For each gap up to (not including) the current one */
+							for(m=0;m<gaps[l];m++) {
+								curRead[curReadPos] = read[readPos];
+								curReadPos++;
+								readPos++;
+							}
+						}
 					}
-				}
-				assert(curReadPos == curPos);
-				for(m=0;m<j;m++) {
-					curRead[curReadPos] = read[readPos];
-					curReadPos++;
-					readPos++;
-				}
-				/* Move up to insertion point */
-				/* Insert bases into the gap - let's choose 'a' since it will not 
-				 * be used anyway */
-				for(m=0;m<k;m++) {
-					curRead[curReadPos] = 'a';
-					curReadPos++;
-				}
-				/* Copy over the bases after the current tile */
-				for(m=curReadPos;m<totalLength;m++) {
-					curRead[curReadPos] = read[readPos];
-					curReadPos++;
-					readPos++;
-				}
-				curRead[curReadPos]='\0';
-				if(curReadPos >= totalLength) {
-					/* Update the number of reads */
-					reads->numReads++;
-					/* Allocate memory */
-					RGReadsReallocate(reads, reads->numReads);
-					reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
-					if(NULL == reads->reads[reads->numReads-1]) {
-						PrintError("RGReadsGenerateGapDeletionsHelper",
-								"reads->reads[reads->numReads-1]",
-								"Could not allocate memory",
-								Exit,
-								MallocMemory);
+					assert(curReadPos == curPos);
+					/* Copy over bases in the final gap up until where we will insert */
+					for(m=0;m<j;m++) {
+						curRead[curReadPos] = read[readPos];
+						curReadPos++;
+						readPos++;
 					}
-					/* Copy over */
-					strcpy(reads->reads[reads->numReads-1], curRead);
-					reads->offset[reads->numReads-1] = offset;
-					reads->strand[reads->numReads-1] = direction;
+					/* Insert bases into the gap - let's choose 'a' since it will not 
+					 * be used anyway */
+					for(m=0;m<k;m++) {
+						curRead[curReadPos] = 'a';
+						curReadPos++;
+					}
+					/* Copy over the bases after the current tile */
+					for(m=curReadPos;m<totalLength;m++) {
+						curRead[curReadPos] = read[readPos];
+						curReadPos++;
+						readPos++;
+					}
+					curRead[curReadPos]='\0';
+					if(curReadPos >= totalLength) {
+						/* Update the number of reads */
+						reads->numReads++;
+						/* Allocate memory */
+						RGReadsReallocate(reads, reads->numReads);
+						reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
+						if(NULL == reads->reads[reads->numReads-1]) {
+							PrintError("RGReadsGenerateGapDeletionsHelper",
+									"reads->reads[reads->numReads-1]",
+									"Could not allocate memory",
+									Exit,
+									MallocMemory);
+						}
+						/* Copy over */
+						strcpy(reads->reads[reads->numReads-1], curRead);
+						reads->readLength[reads->numReads-1] = curReadPos;
+						reads->offset[reads->numReads-1] = offset;
+						reads->strand[reads->numReads-1] = direction;
+					}
 				}
 			}
 		}
@@ -1215,6 +1234,7 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 				}
 				/* Copy over */
 				strcpy(reads->reads[reads->numReads-1], curRead);
+				reads->readLength[reads->numReads-1] = curReadPos;
 				reads->offset[reads->numReads-1] = offset;
 				reads->strand[reads->numReads-1] = direction;
 			}
@@ -1309,18 +1329,11 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 		RGReadsCopyAtIndex(temp, 0, s, high);
 
 		/* Free memory before recursive call */
-		for(i=0;i<temp->numReads;i++) {
-			free(temp->reads[i]);
-		}
-		free(temp->reads);
-		free(temp->offset);
-		free(temp->strand);
-		free(temp);
+		RGReadsFree(temp);
 		temp=NULL;
 
 		RGReadsQuickSort(s, low, pivot-1);
 		RGReadsQuickSort(s, pivot+1, high);
-
 	}
 }
 
@@ -1345,6 +1358,7 @@ int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo)
 void RGReadsCopyAtIndex(RGReads *src, int srcIndex, RGReads *dest, int destIndex)
 {
 	strcpy(dest->reads[destIndex], src->reads[srcIndex]);
+	dest->readLength[destIndex] = src->readLength[srcIndex];
 	dest->offset[destIndex] = src->offset[srcIndex];
 	dest->strand[destIndex] = src->strand[srcIndex];
 }
@@ -1356,6 +1370,14 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	if(NULL == reads->reads) {
 		PrintError("RGReadsAllocate",
 				"reads->reads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	reads->readLength= malloc(sizeof(int32_t)*(reads->numReads));
+	if(NULL == reads->readLength) {
+		PrintError("RGReadsAllocate",
+				"reads->readLength",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
@@ -1389,6 +1411,14 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 				Exit,
 				MallocMemory);
 	}
+	reads->readLength = realloc(reads->readLength, sizeof(int32_t)*(reads->numReads));
+	if(NULL == reads->readLength) {
+		PrintError("RGReadsReallocate",
+				"reads->readLength",
+				"Could not reallocate memory",
+				Exit,
+				MallocMemory);
+	}
 	reads->offset = realloc(reads->offset, sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->offset) {
 		PrintError("RGReadsReallocate",
@@ -1416,6 +1446,8 @@ void RGReadsFree(RGReads *reads)
 		free(reads->reads[i]);
 		reads->reads[i] = NULL;
 	}
+	free(reads->readLength);
+	reads->readLength=NULL;
 	free(reads->reads);
 	reads->reads=NULL;
 	free(reads->strand);

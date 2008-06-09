@@ -74,7 +74,7 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 		if(end%RGINDEX_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld", (long long int)end);
 		}
-		int cmp = RGIndexCompareAt(index, rg, start, end);
+		int cmp = RGIndexCompareAt(index, rg, start, end, 0);
 		assert(cmp <= 0);
 		if(cmp < 0) {
 			numEntries++;
@@ -95,7 +95,7 @@ void PrintMeanAndVarianceOfCAL(RGIndex *index, RGBinary *rg)
 		if(end%RGINDEX_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld", (long long int)end);
 		}
-		int cmp = RGIndexCompareAt(index, rg, start, end);
+		int cmp = RGIndexCompareAt(index, rg, start, end, 0);
 		assert(cmp <= 0);
 		if(cmp < 0) {
 			int val = ( (end-1) - start + 1);
