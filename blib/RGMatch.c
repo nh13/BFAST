@@ -338,17 +338,13 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 
 	/* Read in each sequence/match one at a time */
 	counter = 0;
-	/*
 	if(VERBOSE >=0) {
 		fprintf(stderr, "%d", 0);
 	}
-	*/
 	while(continueReading == 1) {
-		/*
 		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
 			fprintf(stderr, "\r%d", counter);
 		}
-		*/
 		counter++;
 
 		/* Initialize match */
@@ -427,11 +423,9 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			RGMatchFree(&pairedMatch);
 		}
 	}
-	/*
 		if(VERBOSE >=0) {
 			fprintf(stderr, "\r%d... completed.\n", counter);
 		}
-		*/
 
 	/* Free memory */
 	for(i=0;i<numFiles;i++) {

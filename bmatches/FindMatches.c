@@ -490,6 +490,9 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		}
 		endTime = time(NULL);
 		(*totalSearchTime)+=endTime - startTime;
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\n");
+		}
 
 		/* Open a temporary file (this is reentrant) */
 		tempOutputIndexFPs[i] = tmpfile();
@@ -686,6 +689,11 @@ void *FindMatchesInIndex(void *arg)
 	}
 
 	/* For each sequence */
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
+					threadID,
+					numRead);
+		}
 	while(EOF!=ReadNextSequence(tempSeqFP, &sequence, &sequenceLength, &pairedSequence, &pairedSequenceLength, &sequenceName, pairedEnd)) {
 		numRead++;
 

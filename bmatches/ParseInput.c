@@ -448,7 +448,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "bfastMainIndexesFileName\t\t%s\n", args->bfastMainIndexesFileName);
-	fprintf(fp, "bfastSecondaryIndexesFileName\t\t\t%s\n", args->bfastSecondaryIndexesFileName);
+	fprintf(fp, "bfastSecondaryIndexesFileName\t\t\%s\n", args->bfastSecondaryIndexesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
 	/*
