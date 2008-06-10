@@ -372,6 +372,10 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 					MallocMemory);
 		}
 
+		for(i=0;i<2*numThreads;i++) {
+			pivots[i] = -1;
+		}
+
 		/* Get the pivots and presort */
 		fprintf(stderr, "\rInitializing...");
 		RGIndexQuickSortNodesGetPivots(index,
@@ -386,6 +390,18 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 
 		/* Check pivots */
 		for(i=0;i<2*numThreads;i+=2) {
+			if(!(pivots[i] >= 0 && pivots[i] < index->length)) {
+				fprintf(stderr, "offender\ti:%d\tlength:%d\n",
+						(int)i,
+						(int)index->length);
+				for(i=0;i<2*numThreads;i+=2) {
+					fprintf(stderr, "i:%d\t%d\t%d\n",
+							(int)i,
+							(int)pivots[i],
+							(int)pivots[i+1]);
+				}
+				exit(1);
+			}
 			assert(pivots[i] >= 0 && pivots[i] < index->length);
 			assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
 			assert(pivots[i] <= pivots[i+1]);
@@ -494,10 +510,10 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 
 	/* Test that we sorted correctly */
 	/*
-	for(i=1;i<index->length;i++) {
-		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	}
-	*/
+	   for(i=1;i<index->length;i++) {
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
 
 }
 
@@ -540,11 +556,8 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 	/* Local Variables */
 	int64_t i;
 	int64_t pivot = 0;
-	uint32_t tempPos;
-	uint8_t tempChr;
 	int64_t total = high-low+1;
 	int64_t curLow, curHigh;
-	int32_t cmp[3];
 	double curPercent = 0.0;
 
 	/* Initialize stack */
@@ -598,56 +611,10 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 			 * but lets just choose the median of the front, middle and end 
 			 * */
-			pivot = (curLow + curHigh)/2;
-			cmp[0] = RGIndexCompareAt(index, rg, curLow, pivot, 0);
-			cmp[1] = RGIndexCompareAt(index, rg, curLow, curHigh, 0);
-			cmp[2] = RGIndexCompareAt(index, rg, pivot, curHigh, 0);
-			if(cmp[0] <= 0) {
-				/* curLow <= pivot */
-				if(cmp[1] >= 0) {
-					/* curHigh <= curLow */
-					/* so curHigh <= curLow <= pivot */
-					pivot = curLow;
-				}
-				else {
-					/* curLow < curHigh */
-					if(cmp[2] <= 0) {
-						/* pivot <= curHigh */
-						/* so curLow <= pivot <= curHigh */
-						/* choose pivot */
-					}
-					else {
-						/* curHigh < pivot */
-						/* so curLow < curHigh < pivot */
-						pivot = curHigh;
-					}
-				}
-			}
-			else {
-				/* pivot < curLow */
-				if(cmp[1] <= 0) {
-					/* curLow <= curHigh */
-					/* so pivot < curLow <= curHigh */
-					pivot = curLow;
-				}
-				else {
-					/* curHigh < curLow */
-					if(cmp[2] <= 0) {
-						/* pivot <= curHigh */
-						/* so pivot <= curHigh < curLow */
-						pivot = curHigh;
-					}
-					else {
-						/* curHigh < pivot */
-						/* so curHigh < pivot < curLow */
-						/* choose pivot */
-					}
-				}
-			}
+			pivot = RGIndexGetPivot(index, rg, curLow, curHigh);
 			assert(pivot >=0 && pivot<index->length);
 			assert(curLow >=0 && curLow<index->length);
 			assert(curHigh >=0 && curHigh<index->length);
-
 
 			if(showPercentComplete == 1 && VERBOSE >= 0) {
 				if(curPercent < 100.0*((double)(curLow - low))/total) {
@@ -659,12 +626,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			}
 
 			/* Swap the node at pivot with the node at curHigh */
-			tempPos = index->positions[pivot];
-			tempChr = index->chromosomes[pivot];
-			index->positions[pivot] = index->positions[curHigh];
-			index->chromosomes[pivot] = index->chromosomes[curHigh];
-			index->positions[curHigh] = tempPos;
-			index->chromosomes[curHigh] = tempChr;
+			RGIndexSwapAt(index, pivot, curHigh);
 
 			/* Store where the pivot should be */
 			pivot = curLow;
@@ -675,12 +637,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 				if(RGIndexCompareAt(index, rg, i, curHigh, 0) <= 0) {
 					/* Swap node at i with node at the new pivot index */
 					if(i!=pivot) {
-						tempPos = index->positions[pivot];
-						tempChr = index->chromosomes[pivot];
-						index->positions[pivot] = index->positions[i];
-						index->chromosomes[pivot] = index->chromosomes[i];
-						index->positions[i] = tempPos;
-						index->chromosomes[i] = tempChr;
+						RGIndexSwapAt(index, pivot, i);
 					}
 					/* Increment the new pivot index */
 					pivot++;
@@ -689,12 +646,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 
 			/* Move pivot element to correct place */
 			if(pivot != curHigh) {
-				tempPos = index->positions[pivot];
-				tempChr = index->chromosomes[pivot];
-				index->positions[pivot] = index->positions[curHigh];
-				index->chromosomes[pivot] = index->chromosomes[curHigh];
-				index->positions[curHigh] = tempPos;
-				index->chromosomes[curHigh] = tempChr;
+				RGIndexSwapAt(index, pivot, curHigh);
 			}
 
 			/* Add to the stack */
@@ -738,63 +690,12 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 	/* local variables */
 	int64_t i;
 	int64_t pivot = 0;
-	uint32_t tempPos;
-	uint8_t tempChr;
-	int32_t cmp[3];
 
 	if(low < high ) {
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
-		 * but lets just choose the middle element for now.
-		 * */
-		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the median of the front, middle and end 
 		 * */
-		pivot = (low + high)/2;
-		cmp[0] = RGIndexCompareAt(index, rg, low, pivot, 0);
-		cmp[1] = RGIndexCompareAt(index, rg, low, high, 0);
-		cmp[2] = RGIndexCompareAt(index, rg, pivot, high, 0);
-		if(cmp[0] <= 0) {
-			/* low <= pivot */
-			if(cmp[1] >= 0) {
-				/* high <= low */
-				/* so high <= low <= pivot */
-				pivot = low;
-			}
-			else {
-				/* low < high */
-				if(cmp[2] <= 0) {
-					/* pivot <= high */
-					/* so low <= pivot <= high */
-					/* choose pivot */
-				}
-				else {
-					/* high < pivot */
-					/* so low < high < pivot */
-					pivot = high;
-				}
-			}
-		}
-		else {
-			/* pivot < low */
-			if(cmp[1] <= 0) {
-				/* low <= high */
-				/* so pivot < low <= high */
-				pivot = low;
-			}
-			else {
-				/* high < low */
-				if(cmp[2] <= 0) {
-					/* pivot <= high */
-					/* so pivot <= high < low */
-					pivot = high;
-				}
-				else {
-					/* high < pivot */
-					/* so high < pivot < low */
-					/* choose pivot */
-				}
-			}
-		}
+		pivot = RGIndexGetPivot(index, rg, low, high);
 		assert(pivot >=0 && pivot<index->length);
 		assert(low >=0 && low<index->length);
 		assert(high >=0 && high<index->length);
@@ -806,12 +707,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		 * */
 
 		/* Swap the node at pivot with the node at high */
-		tempPos = index->positions[pivot];
-		tempChr = index->chromosomes[pivot];
-		index->positions[pivot] = index->positions[high];
-		index->chromosomes[pivot] = index->chromosomes[high];
-		index->positions[high] = tempPos;
-		index->chromosomes[high] = tempChr;
+		RGIndexSwapAt(index, pivot, high);
 
 		/* Store where the pivot should be */
 		pivot = low;
@@ -822,12 +718,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 			if(RGIndexCompareAt(index, rg, i, high, 0) <= 0) {
 				/* Swap node at i with node at the new pivot index */
 				if(i!=pivot) {
-					tempPos = index->positions[pivot];
-					tempChr = index->chromosomes[pivot];
-					index->positions[pivot] = index->positions[i];
-					index->chromosomes[pivot] = index->chromosomes[i];
-					index->positions[i] = tempPos;
-					index->chromosomes[i] = tempChr;
+					RGIndexSwapAt(index, pivot, i);
 				}
 				/* Increment the new pivot index */
 				pivot++;
@@ -835,12 +726,9 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		}
 
 		/* Move pivot element to correct place */
-		tempPos = index->positions[pivot];
-		tempChr = index->chromosomes[pivot];
-		index->positions[pivot] = index->positions[high];
-		index->chromosomes[pivot] = index->chromosomes[high];
-		index->positions[high] = tempPos;
-		index->chromosomes[high] = tempChr;
+		if(pivot != high) {
+			RGIndexSwapAt(index, pivot, high);
+		}
 
 		if(lowPivot >= highPivot) {
 			assert(pivots!=NULL);
@@ -871,6 +759,14 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 					(lowPivot+highPivot)/2 + 1, 
 					highPivot);
 		}
+	}
+	else {
+		/* Special case when saving pivots */
+		assert(pivots!=NULL);
+		/* Save pivots if necessary */
+		pivots[2*lowPivot-2] = low;
+		pivots[2*lowPivot-1] = low;
+		return;
 	}
 }
 
@@ -1661,6 +1557,73 @@ int64_t RGIndexGetIndex(RGIndex *index,
 }
 
 /* TODO */
+void RGIndexSwapAt(RGIndex *index, int64_t a, int64_t b)
+{
+	uint32_t tempChr, tempPos;
+
+	tempChr = index->chromosomes[a];
+	tempPos = index->positions[a];
+	index->chromosomes[a] = index->chromosomes[b];
+	index->positions[a] = index->positions[b];
+	index->chromosomes[b] = tempChr;
+	index->positions[b] = tempPos;
+}
+
+/* TODO */
+int64_t RGIndexGetPivot(RGIndex *index, RGBinary *rg, int64_t low, int64_t high)
+{
+	int64_t pivot = (low+high)/2;
+	int32_t cmp[3];
+	cmp[0] = RGIndexCompareAt(index, rg, low, pivot, 0);
+	cmp[1] = RGIndexCompareAt(index, rg, low, high, 0);
+	cmp[2] = RGIndexCompareAt(index, rg, pivot, high, 0);
+
+	if(cmp[0] <= 0) {
+		/* low <= pivot */
+		if(cmp[1] >= 0) {
+			/* high <= low */
+			/* so high <= low <= pivot */
+			pivot = low;
+		}
+		else {
+			/* low < high */
+			if(cmp[2] <= 0) {
+				/* pivot <= high */
+				/* so low <= pivot <= high */
+				/* choose pivot */
+			}
+			else {
+				/* high < pivot */
+				/* so low < high < pivot */
+				pivot = high;
+			}
+		}
+	}
+	else {
+		/* pivot < low */
+		if(cmp[1] <= 0) {
+			/* low <= high */
+			/* so pivot < low <= high */
+			pivot = low;
+		}
+		else {
+			/* high < low */
+			if(cmp[2] <= 0) {
+				/* pivot <= high */
+				/* so pivot <= high < low */
+				pivot = high;
+			}
+			else {
+				/* high < pivot */
+				/* so high < pivot < low */
+				/* choose pivot */
+			}
+		}
+	}
+	return pivot;
+}
+
+/* TODO */
 int32_t RGIndexCompareAt(RGIndex *index,
 		RGBinary *rg,
 		int64_t a,
@@ -1748,13 +1711,13 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	aCurTilePos = aPos;
 
 	/*
-	fprintf(stderr, "%d\t%s", 
-			index->totalLength,
-			BREAK_LINE);
-	fprintf(stderr, "read[%d]:%s\n", 
-			(int)strlen(read),
-			read);
-			*/
+	   fprintf(stderr, "%d\t%s", 
+	   index->totalLength,
+	   BREAK_LINE);
+	   fprintf(stderr, "read[%d]:%s\n", 
+	   (int)strlen(read),
+	   read);
+	   */
 	for(i=0;i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
 		for(j=0;j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
 			aBase=ToLower(RGBinaryGetBase(rg,
