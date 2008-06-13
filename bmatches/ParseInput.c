@@ -57,7 +57,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, /*DescMaxMatches, */DescNumThreads, 
-	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -73,8 +73,8 @@ static struct argp_option options[] = {
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
 	/*
-	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
-	*/
+	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
+	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
@@ -85,15 +85,16 @@ static struct argp_option options[] = {
 	{"numGapDeletions", 'Z', "numGapDeletions", 0, "Specifies the number of gap deletions allowd in the gap between paris", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	/*
-	{"maxMatches", 'm', "maxMatches", 0, "Specifies the maximum number of matches to consider", 2},
-	*/
+	   {"maxMatches", 'm', "maxMatches", 0, "Specifies the maximum number of matches to consider", 2},
+	   */
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
 	/*
-	{"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output should be in binary format", 3},
-	*/
+	   {"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output should be in binary format", 3},
+	   */
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -119,7 +120,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:x:y:z:I:O:R:Y:Z:2hpt";
+"d:e:i:m:n:o:r:s:x:y:z:I:O:R:T:Y:Z:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -203,6 +204,7 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.maxMatches,
 								arguments.numThreads,
+								arguments.tmpDir,
 								arguments.timing);
 
 						endTime = time(NULL);
@@ -340,6 +342,13 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	if(args->tmpDir!=0) {
+		fprintf(stderr, "Validating tmpDir path %s. \n",
+				args->tmpDir);
+		if(ValidateFileName(args->tmpDir)==0)
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
+	}
+
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
@@ -431,6 +440,11 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
+	args->tmpDir =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->tmpDir!=0);
+	strcpy(args->tmpDir, DEFAULT_FILENAME);
+
 	args->binaryOutput = 1;
 
 	args->timing = 0;
@@ -452,8 +466,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
 	/*
-	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	*/
+	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	   */
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
@@ -463,14 +477,15 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	/*
-	fprintf(fp, "maxMatches:\t\t\t\t%d\n", args->maxMatches);
-	*/
+	   fprintf(fp, "maxMatches:\t\t\t\t%d\n", args->maxMatches);
+	   */
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	/*
-	fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
-	*/
+	   fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
+	   */
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -517,12 +532,19 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case '2':
 						arguments->pairedEnd = 1;break;
 						/*
-					case 'b':
-						arguments->binaryInput = 1;break;
-						*/
+						   case 'b':
+						   arguments->binaryInput = 1;break;
+						   */
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;break;
+						arguments->outputDir = OPTARG;
+						/* set the tmp directory to the output director */
+						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
+							free(arguments->tmpDir);
+							arguments->tmpDir = malloc(sizeof(char)*(strlen(arguments->outputDir)+1));
+							strcpy(arguments->tmpDir, arguments->outputDir);
+						} 
+						break;
 					case 'e':
 						arguments->endReadNum = atoi(OPTARG);break;
 					case 'h':
@@ -533,9 +555,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'n':
 						arguments->numThreads=atoi(OPTARG);break;
 						/*
-					case 'm':
-						arguments->maxMatches=atoi(OPTARG);break;
-						*/
+						   case 'm':
+						   arguments->maxMatches=atoi(OPTARG);break;
+						   */
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;
@@ -555,9 +577,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'z':
 						arguments->numDeletions = atoi(OPTARG);break;
 						/*
-					case 'B':
-						arguments->binaryOutput = 1;break;
-						*/
+						   case 'B':
+						   arguments->binaryOutput = 1;break;
+						   */
 					case 'I':
 						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
 						arguments->bfastSecondaryIndexesFileName = OPTARG;break;
@@ -567,6 +589,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'R':
 						if(arguments->readsFileName) free(arguments->readsFileName);
 						arguments->readsFileName = OPTARG;break;
+					case 'T':
+						if(arguments->tmpDir) free(arguments->tmpDir);
+						arguments->tmpDir = OPTARG;break;
 					case 'Y':
 						arguments->numGapInsertions = atoi(OPTARG);break;
 					case 'Z':

@@ -358,16 +358,16 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 
 	/* Read RGBinary information */
-	if( fread(&rg->numChrs, sizeof(int32_t), 1, fpRG)==EOF ||
-			fread(&rg->startChr, sizeof(int32_t), 1, fpRG)==EOF ||
-			fread(&rg->startPos, sizeof(int32_t), 1, fpRG)==EOF ||
-			fread(&rg->endChr, sizeof(int32_t), 1, fpRG)==EOF ||
-			fread(&rg->endPos, sizeof(int32_t), 1, fpRG)==EOF) {
+	if( fread(&rg->numChrs, sizeof(int32_t), 1, fpRG)!=1 ||
+			fread(&rg->startChr, sizeof(int32_t), 1, fpRG)!=1 ||
+			fread(&rg->startPos, sizeof(int32_t), 1, fpRG)!=1 ||
+			fread(&rg->endChr, sizeof(int32_t), 1, fpRG)!=1 ||
+			fread(&rg->endPos, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
 				Exit,
-				EndOfFile);
+				ReadFileError);
 	}
 
 	/* Allocate memory for the chromosomes */
@@ -383,15 +383,15 @@ void RGBinaryReadBinary(RGBinary *rg,
 	/* Read each chromosome */
 	for(i=0;i<rg->numChrs;i++) {
 		/* Read RGChr information */
-		if(fread(&rg->chromosomes[i].chromosome, sizeof(int32_t), 1, fpRG)==EOF ||
-				fread(&rg->chromosomes[i].startPos, sizeof(int32_t), 1, fpRG)==EOF ||
-				fread(&rg->chromosomes[i].endPos, sizeof(int32_t), 1, fpRG)==EOF ||
-				fread(&rg->chromosomes[i].numBytes, sizeof(uint32_t), 1, fpRG)==EOF) {
+		if(fread(&rg->chromosomes[i].chromosome, sizeof(int32_t), 1, fpRG)!=1 ||
+				fread(&rg->chromosomes[i].startPos, sizeof(int32_t), 1, fpRG)!=1 ||
+				fread(&rg->chromosomes[i].endPos, sizeof(int32_t), 1, fpRG)!=1 ||
+				fread(&rg->chromosomes[i].numBytes, sizeof(uint32_t), 1, fpRG)!=1) {
 			PrintError(FnName,
 					NULL,
 					"Could not read RGChr information",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 		/* Allocate memory for the sequence */
 		rg->chromosomes[i].sequence = malloc(sizeof(uint8_t)*rg->chromosomes[i].numBytes);
@@ -403,12 +403,12 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read sequence */
-		if(fread(rg->chromosomes[i].sequence, sizeof(uint8_t), rg->chromosomes[i].numBytes, fpRG)==EOF) {
+		if(fread(rg->chromosomes[i].sequence, sizeof(uint8_t), rg->chromosomes[i].numBytes, fpRG)!=rg->chromosomes[i].numBytes) {
 			PrintError(FnName,
 					NULL,
-					"Could not read seuqence",
+					"Could not read sequence",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 	}
 
@@ -449,21 +449,33 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	}
 
 	/* Output RGBinary information */
-	fwrite(&rg->numChrs, sizeof(int32_t), 1, fpRG);
-	fwrite(&rg->startChr, sizeof(int32_t), 1, fpRG);
-	fwrite(&rg->startPos, sizeof(int32_t), 1, fpRG);
-	fwrite(&rg->endChr, sizeof(int32_t), 1, fpRG);
-	fwrite(&rg->endPos, sizeof(int32_t), 1, fpRG);
+	if(fwrite(&rg->numChrs, sizeof(int32_t), 1, fpRG) != 1 ||
+			fwrite(&rg->startChr, sizeof(int32_t), 1, fpRG) != 1 || 
+			fwrite(&rg->startPos, sizeof(int32_t), 1, fpRG) != 1 ||
+			fwrite(&rg->endChr, sizeof(int32_t), 1, fpRG) != 1 ||
+			fwrite(&rg->endPos, sizeof(int32_t), 1, fpRG) != 1) {
+		PrintError(FnName,
+				NULL,
+				"Could not output rg header",
+				Exit,
+				WriteFileError);
+	}
 
 	/* Output each chromosome */
 	for(i=0;i<rg->numChrs;i++) {
 		/* Output RGChr information */
-		fwrite(&rg->chromosomes[i].chromosome, sizeof(int32_t), 1, fpRG);
-		fwrite(&rg->chromosomes[i].startPos, sizeof(int32_t), 1, fpRG);
-		fwrite(&rg->chromosomes[i].endPos, sizeof(int32_t), 1, fpRG);
-		fwrite(&rg->chromosomes[i].numBytes, sizeof(uint32_t), 1, fpRG);
-		/* Output sequence */
-		fwrite(rg->chromosomes[i].sequence, sizeof(uint8_t), rg->chromosomes[i].numBytes, fpRG);
+		if(fwrite(&rg->chromosomes[i].chromosome, sizeof(int32_t), 1, fpRG) != 1 || 
+				fwrite(&rg->chromosomes[i].startPos, sizeof(int32_t), 1, fpRG) != 1 ||
+				fwrite(&rg->chromosomes[i].endPos, sizeof(int32_t), 1, fpRG) != 1 ||
+				fwrite(&rg->chromosomes[i].numBytes, sizeof(uint32_t), 1, fpRG) != 1 ||
+				/* Output sequence */
+				fwrite(rg->chromosomes[i].sequence, sizeof(uint8_t), rg->chromosomes[i].numBytes, fpRG) != rg->chromosomes[i].numBytes) {
+			PrintError(FnName,
+					NULL,
+					"Could not output rg chromosome",
+					Exit,
+					WriteFileError);
+		}
 	}
 
 	fclose(fpRG);

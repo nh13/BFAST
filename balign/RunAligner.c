@@ -25,7 +25,8 @@ void RunAligner(RGBinary *rgBinary,
 		int binaryInput,
 		int numThreads,
 		char *outputID,
-		char *outputDir)
+		char *outputDir,
+		char *tmpDir)
 {
 	int i;
 	FILE *outputFP=NULL;
@@ -119,6 +120,7 @@ void RunAligner(RGBinary *rgBinary,
 						pairedEnd,
 						binaryInput,
 						numThreads,
+						tmpDir,
 						outputFP);
 				break;
 			default:
@@ -157,6 +159,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		int pairedEnd,
 		int binaryInput,
 		int numThreads,
+		char *tmpDir,
 		FILE *outputFP)
 {
 	/* local variables */
@@ -206,8 +209,8 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Open temp files for the threads */
 	for(i=0;i<numThreads;i++) {
-		data[i].inputFP = tmpfile();
-		data[i].outputFP = tmpfile();
+		data[i].inputFP = OpenTmpFile(tmpDir, &data[i].inputFileName);
+		data[i].outputFP = OpenTmpFile(tmpDir, &data[i].outputFileName);
 	}
 
 	/* Initialize match */
@@ -318,6 +321,11 @@ void RunDynamicProgramming(FILE *matchFP,
 		fprintf(stderr, "Alignment complete.\n");
 	}
 
+	/* Close tmp input files */
+	for(i=0;i<numThreads;i++) {
+		CloseTmpFile(&data[i].inputFP, &data[i].inputFileName);
+	}
+
 	/* Allocate memory for the align entries */
 	aEntry.read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL==aEntry.read) {
@@ -368,6 +376,11 @@ void RunDynamicProgramming(FILE *matchFP,
 				}
 			}
 		}
+	}
+
+	/* Close tmp output files */
+	for(i=0;i<numThreads;i++) {
+		CloseTmpFile(&data[i].outputFP, &data[i].outputFileName);
 	}
 
 	if(VERBOSE >=0) {

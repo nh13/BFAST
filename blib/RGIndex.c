@@ -958,22 +958,23 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 	}
 	else {
 		/* Print positions */
-		fwrite(index->positions, sizeof(uint32_t), index->length, fp);
-
-		/* Print chomosomes */
-		fwrite(index->chromosomes, sizeof(uint8_t), index->length, fp);
-
-		/* Print the starts */
-		fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp);
-
-		/* Print the ends */
-		fwrite(index->ends, sizeof(uint32_t), index->hashLength, fp);
-
-		/* Print the tileLengths */
-		fwrite(index->tileLengths, sizeof(int32_t), index->numTiles, fp);
-
-		/* Print the gaps */
-		fwrite(index->gaps, sizeof(int32_t), index->numTiles-1, fp);
+		if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
+				/* Print chomosomes */
+				fwrite(index->chromosomes, sizeof(uint8_t), index->length, fp) != index->length ||
+				/* Print the starts */
+				fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength ||
+				/* Print the ends */
+				fwrite(index->ends, sizeof(uint32_t), index->hashLength, fp) != index->hashLength || 
+				/* Print the tileLengths */
+				fwrite(index->tileLengths, sizeof(int32_t), index->numTiles, fp) != index->numTiles ||
+				/* Print the gaps */
+				fwrite(index->gaps, sizeof(int32_t), index->numTiles-1, fp) != (index->numTiles-1)) {
+			PrintError("RGIndexPrint",
+					NULL,
+					"Could not write index and hash",
+					Exit,
+					WriteFileError);
+		}
 	}
 }
 
@@ -1097,57 +1098,57 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 	}
 	else {
 		/* Read in positions */
-		if(fread(index->positions, sizeof(uint32_t), index->length, fp)==EOF) {
+		if(fread(index->positions, sizeof(uint32_t), index->length, fp)!=index->length) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in positions",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 
 		/* Read in the chromosomes */
-		if(fread(index->chromosomes, sizeof(uint8_t), index->length, fp)==EOF) {
+		if(fread(index->chromosomes, sizeof(uint8_t), index->length, fp)!=index->length) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in chromosomes",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 
 		/* Read in starts */
-		if(fread(index->starts, sizeof(uint32_t), index->hashLength, fp)==EOF) {
+		if(fread(index->starts, sizeof(uint32_t), index->hashLength, fp)!=index->hashLength) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in starts",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 
 		/* Read in ends */
-		if(fread(index->ends, sizeof(uint32_t), index->hashLength, fp)==EOF) {
+		if(fread(index->ends, sizeof(uint32_t), index->hashLength, fp)!=index->hashLength) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in ends",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 
 		/* Read the tileLengths */
-		if(fread(index->tileLengths, sizeof(int32_t), index->numTiles, fp)==EOF) {
+		if(fread(index->tileLengths, sizeof(int32_t), index->numTiles, fp)!=index->numTiles) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in tile lengths",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 
 		/* Read the gaps */
-		if(fread(index->gaps, sizeof(int32_t), index->numTiles-1, fp)==EOF) {
+		if(fread(index->gaps, sizeof(int32_t), index->numTiles-1, fp)!= (index->numTiles-1)) {
 			PrintError("RGIndexRead",
 					NULL,
 					"Could not read in gaps",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 	}
 }
@@ -1169,15 +1170,21 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 	}
 	else {
 		/* Print Header */
-		fwrite(&index->length, sizeof(uint32_t), 1, fp);
-		fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp);
-		fwrite(&index->hashLength, sizeof(int64_t), 1, fp);
-		fwrite(&index->totalLength, sizeof(int32_t), 1, fp);
-		fwrite(&index->numTiles, sizeof(int32_t), 1, fp);
-		fwrite(&index->startChr, sizeof(int32_t), 1, fp);
-		fwrite(&index->startPos, sizeof(int32_t), 1, fp);
-		fwrite(&index->endChr, sizeof(int32_t), 1, fp);
-		fwrite(&index->endPos, sizeof(int32_t), 1, fp);
+		if(fwrite(&index->length, sizeof(uint32_t), 1, fp) != 1 || 
+				fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
+				fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
+				fwrite(&index->totalLength, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->numTiles, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->startChr, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->endChr, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->endPos, sizeof(int32_t), 1, fp) != 1) {
+			PrintError("RGIndexPrintHeader",
+					NULL,
+					"Could not write header",
+					Exit,
+					WriteFileError);
+		}
 	}
 }
 
@@ -1204,20 +1211,20 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 		}
 	}
 	else {
-		if(fread(&index->length, sizeof(uint32_t), 1, fp)==EOF
-				|| fread(&index->hashWidth, sizeof(uint32_t), 1, fp)==EOF
-				|| fread(&index->hashLength, sizeof(int64_t), 1, fp)==EOF
-				|| fread(&index->totalLength, sizeof(int32_t), 1, fp)==EOF
-				|| fread(&index->numTiles, sizeof(int32_t), 1, fp)==EOF 
-				|| fread(&index->startChr, sizeof(int32_t), 1, fp)==EOF
-				|| fread(&index->startPos, sizeof(int32_t), 1, fp)==EOF
-				|| fread(&index->endChr, sizeof(int32_t), 1, fp)==EOF
-				|| fread(&index->endPos, sizeof(int32_t), 1, fp)==EOF) {
+		if(fread(&index->length, sizeof(uint32_t), 1, fp)!=1
+				|| fread(&index->hashWidth, sizeof(uint32_t), 1, fp)!=1
+				|| fread(&index->hashLength, sizeof(int64_t), 1, fp)!=1
+				|| fread(&index->totalLength, sizeof(int32_t), 1, fp)!=1
+				|| fread(&index->numTiles, sizeof(int32_t), 1, fp)!=1 
+				|| fread(&index->startChr, sizeof(int32_t), 1, fp)!=1
+				|| fread(&index->startPos, sizeof(int32_t), 1, fp)!=1
+				|| fread(&index->endChr, sizeof(int32_t), 1, fp)!=1
+				|| fread(&index->endPos, sizeof(int32_t), 1, fp)!=1) {
 			PrintError("RGIndexReadHeader",
 					NULL,
 					"Could not read header",
 					Exit,
-					EndOfFile);
+					ReadFileError);
 		}
 	}
 

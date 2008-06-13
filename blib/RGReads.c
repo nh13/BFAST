@@ -81,13 +81,6 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
-		if(!(strlen(reads.reads[i]) >= index->totalLength)) {
-			fprintf(stderr, "HERE:%s\t%d\t%d\n",
-					reads.reads[i],
-					(int)strlen(reads.reads[i]),
-					index->totalLength);
-		}
-		assert(strlen(reads.reads[i]) >= index->totalLength);
 		RGIndexGetMatches(index, 
 				rg,
 				reads.reads[i],
@@ -1305,6 +1298,7 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 					Exit,
 					MallocMemory);
 		}
+		assert(temp->numReads == 1);
 
 		pivot = (low + high)/2;
 
@@ -1330,6 +1324,7 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 
 		/* Free memory before recursive call */
 		RGReadsFree(temp);
+		free(temp);
 		temp=NULL;
 
 		RGReadsQuickSort(s, low, pivot-1);
@@ -1446,12 +1441,13 @@ void RGReadsFree(RGReads *reads)
 		free(reads->reads[i]);
 		reads->reads[i] = NULL;
 	}
-	free(reads->readLength);
-	reads->readLength=NULL;
 	free(reads->reads);
 	reads->reads=NULL;
+	free(reads->readLength);
+	reads->readLength=NULL;
 	free(reads->strand);
 	reads->strand=NULL;
 	free(reads->offset);
 	reads->offset=NULL;
+	reads->numReads=0;
 }

@@ -14,7 +14,10 @@ enum {
 	ReallocMemory,
 	MallocMemory,
 	ThreadError,
-	LastErrorType
+	LastErrorType,
+	ReadFileError,
+	WriteFileError,
+	DeleteFileError,
 };
 
 void PrintError(char*, char*, char*, int, int);

@@ -58,7 +58,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
-	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming, 
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
 };
 
@@ -72,8 +72,8 @@ static struct argp_option options[] = {
 	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of bmf files", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	/*
-	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
-	*/
+	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
+	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to use 0: Dynamic Programming", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
@@ -87,6 +87,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -112,7 +113,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:n:o:r:s:x:E:H:M:O:S:2hpt";
+"a:d:e:m:n:o:r:s:x:E:H:M:O:S:T:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -184,7 +185,8 @@ main (int argc, char **argv)
 								arguments.binaryInput,
 								arguments.numThreads,
 								arguments.outputID,
-								arguments.outputDir);
+								arguments.outputDir,
+								arguments.tmpDir);
 						endTime = time(NULL);
 						totalAlignTime = endTime - startTime;
 						/* Free the Reference Genome */
@@ -338,6 +340,13 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	if(args->tmpDir!=0) {
+		fprintf(stderr, "Validating tmpDir path %s. \n",
+				args->tmpDir);
+		if(ValidateFileName(args->tmpDir)==0)
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
+	}
+
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == 0 || args->binaryInput == 1);
@@ -416,6 +425,11 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_FILENAME);
 
+	args->tmpDir =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->tmpDir!=0);
+	strcpy(args->tmpDir, DEFAULT_FILENAME);
+
 	args->timing = 0;
 
 	return;
@@ -432,8 +446,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
 	/*
-	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	*/
+	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	   */
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -445,6 +459,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -493,12 +508,19 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
 						/*
-					case 'b':
-						arguments->binaryInput = 1;break;
-						*/
+						   case 'b':
+						   arguments->binaryInput = 1;break;
+						   */
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;break;
+						arguments->outputDir = OPTARG;
+						/* set the tmp directory to the output director */
+						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
+							free(arguments->tmpDir);
+							arguments->tmpDir = malloc(sizeof(char)*(strlen(arguments->outputDir)+1));
+							strcpy(arguments->tmpDir, arguments->outputDir);
+						} 
+						break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
 					case 'h':
@@ -531,6 +553,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->offsetLength=atoi(OPTARG);break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
+					case 'T':
+						if(arguments->tmpDir) free(arguments->tmpDir);
+						arguments->tmpDir = OPTARG;break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

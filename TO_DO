@@ -2,6 +2,8 @@
 General
 1. Reference genome can be a cat of fasta files.  For example the sequence of
 say 2000 exons.
+2. Implement that the tmpDir is defaulted to the output dir
+3. Optimize if we only have one thread/one index for tmp files.
 ===============================================================================
 
 ===============================================================================

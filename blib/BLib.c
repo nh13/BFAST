@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include "BLibDefinitions.h"
 #include "RGIndex.h"
@@ -302,4 +303,75 @@ void CheckRGIndexes(char **mainFileNames,
 	(*startPos) = mainStartPos;
 	(*endChr) = mainEndChr;
 	(*endPos) = mainEndPos;
+}
+
+/* TODO */
+FILE *OpenTmpFile(char *tmpDir,
+		char **tmpFileName)
+{
+	char *FnName = "OpenTmpFile";
+	FILE *fp;
+
+	/* Make sure we will allocate enough memory for tmpnam and the tmp Dir */
+	assert(MAX_FILENAME_LENGTH - strlen(tmpDir) >= L_tmpnam);
+	/* Allocate memory */
+	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+	if(NULL == (*tmpFileName)) {
+		PrintError(FnName,
+				"tmpFileName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Create the templated */
+	/* Copy over tmp directory */
+	strcpy((*tmpFileName), tmpDir);
+	/* Copy over the tmp name */
+	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
+
+	/* Create a new tmp file name */
+	if(NULL == mktemp((*tmpFileName))) {
+		PrintError(FnName,
+				(*tmpFileName),
+				"Could not create a tmp file name",
+				Exit,
+				IllegalFileName);
+	}
+
+	/* Open a new file */
+	if(!(fp = fopen((*tmpFileName), "wb+"))) {
+		PrintError(FnName,
+				(*tmpFileName),
+				"Could not open temporary file",
+				Exit,
+				OpenFileError);
+	}
+
+	return fp;
+}
+
+/* TODO */
+void CloseTmpFile(FILE **fp,
+		char **tmpFileName)
+{
+	char *FnName="CloseTmpFile";
+
+	/* Close the file */
+	fclose((*fp));
+	(*fp)=NULL;
+
+	/* Remove the file */
+	assert((*tmpFileName)!=NULL);
+	if(0!=remove((*tmpFileName))) {
+		PrintError(FnName,
+				(*tmpFileName),
+				"Could not delete temporary file",
+				Exit,
+				DeleteFileError);
+	}
+
+	/* Free file name */
+	free((*tmpFileName));
+	(*tmpFileName) = NULL;
 }

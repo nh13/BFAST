@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <time.h>
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
 #include "../blib/RGMatch.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
@@ -11,10 +12,12 @@
 /* TODO */
 int ReadSequencesToTempFile(FILE *seqFP,
 		FILE ***tempSeqFPs, /* One for each thread */ 
+		char ***tempSeqFileNames,
 		int startReadNum, 
 		int endReadNum, 
 		int pairedEnd,
 		int numThreads,
+		char *tmpDir,
 		int timing)
 {
 	int i;
@@ -32,8 +35,7 @@ int ReadSequencesToTempFile(FILE *seqFP,
 
 	/* open one temporary file, one for each thread */
 	for(i=0;i<numThreads;i++) {
-		(*tempSeqFPs)[i] = tmpfile();
-		assert((*tempSeqFPs)[i]!=NULL);
+		(*tempSeqFPs)[i] = OpenTmpFile(tmpDir, &(*tempSeqFileNames)[i]);
 	}
 
 	/* NOTE: we could implement a counter */
@@ -369,4 +371,3 @@ void SequenceToLower(char* sequence, int length)
 		}
 	}
 }
-

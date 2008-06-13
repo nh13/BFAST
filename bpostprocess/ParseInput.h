@@ -15,6 +15,7 @@ struct arguments
 	int endPos;                             /* -E */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
+	char *tmpDir;							/* -T */
 	int outputFormat;						/* -O */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 

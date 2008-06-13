@@ -4,7 +4,7 @@
 #include "BLibDefinitions.h"
 
 static char ErrorString[][20]=
-{ "\0", "OutOfRange", "InputArguments", "IllegalFileName", "OpenFileError", "EndOfFile", "ReallocMemory", "MallocMemory", "ThreadError"}; 
+{ "\0", "OutOfRange", "InputArguments", "IllegalFileName", "OpenFileError", "EndOfFile", "ReallocMemory", "MallocMemory", "ThreadError", "ReadFileError", "WriteFileError", "DeleteFileError"}; 
 static char ActionType[][20]={"Fatal Error", "Warning"};
 
 	void
@@ -22,6 +22,10 @@ PrintError(char* FunctionName, char *VariableName,
 	/* Only print message name if is available */
 	if(Message) { 
 		fprintf(stderr, "Message: %s.\n", Message);
+	}
+	if(type == ReadFileError || 
+			type == WriteFileError) {
+		perror("The file stream error was:");
 	}
 
 	switch(Action) {

@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescInputFileName, DescInputFormat, DescBinaryInput,
 	DescAlgoTitle, DescUniqueMatches, DescBestScore, DescMinScore, DescStartChr, DescStartPos, DescEndChr, DescEndPos,
-	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -80,6 +80,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 1: wig 2: bed", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
@@ -106,7 +107,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:o:s:E:I:O:S:bhptuB";
+"d:e:i:m:o:s:E:I:O:S:T:bhptuB";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -285,6 +286,13 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	if(args->tmpDir!=0) {
+		fprintf(stderr, "Validating tmpDir path %s. \n",
+				args->tmpDir);
+		if(ValidateFileName(args->tmpDir)==0)
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
+	}
+
 	if(args->outputFormat < 0) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
@@ -357,6 +365,11 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_FILENAME);
 
+	args->tmpDir =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->tmpDir!=0);
+	strcpy(args->tmpDir, DEFAULT_FILENAME);
+
 	args->outputFormat=0;
 
 	args->timing = 0;
@@ -384,6 +397,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	fprintf(fp, "outputFormat:\t\t\t\t%d\n", args->outputFormat);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
@@ -432,7 +446,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->binaryInput = 1;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;break;
+						arguments->outputDir = OPTARG;
+						/* set the tmp directory to the output director */
+						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
+							free(arguments->tmpDir);
+							arguments->tmpDir = malloc(sizeof(char)*(strlen(arguments->outputDir)+1));
+							strcpy(arguments->tmpDir, arguments->outputDir);
+						}
+						break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
 					case 'h':
@@ -463,6 +484,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputFormat=atoi(OPTARG);break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
+					case 'T':
+						if(arguments->tmpDir) free(arguments->tmpDir);
+						arguments->tmpDir = OPTARG;break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;
