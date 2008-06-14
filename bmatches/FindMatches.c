@@ -243,7 +243,7 @@ void FindMatches(char *outputFileName,
 				outputFP,
 				binaryOutput,
 				0,
-			tmpDir,
+				tmpDir,
 				timing,
 				&totalDataStructureTime,
 				&totalSearchTime,
@@ -533,12 +533,12 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		}
 
 		/*
-		for(j=0;j<numThreads;j++) {
-			fprintf(stderr, "Thread %d found %d num matches.\n",
-					data[j].threadID,
-					data[j].numMatches);
-		}
-		*/
+		   for(j=0;j<numThreads;j++) {
+		   fprintf(stderr, "Thread %d found %d num matches.\n",
+		   data[j].threadID,
+		   data[j].numMatches);
+		   }
+		   */
 
 		/* Open a temporary file (this is reentrant) */
 		tempOutputIndexFPs[i] = OpenTmpFile(tmpDir, &tempOutputIndexFileNames[i]); 
@@ -687,7 +687,12 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 	free(data);
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Searching indexes complete.\n");
+		if(MainIndexes == 1) {
+			fprintf(stderr, "Searching main indexes complete.\n");
+		}
+		else {
+			fprintf(stderr, "Searching secondary indexes complete.\n");
+		}
 	}
 
 	return numWritten;
