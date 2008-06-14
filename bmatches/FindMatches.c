@@ -38,11 +38,11 @@ void FindMatches(char *outputFileName,
 		int timing
 		)
 {
-	int numMainRGIndexes=0;
-	char **rgIndexMainFileNames=NULL;
+	int numMainIndexes=0;
+	char **mainIndexFileNames=NULL;
 
 	int numSecondaryIndexes=0;
-	char **rgIndexFileNames=NULL;
+	char **secondaryIndexFileNames=NULL;
 
 	int *offsets=NULL;
 	int numOffsets=0;
@@ -67,17 +67,17 @@ void FindMatches(char *outputFileName,
 	int startChr, startPos, endChr, endPos;
 
 	/* Read in the main RGIndex File Names */
-	numMainRGIndexes=ReadFileNames(rgIndexMainListFileName, &rgIndexMainFileNames);
-	if(numMainRGIndexes<=0) {
+	numMainIndexes=ReadFileNames(rgIndexMainListFileName, &mainIndexFileNames);
+	if(numMainIndexes<=0) {
 		PrintError("FindMatches",
-				"numMainRGIndexes",
+				"numMainIndexes",
 				"Read zero indexes",
 				Exit,
 				OutOfRange);
 	}
 
 	/* Read in the RGIndex File Names */
-	numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &rgIndexFileNames);
+	numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
 	if(numSecondaryIndexes<=0) {
 		PrintError("FindMatches",
 				"numSecondaryIndexes",
@@ -89,9 +89,9 @@ void FindMatches(char *outputFileName,
 	/* Check the indexes.
 	 * 1. We want the two sets of files to have the same range.
 	 * */
-	CheckRGIndexes(rgIndexMainFileNames, 
-			numMainRGIndexes,
-			rgIndexFileNames,
+	CheckRGIndexes(mainIndexFileNames, 
+			numMainIndexes,
+			secondaryIndexFileNames,
 			numSecondaryIndexes,
 			binaryInput,
 			&startChr,
@@ -182,16 +182,17 @@ void FindMatches(char *outputFileName,
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Processing %d reads using main indexes.\n",
-				numReads);
+		fprintf(stderr, "Processing %d reads using %d main indexes.\n",
+				numReads,
+				numMainIndexes);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
 	/* Do step 1: search the main indexes for all sequences */
-	numMatches=FindMatchesInIndexes(rgIndexMainFileNames,
+	numMatches=FindMatchesInIndexes(mainIndexFileNames,
 			binaryInput,
 			&rg,
-			numMainRGIndexes,
+			numMainIndexes,
 			offsets,
 			numOffsets,
 			numMismatches,
@@ -218,13 +219,14 @@ void FindMatches(char *outputFileName,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Procesing remaining %d reads using secondary indexes.\n",
-					numReads-numMatches);
+			fprintf(stderr, "Processing remaining %d reads using %d secondary indexes.\n",
+					numReads-numMatches,
+					numSecondaryIndexes);
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
 
 		/* Do step 2: search the indexes for all sequences */
-		numMatches+=FindMatchesInIndexes(rgIndexFileNames,
+		numMatches+=FindMatchesInIndexes(secondaryIndexFileNames,
 				binaryInput,
 				&rg,
 				numSecondaryIndexes,
@@ -261,16 +263,16 @@ void FindMatches(char *outputFileName,
 	}
 
 	/* Free main RGIndex file names */
-	for(i=0;i<numMainRGIndexes;i++) {
-		free(rgIndexMainFileNames[i]);
+	for(i=0;i<numMainIndexes;i++) {
+		free(mainIndexFileNames[i]);
 	}
-	free(rgIndexMainFileNames);
+	free(mainIndexFileNames);
 
 	/* Free RGIndex file names */
 	for(i=0;i<numSecondaryIndexes;i++) {
-		free(rgIndexFileNames[i]);
+		free(secondaryIndexFileNames[i]);
 	}
-	free(rgIndexFileNames);
+	free(secondaryIndexFileNames);
 
 	/* Free reference genome */
 	RGBinaryDelete(&rg);
@@ -323,7 +325,7 @@ void FindMatches(char *outputFileName,
 	}
 }
 
-int FindMatchesInIndexes(char **rgIndexFileNames,
+int FindMatchesInIndexes(char **secondaryIndexFileNames,
 		int binaryInput,
 		RGBinary *rg,
 		int numIndexes,
@@ -451,7 +453,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 
 		/* Read in the RG Index */
 		startTime = time(NULL);
-		ReadRGIndex(rgIndexFileNames[i], &index, binaryInput);
+		ReadRGIndex(secondaryIndexFileNames[i], &index, binaryInput);
 		endTime = time(NULL);
 		(*totalDataStructureTime)+=endTime - startTime;	
 
