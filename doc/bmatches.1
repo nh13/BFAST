@@ -33,7 +33,7 @@ bmatches
 	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
-	[\fB\-B\fR] 		[\fB\-\-outputBinary\fR]
+	[\fB\-T\fR \fIDIRECTORY\fR]	[\fB\-\-tmpDir=\fIDIRECTORY\fR]
 	[\fB\-t\fR] 		[\fB\-\-timing\fR]
 	[\fB\-p\fR] 		[\fB\-\-Parameters\fR]
 	[\fB\-h\fR] 		[\fB\-\-Help\fR]
@@ -170,6 +170,11 @@ Specifies a string to include when naming the output files.
 .TP 4
 \fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
 Specifies the directory in which to output.
+.
+.TP 4
+\fB\-T\fR \fIDIRECTORY\fR, \fB\-\-tmpDir=\fIDIRECTORY\fR
+Specifies the directory in which to store temporary files. 
+If no option is given, this is defaulted to the output directory (\fB\-d\fR).
 .
 .TP 4
 \fB\-t\fR, \fB\-\-timing\fR

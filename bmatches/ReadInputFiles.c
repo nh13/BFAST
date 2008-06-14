@@ -102,9 +102,6 @@ int ReadSequencesToTempFile(FILE *seqFP,
 				curReadNum);
 	}
 
-	/* close sequence file */
-	fclose(seqFP);
-
 	/* reset pointer to temp files to the beginning of the file */
 	for(i=0;i<numThreads;i++) {
 		fseek((*tempSeqFPs)[i], 0, SEEK_SET);

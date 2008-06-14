@@ -630,6 +630,10 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		 * at least one match to the final output file.  For those sequences that have
 		 * zero matches, output them to the temporary sequence file */
 
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Copying unmatched reads for secondary index search.\n");
+		}
+
 		/* Open a new temporary sequence file */
 		tempSeqFP = OpenTmpFile(tmpDir, &tempSeqFileName);
 
@@ -645,6 +649,9 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		/* Move to the beginning of the sequence file */
 		fseek(tempSeqFP, 0, SEEK_SET);
 
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Splitting unmatched reads into temp files.\n");
+		}
 		/* Now apportion the remaining sequences into temp files for the threads when 
 		 * searching the secondary indexes 
 		 * */
@@ -659,7 +666,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 				timing);
 
 		/* Close the tempSeqFP */
-		CloseTmpFile(tmpDir, &tempSeqFileName);
+		CloseTmpFile(&tempSeqFP, &tempSeqFileName);
 	}
 
 	/* Close the temporary output file */

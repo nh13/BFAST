@@ -358,6 +358,7 @@ void CloseTmpFile(FILE **fp,
 	char *FnName="CloseTmpFile";
 
 	/* Close the file */
+	assert((*fp)!=NULL);
 	fclose((*fp));
 	(*fp)=NULL;
 
