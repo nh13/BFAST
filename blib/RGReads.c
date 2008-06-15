@@ -235,18 +235,12 @@ void RGReadsGenerateReads(char *read,
 	}
 
 	/* Merge all reads */
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Calling RGReadsRemoveDuplicates\n");
-	}
 	if(numMismatches > 0 || 
 			numInsertions > 0 ||
 			numDeletions > 0 ||
 			numGapInsertions > 0 ||
 			numGapDeletions > 0) {
 		RGReadsRemoveDuplicates(reads);
-	}
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Exited from RGReadsRemoveDuplicates\n");
 	}
 }
 
@@ -1103,13 +1097,7 @@ void RGReadsRemoveDuplicates(RGReads *s)
 	}
 
 	/* Sort the data structure */
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Sorting\n");
-	}
 	RGReadsQuickSort(s, 0, s->numReads-1);
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Sorted!\n");
-	}
 
 	/* Remove duplicates */
 	prevIndex=0;
@@ -1156,6 +1144,7 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 					Exit,
 					MallocMemory);
 		}
+		temp->reads[0][0]='\0';
 		assert(temp->numReads == 1);
 
 		pivot = (low + high)/2;
@@ -1211,7 +1200,7 @@ int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo)
 
 void RGReadsCopyAtIndex(RGReads *src, int srcIndex, RGReads *dest, int destIndex)
 {
-	if(dest != src) {
+	if(dest != src || srcIndex != destIndex) {
 		strcpy(dest->reads[destIndex], src->reads[srcIndex]);
 		dest->readLength[destIndex] = src->readLength[srcIndex];
 		dest->offset[destIndex] = src->offset[srcIndex];
@@ -1259,7 +1248,14 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 
 void RGReadsReallocate(RGReads *reads, int numReads) 
 {
+	int i;
 	if(numReads > 0) {
+		/* Remember to free the reads that will be reallocated if we go to less */
+		if(numReads < reads->numReads) {
+			for(i=numReads;i<reads->numReads;i++) {
+				free(reads->reads[i]);
+			}
+		}
 		reads->numReads = numReads;
 		reads->reads = realloc(reads->reads, sizeof(char*)*(reads->numReads));
 		if(NULL == reads->reads) {
@@ -1330,15 +1326,14 @@ void RGReadsAppend(RGReads *reads,
 		int8_t direction,
 		int32_t offset) 
 {
+	char *FnName = "RGReadsAppend";
 
-	/* Update the number of reads */
-	reads->numReads++;
 	/* Allocate memory */
-	RGReadsReallocate(reads, reads->numReads);
+	RGReadsReallocate(reads, reads->numReads+1);
 	/* Allocate memory for read */
 	reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
 	if(NULL == reads->reads[reads->numReads-1]) {
-		PrintError("RGReadsGenerateMismatchesHelper",
+		PrintError(FnName,
 				"reads->reads[reads->numReads-1]",
 				"Could not allocate memory",
 				Exit,
