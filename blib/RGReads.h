@@ -29,6 +29,8 @@ void RGReadsCopyAtIndex(RGReads*, int, RGReads*, int);
 void RGReadsAllocate(RGReads*, int);
 void RGReadsReallocate(RGReads*, int);
 void RGReadsFree(RGReads*);
+void RGReadsInitialize(RGReads*);
+void RGReadsAppend(RGReads*, char*, int32_t, int8_t, int32_t);
 
 #endif
 

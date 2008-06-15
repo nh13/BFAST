@@ -16,6 +16,7 @@ void RGMatchCopyAtIndex(RGMatch*, int32_t, RGMatch*, int32_t);
 void RGMatchAllocate(RGMatch*, int32_t);
 void RGMatchReallocate(RGMatch*, int32_t);
 void RGMatchFree(RGMatch*);
+void RGMatchInitialize(RGMatch*);
 
 #endif
 

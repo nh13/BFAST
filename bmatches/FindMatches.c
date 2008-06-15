@@ -139,6 +139,10 @@ void FindMatches(char *outputFileName,
 				Exit,
 				MallocMemory);
 	}
+	for(i=0;i<numThreads;i++) {
+		tempSeqFPs[i] = NULL;
+		tempSeqFileNames[i] = NULL;
+	}
 	/* Read the sequences to the thread temp files */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reading %s into temp files.\n",
@@ -154,6 +158,8 @@ void FindMatches(char *outputFileName,
 			numThreads,
 			tmpDir,
 			timing);
+	/* Close the sequence file */
+	fclose(seqFP);
 	assert(numReads >= numThreads);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Read %d reads from %s.\n",
@@ -279,6 +285,9 @@ void FindMatches(char *outputFileName,
 
 	/* Free offsets */
 	free(offsets);
+
+	free(tempSeqFPs);
+	free(tempSeqFileNames);
 
 	/* Print timing */
 	if(timing == 1) {
@@ -703,9 +712,10 @@ int FindMatchesInIndexes(char **secondaryIndexFileNames,
 /* TODO */
 void *FindMatchesInIndex(void *arg)
 {
-	char *sequenceName;
-	char *sequence;
-	char *pairedSequence;
+	char *FnName="FindMatchesInIndex";
+	char *sequenceName=NULL;
+	char *sequence=NULL;
+	char *pairedSequence=NULL;
 	RGMatch sequenceMatch;
 	RGMatch pairedSequenceMatch;
 	int numRead = 0;
@@ -739,24 +749,19 @@ void *FindMatchesInIndex(void *arg)
 	}
 
 	/* Initialize match structures */
-	sequenceMatch.positions=NULL;
-	sequenceMatch.chromosomes=NULL;
-	sequenceMatch.strand=NULL;
-	sequenceMatch.numEntries=0;
-	sequenceMatch.maxReached=0;
-	pairedSequenceMatch.positions=NULL;
-	pairedSequenceMatch.chromosomes=NULL;
-	pairedSequenceMatch.strand=NULL;
-	pairedSequenceMatch.numEntries=0;
-	pairedSequenceMatch.maxReached=0;
-
+	RGMatchInitialize(&sequenceMatch);
+	RGMatchInitialize(&pairedSequenceMatch);
+	
 	/* Allocate memory for the data */
-	sequenceName = (char*)malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-	sequence = (char*)malloc(sizeof(char)*SEQUENCE_LENGTH);
-	pairedSequence = (char*)malloc(sizeof(char)*SEQUENCE_LENGTH);
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In FindMatchesInIndex\n");
+	sequenceName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+	sequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	pairedSequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL == sequenceName || NULL == sequence || NULL == pairedSequence) {
+		PrintError(FnName,
+				"sequenceName, sequence or pairedSequence",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
 
 	/* For each sequence */
@@ -779,17 +784,6 @@ void *FindMatchesInIndex(void *arg)
 					sequenceName,
 					sequence);
 		}
-		/* Initialize match structures */
-		sequenceMatch.positions=NULL;
-		sequenceMatch.chromosomes=NULL;
-		sequenceMatch.strand=NULL;
-		sequenceMatch.numEntries=0;
-		sequenceMatch.maxReached=0;
-		pairedSequenceMatch.positions=NULL;
-		pairedSequenceMatch.chromosomes=NULL;
-		pairedSequenceMatch.strand=NULL;
-		pairedSequenceMatch.numEntries=0;
-		pairedSequenceMatch.maxReached=0;
 
 		RGReadsFindMatches(index,
 				rg,

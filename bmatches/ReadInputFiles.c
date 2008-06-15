@@ -35,6 +35,7 @@ int ReadSequencesToTempFile(FILE *seqFP,
 
 	/* open one temporary file, one for each thread */
 	for(i=0;i<numThreads;i++) {
+		assert((*tempSeqFPs)[i] == NULL);
 		(*tempSeqFPs)[i] = OpenTmpFile(tmpDir, &(*tempSeqFileNames)[i]);
 	}
 
@@ -148,7 +149,7 @@ int ReadNextSequence(FILE *fp, char **sequenceOne, int *sequenceOneLength, char 
 		}
 		(*sequenceOneLength) = strlen((*sequenceOne));
 		SequenceToLower((*sequenceOne), (*sequenceOneLength));
-		(*sequenceTwo)=NULL;
+		(*sequenceTwo)[0]='\0';
 		(*sequenceTwoLength)=0;
 	}
 	return 1;
@@ -292,16 +293,8 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 	assert(pairedEnd==0);
 
 	/* Initialize match structures */
-	sequenceMatch.positions=NULL;
-	sequenceMatch.chromosomes=NULL;
-	sequenceMatch.strand=NULL;
-	sequenceMatch.numEntries=0;
-	sequenceMatch.maxReached=0;
-	pairedSequenceMatch.positions=NULL;
-	pairedSequenceMatch.chromosomes=NULL;
-	pairedSequenceMatch.strand=NULL;
-	pairedSequenceMatch.numEntries=0;
-	pairedSequenceMatch.maxReached=0;
+	RGMatchInitialize(&sequenceMatch);
+	RGMatchInitialize(&pairedSequenceMatch);
 
 	/* Go to the beginning of the temporary output file */
 	fseek(tempOutputFP, 0, SEEK_SET);

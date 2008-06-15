@@ -69,6 +69,7 @@ void RGMatchQuickSort(RGMatch *s, int32_t low, int32_t high)
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(RGMatch));
+		RGMatchInitialize(temp);
 		if(NULL == temp) {
 			PrintError("RGMatchQuickSort",
 					"temp",
@@ -306,7 +307,7 @@ int32_t RGMatchRead(FILE *fp,
 		assert(sequenceMatch->numEntries >= 0);
 
 		/* Allocate memory for the matches */
-		RGMatchAllocate(sequenceMatch, sequenceMatch->numEntries);
+		RGMatchReallocate(sequenceMatch, sequenceMatch->numEntries);
 
 		/* Read first sequence matches */
 		if(fread(sequenceMatch->chromosomes, sizeof(uint8_t), sequenceMatch->numEntries, fp)!=sequenceMatch->numEntries) {
@@ -570,6 +571,13 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	char **pairedSequences;
 	int32_t numMatches=0;
 
+	/* Initialize matches */
+		RGMatchInitialize(&match);
+		RGMatchInitialize(&pairedMatch);
+			RGMatchInitialize(&tempMatch);
+			RGMatchInitialize(&tempPairedMatch);
+
+
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
 	sequenceNames = malloc(sizeof(char*)*numFiles);
 	if(NULL == sequenceNames) {
@@ -638,31 +646,8 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 		}
 		counter++;
 
-		/* Initialize match */
-		match.positions=NULL;
-		match.chromosomes=NULL;
-		match.strand=NULL;
-		match.numEntries=0;
-		match.maxReached=0;
-		pairedMatch.positions=NULL;
-		pairedMatch.chromosomes=NULL;
-		pairedMatch.strand=NULL;
-		pairedMatch.numEntries=0;
-		pairedMatch.maxReached=0;
-
 		/* Read matches for one read from each file */ 
 		for(i=0;i<numFiles;i++) {
-
-			tempMatch.positions=NULL;
-			tempMatch.chromosomes=NULL;
-			tempMatch.strand=NULL;
-			tempMatch.numEntries=0;
-			tempMatch.maxReached=0;
-			tempPairedMatch.positions=NULL;
-			tempPairedMatch.chromosomes=NULL;
-			tempPairedMatch.strand=NULL;
-			tempPairedMatch.numEntries=0;
-			tempPairedMatch.maxReached=0;
 
 			if(RGMatchRead(tempFPs[i],
 						sequenceNames[i],
@@ -773,6 +758,10 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 	char *sequence;
 	char *pairedSequence;
 
+	/* Initialize matches */
+		RGMatchInitialize(&match);
+		RGMatchInitialize(&pairedMatch);
+
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
 	sequenceName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(NULL == sequenceName) {
@@ -805,18 +794,6 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 
 		/* For each thread */
 		for(i=0;i<numThreads;i++) {
-
-			/* Initialize match */
-			match.positions=NULL;
-			match.chromosomes=NULL;
-			match.strand=NULL;
-			match.numEntries=0;
-			match.maxReached=0;
-			pairedMatch.positions=NULL;
-			pairedMatch.chromosomes=NULL;
-			pairedMatch.strand=NULL;
-			pairedMatch.numEntries=0;
-			pairedMatch.maxReached=0;
 
 			if(RGMatchRead(threadFPs[i],
 						sequenceName,
@@ -887,6 +864,7 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxMatches)
 {
 	int32_t i, start;
 
+	assert(src != dest);
 	start = dest->numEntries;
 	RGMatchReallocate(dest, dest->numEntries + src->numEntries);
 	assert(dest->numEntries == start + src->numEntries);
@@ -896,7 +874,7 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxMatches)
 	}
 
 	if(dest->numEntries > maxMatches) {
-		dest->maxReached= 1;
+		dest->maxReached = 1;
 	}
 
 }
@@ -904,17 +882,6 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxMatches)
 /* TODO */
 void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t destIndex)
 {
-	if(!(srcIndex >= 0 && srcIndex < src->numEntries)) {
-		fprintf(stderr, "Error. srcIndex:%d\tnumEntries:%d\n",
-				srcIndex,
-				src->numEntries);
-	}
-	if(!(destIndex >= 0 && destIndex < dest->numEntries)) {
-		fprintf(stderr, "Error. destIndex:%d\tnumEntries:%d\n",
-				destIndex,
-				dest->numEntries);
-	}
-
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
 
@@ -925,7 +892,9 @@ void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t d
 
 void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 {
+	assert(m->numEntries==0);
 	m->numEntries = numEntries;
+	assert(m->positions==NULL);
 	m->positions = malloc(sizeof(uint32_t)*numEntries); 
 	if(NULL == m->positions) {
 		PrintError("RGMatchAllocate",
@@ -934,6 +903,7 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 				Exit,
 				MallocMemory);
 	}
+	assert(m->chromosomes==NULL);
 	m->chromosomes = malloc(sizeof(uint8_t)*numEntries); 
 	if(NULL == m->chromosomes) {
 		PrintError("RGMatchAllocate",
@@ -942,6 +912,7 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 				Exit,
 				MallocMemory);
 	}
+	assert(m->strand==NULL);
 	m->strand = malloc(sizeof(int8_t)*numEntries); 
 	if(NULL == m->strand) {
 		PrintError("RGMatchAllocate",
@@ -954,31 +925,36 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 
 void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 {
-	m->numEntries = numEntries;
-	m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
-	if(numEntries > 0 && NULL == m->positions) {
-		fprintf(stderr, "numEntries:%d\n", numEntries);
-		PrintError("RGMatchReaocate",
-				"m->positions",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+	if(numEntries > 0) {
+		m->numEntries = numEntries;
+		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
+		if(numEntries > 0 && NULL == m->positions) {
+			fprintf(stderr, "numEntries:%d\n", numEntries);
+			PrintError("RGMatchReaocate",
+					"m->positions",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*numEntries); 
+		if(numEntries > 0 && NULL == m->chromosomes) {
+			PrintError("RGMatchReaocate",
+					"m->chromosomes",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		m->strand = realloc(m->strand, sizeof(int8_t)*numEntries); 
+		if(numEntries > 0 && NULL == m->strand) {
+			PrintError("RGMatchReaocate",
+					"m->strand",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 	}
-	m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*numEntries); 
-	if(numEntries > 0 && NULL == m->chromosomes) {
-		PrintError("RGMatchReaocate",
-				"m->chromosomes",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
-	}
-	m->strand = realloc(m->strand, sizeof(int8_t)*numEntries); 
-	if(numEntries > 0 && NULL == m->strand) {
-		PrintError("RGMatchReaocate",
-				"m->strand",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+	else {
+		RGMatchFree(m);
 	}
 }
 
@@ -989,9 +965,14 @@ void RGMatchFree(RGMatch *m)
 		free(m->chromosomes);
 		free(m->strand);
 	}
+	RGMatchInitialize(m);
+}
+
+void RGMatchInitialize(RGMatch *m)
+{
+	m->numEntries=0;
+	m->maxReached=0;
 	m->positions=NULL;
 	m->chromosomes=NULL;
 	m->strand=NULL;
-	m->numEntries=0;
-	m->maxReached=0;
 }

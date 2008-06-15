@@ -541,8 +541,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						/* set the tmp directory to the output director */
 						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
 							free(arguments->tmpDir);
-							arguments->tmpDir = malloc(sizeof(char)*(strlen(arguments->outputDir)+1));
-							strcpy(arguments->tmpDir, arguments->outputDir);
+							arguments->tmpDir = OPTARG;
 						} 
 						break;
 					case 'e':
@@ -590,8 +589,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						if(arguments->readsFileName) free(arguments->readsFileName);
 						arguments->readsFileName = OPTARG;break;
 					case 'T':
-						if(arguments->tmpDir) free(arguments->tmpDir);
-						arguments->tmpDir = OPTARG;break;
+						if(arguments->tmpDir == arguments->outputDir) {
+						}
+						if(arguments->tmpDir) { 
+							free(arguments->tmpDir);
+						}
+						arguments->tmpDir = OPTARG;
+						break;
 					case 'Y':
 						arguments->numGapInsertions = atoi(OPTARG);break;
 					case 'Z':

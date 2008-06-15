@@ -168,7 +168,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	char read[SEQUENCE_LENGTH]="\0";
 	char pairedSequence[SEQUENCE_LENGTH]="\0";
 	RGMatch readMatch;
-	RGMatch pairedSequenceMatch;
+	RGMatch pairedReadMatch;
 	int i, j;
 	int numMatches=0;
 	int continueReading=0;
@@ -180,6 +180,10 @@ void RunDynamicProgramming(FILE *matchFP,
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status;
+
+	/* Initialize match */
+	RGMatchInitialize(&readMatch);
+	RGMatchInitialize(&pairedReadMatch);
 
 	/* Allocate memory for thread arguments */
 	data = malloc(sizeof(ThreadData)*numThreads);
@@ -213,18 +217,6 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].outputFP = OpenTmpFile(tmpDir, &data[i].outputFileName);
 	}
 
-	/* Initialize match */
-	readMatch.positions=NULL;
-	readMatch.chromosomes=NULL;
-	readMatch.strand=NULL;
-	readMatch.numEntries=0;
-	readMatch.maxReached=0;
-	pairedSequenceMatch.positions=NULL;
-	pairedSequenceMatch.chromosomes=NULL;
-	pairedSequenceMatch.strand=NULL;
-	pairedSequenceMatch.numEntries=0;
-	pairedSequenceMatch.maxReached=0;
-
 	/* Go through each read in the match file */
 	numMatches=0;
 	while(EOF!=RGMatchRead(matchFP, 
@@ -232,7 +224,7 @@ void RunDynamicProgramming(FILE *matchFP,
 				read, 
 				pairedSequence, 
 				&readMatch,
-				&pairedSequenceMatch,
+				&pairedReadMatch,
 				pairedEnd,
 				binaryInput)) {
 		/* Get the thread index - do this BEFORE incrementing */
@@ -246,14 +238,14 @@ void RunDynamicProgramming(FILE *matchFP,
 				read,
 				pairedSequence,
 				&readMatch,
-				&pairedSequenceMatch,
+				&pairedReadMatch,
 				pairedEnd,
 				binaryInput);
 
 		/* Free match */
 		RGMatchFree(&readMatch);
 		if(pairedEnd==1) {
-			RGMatchFree(&pairedSequenceMatch);
+			RGMatchFree(&pairedReadMatch);
 		}
 	}
 
@@ -423,7 +415,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 	char pairedSequence[SEQUENCE_LENGTH]="\0";
 	RGMatch readMatch;
-	RGMatch pairedSequenceMatch;
+	RGMatch pairedReadMatch;
 	int matchLength;
 	char *reference=NULL;
 	int referenceLength=0;
@@ -432,6 +424,10 @@ void *RunDynamicProgrammingThread(void *arg)
 	int position;
 	int numMatches=0;
 	int numMatchesAligned=0;
+
+	/* Initialize match */
+	RGMatchInitialize(&readMatch);
+	RGMatchInitialize(&pairedReadMatch);
 
 	/* Allocate memory for the reference */
 	referenceLength = 2*offsetLength + SEQUENCE_LENGTH + 1;
@@ -445,25 +441,13 @@ void *RunDynamicProgrammingThread(void *arg)
 	}
 	reference[referenceLength] = '\0'; /* Add null terminator */
 
-	/* Initialize match */
-	readMatch.positions=NULL;
-	readMatch.chromosomes=NULL;
-	readMatch.strand=NULL;
-	readMatch.numEntries=0;
-	readMatch.maxReached=0;
-	pairedSequenceMatch.positions=NULL;
-	pairedSequenceMatch.chromosomes=NULL;
-	pairedSequenceMatch.strand=NULL;
-	pairedSequenceMatch.numEntries=0;
-	pairedSequenceMatch.maxReached=0;
-
 	/* Go through each read in the match file */
 	while(EOF!=RGMatchRead(inputFP, 
 				readName, 
 				read, 
 				pairedSequence, 
 				&readMatch,
-				&pairedSequenceMatch,
+				&pairedReadMatch,
 				pairedEnd,
 				binaryInput)) {
 		numMatches++;
@@ -474,10 +458,6 @@ void *RunDynamicProgrammingThread(void *arg)
 			fprintf(stderr, "\rthread:%d\t%d", threadID, numMatches);
 		}
 
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "\nreadMatch.numEntries=%d.\n",
-					readMatch.numEntries);
-		}
 		/* This does not work for paired end */
 		if(readMatch.maxReached == 0 && readMatch.numEntries > 0 && (maxNumMatches == 0 || readMatch.numEntries < maxNumMatches)) {
 
@@ -581,7 +561,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		/* Free match */
 		RGMatchFree(&readMatch);
 		if(pairedEnd==1) {
-			RGMatchFree(&pairedSequenceMatch);
+			RGMatchFree(&pairedReadMatch);
 		}
 		if(numAlignEntries > 0) {
 			free(aEntry);
