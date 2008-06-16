@@ -26,5 +26,6 @@ int32_t RGIndexCompareAt(RGIndex*, RGBinary*, int64_t, int64_t, int);
 int32_t RGIndexCompareRead(RGIndex*, RGBinary*, char*, int64_t, int);
 uint32_t RGIndexGetHashIndex(RGIndex*, RGBinary*, uint32_t, int);
 uint32_t RGIndexGetHashIndexFromRead(RGIndex*, RGBinary*, char*, int32_t, int);
+void RGIndexPrintReadMasked(RGIndex*, char*, FILE*);
 #endif
 

@@ -106,17 +106,8 @@ void RGReadsGenerateReads(char *read,
 {
 	int i;
 
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Generating all possible reads (%d offsets).\n",
-				numOffsets);
-	}
-
 	/* Go through all offsets */
 	for(i=0;i<numOffsets;i++) {
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Generating reads with offset %d.\n",
-					offsets[i]);
-		}
 
 		/* Insert the perfect match */
 		RGReadsGeneratePerfectMatch(read,
@@ -223,17 +214,6 @@ void RGReadsGenerateReads(char *read,
 		}
 	}
 
-	/* Go through all the reads and concatenate to total length */
-	/*
-	   for(i=0;i<reads->numReads;i++) {
-	   reads->reads[i][index->totalLength]='\0';
-	   }
-	   */
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "All reads generated\n");
-	}
-
 	/* Merge all reads */
 	if(numMismatches > 0 || 
 			numInsertions > 0 ||
@@ -273,13 +253,12 @@ void RGReadsGeneratePerfectMatch(char *read,
 	}
 	/* Copy over */
 	for(i=offset;i<totalLength+offset;i++) {
-
 		curRead[i-offset] = read[i];
 	}
 	curRead[totalLength]='\0';
 
 	/* Append */
-	RGReadsAppend(reads, curRead, totalLength, offset, direction);
+	RGReadsAppend(reads, curRead, totalLength, direction, offset);
 
 	free(curRead);
 }
@@ -365,7 +344,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		assert(readIndex <= totalLength);
 		if(readIndex == totalLength) {
 			curRead[totalLength]='\0';
-			RGReadsAppend(reads, curRead, totalLength, offset, direction);
+			RGReadsAppend(reads, curRead, totalLength, direction, offset);
 			return;
 		}
 		else {
@@ -447,7 +426,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		assert(readIndex == totalLength);
 		curRead[totalLength]='\0';
 		/* Append */
-		RGReadsAppend(reads, curRead, totalLength, offset, direction);
+		RGReadsAppend(reads, curRead, totalLength, direction, offset);
 	}
 }
 
@@ -534,7 +513,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 			if(numDeletionsLeft != numDeletions) {
 				curRead[totalLength]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, totalLength, offset, direction);
+				RGReadsAppend(reads, curRead, totalLength, direction, offset);
 			}
 			return;
 		}
@@ -612,7 +591,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		curRead[totalLength]='\0';
 		assert(readIndex == totalLength);
 		/* Append */
-		RGReadsAppend(reads, curRead, totalLength, offset, direction);
+		RGReadsAppend(reads, curRead, totalLength, direction, offset);
 		return;
 
 	}
@@ -713,7 +692,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 			if(numInsertionsLeft != numInsertions) {
 				curRead[totalLength]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, totalLength, offset, direction);
+				RGReadsAppend(reads, curRead, totalLength, direction, offset);
 			}
 			return;
 		}
@@ -792,7 +771,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		curRead[totalLength]='\0';
 		assert(readIndex == totalLength);
 		/* Append */
-		RGReadsAppend(reads, curRead, totalLength, offset, direction);
+		RGReadsAppend(reads, curRead, totalLength, direction, offset);
 		return;
 	}
 }
@@ -811,26 +790,10 @@ void RGReadsGenerateGapDeletions(char *read,
 		RGReads *reads)
 {
 	char *curRead = NULL;
-	int i;
-	int maxNumGapDeletions=0;
 
 	if(VERBOSE>=DEBUG) {
 		fprintf(stderr, "Generating reads with %d gap deletions.\n",
 				numGapDeletions);
-	}
-
-	/* Check bounds */
-	/* If we are to insert n bases, then we can only insert into gaps
-	 * that are at least as big.
-	 * */
-	for(i=0;i<numTiles-1;i++) {
-		if(gaps[i] > maxNumGapDeletions) {
-			maxNumGapDeletions = gaps[i];
-		}
-	}
-
-	if(numGapDeletions > maxNumGapDeletions) {
-		numGapDeletions = maxNumGapDeletions;
 	}
 
 	/* Get the total number of insertions (delete bases) possible */
@@ -880,72 +843,53 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 		RGReads *reads,
 		char *curRead)
 {
-	int i, j, k, l, m;
-	int curPos = 0;
+	int i, j, k;
 	int readPos;
 	int curReadPos;
 
 	/* Choose a gap to insert bases */
-	for(i=0;i<numTiles-1;i++) {
-		/* Move to the current gap */
-		curPos += tileLengths[i];
-		/* Choose a starting position in the gap for inserting bases */
-		for(j=0;j<gaps[i];j++) {
-			/* For the total number of bases we will insert */
-			/* If k > gaps[i], we will insert more than there 
-			 * is found in the gap.  This will cause a combinatorial
-			 * explosion since we can do a simplifying shift. */
-			for(k=1;k<=numGapDeletions && k <= gaps[i];k++) {
-				/* Do this only if we have enough bases */
-				if(totalLength <= readLength - (offset + k - 1)) {
-					/* Copy over */
-					curReadPos = 0;
-					readPos = offset + k - 1;
-
-					/* First copy over the bases up to the current insertion point */
-					for(l=0;l<=i;l++) { /* For the given tile */
-						for(m=0;m<tileLengths[l];m++) { /* For each base in the tile */
-							curRead[curReadPos] = read[readPos];
-							curReadPos++;
-							readPos++;
-						}
-						if(l<i) { /* For each gap up to (not including) the current one */
-							for(m=0;m<gaps[l];m++) {
-								curRead[curReadPos] = read[readPos];
-								curReadPos++;
-								readPos++;
-							}
-						}
-					}
-					assert(curReadPos == curPos);
-					/* Copy over bases in the final gap up until where we will insert */
-					for(m=0;m<j;m++) {
-						curRead[curReadPos] = read[readPos];
-						curReadPos++;
-						readPos++;
-					}
-					/* Insert bases into the gap - let's choose 'a' since it will not 
-					 * be used anyway */
-					for(m=0;m<k;m++) {
-						curRead[curReadPos] = 'a';
-						curReadPos++;
-					}
-					/* Copy over the bases after the current tile */
-					for(m=curReadPos;m<totalLength;m++) {
-						curRead[curReadPos] = read[readPos];
-						curReadPos++;
-						readPos++;
-					}
-					if(curReadPos >= totalLength) {
-						curRead[totalLength]='\0';
-						/* Append */
-						RGReadsAppend(reads, curRead, totalLength, offset, direction);
-					}
-				}
-			}
+	readPos = offset;
+	curReadPos = 0;
+	for(i=0;i<numTiles-1 && readPos < readLength;i++) {
+		/* Copy over tile before gap */
+		for(j=0;j<tileLengths[i] && readPos < readLength;j++) {
+			curRead[curReadPos] = read[readPos];
+			curReadPos++;
+			readPos++;
 		}
+
+		/* Insert the bases at the beginning of the gap */
+		/* Only insert min(numGapDeletions, gaps[i]) bases into the gap, since we 
+		 * wish to use the bases in the gap */
+		for(j=1;j<=numGapDeletions && 
+				j <= gaps[i] && 
+				j <= (readLength - readPos);j++) { /* The number of bases to insert */
+				int tempCurReadPos = curReadPos;
+				int tempReadPos = readPos;
+
+				/* Insert bases into the gap */
+				for(k=0;k<j;k++) {
+					curRead[tempCurReadPos] = NULL_LETTER;
+					tempCurReadPos++;
+				}
+				/* Copy over the bases after the current tile */
+				while(tempCurReadPos < totalLength) {
+					curRead[tempCurReadPos] = read[tempReadPos];
+					tempCurReadPos++;
+					tempReadPos++;
+				}
+				assert(tempCurReadPos == totalLength);
+				curRead[totalLength]='\0';
+				/* Append */
+				RGReadsAppend(reads, curRead, totalLength, direction, offset);
+		}
+
 		/* Add the gap to our current position */
-		curPos += gaps[i];
+		for(j=0;j<gaps[i] && readPos < readLength;j++) {
+			curRead[curReadPos] = read[readPos];
+			curReadPos++;
+			readPos++;
+		}
 	}
 }
 
@@ -962,31 +906,11 @@ void RGReadsGenerateGapInsertions(char *read,
 		int numGapInsertions,
 		RGReads *reads)
 {
-	int i;
 	char *curRead=NULL;
-	int maxNumGapInsertions = 0;
 
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "Generating reads with %d gap insertions\n",
 				numGapInsertions);
-	}
-
-	/* Check bounds */
-	/* If we are to delete n bases, then we can only delete the 
-	 * max gap and also we need at least n extra bases to fill in.
-	 * */
-	for(i=0;i<numTiles-1;i++) {
-		if(gaps[i] > maxNumGapInsertions) {
-			maxNumGapInsertions = gaps[i];
-		}
-	}
-
-	if(maxNumGapInsertions < numGapInsertions) {
-		numGapInsertions = maxNumGapInsertions;
-	}
-
-	if(totalLength + numGapInsertions > readLength) {
-		numGapInsertions = totalLength - readLength;
 	}
 
 	/* Get the total number of insertions (delete bases) possible */
@@ -1038,49 +962,60 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 		RGReads *reads,
 		char *curRead)
 {
-	int i, j, l, m;
-	int curReadPos=0;
+	int i, j, k;
+	int readPos;
+	int curReadPos;
 
-	/* Choose which gap to remove bases */
-	for(i=0;i<numTiles-1;i++) { /* Remove from the ith gap */
-		/* Only delete the maximum amount in the gap */
-		int tempNumGapInsertions = numGapInsertions;
-		if(tempNumGapInsertions > gaps[i]) {
-			tempNumGapInsertions = gaps[i];
+	/* Choose the number of bases to remove */
+	for(i=1;i<=numGapInsertions &&
+			i <= readLength - totalLength;i++) {
+		/* Find a start position that will handle the number of bases we will remove */
+
+		/* Initialize the start position to be at the offset */
+		int startPos = offset;
+		/* We first try to use the bases at the end of the read.  So get the number of
+		 * bases we would need to shift the start position (the end can't handle all of 
+		 * them in this case).
+		 * */
+		int frontRemove = (totalLength + i) - (readLength - offset);
+		if(frontRemove > 0) {
+			startPos -= frontRemove;
 		}
-		for(j=1;j<=tempNumGapInsertions;j++) { /* Choose the number of bases to delete from the gap */
-			curReadPos=0;
-			/* Copy over bases before the insertion */
-			for(l=0;l<=i;l++) { /* For each previous tile */
-				for(m=0;m<tileLengths[l];m++) { /* For each base in the tile */
-					curRead[curReadPos] = read[offset+curReadPos];
+		/* Only generate a read if we have enough bases */
+		if(startPos >= 0) {
+			assert( (readLength - startPos) >= totalLength);
+			/* Choose a gap to remove bases */
+			readPos = startPos;
+			curReadPos = 0;
+			for(j=0;j<numTiles-1;j++) {
+				/* Get the bases before the gap in which we will insert bases */ 
+				for(k=0;k<tileLengths[j];k++) {
+					curRead[curReadPos] = read[readPos];
 					curReadPos++;
+					readPos++;
 				}
-				for(m=0;m<gaps[l] && l!=i;m++) { /* For each base in the gaps */
-					curRead[curReadPos] = read[offset+curReadPos];
-					curReadPos++;
+
+				/* Delete the bases in the gap */
+				int tempCurReadPos = curReadPos;
+				int tempReadPos = readPos;
+				/* Skip over j bases */
+				tempReadPos += i;
+				while(tempCurReadPos < totalLength) {
+					curRead[tempCurReadPos] = read[tempReadPos];
+					tempCurReadPos++;
+					tempReadPos++;
 				}
-			}
-			/* For the first j bases in the gap */
-			for(m=0;m<j-1;m++) {
-				curRead[curReadPos] = read[offset+curReadPos];
-				curReadPos++;
-			}
-			/* Copy over bases after the insertion */
-			for(l=i+1;l<numTiles;l++) { /* For each tile */
-				for(m=0;m<tileLengths[l];m++) { /* For each base in the tile */
-					curRead[curReadPos] = read[offset+curReadPos+j];
-					curReadPos++;
-				}
-				for(m=0;l!=numTiles-1 && m<gaps[l];m++) { /* For each base in the gaps */
-					curRead[curReadPos] = read[offset+curReadPos+j];
-					curReadPos++;
-				}
-			}
-			if(curReadPos >= totalLength) {
 				curRead[totalLength]='\0';
-				/* Append */
-				RGReadsAppend(reads, curRead, totalLength, offset, direction);
+				/* Append - not the different offset, which corresponds to the
+				 * (possibly) new start position. */
+				RGReadsAppend(reads, curRead, totalLength, direction, startPos);
+
+				/* Add the bases in the gap */
+				for(k=0;k<gaps[j];k++) {
+					curRead[curReadPos] = read[readPos];
+					curReadPos++;
+					readPos++;
+				}
 			}
 		}
 	}

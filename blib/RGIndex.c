@@ -1754,3 +1754,23 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 	/* All bases were equal, return 0 */
 	return hashIndex;
 }
+
+/* TODO */
+/* Debug function */
+void RGIndexPrintReadMasked(RGIndex *index, char *read, FILE *fp) 
+{
+	int curPos, curTile, curTilePos;
+	for(curPos = 0, curTile = 0;curTile < index->numTiles;curTile++) {
+		fprintf(fp, "[");
+		for(curTilePos=0;curTilePos < index->tileLengths[curTile];curTilePos++) {
+			fprintf(fp, "%c", read[curPos]);
+			/* Update position */
+			curPos++;
+		}   
+		fprintf(fp, "]\t");
+		if(curTile < index->numTiles-1) {
+			curPos += index->gaps[curTile];
+		}   
+	}   
+	fprintf(fp, "\n");
+}

@@ -418,6 +418,11 @@ void RGMatchPrint(FILE *fp,
 	assert(fp!=NULL);
 	/* Print the matches to the output file */
 
+	/* Debug HERE */
+	for(i=0;i<sequenceMatch->numEntries;i++) {
+		assert(sequenceMatch->strand[i] == FORWARD || sequenceMatch->strand[i] == REVERSE);
+	}
+
 	if(binaryOutput == 0) {
 
 		/* Print sequence name */
