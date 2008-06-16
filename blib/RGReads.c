@@ -73,14 +73,14 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Merge all reads */
 	/*
-	if(numMismatches > 0 || 
-			numInsertions > 0 ||
-			numDeletions > 0 ||
-			numGapInsertions > 0 ||
-			numGapDeletions > 0) {
-		RGReadsRemoveDuplicates(reads);
-	}
-	*/
+	   if(numMismatches > 0 || 
+	   numInsertions > 0 ||
+	   numDeletions > 0 ||
+	   numGapInsertions > 0 ||
+	   numGapDeletions > 0) {
+	   RGReadsRemoveDuplicates(reads);
+	   }
+	   */
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
@@ -866,25 +866,25 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 		 * wish to use the bases in the gap */
 		for(j=1;j<=numGapDeletions && 
 				j <= gaps[i] && 
-				j <= (readLength - readPos);j++) { /* The number of bases to insert */
-				int tempCurReadPos = curReadPos;
-				int tempReadPos = readPos;
+				j <= (readLength - totalLength - readPos);j++) { /* The number of bases to insert */
+			int tempCurReadPos = curReadPos;
+			int tempReadPos = readPos;
 
-				/* Insert bases into the gap */
-				for(k=0;k<j;k++) {
-					curRead[tempCurReadPos] = NULL_LETTER;
-					tempCurReadPos++;
-				}
-				/* Copy over the bases after the current tile */
-				while(tempCurReadPos < totalLength) {
-					curRead[tempCurReadPos] = read[tempReadPos];
-					tempCurReadPos++;
-					tempReadPos++;
-				}
-				assert(tempCurReadPos == totalLength);
-				curRead[totalLength]='\0';
-				/* Append */
-				RGReadsAppend(reads, curRead, totalLength, direction, offset);
+			/* Insert bases into the gap */
+			for(k=0;k<j;k++) {
+				curRead[tempCurReadPos] = NULL_LETTER;
+				tempCurReadPos++;
+			}
+			/* Copy over the bases after the current tile */
+			while(tempCurReadPos < totalLength) {
+				curRead[tempCurReadPos] = read[tempReadPos];
+				tempCurReadPos++;
+				tempReadPos++;
+			}
+			assert(tempCurReadPos == totalLength);
+			curRead[totalLength]='\0';
+			/* Append */
+			RGReadsAppend(reads, curRead, totalLength, direction, offset);
 		}
 
 		/* Add the gap to our current position */

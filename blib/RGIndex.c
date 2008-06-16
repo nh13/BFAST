@@ -1152,6 +1152,128 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 }
 
 /* TODO */
+/* Debugging function */
+void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
+{
+	char *FnName = "RGIndexPrintInfo";
+	int64_t i;
+	RGIndex index;
+
+	if(binaryInput == 0) {
+		fprintf(stderr, "Warning.  Will not display info for non-binary index.\n");
+		return;
+	}
+
+	/* Read in the header */
+	RGIndexReadHeader(fp, &index, binaryInput);
+
+	/* Allocate memory for the tile lengths */
+	index.tileLengths = malloc(sizeof(int32_t)*index.numTiles);
+	if(NULL == index.tileLengths) {
+		PrintError(FnName,
+				"index.tileLengths",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory for the gaps */
+	index.gaps = malloc(sizeof(int32_t)*(index.numTiles-1));
+	if(NULL == index.gaps) {
+		PrintError(FnName,
+				"index.gaps",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Skip over positions */
+	if(fseek(fp, sizeof(uint32_t)*index.length, SEEK_CUR)!=0) {
+		PrintError(FnName,
+				NULL,
+				"Could not seek over positions",
+				Exit,
+				EndOfFile);
+	}
+
+	/* Skip over chromosomes */
+	if(fseek(fp, sizeof(uint8_t)*index.length, SEEK_CUR)!=0) {
+		PrintError(FnName,
+				NULL,
+				"Could not seek over chromosomes",
+				Exit,
+				EndOfFile);
+	}
+
+	/* Skip over starts */
+	if(fseek(fp, sizeof(uint32_t)*index.hashLength, SEEK_CUR)!=0) {
+		PrintError(FnName,
+				NULL,
+				"Could not seek over starts",
+				Exit,
+				EndOfFile);
+	}
+
+	/* Skip over ends */
+	if(fseek(fp, sizeof(uint32_t)*index.hashLength, SEEK_CUR)!=0) {
+		PrintError(FnName,
+				NULL,
+				"Could not seek over ends",
+				Exit,
+				EndOfFile);
+	}
+
+	/* Read the tileLengths */
+	if(fread(index.tileLengths, sizeof(int32_t), index.numTiles, fp)!=index.numTiles) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in tile lengths",
+				Exit,
+				ReadFileError);
+	}
+
+	/* Read the gaps */
+	if(fread(index.gaps, sizeof(int32_t), index.numTiles-1, fp)!= (index.numTiles-1)) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in gaps",
+				Exit,
+				ReadFileError);
+	}
+
+	/* Print the info */
+	fprintf(stderr, "start chromosome:\t%d\n",
+			index.startChr);
+	fprintf(stderr, "start positions:\t%d\n",
+			index.startPos);
+	fprintf(stderr, "end chromosome:\t\t%d\n",
+			index.endChr);
+	fprintf(stderr, "end position:\t\t%d\n",
+			index.endPos);
+	fprintf(stderr, "index length:\t\t%u\n",
+			index.length);
+	fprintf(stderr, "hash width:\t\t%u\n",
+			index.hashWidth);
+	fprintf(stderr, "hash length:\t\t%lld\n",
+			(long long int)index.hashLength);
+	fprintf(stderr, "number of tiles:\t%d\n",
+			index.numTiles);
+	fprintf(stderr, "tiles - total length:\t%d\n",
+			index.totalLength);
+	for(i=0;i<index.numTiles;i++) {
+		/* Print tile length */
+		fprintf(stderr, "tile[%lld] length:\t\t%d\n",
+				(long long int)i,
+				index.tileLengths[i]);
+		/* Print the gap */
+		if(i<index.numTiles-1) {
+			fprintf(stderr, "gap[%lld] length:\t\t%d\n",
+					(long long int)i,
+					index.gaps[i]);
+		}
+	}
+}
+
+/* TODO */
 void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
 	if(binaryOutput == 0) {
@@ -1254,6 +1376,9 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int32_t readLen
 	if(m->maxReached==1) {
 		return;
 	}
+
+	/* HERE */
+	assert(strlen(read) == readLength);
 
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
@@ -1702,6 +1827,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		int32_t readLength,
 		int debug)
 {
+	char *FnName = "RGIndexGetHashIndexFromRead";
 	int32_t i, j;
 	int32_t curReadPos=0;
 	uint8_t readBase;
@@ -1735,8 +1861,13 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 					hashIndex += pow(ALPHABET_SIZE, cur)*3;
 					break;
 				default:
-					PrintError("RGIndexGetHashIndexFromRead",
-							"aBase",
+					/* HERE */
+					fprintf(stderr, "read:%s\nread length:%d\n",
+							read,
+							readLength);
+					RGIndexPrintReadMasked(index, read, stderr);
+					PrintError(FnName,
+							"readBase",
 							"Could not understand base",
 							Exit,
 							OutOfRange);

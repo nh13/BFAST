@@ -29,10 +29,7 @@ int main(int argc, char *argv[])
 			fprintf(stdout, "Warning.  Not implemented.\n");
 		}
 		else if(NULL!=strstr(inputFileName, BFAST_INDEX_FILE_EXTENSION)) {
-			RGIndex index;
-			RGIndexReadHeader(fp, &index, 1);
-			RGIndexPrintHeader(stdout, &index, 0);
-
+			RGIndexPrintInfo(fp, 1);
 		}
 
 		fclose(fp);
