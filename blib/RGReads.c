@@ -71,6 +71,17 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapInsertions,
 			numGapDeletions);
 
+	/* Merge all reads */
+	/*
+	if(numMismatches > 0 || 
+			numInsertions > 0 ||
+			numDeletions > 0 ||
+			numGapInsertions > 0 ||
+			numGapDeletions > 0) {
+		RGReadsRemoveDuplicates(reads);
+	}
+	*/
+
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
 		RGIndexGetMatches(index, 
@@ -214,14 +225,6 @@ void RGReadsGenerateReads(char *read,
 		}
 	}
 
-	/* Merge all reads */
-	if(numMismatches > 0 || 
-			numInsertions > 0 ||
-			numDeletions > 0 ||
-			numGapInsertions > 0 ||
-			numGapDeletions > 0) {
-		RGReadsRemoveDuplicates(reads);
-	}
 }
 
 void RGReadsGeneratePerfectMatch(char *read,
