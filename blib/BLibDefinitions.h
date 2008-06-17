@@ -24,7 +24,7 @@
 #define RGINDEX_ROTATE_NUM 1000000
 #define SORT_ROTATE_INC 0.01
 #define RGINDEX_SORT_ROTATE_INC 0.001
-#define ALIGN_ROTATE_NUM 1000
+#define ALIGN_ROTATE_NUM 10000
 #define BFAST_TMP_TEMPLATE ".bfast.tmp.XXXXXX"
 
 /* For printing to stderr */

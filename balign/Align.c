@@ -38,7 +38,7 @@ int AlignmentGetScore(char *read,
 	int curCol=-1;
 	int curRow=-1;
 	int startRow, startCol;
-	int type=-1;
+	int prevType=-1;
 	int offset=0;
 	MatrixEntry **Entries; /* store the dynamic programming array */
 	int *path=NULL;
@@ -77,6 +77,8 @@ int AlignmentGetScore(char *read,
 		Entries[i][0].prevRow = -1;
 		Entries[i][0].prevCol = -1;
 		Entries[i][0].dType = NO_TYPE;
+		Entries[i][0].vType = NO_TYPE;
+		Entries[i][0].hType = NO_TYPE;
 	}
 	/* Scoring Matrix: initialize columns for the first row */
 	for(j=0;j<numCols;j++) {
@@ -86,6 +88,8 @@ int AlignmentGetScore(char *read,
 		Entries[0][j].prevRow = -1;
 		Entries[0][j].prevCol = -1;
 		Entries[0][j].dType = NO_TYPE;
+		Entries[0][j].vType = NO_TYPE;
+		Entries[0][j].hType = NO_TYPE;
 	}
 
 	/* Perform alignment - Dynamic programming */
@@ -137,6 +141,7 @@ int AlignmentGetScore(char *read,
 
 	/* Debugging */
 	if(AlignmentGetScore_DEBUG_ON) {
+		/*
 		for(i=0;i<numRows;i++) { 
 			for(j=0;j<numCols;j++) { 
 				fprintf(stderr, "(row,col)=[%d,%d]\t(v,d,h)=[%.2lf,%.2lf,%.2lf]\t(prevRow,prevCol)=[%d,%d]\t(vType, dType, hType)=[%d,%d,%d]",
@@ -160,6 +165,7 @@ int AlignmentGetScore(char *read,
 			}
 		}
 		fprintf(stderr, "[%lf,%lf]\n", sm->gapOpenPenalty, sm->gapExtensionPenalty);
+		*/
 	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then
@@ -214,50 +220,54 @@ int AlignmentGetScore(char *read,
 				read,
 				reference);
 	}
+
+	prevType = DIAGONAL;
 	curRow=endRow;
 	curCol=endCol;
-	type = Entries[curRow][curCol].dType;
-	curRow--;
-	curCol--;
 	i=0;
-	while(type != NO_TYPE && curRow != -1 && curCol != -1) {
+	while(curRow != -1 && curCol != -1 && prevType != NO_TYPE) {
 		if(AlignmentGetScore_DEBUG_ON == 1) {
-			fprintf(stderr, "i:%d\t(curRow,curCol)=[%d,%d]\ttype:%d\t", 
+			fprintf(stderr, "i:%d\t(curRow,curCol)=[%d,%d]\tprevType:%d\t", 
 					i,
 					curRow,
 					curCol,
-					type);
+					prevType);
 			i++;
 		}
-
-		/* What was the previous type ? */
-		switch(type) {
+		/* We can be in a gap (horizontal or vertical) or going along the diagonal */
+		switch(prevType) {
 			case DIAGONAL:
-				path[pathLength] = DIAGONAL;
-				pathLength++;
-				/* Update row and column */
+				/* We were going along a diagonal, check next */
 				switch(Entries[curRow][curCol].dType) {
+					case DIAGONAL:
+						if(AlignmentGetScore_DEBUG_ON == 1) {
+							fprintf(stderr, "From Diagonal to Diagonal");
+						}
+						path[pathLength] = DIAGONAL;
+						pathLength++;
+						curRow--;
+						curCol--;
+						break;
 					case HORIZONTAL:
 						if(AlignmentGetScore_DEBUG_ON == 1) {
-							fprintf(stderr, "Diagonal[horizontal]");
+							fprintf(stderr, "From Diagonal to Horizontal");
 						}
+						path[pathLength] = HORIZONTAL;
+						pathLength++;
 						curCol--;
+						prevType = HORIZONTAL;
 						break;
 					case VERTICAL:
 						if(AlignmentGetScore_DEBUG_ON == 1) {
-							fprintf(stderr, "Diagonal[vertical]");
+							fprintf(stderr, "From Diagonal to Vertical");
 						}
+						path[pathLength] = VERTICAL;
+						pathLength++;
 						curRow--;
-						break;
-					case DIAGONAL:
-						if(AlignmentGetScore_DEBUG_ON == 1) {
-							fprintf(stderr, "Diagonal[diagonal]");
-						}
-						curRow--;
-						curCol--;
+						prevType = VERTICAL;
 						break;
 					case NO_TYPE:
-						type = NO_TYPE;
+						prevType = NO_TYPE;
 						break;
 					default:
 						PrintError(FnName,
@@ -267,29 +277,30 @@ int AlignmentGetScore(char *read,
 								OutOfRange);
 						break;
 				}
-				type = Entries[curRow][curCol].dType;
 				break;
 			case HORIZONTAL:
+				/* We were going along a horizontal, check next */
 				path[pathLength] = HORIZONTAL;
 				pathLength++;
-				/* Update row and column */
+						curCol--;
+				/* Update previous type.  If we have a gap extension then we 
+				 * previous type is Horizontal, if we have a gap open, then we 
+				 * are coming from a diagonal */
 				switch(Entries[curRow][curCol].hType) {
 					case GAP_OPEN:
 						if(AlignmentGetScore_DEBUG_ON == 1) {
-							fprintf(stderr, "Horizontal[open]");
+							fprintf(stderr, "From Horizontal to Diagonal");
 						}
-						curCol--;
-						type = DIAGONAL;
+						prevType = DIAGONAL;
 						break;
 					case GAP_EXTENSION:
 						if(AlignmentGetScore_DEBUG_ON == 1) {
 							fprintf(stderr, "Horizontal[extension]");
 						}
-						curCol--;
-						type = HORIZONTAL;
+						prevType = HORIZONTAL;
 						break;
 					case NO_TYPE:
-						type = NO_TYPE;
+						prevType = NO_TYPE;
 						break;
 					default:
 						PrintError(FnName,
@@ -303,26 +314,30 @@ int AlignmentGetScore(char *read,
 			case VERTICAL:
 				path[pathLength] = VERTICAL;
 				pathLength++;
+				curRow--;
 				/* Update row and column */
+				/* Update previous type.  If we have a gap extension then we 
+				 * previous type is Vetical, if we have a gap open, then we 
+				 * are coming from a diagonal */
 				switch(Entries[curRow][curCol].vType) {
 					case GAP_OPEN:
 						if(AlignmentGetScore_DEBUG_ON == 1) {
 							fprintf(stderr, "Vertical[open]");
 						}
-						curRow--;
-						type = DIAGONAL;
+						prevType = DIAGONAL;
 						break;
 					case GAP_EXTENSION:
 						if(AlignmentGetScore_DEBUG_ON == 1) {
 							fprintf(stderr, "Vertical[extension]");
 						}
-						curRow--;
-						type = VERTICAL;
+						prevType = VERTICAL;
 						break;
 					case NO_TYPE:
-						type = NO_TYPE;
+						prevType = NO_TYPE;
 						break;
 					default:
+						fprintf(stderr, "[%d]\n",
+								Entries[curRow][curCol].vType);
 						PrintError(FnName,
 								NULL,
 								"Could not recover alignment path: vType",
@@ -334,28 +349,26 @@ int AlignmentGetScore(char *read,
 			default:
 				PrintError(FnName,
 						NULL,
-						"Could not recover alignment path: type",
+						"Could not recover alignment path: prevType",
 						Exit,
 						OutOfRange);
-		}
-		if(type != NO_TYPE) {
-			/* Update the offset */
-			offset=curCol;
 		}
 		if(AlignmentGetScore_DEBUG_ON == 1) {
 			fprintf(stderr, "\n");
 		}
 	}
+
 	path[pathLength] = -1;
 	startRow = curRow;
 	startCol = curCol;
-
-
 	if(AlignmentGetScore_DEBUG_ON == 1) {
 		fprintf(stderr, "(read,ref)=[%s,%s]\n",
 				read,
 				reference);
-		fprintf(stderr, "(endRow,endCol)=[%d,%d\n]",
+		fprintf(stderr, "(startRow,startCol)=[%d,%d]\n",
+				startRow,
+				startCol);
+		fprintf(stderr, "(endRow,endCol)=[%d,%d]\n",
 				endRow,
 				endCol);
 		fprintf(stderr, "(curRow,curCol)=[%d,%d]\tpathLength:%d\n",
@@ -363,13 +376,17 @@ int AlignmentGetScore(char *read,
 				curCol,
 				pathLength);
 	}
+	assert(endRow - startRow == readLength);
+
+	/* Update offset */
+	offset = startCol;
 
 	aEntry->length=0;
 	curRow = startRow;
 	curCol = startCol;
 	for(i=pathLength-1;i>=0 && curRow < readLength;i--) {
 		if(AlignmentGetScore_DEBUG_ON == 1) {
-			fprintf(stderr, "type:%d\t(curRow,curCol)=[%d,%d]\t", 
+			fprintf(stderr, "prevType:%d\t(curRow,curCol)=[%d,%d]\t", 
 					path[i],
 					curRow,
 					curCol);
