@@ -12,6 +12,8 @@
 #define READ_ROTATE_NUM 1000000
 #define ALIGN_ROTATE_NUM 1000
 
+enum {HORIZONTAL, VERTICAL, DIAGONAL, GAP_OPEN, GAP_EXTENSION, NO_TYPE};
+
 /* Align.c specific definitions */
 typedef struct {
 	double gapOpenPenalty;
@@ -24,8 +26,11 @@ typedef struct {
 /* Structure for the dynamic programming with affine gap penalties */
 typedef struct {
 	double hScore; /* horizontal score */
+	int hType;
 	double vScore; /* vertical score */
+	int vType;
 	double dScore; /* diagonal score */
+	int dType;
 	int prevRow; /* previous row */
 	int prevCol; /* previous column */
 } MatrixEntry;

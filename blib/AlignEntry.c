@@ -11,10 +11,9 @@ void AlignEntryPrint(AlignEntry *aEntry,
 		FILE *outputFP)
 {
 	/* Print the read name, alignment length, chromosome, position, strand, score */
-	fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\t%c\t%lf\n",
+	fprintf(outputFP, "%s\t%d\t%d\t%d\t%c\t%lf\n",
 			aEntry->readName,
 			aEntry->length,
-			aEntry->referenceLength,
 			aEntry->chromosome,
 			aEntry->position,
 			aEntry->strand,
@@ -31,10 +30,9 @@ int AlignEntryRead(AlignEntry *aEntry,
 		FILE *inputFP)
 {
 	/* Read the read name, alignment length, chromosome, position, strand, score */
-	if(fscanf(inputFP, "%s %d %d %d %d %c %lf\n",
+	if(fscanf(inputFP, "%s %d %d %d %c %lf\n",
 				aEntry->readName,
 				&aEntry->length,
-				&aEntry->referenceLength,
 				&aEntry->chromosome,
 				&aEntry->position,
 				&aEntry->strand,
@@ -203,15 +201,16 @@ void AlignEntryQuickSort(AlignEntry **a,
 /* TODO */
 void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int destIndex)
 {
-	strcpy(dest[destIndex].readName, src[srcIndex].readName);
-	dest[destIndex].read = src[srcIndex].read;
-	dest[destIndex].reference = src[srcIndex].reference;
-	dest[destIndex].length = src[srcIndex].length;
-	dest[destIndex].referenceLength = src[srcIndex].referenceLength;
-	dest[destIndex].chromosome = src[srcIndex].chromosome;
-	dest[destIndex].position = src[srcIndex].position;
-	dest[destIndex].strand = src[srcIndex].strand;
-	dest[destIndex].score = src[srcIndex].score;
+	if(dest != src || srcIndex != destIndex) {
+		strcpy(dest[destIndex].readName, src[srcIndex].readName);
+		dest[destIndex].read = src[srcIndex].read;
+		dest[destIndex].reference = src[srcIndex].reference;
+		dest[destIndex].length = src[srcIndex].length;
+		dest[destIndex].chromosome = src[srcIndex].chromosome;
+		dest[destIndex].position = src[srcIndex].position;
+		dest[destIndex].strand = src[srcIndex].strand;
+		dest[destIndex].score = src[srcIndex].score;
+	}
 
 }
 
@@ -251,9 +250,8 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		assert(sortOrder == AlignEntrySortByChrPos);
 		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
 		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		cmp[2] = (a[indexA].referenceLength <= b[indexB].referenceLength)?((a[indexA].referenceLength<b[indexB].referenceLength)?-1:0):1;
 		result = 0;
-		for(i=0;i<3;i++) {
+		for(i=0;i<2;i++) {
 			result += pow(10, 8-i-1)*cmp[i];
 		}
 
@@ -457,7 +455,6 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dst)
 	strcpy(dst->read, src->read);
 	strcpy(dst->reference, src->reference);
 	dst->length = src->length;
-	dst->referenceLength = src->referenceLength;
 	dst->chromosome = src->chromosome;
 	dst->position = src->position;
 	dst->strand = src->strand;

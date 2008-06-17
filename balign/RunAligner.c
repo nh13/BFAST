@@ -71,6 +71,9 @@ void RunAligner(RGBinary *rgBinary,
 		strcpy(matchFileNames[numMatchFileNames-1], tempFileName);
 	}
 
+	/* Close matches file */
+	fclose(matchesFP);
+
 	/* Create output file name */
 	sprintf(outputFileName, "%sbfast.aligned.file.%s.%d.%s",
 			outputDir,
@@ -526,19 +529,6 @@ void *RunDynamicProgrammingThread(void *arg)
 				aEntry[i].strand = readMatch.strand[i]; 
 				strcpy(aEntry[i].readName, readName);
 
-				/* Free memory */
-				/* Free AlignEntry */
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "aligned read:%s\naligned reference:%s\nposition:%d\n",
-							aEntry[i].read,
-							aEntry[i].reference,
-							aEntry[i].position);
-				}
-				if(VERBOSE >= DEBUG) {
-					fprintf(stderr, "Finished entry %d out of %d.\n",
-							i+1,
-							readMatch.numEntries);
-				}
 			}
 			/* Remove duplicate alignments */
 			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
@@ -567,6 +557,7 @@ void *RunDynamicProgrammingThread(void *arg)
 			free(aEntry);
 			aEntry = NULL;
 		}
+
 	}
 
 	/* Free memory */
