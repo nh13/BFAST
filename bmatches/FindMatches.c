@@ -766,7 +766,7 @@ void *FindMatchesInIndex(void *arg)
 
 	/* For each sequence */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
+		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
 				threadID,
 				numRead);
 	}
@@ -774,7 +774,7 @@ void *FindMatchesInIndex(void *arg)
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
+			fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
 					threadID,
 					numRead);
 		}
@@ -842,7 +842,7 @@ void *FindMatchesInIndex(void *arg)
 		}
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthreadID:%d\tnumRead:%d",
+		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
 				threadID,
 				numRead);
 	}

@@ -118,7 +118,7 @@ void RGReadsGenerateReads(char *read,
 	int i;
 
 	/* Go through all offsets */
-	for(i=0;i<numOffsets;i++) {
+	for(i=0;i<numOffsets && (readLength - offsets[i]) >= index->totalLength;i++) {
 
 		/* Insert the perfect match */
 		RGReadsGeneratePerfectMatch(read,
@@ -1282,4 +1282,19 @@ void RGReadsAppend(RGReads *reads,
 	reads->readLength[reads->numReads-1] = readLength;
 	reads->offset[reads->numReads-1] = offset;
 	reads->strand[reads->numReads-1] = direction;
+}
+
+/* TODO */
+/* Debugging procedure */
+void RGReadsPrint(RGReads *reads, RGIndex *index) 
+{
+	int i;
+	for(i=0;i<reads->numReads;i++) {
+		RGIndexPrintReadMasked(index, reads->reads[i], 0, stderr);
+		fprintf(stderr, "%s\t%d\t%c\t%d\n",
+				reads->reads[i],
+				reads->readLength[i],
+				reads->strand[i],
+				reads->offset[i]);
+	}
 }

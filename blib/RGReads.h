@@ -31,6 +31,7 @@ void RGReadsReallocate(RGReads*, int);
 void RGReadsFree(RGReads*);
 void RGReadsInitialize(RGReads*);
 void RGReadsAppend(RGReads*, char*, int32_t, int8_t, int32_t);
+void RGReadsPrint(RGReads*, RGIndex*);
 
 #endif
 

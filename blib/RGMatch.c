@@ -164,7 +164,7 @@ int32_t RGMatchRead(FILE *fp,
 		assert(sequenceMatch->numEntries >= 0);
 
 		/* Allocate memory for the matches */
-		RGMatchAllocate(sequenceMatch, sequenceMatch->numEntries);
+		RGMatchReallocate(sequenceMatch, sequenceMatch->numEntries);
 
 		/* Read first sequence matches */
 		for(i=0;i<sequenceMatch->numEntries;i++) {
@@ -220,7 +220,7 @@ int32_t RGMatchRead(FILE *fp,
 			assert(pairedSequenceMatch->numEntries >= 0);
 
 			/* Allocate memory for the matches */
-			RGMatchAllocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
+			RGMatchReallocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
 
 			/* Read first pairedSequence matches */
 			for(i=0;i<pairedSequenceMatch->numEntries;i++) {

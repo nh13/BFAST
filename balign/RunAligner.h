@@ -20,6 +20,8 @@ typedef struct {
 	char *inputFileName;
 	FILE *outputFP;
 	char *outputFileName;
+	FILE *notAlignedFP;
+	char *notAlignedFileName;
 	RGBinary *rgBinary;
 	int offsetLength;
 	int maxNumMatches;
@@ -30,7 +32,7 @@ typedef struct {
 } ThreadData;
 
 void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, char*, char*, char*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, char*, FILE*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, char*, FILE*, FILE*);
 void *RunDynamicProgrammingThread(void *);
 void GetSequenceFromReferenceGenome(RGBinary*, int, int, char, int, char*, int, int*, int*);
 void GetReverseComplimentAnyCase(char*, char*, int);

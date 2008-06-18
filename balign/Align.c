@@ -477,7 +477,6 @@ int AlignmentGetScore(char *read,
 		/* HERE */
 		exit(1);
 	}
-	assert(strlen(aEntry->read) == strlen(aEntry->reference));
 
 	/* Free memory */
 	free(rows);

@@ -1865,7 +1865,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 					fprintf(stderr, "read:%s\nread length:%d\n",
 							read,
 							readLength);
-					RGIndexPrintReadMasked(index, read, stderr);
+					RGIndexPrintReadMasked(index, read, 0, stderr);
 					PrintError(FnName,
 							"readBase",
 							"Could not understand base",
@@ -1888,13 +1888,13 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 
 /* TODO */
 /* Debug function */
-void RGIndexPrintReadMasked(RGIndex *index, char *read, FILE *fp) 
+void RGIndexPrintReadMasked(RGIndex *index, char *read, int offset, FILE *fp) 
 {
 	int curPos, curTile, curTilePos;
 	for(curPos = 0, curTile = 0;curTile < index->numTiles;curTile++) {
 		fprintf(fp, "[");
 		for(curTilePos=0;curTilePos < index->tileLengths[curTile];curTilePos++) {
-			fprintf(fp, "%c", read[curPos]);
+			fprintf(fp, "%c", read[curPos-offset]);
 			/* Update position */
 			curPos++;
 		}   
