@@ -458,7 +458,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		numAlignEntries = 0;
 
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthread:%d\t%d", threadID, numMatches);
+			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
 
 		/* This does not work for paired end */
@@ -528,14 +528,15 @@ void *RunDynamicProgrammingThread(void *arg)
 				aEntry[i].position = position+adjustPosition; /* Adjust position */
 				aEntry[i].strand = readMatch.strand[i]; 
 				strcpy(aEntry[i].readName, readName);
+				/* Adjust based on strand */
+				if(aEntry[i].strand == REVERSE) {
+					ReverseSequence(aEntry[i].read, aEntry[i].length);
+					ReverseSequence(aEntry[i].reference, aEntry[i].length);
+				}
 
 			}
 			/* Remove duplicate alignments */
 			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Outputting %d aligns.\n",
-						numAlignEntries);
-			}
 			/* Output alignment */
 			fprintf(outputFP, "%d\n", numAlignEntries); /* We need this when merging temp files */
 			for(i=0;i<numAlignEntries;i++) {
@@ -558,6 +559,9 @@ void *RunDynamicProgrammingThread(void *arg)
 			aEntry = NULL;
 		}
 
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 	}
 
 	/* Free memory */

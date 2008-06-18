@@ -10,7 +10,14 @@
 #define MAX_ALGORITHM 1
 #define DEFAULT_ALGORITHM 0
 
-enum {HORIZONTAL, VERTICAL, DIAGONAL, GAP_OPEN, GAP_EXTENSION, NO_TYPE};
+enum {
+	HORIZONTAL,		/* 0 */ 
+	VERTICAL,		/* 1 */ 
+	DIAGONAL,		/* 2 */ 
+	GAP_OPEN,		/* 3 */ 
+	GAP_EXTENSION, 	/* 4 */
+	NO_TYPE 		/* 5 */
+};
 
 /* Align.c specific definitions */
 typedef struct {
