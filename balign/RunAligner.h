@@ -24,15 +24,14 @@ typedef struct {
 	char *notAlignedFileName;
 	RGBinary *rgBinary;
 	int offsetLength;
-	int maxNumMatches;
 	int pairedEnd;
 	int binaryInput;
 	ScoringMatrix *sm;
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, char*, char*, char*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, char*, FILE*, FILE*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, char*, char*, char*, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, char*, FILE*, FILE*, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 void GetSequenceFromReferenceGenome(RGBinary*, int, int, char, int, char*, int, int*, int*);
 void GetReverseComplimentAnyCase(char*, char*, int);

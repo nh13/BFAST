@@ -26,7 +26,9 @@ void RunAligner(RGBinary *rgBinary,
 		int numThreads,
 		char *outputID,
 		char *outputDir,
-		char *tmpDir)
+		char *tmpDir,
+		int *totalAlignTime,
+		int *totalFileHandlingTime)
 {
 	int i;
 	FILE *outputFP=NULL;
@@ -38,6 +40,10 @@ void RunAligner(RGBinary *rgBinary,
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char notAlignedFileName[MAX_FILENAME_LENGTH]="\0";
 	char tempFileName[MAX_FILENAME_LENGTH]="\0";
+	int startTime, endTime;
+
+	/* Start file handling timer */
+	startTime = time(NULL);
 
 	/* Open matches file */
 	if((matchesFP=fopen(matchesFileName, "r"))==0) {
@@ -61,7 +67,7 @@ void RunAligner(RGBinary *rgBinary,
 					ReallocMemory);
 		}
 		/* Allocate memory */
-		matchFileNames[numMatchFileNames-1] = (char*)malloc(sizeof(char)*(strlen(tempFileName)+1));
+		matchFileNames[numMatchFileNames-1] = malloc(sizeof(char)*(strlen(tempFileName)+1));
 		if(NULL==matchFileNames[numMatchFileNames-1]) {
 			PrintError("RunAligner",
 					"matchFileNames[numMatchFileNames-1]",
@@ -75,6 +81,10 @@ void RunAligner(RGBinary *rgBinary,
 
 	/* Close matches file */
 	fclose(matchesFP);
+
+	/* End file handling timer */
+	endTime = time(NULL);
+	(*totalFileHandlingTime) += endTime - startTime;
 
 	/* Create output file name */
 	sprintf(outputFileName, "%sbfast.aligned.file.%s.%d.%s",
@@ -108,8 +118,9 @@ void RunAligner(RGBinary *rgBinary,
 	}
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Will output to %s.\n", outputFileName);
-		fprintf(stderr, "Not aligned reads outputted to %s.\n", notAlignedFileName);
+		fprintf(stderr, "Will output aligned reads to %s.\n", outputFileName);
+		fprintf(stderr, "Will output unaligned reads to %s.\n", notAlignedFileName);
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
 	for(i=0;i<numMatchFileNames;i++) { /* For each match file name */
@@ -143,7 +154,9 @@ void RunAligner(RGBinary *rgBinary,
 						numThreads,
 						tmpDir,
 						outputFP,
-						notAlignedFP);
+						notAlignedFP,
+						totalAlignTime,
+						totalFileHandlingTime);
 				break;
 			default:
 				PrintError("RunAligner",
@@ -156,10 +169,9 @@ void RunAligner(RGBinary *rgBinary,
 		/* Close the match file */
 		fclose(matchFP);
 		matchFP=NULL;
-	}
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "%s", BREAK_LINE);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+		}
 	}
 
 	/* Close output file */
@@ -186,7 +198,9 @@ void RunDynamicProgramming(FILE *matchFP,
 		int numThreads,
 		char *tmpDir,
 		FILE *outputFP,
-		FILE *notAlignedFP)
+		FILE *notAlignedFP,
+		int *totalAlignTime,
+		int *totalFileHandlingTime)
 {
 	/* local variables */
 	ScoringMatrix sm;
@@ -196,10 +210,12 @@ void RunDynamicProgramming(FILE *matchFP,
 	RGMatch readMatch;
 	RGMatch pairedReadMatch;
 	int i, j;
-	int numMatches=0;
 	int continueReading=0;
 	int numAlignEntries;
-	int numAlignments=0;
+	int numMatches=0;
+	int numAligned=0;
+	int numNotAligned=0;
+	int startTime, endTime;
 	AlignEntry aEntry;
 	/* Thread specific data */
 	ThreadData *data;
@@ -230,6 +246,9 @@ void RunDynamicProgramming(FILE *matchFP,
 				MallocMemory);
 	}
 
+	/* Start file handling timer */
+	startTime = time(NULL);
+
 	/* Read in scoring matrix */
 	ReadScoringMatrix(scoringMatrixFileName, &sm); 
 
@@ -244,8 +263,11 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].notAlignedFP = OpenTmpFile(tmpDir, &data[i].notAlignedFileName); 
 	}
 
-	/* Go through each read in the match file */
-	numMatches=0;
+	/* Go through each read in the match file and partition them for the threads */
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Filtering and partitioning matches for threads...\n0");
+	}
+	i=0;
 	while(EOF!=RGMatchRead(matchFP, 
 				readName, 
 				read, 
@@ -254,20 +276,40 @@ void RunDynamicProgramming(FILE *matchFP,
 				&pairedReadMatch,
 				pairedEnd,
 				binaryInput)) {
-		/* Get the thread index - do this BEFORE incrementing */
-		int threadIndex = numMatches%numThreads;
+		if(VERBOSE >= 0 && numMatches%PARTITION_MATCHES_ROTATE_NUM==0) {
+			fprintf(stderr, "\r[%d]", numMatches);
+		}
 		/* increment */
 		numMatches++;
 
-		/* Print match to temp file */
-		RGMatchPrint(data[threadIndex].inputFP,
-				readName,
-				read,
-				pairedRead,
-				&readMatch,
-				&pairedReadMatch,
-				pairedEnd,
-				binaryInput);
+		/* Filter those reads we will not be able to align */
+		if( (readMatch.maxReached == 1 && (pairedEnd == 0 || pairedReadMatch.maxReached == 1)) ||
+				readMatch.numEntries == 0 ||
+				(pairedEnd == 1 && pairedReadMatch.numEntries == 0) ||
+				(maxNumMatches != 0 && readMatch.numEntries > maxNumMatches && (pairedEnd == 0 || pairedReadMatch.numEntries > maxNumMatches))) {
+			numNotAligned++;
+			RGMatchPrint(notAlignedFP,
+					readName,
+					read,
+					pairedRead,
+					&readMatch,
+					&pairedReadMatch,
+					pairedEnd,
+					0);
+		}
+		else {
+			/* Print match to temp file */
+			RGMatchPrint(data[i].inputFP,
+					readName,
+					read,
+					pairedRead,
+					&readMatch,
+					&pairedReadMatch,
+					pairedEnd,
+					binaryInput);
+			/* Increment */
+			i = (i+1)%numThreads;
+		}
 
 		/* Free match */
 		RGMatchFree(&readMatch);
@@ -275,6 +317,17 @@ void RunDynamicProgramming(FILE *matchFP,
 			RGMatchFree(&pairedReadMatch);
 		}
 	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\r[%d]\n", numMatches);
+		fprintf(stderr, "Initially filtered %d out of %d reads.\n",
+				numNotAligned,
+				numMatches);
+	}
+
+
+	/* End file handling timer */
+	endTime = time(NULL);
+	(*totalFileHandlingTime) += endTime - startTime;
 
 	/* Create thread arguments */
 	for(i=0;i<numThreads;i++) {
@@ -282,7 +335,6 @@ void RunDynamicProgramming(FILE *matchFP,
 		fseek(data[i].outputFP, 0, SEEK_SET);
 		data[i].rgBinary=rgBinary;
 		data[i].offsetLength=offsetLength;
-		data[i].maxNumMatches=maxNumMatches;
 		data[i].pairedEnd=pairedEnd;
 		data[i].binaryInput=binaryInput;
 		data[i].sm = &sm;
@@ -293,6 +345,9 @@ void RunDynamicProgramming(FILE *matchFP,
 		fprintf(stderr, "Performing alignment...\n");
 		fprintf(stderr, "Currently on:\n0");
 	}
+
+	/* Start align timer */
+	startTime = time(NULL);
 
 	/* Create threads */
 	for(i=0;i<numThreads;i++) {
@@ -340,6 +395,13 @@ void RunDynamicProgramming(FILE *matchFP,
 		fprintf(stderr, "Alignment complete.\n");
 	}
 
+	/* End align timer */
+	endTime = time(NULL);
+	(*totalAlignTime) += endTime - startTime;
+
+	/* Start file handling timer */
+	startTime = time(NULL);
+
 	/* Close tmp input files */
 	for(i=0;i<numThreads;i++) {
 		CloseTmpFile(&data[i].inputFP, &data[i].inputFileName);
@@ -363,12 +425,11 @@ void RunDynamicProgramming(FILE *matchFP,
 				MallocMemory);
 	}
 
+	/* Merge all the aligned reads from the threads */
 	if(VERBOSE >=0) {
-		fprintf(stderr, "Outputting...\n");
+		fprintf(stderr, "Merging and outputting aligned reads from threads...\n[0]");
 	}
-
-	/* Merge all the outputs together */
-	numAlignments=0;
+	numAligned=0;
 	continueReading=1;
 	while(continueReading==1) {
 		/* Get one align from each thread */
@@ -376,9 +437,12 @@ void RunDynamicProgramming(FILE *matchFP,
 		for(i=0;i<numThreads;i++) {
 			/* First get the number of align entries */
 			if(EOF != fscanf(data[i].outputFP, "%d", &numAlignEntries)) {
+				if(VERBOSE >=0 && numAligned%ALIGN_ROTATE_NUM == 0) {
+					fprintf(stderr, "\r[%d]", numAligned);
+				}
 				continueReading=1;
 				assert(numAlignEntries >= 0);
-				numAlignments++;
+				numAligned++;
 				for(j=0;j<numAlignEntries;j++) {
 					/* Read in the align entry */
 					if(EOF==AlignEntryRead(&aEntry,
@@ -396,9 +460,14 @@ void RunDynamicProgramming(FILE *matchFP,
 			}
 		}
 	}
+	if(VERBOSE >=0) {
+		fprintf(stderr, "\r[%d]\n", numAligned);
+	}
 
 	/* Merge the not aligned tmp files */
-	/* Go through each thread */
+	if(VERBOSE >=0) {
+		fprintf(stderr, "Merging and outputting unaligned reads from threads and initial filter...\n");
+	}
 	for(i=0;i<numThreads;i++) {
 		/* Move to the beginning of the file */
 		fseek(data[i].notAlignedFP, 0, SEEK_SET);
@@ -410,16 +479,20 @@ void RunDynamicProgramming(FILE *matchFP,
 			RGMatchInitialize(&pairedReadMatch);
 			/* Read in one match */
 			if(RGMatchRead(data[i].notAlignedFP,
-					readName,
-					read,
-					pairedRead,
-					&readMatch,
-					&pairedReadMatch,
-					pairedEnd,
-					0) == EOF) {
+						readName,
+						read,
+						pairedRead,
+						&readMatch,
+						&pairedReadMatch,
+						pairedEnd,
+						0) == EOF) {
 				continueReading = 0;
 			}
 			else {
+				if(VERBOSE >= 0 && numNotAligned%ALIGN_ROTATE_NUM==0) {
+					fprintf(stderr, "\r[%d]", numNotAligned);
+				}
+				numNotAligned++;
 				RGMatchPrint(notAlignedFP,
 						readName,
 						read,
@@ -434,6 +507,9 @@ void RunDynamicProgramming(FILE *matchFP,
 			}
 		}
 	}
+	if(VERBOSE >=0) {
+		fprintf(stderr, "\r[%d]\n", numNotAligned);
+	}
 
 	/* Close tmp output files */
 	for(i=0;i<numThreads;i++) {
@@ -441,10 +517,16 @@ void RunDynamicProgramming(FILE *matchFP,
 		CloseTmpFile(&data[i].notAlignedFP, &data[i].notAlignedFileName);
 	}
 
+	/* Start file handling timer */
+	endTime = time(NULL);
+	(*totalFileHandlingTime) += endTime - startTime;
+
 	if(VERBOSE >=0) {
-		fprintf(stderr, "Outputted alignments for %d reads.\n", numAlignments);
+		fprintf(stderr, "Outputted alignments for %d reads.\n", numAligned);
+		fprintf(stderr, "Outputted %d reads for which there were no alignments.\n", numNotAligned); 
 		fprintf(stderr, "Outputting complete.\n");
 	}
+	assert(numAligned + numNotAligned == numMatches);
 
 	/* Free memory */
 	free(data);
@@ -466,10 +548,11 @@ void *RunDynamicProgrammingThread(void *arg)
 	ThreadData *data = (ThreadData *)(arg);
 	FILE *inputFP=data->inputFP;
 	FILE *outputFP=data->outputFP;
+	/*
 	FILE *notAlignedFP = data->notAlignedFP;
+	*/
 	RGBinary *rgBinary=data->rgBinary;
 	int offsetLength=data->offsetLength;
-	int maxNumMatches=data->maxNumMatches;
 	int pairedEnd=data->pairedEnd;
 	int binaryInput=data->binaryInput;
 	int threadID=data->threadID;
@@ -479,19 +562,19 @@ void *RunDynamicProgrammingThread(void *arg)
 	int numAlignEntries=0;
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
-	char reverseRead[SEQUENCE_LENGTH]="\0";
 	char pairedRead[SEQUENCE_LENGTH]="\0";
 	RGMatch readMatch;
 	RGMatch pairedReadMatch;
 	int readLength;
 	char *reference=NULL;
+	char *reverseReference=NULL;
 	int referenceLength=0;
 	int adjustPosition=0;
 	int i;
 	int position;
 	int numMatches=0;
-	int numMatchesAligned=0;
-	int aligned;
+
+	/* For paired end, we will need notAlignedFP if we filter out an reads */
 
 	/* Initialize match */
 	RGMatchInitialize(&readMatch);
@@ -499,7 +582,7 @@ void *RunDynamicProgrammingThread(void *arg)
 
 	/* Allocate memory for the reference */
 	referenceLength = 2*offsetLength + SEQUENCE_LENGTH + 1;
-	reference = (char*)malloc(sizeof(char)*(referenceLength+1));
+	reference = malloc(sizeof(char)*(referenceLength+1));
 	if(NULL==reference) {
 		PrintError("RunDynamicProgrammingThread",
 				"reference",
@@ -508,6 +591,17 @@ void *RunDynamicProgrammingThread(void *arg)
 				MallocMemory);
 	}
 	reference[referenceLength] = '\0'; /* Add null terminator */
+
+	/* Allocate memory for a tmp sring */
+	reverseReference = malloc(sizeof(char)*referenceLength+1);
+	if(NULL==reverseReference) {
+		PrintError("RunDynamicProgrammingThread",
+				"reverseReference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	reverseReference[referenceLength] = '\0'; /* Add null terminator */
 
 	/* Go through each read in the match file */
 	while(EOF!=RGMatchRead(inputFP, 
@@ -521,109 +615,87 @@ void *RunDynamicProgrammingThread(void *arg)
 		numMatches++;
 
 		numAlignEntries = 0;
-		aligned = 0;
 
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
 
-		/* This does not work for paired end */
-		assert(pairedEnd == 0);
-		if(readMatch.maxReached == 0 && readMatch.numEntries > 0 && (maxNumMatches == 0 || readMatch.numEntries < maxNumMatches)) {
+		/* Get the read length */
+		readLength = strlen(read);
+		assert(readLength+2*offsetLength < SEQUENCE_LENGTH);
 
-			/* Get the read length */
-			readLength = strlen(read);
-			assert(readLength+2*offsetLength < SEQUENCE_LENGTH);
+		/* Paired end not implemented */
+		assert(readMatch.numEntries > 0);
+		assert(pairedEnd==0);
 
-			/* Allocate memory for the AlignEntries */
-			if(readMatch.numEntries > 0) {
-				aEntry = (AlignEntry*)malloc(sizeof(AlignEntry)*readMatch.numEntries);
-				if(NULL == aEntry) {
-					PrintError("RunDynamicProgrammingThread",
-							"aEntry",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
-				}
+		/* Allocate memory for the AlignEntries */
+			aEntry = malloc(sizeof(AlignEntry)*readMatch.numEntries);
+			if(NULL == aEntry) {
+				PrintError("RunDynamicProgrammingThread",
+						"aEntry",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
 			}
 
-			/* Run the aligner */
-			assert(pairedEnd==0);
-			if(readMatch.numEntries > 0) {
-				numMatchesAligned++;
-			}
-			for(i=0;i<readMatch.numEntries;i++) { /* For each match */
+		/* Run the aligner */
+		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
 
-				/* Get the appropriate reference read */
-				RGBinaryGetSequence(rgBinary,
-						readMatch.chromosomes[i], 
-						readMatch.positions[i],
-						FORWARD, /* We have been just reversing the read instead of the reference */
-						offsetLength,
-						reference,
+			/* Get the appropriate reference read */
+			RGBinaryGetSequence(rgBinary,
+					readMatch.chromosomes[i], 
+					readMatch.positions[i],
+					FORWARD, /* We have been just reversing the read instead of the reference */
+					offsetLength,
+					reference,
+					readLength,
+					&referenceLength,
+					&position);
+			assert(referenceLength > 0);
+
+			/* If the direction was reverse, then give the
+			 * reverse compliment for the read.
+			 * */
+			if(readMatch.strand[i] == REVERSE) {
+				GetReverseComplimentAnyCase(reference, reverseReference, referenceLength);
+				/* Get alignment */
+				adjustPosition=AlignmentGetScore(read,
 						readLength,
-						&referenceLength,
-						&position);
-				assert(referenceLength > 0);
+						reverseReference,
+						referenceLength,
+						sm,
+						&aEntry[i]);
+			}
+			else {
+				/* Get alignment */
+				adjustPosition=AlignmentGetScore(read,
+						readLength,
+						reference,
+						referenceLength,
+						sm,
+						&aEntry[i]);
+			}
+			assert(adjustPosition >= 0 && adjustPosition <= aEntry[i].length);
 
-				/* If the direction was reverse, then give the
-				 * reverse compliment.
-				 * */
-				if(readMatch.strand[i] == REVERSE) {
-					GetReverseComplimentAnyCase(read, reverseRead, strlen(read));
-					/* Get alignment */
-					adjustPosition=AlignmentGetScore(reverseRead,
-							readLength,
-							reference,
-							referenceLength,
-							sm,
-							&aEntry[i]);
-				}
-				else {
-
-					/* Get alignment */
-					adjustPosition=AlignmentGetScore(read,
-							readLength,
-							reference,
-							referenceLength,
-							sm,
-							&aEntry[i]);
-				}
-
-				/* Update chromosome, position, strand and sequence name*/
-				aEntry[i].chromosome = readMatch.chromosomes[i];
-				aEntry[i].position = position+adjustPosition; /* Adjust position */
-				aEntry[i].strand = readMatch.strand[i]; 
-				strcpy(aEntry[i].readName, readName);
-			}
-			/* Remove duplicate alignments */
-			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
-			/* Update whether we aligned */
-			if(numAlignEntries > 0) {
-				aligned = 1;
-			}
-			/* Output alignment */
-			fprintf(outputFP, "%d\n", numAlignEntries); /* We need this when merging temp files */
-			for(i=0;i<numAlignEntries;i++) {
-				AlignEntryPrint(&aEntry[i], outputFP);
-			}
-			/* Free memory */
-			for(i=0;i<numAlignEntries;i++) {
-				assert(aEntry[i].length>0);
-				free(aEntry[i].read);
-				free(aEntry[i].reference);
-			}
+			/* Update chromosome, position, strand and sequence name*/
+			aEntry[i].chromosome = readMatch.chromosomes[i];
+			aEntry[i].position = position+adjustPosition; /* Adjust position */
+			aEntry[i].strand = readMatch.strand[i]; 
+			strcpy(aEntry[i].readName, readName);
 		}
-		if(0 == aligned) {
-			/* Print out the sequences we could not match */
-			RGMatchPrint(notAlignedFP,
-					readName,
-					read,
-					pairedRead,
-					&readMatch,
-					&pairedReadMatch,
-					pairedEnd,
-					0);
+		/* Remove duplicate alignments */
+		numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
+		assert(numAlignEntries > 0);
+		/* Output alignment */
+		fprintf(outputFP, "%d\n", numAlignEntries); /* We need this when merging temp files */
+		for(i=0;i<numAlignEntries;i++) {
+			AlignEntryPrint(&aEntry[i], outputFP);
+		}
+		/* Free memory */
+		for(i=0;i<numAlignEntries;i++) {
+			assert(aEntry[i].length>0);
+			free(aEntry[i].read);
+			free(aEntry[i].reference);
 		}
 		/* Free match */
 		RGMatchFree(&readMatch);
@@ -642,6 +714,7 @@ void *RunDynamicProgrammingThread(void *arg)
 
 	/* Free memory */
 	free(reference);
+	free(reverseReference);
 
 	return arg;
 }

@@ -134,6 +134,7 @@ main (int argc, char **argv)
 	time_t endTime;
 	int totalReferenceGenomeTime = 0; /* Total time to load and delete the reference genome */
 	int totalAlignTime = 0; /* Total time to align the reads */
+	int totalFileHandlingTime = 0; /* Total time partitioning and merging matches and alignments respectively */
 	int seconds, minutes, hours;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
@@ -174,7 +175,6 @@ main (int argc, char **argv)
 						endTime = time(NULL);
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
-						startTime = time(NULL);
 						RunAligner(&rg,
 								arguments.matchesFileName,
 								arguments.scoringMatrixFileName,
@@ -186,9 +186,9 @@ main (int argc, char **argv)
 								arguments.numThreads,
 								arguments.outputID,
 								arguments.outputDir,
-								arguments.tmpDir);
-						endTime = time(NULL);
-						totalAlignTime = endTime - startTime;
+								arguments.tmpDir,
+								&totalAlignTime,
+								&totalFileHandlingTime);
 						/* Free the Reference Genome */
 						RGBinaryDelete(&rg);
 						break;
@@ -220,6 +220,18 @@ main (int argc, char **argv)
 					minutes = seconds/60;
 					seconds -= minutes*60;
 					fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
+							hours,
+							minutes,
+							seconds
+						   );
+
+					/* Output file handling time */
+					seconds = totalFileHandlingTime;
+					hours = seconds/3600;
+					seconds -= hours*3600;
+					minutes = seconds/60;
+					seconds -= minutes*60;
+					fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
 							hours,
 							minutes,
 							seconds
