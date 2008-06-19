@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 /* Program defaults */
+#define PROGRAM_NAME "bfast"
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
 #define DEFAULT_OUTPUT_ID "OutputID"
@@ -25,7 +26,8 @@
 #define RGINDEX_ROTATE_NUM 1000000
 #define SORT_ROTATE_INC 0.01
 #define RGINDEX_SORT_ROTATE_INC 0.001
-#define ALIGN_ROTATE_NUM 10000
+#define ALIGN_ROTATE_NUM 100000
+#define PARTITION_MATCHES_ROTATE_NUM 100000
 #define BFAST_TMP_TEMPLATE ".bfast.tmp.XXXXXX"
 
 /* For printing to stderr */

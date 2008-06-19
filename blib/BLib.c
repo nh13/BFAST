@@ -90,6 +90,12 @@ char GetReverseComplimentAnyCaseBase(char a) {
 		case 'T':
 			return 'A';
 			break;
+		case 'N':
+			return 'N';
+			break;
+		case GAP:
+			return GAP;
+			break;
 		default:
 			PrintError("GetReverseComplimentAnyCaseBase",
 					NULL,

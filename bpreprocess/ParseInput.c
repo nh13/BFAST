@@ -194,8 +194,9 @@ main (int argc, char **argv)
 										arguments.startPos,
 										arguments.endChr,
 										arguments.endPos);
-								sprintf(outputFileName, "%sbfast.rg.file.%s.%d.%d.%d.%d.%s",
+								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%d.%d.%d.%s",
 										arguments.outputDir,
+										PROGRAM_NAME,
 										arguments.outputID,
 										rg.startChr,
 										rg.startPos,

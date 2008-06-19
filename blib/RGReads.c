@@ -72,6 +72,7 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapDeletions);
 
 	/* Merge all reads */
+	/* This may be necessary for a large number of generated reads, but omit for now */
 	/*
 	   if(numMismatches > 0 || 
 	   numInsertions > 0 ||

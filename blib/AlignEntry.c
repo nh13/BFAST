@@ -4,6 +4,7 @@
 #include <math.h>
 #include <assert.h>
 #include "BError.h"
+#include "BLib.h"
 #include "AlignEntry.h"
 
 /* TODO */
@@ -29,6 +30,8 @@ void AlignEntryPrint(AlignEntry *aEntry,
 int AlignEntryRead(AlignEntry *aEntry,
 		FILE *inputFP)
 {
+	int i;
+
 	/* Read the read name, alignment length, chromosome, position, strand, score */
 	if(fscanf(inputFP, "%s %d %d %d %c %lf\n",
 				aEntry->readName,
@@ -55,6 +58,15 @@ int AlignEntryRead(AlignEntry *aEntry,
 				Exit,
 				EndOfFile);
 	}
+
+	/* Update reference length */
+	aEntry->referenceLength = aEntry->length;
+	for(i=0;i<aEntry->length;i++) {
+		if(GAP == aEntry->reference[i]) {
+			aEntry->referenceLength--;
+		}
+	}
+	assert(aEntry->referenceLength >= 0 && aEntry->referenceLength <= aEntry->length);
 
 	return 1;
 }
@@ -196,22 +208,6 @@ void AlignEntryQuickSort(AlignEntry **a,
 			}
 		}
 	}
-}
-
-/* TODO */
-void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int destIndex)
-{
-	if(dest != src || srcIndex != destIndex) {
-		strcpy(dest[destIndex].readName, src[srcIndex].readName);
-		dest[destIndex].read = src[srcIndex].read;
-		dest[destIndex].reference = src[srcIndex].reference;
-		dest[destIndex].length = src[srcIndex].length;
-		dest[destIndex].chromosome = src[srcIndex].chromosome;
-		dest[destIndex].position = src[srcIndex].position;
-		dest[destIndex].strand = src[srcIndex].strand;
-		dest[destIndex].score = src[srcIndex].score;
-	}
-
 }
 
 /* TODO */
@@ -449,14 +445,75 @@ int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
 	return numEntries;
 }
 
+/* TODO */
+void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int destIndex)
+{
+	if(dest != src || srcIndex != destIndex) {
+		strcpy(dest[destIndex].readName, src[srcIndex].readName);
+		dest[destIndex].read = src[srcIndex].read;
+		dest[destIndex].reference = src[srcIndex].reference;
+		dest[destIndex].length = src[srcIndex].length;
+		dest[destIndex].referenceLength = src[srcIndex].referenceLength;
+		dest[destIndex].chromosome = src[srcIndex].chromosome;
+		dest[destIndex].position = src[srcIndex].position;
+		dest[destIndex].strand = src[srcIndex].strand;
+		dest[destIndex].score = src[srcIndex].score;
+	}
+
+}
+
+/* TODO */
 void AlignEntryCopy(AlignEntry *src, AlignEntry *dst)
 {
-	strcpy(dst->readName, src->readName);
-	strcpy(dst->read, src->read);
-	strcpy(dst->reference, src->reference);
-	dst->length = src->length;
-	dst->chromosome = src->chromosome;
-	dst->position = src->position;
-	dst->strand = src->strand;
-	dst->score = src->score;
+	if(src != dst) {
+		strcpy(dst->readName, src->readName);
+		strcpy(dst->read, src->read);
+		strcpy(dst->reference, src->reference);
+		dst->length = src->length;
+		dst->referenceLength = src->referenceLength;
+		assert(dst->referenceLength >= 0 && dst->referenceLength <= dst->length);
+		dst->chromosome = src->chromosome;
+		dst->position = src->position;
+		dst->strand = src->strand;
+		dst->score = src->score;
+	}
+}
+
+/* TODO */
+/* Debugging function */
+void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg)
+{
+	char *FnName = "AlignEntryCheckReference";
+	int i;
+	int curPos;
+	char rgBase;
+	char reference[SEQUENCE_LENGTH]="\0";
+	
+	if(aEntry->strand == REVERSE) {
+		GetReverseComplimentAnyCase(aEntry->reference, reference, aEntry->length);
+	}
+	else {
+		strcpy(reference, aEntry->reference);
+	}
+
+	for(i=0, curPos = aEntry->position;i<aEntry->length;i++) {
+		if(reference[i] != GAP) {
+			rgBase = RGBinaryGetBase(rg, aEntry->chromosome, curPos);	
+			if(rgBase != reference[i]) {
+				fprintf(stderr, "\n[%d]\t[%d]\n[%c]\t[%c]\n[%s]\n",
+						curPos,
+						i,
+						reference[i],
+						rgBase,
+						reference);
+				AlignEntryPrint(aEntry, stderr);
+				PrintError(FnName,
+						NULL,
+						"Reference in the align entry does not match the reference genome",
+						Exit,
+						OutOfRange);
+			}
+			curPos++;
+		}
+	}
 }

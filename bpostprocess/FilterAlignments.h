@@ -15,6 +15,7 @@ void FilterAlignments(char*,
 		int,
 		char*,
 		char*,
+		char*,
 		int);
 
 int FilterEntries(AlignEntry**,

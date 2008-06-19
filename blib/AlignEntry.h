@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "BLibDefinitions.h"
+#include "RGBinary.h"
 
 enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
 
@@ -28,4 +29,5 @@ int AlignEntryCompareAtIndex(AlignEntry*, int, AlignEntry*, int, int);
 int AlignEntryGetOneRead(AlignEntry**, FILE*);
 int AlignEntryGetAll(AlignEntry**, FILE*);
 void AlignEntryCopy(AlignEntry*, AlignEntry*);
+void AlignEntryCheckReference(AlignEntry*, RGBinary*);
 #endif

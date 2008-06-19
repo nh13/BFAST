@@ -172,8 +172,9 @@ main (int argc, char **argv)
 						/* Execute Program */
 
 						/* Create output file name */
-						sprintf(outputFileName, "%sbfast.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+						sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 								arguments.outputDir,
+								PROGRAM_NAME,
 								arguments.outputID,
 								arguments.startReadNum,
 								arguments.endReadNum,

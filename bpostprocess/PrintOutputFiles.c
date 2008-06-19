@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
@@ -18,6 +19,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 		int startPos,
 		int endChr,
 		int endPos,
+		char *tmpDir,
 		ChrFiles *chrFiles)
 {
 	int i, numEntries, chrIndex, regionIndex, startIndex, curRead;
@@ -26,6 +28,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 
 	/* Initialize */
 	chrFiles->files = NULL;
+	chrFiles->fileNames = NULL;
 	chrFiles->numFiles = 0;
 
 	if(VERBOSE >= 0) {
@@ -40,11 +43,10 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 		curRead++;
 
 		if(VERBOSE >= 0 && curRead%ROTATE_BINNING == 0) {
-			fprintf(stderr, "\r%d", curRead);
+			fprintf(stderr, "\r[%d]", curRead);
 		}
 
 		/* Apply filtering */
-			fprintf(stderr, "HERE 1\t%d\n", curRead);
 		numEntries = FilterEntries(&entries,
 				numEntries,
 				uniqueMatches,
@@ -54,10 +56,10 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 				startPos,
 				endChr,
 				endPos);
-			fprintf(stderr, "HERE 2\t%d\n", curRead);
 
 		/* Output if there is only one entry left after filtering */
 		if(numEntries==1) {
+			
 			/* Get the correct file to which to print for the start of the read */
 			chrIndex = entries[0].chromosome - startChr;
 			assert(chrIndex==0);
@@ -76,9 +78,17 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 							Exit,
 							ReallocMemory);
 				}
+				chrFiles->fileNames = realloc(chrFiles->fileNames, sizeof(char*)*(chrFiles->numFiles));
+				if(NULL==chrFiles->fileNames) {
+					PrintError(FnName,
+							"chrFiles->fileNames",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
 				/* Open new temp files */
 				for(i=startIndex;i<chrFiles->numFiles;i++) {
-					chrFiles->files[i] = tmpfile();
+					chrFiles->files[i] = OpenTmpFile(tmpDir, &chrFiles->fileNames[i]);
 					if(chrFiles->files[i] == NULL) {
 						fprintf(stderr, "i:%d\n", i);
 						PrintError(FnName,
@@ -112,9 +122,17 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 								Exit,
 								ReallocMemory);
 					}
+					chrFiles->fileNames = realloc(chrFiles->fileNames, sizeof(char*)*(chrFiles->numFiles));
+					if(NULL==chrFiles->fileNames) {
+						PrintError(FnName,
+								"chrFiles->fileNames",
+								"Could not reallocate memory",
+								Exit,
+								ReallocMemory);
+					}
 					/* Open new temp files */
 					for(i=startIndex;i<chrFiles->numFiles;i++) {
-						chrFiles->files[i] = tmpfile();
+						chrFiles->files[i] = OpenTmpFile(tmpDir, &chrFiles->fileNames[i]);
 						if(chrFiles->files[i] == NULL) {
 							fprintf(stderr, "i:%d\n", i);
 							PrintError(FnName,
@@ -231,28 +249,32 @@ void PrintAlignEntries(ChrFiles *chrFile,
 			/* Create only one output file */
 			assert(numOutputFPs==1);
 			/* Create output file name */
-			sprintf(outputFileNames[0], "%sblatter.%s.%d.%s",
+			sprintf(outputFileNames[0], "%s%s.%s.%d.%s",
 					outputDir,
+					PROGRAM_NAME,
 					outputID,
 					curChr,
 					"wig");
 			break;
 		case BedFile:
 			assert(numOutputFPs==3);
-			sprintf(outputFileNames[0], "%sblatter.%s.%s.%d.%s",
+			sprintf(outputFileNames[0], "%s%s.%s.%s.%d.%s",
 					outputDir,
+					PROGRAM_NAME,
 					outputID,
 					"mismatches",
 					curChr,
 					"bed");
-			sprintf(outputFileNames[1], "%sblatter.%s.%s.%d.%s",
+			sprintf(outputFileNames[1], "%s%s.%s.%s.%d.%s",
 					outputDir,
+					PROGRAM_NAME,
 					outputID,
 					"insertions",
 					curChr,
 					"bed");
-			sprintf(outputFileNames[2], "%sblatter.%s.%s.%d.%s",
+			sprintf(outputFileNames[2], "%s%s.%s.%s.%d.%s",
 					outputDir,
+					PROGRAM_NAME,
 					outputID,
 					"deletions",
 					curChr,
@@ -289,8 +311,7 @@ void PrintAlignEntries(ChrFiles *chrFile,
 		numEntries=AlignEntryGetAll(&entries, chrFile->files[i]);
 
 		/* Close the file */
-		fclose(chrFile->files[i]);
-		chrFile->files[i] = NULL;
+		CloseTmpFile(&chrFile->files[i], &chrFile->fileNames[i]);
 
 		/* Output the entries */
 		if(numEntries > 0) {
@@ -310,6 +331,10 @@ void PrintAlignEntries(ChrFiles *chrFile,
 					1,
 					&curPercent,
 					numEntries);
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\r%3.2lf\n",
+						100.0);
+			}
 
 			switch(outputFormat) {
 				case BAlignFile:
@@ -378,43 +403,88 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 		int curChr,
 		FILE *outputFP)
 {
+	char *FnName = "PrintSortedAlignEntriesToWig";
+	char tmpRead[SEQUENCE_LENGTH]="\0";
+	char tmpReference[SEQUENCE_LENGTH]="\0";
 	int i, j;
 	int curPos, coverage;
 	int startIndex, curIndex;
-	char reference = '\0';
+	char referenceBase = '\0';
 	assert(numEntries > 0);
 
 	/* Go through each position */
 	curPos = entries[0].position;
 	startIndex = 0;
 	while(startIndex < numEntries) {
-		/* Get the coverage */
+		/* Get the coverage for that position */
 		for(curIndex=startIndex, coverage=0;
 				curIndex < numEntries &&
 				entries[curIndex].position <= curPos &&
 				curPos <= entries[curIndex].position + entries[curIndex].referenceLength - 1;
 				curIndex++, coverage++) {
-			/* Go the base in the reference */
+			/*
+			fprintf(stderr, "[%d]\t[%d]\t[%u]\t[%u]\n",
+					curPos,
+					entries[curIndex].position,
+					entries[curIndex].length,
+					entries[curIndex].referenceLength);
+					*/
+
+			/* Alignment and coverage depend on strandedness */
+			switch(entries[curIndex].strand) {
+				case FORWARD:
+					strcpy(tmpRead, entries[curIndex].read);
+					strcpy(tmpReference, entries[curIndex].reference);
+					break;
+				case REVERSE:
+					GetReverseComplimentAnyCase(entries[curIndex].read, tmpRead, entries[curIndex].length);
+					GetReverseComplimentAnyCase(entries[curIndex].reference, tmpReference, entries[curIndex].length);
+					break;
+				default:
+					PrintError(FnName,
+							"entries[curIndex].strand",
+							"Could not understand strand",
+							Exit,
+							OutOfRange);
+					break;
+			}
+			/* Convert all to upper case */
+			for(i=0;i<entries[curIndex].length;i++) {
+				tmpRead[i] = ToUpper(tmpRead[i]);
+				tmpReference[i] = ToUpper(tmpReference[i]);
+			}
+			/* Now everthing should be relative to the + strand */
+
+			/* Go to the base in the reference for this entry */
 			i = entries[curIndex].position;
 			j = 0;
 			while(i<curPos && j<entries[curIndex].length) {
 				/* Update position if it is not a gap */
-				if(entries[curIndex].reference[j] != GAP) {
+				if(tmpReference[j] != GAP) {
 					i++;
 				}
 				j++;
 			}
-			while(j<entries[curIndex].length && entries[curIndex].reference[j] == GAP) {
+			while(j<entries[curIndex].length && tmpReference[j] == GAP) {
 				j++;
 			}
-			assert(j<entries[curIndex].length); /* by definition that we are in the for loop */
+			assert(j<entries[curIndex].length); /* by definition that we went into the for loop */
 			assert(i==curPos);
 			/* Check that the reference sequence matches */
 			if(coverage==0) {
-				reference = ToUpper(entries[curIndex].reference[j]);
+				referenceBase = tmpReference[j];
 			}
 			else {
-				assert(reference == ToUpper(entries[curIndex].reference[j]));
+				if(!(referenceBase == tmpReference[j])) {
+					fprintf(stderr, "%c\t%c\n",
+							referenceBase,
+							tmpReference[j]);
+					fprintf(stderr, "%s\n%s\n",
+							tmpReference,
+							tmpRead);
+					AlignEntryPrint(&entries[curIndex], stderr);
+				}
+				assert(referenceBase == tmpReference[j]);
 			}
 		}
 
@@ -451,7 +521,9 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 	int startIndex, curIndex;
 	int numF[5]={0,0,0,0,0}; /* A, C, G, T, Deletion */
 	int numR[5]={0,0,0,0,0}; /* A, C, G, T, Deletion */
-	char reference = '\0';
+	char tmpRead[SEQUENCE_LENGTH]="\0";
+	char tmpReference[SEQUENCE_LENGTH]="\0";
+	char referenceBase = '\0';
 	assert(numEntries > 0);
 
 	/* Go through each position */
@@ -461,7 +533,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 		/* Initialize */
 		numF[0]=numF[1]=numF[2]=numF[3]=numF[4]=0;
 		numR[0]=numR[1]=numR[2]=numR[3]=numR[4]=0;
-		reference = '\0';
+		referenceBase = '\0';
 		coverage = 0;
 		/* Go through each entry within bounds */
 		for(curIndex=startIndex, coverage=0;
@@ -469,11 +541,38 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 				entries[curIndex].position <= curPos &&
 				curPos <= entries[curIndex].position + entries[curIndex].referenceLength - 1;
 				curIndex++, coverage++) {
+			/* Alignment and coverage depend on strandedness */
+			switch(entries[curIndex].strand) {
+				case FORWARD:
+					strcpy(tmpRead, entries[curIndex].read);
+					strcpy(tmpReference, entries[curIndex].reference);
+					break;
+				case REVERSE:
+					assert(strlen(entries[curIndex].read) == entries[curIndex].length);
+					assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
+					GetReverseComplimentAnyCase(entries[curIndex].read, tmpRead, entries[curIndex].length);
+					GetReverseComplimentAnyCase(entries[curIndex].reference, tmpReference, entries[curIndex].length);
+					break;
+				default:
+					PrintError(FnName,
+							"entries[curIndex].strand",
+							"Could not understand strand",
+							Exit,
+							OutOfRange);
+					break;
+			}
+			/* Convert all to upper case */
+			for(i=0;i<entries[curIndex].length;i++) {
+				tmpRead[i] = ToUpper(tmpRead[i]);
+				tmpReference[i] = ToUpper(tmpReference[i]);
+			}
+			/* Now everthing should be relative to the + strand */
+
 			/* Go the base in the reference */
 			i = entries[curIndex].position;
 			j = 0;
 			while(i<curPos && j<entries[curIndex].length) {
-				if(entries[curIndex].reference[j] == GAP) {
+				if(tmpReference[j] == GAP) {
 					/* Skip over */
 					j++;
 				}
@@ -482,34 +581,30 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 					j++;
 				}
 			}
-			while(j<entries[curIndex].length && entries[curIndex].reference[j] == GAP) {
+			while(j<entries[curIndex].length && tmpReference[j] == GAP) {
 				j++;
 			}
 			assert(j<entries[curIndex].length); /* by definition that we are in the for loop */
 			assert(i==curPos);
 			/* Check that the reference sequence matches */
 			if(coverage==0) {
-				reference = ToUpper(entries[curIndex].reference[j]);
+				referenceBase = tmpReference[j];
 			}
 			else {
-				assert(reference == ToUpper(entries[curIndex].reference[j]));
+				assert(referenceBase == tmpReference[j]);
 			}
 			/* Get mismatches and deletions */
-			switch(entries[curIndex].read[j]) {
+			switch(tmpRead[j]) {
 				case 'A':
-				case 'a':
 					(entries[curIndex].strand==FORWARD)?(numF[0]++):(numR[0]++);
 					break;
 				case 'C':
-				case 'c':
 					(entries[curIndex].strand==FORWARD)?(numF[1]++):(numR[1]++);
 					break;
 				case 'G':
-				case 'g':
 					(entries[curIndex].strand==FORWARD)?(numF[2]++):(numR[2]++);
 					break;
 				case 'T':
-				case 't':
 					(entries[curIndex].strand==FORWARD)?(numF[3]++):(numR[3]++);
 					break;
 				case GAP:
@@ -524,9 +619,9 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 					break;
 			}
 			/* Get insertions */
-			if(entries[curIndex].reference[j] !=GAP && /* No gap at the current position */
+			if(tmpReference[j] !=GAP && /* No gap at the current position */
 					j<entries[curIndex].referenceLength-1 && /* There are more bases in the alignment */
-					entries[curIndex].reference[j+1] == GAP) { /* The next base is a gap */
+					tmpReference[j+1] == GAP) { /* The next base is a gap */
 				/* We started a gap */
 				fprintf(outputFPs[1], "chr%d\t%d\t%d\t",
 						curChr,
@@ -535,7 +630,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 				/* Print the insertion */
 				for(i=j+1;
 						i<entries[curIndex].referenceLength &&
-						entries[curIndex].reference[i] == GAP;
+						tmpReference[i] == GAP;
 						i++) {
 					fprintf(outputFPs[1], "%c",
 							entries[curIndex].read[i]);
@@ -547,7 +642,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 		/* Print the coverage if it is > 0 */
 		if(coverage > 0) {
 			int i = -1;
-			switch(reference) {
+			switch(referenceBase) {
 				case 'A':
 					i = 0;
 					break;
@@ -562,8 +657,8 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 					break;
 				default:
 					PrintError(FnName,
-							"reference",
-							"Could not understand reference",
+							"referenceBase ",
+							"Could not understand reference base",
 							Exit,
 							OutOfRange);
 			}
@@ -573,7 +668,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 						curChr,
 						curPos-1,
 						curPos,
-						reference,
+						referenceBase,
 						numF[0]+numR[0],
 						numF[1]+numR[1],
 						numF[2]+numR[2],
@@ -596,7 +691,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 						curChr,
 						curPos-1,
 						curPos,
-						reference,
+						referenceBase,
 						numF[0]+numR[0],
 						numF[1]+numR[1],
 						numF[2]+numR[2],

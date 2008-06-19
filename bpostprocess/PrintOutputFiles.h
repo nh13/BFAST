@@ -13,6 +13,7 @@ void PrintAlignEntriesToTempFiles(FILE*,
 		int,
 		int,
 		int,
+		char*,
 		ChrFiles*);
 
 void PrintAlignEntries(ChrFiles*,

@@ -165,6 +165,7 @@ main (int argc, char **argv)
 								arguments.endPos,
 								arguments.outputID,
 								arguments.outputDir,
+								arguments.tmpDir,
 								arguments.outputFormat);
 
 						if(arguments.timing == 1) {

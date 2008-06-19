@@ -87,14 +87,16 @@ void RunAligner(RGBinary *rgBinary,
 	(*totalFileHandlingTime) += endTime - startTime;
 
 	/* Create output file name */
-	sprintf(outputFileName, "%sbfast.aligned.file.%s.%d.%s",
+	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%s",
 			outputDir,
+			PROGRAM_NAME,
 			outputID,
 			algorithm,
 			BFAST_ALIGN_FILE_EXTENSION);
 	/* Create not aligned file name */
-	sprintf(notAlignedFileName, "%sbfast.not.aligned.file.%s.%d.%s",
+	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%s",
 			outputDir,
+			PROGRAM_NAME,
 			outputID,
 			algorithm,
 			BFAST_NOT_ALIGNED_FILE_EXTENSION);
@@ -275,7 +277,9 @@ void RunDynamicProgramming(FILE *matchFP,
 				&readMatch,
 				&pairedReadMatch,
 				pairedEnd,
-				binaryInput)) {
+				binaryInput) 
+		 ) {
+
 		if(VERBOSE >= 0 && numMatches%PARTITION_MATCHES_ROTATE_NUM==0) {
 			fprintf(stderr, "\r[%d]", numMatches);
 		}
@@ -549,8 +553,8 @@ void *RunDynamicProgrammingThread(void *arg)
 	FILE *inputFP=data->inputFP;
 	FILE *outputFP=data->outputFP;
 	/*
-	FILE *notAlignedFP = data->notAlignedFP;
-	*/
+	   FILE *notAlignedFP = data->notAlignedFP;
+	   */
 	RGBinary *rgBinary=data->rgBinary;
 	int offsetLength=data->offsetLength;
 	int pairedEnd=data->pairedEnd;
@@ -562,12 +566,13 @@ void *RunDynamicProgrammingThread(void *arg)
 	int numAlignEntries=0;
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
+	char reverseRead[SEQUENCE_LENGTH]="\0";
 	char pairedRead[SEQUENCE_LENGTH]="\0";
 	RGMatch readMatch;
 	RGMatch pairedReadMatch;
 	int readLength;
 	char *reference=NULL;
-	char *reverseReference=NULL;
+	char tmpString[SEQUENCE_LENGTH]="\0";
 	int referenceLength=0;
 	int adjustPosition=0;
 	int i;
@@ -591,17 +596,6 @@ void *RunDynamicProgrammingThread(void *arg)
 				MallocMemory);
 	}
 	reference[referenceLength] = '\0'; /* Add null terminator */
-
-	/* Allocate memory for a tmp sring */
-	reverseReference = malloc(sizeof(char)*referenceLength+1);
-	if(NULL==reverseReference) {
-		PrintError("RunDynamicProgrammingThread",
-				"reverseReference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	reverseReference[referenceLength] = '\0'; /* Add null terminator */
 
 	/* Go through each read in the match file */
 	while(EOF!=RGMatchRead(inputFP, 
@@ -629,14 +623,14 @@ void *RunDynamicProgrammingThread(void *arg)
 		assert(pairedEnd==0);
 
 		/* Allocate memory for the AlignEntries */
-			aEntry = malloc(sizeof(AlignEntry)*readMatch.numEntries);
-			if(NULL == aEntry) {
-				PrintError("RunDynamicProgrammingThread",
-						"aEntry",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
+		aEntry = malloc(sizeof(AlignEntry)*readMatch.numEntries);
+		if(NULL == aEntry) {
+			PrintError("RunDynamicProgrammingThread",
+					"aEntry",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 
 		/* Run the aligner */
 		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
@@ -657,14 +651,19 @@ void *RunDynamicProgrammingThread(void *arg)
 			 * reverse compliment for the read.
 			 * */
 			if(readMatch.strand[i] == REVERSE) {
-				GetReverseComplimentAnyCase(reference, reverseReference, referenceLength);
+				GetReverseComplimentAnyCase(read, reverseRead, readLength);
 				/* Get alignment */
 				adjustPosition=AlignmentGetScore(read,
 						readLength,
-						reverseReference,
+						reference,
 						referenceLength,
 						sm,
 						&aEntry[i]);
+				/* We must reverse the alignment to match the REVERSE stand */
+				GetReverseComplimentAnyCase(aEntry[i].read, tmpString, aEntry[i].length);
+				strcpy(aEntry[i].read, tmpString);
+				GetReverseComplimentAnyCase(aEntry[i].reference, tmpString, aEntry[i].length);
+				strcpy(aEntry[i].reference, tmpString);
 			}
 			else {
 				/* Get alignment */
@@ -675,13 +674,19 @@ void *RunDynamicProgrammingThread(void *arg)
 						sm,
 						&aEntry[i]);
 			}
-			assert(adjustPosition >= 0 && adjustPosition <= aEntry[i].length);
+			/* Update adjustPosition based on offsetLength */
+			assert(adjustPosition >= 0 && adjustPosition <= referenceLength);
 
 			/* Update chromosome, position, strand and sequence name*/
 			aEntry[i].chromosome = readMatch.chromosomes[i];
 			aEntry[i].position = position+adjustPosition; /* Adjust position */
 			aEntry[i].strand = readMatch.strand[i]; 
 			strcpy(aEntry[i].readName, readName);
+
+			/* Check align entry */
+			/*
+			AlignEntryCheckReference(&aEntry[i], rgBinary);
+			*/
 		}
 		/* Remove duplicate alignments */
 		numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
@@ -714,7 +719,6 @@ void *RunDynamicProgrammingThread(void *arg)
 
 	/* Free memory */
 	free(reference);
-	free(reverseReference);
 
 	return arg;
 }

@@ -4,6 +4,7 @@
 #include <limits.h>
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
+#include "../blib/BLib.h"
 #include "Definitions.h"
 #include "PrintOutputFiles.h"
 #include "FilterAlignments.h"
@@ -20,6 +21,7 @@ void FilterAlignments(char *inputFileName,
 		int endPos,
 		char *outputID,
 		char *outputDir,
+		char *tmpDir,
 		int outputFormat)
 {
 	char *FnName="FilterAlignment";
@@ -59,6 +61,7 @@ void FilterAlignments(char *inputFileName,
 						(i==startChr)?startPos:0,
 						i,
 						(i==endChr)?endPos:INT_MAX,
+						tmpDir,
 						&chrFiles);
 				break;
 			case WigFile:
@@ -116,14 +119,15 @@ void FilterAlignments(char *inputFileName,
 				break;
 		}
 
-		/* close the files */
+		/* Check that we close all the tmp files */
 		for(j=0;j<chrFiles.numFiles;j++) {
-			fclose(chrFiles.files[j]);
+			assert(chrFiles.files[j] == NULL);
 		}
-
 		/* Free memory */
 		free(chrFiles.files);
 		chrFiles.files = NULL;
+		free(chrFiles.fileNames);
+		chrFiles.fileNames = NULL;
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\n");
@@ -170,7 +174,7 @@ int FilterEntries(AlignEntry **entries,
 			free((*entries)[numEntries-1].reference);
 			numEntries--;
 			(*entries) = realloc((*entries), sizeof(AlignEntry)*numEntries);
-			if(NULL == (*entries)) {
+			if(numEntries != 0 && NULL == (*entries)) {
 				PrintError(FnName,
 						"(*entries)",
 						"Could not reallocate memory",
