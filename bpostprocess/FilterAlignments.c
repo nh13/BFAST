@@ -19,6 +19,7 @@ void FilterAlignments(char *inputFileName,
 		int startPos,
 		int endChr,
 		int endPos,
+		int regionLength,
 		char *outputID,
 		char *outputDir,
 		char *tmpDir,
@@ -61,6 +62,7 @@ void FilterAlignments(char *inputFileName,
 						(i==startChr)?startPos:0,
 						i,
 						(i==endChr)?endPos:INT_MAX,
+						regionLength,
 						tmpDir,
 						&chrFiles);
 				break;
@@ -91,6 +93,7 @@ void FilterAlignments(char *inputFileName,
 			case BAlignFile:
 				/* BAlignFile input, output format = ? */
 				PrintAlignEntries(&chrFiles,
+						regionLength,
 						outputFormat,
 						outputDir,
 						outputID,

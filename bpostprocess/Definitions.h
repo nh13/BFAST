@@ -4,9 +4,9 @@
 #define ROTATE_BINNING 100000
 
 /* When splitting the input into temp files, have one temp
- * file for every 1 million bases 
+ * file for every 10 million bases 
  * */
-#define REGION_LENGTH 1000000
+#define DEFAULT_REGION_LENGTH 10000000
 
 /* TODO */
 typedef struct {

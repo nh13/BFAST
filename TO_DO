@@ -2,14 +2,13 @@
 General
 1. Reference genome can be a cat of fasta files.  For example the sequence of
 say 2000 exons.
-2. Implement that the tmpDir is defaulted to the output dir
-3. Optimize if we only have one thread/one index for tmp files.
+2. Optimize if we only have one thread/one index for tmp files.
 ===============================================================================
 
 ===============================================================================
 bpreprocess
 ===============================================================================
-1. Create binary (2-bit) files for the reference genome (include a header...)
+1. Indexes can be created specifying only regions (like exon boundaries).
 
 ===============================================================================
 bmatches
@@ -17,41 +16,25 @@ bmatches
 1.
 Allow for errors (no calls) in the sequences (could model them as mismatches).
 2. 
-Reads chromosome position range from indexes so that not the whole reference
-genome must be loaded (index re-use).
-3.
-Have a command line option that specifies a strict read length (otherwise, we
-		assume that the reads must have length matching the matchLength
-		equal to that of the index(es)).
-4.
-Have a command line option that only outputs reads that had a candidate match
-(no zero matches).
-5. 
 Flag perfect matches so that the alignment score is already known. 
-6.
+3.
 Only read in reference genome needed by the indexes.
-7.
-Paired end testing.
-8.
-Binary output file.
+4.
+Paired end support here?.
 
 ===============================================================================
 balign
 ===============================================================================
-1.
-Have a command line option that ignores reads with zero candidate matches.
-2. 
+1. 
 Paired end.
-3. 
+2. 
 ABI support.
 
 ===============================================================================
 bpostprocess
 ===============================================================================
 1.
-Faster implementation.
-2.
-Only support .baf files as input.
+Multi-threaded support when sorting.
 
 ===============================================================================
 bcommand

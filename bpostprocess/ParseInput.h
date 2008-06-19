@@ -13,6 +13,7 @@ struct arguments
 	int startPos;                           /* -S */
 	int endChr;                             /* -e */
 	int endPos;                             /* -E */
+	int regionLength;						/* -r */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
 	char *tmpDir;							/* -T */

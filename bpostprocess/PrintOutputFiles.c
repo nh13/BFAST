@@ -19,6 +19,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 		int startPos,
 		int endChr,
 		int endPos,
+		int regionLength,
 		char *tmpDir,
 		ChrFiles *chrFiles)
 {
@@ -63,7 +64,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 			/* Get the correct file to which to print for the start of the read */
 			chrIndex = entries[0].chromosome - startChr;
 			assert(chrIndex==0);
-			regionIndex = (entries[0].position)/REGION_LENGTH;
+			regionIndex = (entries[0].position)/regionLength;
 
 			/* Reallocate files if the region file does not exist*/
 			if(chrFiles->numFiles < regionIndex + 1) {
@@ -105,7 +106,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 			AlignEntryPrint(&entries[0], chrFiles->files[regionIndex]);
 
 			/* If the read overlaps regions, then we output it to both regions */
-			if(regionIndex +1 == (entries[0].position + entries[0].referenceLength-1)/REGION_LENGTH) {
+			if(regionIndex +1 == (entries[0].position + entries[0].referenceLength-1)/regionLength) {
 				/* Get the correct file to which to print */
 				regionIndex++;
 
@@ -150,7 +151,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 				AlignEntryPrint(&entries[0], chrFiles->files[regionIndex]);
 			}
 			else {
-				assert(regionIndex == (entries[0].position + entries[0].referenceLength-1)/REGION_LENGTH);
+				assert(regionIndex == (entries[0].position + entries[0].referenceLength-1)/regionLength);
 			}
 			/* Free entries */
 			free(entries[0].read);
@@ -170,6 +171,7 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 
 /* TODO */
 void PrintAlignEntries(ChrFiles *chrFile,
+		int regionLength,
 		int outputFormat,
 		char *outputDir,
 		char *outputID,
@@ -305,8 +307,8 @@ void PrintAlignEntries(ChrFiles *chrFile,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\rGetting entries for [chr,startPos-endPos[%d,%d-%d]...",
 					curChr,
-					i*REGION_LENGTH+1,
-					(i+1)*REGION_LENGTH);
+					i*regionLength+1,
+					(i+1)*regionLength);
 		}
 		numEntries=AlignEntryGetAll(&entries, chrFile->files[i]);
 
@@ -319,8 +321,8 @@ void PrintAlignEntries(ChrFiles *chrFile,
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "\rSorting entries for [chr,startPos-endPos[%d,%d-%d]...\n%3.2lf",
 						curChr,
-						i*REGION_LENGTH+1,
-						(i+1)*REGION_LENGTH,
+						i*regionLength+1,
+						(i+1)*regionLength,
 						0.0);
 			}
 			curPercent = 0.0;
@@ -378,8 +380,8 @@ void PrintAlignEntries(ChrFiles *chrFile,
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "\rOutputted entries for [chr,startPos-endPos[%d,%d-%d].\n",
 						curChr,
-						i*REGION_LENGTH+1,
-						(i+1)*REGION_LENGTH);
+						i*regionLength+1,
+						(i+1)*regionLength);
 			}
 		}
 	}

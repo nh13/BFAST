@@ -55,7 +55,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescInputFileName, DescInputFormat, DescBinaryInput,
-	DescAlgoTitle, DescUniqueMatches, DescBestScore, DescMinScore, DescStartChr, DescStartPos, DescEndChr, DescEndPos,
+	DescAlgoTitle, DescUniqueMatches, DescBestScore, DescMinScore, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescRegionWidth,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -77,6 +77,7 @@ static struct argp_option options[] = {
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
+	{"regionWidth", 'r', "regionWidth", 0, "Specifies the length of the regions for bining when processing.\n\t\t\tUseful for low memory requirements.", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
@@ -163,6 +164,7 @@ main (int argc, char **argv)
 								arguments.startPos,
 								arguments.endChr,
 								arguments.endPos,
+								arguments.regionLength,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
@@ -273,6 +275,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->regionLength <= 0) {
+		PrintError(FnName, "regionLength", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
@@ -355,6 +361,7 @@ AssignDefaultValues(struct arguments *args)
 	args->startPos=0;
 	args->endChr=0;
 	args->endPos=0;
+	args->regionLength=DEFAULT_REGION_LENGTH;
 
 	args->outputID = 
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -396,6 +403,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
+	fprintf(fp, "regionLength:\t\t\t\t%d\n", args->regionLength);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -469,6 +477,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'r':
+						arguments->regionLength=atoi(OPTARG);break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
 					case 't':
