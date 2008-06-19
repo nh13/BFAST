@@ -595,12 +595,6 @@ void *RunDynamicProgrammingThread(void *arg)
 				aEntry[i].position = position+adjustPosition; /* Adjust position */
 				aEntry[i].strand = readMatch.strand[i]; 
 				strcpy(aEntry[i].readName, readName);
-				/* Adjust based on strand */
-				if(aEntry[i].strand == REVERSE) {
-					ReverseSequence(aEntry[i].read, aEntry[i].length);
-					ReverseSequence(aEntry[i].reference, aEntry[i].length);
-				}
-
 			}
 			/* Remove duplicate alignments */
 			numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
