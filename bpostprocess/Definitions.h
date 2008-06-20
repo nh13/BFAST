@@ -15,6 +15,14 @@ typedef struct {
 	int numFiles;
 } ChrFiles;
 
+/* TODO */
+typedef struct {
+	int startChr;
+	int endChr;
+	FILE **chrFiles;
+	char **chrFileNames;
+} RGFiles;
+
 enum {BAlignFile, WigFile, BedFile, LastFileType};
 
 #endif

@@ -412,6 +412,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	}
 
 	/* Allocate memory for the align entries */
+	AlignEntryInitialize(&aEntry);
 	aEntry.read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL==aEntry.read) {
 		PrintError("RunDynamicProgramming",
@@ -535,8 +536,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	/* Free memory */
 	free(data);
 	free(threads);
-	free(aEntry.read);
-	free(aEntry.reference);
+	AlignEntryFree(&aEntry);
 	/* Free scores */
 	free(sm.key);
 	for(i=0;i<ALPHABET_SIZE+1;i++) {
@@ -634,6 +634,8 @@ void *RunDynamicProgrammingThread(void *arg)
 
 		/* Run the aligner */
 		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
+			/* Initialize align entry */
+			AlignEntryInitialize(&aEntry[i]);
 
 			/* Get the appropriate reference read */
 			RGBinaryGetSequence(rgBinary,
@@ -698,9 +700,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 		/* Free memory */
 		for(i=0;i<numAlignEntries;i++) {
-			assert(aEntry[i].length>0);
-			free(aEntry[i].read);
-			free(aEntry[i].reference);
+			AlignEntryFree(&aEntry[i]);
 		}
 		/* Free match */
 		RGMatchFree(&readMatch);

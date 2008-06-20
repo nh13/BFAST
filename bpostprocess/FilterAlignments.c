@@ -29,6 +29,7 @@ void FilterAlignments(char *inputFileName,
 	int i, j;
 	FILE *inputFP;
 	ChrFiles chrFiles;
+	RGFiles rgFiles;
 
 	/* Open the input file */
 	if(0==(inputFP=fopen(inputFileName, "r"))) {
@@ -39,105 +40,76 @@ void FilterAlignments(char *inputFileName,
 				OpenFileError);
 	}
 
+	/* Split the input file by chromosome and filter while we're at it */
+	PrintAlignEntriesToTempFilesByChr(inputFP,
+			&rgFiles,
+			uniqueMatches,
+			bestScore,
+			minScore,
+			startChr,
+			startPos,
+			endChr,
+			endPos,
+			tmpDir);
+
+	/* Close file */
+	fclose(inputFP);
+
 	/* Go through each chromosome */
 	for(i=startChr;i<=endChr;i++) {
-
-		/* Go to the beginning of the file */
-		fseek(inputFP, 0, SEEK_SET);
 
 		/* Initialize chrFiles */
 		chrFiles.files=NULL;
 		chrFiles.numFiles=0;
 
+		/* Move to the beginning of the tmp file */
+		fseek(rgFiles.chrFiles[i-rgFiles.startChr], 0, SEEK_SET);
+
 		/* Print the input file into tmp files for each 
 		 * region.
 		 * */
-		switch(inputFormat) {
-			case BAlignFile:
-				PrintAlignEntriesToTempFiles(inputFP,
-						uniqueMatches,
-						bestScore,
-						minScore,
-						i,
-						(i==startChr)?startPos:0,
-						i,
-						(i==endChr)?endPos:INT_MAX,
-						regionLength,
-						tmpDir,
-						&chrFiles);
-				break;
-			case WigFile:
-			case BedFile:
-				PrintError(FnName,
-						"inputFormat",
-						"Input format not supported",
-						Exit,
-						OutOfRange);
-				break;
-			default:
-				PrintError(FnName,
-						"inputFormat",
-						"Input format not recognized",
-						Exit,
-						OutOfRange);
-				break;
-		}
+		assert(inputFormat == BAlignFile);
+		PrintAlignEntriesToTempFilesWithinChr(rgFiles.chrFiles[i-rgFiles.startChr],
+				uniqueMatches,
+				bestScore,
+				minScore,
+				i,
+				(i==startChr)?startPos:0,
+				(i==endChr)?endPos:INT_MAX,
+				regionLength,
+				tmpDir,
+				&chrFiles);
 
 		/* Move tmp files to the start */
 		for(j=0;j<chrFiles.numFiles;j++) {
 			fseek(chrFiles.files[j], 0, SEEK_SET);
 		}
 
-		/* Input format = ? */
-		switch(inputFormat) {
-			case BAlignFile:
-				/* BAlignFile input, output format = ? */
-				PrintAlignEntries(&chrFiles,
-						regionLength,
-						outputFormat,
-						outputDir,
-						outputID,
-						i);
-				break;
-			case WigFile:
-				PrintError(FnName,
-						"inputFormat",
-						"Input format not supported",
-						Exit,
-						OutOfRange);
-				break;
-			case BedFile:
-				PrintError(FnName,
-						"inputFormat",
-						"Input format not supported",
-						Exit,
-						OutOfRange);
-				break;
-			default:
-				PrintError(FnName,
-						"inputFormat",
-						"Input format not recognized",
-						Exit,
-						OutOfRange);
-				break;
-		}
+		PrintAlignEntries(&chrFiles,
+				regionLength,
+				outputFormat,
+				outputDir,
+				outputID,
+				i);
 
-		/* Check that we close all the tmp files */
-		for(j=0;j<chrFiles.numFiles;j++) {
-			assert(chrFiles.files[j] == NULL);
-		}
 		/* Free memory */
 		free(chrFiles.files);
 		chrFiles.files = NULL;
 		free(chrFiles.fileNames);
 		chrFiles.fileNames = NULL;
+
+		/* Close tmp file for the chromosome */
+		CloseTmpFile(&rgFiles.chrFiles[i-rgFiles.startChr], &rgFiles.chrFileNames[i-rgFiles.startChr]);
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\n");
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	/* Close file */
-	fclose(inputFP);
+	/* Free memory */
+	free(rgFiles.chrFiles);
+	rgFiles.chrFiles = NULL;
+	free(rgFiles.chrFileNames);
+	rgFiles.chrFileNames = NULL;
 }
 
 int FilterEntries(AlignEntry **entries,
@@ -158,7 +130,7 @@ int FilterEntries(AlignEntry **entries,
 	assert(uniqueMatches != 0 || bestScore != 0);
 	assert(numEntries > 0);
 
-	/* Filter all entries with score < minSCore and do not align within bounds */
+	/* Filter all entries with score < minScore and do not align within bounds */
 	for(i=0;i<numEntries;i++) {
 		/* Check filter conditions */
 		if((*entries)[i].score < minScore ||
@@ -173,8 +145,7 @@ int FilterEntries(AlignEntry **entries,
 				AlignEntryCopy(&(*entries)[numEntries-1], &(*entries)[i]);
 			}
 			/* Free memory and reallocate */
-			free((*entries)[numEntries-1].read);
-			free((*entries)[numEntries-1].reference);
+			AlignEntryFree(&(*entries)[numEntries-1]);
 			numEntries--;
 			(*entries) = realloc((*entries), sizeof(AlignEntry)*numEntries);
 			if(numEntries != 0 && NULL == (*entries)) {
@@ -190,7 +161,7 @@ int FilterEntries(AlignEntry **entries,
 			}
 		}
 		else if(minIndex == -1 || (*entries)[minIndex].score <= (*entries)[i].score) {
-			if((*entries)[minIndex].score == (*entries)[i].score) {
+			if(minIndex >= 0 && (*entries)[minIndex].score == (*entries)[i].score) {
 				/* We should store if there are more than one place with the same score */
 				numMinIndexes++;
 			}
@@ -211,8 +182,7 @@ int FilterEntries(AlignEntry **entries,
 			/* Free all memory and return 0 */
 			/* Free memory and reallocate */
 			for(i=0;i<numEntries;i++) {
-				free((*entries)[i].read);
-				free((*entries)[i].reference);
+				AlignEntryFree(&(*entries)[i]);
 			}
 			free((*entries));
 			(*entries)=NULL;
@@ -225,8 +195,7 @@ int FilterEntries(AlignEntry **entries,
 			/* Free all memory and return 0 */
 			/* Free memory and reallocate */
 			for(i=0;i<numEntries;i++) {
-				free((*entries)[i].read);
-				free((*entries)[i].reference);
+				AlignEntryFree(&(*entries)[i]);
 			}
 			free((*entries));
 			(*entries)=NULL;
@@ -240,8 +209,7 @@ int FilterEntries(AlignEntry **entries,
 			AlignEntryCopy(&(*entries)[minIndex], &(*entries)[0]);
 			/* Free memory and reallocate */
 			for(i=1;i<numEntries;i++) {
-				free((*entries)[i].read);
-				free((*entries)[i].reference);
+				AlignEntryFree(&(*entries)[i]);
 			}
 			numEntries=1;
 			(*entries) = realloc((*entries), sizeof(AlignEntry)*numEntries);

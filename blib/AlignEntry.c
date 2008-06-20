@@ -128,6 +128,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 }
 
 /* TODO */
+/* Log-n space */
 void AlignEntryQuickSort(AlignEntry **a,
 		int low,
 		int high,
@@ -151,7 +152,10 @@ void AlignEntryQuickSort(AlignEntry **a,
 					MallocMemory);
 		}
 
-		pivot = (low+high)/2;
+		pivot = AlignEntryGetPivot((*a),
+				sortOrder,
+				low,
+				high);
 		if(showPercentComplete == 1 && VERBOSE >= 0) {
 			assert(NULL!=curPercent);
 			if((*curPercent) < 100.0*((double)low)/total) {
@@ -186,6 +190,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 		 * case of O(n) space (NOT IN PLACE) 
 		 * */
 		free(temp);
+		temp=NULL;
 
 		AlignEntryQuickSort(a, low, pivot-1, sortOrder, showPercentComplete, curPercent, total);
 		if(showPercentComplete == 1 && VERBOSE >= 0) {
@@ -211,11 +216,129 @@ void AlignEntryQuickSort(AlignEntry **a,
 }
 
 /* TODO */
+/* O(n) space, but really double */
+void AlignEntryMergeSort(AlignEntry **a,
+		int low,
+		int high,
+		int sortOrder,
+		int showPercentComplete,
+		double *curPercent,
+		int total)
+{
+	char *FnName = "AlignEntryMergeSort";
+	int i, ctr;
+	int mid = (low + high)/2;
+	int startLower =  low;
+	int endLower = mid;
+	int startUpper = mid + 1;
+	int endUpper = high;
+	AlignEntry *tempEntries;
+
+	if(low >= high) {
+		if(VERBOSE >= 0 &&
+				showPercentComplete == 1) { 
+			assert(NULL!=curPercent);
+			if((*curPercent) < 100.0*((double)low)/total) {
+				while((*curPercent) < 100.0*((double)low)/total) {
+					(*curPercent) += SORT_ROTATE_INC;
+				}
+				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)low)/total);
+			}
+		}
+		return;
+	}
+
+
+	/* Partition the list into two lists and sort them recursively */
+	AlignEntryMergeSort(a,
+			low,
+			mid,
+			sortOrder,
+			showPercentComplete,
+			curPercent,
+			total);
+	AlignEntryMergeSort(a,
+			mid+1,
+			high,
+			sortOrder,
+			showPercentComplete,
+			curPercent,
+			total);
+
+	/* Allocate pointers */
+	tempEntries = malloc(sizeof(AlignEntry)*(high-low+1));
+	if(NULL == tempEntries) {
+		PrintError(FnName,
+				"tempEntries",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	for(i=0;i<high-low+1;i++) {
+		AlignEntryInitialize(&tempEntries[i]);
+		tempEntries[i].read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == tempEntries[i].read) {
+			PrintError(FnName,
+					"tempEntries[i].read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		tempEntries[i].reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == tempEntries[i].reference) {
+			PrintError(FnName,
+					"tempEntries[i].reference",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+
+	/* Merge the two lists */
+	ctr=0;
+	while( (startLower <= endLower) && (startUpper <= endUpper)) {
+		if(AlignEntryCompareAtIndex((*a), startLower, (*a), startUpper, sortOrder) <= 0) {
+			AlignEntryCopyAtIndex((*a), startLower, tempEntries, ctr);
+			startLower++;
+		}
+		else {
+			AlignEntryCopyAtIndex((*a), startUpper, tempEntries, ctr);
+			startUpper++;
+		}
+		ctr++;
+	}
+	while(startLower <= endLower) {
+		AlignEntryCopyAtIndex((*a), startLower, tempEntries, ctr);
+		startLower++;
+		ctr++;
+	}
+	while(startUpper <= endUpper) {
+		AlignEntryCopyAtIndex((*a), startUpper, tempEntries, ctr);
+		startUpper++;
+		ctr++;
+	}
+	/* Copy back */
+	for(i=low, ctr=0;
+			i<=high;
+			i++, ctr++) {
+		AlignEntryCopyAtIndex(tempEntries, ctr, (*a), i);
+		assert((*a)[i].strand == FORWARD || (*a)[i].strand == REVERSE);
+	}
+
+	/* Free memory */
+	for(i=0;i<high-low+1;i++) {
+		AlignEntryFree(&tempEntries[i]);
+	}
+	free(tempEntries);
+	tempEntries=NULL;
+}
+
+/* TODO */
 int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int indexB, int sortOrder)
 {
 	int cmp[6];
-	int result;
 	int i;
+	int top;
 
 	if(sortOrder == AlignEntrySortByAll) {
 
@@ -226,41 +349,24 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		cmp[4] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
 		cmp[5] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
 
-		/* ingenious */
-		result = 0;
-		for(i=0;i<6;i++) {
-			result += pow(10, 8-i-1)*cmp[i];
-		}
-
-		if(result < 0) {
-			return -1;
-		}
-		else if(result == 0) {
-			return 0;
-		}
-		else {
-			return 1;
-		}
+		top = 6;
 	}
 	else {
 		assert(sortOrder == AlignEntrySortByChrPos);
 		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
 		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		result = 0;
-		for(i=0;i<2;i++) {
-			result += pow(10, 8-i-1)*cmp[i];
-		}
 
-		if(result < 0) {
-			return -1;
-		}
-		else if(result == 0) {
-			return 0;
-		}
-		else {
-			return 1;
+		top = 2;
+	}
+
+	/* ingenious */
+	for(i=0;i<top;i++) {
+		if(cmp[i] != 0) {
+			return cmp[0];
 		}
 	}
+
+	return 0;
 }
 
 /* TODO */
@@ -450,8 +556,8 @@ void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int 
 {
 	if(dest != src || srcIndex != destIndex) {
 		strcpy(dest[destIndex].readName, src[srcIndex].readName);
-		dest[destIndex].read = src[srcIndex].read;
-		dest[destIndex].reference = src[srcIndex].reference;
+		strcpy(dest[destIndex].reference, src[srcIndex].reference);
+		strcpy(dest[destIndex].read, src[srcIndex].read);
 		dest[destIndex].length = src[srcIndex].length;
 		dest[destIndex].referenceLength = src[srcIndex].referenceLength;
 		dest[destIndex].chromosome = src[srcIndex].chromosome;
@@ -479,6 +585,28 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dst)
 	}
 }
 
+void AlignEntryFree(AlignEntry *aEntry)
+{
+	assert(aEntry->read!=NULL);
+	free(aEntry->read);
+	assert(aEntry->reference!=NULL);
+	free(aEntry->reference);
+	AlignEntryInitialize(aEntry);
+}
+
+void AlignEntryInitialize(AlignEntry *aEntry) 
+{
+	aEntry->readName[0] = '\0';
+	aEntry->read=NULL;
+	aEntry->reference=NULL;
+	aEntry->length=0;
+	aEntry->referenceLength=0;
+	aEntry->chromosome=0;
+	aEntry->position=0;
+	aEntry->strand=0;
+	aEntry->score=0.0;
+}
+
 /* TODO */
 /* Debugging function */
 void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg)
@@ -488,7 +616,7 @@ void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg)
 	int curPos;
 	char rgBase;
 	char reference[SEQUENCE_LENGTH]="\0";
-	
+
 	if(aEntry->strand == REVERSE) {
 		GetReverseComplimentAnyCase(aEntry->reference, reference, aEntry->length);
 	}
@@ -516,4 +644,60 @@ void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg)
 			curPos++;
 		}
 	}
+}
+
+int AlignEntryGetPivot(AlignEntry *a,
+		int sortOrder,
+		int low,
+		int high) 
+{
+	int cmp[3];
+	int pivot = (low + high)/2;
+	cmp[0] = AlignEntryCompareAtIndex(a, low, a, pivot, sortOrder); 
+	cmp[1] = AlignEntryCompareAtIndex(a, low, a, high, sortOrder); 
+	cmp[2] = AlignEntryCompareAtIndex(a, pivot, a, high, sortOrder); 
+
+	if(cmp[0] <= 0) {
+		/* low <= pivot */
+		if(cmp[1] >= 0) {
+			/* high <= low */
+			/* so high <= low <= pivot */
+			pivot = low;
+		}
+		else {
+			/* low < high */
+			if(cmp[2] <= 0) {
+				/* pivot <= high */
+				/* so low <= pivot <= high */
+				/* choose pivot */
+			}
+			else {
+				/* high < pivot */
+				/* so low < high < pivot */
+				pivot = high;
+			}
+		}
+	}
+	else {
+		/* pivot < low */
+		if(cmp[1] <= 0) {
+			/* low <= high */
+			/* so pivot < low <= high */
+			pivot = low;
+		}
+		else {
+			/* high < low */
+			if(cmp[2] <= 0) {
+				/* pivot <= high */
+				/* so pivot <= high < low */
+				pivot = high;
+			}
+			else {
+				/* high < pivot */
+				/* so high < pivot < low */
+				/* choose pivot */
+			}
+		}
+	}
+	return pivot;
 }

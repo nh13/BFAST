@@ -11,7 +11,8 @@
 #include "PrintOutputFiles.h"
 
 /* TODO */
-void PrintAlignEntriesToTempFiles(FILE *fp,
+void PrintAlignEntriesToTempFilesByChr(FILE* fp,
+		RGFiles *rgFiles,
 		int uniqueMatches,
 		int bestScore,
 		int minScore,
@@ -19,21 +20,43 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 		int startPos,
 		int endChr,
 		int endPos,
-		int regionLength,
-		char *tmpDir,
-		ChrFiles *chrFiles)
+		char *tmpDir)
 {
-	int i, numEntries, chrIndex, regionIndex, startIndex, curRead;
-	char *FnName = "PrintAlignEntriesToTempFiles";
+	int i, numEntries, chrIndex, curRead; 
+	char *FnName = "PrintAlignEntriesToTempFilesByChr";
 	AlignEntry *entries=NULL;
 
 	/* Initialize */
-	chrFiles->files = NULL;
-	chrFiles->fileNames = NULL;
-	chrFiles->numFiles = 0;
+	rgFiles->startChr = startChr;
+	rgFiles->endChr =  endChr;
+	rgFiles->chrFiles = NULL;
+	rgFiles->chrFileNames = NULL;
+
+	/* Allocate memory */
+	rgFiles->chrFiles = malloc(sizeof(FILE*)*(endChr - startChr + 1));
+	if(NULL == rgFiles->chrFiles) {
+		PrintError(FnName,
+				"rgFiles->chrFiles",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	rgFiles->chrFileNames = malloc(sizeof(char*)*(endChr - startChr + 1));
+	if(NULL == rgFiles->chrFileNames) {
+		PrintError(FnName,
+				"rgFiles->chrFileNames",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Open tmp files */
+	for(i=0;i<rgFiles->endChr - rgFiles->startChr + 1;i++) {
+		rgFiles->chrFiles[i] = OpenTmpFile(tmpDir, &rgFiles->chrFileNames[i]);
+	}
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Binning into temp files.  Currently on:\n0");
+		fprintf(stderr, "Binning into temp files by chromosome and filtering reads.  Currently on:\n0");
 	}
 
 	/* Read in each read and output to the correct tmp file */
@@ -60,11 +83,117 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 
 		/* Output if there is only one entry left after filtering */
 		if(numEntries==1) {
-			
+
 			/* Get the correct file to which to print for the start of the read */
+			assert(entries[0].chromosome >= startChr && entries[0].chromosome <= endChr);
 			chrIndex = entries[0].chromosome - startChr;
-			assert(chrIndex==0);
-			regionIndex = (entries[0].position)/regionLength;
+
+			/* Print to the appropriate file */
+			AlignEntryPrint(&entries[0], rgFiles->chrFiles[chrIndex]);
+
+			/* Free entries */
+			AlignEntryFree(&entries[0]);
+			free(entries);
+			entries=NULL;
+		}
+		else {
+			/* We should have zero entries */
+			assert(numEntries==0);
+		}
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\r[%d]\nBinning complete.\n", curRead);
+	}
+}
+
+/* TODO */
+/* Does not filter */
+void PrintAlignEntriesToTempFilesWithinChr(FILE *fp,
+		int uniqueMatches,
+		int bestScore,
+		int minScore,
+		int curChr,
+		int startPos,
+		int endPos,
+		int regionLength,
+		char *tmpDir,
+		ChrFiles *chrFiles)
+{
+	int i, numEntries, regionIndex, startIndex, curRead;
+	char *FnName = "PrintAlignEntriesToTempFilesWithinChr";
+	AlignEntry *entries=NULL;
+
+	/* Initialize */
+	chrFiles->files = NULL;
+	chrFiles->fileNames = NULL;
+	chrFiles->numFiles = 0;
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Binning into temp files for chromosome %d.  Currently on:\n0", 
+				curChr);
+	}
+
+	/* Read in each read and output to the correct tmp file */
+	curRead = 0;
+	for(numEntries = AlignEntryGetOneRead(&entries, fp);
+			numEntries > 0;
+			numEntries = AlignEntryGetOneRead(&entries, fp)) {
+		curRead++;
+
+		if(VERBOSE >= 0 && curRead%ROTATE_BINNING == 0) {
+			fprintf(stderr, "\r[%d]", curRead);
+		}
+
+		/* Output if there is only one entry left after filtering */
+		assert(numEntries==1);
+
+		/* Get the correct file to which to print for the start of the read */
+		assert(entries[0].chromosome == curChr);
+		regionIndex = (entries[0].position)/regionLength;
+
+		/* Reallocate files if the region file does not exist*/
+		if(chrFiles->numFiles < regionIndex + 1) {
+			/* Reallocate memory */
+			startIndex = chrFiles->numFiles;
+			chrFiles->numFiles = regionIndex + 1;
+			chrFiles->files = realloc(chrFiles->files, sizeof(FILE*)*(chrFiles->numFiles));
+			if(NULL==chrFiles->files) {
+				PrintError(FnName,
+						"chrFiles->files",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			chrFiles->fileNames = realloc(chrFiles->fileNames, sizeof(char*)*(chrFiles->numFiles));
+			if(NULL==chrFiles->fileNames) {
+				PrintError(FnName,
+						"chrFiles->fileNames",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			/* Open new temp files */
+			for(i=startIndex;i<chrFiles->numFiles;i++) {
+				chrFiles->files[i] = OpenTmpFile(tmpDir, &chrFiles->fileNames[i]);
+				if(chrFiles->files[i] == NULL) {
+					fprintf(stderr, "i:%d\n", i);
+					PrintError(FnName,
+							"chrFiles->files[i]",
+							"Could not open file",
+							Exit,
+							OpenFileError);
+				}
+			}
+		}
+		/* Output the entry to the tmp file*/
+		assert(regionIndex < chrFiles->numFiles);
+		assert(chrFiles->files[regionIndex] != NULL);
+		AlignEntryPrint(&entries[0], chrFiles->files[regionIndex]);
+
+		/* If the read overlaps regions, then we output it to both regions */
+		if(regionIndex +1 == (entries[0].position + entries[0].referenceLength-1)/regionLength) {
+			/* Get the correct file to which to print */
+			regionIndex++;
 
 			/* Reallocate files if the region file does not exist*/
 			if(chrFiles->numFiles < regionIndex + 1) {
@@ -102,70 +231,20 @@ void PrintAlignEntriesToTempFiles(FILE *fp,
 			}
 			/* Output the entry to the tmp file*/
 			assert(regionIndex < chrFiles->numFiles);
+			assert(regionIndex < chrFiles->numFiles);
 			assert(chrFiles->files[regionIndex] != NULL);
 			AlignEntryPrint(&entries[0], chrFiles->files[regionIndex]);
-
-			/* If the read overlaps regions, then we output it to both regions */
-			if(regionIndex +1 == (entries[0].position + entries[0].referenceLength-1)/regionLength) {
-				/* Get the correct file to which to print */
-				regionIndex++;
-
-				/* Reallocate files if the region file does not exist*/
-				if(chrFiles->numFiles < regionIndex + 1) {
-					/* Reallocate memory */
-					startIndex = chrFiles->numFiles;
-					chrFiles->numFiles = regionIndex + 1;
-					chrFiles->files = realloc(chrFiles->files, sizeof(FILE*)*(chrFiles->numFiles));
-					if(NULL==chrFiles->files) {
-						PrintError(FnName,
-								"chrFiles->files",
-								"Could not reallocate memory",
-								Exit,
-								ReallocMemory);
-					}
-					chrFiles->fileNames = realloc(chrFiles->fileNames, sizeof(char*)*(chrFiles->numFiles));
-					if(NULL==chrFiles->fileNames) {
-						PrintError(FnName,
-								"chrFiles->fileNames",
-								"Could not reallocate memory",
-								Exit,
-								ReallocMemory);
-					}
-					/* Open new temp files */
-					for(i=startIndex;i<chrFiles->numFiles;i++) {
-						chrFiles->files[i] = OpenTmpFile(tmpDir, &chrFiles->fileNames[i]);
-						if(chrFiles->files[i] == NULL) {
-							fprintf(stderr, "i:%d\n", i);
-							PrintError(FnName,
-									"chrFiles->files[i]",
-									"Could not open file",
-									Exit,
-									OpenFileError);
-						}
-					}
-				}
-				/* Output the entry to the tmp file*/
-				assert(regionIndex < chrFiles->numFiles);
-				assert(regionIndex < chrFiles->numFiles);
-				assert(chrFiles->files[regionIndex] != NULL);
-				AlignEntryPrint(&entries[0], chrFiles->files[regionIndex]);
-			}
-			else {
-				assert(regionIndex == (entries[0].position + entries[0].referenceLength-1)/regionLength);
-			}
-			/* Free entries */
-			free(entries[0].read);
-			free(entries[0].reference);
-			free(entries);
-			entries=NULL;
 		}
 		else {
-			/* We should have zero entries */
-			assert(numEntries==0);
+			assert(regionIndex == (entries[0].position + entries[0].referenceLength-1)/regionLength);
 		}
+		/* Free entries */
+		AlignEntryFree(&entries[0]);
+		free(entries);
+		entries=NULL;
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d\nBinning complete.\n", curRead);
+		fprintf(stderr, "\r[%d]\nBinning complete.\n", curRead);
 	}
 }
 
@@ -319,13 +398,22 @@ void PrintAlignEntries(ChrFiles *chrFile,
 		if(numEntries > 0) {
 			/* Sort the entries */
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "\rSorting entries for [chr,startPos-endPos[%d,%d-%d]...\n%3.2lf",
+				fprintf(stderr, "\rSorting %d entries for [chr,startPos-endPos[%d,%d-%d]...\n%3.2lf",
+						numEntries,
 						curChr,
 						i*regionLength+1,
 						(i+1)*regionLength,
 						0.0);
 			}
 			curPercent = 0.0;
+			AlignEntryMergeSort(&entries, 
+					0, 
+					numEntries-1, 
+					AlignEntrySortByChrPos,
+					1,
+					&curPercent,
+					numEntries);
+			/*
 			AlignEntryQuickSort(&entries, 
 					0, 
 					numEntries-1, 
@@ -333,8 +421,9 @@ void PrintAlignEntries(ChrFiles *chrFile,
 					1,
 					&curPercent,
 					numEntries);
+					*/
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "\r%3.2lf\n",
+				fprintf(stderr, "\r%3.2lf percent complete\n",
 						100.0);
 			}
 
@@ -374,11 +463,13 @@ void PrintAlignEntries(ChrFiles *chrFile,
 
 			/* Free the entries */
 			for(j=0;j<numEntries;j++) {
-				free(entries[j].read);
-				free(entries[j].reference);
+				AlignEntryFree(&entries[j]);
 			}
+			free(entries);
+			entries=NULL;
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "\rOutputted entries for [chr,startPos-endPos[%d,%d-%d].\n",
+				fprintf(stderr, "\rOutputted %d entries for [chr,startPos-endPos[%d,%d-%d].\n",
+						numEntries,
 						curChr,
 						i*regionLength+1,
 						(i+1)*regionLength);
@@ -425,12 +516,12 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 				curPos <= entries[curIndex].position + entries[curIndex].referenceLength - 1;
 				curIndex++, coverage++) {
 			/*
-			fprintf(stderr, "[%d]\t[%d]\t[%u]\t[%u]\n",
-					curPos,
-					entries[curIndex].position,
-					entries[curIndex].length,
-					entries[curIndex].referenceLength);
-					*/
+			   fprintf(stderr, "[%d]\t[%d]\t[%u]\t[%u]\n",
+			   curPos,
+			   entries[curIndex].position,
+			   entries[curIndex].length,
+			   entries[curIndex].referenceLength);
+			   */
 
 			/* Alignment and coverage depend on strandedness */
 			switch(entries[curIndex].strand) {
@@ -443,6 +534,9 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 					GetReverseComplimentAnyCase(entries[curIndex].reference, tmpReference, entries[curIndex].length);
 					break;
 				default:
+					fprintf(stderr, "[%c]\t[%d]\n",
+							(int)entries[curIndex].strand,
+							entries[curIndex].strand);
 					PrintError(FnName,
 							"entries[curIndex].strand",
 							"Could not understand strand",

@@ -5,8 +5,18 @@
 #include "../blib/AlignEntry.h"
 #include "Definitions.h"
 
-void PrintAlignEntriesToTempFiles(FILE*,
+void PrintAlignEntriesToTempFilesByChr(FILE*,
+		RGFiles*,
 		int,
+		int,
+		int,
+		int,
+		int,
+		int,
+		int,
+		char*);
+
+void PrintAlignEntriesToTempFilesWithinChr(FILE*,
 		int,
 		int,
 		int,

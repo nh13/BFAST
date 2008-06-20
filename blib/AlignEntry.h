@@ -24,10 +24,14 @@ void AlignEntryPrint(AlignEntry*, FILE*);
 int AlignEntryRead(AlignEntry*, FILE*);
 int AlignEntryRemoveDuplicates(AlignEntry**, int, int);
 void AlignEntryQuickSort(AlignEntry**, int, int, int, int, double*, int);
+void AlignEntryMergeSort(AlignEntry**, int, int, int, int, double*, int);
 void AlignEntryCopyAtIndex(AlignEntry*, int, AlignEntry*, int);
 int AlignEntryCompareAtIndex(AlignEntry*, int, AlignEntry*, int, int);
 int AlignEntryGetOneRead(AlignEntry**, FILE*);
 int AlignEntryGetAll(AlignEntry**, FILE*);
 void AlignEntryCopy(AlignEntry*, AlignEntry*);
+void AlignEntryFree(AlignEntry*);
+void AlignEntryInitialize(AlignEntry*);
 void AlignEntryCheckReference(AlignEntry*, RGBinary*);
+int AlignEntryGetPivot(AlignEntry*, int, int, int);
 #endif
