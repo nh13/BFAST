@@ -14,6 +14,7 @@ struct arguments
 	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
+	char *tmpDir;                           /* -T */
 	int binaryOutput;						/* -B - not used */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 

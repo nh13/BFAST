@@ -59,7 +59,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescNumThreads, 
-	DescOutputTitle, DescOutputID, DescOutputDir, DescTiming,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -84,6 +84,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
 	/*
 	   {"binaryOuput", 'B', 0, OPTION_NO_USAGE, "Specifies that we write the files as binary files", 3},
 	   */	
@@ -181,6 +182,7 @@ main (int argc, char **argv)
 										arguments.numThreads,
 										arguments.outputID,
 										arguments.outputDir,
+										arguments.tmpDir,
 										arguments.binaryOutput);
 
 								/* Free the RGIndex layout */
@@ -323,6 +325,13 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
+	if(args->tmpDir!=0) {
+		fprintf(stderr, "Validating tmpDir path %s. \n",
+				args->tmpDir);
+		if(ValidateFileName(args->tmpDir)==0)
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
+	}
+
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
@@ -405,6 +414,11 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
+	args->tmpDir =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->tmpDir!=0);
+	strcpy(args->tmpDir, DEFAULT_FILENAME);
+
 	args->binaryOutput = 1;
 	args->timing = 0;
 
@@ -430,6 +444,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
+	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	/*
 	   fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
 	   */
@@ -482,7 +497,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->binaryInput=1;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;break;
+						arguments->outputDir = OPTARG;
+						/* set the tmp directory to the output director */
+						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
+							free(arguments->tmpDir);
+							arguments->tmpDir = OPTARG;
+						}
+						break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
 					case 'h':
@@ -512,6 +533,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->endPos=atoi(OPTARG);break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
+					case 'T':
+						if(arguments->tmpDir == arguments->outputDir) {
+						}
+						if(arguments->tmpDir) {
+							free(arguments->tmpDir);
+						}
+						arguments->tmpDir = OPTARG;
+						break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

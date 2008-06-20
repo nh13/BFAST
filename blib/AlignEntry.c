@@ -322,7 +322,6 @@ void AlignEntryMergeSort(AlignEntry **a,
 			i<=high;
 			i++, ctr++) {
 		AlignEntryCopyAtIndex(tempEntries, ctr, (*a), i);
-		assert((*a)[i].strand == FORWARD || (*a)[i].strand == REVERSE);
 	}
 
 	/* Free memory */

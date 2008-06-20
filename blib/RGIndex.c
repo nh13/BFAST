@@ -24,7 +24,8 @@ void RGIndexCreate(RGIndex *index,
 		int32_t layoutIndex,
 		int32_t numThreads,
 		int32_t includeRepeats, 
-		int32_t includeNs) 
+		int32_t includeNs,
+		char *tmpDir) 
 {
 
 	/* The sort will take care of most of the work.  We just want 
@@ -41,10 +42,7 @@ void RGIndexCreate(RGIndex *index,
 	int32_t chrIndex = 0;
 
 	/* Initialize the index */
-	index->positions=NULL;
-	index->chromosomes=NULL;
-	index->length=0;
-	index->totalLength=0;
+	RGIndexInitialize(index);
 
 	assert(startChr <= endChr);
 	assert(startChr < endChr || (startChr == endChr && startPos <= endPos));
@@ -201,7 +199,7 @@ void RGIndexCreate(RGIndex *index,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorting...\n");
 	}
-	RGIndexSortNodes(index, rg, numThreads);
+	RGIndexSortNodes(index, rg, numThreads, tmpDir);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorted.\n");
 	}
@@ -312,7 +310,8 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 	index->starts[startHash] = start;
 	index->ends[startHash] = end-1;
 
-	/* Check hash creation */
+	/* Test hash creation */
+	/*
 	for(i=0;i<index->hashLength;i++) {
 		assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
 				(index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
@@ -323,27 +322,29 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 			assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
 		}
 	}
+	*/
 }
 
 /* TODO */
-void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
+void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 {
+	char *FnName = FnName;
 	int64_t i;
 	ThreadRGIndexSortData *data=NULL;
 	ThreadRGIndexSortData tempData;
 	pthread_t *threads=NULL;
 	int32_t errCode;
 	void *status=NULL;
-	int64_t *pivots;
+	int64_t *pivots=NULL;
 	int64_t max, maxIndex;
+	double curPercentComplete = 0.0;
 
 	/* Only use threads if we want to divide and conquer */
 	if(numThreads > 1) {
-
 		/* Allocate memory for the thread arguments */
 		data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
 		if(NULL==data) {
-			PrintError("RGIndexSortNodes",
+			PrintError(FnName,
 					"data",
 					"Could not allocate memory",
 					Exit,
@@ -352,169 +353,276 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads)
 		/* Allocate memory for the thread point32_ters */
 		threads = malloc(sizeof(pthread_t)*numThreads);
 		if(NULL==threads) {
-			PrintError("RGIndexSortNodes",
+			PrintError(FnName,
 					"threads",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
 
-		/* Should check that the number of threads is a power of 4 */
-		assert(IsAPowerOfTwo(numThreads)==1);
+		if(SORT_TYPE == 0) {
+			/* Quick sort */
 
-		/* Allocate memory for the pivots */
-		pivots = malloc(sizeof(int64_t)*(2*numThreads));
-		if(NULL == pivots) {
-			PrintError("RGIndexSortNodes",
-					"pivots",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+			/* Should check that the number of threads is a power of 4 */
+			assert(IsAPowerOfTwo(numThreads)==1);
 
-		for(i=0;i<2*numThreads;i++) {
-			pivots[i] = -1;
-		}
+			/* Allocate memory for the pivots */
+			pivots = malloc(sizeof(int64_t)*(2*numThreads));
+			if(NULL == pivots) {
+				PrintError(FnName,
+						"pivots",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
 
-		/* Get the pivots and presort */
-		fprintf(stderr, "\rInitializing...");
-		RGIndexQuickSortNodesGetPivots(index,
-				rg,
-				0,
-				index->length-1,
-				pivots,
-				1,
-				numThreads);
-		/* The last one must be less than index->length */
-		pivots[2*numThreads-1]--;
+			for(i=0;i<2*numThreads;i++) {
+				pivots[i] = -1;
+			}
 
-		/* Check pivots */
-		for(i=0;i<2*numThreads;i+=2) {
-			if(!(pivots[i] >= 0 && pivots[i] < index->length)) {
-				fprintf(stderr, "offender\ti:%d\tlength:%d\n",
-						(int)i,
-						(int)index->length);
-				for(i=0;i<2*numThreads;i+=2) {
-					fprintf(stderr, "i:%d\t%d\t%d\n",
+			/* Get the pivots and presort */
+			fprintf(stderr, "\rInitializing...");
+			RGIndexQuickSortNodesGetPivots(index,
+					rg,
+					0,
+					index->length-1,
+					pivots,
+					1,
+					numThreads);
+			/* The last one must be less than index->length */
+			pivots[2*numThreads-1]--;
+
+			/* Check pivots */
+			for(i=0;i<2*numThreads;i+=2) {
+				if(!(pivots[i] >= 0 && pivots[i] < index->length)) {
+					fprintf(stderr, "offender\ti:%d\tlength:%d\n",
 							(int)i,
-							(int)pivots[i],
-							(int)pivots[i+1]);
+							(int)index->length);
+					for(i=0;i<2*numThreads;i+=2) {
+						fprintf(stderr, "i:%d\t%d\t%d\n",
+								(int)i,
+								(int)pivots[i],
+								(int)pivots[i+1]);
+					}
+					exit(1);
 				}
-				exit(1);
+				assert(pivots[i] >= 0 && pivots[i] < index->length);
+				assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
+				assert(pivots[i] <= pivots[i+1]);
+				if(i==0) {
+					assert(pivots[i] == 0);
+				}
+				if(i+1==2*numThreads-1) {
+					assert(pivots[i+1] == index->length-1);
+				}
+				if(i>1 && i%2==0) {
+					assert(pivots[i] == pivots[i-1] + 1);
+				}
+				if(i>1) {
+					assert(pivots[i] > pivots[i-1]);
+				}
 			}
-			assert(pivots[i] >= 0 && pivots[i] < index->length);
-			assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
-			assert(pivots[i] <= pivots[i+1]);
-			if(i==0) {
-				assert(pivots[i] == 0);
+
+			/* Initialize data */
+			maxIndex=0;
+			max = data[0].high-data[0].low;
+			for(i=0;i<numThreads;i++) {
+				data[i].index = index;
+				data[i].rg = rg;
+				data[i].threadID = i;
+				data[i].low = pivots[2*i];
+				data[i].high = pivots[2*i+1];
+				data[i].showPercentComplete = 0;
+				data[i].tmpDir = NULL;
+				assert(data[i].low >= 0 && data[i].high < index->length);
+				if(data[i].high - data[i].low >= max) {
+					maxIndex = i;
+				}
 			}
-			if(i+1==2*numThreads-1) {
-				assert(pivots[i+1] == index->length-1);
+			data[maxIndex].showPercentComplete = 1;
+
+			/* Check that we split correctly */
+			for(i=1;i<numThreads;i++) {
+				assert(data[i-1].high < data[i].low);
 			}
-			if(i>1 && i%2==0) {
-				assert(pivots[i] == pivots[i-1] + 1);
+
+			/* Copy maxIndex to the front so that it is the first that we wait for... */
+			tempData.low = data[0].low;
+			tempData.high = data[0].high;
+			tempData.threadID = data[0].threadID;
+			tempData.showPercentComplete = data[0].showPercentComplete;
+			data[0].low = data[maxIndex].low;
+			data[0].high = data[maxIndex].high;
+			data[0].threadID = data[maxIndex].threadID;
+			data[0].showPercentComplete = data[maxIndex].showPercentComplete;
+			data[maxIndex].low = tempData.low;
+			data[maxIndex].high = tempData.high;
+			data[maxIndex].threadID = tempData.threadID;
+			data[maxIndex].showPercentComplete = tempData.showPercentComplete;
+
+			/* Create threads */
+			for(i=0;i<numThreads;i++) {
+				/* Start thread */
+				errCode = pthread_create(&threads[i], /* thread struct */
+						NULL, /* default thread attributes */
+						RGIndexQuickSortNodes, /* start routine */
+						(void*)(&data[i])); /* data to routine */
+				if(0!=errCode) {
+					PrintError(FnName,
+							"pthread_create: errCode",
+							"Could not start thread",
+							Exit,
+							ThreadError);
+				}
 			}
-			if(i>1) {
-				assert(pivots[i] > pivots[i-1]);
+
+			/* Wait for the threads to finish */
+			for(i=0;i<numThreads;i++) {
+				/* Wait for the given thread to return */
+				errCode = pthread_join(threads[i],
+						&status);
+				/* Check the return code of the thread */
+				if(0!=errCode) {
+					PrintError(FnName,
+							"pthread_join: errCode",
+							"Thread returned an error",
+							Exit,
+							ThreadError);
+				}
+				if(i==maxIndex && VERBOSE >= 0) {
+					fprintf(stderr, "\rWaiting for other threads to complete...");
+				}
+			}
+			/* Free memory */
+			free(pivots);
+		}
+		else if(SORT_TYPE == 1) {
+			/* Merge sort with tmp file I/O */
+
+			/* Initialize data */
+			for(i=0;i<numThreads;i++) {
+				data[i].index = index;
+				data[i].rg = rg;
+				data[i].threadID = i;
+				data[i].low = i*(index->length/numThreads);
+				data[i].high = (i+1)*(index->length/numThreads)-1;
+				data[i].showPercentComplete = 0;
+				data[i].tmpDir = tmpDir;
+				assert(data[i].low >= 0 && data[i].high < index->length);
+			}
+			data[0].low = 0;
+			data[numThreads-1].high = index->length-1;
+			data[numThreads-1].showPercentComplete = 1;
+
+			/* Check that we split correctly */
+			for(i=1;i<numThreads;i++) {
+				assert(data[i-1].high < data[i].low);
+			}
+
+			/* Create threads */
+			for(i=0;i<numThreads;i++) {
+				/* Start thread */
+				errCode = pthread_create(&threads[i], /* thread struct */
+						NULL, /* default thread attributes */
+						RGIndexMergeSortNodes, /* start routine */
+						(void*)(&data[i])); /* data to routine */
+				if(0!=errCode) {
+					PrintError(FnName,
+							"pthread_create: errCode",
+							"Could not start thread",
+							Exit,
+							ThreadError);
+				}
+			}
+
+			/* Wait for the threads to finish */
+			for(i=0;i<numThreads;i++) {
+				/* Wait for the given thread to return */
+				errCode = pthread_join(threads[i],
+						&status);
+				/* Check the return code of the thread */
+				if(0!=errCode) {
+					PrintError(FnName,
+							"pthread_join: errCode",
+							"Thread returned an error",
+							Exit,
+							ThreadError);
+				}
+				if(i==numThreads-1 && VERBOSE >= 0) {
+					fprintf(stderr, "\rWaiting for other threads to complete...");
+				}
+			}
+
+			/* Now we must merge the results from the threads */
+			for(i=1;i<numThreads;i++) {
+				RGIndexMergeHelper(index,
+						rg,
+						data[0].low,
+						data[i].low-1,
+						data[i].high,
+						tmpDir);
 			}
 		}
-
-		/* Initialize data */
-		maxIndex=0;
-		max = data[0].high-data[0].low;
-		for(i=0;i<numThreads;i++) {
-			data[i].index = index;
-			data[i].rg = rg;
-			data[i].threadID = i;
-			data[i].low = pivots[2*i];
-			data[i].high = pivots[2*i+1];
-			data[i].showPercentComplete = 0;
-			assert(data[i].low >= 0 && data[i].high < index->length);
-			if(data[i].high - data[i].low >= max) {
-				maxIndex = i;
-			}
-		}
-		data[maxIndex].showPercentComplete = 1;
-
-		/* Check that we split correctly */
-		for(i=1;i<numThreads;i++) {
-			assert(data[i-1].high < data[i].low);
-		}
-
-		/* Copy maxIndex to the front so that it is the first that we wait for... */
-		tempData.low = data[0].low;
-		tempData.high = data[0].high;
-		tempData.threadID = data[0].threadID;
-		tempData.showPercentComplete = data[0].showPercentComplete;
-		data[0].low = data[maxIndex].low;
-		data[0].high = data[maxIndex].high;
-		data[0].threadID = data[maxIndex].threadID;
-		data[0].showPercentComplete = data[maxIndex].showPercentComplete;
-		data[maxIndex].low = tempData.low;
-		data[maxIndex].high = tempData.high;
-		data[maxIndex].threadID = tempData.threadID;
-		data[maxIndex].showPercentComplete = tempData.showPercentComplete;
-
-		/* Create threads */
-		for(i=0;i<numThreads;i++) {
-			/* Start thread */
-			errCode = pthread_create(&threads[i], /* thread struct */
-					NULL, /* default thread attributes */
-					RGIndexQuickSortNodes, /* start routine */
-					(void*)(&data[i])); /* data to routine */
-			if(0!=errCode) {
-				PrintError("RGIndexSortNodes",
-						"pthread_create: errCode",
-						"Could not start thread",
-						Exit,
-						ThreadError);
-			}
-		}
-
-		/* Wait for the threads to finish */
-		for(i=0;i<numThreads;i++) {
-			/* Wait for the given thread to return */
-			errCode = pthread_join(threads[i],
-					&status);
-			/* Check the return code of the thread */
-			if(0!=errCode) {
-				PrintError("RGIndexSortNodes",
-						"pthread_join: errCode",
-						"Thread returned an error",
-						Exit,
-						ThreadError);
-			}
-			if(i==maxIndex && VERBOSE >= 0) {
-				fprintf(stderr, "\rWaiting for other threads to complete...");
-			}
+		else {
+			PrintError(FnName,
+					"SORT_TYPE",
+					"Could not understand sort type",
+					Exit,
+					OutOfRange);
 		}
 
 		/* Free memory */
 		free(threads);
+		threads=NULL;
 		free(data);
-		free(pivots);
+		data=NULL;
 	}
 	else {
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r0 percent complete");
+		if(SORT_TYPE == 0) {
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\r0 percent complete");
+			}
+			RGIndexQuickSortNodesHelper(index,
+					rg,
+					0,
+					index->length-1,
+					1);
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\r100.00 percent complete\n");
+			}
 		}
-		RGIndexQuickSortNodesHelper(index,
-				rg,
-				0,
-				index->length-1,
-				1);
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r100.00 percent complete\n");
+		else if(SORT_TYPE == 1) {
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\r0 percent complete");
+			}
+			RGIndexMergeSortNodesHelper(index,
+					rg,
+					0,
+					index->length-1,
+					1,
+					&curPercentComplete,
+					0,
+					index->length-1,
+					tmpDir);
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\r100.00 percent complete\n");
+			}
+		}
+		else {
+			PrintError(FnName,
+					"SORT_TYPE",
+					"Could not understand sort type",
+					Exit,
+					OutOfRange);
 		}
 	}
 
 	/* Test that we sorted correctly */
 	/*
-	   for(i=1;i<index->length;i++) {
-	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	   }
-	   */
-
+	for(i=1;i<index->length;i++) {
+		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	}
+	*/
 }
 
 /* TODO */
@@ -768,6 +876,319 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		pivots[2*lowPivot-1] = low;
 		return;
 	}
+}
+
+/* TODO */
+void *RGIndexMergeSortNodes(void *arg)
+{
+	/* thread arguments */
+	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
+	double curPercentComplete = 0.0;
+
+	/* Call helper */
+	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
+		fprintf(stderr, "\r0 percent complete");
+	}
+	RGIndexMergeSortNodesHelper(data->index,
+			data->rg,
+			data->low,
+			data->high,
+			data->showPercentComplete,
+			&curPercentComplete,
+			data->low,
+			data->high - data->low,
+			data->tmpDir);
+	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
+		fprintf(stderr, "\r");
+		fprintf(stderr, "thread %3.3lf percent complete", 100.0);
+	}
+
+	return arg;
+}
+
+/* TODO */
+/* Call stack was getting too big, implement non-recursive sort */
+void RGIndexMergeSortNodesHelper(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t high,
+		int32_t showPercentComplete,
+		double *curPercentComplete,
+		int64_t startLow,
+		int64_t total,
+		char *tmpDir)
+{
+	/* Local Variables */
+	int64_t mid = (low + high)/2;
+
+	if(low >= high) {
+		if(VERBOSE >= 0 &&
+				showPercentComplete == 1) {
+			assert(NULL!=curPercentComplete);
+			if((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
+				while((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
+					(*curPercentComplete) += SORT_ROTATE_INC;
+				}
+				fprintf(stderr, "\r%3.3lf percent complete", 100.0*((double)(low - startLow))/total);
+			}
+		}
+		return;
+	}
+	/* Partition the list into two lists and sort them recursively */
+	RGIndexMergeSortNodesHelper(index,
+			rg,
+			low,
+			mid,
+			showPercentComplete,
+			curPercentComplete,
+			startLow,
+			total,
+			tmpDir);
+	RGIndexMergeSortNodesHelper(index,
+			rg,
+			mid+1,
+			high,
+			showPercentComplete,
+			curPercentComplete,
+			startLow,
+			total,
+			tmpDir);
+
+	/* Merge the two lists */
+	RGIndexMergeHelper(index,
+			rg,
+			low,
+			mid,
+			high,
+			tmpDir);
+}
+
+/* TODO */
+void RGIndexMergeHelper(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t mid,
+		int64_t high,
+		char *tmpDir) 
+{
+	char *FnName = "RGIndexMergeHelper";
+	int64_t i=0;
+	uint32_t *tmpPositions=NULL;
+	uint8_t *tmpChromosomes=NULL;
+	int64_t startUpper, startLower, endUpper, endLower;
+	int64_t ctr=0;
+	FILE *tmpLowerFP=NULL;
+	FILE *tmpUpperFP=NULL;
+	char *tmpLowerFileName=NULL;
+	char *tmpUpperFileName=NULL;
+	uint32_t tmpLowerPosition=0;
+	uint32_t tmpUpperPosition=0;
+	uint8_t tmpLowerChromosome=0;
+	uint8_t tmpUpperChromosome=0;
+
+	/* Merge the two lists */
+	/* Since we want to keep space requirement small, use an upper bound on memory,
+	 * so that we use tmp files when memory requirements become to large */
+	if( (high-low+1)*(sizeof(uint32_t) + sizeof(uint8_t)) <= ONE_GIGABYTE) {
+
+		/* Use memory */
+		tmpPositions = malloc(sizeof(uint32_t)*(high-low+1));
+		if(NULL == tmpPositions) {
+			PrintError(FnName,
+					"tmpPositions",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		tmpChromosomes = malloc(sizeof(uint8_t)*(high-low+1));
+		if(NULL == tmpChromosomes) {
+			PrintError(FnName,
+					"tmpChromosomes",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Merge */
+		startLower = low;
+		endLower = mid;
+		startUpper = mid+1;
+		endUpper = high;
+		ctr=0;
+		while( (startLower <= endLower) && (startUpper <= endUpper) ) {
+			if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
+				tmpPositions[ctr] = index->positions[startLower];
+				tmpChromosomes[ctr] = index->chromosomes[startLower];
+				startLower++;
+			}
+			else {
+				tmpPositions[ctr] = index->positions[startUpper];
+				tmpChromosomes[ctr] = index->chromosomes[startUpper];
+				startUpper++;
+			}
+			ctr++;
+		}
+		while(startLower <= endLower) {
+			tmpPositions[ctr] = index->positions[startLower];
+			tmpChromosomes[ctr] = index->chromosomes[startLower];
+			startLower++;
+			ctr++;
+		}
+		while(startUpper <= endUpper) {
+			tmpPositions[ctr] = index->positions[startUpper];
+			tmpChromosomes[ctr] = index->chromosomes[startUpper];
+			startUpper++;
+			ctr++;
+		}
+		/* Copy back */
+		for(i=low, ctr=0;
+				i<=high;
+				i++, ctr++) {
+			index->positions[i] = tmpPositions[ctr];
+			index->chromosomes[i] = tmpChromosomes[ctr];
+		}
+
+		/* Free memory */
+		free(tmpPositions);
+		tmpPositions=NULL;
+		free(tmpChromosomes);
+		tmpChromosomes=NULL;
+	}
+	else {
+		/* Use tmp files */
+
+		/* Open tmp files */
+		tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
+		tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
+
+		/* Print to tmp files */
+		for(i=low;i<=mid;i++) {
+			if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
+				PrintError(FnName,
+						"index->positions",
+						"Could not write positions to tmp lower file",
+						Exit,
+						WriteFileError);
+			}
+			if(1 != fwrite(&index->chromosomes[i], sizeof(uint8_t), 1, tmpLowerFP)) {
+				PrintError(FnName,
+						"index->chromosomes",
+						"Could not write chromosomes to tmp lower file",
+						Exit,
+						WriteFileError);
+			}
+		}
+		for(i=mid+1;i<=high;i++) {
+			if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
+				PrintError(FnName,
+						"index->positions",
+						"Could not write positions to tmp upper file",
+						Exit,
+						WriteFileError);
+			}
+			if(1 != fwrite(&index->chromosomes[i], sizeof(uint8_t), 1, tmpUpperFP)) {
+				PrintError(FnName,
+						"index->chromosomes",
+						"Could not write chromosomes to tmp upper file",
+						Exit,
+						WriteFileError);
+			}
+		}
+
+		/* Move to beginning of the files */
+		fseek(tmpLowerFP, 0 , SEEK_SET);
+		fseek(tmpUpperFP, 0 , SEEK_SET);
+
+		/* Merge tmp files back into index */
+		/* Get first chr/pos */
+		if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+				1!=fread(&tmpLowerChromosome, sizeof(uint8_t), 1, tmpLowerFP)) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in tmp lower",
+					Exit,
+					ReadFileError);
+		}
+		if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+				1!=fread(&tmpUpperChromosome, sizeof(uint8_t), 1, tmpUpperFP)) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in tmp upper",
+					Exit,
+					ReadFileError);
+		}
+		for(i=low, ctr=0;
+				i<=high &&
+				tmpLowerPosition != 0 &&
+				tmpUpperPosition != 0;
+				i++, ctr++) {
+			if(RGIndexCompareChrPos(index,
+						rg,
+						tmpLowerChromosome,
+						tmpLowerPosition,
+						tmpUpperChromosome,
+						tmpUpperPosition,
+						0)<=0) {
+				/* Copy lower */
+				index->positions[i] = tmpLowerPosition;
+				index->chromosomes[i] = tmpLowerChromosome;
+				/* Get new tmpLower */
+				if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+						1!=fread(&tmpLowerChromosome, sizeof(uint8_t), 1, tmpLowerFP)) {
+					tmpLowerPosition = 0;
+					tmpLowerChromosome = 0;
+				}
+			}
+			else {
+				/* Copy upper */
+				index->positions[i] = tmpUpperPosition;
+				index->chromosomes[i] = tmpUpperChromosome;
+				/* Get new tmpUpper */
+				if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+						1!=fread(&tmpUpperChromosome, sizeof(uint8_t), 1, tmpUpperFP)) {
+					tmpUpperPosition = 0;
+					tmpUpperChromosome = 0;
+				}
+			}
+		}
+		while(tmpLowerPosition != 0 && tmpUpperPosition == 0) {
+			/* Copy lower */
+			index->positions[i] = tmpLowerPosition;
+			index->chromosomes[i] = tmpLowerChromosome;
+			/* Get new tmpLower */
+			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+					1!=fread(&tmpLowerChromosome, sizeof(uint8_t), 1, tmpLowerFP)) {
+				tmpLowerPosition = 0;
+				tmpLowerChromosome = 0;
+			}
+			i++;
+			ctr++;
+		}
+		while(tmpLowerPosition == 0 && tmpUpperPosition != 0) {
+			/* Copy upper */
+			index->positions[i] = tmpUpperPosition;
+			index->chromosomes[i] = tmpUpperChromosome;
+			/* Get new tmpUpper */
+			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+					1!=fread(&tmpUpperChromosome, sizeof(uint8_t), 1, tmpUpperFP)) {
+				tmpUpperPosition = 0;
+				tmpUpperChromosome = 0;
+			}
+			i++;
+			ctr++;
+		}
+		assert(i > high && ctr > (high - low + 1));
+
+		/* Close tmp files */
+		CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
+		CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
+	}
+	/* Test merge */
+	/*
+	for(i=low+1;i<=high;i++) {
+		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	}
+	*/
 }
 
 /* TODO */
@@ -1377,9 +1798,6 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int32_t readLen
 		return;
 	}
 
-	/* HERE */
-	assert(strlen(read) == readLength);
-
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
 	 * zero bounds for the binary search on the index */
@@ -1610,25 +2028,29 @@ int64_t RGIndexGetPivot(RGIndex *index, RGBinary *rg, int64_t low, int64_t high)
 }
 
 /* TODO */
-int32_t RGIndexCompareAt(RGIndex *index,
+int32_t RGIndexCompareChrPos(RGIndex *index,
 		RGBinary *rg,
-		int64_t a,
-		int64_t b, 
+		uint8_t aChr,
+		uint32_t aPos,
+		uint8_t bChr,
+		uint32_t bPos,
 		int debug)
 {
-	assert(a>=0 && a<index->length);
-	assert(b>=0 && b<index->length);
-
-	int32_t i, j;
-	uint32_t aChr = index->chromosomes[a];
-	uint32_t aPos = index->positions[a];
-	uint32_t bChr = index->chromosomes[b];
-	uint32_t bPos = index->positions[b];
-
+	int64_t i, j;
 	uint32_t aCurTilePos;
 	uint32_t bCurTilePos;
 	uint8_t aBase;
 	uint8_t bBase;
+
+	if(!(aChr >= index->startChr && aChr <= index->endChr)) {
+	}
+	assert(aChr >= index->startChr && aChr <= index->endChr);
+	assert( (aChr != index->startChr || aPos >= index->startPos) &&
+			(aChr != index->endChr || aPos <= index->endPos));
+	assert(bChr >= index->startChr && bChr <= index->endChr);
+	assert( (bChr != index->startChr || bPos >= index->startPos) &&
+			(bChr != index->endChr || bPos <= index->endPos));
+
 
 	/* Compare base by base */
 	aCurTilePos = aPos;
@@ -1672,6 +2094,25 @@ int32_t RGIndexCompareAt(RGIndex *index,
 
 	/* All bases were equal, return 0 */
 	return 0;
+}
+
+/* TODO */
+int32_t RGIndexCompareAt(RGIndex *index,
+		RGBinary *rg,
+		int64_t a,
+		int64_t b, 
+		int debug)
+{
+	assert(a>=0 && a<index->length);
+	assert(b>=0 && b<index->length);
+
+	return RGIndexCompareChrPos(index,
+			rg,
+			index->chromosomes[a],
+			index->positions[a],
+			index->chromosomes[b],
+			index->positions[b],
+			debug);
 }
 
 /* TODO */
@@ -1861,11 +2302,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 					hashIndex += pow(ALPHABET_SIZE, cur)*3;
 					break;
 				default:
-					/* HERE */
-					fprintf(stderr, "read:%s\nread length:%d\n",
-							read,
-							readLength);
-					RGIndexPrintReadMasked(index, read, 0, stderr);
 					PrintError(FnName,
 							"readBase",
 							"Could not understand base",
@@ -1904,4 +2340,26 @@ void RGIndexPrintReadMasked(RGIndex *index, char *read, int offset, FILE *fp)
 		}   
 	}   
 	fprintf(fp, "\n");
+}
+
+/* TODO */
+void RGIndexInitialize(RGIndex *index)
+{
+	index->positions = NULL;
+	index->chromosomes = NULL;
+	index->length = 0;
+
+	index->hashWidth = 0;
+	index->numTiles = 0;
+	index->starts = NULL;
+	index->ends = NULL;
+
+	index->totalLength = 0;
+	index->numTiles = 0;
+	index->tileLengths = NULL;
+	index->gaps = NULL;
+	index->startChr = 0;
+	index->startPos = 0;
+	index->endChr = 0;
+	index->endPos = 0;
 }

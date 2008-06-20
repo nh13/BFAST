@@ -20,6 +20,7 @@ void GenerateIndex(RGBinary *rg,
 		int numThreads,
 		char *outputID,
 		char *outputDir,
+		char *tmpDir,
 		int binaryOutput)
 {
 	int32_t i;
@@ -48,7 +49,8 @@ void GenerateIndex(RGBinary *rg,
 				i,
 				numThreads,
 				1, /* Include repeat masker */
-				0); /* Do not include Ns */
+				0, /* Do not include Ns */
+				tmpDir);
 
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Index created.\n");

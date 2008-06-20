@@ -13,6 +13,10 @@
 #define BREAK_LINE "************************************************************\n"
 #define SEQUENCE_LENGTH 512
 #define SEQUENCE_NAME_LENGTH 4028
+/* 0 - quick sort in place
+ * 1 - merge sort with tmp file I/O (not fully debugged) */
+#define SORT_TYPE 0
+#define ONE_GIGABYTE 1073741824
 
 /* File extensions */
 #define BFAST_RG_FILE_EXTENSION "brg"
@@ -127,6 +131,7 @@ typedef struct {
 	int64_t high;
 	int32_t threadID;
 	int32_t showPercentComplete;
+	char *tmpDir;
 } ThreadRGIndexSortData;
 
 #endif
