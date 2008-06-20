@@ -9,7 +9,7 @@ enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
 
 /* TODO */
 typedef struct {
-	char readName[SEQUENCE_NAME_LENGTH];
+	char *readName;
 	char *read; /* The read */
 	char *reference;
 	unsigned int length; /* The length of the alignment */

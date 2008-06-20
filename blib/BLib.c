@@ -97,6 +97,9 @@ char GetReverseComplimentAnyCaseBase(char a) {
 			return GAP;
 			break;
 		default:
+			fprintf(stderr, "\n[%c]\t[%d]\n",
+					a,
+					(int)a);
 			PrintError("GetReverseComplimentAnyCaseBase",
 					NULL,
 					"Could not understand sequence base",

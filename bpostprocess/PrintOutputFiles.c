@@ -70,6 +70,12 @@ void PrintAlignEntriesToTempFilesByChr(FILE* fp,
 			fprintf(stderr, "\r[%d]", curRead);
 		}
 
+		/* HERE */
+		for(i=0;i<numEntries;i++) {
+			assert(strlen(entries[i].read) == entries[i].length);
+			assert(strlen(entries[i].reference) == entries[i].length);
+		}
+
 		/* Apply filtering */
 		numEntries = FilterEntries(&entries,
 				numEntries,
@@ -80,6 +86,13 @@ void PrintAlignEntriesToTempFilesByChr(FILE* fp,
 				startPos,
 				endChr,
 				endPos);
+		assert(numEntries == 1 || numEntries == 0);
+
+		/* HERE */
+		for(i=0;i<numEntries;i++) {
+			assert(strlen(entries[i].read) == entries[i].length);
+			assert(strlen(entries[i].reference) == entries[i].length);
+		}
 
 		/* Output if there is only one entry left after filtering */
 		if(numEntries==1) {
@@ -530,6 +543,17 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 					strcpy(tmpReference, entries[curIndex].reference);
 					break;
 				case REVERSE:
+					/* HERE */
+					if(!(strlen(entries[curIndex].reference) == entries[curIndex].length)) {
+						fprintf(stderr, "\n[%s]\n[%d]\t[%d]\n",
+								entries[curIndex].reference,
+								(int)strlen(entries[curIndex].reference),
+								entries[curIndex].length);
+						AlignEntryPrint(&entries[curIndex], stderr);
+					}
+					assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
+					assert(strlen(entries[curIndex].read) == entries[curIndex].length);
+					assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
 					GetReverseComplimentAnyCase(entries[curIndex].read, tmpRead, entries[curIndex].length);
 					GetReverseComplimentAnyCase(entries[curIndex].reference, tmpReference, entries[curIndex].length);
 					break;

@@ -927,7 +927,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			assert(NULL!=curPercentComplete);
 			if((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
 				while((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
-					(*curPercentComplete) += SORT_ROTATE_INC;
+					(*curPercentComplete) += RGINDEX_SORT_ROTATE_INC;
 				}
 				fprintf(stderr, "\r%3.3lf percent complete", 100.0*((double)(low - startLow))/total);
 			}

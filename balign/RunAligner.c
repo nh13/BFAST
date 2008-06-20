@@ -413,22 +413,6 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Allocate memory for the align entries */
 	AlignEntryInitialize(&aEntry);
-	aEntry.read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL==aEntry.read) {
-		PrintError("RunDynamicProgramming",
-				"aEntry.read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	aEntry.reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL==aEntry.reference) {
-		PrintError("RunDynamicProgramming",
-				"aEntry.reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
 
 	/* Merge all the aligned reads from the threads */
 	if(VERBOSE >=0) {
@@ -461,6 +445,8 @@ void RunDynamicProgramming(FILE *matchFP,
 					/* Print the align entry to file */
 					AlignEntryPrint(&aEntry,
 							outputFP);
+					/* Free memory */
+					AlignEntryFree(&aEntry);
 				}
 			}
 		}
@@ -562,6 +548,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int threadID=data->threadID;
 	ScoringMatrix *sm = data->sm;
 	/* Local variables */
+	char *FnName = "RunDynamicProgrammingThread";
 	AlignEntry *aEntry=NULL;
 	int numAlignEntries=0;
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
@@ -589,7 +576,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	referenceLength = 2*offsetLength + SEQUENCE_LENGTH + 1;
 	reference = malloc(sizeof(char)*(referenceLength+1));
 	if(NULL==reference) {
-		PrintError("RunDynamicProgrammingThread",
+		PrintError(FnName,
 				"reference",
 				"Could not allocate memory",
 				Exit,
@@ -625,7 +612,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		/* Allocate memory for the AlignEntries */
 		aEntry = malloc(sizeof(AlignEntry)*readMatch.numEntries);
 		if(NULL == aEntry) {
-			PrintError("RunDynamicProgrammingThread",
+			PrintError(FnName,
 					"aEntry",
 					"Could not allocate memory",
 					Exit,
@@ -683,6 +670,15 @@ void *RunDynamicProgrammingThread(void *arg)
 			aEntry[i].chromosome = readMatch.chromosomes[i];
 			aEntry[i].position = position+adjustPosition; /* Adjust position */
 			aEntry[i].strand = readMatch.strand[i]; 
+			/* Allocate memory for the read name */
+			aEntry[i].readName = malloc(sizeof(char)*(strlen(readName)+1));
+			if(NULL == aEntry[i].readName) {
+				PrintError(FnName,
+						"aEntry[i].readName",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
 			strcpy(aEntry[i].readName, readName);
 
 			/* Check align entry */
