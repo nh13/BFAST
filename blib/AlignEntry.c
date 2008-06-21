@@ -117,7 +117,11 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 
 	if(length > 0) {
 		/* Sort the array */
+		/*
+		 * HERE 
 		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+		*/
+		AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
 
 		/* Remove duplicates */
 		prevIndex=0;
@@ -152,6 +156,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 
 /* TODO */
 /* Log-n space */
+/* Do not use, since it is buggy and has not been updated lately */  
 void AlignEntryQuickSort(AlignEntry **a,
 		int low,
 		int high,
@@ -491,7 +496,7 @@ int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
 void AlignEntryCopyAtIndex(AlignEntry *src, int srcIndex, AlignEntry *dest, int destIndex)
 {
 	if(dest != src || srcIndex != destIndex) {
-		AlignEntryCopy(&src[srcIndex], &dest[destIndex]);
+		AlignEntryCopy(&(src[srcIndex]), &(dest[destIndex]));
 	}
 }
 
@@ -552,7 +557,7 @@ void AlignEntryFree(AlignEntry *aEntry)
 
 void AlignEntryInitialize(AlignEntry *aEntry) 
 {
-	aEntry->readName = NULL;
+	aEntry->readName=NULL;
 	aEntry->read=NULL;
 	aEntry->reference=NULL;
 	aEntry->length=0;
