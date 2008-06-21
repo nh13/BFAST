@@ -82,7 +82,7 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 1: wig 2: bed", 3},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 1:wig 2:bed 3:bed & wig ", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},

@@ -286,6 +286,9 @@ void PrintAlignEntries(ChrFiles *chrFile,
 		case BedFile:
 			numOutputFPs=3; /* One for mismatches, one for insertions, one for deletions */
 			break;
+		case BedAndWigFile:
+			numOutputFPs=4;
+			break;
 		default:
 			PrintError(FnName,
 					"outputFormat",
@@ -367,6 +370,38 @@ void PrintAlignEntries(ChrFiles *chrFile,
 					curChr,
 					"bed");
 			break;
+		case BedAndWigFile:
+			/* Create only one output file */
+			assert(numOutputFPs==4);
+			/* Create output file name */
+			sprintf(outputFileNames[0], "%s%s.%s.%d.%s",
+					outputDir,
+					PROGRAM_NAME,
+					outputID,
+					curChr,
+					"wig");
+			sprintf(outputFileNames[1], "%s%s.%s.%s.%d.%s",
+					outputDir,
+					PROGRAM_NAME,
+					outputID,
+					"mismatches",
+					curChr,
+					"bed");
+			sprintf(outputFileNames[2], "%s%s.%s.%s.%d.%s",
+					outputDir,
+					PROGRAM_NAME,
+					outputID,
+					"insertions",
+					curChr,
+					"bed");
+			sprintf(outputFileNames[3], "%s%s.%s.%s.%d.%s",
+					outputDir,
+					PROGRAM_NAME,
+					outputID,
+					"deletions",
+					curChr,
+					"bed");
+			break;
 		default:
 			PrintError(FnName,
 					"outputFormat",
@@ -427,21 +462,21 @@ void PrintAlignEntries(ChrFiles *chrFile,
 						(i+1)*regionLength);
 				fprintf(stderr, "%3.2lf percent complete", 0.0);
 			}
-			   AlignEntryMergeSort(&entries, 
-			   0, 
-			   numEntries-1, 
-			   AlignEntrySortByChrPos,
-			   1,
-			   &curPercent,
-			   numEntries);
-			/*
-			AlignEntryQuickSort(&entries, 
+			AlignEntryMergeSort(&entries, 
 					0, 
 					numEntries-1, 
 					AlignEntrySortByChrPos,
 					1,
 					&curPercent,
 					numEntries);
+			/*
+			   AlignEntryQuickSort(&entries, 
+			   0, 
+			   numEntries-1, 
+			   AlignEntrySortByChrPos,
+			   1,
+			   &curPercent,
+			   numEntries);
 			   */
 			if(VERBOSE >= 0) {
 				PrintPercentCompleteShort(100.0);
@@ -470,6 +505,21 @@ void PrintAlignEntries(ChrFiles *chrFile,
 							numEntries,
 							curChr,
 							outputFPs,
+							0,
+							numOutputFPs);
+					break;
+				case BedAndWigFile:
+					assert(numOutputFPs==4);
+					/* Print the entries to file */
+					PrintSortedAlignEntriesToWig(entries,
+							numEntries,
+							curChr,
+							outputFPs[0]);
+					PrintSortedAlignEntriesToBed(entries,
+							numEntries,
+							curChr,
+							outputFPs,
+							1,
 							numOutputFPs);
 					break;
 				default:
@@ -506,8 +556,8 @@ void PrintAlignEntries(ChrFiles *chrFile,
 				(chrFile->numFiles)*regionLength,
 				100.00);
 		/* Just for good measure */
-		fprintf(stderr, "                  ");
-		fprintf(stderr, "\nOutputted %d entries.\n", numReads);
+		fprintf(stderr, "                  \n");
+		fprintf(stderr, "Outputted %d entries.\n", numReads);
 	}
 
 	/* Close the output files */
@@ -549,8 +599,7 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 				curIndex < numEntries && 
 				/* The start position of the entry must be within bounds */
 				entries[curIndex].position <= curPos; 
-				curIndex++, coverage++) {
-
+				curIndex++) {
 
 			/* Check to see that the end position is within bounds */
 			if(curPos <= entries[curIndex].position + entries[curIndex].referenceLength - 1) {
@@ -606,6 +655,10 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 				/* Check that the reference sequence matches */
 				if(coverage==0) {
 					referenceBase = tmpReference[j];
+					assert(referenceBase == 'A' ||
+							referenceBase == 'C' || 
+							referenceBase == 'G' ||
+							referenceBase == 'T');
 				}
 				else {
 					if(!(referenceBase == tmpReference[j])) {
@@ -619,6 +672,7 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 					}
 					assert(referenceBase == tmpReference[j]);
 				}
+				coverage++;
 			}
 		}
 
@@ -647,6 +701,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 		int numEntries,
 		int curChr,
 		FILE **outputFPs,
+		int startOutputFPs,
 		int numOutputFPs)
 {
 	char *FnName="PrintSortedAlignEntriesToBed";
@@ -659,6 +714,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 	char tmpReference[SEQUENCE_LENGTH]="\0";
 	char referenceBase = '\0';
 	assert(numEntries > 0);
+	assert(numOutputFPs - startOutputFPs == 3);
 
 	/* Go through each position */
 	curPos = entries[0].position;
@@ -673,7 +729,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 		for(curIndex=startIndex, coverage=0;
 				curIndex < numEntries &&
 				entries[curIndex].position <= curPos;
-				curIndex++, coverage++) {
+				curIndex++) {
 			/* Check to see that the end position is within bounds */
 			if(curPos <= entries[curIndex].position + entries[curIndex].referenceLength - 1) {
 				/* Alignment and coverage depend on strandedness */
@@ -724,6 +780,10 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 				/* Check that the reference sequence matches */
 				if(coverage==0) {
 					referenceBase = tmpReference[j];
+					assert(referenceBase == 'A' ||
+							referenceBase == 'C' || 
+							referenceBase == 'G' ||
+							referenceBase == 'T');
 				}
 				else {
 					assert(referenceBase == tmpReference[j]);
@@ -758,7 +818,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 						j<entries[curIndex].referenceLength-1 && /* There are more bases in the alignment */
 						tmpReference[j+1] == GAP) { /* The next base is a gap */
 					/* We started a gap */
-					fprintf(outputFPs[1], "chr%d\t%d\t%d\t",
+					fprintf(outputFPs[startOutputFPs+1], "chr%d\t%d\t%d\t",
 							curChr,
 							curPos-1,
 							curPos);
@@ -767,11 +827,12 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 							i<entries[curIndex].referenceLength &&
 							tmpReference[i] == GAP;
 							i++) {
-						fprintf(outputFPs[1], "%c",
+						fprintf(outputFPs[startOutputFPs+1], "%c",
 								entries[curIndex].read[i]);
 					}
-					fprintf(outputFPs[1], "\n");
+					fprintf(outputFPs[startOutputFPs+1], "\n");
 				}
+				coverage++;
 			}
 		}
 
@@ -792,6 +853,9 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 					i = 3;
 					break;
 				default:
+					fprintf(stderr, "\n[%c]\n[%d]\n",
+							referenceBase,
+							(int)referenceBase);
 					PrintError(FnName,
 							"referenceBase ",
 							"Could not understand reference base",
@@ -800,7 +864,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 			}
 			/* Print the mismatches */
 			if(numF[i] + numR[i] != numF[0]+numF[1]+numF[2]+numF[3]+numR[0]+numR[1]+numR[2]+numR[3]) {
-				fprintf(outputFPs[0], "chr%d\t%d\t%d\t%c(%d:%d:%d:%d:%3.2lf[F:%d:%d:%d:%d:%3.2lf][R:%d:%d:%d:%d:%3.2lf])\n",
+				fprintf(outputFPs[startOutputFPs], "chr%d\t%d\t%d\t%c(%d:%d:%d:%d:%3.2lf[F:%d:%d:%d:%d:%3.2lf][R:%d:%d:%d:%d:%3.2lf])\n",
 						curChr,
 						curPos-1,
 						curPos,
@@ -823,7 +887,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 			}
 			/* Print deletions */
 			if(numF[4] > 0 || numF[4] > 0) {
-				fprintf(outputFPs[2], "chr%d\t%d\t%d\t%c(%d:%d:%d:%d:%d:%3.2lf[F:%d:%d:%d:%d:%d:%3.2lf][R:%d:%d:%d:%d:%d:%3.2lf])\n",
+				fprintf(outputFPs[startOutputFPs+2], "chr%d\t%d\t%d\t%c(%d:%d:%d:%d:%d:%3.2lf[F:%d:%d:%d:%d:%d:%3.2lf][R:%d:%d:%d:%d:%d:%3.2lf])\n",
 						curChr,
 						curPos-1,
 						curPos,

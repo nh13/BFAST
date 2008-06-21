@@ -43,5 +43,6 @@ void PrintSortedAlignEntriesToBed(AlignEntry*,
 		int,
 		int,
 		FILE**,
+		int,
 		int);
 #endif

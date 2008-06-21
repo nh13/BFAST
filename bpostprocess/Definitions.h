@@ -23,6 +23,6 @@ typedef struct {
 	char **chrFileNames;
 } RGFiles;
 
-enum {BAlignFile, WigFile, BedFile, LastFileType};
+enum {BAlignFile, WigFile, BedFile, BedAndWigFile, LastFileType};
 
 #endif
