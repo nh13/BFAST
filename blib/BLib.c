@@ -321,8 +321,6 @@ FILE *OpenTmpFile(char *tmpDir,
 	char *FnName = "OpenTmpFile";
 	FILE *fp;
 
-	/* Make sure we will allocate enough memory for tmpnam and the tmp Dir */
-	assert(MAX_FILENAME_LENGTH - strlen(tmpDir) >= L_tmpnam);
 	/* Allocate memory */
 	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 	if(NULL == (*tmpFileName)) {

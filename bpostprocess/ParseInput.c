@@ -39,7 +39,7 @@
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
-#include "FilterAlignments.h"
+#include "ConvertAlignments.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =
@@ -155,7 +155,7 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
-						FilterAlignments(arguments.inputFileName,
+						ConvertAlignments(arguments.inputFileName,
 								arguments.inputFormat,
 								arguments.uniqueMatches,
 								arguments.bestScore,

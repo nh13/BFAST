@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 		/* For each chromosome */
 		int curChr, curChrIndex;
 		for(curChr=rg.startChr, curChrIndex=0;
-				curChr < rg.endChr && curChrIndex < rg.numChrs;
+				curChr <= rg.endChr && curChrIndex < rg.numChrs;
 				curChr++, curChrIndex++) {
 			/* For each starting position */
 			int curPos;

@@ -8,9 +8,9 @@ struct arguments
 	int binaryInput;						/* -b - not used */
 	int algorithm;							/* -a */
 	int startChr;							/* -s */
-	int startPos;							/* -S */
+	unsigned int startPos;					/* -S */
 	int endChr;								/* -e */
-	int endPos;								/* -E */
+	unsigned int endPos;					/* -E */
 	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */

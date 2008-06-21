@@ -93,6 +93,14 @@ int AlignEntryRead(AlignEntry *aEntry,
 				Exit,
 				EndOfFile);
 	}
+	if(!(strlen(aEntry->read) == aEntry->length) || 
+			!(strlen(aEntry->reference) == aEntry->length)) {
+		fprintf(stderr, "\n[%s]\n[%d]\n[%s]\n[%s]\n",
+				aEntry->readName,
+				aEntry->length,
+				aEntry->read,
+				aEntry->reference);
+	}
 	assert(strlen(aEntry->read) == aEntry->length);
 	assert(strlen(aEntry->reference) == aEntry->length);
 
@@ -118,10 +126,16 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 	if(length > 0) {
 		/* Sort the array */
 		/*
-		 * HERE 
-		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
-		*/
+		   AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+		   */
 		AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+
+		/* Check sort */
+		/*
+		   for(i=1;i<length;i++) {
+		   assert(AlignEntryCompareAtIndex((*a), i-1, (*a), i, sortOrder)<=0);
+		   }
+		   */
 
 		/* Remove duplicates */
 		prevIndex=0;
@@ -263,7 +277,7 @@ void AlignEntryMergeSort(AlignEntry **a,
 	int endLower = mid;
 	int startUpper = mid + 1;
 	int endUpper = high;
-	AlignEntry *tempEntries;
+	AlignEntry *tempEntries=NULL;
 
 	if(low >= high) {
 		if(VERBOSE >= 0 &&
@@ -346,6 +360,13 @@ void AlignEntryMergeSort(AlignEntry **a,
 	}
 	free(tempEntries);
 	tempEntries=NULL;
+
+	/* Test sort */
+	/* 
+	for(i=low+1;i<=high;i++) {
+		assert(AlignEntryCompareAtIndex((*a), i-1, (*a), i, sortOrder) <= 0);
+	}
+	*/
 }
 
 /* TODO */
@@ -372,12 +393,30 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
 
 		top = 2;
+
+		/*
+		fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
+				indexA,
+				a[indexA].chromosome,
+				indexA,
+				a[indexA].position);
+		fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
+				indexB,
+				a[indexB].chromosome,
+				indexB,
+				a[indexB].position);
+		fprintf(stderr, "cmp[%d]=%d\ncmp[%d]=%d\n",
+				0,
+				cmp[0],
+				1,
+				cmp[1]);
+		*/
 	}
 
 	/* ingenious */
 	for(i=0;i<top;i++) {
 		if(cmp[i] != 0) {
-			return cmp[0];
+			return cmp[i];
 		}
 	}
 
@@ -425,6 +464,8 @@ int AlignEntryGetOneRead(AlignEntry **entries, FILE *fp)
 						Exit,
 						ReallocMemory);
 			}
+			AlignEntryInitialize(&(*entries)[numEntries-1]);
+
 			/* Copy over from temp */
 			AlignEntryCopy(&temp, &(*entries)[numEntries-1]);
 		}
@@ -435,6 +476,14 @@ int AlignEntryGetOneRead(AlignEntry **entries, FILE *fp)
 		/* Free memory */
 		AlignEntryFree(&temp);
 	}
+
+	/* Test */
+	/*
+	   int i;
+	   for(i=1;i<numEntries;i++) {
+	   assert(strcmp((*entries)[0].readName, (*entries)[i].readName)==0);
+	   }
+	   */
 
 	/* Reset position in the file */
 	fsetpos(fp, &position);
@@ -482,6 +531,8 @@ int AlignEntryGetAll(AlignEntry **entries, FILE *fp)
 					Exit,
 					ReallocMemory);
 		}
+		AlignEntryInitialize(&(*entries)[numEntries-1]);
+
 		/* Copy over from temp */
 		AlignEntryCopy(&temp, &(*entries)[numEntries-1]);
 
