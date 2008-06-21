@@ -35,6 +35,9 @@ bpostprocess
 ===============================================================================
 1.
 Multi-threaded support when sorting.
+2. 
+Sorts could have shallow copying for their tmp space.  For example, the strings
+only need to have pointers, not whole copies.
 
 ===============================================================================
 bcommand

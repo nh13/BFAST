@@ -618,11 +618,23 @@ void *RunDynamicProgrammingThread(void *arg)
 					Exit,
 					MallocMemory);
 		}
+		/* Initialize */
+		for(i=0;i<readMatch.numEntries;i++) {
+			AlignEntryInitialize(&aEntry[i]);
+			/* Allocate memory for the read name */
+			aEntry[i].readName = malloc(sizeof(char)*(strlen(readName)+1));
+			if(NULL == aEntry[i].readName) {
+				PrintError(FnName,
+						"aEntry[i].readName",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+			strcpy(aEntry[i].readName, readName);
+		}
 
 		/* Run the aligner */
 		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
-			/* Initialize align entry */
-			AlignEntryInitialize(&aEntry[i]);
 
 			/* Get the appropriate reference read */
 			RGBinaryGetSequence(rgBinary,
@@ -670,25 +682,17 @@ void *RunDynamicProgrammingThread(void *arg)
 			aEntry[i].chromosome = readMatch.chromosomes[i];
 			aEntry[i].position = position+adjustPosition; /* Adjust position */
 			aEntry[i].strand = readMatch.strand[i]; 
-			/* Allocate memory for the read name */
-			aEntry[i].readName = malloc(sizeof(char)*(strlen(readName)+1));
-			if(NULL == aEntry[i].readName) {
-				PrintError(FnName,
-						"aEntry[i].readName",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-			strcpy(aEntry[i].readName, readName);
 
 			/* Check align entry */
 			/*
-			AlignEntryCheckReference(&aEntry[i], rgBinary);
-			*/
+			   AlignEntryCheckReference(&aEntry[i], rgBinary);
+			   */
 		}
+
 		/* Remove duplicate alignments */
 		numAlignEntries=AlignEntryRemoveDuplicates(&aEntry, readMatch.numEntries, AlignEntrySortByAll);
 		assert(numAlignEntries > 0);
+
 		/* Output alignment */
 		fprintf(outputFP, "%d\n", numAlignEntries); /* We need this when merging temp files */
 		for(i=0;i<numAlignEntries;i++) {
@@ -696,6 +700,9 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 		/* Free memory */
 		for(i=0;i<numAlignEntries;i++) {
+			/*
+			   AlignEntryPrint(&aEntry[i], stderr);
+			   */
 			AlignEntryFree(&aEntry[i]);
 		}
 		/* Free match */
@@ -703,10 +710,8 @@ void *RunDynamicProgrammingThread(void *arg)
 		if(pairedEnd==1) {
 			RGMatchFree(&pairedReadMatch);
 		}
-		if(numAlignEntries > 0) {
-			free(aEntry);
-			aEntry = NULL;
-		}
+		free(aEntry);
+		aEntry = NULL;
 
 	}
 	if(VERBOSE >= 0) {

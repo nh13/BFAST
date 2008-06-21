@@ -553,6 +553,9 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 				}
 			}
 
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\rMergin sorts from threads...                    ");
+			}
 			/* Now we must merge the results from the threads */
 			for(i=1;i<numThreads;i++) {
 				RGIndexMergeHelper(index,
@@ -633,7 +636,7 @@ void *RGIndexQuickSortNodes(void *arg)
 
 	/* Call helper */
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
-		fprintf(stderr, "\r0 percent complete");
+		fprintf(stderr, "\r%3.3lf percent complete", 0.0);
 	}
 	RGIndexQuickSortNodesHelper(data->index,
 			data->rg,
@@ -729,7 +732,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 					while(curPercent < 100.0*((double)(curLow - low))/total) {
 						curPercent += RGINDEX_SORT_ROTATE_INC;
 					}
-					fprintf(stderr, "\r%3.3lf percent complete", 100.0*((double)(curLow - low))/total);
+					PrintPercentCompleteLong(curPercent);
 				}
 			}
 
@@ -887,7 +890,7 @@ void *RGIndexMergeSortNodes(void *arg)
 
 	/* Call helper */
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
-		fprintf(stderr, "\r0 percent complete");
+		fprintf(stderr, "\r%3.3lf percent complete", 0.0);
 	}
 	RGIndexMergeSortNodesHelper(data->index,
 			data->rg,
@@ -929,7 +932,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 				while((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
 					(*curPercentComplete) += RGINDEX_SORT_ROTATE_INC;
 				}
-				fprintf(stderr, "\r%3.3lf percent complete", 100.0*((double)(low - startLow))/total);
+				PrintPercentCompleteLong((*curPercentComplete));
 			}
 		}
 		return;
@@ -1177,7 +1180,8 @@ void RGIndexMergeHelper(RGIndex *index,
 			i++;
 			ctr++;
 		}
-		assert(i > high && ctr > (high - low + 1));
+		assert(ctr == (high - low + 1));
+		assert(i == high + 1);
 
 		/* Close tmp files */
 		CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);

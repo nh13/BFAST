@@ -186,7 +186,8 @@ int AlignmentGetScore(char *read,
 	aEntry->score = maxScore;
 
 	/* First allocate the maximum length of the alignment, we can update later */
-	aEntry->read = malloc(sizeof(char)*(endRow+endCol+1));
+	assert(NULL==aEntry->read);
+	aEntry->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL==aEntry->read) {
 		PrintError(FnName,
 				"aEntry->read",
@@ -194,7 +195,8 @@ int AlignmentGetScore(char *read,
 				Exit,
 				MallocMemory);
 	}
-	aEntry->reference = malloc(sizeof(char)*(endRow+endCol+1));
+	assert(NULL==aEntry->reference);
+	aEntry->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL==aEntry->reference) {
 		PrintError(FnName,
 				"aEntry->reference",
@@ -242,6 +244,7 @@ int AlignmentGetScore(char *read,
 			i++;
 		}
 
+		assert(pathLength < endRow + endCol);
 		rows[pathLength] = curRow;
 		cols[pathLength] = curCol;
 		pathLength++;
@@ -397,6 +400,7 @@ int AlignmentGetScore(char *read,
 		}
 	}
 
+	assert(pathLength-1 < endRow + endCol);
 	startRow = rows[pathLength-1];
 	startCol = cols[pathLength-1];
 
@@ -484,7 +488,9 @@ int AlignmentGetScore(char *read,
 
 	/* Free memory */
 	free(rows);
+	rows=NULL;
 	free(cols);
+	cols=NULL;
 	for(i=0;i<numRows;i++) {
 		free(Entries[i]);
 	}

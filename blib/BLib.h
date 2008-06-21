@@ -14,5 +14,7 @@ char TransformFromIUPAC(char);
 void CheckRGIndexes(char**, int, char**, int, int, int32_t*, int32_t*, int32_t*, int32_t*);
 FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
+void PrintPercentCompleteShort(double);
+void PrintPercentCompleteLong(double);
 
 #endif

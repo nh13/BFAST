@@ -383,3 +383,43 @@ void CloseTmpFile(FILE **fp,
 	free((*tmpFileName));
 	(*tmpFileName) = NULL;
 }
+
+/* TODO */
+void PrintPercentCompleteShort(double percent)
+{
+	/* back space the " percent complete" */
+	fprintf(stderr, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
+	/* back space the "%3.2lf" */
+	if(percent < 10.0) {
+		/* Only really %1.2lf */
+		fprintf(stderr, "\b\b\b\b");
+	}
+	else if(percent < 100.0) {
+		/* Only really %2.2lf */
+		fprintf(stderr, "\b\b\b\b\b");
+	}
+	else {
+		fprintf(stderr, "\b\b\b\b\b\b");
+	}
+	fprintf(stderr, "%3.2lf percent complete", percent);
+}
+
+/* TODO */
+void PrintPercentCompleteLong(double percent)
+{
+	/* back space the " percent complete" */
+	fprintf(stderr, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
+	/* back space the "%3.3lf" */
+	if(percent < 10.0) {
+		/* Only really %1.3lf */
+		fprintf(stderr, "\b\b\b\b\b");
+	}
+	else if(percent < 100.0) {
+		/* Only really %2.3lf */
+		fprintf(stderr, "\b\b\b\b\b\b");
+	}
+	else {
+		fprintf(stderr, "\b\b\b\b\b\b\b");
+	}
+	fprintf(stderr, "%3.3lf percent complete", percent);
+}

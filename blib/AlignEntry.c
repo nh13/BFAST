@@ -11,6 +11,8 @@
 void AlignEntryPrint(AlignEntry *aEntry,
 		FILE *outputFP)
 {
+	assert(NULL != aEntry->read);
+	assert(NULL != aEntry->reference);
 	assert(strlen(aEntry->read) == aEntry->length);
 	assert(strlen(aEntry->reference) == aEntry->length);
 
@@ -125,10 +127,10 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 
 	if(length > 0) {
 		/* Sort the array */
+		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
 		/*
-		   AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
-		   */
 		AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+		*/
 
 		/* Check sort */
 		/*
@@ -141,6 +143,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		prevIndex=0;
 		for(i=1;i<length;i++) {
 			if(AlignEntryCompareAtIndex((*a), prevIndex, (*a), i, sortOrder)==0) {
+				assert((*a)[i].readName!=NULL);
 				assert((*a)[i].read!=NULL);
 				assert((*a)[i].reference!=NULL);
 				/* Free memory */
@@ -182,7 +185,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 	char *FnName = "AlignEntryQuickSort";
 	int i;
 	int pivot=-1;
-	AlignEntry *temp;
+	AlignEntry *temp=NULL;
 
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
@@ -206,7 +209,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 				while((*curPercent) < 100.0*((double)low)/total) {
 					(*curPercent) += SORT_ROTATE_INC;
 				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)low)/total);
+				PrintPercentCompleteShort((*curPercent));
 			}
 		}
 
@@ -244,7 +247,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 				while((*curPercent) < 100.0*((double)pivot)/total) {
 					(*curPercent) += SORT_ROTATE_INC;
 				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)pivot)/total);
+				PrintPercentCompleteShort((*curPercent));
 			}
 		}
 		AlignEntryQuickSort(a, pivot+1, high, sortOrder, showPercentComplete, curPercent, total);
@@ -254,7 +257,7 @@ void AlignEntryQuickSort(AlignEntry **a,
 				while((*curPercent) < 100.0*((double)high)/total) {
 					(*curPercent) += SORT_ROTATE_INC;
 				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)high)/total);
+				PrintPercentCompleteShort((*curPercent));
 			}
 		}
 	}
@@ -287,7 +290,7 @@ void AlignEntryMergeSort(AlignEntry **a,
 				while((*curPercent) < 100.0*((double)low)/total) {
 					(*curPercent) += SORT_ROTATE_INC;
 				}
-				fprintf(stderr, "\r%3.2lf percent complete", 100.0*((double)low)/total);
+				PrintPercentCompleteShort((*curPercent));
 			}
 		}
 		return;
@@ -556,7 +559,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 {
 	char *FnName = "AlignEntryCopy";
 	if(src != dest) {
-		if(dest->readName == NULL) {
+		if(NULL == dest->readName) {
 			dest->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 			if(NULL == dest->readName) {
 				PrintError(FnName,
@@ -566,8 +569,9 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 						MallocMemory);
 			}
 		}
+		assert(src->readName != NULL);
 		strcpy(dest->readName, src->readName);
-		if(dest->read == NULL) {
+		if(NULL == dest->read) {
 			dest->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == dest->read) {
 				PrintError(FnName,
@@ -577,8 +581,9 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 						MallocMemory);
 			}
 		}
+		assert(src->read != NULL);
 		strcpy(dest->read, src->read);
-		if(dest->reference == NULL) {
+		if(NULL == dest->reference) {
 			dest->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == dest->reference) {
 				PrintError(FnName,
@@ -588,6 +593,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 						MallocMemory);
 			}
 		}
+		assert(src->reference!= NULL);
 		strcpy(dest->reference, src->reference);
 		dest->length = src->length;
 		dest->referenceLength = src->referenceLength;
