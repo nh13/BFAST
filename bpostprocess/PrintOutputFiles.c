@@ -655,10 +655,6 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 				/* Check that the reference sequence matches */
 				if(coverage==0) {
 					referenceBase = tmpReference[j];
-					assert(referenceBase == 'A' ||
-							referenceBase == 'C' || 
-							referenceBase == 'G' ||
-							referenceBase == 'T');
 				}
 				else {
 					if(!(referenceBase == tmpReference[j])) {
@@ -780,10 +776,6 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 				/* Check that the reference sequence matches */
 				if(coverage==0) {
 					referenceBase = tmpReference[j];
-					assert(referenceBase == 'A' ||
-							referenceBase == 'C' || 
-							referenceBase == 'G' ||
-							referenceBase == 'T');
 				}
 				else {
 					assert(referenceBase == tmpReference[j]);
@@ -837,7 +829,7 @@ void PrintSortedAlignEntriesToBed(AlignEntry *entries,
 		}
 
 		/* Print the coverage if it is > 0 */
-		if(coverage > 0) {
+		if(coverage > 0 && referenceBase != 'N') {
 			int i = -1;
 			switch(referenceBase) {
 				case 'A':
