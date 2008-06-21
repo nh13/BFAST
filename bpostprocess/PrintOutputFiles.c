@@ -268,6 +268,7 @@ void PrintAlignEntries(ChrFiles *chrFile,
 	AlignEntry *entries=NULL;
 	FILE **outputFPs=NULL;
 	int numOutputFPs=-1;
+	int numReads=0;
 
 	/* Get the number of output files */
 	switch(outputFormat) {
@@ -388,13 +389,18 @@ void PrintAlignEntries(ChrFiles *chrFile,
 	/* Go through each region */
 	for(i=0;i<chrFile->numFiles;i++) {
 		/* Get all the entries from the tmp file */
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rGetting entries for [chr,startPos-endPos[%d,%d-%d]...",
-					curChr,
-					i*regionLength+1,
-					(i+1)*regionLength);
-		}
+		/*
+		   if(VERBOSE >= 0) {
+		   fprintf(stderr, "\rGetting entries for [chr,startPos-endPos]=[%d,%d-%d]...",
+		   curChr,
+		   i*regionLength+1,
+		   (i+1)*regionLength);
+		   }
+		   */
+
 		numEntries=AlignEntryGetAll(&entries, chrFile->files[i]);
+
+		numReads += numEntries;
 
 		/* Close the file */
 		CloseTmpFile(&chrFile->files[i], &chrFile->fileNames[i]);
@@ -402,34 +408,43 @@ void PrintAlignEntries(ChrFiles *chrFile,
 		/* Output the entries */
 		if(numEntries > 0) {
 			/* Sort the entries */
+			/*
+			   if(VERBOSE >= 0) {
+			   fprintf(stderr, "\rSorting %d entries for [chr,startPos-endPos]=[%d,%d-%d]...\n%3.2lf",
+			   numEntries,
+			   curChr,
+			   i*regionLength+1,
+			   (i+1)*regionLength,
+			   0.0);
+			   }
+			   */
+			curPercent = 0.0;
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "\rSorting %d entries for [chr,startPos-endPos[%d,%d-%d]...\n%3.2lf",
+				fprintf(stderr, "\rSorting and outputting %d entries for [chr,startPos-endPos]=[%d,%d-%d]:    ",
 						numEntries,
 						curChr,
 						i*regionLength+1,
-						(i+1)*regionLength,
-						0.0);
+						(i+1)*regionLength);
+				fprintf(stderr, "%3.2lf percent complete", 0.0);
 			}
-			curPercent = 0.0;
-			AlignEntryMergeSort(&entries, 
-					0, 
-					numEntries-1, 
-					AlignEntrySortByChrPos,
-					1,
-					&curPercent,
-					numEntries);
-			/*
-			   AlignEntryQuickSort(&entries, 
+			   AlignEntryMergeSort(&entries, 
 			   0, 
 			   numEntries-1, 
 			   AlignEntrySortByChrPos,
 			   1,
 			   &curPercent,
 			   numEntries);
+			/*
+			AlignEntryQuickSort(&entries, 
+					0, 
+					numEntries-1, 
+					AlignEntrySortByChrPos,
+					1,
+					&curPercent,
+					numEntries);
 			   */
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "\r%3.2lf percent complete\n",
-						100.0);
+				PrintPercentCompleteShort(100.0);
 			}
 
 			switch(outputFormat) {
@@ -472,14 +487,27 @@ void PrintAlignEntries(ChrFiles *chrFile,
 			}
 			free(entries);
 			entries=NULL;
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "\rOutputted %d entries for [chr,startPos-endPos[%d,%d-%d].\n",
-						numEntries,
-						curChr,
-						i*regionLength+1,
-						(i+1)*regionLength);
-			}
+			/*
+			   if(VERBOSE >= 0) {
+			   fprintf(stderr, "\rOutputted %d entries for [chr,startPos-endPos]=[%d,%d-%d].\n",
+			   numEntries,
+			   curChr,
+			   i*regionLength+1,
+			   (i+1)*regionLength);
+			   }
+			   */
 		}
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rSorted and outputted %d entries for [chr,startPos-endPos]=[%d,%d-%d]:    %3.2lf percent complete",
+				numReads,
+				curChr,
+				1,
+				(chrFile->numFiles)*regionLength,
+				100.00);
+		/* Just for good measure */
+		fprintf(stderr, "                  ");
+		fprintf(stderr, "\nOutputted %d entries.\n", numReads);
 	}
 
 	/* Close the output files */
@@ -514,7 +542,7 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 	curPos = entries[0].position;
 	startIndex = 0;
 	while(startIndex < numEntries) {
-		
+
 		/* Get the coverage for that position */
 		for(curIndex=startIndex, coverage=0;
 				/* Do not go past the number of entries */
@@ -535,10 +563,10 @@ void PrintSortedAlignEntriesToWig(AlignEntry *entries,
 						break;
 					case REVERSE:
 						/*
-						assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
-						assert(strlen(entries[curIndex].read) == entries[curIndex].length);
-						assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
-						*/
+						   assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
+						   assert(strlen(entries[curIndex].read) == entries[curIndex].length);
+						   assert(strlen(entries[curIndex].reference) == entries[curIndex].length);
+						   */
 						GetReverseComplimentAnyCase(entries[curIndex].read, tmpRead, entries[curIndex].length);
 						GetReverseComplimentAnyCase(entries[curIndex].reference, tmpReference, entries[curIndex].length);
 						break;
