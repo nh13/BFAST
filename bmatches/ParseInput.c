@@ -137,6 +137,7 @@ main (int argc, char **argv)
 	struct arguments arguments;
 	time_t startTime = time(NULL);
 	time_t endTime;
+
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -442,9 +443,9 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
 	args->tmpDir =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
+		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
 	assert(args->tmpDir!=0);
-	strcpy(args->tmpDir, DEFAULT_FILENAME);
+	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
 
 	args->binaryOutput = 1;
 
