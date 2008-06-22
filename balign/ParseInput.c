@@ -433,14 +433,14 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->outputID, DEFAULT_FILENAME);
 
 	args->outputDir =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
+		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
 	assert(args->outputDir!=0);
-	strcpy(args->outputDir, DEFAULT_FILENAME);
+	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
 	args->tmpDir =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
+		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
 	assert(args->tmpDir!=0);
-	strcpy(args->tmpDir, DEFAULT_FILENAME);
+	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
 
 	args->timing = 0;
 
