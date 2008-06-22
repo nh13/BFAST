@@ -1668,7 +1668,7 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 	/* Print the info */
 	fprintf(stderr, "start chromosome:\t%d\n",
 			index.startChr);
-	fprintf(stderr, "start position:\t%d\n",
+	fprintf(stderr, "start position:\t\t%d\n",
 			index.startPos);
 	fprintf(stderr, "end chromosome:\t\t%d\n",
 			index.endChr);
@@ -1686,12 +1686,12 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 			index.totalLength);
 	for(i=0;i<index.numTiles;i++) {
 		/* Print tile length */
-		fprintf(stderr, "tile [%lld] length:\t\t%d\n",
+		fprintf(stderr, "tile [%lld] length:\t%d\n",
 				(long long int)i,
 				index.tileLengths[i]);
 		/* Print the gap */
 		if(i<index.numTiles-1) {
-			fprintf(stderr, "gap  [%lld] length:\t\t%d\n",
+			fprintf(stderr, "gap  [%lld] length:\t%d\n",
 					(long long int)i,
 					index.gaps[i]);
 		}
