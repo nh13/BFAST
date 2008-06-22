@@ -85,14 +85,17 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
-		RGIndexGetMatches(index, 
-				rg,
-				reads.reads[i],
-				reads.readLength[i],
-				reads.strand[i],
-				reads.offset[i],
-				match,
-				maxMatches);
+		/* Only search if it the read contains valid bases */
+		if(CheckReadAgainstIndex(index, reads.reads[i], reads.readLength[i]) == 1) {
+			RGIndexGetMatches(index, 
+					rg,
+					reads.reads[i],
+					reads.readLength[i],
+					reads.strand[i],
+					reads.offset[i],
+					match,
+					maxMatches);
+		}
 	}
 
 	/* Remove duplicates from match */

@@ -10,6 +10,5 @@ void ReadRGIndex(char*, RGIndex*, int);
 int ReadFileNames(char*, char***);
 int ReadOffsets(char*, int**);
 void ReadTempSequencesAndOutput(FILE*, FILE*, FILE*, int, int);
-void SequenceToLower(char*, int);
 
 #endif

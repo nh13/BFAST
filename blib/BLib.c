@@ -423,3 +423,93 @@ void PrintPercentCompleteLong(double percent)
 	}
 	fprintf(stderr, "%3.3lf percent complete", percent);
 }
+
+/* TODO */
+void UpdateRead(char *read, int readLength) 
+{
+	char *FnName = "UpdateRead";
+	int i;
+
+	for(i=0;i<readLength;i++) {
+		switch(read[i]) {
+			/* Do nothing for a, c, g, t and N */
+			case 'a':
+			case 'c':
+			case 'g':
+			case 't':
+			case 'N':
+				break;
+			case 'A':
+				read[i] = 'a';
+				break;
+			case 'C':
+				read[i] = 'c';
+				break;
+			case 'G':
+				read[i] = 'g';
+				break;
+			case 'T':
+				read[i] = 't';
+				break;
+			case '.':
+				read[i] = 'N';
+				break;
+			default:
+				fprintf(stderr, "\n[%c]\n[%d]\n", read[i], (int)read[i]);
+				PrintError(FnName,
+						read,
+						"Could not understand base",
+						Exit,
+						OutOfRange);
+		}
+	}
+}
+
+/* TODO */
+int CheckReadAgainstIndex(RGIndex *index,
+		char *read,
+		int readLength)
+{
+	char *FnName = "CheckReadAgainstIndex";
+	int curPos, curTile, curTilePos;
+	for(curPos = 0, curTile = 0;curTile < index->numTiles;curTile++) {
+		for(curTilePos=0;curTilePos < index->tileLengths[curTile];curTilePos++) {
+			switch(CheckReadBase(read[curPos])) {
+				case 0:
+					return 0;
+					break;
+				case 1:
+					break;
+				default:
+					PrintError(FnName,
+							NULL,
+							"Could not understand return value of CheckReadBase",
+							Exit,
+							OutOfRange);
+					break;
+			}
+			/* Update position */
+			curPos++;
+		}
+		if(curTile < index->numTiles-1) {
+			curPos += index->gaps[curTile];
+		}
+	}
+	return 1;
+}
+
+/* TODO */
+int CheckReadBase(char base) 
+{
+	switch(base) {
+		case 'a':
+		case 'c':
+		case 'g':
+		case 't':
+			return 1;
+			break;
+		default:
+			return 0;
+			break;
+	}
+}

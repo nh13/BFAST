@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include "RGIndex.h"
 
 char ToLower(char);
 char ToUpper(char);
@@ -16,5 +17,9 @@ FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
+void UpdateRead(char*, int);
+int CheckReadAgainstIndex(RGIndex*, char*, int);
+int CheckReadBase(char);
 
 #endif
+

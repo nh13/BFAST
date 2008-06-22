@@ -61,7 +61,7 @@ int ReadSequencesToTempFile(FILE *seqFP,
 					Exit,
 					EndOfFile);
 		}
-		SequenceToLower(sequence, strlen(sequence));
+		UpdateRead(sequence, strlen(sequence));
 		/* Read paired sequence */
 		if(pairedEnd==1) {
 			if(EOF==fscanf(seqFP, "%s", pairedSequence)) {
@@ -71,7 +71,7 @@ int ReadSequencesToTempFile(FILE *seqFP,
 						Exit,
 						EndOfFile);
 			}
-			SequenceToLower(pairedSequence, strlen(pairedSequence));
+			UpdateRead(pairedSequence, strlen(pairedSequence));
 		}
 		/* Print only if we are within the desired limit */
 		if(startReadNum<=0 || curReadNum >= startReadNum) {
@@ -140,15 +140,15 @@ int ReadNextSequence(FILE *fp, char **sequenceOne, int *sequenceOneLength, char 
 		}
 		(*sequenceOneLength) = strlen((*sequenceOne));
 		(*sequenceTwoLength) = strlen((*sequenceTwo));
-		SequenceToLower((*sequenceOne), (*sequenceOneLength));
-		SequenceToLower((*sequenceTwo), (*sequenceTwoLength));
+		UpdateRead((*sequenceOne), (*sequenceOneLength));
+		UpdateRead((*sequenceTwo), (*sequenceTwoLength));
 	}
 	else {
 		if(EOF==fscanf(fp, "%s", (*sequenceName)) || EOF==fscanf(fp, "%s", (*sequenceOne))) {
 			return EOF;
 		}
 		(*sequenceOneLength) = strlen((*sequenceOne));
-		SequenceToLower((*sequenceOne), (*sequenceOneLength));
+		UpdateRead((*sequenceOne), (*sequenceOneLength));
 		(*sequenceTwo)[0]='\0';
 		(*sequenceTwoLength)=0;
 	}
@@ -333,31 +333,6 @@ void ReadTempSequencesAndOutput(FILE *tempOutputFP,
 		RGMatchFree(&sequenceMatch);
 		if(pairedEnd==1) {
 			RGMatchFree(&pairedSequenceMatch);
-		}
-	}
-}
-
-/* TODO */
-void SequenceToLower(char* sequence, int length)
-{
-	int i;
-	for(i=0;i<length;i++) {
-		switch(sequence[i]) {
-			case 'A':
-				sequence[i] = 'a';
-				break;
-			case 'C':
-				sequence[i] = 'c';
-				break;
-			case 'G':
-				sequence[i] = 'g';
-				break;
-			case 'T':
-				sequence[i] = 't';
-				break;
-			default:
-				/* do nothing */
-				break;
 		}
 	}
 }

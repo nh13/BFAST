@@ -13,13 +13,11 @@ bpreprocess
 ===============================================================================
 bmatches
 ===============================================================================
-1.
-Allow for errors (no calls) in the sequences (could model them as mismatches).
-2. 
+1. 
 Flag perfect matches so that the alignment score is already known. 
-3.
+2.
 Only read in reference genome needed by the indexes.
-4.
+3.
 Paired end support here?.
 
 ===============================================================================
