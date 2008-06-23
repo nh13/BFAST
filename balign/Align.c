@@ -510,18 +510,23 @@ double GetScoreFromMatrix(char a,
 
 	/* Get index for a */
 	switch(a) {
+		case 'A':
 		case 'a':
 			indexA=0;
 			break;
+		case 'C':
 		case 'c':
 			indexA=1;
 			break;
+		case 'G':
 		case 'g':
 			indexA=2;
 			break;
+		case 'T':
 		case 't':
 			indexA=3;
 			break;
+		case 'N':
 		case 'n':
 			indexA=4;
 			break;
@@ -536,18 +541,23 @@ double GetScoreFromMatrix(char a,
 
 	/* Get index for b */
 	switch(b) {
+		case 'A':
 		case 'a':
 			indexB=0;
 			break;
+		case 'C':
 		case 'c':
 			indexB=1;
 			break;
+		case 'G':
 		case 'g':
 			indexB=2;
 			break;
+		case 'T':
 		case 't':
 			indexB=3;
 			break;
+		case 'N':
 		case 'n':
 			indexB=4;
 			break;
