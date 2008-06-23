@@ -425,19 +425,21 @@ void PrintPercentCompleteLong(double percent)
 }
 
 /* TODO */
-void UpdateRead(char *read, int readLength) 
+int UpdateRead(char *read, int readLength) 
 {
-	char *FnName = "UpdateRead";
 	int i;
 
+	/* Update the read if possible to lower case, 
+	 * if we encounter a base we do not recognize, 
+	 * return 0 
+	 * */
 	for(i=0;i<readLength;i++) {
 		switch(read[i]) {
-			/* Do nothing for a, c, g, t and N */
+			/* Do nothing for a, c, g, and t */
 			case 'a':
 			case 'c':
 			case 'g':
 			case 't':
-			case 'N':
 				break;
 			case 'A':
 				read[i] = 'a';
@@ -451,18 +453,12 @@ void UpdateRead(char *read, int readLength)
 			case 'T':
 				read[i] = 't';
 				break;
-			case '.':
-				read[i] = 'N';
-				break;
 			default:
-				fprintf(stderr, "\n[%c]\n[%d]\n", read[i], (int)read[i]);
-				PrintError(FnName,
-						read,
-						"Could not understand base",
-						Exit,
-						OutOfRange);
+				return 0;
+				break;
 		}
 	}
+	return 1;
 }
 
 /* TODO */

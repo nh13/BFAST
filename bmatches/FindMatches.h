@@ -59,6 +59,28 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
 		int *totalOutputTime);
-void *FindMatchesInIndex(void *arg);
+int FindMatchesInIndex(char *indexFileName,
+		int binaryInput,
+		RGBinary *rg,
+		int *offsets,
+		int numOffsets,
+		int numMismatches,
+		int numInsertions,
+		int numDeletions,
+		int numGapInsertions,
+		int numGapDeletions,
+		int pairedEnd,
+		int maxMatches,
+		int numThreads,
+		FILE ***tempSeqFPs,
+		FILE *indexFP,
+		int binaryOutput,
+		int MainIndexes,
+		char *tmpDir,
+		int timing,
+		int *totalDataStructureTime,
+		int *totalSearchTime,
+		int *totalOutputTime);
+void *FindMatchesInIndexThread(void *arg);
 
 #endif

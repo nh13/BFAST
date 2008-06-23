@@ -17,7 +17,7 @@ FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
-void UpdateRead(char*, int);
+int UpdateRead(char*, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);
 

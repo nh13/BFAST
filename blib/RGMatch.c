@@ -577,10 +577,10 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	int32_t numMatches=0;
 
 	/* Initialize matches */
-		RGMatchInitialize(&match);
-		RGMatchInitialize(&pairedMatch);
-			RGMatchInitialize(&tempMatch);
-			RGMatchInitialize(&tempPairedMatch);
+	RGMatchInitialize(&match);
+	RGMatchInitialize(&pairedMatch);
+	RGMatchInitialize(&tempMatch);
+	RGMatchInitialize(&tempPairedMatch);
 
 
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
@@ -754,6 +754,7 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 		int32_t pairedEnd,
 		int32_t binaryOutput)
 {
+	char *FnName = "RGMatchMergeThreadTempFilesIntoOutputTempFile";
 	int32_t counter;
 	int32_t i;
 	RGMatch match;
@@ -762,15 +763,21 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 	char *sequenceName;
 	char *sequence;
 	char *pairedSequence;
+	int *finished=NULL;
 
 	/* Initialize matches */
-		RGMatchInitialize(&match);
-		RGMatchInitialize(&pairedMatch);
+	RGMatchInitialize(&match);
+	RGMatchInitialize(&pairedMatch);
+
+	/* Initialize thread file pointers */
+	for(i=0;i<numThreads;i++) {
+		fseek(threadFPs[i], 0, SEEK_SET);
+	}
 
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
 	sequenceName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(NULL == sequenceName) {
-		PrintError("RGMatchMergeThreadTempFilesIntoOutputTempFile",
+		PrintError(FnName,
 				"sequenceName",
 				"Could not allocate memory",
 				Exit,
@@ -778,7 +785,7 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 	}
 	sequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL == sequence) {
-		PrintError("RGMatchMergeThreadTempFilesIntoOutputTempFile",
+		PrintError(FnName,
 				"sequence",
 				"Could not allocate memory",
 				Exit,
@@ -786,11 +793,24 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 	}
 	pairedSequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL == pairedSequence) {
-		PrintError("RGMatchMergeThreadTempFilesIntoOutputTempFile",
+		PrintError(FnName,
 				"pairedSequence",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
+	}
+	/* Allocate memory for the finished array */
+	finished = malloc(sizeof(int)*numThreads);
+	if(NULL == finished) {
+		PrintError(FnName,
+				"finished",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Initialize finished array */
+	for(i=0;i<numThreads;i++) {
+		finished[i] = 0;
 	}
 
 	counter = 0;
@@ -799,49 +819,57 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 
 		/* For each thread */
 		for(i=0;i<numThreads;i++) {
+			/* Only try reading from those that are not finished */
+			if(0 == finished[i]) {
+				if(RGMatchRead(threadFPs[i],
+							sequenceName,
+							sequence,
+							pairedSequence,
+							&match,
+							&pairedMatch,
+							pairedEnd,
+							binaryOutput)==EOF) {
+					finished[i] = 1;
+					numFinished++;
+				}
+				else {
+					assert(numFinished < numThreads);
 
-			if(RGMatchRead(threadFPs[i],
-						sequenceName,
-						sequence,
-						pairedSequence,
-						&match,
-						&pairedMatch,
-						pairedEnd,
-						binaryOutput)==EOF) {
-				numFinished++;
-			}
-			else {
-				assert(numFinished < numThreads);
+					/*
+					   if(match.numEntries > 0) {
+					   counter++;
+					   }
+					   */
+					counter++;
 
-				/*
-				   if(match.numEntries > 0) {
-				   counter++;
-				   }
-				   */
-				counter++;
+					RGMatchPrint(outputFP,
+							sequenceName,
+							sequence,
+							pairedSequence,
+							&match,
+							&pairedMatch,
+							pairedEnd,
+							binaryOutput);
 
-				RGMatchPrint(outputFP,
-						sequenceName,
-						sequence,
-						pairedSequence,
-						&match,
-						&pairedMatch,
-						pairedEnd,
-						binaryOutput);
-
-			}
-			/* Free memory */
-			RGMatchFree(&match);
-			if(pairedEnd == 1) {
-				RGMatchFree(&pairedMatch);
+				}
+				/* Free memory */
+				RGMatchFree(&match);
+				if(pairedEnd == 1) {
+					RGMatchFree(&pairedMatch);
+				}
 			}
 		}
+	}
+	assert(numFinished == numThreads);
+	for(i=0;i<numThreads;i++) {
+		assert(1==finished[i]);
 	}
 
 	/* Free memory */
 	free(sequenceName);
 	free(sequence);
 	free(pairedSequence);
+	free(finished);
 
 	return counter;
 }
