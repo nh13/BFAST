@@ -526,9 +526,10 @@ double GetScoreFromMatrix(char a,
 			indexA=4;
 			break;
 		default:
+			fprintf(stderr, "\n[%c]\n", a);
 			PrintError("GetScoreFromMatrix",
 					NULL,
-					"Could not understand 'a' key",
+					"Could not understand key",
 					Exit,
 					OutOfRange);
 	}

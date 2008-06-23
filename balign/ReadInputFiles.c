@@ -95,21 +95,5 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 	/* Close the file */
 	fclose(fp);
 
-	/* TODO */
-	/* Check that the matrix is symmetric */
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Read scoring matrix\n");
-		fprintf(stderr, "gapOpenPenalty:%lf\ngapExtensionPenalty:%lf\n",
-				sm->gapOpenPenalty,
-				sm->gapExtensionPenalty);
-		for(i=0;i<ALPHABET_SIZE+1;i++) { 
-			for(j=0;j<ALPHABET_SIZE+1;j++) { 
-				fprintf(stderr, "%lf\t", sm->scores[i][j]);
-			}
-			fprintf(stderr, "\n");
-		}
-	}
-
 	return 1;
 }
