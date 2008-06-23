@@ -795,13 +795,9 @@ void RGReadsGenerateGapDeletions(char *read,
 {
 	char *curRead = NULL;
 
-	if(VERBOSE>=DEBUG) {
-		fprintf(stderr, "Generating reads with %d gap deletions.\n",
-				numGapDeletions);
-	}
-
-	/* Get the total number of insertions (delete bases) possible */
-	if(numGapDeletions <= 0) {
+	/* Only proceed if we have more than one tile */
+	if(numGapDeletions <= 0 ||
+			numTiles <= 1) {
 		/* Out of bounds.  Don't add anything. */
 		return;
 	}
@@ -912,13 +908,9 @@ void RGReadsGenerateGapInsertions(char *read,
 {
 	char *curRead=NULL;
 
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "Generating reads with %d gap insertions\n",
-				numGapInsertions);
-	}
-
-	/* Get the total number of insertions (delete bases) possible */
-	if(numGapInsertions <= 0) { 
+	/* Only proceed if we have more than one tile */
+	if(numGapInsertions <= 0 ||
+			numTiles <= 1) { 
 		/* Out of bounds.  Don't add anything. */
 		return;
 	}
