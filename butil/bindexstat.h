@@ -4,6 +4,7 @@
 #include "../blib/RGIndex.h"
 #include "../blib/RGBinary.h"
 
-void PrintMeanAndVarianceOfCAL(RGIndex*, RGBinary*);
+void PrintSummary(RGIndex*, RGBinary*);
+void PrintHistogram(RGIndex*, RGBinary*, int, int, FILE*);
 
 #endif

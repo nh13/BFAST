@@ -1,4 +1,4 @@
-bin_PROGRAMS = bheader bfixhash bindexstat brepeat
+bin_PROGRAMS = bheader bfixhash bindexstat brepeat btestindexes
 
 bheader_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
@@ -39,3 +39,8 @@ brepeat_SOURCES = \
 	brepeat.c	brepeat.h
 
 brepeat_LDADD = 
+
+btestindexes_SOURCES = \
+				   btestindexes.c
+
+btestindexes_LDADD =
