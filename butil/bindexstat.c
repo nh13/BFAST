@@ -5,6 +5,7 @@
 #include <limits.h>
 
 #include "../blib/BLibDefinitions.h"
+#include "../blib/BLib.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
 #include "bindexstat.h"
@@ -102,7 +103,6 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	long double sum;
 	long double mean, variance;
 
-
 	/* Get the mean */
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Getting the mean. Out of %lld, currently on:\n0",
@@ -121,7 +121,9 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 			start = end;
 		}
 	}
-	mean = (index->length*1.0)/numEntries;
+	fprintf(stderr, "\r%lld\n", (long long int)end);
+	/* Times two because we have both forward and reverse strands */
+	mean = (index->length*2.0)/numEntries;
 
 	/* Get the variance, max, and min */
 	fprintf(stderr, "Getting the variance. Out of %lld, currently on:\n0",
@@ -176,13 +178,13 @@ void PrintHistogram(RGIndex *index,
 	int64_t curIndex;
 	int curChr, curPos, curNum;
 	char read[SEQUENCE_LENGTH]="\0";
+	char reverseRead[SEQUENCE_LENGTH]="\0";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
 	int64_t startIndex=-1;
 	int64_t endIndex=-1;
-	int64_t foundIndex=0;
-	uint32_t hashIndex=0;
 	int64_t counter;
+	int64_t numDifferent = 0;
 
 	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 		fprintf(fp, "Out of %lld, currently on %d mismatches:\n0",
@@ -195,6 +197,7 @@ void PrintHistogram(RGIndex *index,
 				fprintf(fp, "\r%lld", (long long int)curIndex);
 				counter -= RGINDEX_ROTATE_NUM;
 			}
+			curNum = 0;
 			/* Get the current chromosome and position from which
 			 * to draw the read. */
 			curChr = index->chromosomes[curIndex];
@@ -211,26 +214,25 @@ void PrintHistogram(RGIndex *index,
 					&returnPosition);
 			assert(returnLength == readLength);
 			assert(returnPosition == curPos);
-			/* Get the bounds for the read */
-			/* Get the hash index for the read */
-			hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
-			assert(hashIndex >= 0 && hashIndex < index->hashLength);
-			assert(index->starts[hashIndex] != UINT_MAX);
-			assert(index->ends[hashIndex] != UINT_MAX);
-			assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
-			assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
-			/* Search the index using the bounds from the hash */
-			foundIndex=RGIndexGetIndex(index,
-					rg,
-					index->starts[hashIndex],
-					index->ends[hashIndex],
-					read,
-					&startIndex,
-					&endIndex);
-			assert(foundIndex==1);
-			assert(startIndex == curIndex);
 			/* Compute the number of places with this read */
-			curNum = endIndex - startIndex + 1;
+			curNum += GetNumberOfMatches(index,
+					rg,
+					read,
+					readLength,
+					startIndex, 
+					&endIndex,
+					curIndex);
+			/* Do the same thing but for the reverse compliment */
+			GetReverseComplimentAnyCase(read,
+					reverseRead,
+					readLength);
+			curNum += GetNumberOfMatches(index,
+					rg,
+					reverseRead,
+					readLength,
+					-1,
+					NULL,
+					-1);
 			/* Add to our list.  We may have to reallocate this array */
 			if(curNum > maxCount) {
 				j = maxCount; /* Save previous length */
@@ -256,8 +258,15 @@ void PrintHistogram(RGIndex *index,
 			/* Update curIndex */
 			counter += curNum;
 			curIndex = endIndex + 1;
+			/* Update stats */
+			numDifferent++;
 		}
 		fprintf(fp, "\n");
+		fprintf(fp, "Number of unique places was: %lld\nThe mean number of CALs was: %lld/%lld=%lf\n",
+				(long long int)numDifferent,
+				(long long int)numDifferent,
+				(long long int)2*index->length,
+				(double)(index->length*2.0)/numDifferent);
 		fprintf(fp, "Found counts for %d mismatches ranging from %d to %d.\n",
 				i,
 				1,
@@ -268,4 +277,41 @@ void PrintHistogram(RGIndex *index,
 					counts[j]);
 		}
 	}
+}
+
+int64_t GetNumberOfMatches(RGIndex *index,
+		RGBinary *rg,
+		char *read,
+		int readLength,
+		int64_t startIndex,
+		int64_t *endIndex,
+		int64_t curIndex)
+{
+	int64_t tmpEndIndex=-1;
+	int64_t foundIndex=0;
+	uint32_t hashIndex=0;
+
+	/* Get the hash index for the read */
+	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
+	assert(hashIndex >= 0 && hashIndex < index->hashLength);
+	assert(index->starts[hashIndex] != UINT_MAX);
+	assert(index->ends[hashIndex] != UINT_MAX);
+	assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
+	assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
+
+	/* Search the index using the bounds from the hash */
+	foundIndex=RGIndexGetIndex(index,
+			rg,
+			index->starts[hashIndex],
+			index->ends[hashIndex],
+			read,
+			&startIndex,
+			&tmpEndIndex);
+	assert(foundIndex==1);
+	assert(startIndex < 0 || curIndex < 0 || startIndex == curIndex);
+	if(endIndex != NULL) {
+		(*endIndex) = tmpEndIndex;
+	}
+	/* Return the number of places with this read */
+	return (tmpEndIndex - startIndex + 1);
 }
