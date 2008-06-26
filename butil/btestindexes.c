@@ -899,6 +899,10 @@ void RunSampling(Indexes *mainIndexes,
 		fflush(fp);
 		totalGenerated=0;
 		totalMatched=0;
+		/* Initialize read */
+		for(j=0;j<readLength;j++) {
+			curRead[j] = NO_EVENT;
+		}
 		RunMismatches(&bestIndexes,
 				curRead,
 				readLength,
@@ -1153,6 +1157,10 @@ void FindBestIndexes(Indexes *indexes,
 			/* Try all indexes */
 			totalGenerated = 0;
 			curMatched = 0;
+		/* Initialize read */
+		for(j=0;j<readLength;j++) {
+			read[j] = NO_EVENT;
+		}
 			RunMismatches(&curIndexes,
 					read,
 					readLength,
@@ -1364,9 +1372,8 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 		int numDeletionsEnd,
 		int numErrors)
 {
-	int i;
+	int i, j;
 	int *read=NULL;
-	int *curRead=NULL;
 	int totalGenerated;
 	int totalMatched;
 
@@ -1375,14 +1382,8 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 		fprintf(stderr, "Error.  Could not allocate memory for read.  Terminating!\n");
 		exit(1);
 	}
-	curRead = malloc(sizeof(int)*readLength);
-	if(NULL == curRead) {
-		fprintf(stderr, "Error.  Could not allocate memory for curRead.  Terminating!\n");
-		exit(1);
-	}
 	for(i=0;i<readLength;i++) {
 		read[i] = NO_EVENT;
-		curRead[i] = -1;
 	}
 
 	fprintf(fp, "%s", BREAK_LINE);
@@ -1391,6 +1392,10 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 	for(i=numMismatchesStart;0 < numMismatchesStart && i<=numMismatchesEnd;i++) {
 		totalGenerated=0;
 		totalMatched=0;
+		/* Initialize read */
+		for(j=0;j<readLength;j++) {
+			read[j] = NO_EVENT;
+		}
 		RunMismatches(indexes,
 				read,
 				readLength,
@@ -1431,8 +1436,6 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 	   */
 
 	free(read);
-	read = NULL;
-	free(curRead);
 	read = NULL;
 }
 
