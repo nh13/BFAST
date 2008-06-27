@@ -38,8 +38,11 @@ void RGIndexCreate(RGIndex *index,
 	int32_t curStartPos=-1;
 	int32_t curEndPos=-1;
 	int32_t curChr=-1;
-	int32_t insert, i, j, curTilePos;
+	int32_t insert, i, curTilePos, curTile, curReferencePos;
 	int32_t chrIndex = 0;
+	char reference[SEQUENCE_LENGTH]="\0";
+	int returnReferenceLength;
+	int returnPosition;
 
 	/* Initialize the index */
 	RGIndexInitialize(index);
@@ -118,6 +121,7 @@ void RGIndexCreate(RGIndex *index,
 		else {
 			curEndPos = rg->chromosomes[chrIndex].endPos;
 		}
+
 		/* For each position */
 		for(curPos=curStartPos;curPos<=curEndPos;curPos++) {
 			if(VERBOSE >= 0) {
@@ -128,59 +132,69 @@ void RGIndexCreate(RGIndex *index,
 				}
 			}
 
-			/* Forward direction Only */
-			insert = 1;
+			/* Make sure that there is enough sequence */
 			if(index->totalLength + curPos - 1 <= rg->chromosomes[chrIndex].endPos) {
-				curTilePos=curPos;
-				for(i=0;i<index->numTiles && insert==1;i++) { /* For each tile */
-					for(j=0;insert==1 && j<index->tileLengths[i];j++) { /* For each position in the tile */
-						/* Check that we are within bounds */
-						assert(curTilePos <= rg->chromosomes[chrIndex].endPos);
-						/* Check if there are any repeats in any of the tiles */
-						if(0==includeRepeats && 1==RGBinaryIsRepeat(rg, curChr, curTilePos)) {
-							insert = 0;
+				/* Get the sequence for the forward strand only */
+				RGBinaryGetSequence(rg,
+						curChr,
+						curPos,
+						FORWARD,
+						0,
+						reference,
+						index->totalLength,
+						&returnReferenceLength,
+						&returnPosition);
+				/* Only proceed if the sequence was successfully retrieved.  */
+				if(returnReferenceLength == index->totalLength &&
+						returnPosition == curPos) {
+					/* Check the reference */
+					insert = 1;
+					for(curReferencePos=0, curTile = 0;curTile < index->numTiles && 1==insert;curTile++) {
+						for(curTilePos=0;curTilePos < index->tileLengths[curTile] && 1==insert;curTilePos++) {
+							/* Check if there are any repeats in any of the tiles */
+							if(0==includeRepeats && 1==RGBinaryIsBaseRepeat(reference[curReferencePos])) {
+								insert = 0;
+							}
+							else if(0==includeNs && 1==RGBinaryIsBaseN(reference[curReferencePos])) {
+								insert = 0;
+							}
+							/* Update position in the read*/
+							curReferencePos++;
+						}   
+						if(curTile < index->numTiles-1) {
+							/* Skip over the gap */
+							curReferencePos += index->gaps[curTile];
+						}   
+					}   
+
+					/* Insert if desired */
+					if(1==insert) {
+						/* Insert */
+						index->length++;
+
+						/* Allocate memory */
+						index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
+						if(NULL == index->positions) {
+							PrintError("RGBinaryCreate",
+									"index->positions",
+									"Could not reallocate memory",
+									Exit,
+									ReallocMemory);
 						}
-						if(0==includeNs && 1==RGBinaryIsN(rg, curChr, curTilePos)) {
-							insert = 0;
+						index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
+						if(NULL == index->chromosomes) {
+							PrintError("RGBinaryCreate",
+									"index->chromosomes",
+									"Could not reallocate memory",
+									Exit,
+									ReallocMemory);
 						}
-						curTilePos++;
+
+						/* Copy over */
+						index->positions[index->length-1] = curPos;
+						index->chromosomes[index->length-1] = curChr;
 					}
-					curTilePos--; /* incremented on exit, so decrement */
-					if(i<index->numTiles-1) { /* Add gap */
-						curTilePos += index->gaps[i];
-					}
 				}
-			}
-			else {
-				insert = 0;
-			}
-
-			/* Insert if desired */
-			if(1==insert) {
-				/* Insert */
-				index->length++;
-
-				/* Allocate memory */
-				index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
-				if(NULL == index->positions) {
-					PrintError("RGBinaryCreate",
-							"index->positions",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
-				}
-				index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
-				if(NULL == index->chromosomes) {
-					PrintError("RGBinaryCreate",
-							"index->chromosomes",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
-				}
-
-				/* Copy over */
-				index->positions[index->length-1] = curPos;
-				index->chromosomes[index->length-1] = curChr;
 			}
 		}
 	}
@@ -312,24 +326,24 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 
 	/* Test hash creation */
 	/*
-	for(i=0;i<index->hashLength;i++) {
-		assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
-				(index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
-		if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
-			assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], 0) < 0);
-		}
-		if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
-			assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
-		}
-	}
-	*/
+	   for(i=0;i<index->hashLength;i++) {
+	   assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
+	   (index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
+	   if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
+	   assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], 0) < 0);
+	   }
+	   if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
+	   assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
+	   }
+	   }
+	   */
 }
 
 /* TODO */
 void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 {
 	char *FnName = FnName;
-	int64_t i;
+	int64_t i, j;
 	ThreadRGIndexSortData *data=NULL;
 	ThreadRGIndexSortData tempData;
 	pthread_t *threads=NULL;
@@ -341,6 +355,10 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 
 	/* Only use threads if we want to divide and conquer */
 	if(numThreads > 1) {
+		/* Should check that the number of threads is a power of 4 since we split
+		 * in half in both sorts. */
+		assert(IsAPowerOfTwo(numThreads)==1);
+
 		/* Allocate memory for the thread arguments */
 		data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
 		if(NULL==data) {
@@ -363,8 +381,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 		if(SORT_TYPE == 0) {
 			/* Quick sort */
 
-			/* Should check that the number of threads is a power of 4 */
-			assert(IsAPowerOfTwo(numThreads)==1);
 
 			/* Allocate memory for the pivots */
 			pivots = malloc(sizeof(int64_t)*(2*numThreads));
@@ -554,16 +570,22 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 			}
 
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "\rMergin sorts from threads...                    ");
+				fprintf(stderr, "\rMerging sorts from threads...                    ");
 			}
+
 			/* Now we must merge the results from the threads */
-			for(i=1;i<numThreads;i++) {
-				RGIndexMergeHelper(index,
-						rg,
-						data[0].low,
-						data[i].low-1,
-						data[i].high,
-						tmpDir);
+			/* Merge intelligently i.e. merge recursively so 
+			 * there are only nlogn merges where n is the 
+			 * number of threads. */
+			for(j=1;j<numThreads;j=j*2) {
+				for(i=0;i<numThreads;i+=2*j) {
+					RGIndexMergeHelper(index,
+							rg,
+							data[i].low,
+							data[i+j].low-1,
+							data[i+2*j-1].high,
+							tmpDir);
+				}
 			}
 		}
 		else {
@@ -622,10 +644,10 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 
 	/* Test that we sorted correctly */
 	/*
-	for(i=1;i<index->length;i++) {
-		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	}
-	*/
+	   for(i=1;i<index->length;i++) {
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
 }
 
 /* TODO */
@@ -1189,10 +1211,10 @@ void RGIndexMergeHelper(RGIndex *index,
 	}
 	/* Test merge */
 	/*
-	for(i=low+1;i<=high;i++) {
-		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	}
-	*/
+	   for(i=low+1;i<=high;i++) {
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
 }
 
 /* TODO */
@@ -2236,6 +2258,9 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 					hashIndex += pow(ALPHABET_SIZE, cur)*3;
 					break;
 				default:
+					fprintf(stderr, "\n[%c,%d]\n",
+							aBase,
+							(int)aBase);
 					PrintError("RGIndexGetHashIndex",
 							"aBase",
 							"Could not understand base",

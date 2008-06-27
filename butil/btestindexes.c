@@ -480,7 +480,7 @@ int ReadIndexes(Indexes *indexes, FILE *fp, char *indexesFileName, int readLengt
 		}
 		assert(indexes->indexLengths[i] > 0);
 		if(indexes->indexLengths[i] > readLength) {
-			fprintf(stderr, "Error.  Length for index %d was to big [%d>%d].  Terminating!\n",
+			fprintf(stderr, "Error.  Length for index %d was too big [%d>%d].  Terminating!\n",
 					i+1,
 					indexes->indexLengths[i],
 					readLength);

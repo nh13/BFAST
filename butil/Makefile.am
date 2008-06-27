@@ -26,6 +26,7 @@ bindexstat_SOURCES = \
 	../blib/BLib.c	../blib/BLib.h \
 	../blib/RGBinary.c ../blib/RGBinary.h \
 	../blib/RGMatch.c ../blib/RGMatch.h \
+	../blib/RGReads.c	../blib/RGReads.h \
 	bindexstat.c	bindexstat.h
 
 bindexstat_LDADD =

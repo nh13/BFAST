@@ -6,6 +6,6 @@
 
 void PrintSummary(RGIndex*, RGBinary*);
 void PrintHistogram(RGIndex*, RGBinary*, int, int, FILE*);
-int64_t GetNumberOfMatches(RGIndex*, RGBinary*, char*, int, int64_t, int64_t*, int64_t);
+int64_t GetNumberOfMatches(RGIndex*, RGBinary*, char*, int, int64_t*, int64_t);
 
 #endif

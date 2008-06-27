@@ -958,11 +958,20 @@ int32_t RGBinaryIsRepeat(RGBinary *rg,
 			chromosome,
 			position);
 
+	return RGBinaryIsBaseRepeat(curBase);
+}
+
+int32_t RGBinaryIsBaseRepeat(int8_t curBase)
+{
 	switch(curBase) {
 		case 'A':
+		case 'a':
 		case 'C':
+		case 'c':
 		case 'G':
+		case 'g':
 		case 'T':
+		case 't':
 			return 1;
 			break;
 		default:
@@ -979,5 +988,10 @@ int32_t RGBinaryIsN(RGBinary *rg,
 			chromosome,
 			position);
 
+	return RGBinaryIsBaseN(curBase);
+}
+
+int32_t RGBinaryIsBaseN(int8_t curBase)
+{
 	return ( (curBase == 'n' || curBase == 'N')?1:0);
 }

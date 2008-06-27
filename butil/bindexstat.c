@@ -8,10 +8,18 @@
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
+#include "../blib/RGMatch.h"
+#include "../blib/RGReads.h"
 #include "bindexstat.h"
 
+#define BINDEXSTAT_ROTATE_NUM 100000
 #define NUM_MISMATCHES_START 0
-#define NUM_MISMATCHES_END 1
+#define NUM_MISMATCHES_END 4
+
+typedef struct {
+	int **counts;
+	int *maxCount;
+} Counts;
 
 int main(int argc, char *argv[]) 
 {
@@ -22,14 +30,16 @@ int main(int argc, char *argv[])
 	int numMismatchesStart = NUM_MISMATCHES_START;
 	int numMismatchesEnd = NUM_MISMATCHES_END;
 
-	if(argc == 4) {
+	if(argc == 5) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		algorithm = atoi(argv[3]);
+		numMismatchesEnd = atoi(argv[4]);
 		assert(0 <= algorithm && algorithm <= 2);
+		assert(numMismatchesEnd >= numMismatchesStart);
 
 
 		/* Read in the rg binary file */
@@ -52,24 +62,31 @@ int main(int argc, char *argv[])
 		switch(algorithm) {
 			case 0:
 				/* One */
+				fprintf(stderr, "%s", BREAK_LINE);
 				PrintSummary(&index, &rg);
+				fprintf(stderr, "%s", BREAK_LINE);
 				break;
 			case 1:
 				/* The other */
+				fprintf(stderr, "%s", BREAK_LINE);
 				PrintHistogram(&index, 
 						&rg, 
 						numMismatchesStart,
 						numMismatchesEnd,
-						stderr);
+						stdout);
+				fprintf(stderr, "%s", BREAK_LINE);
 				break;
 			case 2:
 				/* Both */
+				fprintf(stderr, "%s", BREAK_LINE);
 				PrintSummary(&index, &rg);
+				fprintf(stderr, "%s", BREAK_LINE);
 				PrintHistogram(&index, 
 						&rg, 
 						numMismatchesStart,
 						numMismatchesEnd,
-						stderr);
+						stdout);
+				fprintf(stderr, "%s", BREAK_LINE);
 				break;
 			default:
 				PrintError("main",
@@ -80,13 +97,15 @@ int main(int argc, char *argv[])
 				break;
 		}
 
-
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Cleaning up.\n");
 		/* Delete the index */
 		RGIndexDelete(&index);
 		/* Delete the rg */
 		RGBinaryDelete(&rg);
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Terminating successfully!\n");
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
 		fprintf(stdout, "Usage: bindexstat [OPTIONS]\n\t\t<reference genome file name>\n\t\t<index file name>\n\t\t<algorithm: 0-Summary 1-Histogram 2-Both>\n");
@@ -157,11 +176,12 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	fprintf(stderr, "\r%lld\n", (long long int)end);
 	variance = sum/numEntries;
 
-	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\n",
+	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\nThe number of unique reads was: %lld\n",
 			mean,
 			variance,
 			(long long int)max,
-			(long long int)min);
+			(long long int)min,
+			(long long int)numEntries);
 }
 
 void PrintHistogram(RGIndex *index, 
@@ -173,35 +193,81 @@ void PrintHistogram(RGIndex *index,
 	char *FnName = "PrintHistogram";
 	int i;
 	int64_t j;
-	int* counts=NULL;
-	int maxCount = 0;
-	int64_t curIndex;
+	int64_t curIndex, nextIndex;
 	int curChr, curPos, curNum;
 	char read[SEQUENCE_LENGTH]="\0";
-	char reverseRead[SEQUENCE_LENGTH]="\0";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
-	int64_t startIndex=-1;
-	int64_t endIndex=-1;
 	int64_t counter;
 	int64_t numDifferent = 0;
+	int64_t numReadsNoMismatches = 0;
+	Counts c; /* Used to store the histogram data */
+	RGMatch m; /* Used to store the matches returned */
+	int offsets[1] = {0}; /* Only use one offset */
+	int *curCounts = NULL;
 
-	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
-		fprintf(fp, "Out of %lld, currently on %d mismatches:\n0",
-				(long long int)index->length,
-				i);
-		curIndex = 0;
-		counter = 0;
-		while(curIndex < index->length) {
-			if(counter >= RGINDEX_ROTATE_NUM) {
-				fprintf(fp, "\r%lld", (long long int)curIndex);
-				counter -= RGINDEX_ROTATE_NUM;
-			}
-			curNum = 0;
+	/* Not implemented for numMismatchesStart > 0 */
+	assert(numMismatchesStart == 0);
+
+	/* Allocate memory to hold histogram data */
+	c.counts = malloc(sizeof(int*)*(numMismatchesEnd - numMismatchesStart + 1));
+	if(NULL == c.counts) {
+		PrintError(FnName,
+				"c.counts",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	c.maxCount = malloc(sizeof(int)*(numMismatchesEnd - numMismatchesStart + 1));
+	if(NULL == c.maxCount) {
+		PrintError(FnName,
+				"c.maxCount",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	curCounts = malloc(sizeof(int)*(numMismatchesEnd - numMismatchesStart + 1));
+	if(NULL == curCounts) {
+		PrintError(FnName,
+				"curCounts",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Initialize counts */
+	for(i=0;i<(numMismatchesEnd - numMismatchesStart + 1);i++) {
+		c.counts[i] = NULL;
+		c.maxCount[i] = 0;
+	}
+
+	/* Go through every possible read in the genome using the index */
+	fprintf(stderr, "Out of %lld, currently on\n0",
+			(long long int)index->length);
+	curIndex = 0;
+	nextIndex = 0;
+	numDifferent = 0;
+	for(curIndex=0, nextIndex=0, counter=0, numDifferent=0;
+			curIndex < index->length;
+			curIndex = nextIndex) {
+		if(counter >= BINDEXSTAT_ROTATE_NUM) {
+			fprintf(stderr, "\r%lld", (long long int)curIndex);
+			counter -= BINDEXSTAT_ROTATE_NUM;
+		}
+		/* Initialize */
+		curIndex = nextIndex;
+		numReadsNoMismatches = 0;
+		/* Try each mismatch */
+		for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
+			/* Initialize variables */
+			RGMatchInitialize(&m);
+			curCounts[i] = 0;
+
 			/* Get the current chromosome and position from which
 			 * to draw the read. */
 			curChr = index->chromosomes[curIndex];
 			curPos = index->positions[curIndex];
+
 			/* Get the read */
 			RGBinaryGetSequence(rg,
 					curChr,
@@ -214,32 +280,47 @@ void PrintHistogram(RGIndex *index,
 					&returnPosition);
 			assert(returnLength == readLength);
 			assert(returnPosition == curPos);
-			/* Compute the number of places with this read */
-			curNum += GetNumberOfMatches(index,
+
+			/* Get the matches */
+			RGReadsFindMatches(index,
 					rg,
+					&m,
 					read,
 					readLength,
-					startIndex, 
-					&endIndex,
-					curIndex);
-			/* Do the same thing but for the reverse compliment */
-			GetReverseComplimentAnyCase(read,
-					reverseRead,
-					readLength);
-			curNum += GetNumberOfMatches(index,
-					rg,
-					reverseRead,
-					readLength,
-					-1,
-					NULL,
-					-1);
+					offsets,
+					1, /* One offset */
+					i, /* The number of mismatches */
+					0,
+					0,
+					0,
+					0,
+					INT_MAX);
+			/* Update the counts */
+			curNum = m.numEntries;
+			assert(curNum > 0);
+			/*
+			fprintf(stderr, "curIndex=%lld\ti=%d\tcurNum=%d\n",
+					(long long int)curIndex,
+					i,
+					curNum);
+			*/
+			/* Update the value of numReadsNoMismatches if necessary */
+			if(i==0) {
+				numReadsNoMismatches = curNum; /* This will be the basis for update c.counts */
+			}
+
+			/* curNum is now the x-axis, or the second index in the c.counts array */
+			/* The value we should add is actually numReadsNoMismatches sinc we wish to skip over these,
+			 * i.e. don't search again since they have the same answer */
+
 			/* Add to our list.  We may have to reallocate this array */
-			if(curNum > maxCount) {
-				j = maxCount; /* Save previous length */
+			if(curNum > c.maxCount[i]) {
+				j = c.maxCount[i]; /* Save previous length */
 				/* Reallocate */
-				maxCount = curNum;
-				counts = realloc(counts, sizeof(int)*maxCount);
-				if(NULL == counts) {
+				c.maxCount[i] = curNum;
+				assert(c.maxCount[i] > 0);
+				c.counts[i] = realloc(c.counts[i], sizeof(int)*c.maxCount[i]);
+				if(NULL == c.counts[i]) {
 					PrintError(FnName,
 							"counts",
 							"Could not allocate memory",
@@ -248,47 +329,69 @@ void PrintHistogram(RGIndex *index,
 				}
 				/* Initialize from j to maxCount */
 				while(j<curNum) {
-					counts[j] = 0;
+					c.counts[i][j] = 0;
 					j++;
 				}
 			}
 			/* Add the number of places to the appropriate counts */
-			assert(curNum >= 0 && curNum <= maxCount);
-			counts[curNum-1] += curNum;
+			assert(curNum >= 0 && curNum <= c.maxCount[i]);
+			c.counts[i][curNum-1] += numReadsNoMismatches; /* Add the number of reads for which we will skip over */
 			/* Update curIndex */
-			counter += curNum;
-			curIndex = endIndex + 1;
-			/* Update stats */
-			numDifferent++;
-		}
-		fprintf(fp, "\n");
-		fprintf(fp, "Number of unique places was: %lld\nThe mean number of CALs was: %lld/%lld=%lf\n",
-				(long long int)numDifferent,
-				(long long int)numDifferent,
-				(long long int)2*index->length,
-				(double)(index->length*2.0)/numDifferent);
-		fprintf(fp, "Found counts for %d mismatches ranging from %d to %d.\n",
-				i,
-				1,
-				maxCount);
-		for(j=0;j<maxCount;j++) {
-			fprintf(fp, "%lld\t%d\n",
-					(long long int)j,
-					counts[j]);
+			if(i==0) {
+				/* Add the range since we will be skipping over them */
+				nextIndex += curNum;
+				counter += curNum;
+				/* Update stats */
+				numDifferent++;
+			}
+			/* Free variables */
+			RGMatchFree(&m);
 		}
 	}
+	fprintf(stderr, "\n");
+
+	/* Print results */
+	fprintf(fp, "# Number of unique places was: %lld\nThe mean number of CALs was: %lld/%lld=%lf\n",
+			(long long int)numDifferent,
+			(long long int)numDifferent,
+			(long long int)2*index->length, /* Times two for both strands */
+			(double)(index->length*2.0)/numDifferent); /* Times two for both strands */
+	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
+		fprintf(fp, "# Found counts for %d mismatches ranging from %d to %d.\n",
+				i,
+				1,
+				c.maxCount[i]);
+		for(j=0;j<c.maxCount[i];j++) {
+			fprintf(fp, "%lld\t%d\n",
+					(long long int)j,
+					c.counts[i][j]);
+		}
+	}
+
+	/* Free memory */
+	for(i=0;i<(numMismatchesEnd - numMismatchesStart + 1);i++) {
+		free(c.counts[i]);
+		c.counts[i] = NULL;
+	}
+	free(c.counts);
+	c.counts = NULL;
+	free(c.maxCount);
+	c.maxCount = NULL;
+	free(curCounts);
+	curCounts = NULL;
 }
 
 int64_t GetNumberOfMatches(RGIndex *index,
 		RGBinary *rg,
 		char *read,
 		int readLength,
-		int64_t startIndex,
 		int64_t *endIndex,
 		int64_t curIndex)
 {
+	char *FnName = "GetNumberOfMatches";
 	int64_t tmpEndIndex=-1;
 	int64_t foundIndex=0;
+	int64_t startIndex=0;
 	uint32_t hashIndex=0;
 
 	/* Get the hash index for the read */
@@ -307,8 +410,20 @@ int64_t GetNumberOfMatches(RGIndex *index,
 			read,
 			&startIndex,
 			&tmpEndIndex);
-	assert(foundIndex==1);
-	assert(startIndex < 0 || curIndex < 0 || startIndex == curIndex);
+	if(1!=foundIndex) {
+		fprintf(stderr, "\nread:[%s]\n", read);
+		fprintf(stderr, "\nstarts:[%lld]\tends:[%lld]\n",
+				(long long int)index->starts[hashIndex],
+				(long long int)index->ends[hashIndex]);
+		PrintError(FnName,
+				"foundIndex",
+				"Did not find the read",
+				Exit,
+				OutOfRange);
+	}
+	/* Reverse compliment will have startIndex == -1 */
+	assert(startIndex == -1 || startIndex == curIndex);
+	assert(startIndex <= tmpEndIndex);
 	if(endIndex != NULL) {
 		(*endIndex) = tmpEndIndex;
 	}
