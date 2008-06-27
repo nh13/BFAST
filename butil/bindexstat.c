@@ -142,7 +142,7 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	}
 	fprintf(stderr, "\r%lld\n", (long long int)end);
 	/* Times two because we have both forward and reverse strands */
-	mean = (index->length)/numEntries;
+	mean = ((double)(1.0*index->length))/numEntries;
 
 	/* Get the variance, max, and min */
 	fprintf(stderr, "Getting the variance. Out of %lld, currently on:\n0",
