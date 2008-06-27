@@ -249,7 +249,7 @@ void RGReadsGeneratePerfectMatch(char *read,
 
 	curRead = malloc(sizeof(char)*(totalLength+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateMismatchesHelper",
+		PrintError("RGReadsPerfectMatchesHelper",
 				"curRead",
 				"Could not allocate memory",
 				Exit,

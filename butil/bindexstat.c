@@ -142,7 +142,7 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	}
 	fprintf(stderr, "\r%lld\n", (long long int)end);
 	/* Times two because we have both forward and reverse strands */
-	mean = (index->length*2.0)/numEntries;
+	mean = (index->length)/numEntries;
 
 	/* Get the variance, max, and min */
 	fprintf(stderr, "Getting the variance. Out of %lld, currently on:\n0",
@@ -354,8 +354,8 @@ void PrintHistogram(RGIndex *index,
 	fprintf(fp, "# Number of unique places was: %lld\nThe mean number of CALs was: %lld/%lld=%lf\n",
 			(long long int)numDifferent,
 			(long long int)numDifferent,
-			(long long int)2*index->length, /* Times two for both strands */
-			(double)(index->length*2.0)/numDifferent); /* Times two for both strands */
+			(long long int)index->length, /* Times two for both strands */
+			(double)index->length/numDifferent); /* Times two for both strands */
 	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 		fprintf(fp, "# Found counts for %d mismatches ranging from %d to %d.\n",
 				i,

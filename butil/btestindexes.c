@@ -84,8 +84,8 @@ void RunInsertion(Indexes *indexes,
 		int readLength,
 		int insertionLength,
 		int numErrors,
-		int *totalGenerated,
-		int *totalMatched);
+		int64_t *totalGenerated,
+		int64_t *totalMatched);
 void GenerateRandomMismatchRead(int *read,
 		int readLength,
 		int numMismatches);
@@ -94,8 +94,8 @@ void RunMismatches(Indexes *indexes,
 		int readLength,
 		int readPos,
 		int numMismatchesLeft,
-		int *totalGenerated,
-		int *totalMatched);
+		int64_t *totalGenerated,
+		int64_t *totalMatched);
 void RunSampling(Indexes *mainIndexes,
 		FILE *fp,
 		int readLength,
@@ -633,8 +633,8 @@ void RunInsertion(Indexes *indexes,
 		int readLength,
 		int insertionLength,
 		int numErrors,
-		int *totalGenerated,
-		int *totalMatched)
+		int64_t *totalGenerated,
+		int64_t *totalMatched)
 {
 	int i, j;
 
@@ -702,8 +702,8 @@ void RunMismatches(Indexes *indexes,
 		int readLength,
 		int readPos,
 		int numMismatchesLeft,
-		int *totalGenerated,
-		int *totalMatched)
+		int64_t *totalGenerated,
+		int64_t *totalMatched)
 {
 	int prevType;
 
@@ -770,10 +770,7 @@ void RunSampling(Indexes *mainIndexes,
 	int *curRead=NULL;
 	Indexes curIndexes;
 	Indexes bestIndexes;
-	int curMatched;
-	int bestMatched;
-	int numEvents;
-	int totalMatched, totalGenerated;
+	int64_t curMatched, numEvents, bestMatched, totalMatched, totalGenerated;
 	int exact;
 	curRead = malloc(sizeof(int)*readLength);
 	if(NULL == curRead) {
@@ -890,11 +887,11 @@ void RunSampling(Indexes *mainIndexes,
 		fprintf(fp, "\r%10d\n",
 				(int)numIndexesToSample);
 		/* Print asymptotic */
-		fprintf(fp, "Best index found for %d mismatches and %d errors (%d out of %d [%3.3lf]):\n",
+		fprintf(fp, "Best index found for %d mismatches and %d errors (%lld out of %lld [%3.3lf]):\n",
 				i,
 				numErrors,
-				bestMatched,
-				numEvents,
+				(long long int)bestMatched,
+				(long long int)numEvents,
 				(bestMatched*100.0)/numEvents);
 		fflush(fp);
 		totalGenerated=0;
@@ -911,11 +908,11 @@ void RunSampling(Indexes *mainIndexes,
 				&totalGenerated,
 				&totalMatched);
 		/* Print truth for the best one */
-		fprintf(fp, "Mismatches[%d,%d]: %d out of %d [%3.3lf].\n",
+		fprintf(fp, "Mismatches[%d,%d]: %lld out of %lld [%3.3lf].\n",
 				i,
 				numErrors,
-				totalMatched,
-				totalGenerated,
+				(long long int)totalMatched,
+				(long long int)totalGenerated,
 				(totalMatched*100.0)/totalGenerated);
 		fflush(fp);
 		PrintIndexes(&bestIndexes, fp);
@@ -1016,11 +1013,11 @@ void RunSampling(Indexes *mainIndexes,
 		fprintf(fp, "\r%10d\n",
 				(int)numIndexesToSample);
 		/* Print asymptotic */
-		fprintf(fp, "Best index found insertion of length %d and %d errors (%d out of %d [%3.3lf]):\n",
+		fprintf(fp, "Best index found insertion of length %d and %d errors (%lld out of %lld [%3.3lf]):\n",
 				i,
 				numErrors,
-				bestMatched,
-				numEvents,
+				(long long int)bestMatched,
+				(long long int)numEvents,
 				(bestMatched*100.0)/numEvents);
 		fflush(fp);
 		totalGenerated=0;
@@ -1033,11 +1030,11 @@ void RunSampling(Indexes *mainIndexes,
 				&totalGenerated,
 				&totalMatched);
 		/* Print truth for the best one */
-		fprintf(fp, "Insertion[%d,%d]: %d out of %d [%3.3lf].\n",
+		fprintf(fp, "Insertion[%d,%d]: %lld out of %lld [%3.3lf].\n",
 				i,
 				numErrors,
-				totalMatched,
-				totalGenerated,
+				(long long int)totalMatched,
+				(long long int)totalGenerated,
 				(totalMatched*100.0)/totalGenerated);
 		fflush(fp);
 		PrintIndexes(&bestIndexes, fp);
@@ -1068,11 +1065,9 @@ void FindBestIndexes(Indexes *indexes,
 	int64_t counter;
 	int *read=NULL;
 	int *curRead=NULL;
-	int totalGenerated;
+	int64_t totalGenerated, curMatched, bestMatched;
 	Indexes curIndexes;
 	Indexes bestIndexes;
-	int curMatched;
-	int bestMatched;
 	int *whichIndexes=NULL;
 
 	read = malloc(sizeof(int)*readLength);
@@ -1221,11 +1216,11 @@ void FindBestIndexes(Indexes *indexes,
 				whichIndexes[k] = whichIndexes[k-1]+1;
 			}
 		}
-		fprintf(fp, "\nBest index found for %d mismatches and %d errors (%d out of %d [%3.3lf]):\n",
+		fprintf(fp, "\nBest index found for %d mismatches and %d errors (%lld out of %lld [%3.3lf]):\n",
 				i,
 				numErrors,
-				bestMatched,
-				totalGenerated,
+				(long long int)bestMatched,
+				(long long int)totalGenerated,
 				(bestMatched*100.0)/totalGenerated);
 		fflush(fp);
 		PrintIndexes(&bestIndexes, fp);
@@ -1335,11 +1330,11 @@ void FindBestIndexes(Indexes *indexes,
 				whichIndexes[k] = whichIndexes[k-1]+1;
 			}
 		}
-		fprintf(fp, "\nBest index found for insertion of length %d and %d errors (%d out of %d [%3.3lf]):\n",
+		fprintf(fp, "\nBest index found for insertion of length %d and %d errors (%lld out of %lld [%3.3lf]):\n",
 				i,
 				numErrors,
-				bestMatched,
-				totalGenerated,
+				(long long int)bestMatched,
+				(long long int)totalGenerated,
 				(bestMatched*100.0)/totalGenerated);
 		fflush(fp);
 		PrintIndexes(&bestIndexes, fp);
@@ -1374,8 +1369,7 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 {
 	int i, j;
 	int *read=NULL;
-	int totalGenerated;
-	int totalMatched;
+	int64_t totalGenerated, totalMatched;
 
 	read = malloc(sizeof(int)*readLength);
 	if(NULL == read) {
@@ -1403,11 +1397,11 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 				i+numErrors,
 				&totalGenerated,
 				&totalMatched);
-		fprintf(fp, "Mismatches[%d,%d]: %d out of %d [%3.3lf].\n",
+		fprintf(fp, "Mismatches[%d,%d]: %lld out of %lld [%3.3lf].\n",
 				i,
 				numErrors,
-				totalMatched,
-				totalGenerated,
+				(long long int)totalMatched,
+				(long long int)totalGenerated,
 				(totalMatched*100.0)/totalGenerated);
 		fflush(fp);
 	}
@@ -1422,11 +1416,11 @@ void ComputeAccuracyForEachIndex(Indexes *indexes,
 				numErrors,
 				&totalGenerated,
 				&totalMatched);
-		fprintf(fp, "Insertion[%d,%d]: %d out of %d [%3.3lf].\n",
+		fprintf(fp, "Insertion[%d,%d]: %lld out of %lld [%3.3lf].\n",
 				i,
 				numErrors,
-				totalMatched,
-				totalGenerated,
+				(long long int)totalMatched,
+				(long long int)totalGenerated,
 				(totalMatched*100.0)/totalGenerated);
 		fflush(fp);
 	}
