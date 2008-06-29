@@ -212,13 +212,13 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	fprintf(stderr, "\r%lld\n", (long long int)curIndex);
 	variance = sum/numDifferent;
 
-	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\nThe number of unique reads was: %lld\tThe number of reads:%lld\n",
+	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\nThe number of unique reads was: %lld out of %lld\n",
 			mean,
 			variance,
 			(long long int)max,
 			(long long int)min,
 			(long long int)numDifferent,
-			(long long int)index->length);
+			(long long int)2*index->length);
 }
 
 void PrintHistogram(RGIndex *index, 
@@ -343,14 +343,14 @@ void PrintHistogram(RGIndex *index,
 			}
 			/* Add the number of places to the appropriate counts */
 			assert(curNum >= 0 && curNum <= c.maxCount[i]);
-			c.counts[i][curNum-1] += numReadsNoMismatches; /* Add the number of reads for which we will skip over */
+			c.counts[i][curNum-1] += 2*numReadsNoMismatches; /* Add the number of reads for which we will skip over times to for both strands */
 			/* Update curIndex */
 			if(i==0) {
 				/* Add the range since we will be skipping over them */
 				nextIndex += curNum;
 				counter += curNum;
 				/* Update stats */
-				numDifferent++;
+				numDifferent+=2; /* Two for both strands */
 			}
 			/* Free variables */
 			RGMatchFree(&m);
@@ -362,8 +362,8 @@ void PrintHistogram(RGIndex *index,
 	fprintf(fp, "# Number of unique places was: %lld\nThe mean number of CALs was: %lld/%lld=%lf\n",
 			(long long int)numDifferent,
 			(long long int)numDifferent,
-			(long long int)index->length, /* Times two for both strands */
-			(double)index->length/numDifferent); /* Times two for both strands */
+			(long long int)2*index->length, /* Times two for both strands */
+			((double)index->length*2.0)/numDifferent); /* Times two for both strands */
 	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 		fprintf(fp, "# Found counts for %d mismatches ranging from %d to %d.\n",
 				i,
