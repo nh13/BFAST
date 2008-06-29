@@ -225,7 +225,6 @@ void RGReadsGenerateReads(char *read,
 					reads);
 		}
 	}
-
 }
 
 void RGReadsGeneratePerfectMatch(char *read,

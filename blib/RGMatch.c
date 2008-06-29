@@ -48,7 +48,7 @@ void RGMatchRemoveDuplicates(RGMatch *s,
 		RGMatchReallocate(s, prevIndex+1);
 
 		/* Check to see if we have too many matches */
-		if(s->numEntries > maxMatches) {
+		if(maxMatches > 0 && s->numEntries > maxMatches) {
 			RGMatchFree(s);
 			s->maxReached=1;
 			return;
@@ -582,7 +582,6 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 	RGMatchInitialize(&tempMatch);
 	RGMatchInitialize(&tempPairedMatch);
 
-
 	/* Allocate memory for the sequenceNames, sequences and pairedSequences */
 	sequenceNames = malloc(sizeof(char*)*numFiles);
 	if(NULL == sequenceNames) {
@@ -906,7 +905,7 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxMatches)
 		RGMatchCopyAtIndex(src, i-start, dest, i);
 	}
 
-	if(dest->numEntries > maxMatches) {
+	if(maxMatches > 0 && dest->numEntries > maxMatches) {
 		dest->maxReached = 1;
 	}
 

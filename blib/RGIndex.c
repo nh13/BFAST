@@ -1850,7 +1850,7 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int32_t readLen
 		if(foundIndex>0) {
 
 			/* Check to see if we add the current number of matches, if we would go over the limit */
-			if(m->numEntries + (endIndex - startIndex +1) > maxMatches) {
+			if(maxMatches > 0 && m->numEntries + (endIndex - startIndex +1) > maxMatches) {
 				RGMatchFree(m);
 				m->maxReached=1;
 				return;

@@ -3,9 +3,10 @@
 
 #include "../blib/RGIndex.h"
 #include "../blib/RGBinary.h"
+#include "../blib/RGMatch.h"
 
 void PrintSummary(RGIndex*, RGBinary*);
 void PrintHistogram(RGIndex*, RGBinary*, int, int, FILE*);
-int64_t GetNumberOfMatches(RGIndex*, RGBinary*, char*, int, int64_t*, int64_t);
+void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, RGMatch*);
 
 #endif

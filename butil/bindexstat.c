@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
 		assert(0 <= algorithm && algorithm <= 2);
 		assert(numMismatchesEnd >= numMismatchesStart);
 
-
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
 
@@ -116,33 +115,50 @@ int main(int argc, char *argv[])
 
 void PrintSummary(RGIndex *index, RGBinary *rg)
 {
-	int64_t start, end;
-	int64_t numEntries;
 	int64_t max, min;
 	long double sum;
 	long double mean, variance;
+	int64_t curIndex, nextIndex;
+	int64_t counter;
+	int64_t numDifferent = 0;
+	RGMatch m; /* Used to store the matches returned */
 
 	/* Get the mean */
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Getting the mean. Out of %lld, currently on:\n0",
 			(long long int)index->length);
-	numEntries = 0;
-	start = 0;
-	for(end=1;end < index->length;end++) {
-		if(end%RGINDEX_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%lld", (long long int)end);
+	for(curIndex=0, nextIndex=0, counter=0, numDifferent=0;
+			curIndex < index->length;
+			curIndex = nextIndex) {
+		if(counter >= BINDEXSTAT_ROTATE_NUM) {
+			fprintf(stderr, "\r%lld", (long long int)curIndex);
+			counter -= BINDEXSTAT_ROTATE_NUM;
 		}
-		int cmp = RGIndexCompareAt(index, rg, start, end, 0);
-		assert(cmp <= 0);
-		if(cmp < 0) {
-			numEntries++;
-			/* Update */
-			start = end;
-		}
+
+		/* Initialize variables */
+		RGMatchInitialize(&m);
+
+		/* Get the matches for the chr/pos */
+		GetMatchesFromChrPos(index,
+				rg,
+				index->chromosomes[curIndex],
+				index->positions[curIndex],
+				&m);
+
+		/* We add two since a there is symmetry between the forward and reverse strands */
+		numDifferent += 2; 
+
+		/* Update the index */
+		nextIndex = curIndex + m.numEntries;
+
+		/* Free matches */
+		RGMatchFree(&m);
 	}
-	fprintf(stderr, "\r%lld\n", (long long int)end);
-	/* Times two because we have both forward and reverse strands */
-	mean = ((double)(1.0*index->length))/numEntries;
+	fprintf(stderr, "\r%lld\n", (long long int)curIndex);
+
+	/* Multiply by two in the numerator since it is only the length of the forward strand and
+	 * we considered both the forward and reverse strands */
+	mean = ((double)(2.0*index->length))/numDifferent;
 
 	/* Get the variance, max, and min */
 	fprintf(stderr, "Getting the variance. Out of %lld, currently on:\n0",
@@ -150,38 +166,51 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	min = UINT_MAX;
 	max = -1;
 	sum = 0.0;
-	start = 0;
-	for(end=1;end < index->length;end++) {
-		if(end%RGINDEX_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%lld", (long long int)end);
+	for(curIndex=0, nextIndex=0, counter=0;
+			curIndex < index->length;
+			curIndex = nextIndex) {
+		if(counter >= BINDEXSTAT_ROTATE_NUM) {
+			fprintf(stderr, "\r%lld", (long long int)curIndex);
+			counter -= BINDEXSTAT_ROTATE_NUM;
 		}
-		int cmp = RGIndexCompareAt(index, rg, start, end, 0);
-		assert(cmp <= 0);
-		if(cmp < 0) {
-			int val = ( (end-1) - start + 1);
-			/* Get max */
-			if(val > max) {
-				max = val;
-			}
-			/* Get min */
-			if(val < min) {
-				min = val;
-			}
-			/* Update variance sum */
-			sum += (val - mean)*(val - mean);
-			/* Update */
-			start = end;
-		}
-	}
-	fprintf(stderr, "\r%lld\n", (long long int)end);
-	variance = sum/numEntries;
 
-	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\nThe number of unique reads was: %lld\n",
+		/* Initialize variables */
+		RGMatchInitialize(&m);
+
+		/* Get the matches for the chr/pos */
+		GetMatchesFromChrPos(index,
+				rg,
+				index->chromosomes[curIndex],
+				index->positions[curIndex],
+				&m);
+
+		/* Get max */
+		if(m.numEntries > max) {
+			max = m.numEntries;
+		}
+		/* Get min */
+		if(m.numEntries < min) {
+			min = m.numEntries;
+		}
+		/* Update variance sum */
+		sum += (m.numEntries - mean)*(m.numEntries - mean);
+
+		/* Update the index */
+		nextIndex = curIndex + m.numEntries;
+
+		/* Free matches */
+		RGMatchFree(&m);
+	}
+	fprintf(stderr, "\r%lld\n", (long long int)curIndex);
+	variance = sum/numDifferent;
+
+	fprintf(stderr, "The mean was: %Lf\nThe variance was: %Lf\nThe max was: %lld\nThe min was: %lld\nThe number of unique reads was: %lld\tThe number of reads:%lld\n",
 			mean,
 			variance,
 			(long long int)max,
 			(long long int)min,
-			(long long int)numEntries);
+			(long long int)numDifferent,
+			(long long int)index->length);
 }
 
 void PrintHistogram(RGIndex *index, 
@@ -194,16 +223,12 @@ void PrintHistogram(RGIndex *index,
 	int i;
 	int64_t j;
 	int64_t curIndex, nextIndex;
-	int curChr, curPos, curNum;
-	char read[SEQUENCE_LENGTH]="\0";
-	int readLength = index->totalLength;
-	int returnLength, returnPosition;
+	int32_t curNum;
 	int64_t counter;
 	int64_t numDifferent = 0;
 	int64_t numReadsNoMismatches = 0;
 	Counts c; /* Used to store the histogram data */
 	RGMatch m; /* Used to store the matches returned */
-	int offsets[1] = {0}; /* Only use one offset */
 	int *curCounts = NULL;
 
 	/* Not implemented for numMismatchesStart > 0 */
@@ -263,47 +288,22 @@ void PrintHistogram(RGIndex *index,
 			RGMatchInitialize(&m);
 			curCounts[i] = 0;
 
-			/* Get the current chromosome and position from which
-			 * to draw the read. */
-			curChr = index->chromosomes[curIndex];
-			curPos = index->positions[curIndex];
+		/* Get the matches for the chr/pos */
+		GetMatchesFromChrPos(index,
+				rg,
+				index->chromosomes[curIndex],
+				index->positions[curIndex],
+				&m);
 
-			/* Get the read */
-			RGBinaryGetSequence(rg,
-					curChr,
-					curPos,
-					FORWARD,
-					0,
-					read,
-					readLength,
-					&returnLength,
-					&returnPosition);
-			assert(returnLength == readLength);
-			assert(returnPosition == curPos);
-
-			/* Get the matches */
-			RGReadsFindMatches(index,
-					rg,
-					&m,
-					read,
-					readLength,
-					offsets,
-					1, /* One offset */
-					i, /* The number of mismatches */
-					0,
-					0,
-					0,
-					0,
-					INT_MAX);
 			/* Update the counts */
 			curNum = m.numEntries;
 			assert(curNum > 0);
 			/*
-			fprintf(stderr, "curIndex=%lld\ti=%d\tcurNum=%d\n",
-					(long long int)curIndex,
-					i,
-					curNum);
-			*/
+			   fprintf(stderr, "curIndex=%lld\ti=%d\tcurNum=%d\n",
+			   (long long int)curIndex,
+			   i,
+			   curNum);
+			   */
 			/* Update the value of numReadsNoMismatches if necessary */
 			if(i==0) {
 				numReadsNoMismatches = curNum; /* This will be the basis for update c.counts */
@@ -381,52 +381,46 @@ void PrintHistogram(RGIndex *index,
 	curCounts = NULL;
 }
 
-int64_t GetNumberOfMatches(RGIndex *index,
+/* Get the matches for the chr/pos */
+void GetMatchesFromChrPos(RGIndex *index,
 		RGBinary *rg,
-		char *read,
-		int readLength,
-		int64_t *endIndex,
-		int64_t curIndex)
+		uint32_t curChr,
+		uint32_t curPos,
+		RGMatch *m)
 {
-	char *FnName = "GetNumberOfMatches";
-	int64_t tmpEndIndex=-1;
-	int64_t foundIndex=0;
-	int64_t startIndex=0;
-	uint32_t hashIndex=0;
+	char read[SEQUENCE_LENGTH]="\0";
+	int readLength = index->totalLength;
+	int returnLength, returnPosition;
+	int offsets[1] = {0}; /* Only use one offset */
 
-	/* Get the hash index for the read */
-	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
-	assert(hashIndex >= 0 && hashIndex < index->hashLength);
-	assert(index->starts[hashIndex] != UINT_MAX);
-	assert(index->ends[hashIndex] != UINT_MAX);
-	assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
-	assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
-
-	/* Search the index using the bounds from the hash */
-	foundIndex=RGIndexGetIndex(index,
-			rg,
-			index->starts[hashIndex],
-			index->ends[hashIndex],
+	/* Get the read */
+	RGBinaryGetSequence(rg,
+			curChr,
+			curPos,
+			FORWARD,
+			0,
 			read,
-			&startIndex,
-			&tmpEndIndex);
-	if(1!=foundIndex) {
-		fprintf(stderr, "\nread:[%s]\n", read);
-		fprintf(stderr, "\nstarts:[%lld]\tends:[%lld]\n",
-				(long long int)index->starts[hashIndex],
-				(long long int)index->ends[hashIndex]);
-		PrintError(FnName,
-				"foundIndex",
-				"Did not find the read",
-				Exit,
-				OutOfRange);
-	}
-	/* Reverse compliment will have startIndex == -1 */
-	assert(startIndex == -1 || startIndex == curIndex);
-	assert(startIndex <= tmpEndIndex);
-	if(endIndex != NULL) {
-		(*endIndex) = tmpEndIndex;
-	}
-	/* Return the number of places with this read */
-	return (tmpEndIndex - startIndex + 1);
+			readLength,
+			&returnLength,
+			&returnPosition);
+	assert(returnLength == readLength);
+	assert(returnPosition == curPos);
+
+	/* Get the matches */
+	RGReadsFindMatches(index,
+			rg,
+			m,
+			read,
+			readLength,
+			offsets,
+			1, /* One offset */
+			/* No variants required */
+			0,
+			0,
+			0,
+			0,
+			0,
+			/* Get all matches */
+			INT_MAX);
+	assert(m->numEntries >= 2); /* Should at least have one for the forward and one for the reverse */
 }
