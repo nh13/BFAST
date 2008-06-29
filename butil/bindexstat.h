@@ -6,7 +6,7 @@
 #include "../blib/RGMatch.h"
 
 void PrintSummary(RGIndex*, RGBinary*);
-void PrintHistogram(RGIndex*, RGBinary*, int, int, FILE*);
+void PrintHistogram(RGIndex*, RGBinary*, int, int, char*);
 void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, RGMatch*);
 
 #endif

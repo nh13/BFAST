@@ -25,6 +25,7 @@ int main(int argc, char *argv[])
 {
 	FILE *fp=NULL;
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
+	char histogramFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
 	int algorithm;
 	int numMismatchesStart = NUM_MISMATCHES_START;
@@ -42,6 +43,10 @@ int main(int argc, char *argv[])
 		}
 		assert(0 <= algorithm && algorithm <= 2);
 		assert(numMismatchesEnd >= numMismatchesStart);
+
+		/* Create the histogram file name */
+		strcpy(histogramFileName, indexFileName);
+		strcat(histogramFileName, ".hist");
 
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
@@ -74,7 +79,7 @@ int main(int argc, char *argv[])
 						&rg, 
 						numMismatchesStart,
 						numMismatchesEnd,
-						stdout);
+						histogramFileName);
 				fprintf(stderr, "%s", BREAK_LINE);
 				break;
 			case 2:
@@ -86,7 +91,7 @@ int main(int argc, char *argv[])
 						&rg, 
 						numMismatchesStart,
 						numMismatchesEnd,
-						stdout);
+						histogramFileName);
 				fprintf(stderr, "%s", BREAK_LINE);
 				break;
 			default:
@@ -225,7 +230,7 @@ void PrintHistogram(RGIndex *index,
 		RGBinary *rg,
 		int numMismatchesStart,
 		int numMismatchesEnd,
-		FILE *fp)
+		char *histogramFileName)
 {
 	char *FnName = "PrintHistogram";
 	int i;
@@ -238,6 +243,7 @@ void PrintHistogram(RGIndex *index,
 	Counts c; /* Used to store the histogram data */
 	RGMatch m; /* Used to store the matches returned */
 	int *curCounts = NULL;
+	FILE *fp;
 
 	/* Not implemented for numMismatchesStart > 0 */
 	assert(numMismatchesStart == 0);
@@ -359,6 +365,13 @@ void PrintHistogram(RGIndex *index,
 	fprintf(stderr, "\n");
 
 	/* Print results */
+	if(!(fp = fopen(histogramFileName, "w"))) {
+		PrintError(FnName,
+				histogramFileName,
+				"Could not open file for writing",
+				Exit,
+				OpenFileError);
+	}
 	fprintf(fp, "# Number of unique places was: %lld\nThe mean number of CALs was: %lld/%lld=%lf\n",
 			(long long int)numDifferent,
 			(long long int)numDifferent,
@@ -375,6 +388,7 @@ void PrintHistogram(RGIndex *index,
 					c.counts[i][j]);
 		}
 	}
+	fclose(fp);
 
 	/* Free memory */
 	for(i=0;i<(numMismatchesEnd - numMismatchesStart + 1);i++) {
