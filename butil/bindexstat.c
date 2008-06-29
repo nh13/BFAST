@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
-		fprintf(stdout, "Usage: bindexstat [OPTIONS]\n\t\t<reference genome file name>\n\t\t<index file name>\n\t\t<algorithm: 0-Summary 1-Histogram 2-Both>\n\t\t<number of mismatches for histogram>");
+		fprintf(stdout, "Usage: bindexstat [OPTIONS]\n\t\t<reference genome file name>\n\t\t<index file name>\n\t\t<algorithm: 0-Summary 1-Histogram 2-Both>\n\t\t<number of mismatches for histogram>\n");
 	}
 
 	return 0;
