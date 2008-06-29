@@ -30,14 +30,16 @@ int main(int argc, char *argv[])
 	int numMismatchesStart = NUM_MISMATCHES_START;
 	int numMismatchesEnd = NUM_MISMATCHES_END;
 
-	if(argc == 5) {
+	if(argc >= 4 && argc <= 5) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		algorithm = atoi(argv[3]);
-		numMismatchesEnd = atoi(argv[4]);
+		if(argc == 5) {
+			numMismatchesEnd = atoi(argv[4]);
+		}
 		assert(0 <= algorithm && algorithm <= 2);
 		assert(numMismatchesEnd >= numMismatchesStart);
 
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
-		fprintf(stdout, "Usage: bindexstat [OPTIONS]\n\t\t<reference genome file name>\n\t\t<index file name>\n\t\t<algorithm: 0-Summary 1-Histogram 2-Both>\n");
+		fprintf(stdout, "Usage: bindexstat [OPTIONS]\n\t\t<reference genome file name>\n\t\t<index file name>\n\t\t<algorithm: 0-Summary 1-Histogram 2-Both>\n\t\t<number of mismatches for histogram>");
 	}
 
 	return 0;
@@ -150,6 +152,9 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 
 		/* Update the index */
 		nextIndex = curIndex + m.numEntries;
+
+		/* Update the counter */
+		counter += m.numEntries;
 
 		/* Free matches */
 		RGMatchFree(&m);
@@ -197,6 +202,9 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 
 		/* Update the index */
 		nextIndex = curIndex + m.numEntries;
+
+		/* Update the counter */
+		counter += m.numEntries;
 
 		/* Free matches */
 		RGMatchFree(&m);
@@ -288,12 +296,12 @@ void PrintHistogram(RGIndex *index,
 			RGMatchInitialize(&m);
 			curCounts[i] = 0;
 
-		/* Get the matches for the chr/pos */
-		GetMatchesFromChrPos(index,
-				rg,
-				index->chromosomes[curIndex],
-				index->positions[curIndex],
-				&m);
+			/* Get the matches for the chr/pos */
+			GetMatchesFromChrPos(index,
+					rg,
+					index->chromosomes[curIndex],
+					index->positions[curIndex],
+					&m);
 
 			/* Update the counts */
 			curNum = m.numEntries;
@@ -388,10 +396,11 @@ void GetMatchesFromChrPos(RGIndex *index,
 		uint32_t curPos,
 		RGMatch *m)
 {
+	char *FnName = "GetMatchesFromChrPos";
 	char read[SEQUENCE_LENGTH]="\0";
+	char reverseRead[SEQUENCE_LENGTH]="\0";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
-	int offsets[1] = {0}; /* Only use one offset */
 
 	/* Get the read */
 	RGBinaryGetSequence(rg,
@@ -406,21 +415,42 @@ void GetMatchesFromChrPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	/* Get the matches */
-	RGReadsFindMatches(index,
+	/* Get the matches forward strand */
+	RGIndexGetMatches(index,
 			rg,
-			m,
 			read,
 			readLength,
-			offsets,
-			1, /* One offset */
-			/* No variants required */
+			FORWARD,
 			0,
-			0,
-			0,
-			0,
-			0,
-			/* Get all matches */
+			m,
 			INT_MAX);
-	assert(m->numEntries >= 2); /* Should at least have one for the forward and one for the reverse */
+
+	/* Get the matches on the reverse strand */
+	GetReverseComplimentAnyCase(read, reverseRead, readLength);
+	RGIndexGetMatches(index,
+			rg,
+			reverseRead,
+			readLength,
+			REVERSE,
+			0,
+			m,
+			INT_MAX);
+
+	/* Error check */
+	if(m->numEntries <= 0 ||
+			m->maxReached == 1) {
+		RGMatchPrint(stderr,
+				"Name",
+				"Sequence",
+				NULL,
+				m,
+				NULL,
+				0,
+				0);
+		PrintError(FnName,
+				"m",
+				"Returned zero matches or maximum matches was reached",
+				Exit,
+				OutOfRange);
+	}
 }
