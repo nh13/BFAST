@@ -371,7 +371,7 @@ void PrintHistogram(RGIndex *index,
 			RGMatchFree(&m);
 		}
 	}
-	fprintf(stderr, "\n");
+	fprintf(stderr, "\r%lld\n", (long long int)curIndex);
 
 	/* Print results */
 	if(!(fp = fopen(histogramFileName, "w"))) {
@@ -393,7 +393,7 @@ void PrintHistogram(RGIndex *index,
 				c.maxCount[i]);
 		for(j=0;j<c.maxCount[i];j++) {
 			fprintf(fp, "%lld\t%d\n",
-					(long long int)j,
+					(long long int)j+1,
 					c.counts[i][j]);
 		}
 	}
