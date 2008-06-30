@@ -130,7 +130,6 @@ void RGReadsGenerateReads(char *read,
 				index->tileLengths,
 				index->gaps,
 				index->totalLength,
-				numMismatches,
 				reads);
 
 		/* Go through all mismatches */
@@ -235,7 +234,6 @@ void RGReadsGeneratePerfectMatch(char *read,
 		int32_t *tileLengths,
 		int32_t *gaps,
 		int64_t totalLength,
-		int numMismatches,
 		RGReads *reads)
 {
 	int32_t i;

@@ -128,6 +128,7 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 	int64_t curIndex, nextIndex;
 	int64_t counter;
 	int64_t numDifferent = 0;
+	int numForward;
 	RGMatch m; /* Used to store the matches returned */
 
 	/* Get the mean */
@@ -146,20 +147,20 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 		RGMatchInitialize(&m);
 
 		/* Get the matches for the chr/pos */
-		GetMatchesFromChrPos(index,
+		numForward = GetMatchesFromChrPos(index,
 				rg,
 				index->chromosomes[curIndex],
 				index->positions[curIndex],
+				0,
 				&m);
 
 		/* We add two since a there is symmetry between the forward and reverse strands */
 		numDifferent += 2; 
-
-		/* Update the index */
-		nextIndex = curIndex + m.numEntries;
-
-		/* Update the counter */
-		counter += m.numEntries;
+		/* Update the counter and the next index.  We only want to skip over the forward
+		 * matches. 
+		 * */
+		counter += numForward;
+		nextIndex = curIndex + numForward;
 
 		/* Free matches */
 		RGMatchFree(&m);
@@ -188,11 +189,18 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 		RGMatchInitialize(&m);
 
 		/* Get the matches for the chr/pos */
-		GetMatchesFromChrPos(index,
+		numForward = GetMatchesFromChrPos(index,
 				rg,
 				index->chromosomes[curIndex],
 				index->positions[curIndex],
+				0,
 				&m);
+
+		/* Update the counter and the next index.  We only want to skip over the forward
+		 * matches. 
+		 * */
+		counter += numForward;
+		nextIndex = curIndex + numForward;
 
 		/* Get max */
 		if(m.numEntries > max) {
@@ -203,13 +211,10 @@ void PrintSummary(RGIndex *index, RGBinary *rg)
 			min = m.numEntries;
 		}
 		/* Update variance sum */
-		sum += (m.numEntries - mean)*(m.numEntries - mean);
-
-		/* Update the index */
-		nextIndex = curIndex + m.numEntries;
-
-		/* Update the counter */
-		counter += m.numEntries;
+		/* Do this twice, since the forward and reverse strand 
+		 * will be symmetric in their matches. 
+		 * */
+		sum += 2*(m.numEntries - mean)*(m.numEntries - mean);
 
 		/* Free matches */
 		RGMatchFree(&m);
@@ -240,6 +245,7 @@ void PrintHistogram(RGIndex *index,
 	int64_t counter;
 	int64_t numDifferent = 0;
 	int64_t numReadsNoMismatches = 0;
+	int numForward;
 	Counts c; /* Used to store the histogram data */
 	RGMatch m; /* Used to store the matches returned */
 	int *curCounts = NULL;
@@ -303,10 +309,11 @@ void PrintHistogram(RGIndex *index,
 			curCounts[i] = 0;
 
 			/* Get the matches for the chr/pos */
-			GetMatchesFromChrPos(index,
+			numForward = GetMatchesFromChrPos(index,
 					rg,
 					index->chromosomes[curIndex],
 					index->positions[curIndex],
+					i,
 					&m);
 
 			/* Update the counts */
@@ -324,8 +331,7 @@ void PrintHistogram(RGIndex *index,
 			}
 
 			/* curNum is now the x-axis, or the second index in the c.counts array */
-			/* The value we should add is actually numReadsNoMismatches sinc we wish to skip over these,
-			 * i.e. don't search again since they have the same answer */
+			/* The value we should add is actually numReadsNoMismatches */
 
 			/* Add to our list.  We may have to reallocate this array */
 			if(curNum > c.maxCount[i]) {
@@ -349,12 +355,15 @@ void PrintHistogram(RGIndex *index,
 			}
 			/* Add the number of places to the appropriate counts */
 			assert(curNum >= 0 && curNum <= c.maxCount[i]);
-			c.counts[i][curNum-1] += 2*numReadsNoMismatches; /* Add the number of reads for which we will skip over times to for both strands */
+			/* Add the number of original reads, this should equal curNum for no mismatches, but will be less when
+			 * we consider mismatches. 
+			 * Add it twice since the forward and reverse strands will be symmetric. */
+			c.counts[i][curNum-1] += 2*numReadsNoMismatches; 
 			/* Update curIndex */
 			if(i==0) {
 				/* Add the range since we will be skipping over them */
-				nextIndex += curNum;
-				counter += curNum;
+				nextIndex += numForward;
+				counter += numForward;
 				/* Update stats */
 				numDifferent+=2; /* Two for both strands */
 			}
@@ -404,17 +413,23 @@ void PrintHistogram(RGIndex *index,
 }
 
 /* Get the matches for the chr/pos */
-void GetMatchesFromChrPos(RGIndex *index,
+int GetMatchesFromChrPos(RGIndex *index,
 		RGBinary *rg,
 		uint32_t curChr,
 		uint32_t curPos,
+		int numMismatches,
 		RGMatch *m)
 {
 	char *FnName = "GetMatchesFromChrPos";
 	char read[SEQUENCE_LENGTH]="\0";
-	char reverseRead[SEQUENCE_LENGTH]="\0";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
+	int i;
+	int numForward;
+	RGReads reads;
+
+	/* Initialiez reads */
+	RGReadsInitialize(&reads);
 
 	/* Get the read */
 	RGBinaryGetSequence(rg,
@@ -429,26 +444,45 @@ void GetMatchesFromChrPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	/* Get the matches forward strand */
-	RGIndexGetMatches(index,
-			rg,
-			read,
+	/* First generate the perfect match */
+	RGReadsGeneratePerfectMatch(read,
 			readLength,
 			FORWARD,
 			0,
-			m,
-			INT_MAX);
+			index->numTiles,
+			index->tileLengths,
+			index->gaps,
+			index->totalLength,
+			&reads);
 
-	/* Get the matches on the reverse strand */
-	GetReverseComplimentAnyCase(read, reverseRead, readLength);
-	RGIndexGetMatches(index,
-			rg,
-			reverseRead,
-			readLength,
-			REVERSE,
-			0,
-			m,
-			INT_MAX);
+	if(numMismatches > 0) {
+		/* Generate reads with the necessary mismatches */
+		RGReadsGenerateMismatches(read,
+				readLength,
+				FORWARD,
+				0,
+				index->numTiles,
+				index->tileLengths,
+				index->gaps,
+				index->totalLength,
+				numMismatches,
+				&reads);
+	}
+
+	for(i=0;i<reads.numReads;i++) {
+		/* Get the matches for the read */
+		RGIndexGetMatches(index,
+				rg,
+				reads.reads[i],
+				reads.readLength[i],
+				reads.strand[i],
+				reads.offset[i],
+				m,
+				INT_MAX);
+	}
+
+	/* Free memory */
+	RGReadsFree(&reads);
 
 	/* Error check */
 	if(m->numEntries <= 0 ||
@@ -467,4 +501,14 @@ void GetMatchesFromChrPos(RGIndex *index,
 				Exit,
 				OutOfRange);
 	}
+
+	/* Return the number of FORWARD strand matches so that we can skip over */
+	numForward = 0;
+	for(i=0;i<m->numEntries;i++) {
+		if(m->strand[i] == FORWARD) {
+			numForward++;
+		}
+	}
+	assert(numForward>0);
+	return numForward;
 }

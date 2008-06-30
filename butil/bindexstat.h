@@ -7,6 +7,6 @@
 
 void PrintSummary(RGIndex*, RGBinary*);
 void PrintHistogram(RGIndex*, RGBinary*, int, int, char*);
-void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, RGMatch*);
+int GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, RGMatch*);
 
 #endif
