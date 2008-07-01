@@ -10,7 +10,7 @@
 #include "BError.h"
 #include "BLib.h"
 #include "RGBinary.h"
-#include "RGMatch.h"
+#include "RGRanges.h"
 #include "RGIndex.h"
 
 /* TODO */
@@ -1809,20 +1809,12 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, RGMatch *m, int32_t maxMatches)
+void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, RGRanges *r)
 {
-	int64_t i;
 	int64_t startIndex=-1;
 	int64_t endIndex=-1;
-	int64_t nodeIndex=-1;
 	int64_t foundIndex=0;
-	int64_t tmpIndex=-1;
 	uint32_t hashIndex=0;
-
-	/* Don't search if we have reached the maximum number of matches */
-	if(m->maxReached==1) {
-		return;
-	}
 
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
@@ -1848,28 +1840,15 @@ void RGIndexGetMatches(RGIndex *index, RGBinary *rg, char *read, int32_t readLen
 				&endIndex);
 
 		if(foundIndex>0) {
-
-			/* Check to see if we add the current number of matches, if we would go over the limit */
-			if(maxMatches > 0 && m->numEntries + (endIndex - startIndex +1) > maxMatches) {
-				RGMatchFree(m);
-				m->maxReached=1;
-				return;
-			}
-
-			/* Copy over */
-			/* (Re)Allocate memory for the new matches */
-			tmpIndex = m->numEntries;
+			/* (Re)Allocate memory for the new range */
+			RGRangesReallocate(r, r->numEntries+1);
 			assert(endIndex >= startIndex);
 			assert(startIndex >= 0 && startIndex < index->length);
 			assert(endIndex >= 0 && endIndex < index->length);
-			RGMatchReallocate(m,  m->numEntries + (endIndex-startIndex+1));
-
-			/* Copy over */
-			for(i=tmpIndex, nodeIndex = startIndex;i < m->numEntries && nodeIndex <= endIndex;i++, nodeIndex++) {
-				m->positions[i] = index->positions[nodeIndex] - offset;
-				m->chromosomes[i] = index->chromosomes[nodeIndex];
-				m->strand[i] = direction;
-			}
+			/* Copy over to the range list */
+			r->startIndex[r->numEntries-1] = startIndex;
+			r->endIndex[r->numEntries-1] = endIndex;
+			r->strand[r->numEntries-1] = direction;
 		}
 	}
 }
@@ -2317,9 +2296,10 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 						readLength);
 			}
 
+			/* Old code, works with any size alphabet */
+			/*
 			switch(readBase) {
 				case 'a':
-					/* Do nothing since a is zero base 4 */
 					break;
 				case 'c':
 					hashIndex += pow(ALPHABET_SIZE, cur);
@@ -2339,6 +2319,30 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 					break;
 			}
 			cur--;
+			*/
+
+			/* Only works with a four letter alphabet */
+			hashIndex = hashIndex << 2;
+			switch(readBase) {
+				case 'a':
+					break;
+				case 'c':
+					hashIndex += 1;
+					break;
+				case 'g':
+					hashIndex += 2;
+					break;
+				case 't':
+					hashIndex += 3;
+					break;
+				default:
+					PrintError(FnName,
+							"readBase",
+							"Could not understand base",
+							Exit,
+							OutOfRange);
+					break;
+			}
 
 			curReadPos++;
 		}

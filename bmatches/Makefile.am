@@ -8,6 +8,7 @@ bmatches_SOURCES = \
 	../blib/RGBinary.c	../blib/RGBinary.h \
 	../blib/RGReads.c	../blib/RGReads.h \
 	../blib/RGMatch.c	../blib/RGMatch.h \
+	../blib/RGRanges.c	../blib/RGRanges.h \
 	FindMatches.c	FindMatches.h \
 	ParseInput.c	ParseInput.h \
 	Definitions.h

@@ -2,7 +2,10 @@
 General
 1. Reference genome can be a cat of fasta files.  For example the sequence of
 say 2000 exons.
-2. Optimize if we only have one thread/one index for tmp files.
+2. Optimize power function when doing the hash index look-up.
+3. Optimize matches returned by offsets by only first saving the ranges, then 
+sorting the ranges and remove duplicateds, and finally then copy over the 
+entries.
 ===============================================================================
 
 ===============================================================================

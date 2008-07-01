@@ -63,6 +63,14 @@ typedef struct {
 } RGMatch;
 
 /* TODO */
+typedef struct { 
+	int64_t *startIndex;
+	int64_t *endIndex;
+	int8_t *strand;
+	int32_t numEntries;
+} RGRanges;
+
+/* TODO */
 typedef struct {
 	int32_t numReads;
 	char **reads;
@@ -71,6 +79,7 @@ typedef struct {
 	int32_t *offset;
 } RGReads;
 
+/* TODO */
 typedef struct {
 	int32_t chromosome;
 	int32_t startPos;
@@ -79,6 +88,7 @@ typedef struct {
 	uint8_t *sequence; 
 } RGBinaryChr;
 
+/* TODO */
 typedef struct {
 	RGBinaryChr *chromosomes;
 	int32_t numChrs;

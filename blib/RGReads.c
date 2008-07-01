@@ -9,6 +9,8 @@
 #include "BError.h"
 #include "BLib.h"
 #include "RGIndex.h"
+#include "RGMatch.h"
+#include "RGRanges.h"
 #include "RGReads.h"
 
 /* TODO 
@@ -36,9 +38,11 @@ void RGReadsFindMatches(RGIndex *index,
 	int i;
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 	RGReads reads;
+	RGRanges ranges;
 
-	/* Initialize reads */ 
+	/* Initialize */
 	RGReadsInitialize(&reads);
+	RGRangesInitialize(&ranges);
 
 	/* Get the reverse compliment */
 	GetReverseComplimentAnyCase(read, reverseRead, readLength);
@@ -85,20 +89,26 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
-		RGIndexGetMatches(index, 
+		RGIndexGetRanges(index, 
 				rg,
 				reads.reads[i],
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
-				match,
-				maxMatches);
+				&ranges);
 	}
 
-	/* Remove duplicates from match */
-	RGMatchRemoveDuplicates(match, maxMatches);
+	/* Remove duplicate ranges */
+	/* This exploits the fact that the ranges are non-overlapping */
+	RGRangesRemoveDuplicates(&ranges);
+
+	/* Transfer ranges to matches */
+	RGRangesCopyToRGMatch(&ranges,
+			index,
+			match);
 
 	/* Free memory */
+	RGRangesFree(&ranges);
 	RGReadsFree(&reads);
 }
 
