@@ -5,8 +5,12 @@
 #include "../blib/RGBinary.h"
 #include "../blib/RGMatch.h"
 
-void PrintSummary(RGIndex*, RGBinary*);
+typedef struct {
+	int **counts;
+	int *maxCount;
+} Counts;
+
 void PrintHistogram(RGIndex*, RGBinary*, int, int, char*);
-int GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, RGMatch*);
+void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int*, int*);
 
 #endif
