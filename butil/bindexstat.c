@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
-		numMismatchesEnd = atoi(argv[4]);
+		numMismatchesEnd = atoi(argv[3]);
 		assert(numMismatchesEnd >= numMismatchesStart);
 
 		/* Create the histogram file name */
@@ -155,6 +155,7 @@ void PrintHistogram(RGIndex *index,
 					i,
 					&numForward, 
 					&numReverse);
+			assert(numForward > 0);
 
 			/* Update the value of numReadsNoMismatches and numDifferent
 			 * if we have the rsults for no mismatches */
@@ -353,8 +354,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 	for(i=0;i<ranges.numEntries;i++) {
 		switch(ranges.strand[i]) {
 			case FORWARD:
-				break;
 				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				break;
 			case REVERSE:
 				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
 				break;
@@ -367,7 +368,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 				break;
 		}
 	}
-	assert(numForward>0);
+	assert((*numForward)>0);
 
 	/* Free memory */
 	RGReadsFree(&reads);

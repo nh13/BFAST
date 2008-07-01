@@ -2318,7 +2318,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 							OutOfRange);
 					break;
 			}
-			cur--;
 			*/
 
 			/* Only works with a four letter alphabet */
@@ -2344,6 +2343,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 					break;
 			}
 
+			cur--;
 			curReadPos++;
 		}
 		if(i<index->numTiles-1) { /* Add gap */
