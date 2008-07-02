@@ -289,8 +289,11 @@ void RunDynamicProgramming(FILE *matchFP,
 		/* Filter those reads we will not be able to align */
 		/* line 1 - if both were found to have too many alignments in bmatches */
 		/* line 2 - if both have too many alignments in balign */
+		/* line 3 - if both do not have any possible matches */
 		if( (readMatch.maxReached == 1 && (pairedEnd == 0 || pairedReadMatch.maxReached == 1)) ||
-				(maxNumMatches != 0 && readMatch.numEntries > maxNumMatches && (pairedEnd == 0 || pairedReadMatch.numEntries > maxNumMatches))) {
+				(maxNumMatches != 0 && readMatch.numEntries > maxNumMatches && (pairedEnd == 0 || pairedReadMatch.numEntries > maxNumMatches)) ||
+				(readMatch.numEntries <= 0 && (pairedEnd == 0 || pairedReadMatch.numEntries <= 0))
+		  )	{
 			numNotAligned++;
 			RGMatchPrint(notAlignedFP,
 					readName,
@@ -429,9 +432,9 @@ void RunDynamicProgramming(FILE *matchFP,
 				}
 				continueReading=1;
 				/* Update the number that were aligned */
-				if(aEntries.numEntriesOne > 0 && (aEntries.pairedEnd == 0 || aEntries.numEntriesTwo > 0)) {
-					numAligned++;
-				}
+				assert(aEntries.numEntriesOne > 0 ||
+						(aEntries.pairedEnd == 1 && aEntries.numEntriesTwo > 0));
+				numAligned++;
 				/* Print it out */
 				AlignEntriesPrint(&aEntries,
 						outputFP);
