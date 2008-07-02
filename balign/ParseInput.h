@@ -17,6 +17,8 @@ struct arguments
 	int maxNumMatches;						/* -M */
 	int pairedEnd;                          /* -2 */
 	int numThreads;                         /* -n */
+	int usePairedEndLength;					/* -l - compainion to pairedEndLength */
+	int pairedEndLength;					/* -l */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	char *tmpDir;							/* -T */

@@ -17,6 +17,7 @@ void RGMatchAllocate(RGMatch*, int32_t);
 void RGMatchReallocate(RGMatch*, int32_t);
 void RGMatchFree(RGMatch*);
 void RGMatchInitialize(RGMatch*);
+void RGMatchMirrorPairedEnd(RGMatch*, RGMatch*, int);
 
 #endif
 

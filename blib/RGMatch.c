@@ -962,3 +962,21 @@ void RGMatchInitialize(RGMatch *m)
 	m->chromosomes=NULL;
 	m->strand=NULL;
 }
+
+void RGMatchMirrorPairedEnd(RGMatch *src, RGMatch *dest, int length) 
+{
+	int i;
+
+	assert(dest->numEntries == 0);
+	/* Reallocate paired match */
+	RGMatchInitialize(dest);
+	RGMatchReallocate(dest, src->numEntries);
+	/* Copy over */
+	for(i=0;i<src->numEntries;i++) {
+		dest->chromosomes[i] = src->chromosomes[i];
+		dest->strand[i] = src->strand[i];
+		/* Adjust position */
+		dest->positions[i] = src->positions[i] + length;
+	}
+}
+

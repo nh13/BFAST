@@ -864,7 +864,7 @@ void *FindMatchesInIndexThread(void *arg)
 
 		if((readMatch.numEntries > 0 && readMatch.maxReached != 1) || 
 				(pairedReadMatch.numEntries > 0 && pairedReadMatch.maxReached != 1) 
-				) {
+		  ) {
 			data->numMatches++;
 		}
 

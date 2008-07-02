@@ -26,13 +26,15 @@ typedef struct {
 	RGBinary *rgBinary;
 	int offsetLength;
 	int pairedEnd;
+	int usePairedEndLength;
+	int pairedEndLength;
 	int binaryInput;
 	ScoringMatrix *sm;
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, char*, char*, char*, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, char*, FILE*, FILE*, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, char*, FILE*, FILE*, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 void RunDynamicProgrammingThreadHelper(RGBinary*, uint8_t, uint32_t, int8_t, char*, int, int, ScoringMatrix*, AlignEntry*);
 void GetSequenceFromReferenceGenome(RGBinary*, int, int, char, int, char*, int, int*, int*);

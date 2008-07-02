@@ -84,14 +84,16 @@ static struct argp_option options[] = {
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
-	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
-	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
-	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
-	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
-	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
-	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
+	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
+	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that reads that have no candidates will be aligned this distance away.\n\t\t\tThis assumes that the first read is 5'->3' before the second.", 3},
+	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
+	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
+	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 5},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 5},
 	{0, 0, 0, 0, 0, 0}
 };
 /*
@@ -113,7 +115,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:m:n:o:r:s:x:E:H:M:O:S:T:2hpt";
+"a:d:e:l:m:n:o:r:s:x:E:H:M:O:S:T:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -184,6 +186,8 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.binaryInput,
 								arguments.numThreads,
+								arguments.usePairedEndLength,
+								arguments.pairedEndLength,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
@@ -362,6 +366,7 @@ int ValidateInputs(struct arguments *args) {
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == 0 || args->binaryInput == 1);
+	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 
 	return 1;
 }
@@ -426,6 +431,8 @@ AssignDefaultValues(struct arguments *args)
 	args->maxNumMatches=0;
 	args->pairedEnd = 0;
 	args->numThreads = 1;
+	args->usePairedEndLength = 0;
+	args->pairedEndLength = 0;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -451,6 +458,7 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
+	char using[2][64] = {"Not using", "Using"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
@@ -469,6 +477,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
+	fprintf(fp, "pairedEndLength:\t\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -537,6 +546,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->endChr=atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
+					case 'l':
+						arguments->usePairedEndLength=1;
+						arguments->pairedEndLength = atoi(OPTARG);break;
 					case 'm':
 						if(arguments->matchesFileName) free(arguments->matchesFileName);
 						arguments->matchesFileName = OPTARG;break;
