@@ -35,7 +35,8 @@ void RGReadsFindMatches(RGIndex *index,
 		int numGapDeletions,
 		int maxMatches)
 {
-	int i;
+	int64_t i;
+	int64_t numEntries = 0;
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 	RGReads reads;
 	RGRanges ranges;
@@ -102,10 +103,22 @@ void RGReadsFindMatches(RGIndex *index,
 	/* This exploits the fact that the ranges are non-overlapping */
 	RGRangesRemoveDuplicates(&ranges);
 
-	/* Transfer ranges to matches */
-	RGRangesCopyToRGMatch(&ranges,
-			index,
-			match);
+	/* Get the total number of matches we wish to copy over */
+	for(i=0;i<ranges.numEntries;i++) {
+		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+	}
+
+	/* Only copy to rgmatches if there are matches and fewer matches than
+	 * max Matches */
+	if(numEntries <= maxMatches && 0 < numEntries) {
+		/* Allocate memory for the matches */
+		RGMatchAllocate(match, numEntries);
+
+		/* Transfer ranges to matches */
+		RGRangesCopyToRGMatch(&ranges,
+				index,
+				match);
+	}
 
 	/* Free memory */
 	RGRangesFree(&ranges);

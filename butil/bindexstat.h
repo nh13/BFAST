@@ -6,8 +6,8 @@
 #include "../blib/RGMatch.h"
 
 typedef struct {
-	int **counts;
-	int *maxCount;
+	int64_t **counts;
+	int64_t *maxCount;
 } Counts;
 
 void PrintHistogram(RGIndex*, RGBinary*, int, int, char*);

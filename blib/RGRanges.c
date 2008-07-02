@@ -46,22 +46,25 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 		RGIndex *index,
 		RGMatch *m)
 {
-	int32_t i;
+	int64_t i;
 	int64_t j;
+	int64_t counter;
 
-	assert(m->numEntries == 0);
-	RGMatchInitialize(m);
+	assert(m->numEntries > 0);
+	assert(r->numEntries > 0);
 
 	if(r->numEntries > 0) {
 		/* Copy over for each range */
+		counter =0;
 		for(i=0;i<r->numEntries;i++) {
 			/* Copy over for the given range */
 			for(j=r->startIndex[i];j<=r->endIndex[i];j++) {
-				/* Allocate */
-				RGMatchReallocate(m, m->numEntries+1);
-				m->positions[m->numEntries-1] = index->positions[j];
-				m->chromosomes[m->numEntries-1] = index->chromosomes[j];
-				m->strand[m->numEntries-1] = r->strand[i];
+				assert(j>=0 && j<index->length);
+				assert(counter >= 0 && counter < m->numEntries);
+				m->positions[counter] = index->positions[j];
+				m->chromosomes[counter] = index->chromosomes[j];
+				m->strand[counter] = r->strand[i];
+				counter++;
 			}
 		}
 	}

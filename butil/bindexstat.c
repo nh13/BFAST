@@ -104,7 +104,7 @@ void PrintHistogram(RGIndex *index,
 	assert(numMismatchesStart == 0);
 
 	/* Allocate memory to hold histogram data */
-	c.counts = malloc(sizeof(int*)*(numMismatchesEnd - numMismatchesStart + 1));
+	c.counts = malloc(sizeof(int64_t*)*(numMismatchesEnd - numMismatchesStart + 1));
 	if(NULL == c.counts) {
 		PrintError(FnName,
 				"c.counts",
@@ -112,7 +112,7 @@ void PrintHistogram(RGIndex *index,
 				Exit,
 				MallocMemory);
 	}
-	c.maxCount = malloc(sizeof(int)*(numMismatchesEnd - numMismatchesStart + 1));
+	c.maxCount = malloc(sizeof(int64_t)*(numMismatchesEnd - numMismatchesStart + 1));
 	if(NULL == c.maxCount) {
 		PrintError(FnName,
 				"c.maxCount",
@@ -179,7 +179,7 @@ void PrintHistogram(RGIndex *index,
 				/* Reallocate */
 				c.maxCount[i] = numForward + numReverse;
 				assert(c.maxCount[i] > 0);
-				c.counts[i] = realloc(c.counts[i], sizeof(int)*(c.maxCount[i]+1));
+				c.counts[i] = realloc(c.counts[i], sizeof(int64_t)*(c.maxCount[i]+1));
 				if(NULL == c.counts[i]) {
 					PrintError(FnName,
 							"counts",
@@ -220,14 +220,14 @@ void PrintHistogram(RGIndex *index,
 				(long long int)numDifferent,
 				(long long int)2*index->length, /* Times two for both strands */
 				((double)index->length*2.0)/numDifferent); /* Times two for both strands */
-		fprintf(fp, "# Found counts for %d mismatches ranging from %d to %d.\n",
+		fprintf(fp, "# Found counts for %d mismatches ranging from %d to %lld.\n",
 				i,
 				1,
-				c.maxCount[i]);
+				(long long int)c.maxCount[i]);
 		for(j=0;j<=c.maxCount[i];j++) {
-			fprintf(fp, "%lld\t%d\n",
+			fprintf(fp, "%lld\t%lld\n",
 					(long long int)j,
-					c.counts[i][j]);
+					(long long int)c.counts[i][j]);
 		}
 		fclose(fp);
 	}
