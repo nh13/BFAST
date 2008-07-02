@@ -21,7 +21,7 @@ void FindMatches(char *outputFileName,
 		char *rgFileName,
 		char *rgIndexMainListFileName,
 		char *rgIndexSecondaryListFileName,
-		char *sequenceFileName, 
+		char *readFileName, 
 		char *offsetsFileName,
 		int binaryInput,
 		int startReadNum,
@@ -55,6 +55,7 @@ void FindMatches(char *outputFileName,
 
 	int numMatches;
 	int numReads;
+	int numReadsFiltered;
 
 	int startTime, endTime;
 	int seconds, minutes, hours;
@@ -112,13 +113,13 @@ void FindMatches(char *outputFileName,
 	/* Since we may be running through many indexes and only look for a small portion
 	 * of the reads (see startReadNum and endReadNum), we copy the relevant reads
 	 * to a temporary file, thereby elmininating the need to iterate through the 
-	 * source sequence read file for each index. 
+	 * source read read file for each index. 
 	 * */
-	/* open sequence file */
-	if((seqFP=fopen(sequenceFileName, "r"))==0) {
+	/* open read file */
+	if((seqFP=fopen(readFileName, "r"))==0) {
 		PrintError("FindMatches",
-				sequenceFileName,
-				"Could not open sequenceFileName for reading",
+				readFileName,
+				"Could not open readFileName for reading",
 				Exit,
 				OpenFileError);
 	}
@@ -143,13 +144,13 @@ void FindMatches(char *outputFileName,
 		tempSeqFPs[i] = NULL;
 		tempSeqFileNames[i] = NULL;
 	}
-	/* Read the sequences to the thread temp files */
+	/* Read the reads to the thread temp files */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reading %s into temp files.\n",
-				sequenceFileName);
+				readFileName);
 	}
-	/* This will close the sequences file */
-	numReads=WriteReadsToTempFile(seqFP,
+	/* This will close the reads file */
+	WriteReadsToTempFile(seqFP,
 			&tempSeqFPs,
 			&tempSeqFileNames,
 			startReadNum,
@@ -157,20 +158,23 @@ void FindMatches(char *outputFileName,
 			pairedEnd,
 			numThreads,
 			tmpDir,
-			timing);
-	/* Close the sequence file */
+			timing,
+			&numReads,
+			&numReadsFiltered);
+	/* Close the read file */
 	fclose(seqFP);
-	assert(numReads >= numThreads);
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Read %d reads from %s.\n",
+		fprintf(stderr, "Out of %d reads, will process %d reads and omit %d reads due to filtering.\n",
+				numReads+numReadsFiltered,
 				numReads,
-				sequenceFileName);
+				numReadsFiltered);
 	}
+	assert(numReads >= numThreads);
 
 	/* IDEA 
 	 * 		Use temp files to store the results for each index.  Once we have one
 	 * 		through each index, merge the results and output to file.  Store all
-	 * 		sequences that had no match in a temp file to use when searching the
+	 * 		reads that had no match in a temp file to use when searching the
 	 * 		trees.
 	 *
 	 * 		Use temp files to store the results for each tree.  Once we have gone
@@ -188,13 +192,16 @@ void FindMatches(char *outputFileName,
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Will output to %s.\n",
+				outputFileName);
+		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Processing %d reads using %d main indexes.\n",
 				numReads,
 				numMainIndexes);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	/* Do step 1: search the main indexes for all sequences */
+	/* Do step 1: search the main indexes for all reads */
 	numMatches=FindMatchesInIndexes(mainIndexFileNames,
 			binaryInput,
 			&rg,
@@ -231,7 +238,7 @@ void FindMatches(char *outputFileName,
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
 
-		/* Do step 2: search the indexes for all sequences */
+		/* Do step 2: search the indexes for all reads */
 		numMatches+=FindMatchesInIndexes(secondaryIndexFileNames,
 				binaryInput,
 				&rg,
@@ -365,7 +372,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 	char *tempOutputFileName=NULL;
 	FILE **tempOutputIndexFPs=NULL;
 	char **tempOutputIndexFileNames=NULL;
-	int numWritten=0, numRead=0;
+	int numWritten=0, numReads=0, numReadsFiltered=0;
 	int numMatches = 0;
 	int startTime;
 	int endTime;
@@ -484,26 +491,26 @@ int FindMatchesInIndexes(char **indexFileNames,
 	}
 
 
-	/* Close the temporary sequence files */
+	/* Close the temporary read files */
 	for(i=0;i<numThreads;i++) {
 		/* Close temporary file */
 		CloseTmpFile(&(*tempSeqFPs)[i], &(*tempSeqFileNames)[i]);
 	}
 
 	if(MainIndexes == 1) {
-		/* Go through the temporary output file and output those sequences that have 
-		 * at least one match to the final output file.  For those sequences that have
-		 * zero matches, output them to the temporary sequence file */
+		/* Go through the temporary output file and output those reads that have 
+		 * at least one match to the final output file.  For those reads that have
+		 * zero matches, output them to the temporary read file */
 
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Copying unmatched reads for secondary index search.\n");
 		}
 
-		/* Open a new temporary sequence file */
+		/* Open a new temporary read file */
 		tempSeqFP = OpenTmpFile(tmpDir, &tempSeqFileName);
 
 		startTime=time(NULL);
-		ReadTempReadsAndOutput(tempOutputFP,
+		numWritten=ReadTempReadsAndOutput(tempOutputFP,
 				outputFP,
 				tempSeqFP,
 				pairedEnd,
@@ -511,16 +518,16 @@ int FindMatchesInIndexes(char **indexFileNames,
 		endTime=time(NULL);
 		(*totalOutputTime)+=endTime-startTime;
 
-		/* Move to the beginning of the sequence file */
+		/* Move to the beginning of the read file */
 		fseek(tempSeqFP, 0, SEEK_SET);
 
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Splitting unmatched reads into temp files.\n");
 		}
-		/* Now apportion the remaining sequences into temp files for the threads when 
+		/* Now apportion the remaining reads into temp files for the threads when 
 		 * searching the secondary indexes 
 		 * */
-		numRead=WriteReadsToTempFile(tempSeqFP,
+		WriteReadsToTempFile(tempSeqFP,
 				tempSeqFPs,
 				tempSeqFileNames,
 				0,
@@ -528,7 +535,12 @@ int FindMatchesInIndexes(char **indexFileNames,
 				pairedEnd,
 				numThreads,
 				tmpDir,
-				timing);
+				timing,
+				&numReads,
+				&numReadsFiltered);
+		/* In this case, all the reads should be valid so we should apportion all reads */
+		assert(numReadsFiltered == 0);
+		assert(numReads == numWritten);
 
 		/* Close the tempSeqFP */
 		CloseTmpFile(&tempSeqFP, &tempSeqFileName);
@@ -763,15 +775,15 @@ int FindMatchesInIndex(char *indexFileName,
 void *FindMatchesInIndexThread(void *arg)
 {
 	char *FnName="FindMatchesInIndex";
-	char *sequenceName=NULL;
-	char *sequence=NULL;
-	char *pairedSequence=NULL;
-	RGMatch sequenceMatch;
-	RGMatch pairedSequenceMatch;
+	char *readName=NULL;
+	char *read=NULL;
+	char *pairedRead=NULL;
+	RGMatch readMatch;
+	RGMatch pairedReadMatch;
 	int numRead = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
-	int sequenceLength;
-	int pairedSequenceLength;
+	int readLength;
+	int pairedReadLength;
 	/* Function arguments */
 	FILE *tempSeqFP = data->tempSeqFP;
 	FILE *tempOutputFP = data->tempOutputFP;
@@ -790,37 +802,29 @@ void *FindMatchesInIndexThread(void *arg)
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
-	if(pairedEnd==1) {
-		PrintError(FnName,
-				"pairedEnd",
-				"Paired end not implemented",
-				Exit,
-				OutOfRange);
-	}
-
 	/* Initialize match structures */
-	RGMatchInitialize(&sequenceMatch);
-	RGMatchInitialize(&pairedSequenceMatch);
+	RGMatchInitialize(&readMatch);
+	RGMatchInitialize(&pairedReadMatch);
 
 	/* Allocate memory for the data */
-	sequenceName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-	sequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	pairedSequence = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL == sequenceName || NULL == sequence || NULL == pairedSequence) {
+	readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+	read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	pairedRead = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL == readName || NULL == read || NULL == pairedRead) {
 		PrintError(FnName,
-				"sequenceName, sequence or pairedSequence",
+				"readName, read or pairedRead",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
 
-	/* For each sequence */
+	/* For each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
 				threadID,
 				numRead);
 	}
-	while(EOF!=GetNextRead(tempSeqFP, &sequence, &sequenceLength, &pairedSequence, &pairedSequenceLength, &sequenceName, pairedEnd)) {
+	while(EOF!=GetNextRead(tempSeqFP, &read, &readLength, &pairedRead, &pairedReadLength, &readName, pairedEnd)) {
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
@@ -831,9 +835,9 @@ void *FindMatchesInIndexThread(void *arg)
 
 		RGReadsFindMatches(index,
 				rg,
-				&sequenceMatch,
-				sequence,
-				sequenceLength,
+				&readMatch,
+				read,
+				readLength,
 				offsets,
 				numOffsets,
 				numMismatches,
@@ -845,9 +849,9 @@ void *FindMatchesInIndexThread(void *arg)
 		if(pairedEnd==1) {
 			RGReadsFindMatches(index,
 					rg,
-					&pairedSequenceMatch,
-					pairedSequence,
-					pairedSequenceLength,
+					&pairedReadMatch,
+					pairedRead,
+					pairedReadLength,
 					offsets,
 					numOffsets,
 					numMismatches,
@@ -858,25 +862,25 @@ void *FindMatchesInIndexThread(void *arg)
 					maxMatches);
 		}
 
-		if(sequenceMatch.numEntries > 0) {
+		if((readMatch.numEntries > 0 && readMatch.maxReached != 1) || 
+				(pairedReadMatch.numEntries > 0 && pairedReadMatch.maxReached != 1) 
+				) {
 			data->numMatches++;
 		}
 
 		/* Output to file */
 		RGMatchPrint(tempOutputFP, 
-				sequenceName, 
-				sequence, 
-				pairedSequence, 
-				&sequenceMatch, 
-				&pairedSequenceMatch, 
+				readName, 
+				read, 
+				pairedRead, 
+				&readMatch, 
+				&pairedReadMatch, 
 				pairedEnd, 
 				binaryOutput); 
 
 		/* Free matches */
-		RGMatchFree(&sequenceMatch);
-		if(pairedEnd == 1) {
-			RGMatchFree(&pairedSequenceMatch);
-		}
+		RGMatchFree(&readMatch);
+		RGMatchFree(&pairedReadMatch);
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
@@ -885,9 +889,9 @@ void *FindMatchesInIndexThread(void *arg)
 	}
 
 	/* Free memory */
-	free(sequenceName);
-	free(sequence);
-	free(pairedSequence);
+	free(readName);
+	free(read);
+	free(pairedRead);
 
 	return NULL;
 }

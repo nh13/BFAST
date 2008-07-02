@@ -7,9 +7,7 @@
 
 enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
 
-/* TODO */
 typedef struct {
-	char *readName;
 	char *read; /* The read */
 	char *reference;
 	unsigned int length; /* The length of the alignment */
@@ -20,7 +18,7 @@ typedef struct {
 	double score;
 } AlignEntry;
 
-void AlignEntryPrint(AlignEntry*, FILE*);
+int AlignEntryPrint(AlignEntry*, FILE*);
 int AlignEntryRead(AlignEntry*, FILE*);
 int AlignEntryRemoveDuplicates(AlignEntry**, int, int);
 void AlignEntryQuickSort(AlignEntry**, int, int, int, int, double*, int);

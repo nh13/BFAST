@@ -45,7 +45,7 @@ int WriteRead(FILE *fp, char *readName, char *read, char *pairedRead, int paired
 	}
 	/* Print paired read */
 	if(pairedEnd==1) {
-		if(fprintf(fp, "%s\n", pairedRead)) {
+		if(fprintf(fp, "%s\n", pairedRead) < 0) {
 			return EOF;
 		}
 	}
@@ -53,7 +53,7 @@ int WriteRead(FILE *fp, char *readName, char *read, char *pairedRead, int paired
 }
 
 /* TODO */
-int WriteReadsToTempFile(FILE *seqFP,
+void WriteReadsToTempFile(FILE *seqFP,
 		FILE ***tempSeqFPs, /* One for each thread */ 
 		char ***tempSeqFileNames,
 		int startReadNum, 
@@ -61,7 +61,9 @@ int WriteReadsToTempFile(FILE *seqFP,
 		int pairedEnd,
 		int numThreads,
 		char *tmpDir,
-		int timing)
+		int timing,
+		int *numWritten,
+		int *numFiltered)
 {
 	char *FnName = "WriteReadsToTempFile";
 	int i;
@@ -74,6 +76,9 @@ int WriteReadsToTempFile(FILE *seqFP,
 	int curReadNum = 1;
 	time_t startTime = time(NULL);
 	time_t endTime;
+
+	(*numFiltered)=0;
+	(*numWritten)=0;
 
 	/* Allocate memory for the read name, read and paired read */
 	readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
@@ -120,15 +125,18 @@ int WriteReadsToTempFile(FILE *seqFP,
 			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], readName, read, pairedRead, pairedEnd)) {
 				PrintError(FnName,
 						NULL,
-						"Could not write read.",
+						"Could not write read",
 						Exit,
 						WriteFileError);
 			}
+			(*numWritten)++;
+		}
+		else {
+			(*numFiltered)++;
 		}
 		/* Increment read number */
 		curReadNum++;
 	}
-	curReadNum--; /* decrement read number since we have +1 after the loop */
 
 	/* reset pointer to temp files to the beginning of the file */
 	for(i=0;i<numThreads;i++) {
@@ -157,8 +165,6 @@ int WriteReadsToTempFile(FILE *seqFP,
 				seconds
 			   );
 	}
-
-	return curReadNum;
 }
 
 /* TODO */
@@ -166,7 +172,7 @@ int WriteReadsToTempFile(FILE *seqFP,
  * at least one match to the final output file.  For those reads that have
  * zero matches, output them to the temporary read file *
  * */
-void ReadTempReadsAndOutput(FILE *tempOutputFP,
+int ReadTempReadsAndOutput(FILE *tempOutputFP,
 		FILE *outputFP,
 		FILE *tempSeqFP,
 		int pairedEnd,
@@ -178,8 +184,8 @@ void ReadTempReadsAndOutput(FILE *tempOutputFP,
 	char pairedRead[SEQUENCE_LENGTH];
 	RGMatch readMatch;
 	RGMatch pairedReadMatch;
-
-	assert(pairedEnd==0);
+	int numReads = 0;
+	int numOutputted=0;
 
 	/* Initialize match structures */
 	RGMatchInitialize(&readMatch);
@@ -196,7 +202,9 @@ void ReadTempReadsAndOutput(FILE *tempOutputFP,
 				&pairedReadMatch,
 				pairedEnd,
 				binaryOutput)!=EOF) {
-		if(readMatch.numEntries > 0) {
+		/* Output if either pair has more than one entry */
+		if(readMatch.numEntries > 0 ||
+				pairedReadMatch.numEntries > 0) {
 			/* Output to final output file */
 			RGMatchPrint(outputFP,
 					readName,
@@ -206,6 +214,7 @@ void ReadTempReadsAndOutput(FILE *tempOutputFP,
 					&pairedReadMatch,
 					pairedEnd,
 					binaryOutput);
+			numOutputted++;
 		}
 		else {
 			/* Put back in the read file */
@@ -216,14 +225,14 @@ void ReadTempReadsAndOutput(FILE *tempOutputFP,
 						Exit,
 						WriteFileError);
 			}
+			numReads++;
 		}
 
 		/* Free match memory and reinitialize match structures */
 		RGMatchFree(&readMatch);
-		if(pairedEnd==1) {
-			RGMatchFree(&pairedReadMatch);
-		}
+		RGMatchFree(&pairedReadMatch);
 	}
+	return numReads;
 }
 
 /* TODO */

@@ -204,8 +204,9 @@ void PrintHistogram(RGIndex *index,
 	/* Print results */
 	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 		/* Create file name */
-		sprintf(tmpFileName, "%s.%d",
+		sprintf(tmpFileName, "%s.%d.%d",
 				histogramFileName,
+				index->totalLength,
 				i);
 		if(!(fp = fopen(tmpFileName, "w"))) {
 			PrintError(FnName,

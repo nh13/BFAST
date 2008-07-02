@@ -15,10 +15,6 @@ void RGMatchRemoveDuplicates(RGMatch *s,
 	int32_t i;
 	int32_t prevIndex=0;
 
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In GMatchRemoveDuplicates\n");
-	}
-
 	/* Check to see if the max has been reached.  If so free all matches and return */
 	if(s->maxReached == 1) {
 		RGMatchFree(s);
@@ -179,15 +175,6 @@ int32_t RGMatchRead(FILE *fp,
 						EndOfFile);
 			}
 			sequenceMatch->chromosomes[i] = tempInt;
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "chr%d:%d:%c\t",
-						sequenceMatch->chromosomes[i],
-						sequenceMatch->positions[i],
-						sequenceMatch->strand[i]);
-			}
-		}
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "\n");
 		}
 
 		/* Read Paired end if necessary */
@@ -372,7 +359,7 @@ int32_t RGMatchRead(FILE *fp,
 			assert(pairedSequenceMatch->numEntries >= 0);
 
 			/* Allocate memory for the matches */
-			RGMatchAllocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
+			RGMatchReallocate(pairedSequenceMatch, pairedSequenceMatch->numEntries);
 
 			/* Read first pairedSequence matches */
 			if(fread(pairedSequenceMatch->chromosomes, sizeof(uint8_t), pairedSequenceMatch->numEntries, fp)!=pairedSequenceMatch->numEntries) {
@@ -418,65 +405,34 @@ void RGMatchPrint(FILE *fp,
 	assert(fp!=NULL);
 	/* Print the matches to the output file */
 
-	/* Debug HERE */
-	for(i=0;i<sequenceMatch->numEntries;i++) {
-		assert(sequenceMatch->strand[i] == FORWARD || sequenceMatch->strand[i] == REVERSE);
-	}
-
 	if(binaryOutput == 0) {
 
 		/* Print sequence name */
 		fprintf(fp, "%s\n", sequenceName);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "sequenceName:%s\n", sequenceName);
-		}
-
 		/* Print first sequence */
 		fprintf(fp, "%s", sequence);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "sequence:%s", sequence);
-		}
-
 		/* Print if the maximum number of matches was reached */
 		fprintf(fp, "\t%d", sequenceMatch->maxReached);
-
 		/* Print the number of matches */
 		fprintf(fp, "\t%d", sequenceMatch->numEntries);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "\t%d", sequenceMatch->numEntries);
-		}
-
 		/* Print first sequence matches */
 		for(i=0;i<sequenceMatch->numEntries;i++) {
 			fprintf(fp, "\t%d\t%d\t%c", 
 					sequenceMatch->chromosomes[i],
 					sequenceMatch->positions[i],
 					sequenceMatch->strand[i]);
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "\t%d\t%d\t%c", 
-						sequenceMatch->chromosomes[i],
-						sequenceMatch->positions[i],
-						sequenceMatch->strand[i]);
-			}
 		}
 		fprintf(fp, "\n");
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "\n");
-		}
 
 		/* Print Paired end if necessary */
 		if(pairedEnd == 1) {
 			/* Print paired sequence */
 			fprintf(fp, "%s", pairedSequence);
-
 			/* Print if the maximum number of matches was reached */
 			fprintf(fp, "\t%d", pairedSequenceMatch->maxReached);
-
 			/* Print the number of matches for the paired end */
 			fprintf(fp, "\t%d", pairedSequenceMatch->numEntries);
-
 			/* Print first pairedSequence matches */
-			fprintf(fp, "\t%d", pairedSequenceMatch->numEntries);
 			for(i=0;i<pairedSequenceMatch->numEntries;i++) {
 				fprintf(fp, "\t%d\t%d\t%c", 
 						pairedSequenceMatch->chromosomes[i],
@@ -706,9 +662,6 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			}
 
 			/* Print to output file */
-			if(VERBOSE >= DEBUG) {
-				fprintf(stderr, "Printing to the output file\n");
-			}
 			if(match.numEntries > 0) {
 				numMatches++;
 			}
@@ -815,7 +768,6 @@ int32_t RGMatchMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 	counter = 0;
 	numFinished = 0;
 	while(numFinished < numThreads) {
-
 		/* For each thread */
 		for(i=0;i<numThreads;i++) {
 			/* Only try reading from those that are not finished */
@@ -917,9 +869,11 @@ void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t d
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
 
-	dest->positions[destIndex] = src->positions[srcIndex];
-	dest->chromosomes[destIndex] = src->chromosomes[srcIndex];
-	dest->strand[destIndex] = src->strand[srcIndex];
+	if(src != dest || srcIndex != destIndex) {
+		dest->positions[destIndex] = src->positions[srcIndex];
+		dest->chromosomes[destIndex] = src->chromosomes[srcIndex];
+		dest->strand[destIndex] = src->strand[srcIndex];
+	}
 }
 
 void RGMatchAllocate(RGMatch *m, int32_t numEntries)

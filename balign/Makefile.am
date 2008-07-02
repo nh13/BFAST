@@ -11,6 +11,7 @@ balign_SOURCES = \
 	../blib/RGBinary.c	../blib/RGBinary.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/AlignEntry.c	../blib/AlignEntry.h \
+	../blib/AlignEntries.c	../blib/AlignEntries.h \
 	Align.c		Align.h \
 	Definitions.h
 	

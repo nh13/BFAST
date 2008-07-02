@@ -38,7 +38,6 @@ void RGRangesRemoveDuplicates(RGRanges *r)
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
 		RGRangesReallocate(r, prevIndex+1);
-
 	}
 }
 
@@ -47,22 +46,22 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 		RGIndex *index,
 		RGMatch *m)
 {
-	int32_t i, k;
+	int32_t i;
 	int64_t j;
 
+	assert(m->numEntries == 0);
+	RGMatchInitialize(m);
+
 	if(r->numEntries > 0) {
-
-		/* Allocate memory for the matches */
-		RGMatchAllocate(m, r->numEntries);
-
 		/* Copy over for each range */
-		for(i=0, k=0;i<r->numEntries;i++) {
+		for(i=0;i<r->numEntries;i++) {
 			/* Copy over for the given range */
 			for(j=r->startIndex[i];j<=r->endIndex[i];j++) {
-				m->positions[k] = index->positions[j];
-				m->chromosomes[k] = index->chromosomes[j];
-				m->strand[k] = r->strand[i];
-				k++;
+				/* Allocate */
+				RGMatchReallocate(m, m->numEntries+1);
+				m->positions[m->numEntries-1] = index->positions[j];
+				m->chromosomes[m->numEntries-1] = index->chromosomes[j];
+				m->strand[m->numEntries-1] = r->strand[i];
 			}
 		}
 	}
@@ -161,9 +160,11 @@ void RGRangesCopyAtIndex(RGRanges *src, int32_t srcIndex, RGRanges *dest, int32_
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
 
-	dest->startIndex[destIndex] = src->startIndex[srcIndex];
-	dest->endIndex[destIndex] = src->endIndex[srcIndex];
-	dest->strand[destIndex] = src->strand[srcIndex];
+	if(src != dest || srcIndex != destIndex) {
+		dest->startIndex[destIndex] = src->startIndex[srcIndex];
+		dest->endIndex[destIndex] = src->endIndex[srcIndex];
+		dest->strand[destIndex] = src->strand[srcIndex];
+	}
 }
 
 void RGRangesAllocate(RGRanges *r, int32_t numEntries)
