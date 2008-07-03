@@ -150,8 +150,8 @@ void GetPivots(RGIndex *index,
 	/* Update starts and ends */
 	starts[0] = 0;
 	for(i=0;i<numThreads-1;i++) {
-		starts[i+1] = ranges.startIndex[i]+1;
-		ends[i] = ranges.startIndex[i];
+		starts[i+1] = ranges.endIndex[i]+1;
+		ends[i] = ranges.endIndex[i];
 	}
 	ends[numThreads-1] = index->length-1;
 
@@ -165,6 +165,13 @@ void GetPivots(RGIndex *index,
 	   */
 
 	/* Check */
+	for(i=1;i<numThreads;i++) {
+		assert(RGIndexCompareAt(index,
+				rg,
+				ends[i-1],
+				starts[i],
+				0)<0);
+	}
 	for(i=0;i<numThreads;i++) {
 		assert(starts[i] <= ends[i]);
 	}
