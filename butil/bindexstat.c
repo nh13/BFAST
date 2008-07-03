@@ -14,7 +14,7 @@
 #include "../blib/RGReads.h"
 #include "bindexstat.h"
 
-#define BINDEXSTAT_ROTATE_NUM 100000
+#define BINDEXSTAT_ROTATE_NUM 1000000
 #define NUM_MISMATCHES_START 0
 #define NUM_MISMATCHES_END 4
 
@@ -309,13 +309,6 @@ void PrintHistogram(RGIndex *index,
 		totalReverse += data[i].totalReverse;
 	}
 
-	fprintf(stderr, "total forward:%lld\ttotal reverse:%lld\n",
-			(long long int)totalForward,
-			(long long int)totalReverse);
-
-	fprintf(stderr, "\nFound %lld unique reads.\n",
-			(long long int)numDifferent);
-
 	/* Print counts from threads */
 	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 		/* Create file name */
@@ -454,7 +447,7 @@ void *PrintHistogramThread(void *arg)
 			curIndex <= endIndex;
 			curIndex = nextIndex) {
 		if(counter >= BINDEXSTAT_ROTATE_NUM) {
-			fprintf(stderr, "\rthreadID:%d\t%lld", 
+			fprintf(stderr, "\rthreadID:%2d\t%10lld", 
 					threadID,
 					(long long int)(curIndex-startIndex));
 			counter -= BINDEXSTAT_ROTATE_NUM;
@@ -524,7 +517,7 @@ void *PrintHistogramThread(void *arg)
 			assert(c->counts[i][numForward+numReverse] > 0);
 		}
 	}
-	fprintf(stderr, "\rthreadID:%d\t%lld", 
+	fprintf(stderr, "\rthreadID:%2d\t%10lld", 
 			threadID,
 			(long long int)(endIndex-startIndex+1));
 
