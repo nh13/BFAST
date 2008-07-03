@@ -3,11 +3,13 @@
 #include <assert.h>
 #include <string.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
+#include "../blib/RGRanges.h"
 #include "../blib/RGMatch.h"
 #include "../blib/RGReads.h"
 #include "bindexstat.h"
@@ -24,14 +26,16 @@ int main(int argc, char *argv[])
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
 	int numMismatchesStart = NUM_MISMATCHES_START;
 	int numMismatchesEnd = NUM_MISMATCHES_END;
+	int numThreads;
 
-	if(argc == 4) {
+	if(argc == 5) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		numMismatchesEnd = atoi(argv[3]);
+		numThreads = atoi(argv[4]);
 		assert(numMismatchesEnd >= numMismatchesStart);
 
 		/* Create the histogram file name */
@@ -59,6 +63,7 @@ int main(int argc, char *argv[])
 				&rg, 
 				numMismatchesStart,
 				numMismatchesEnd,
+				numThreads,
 				histogramFileName);
 		fprintf(stderr, "%s", BREAK_LINE);
 
@@ -77,45 +82,344 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t\t<reference genome file name>\n");
 		fprintf(stderr, "\t\t<index file name>\n");
 		fprintf(stderr, "\t\t<number of mismatches for histogram>\n");
+		fprintf(stderr, "\t\t<number of threads>\n");
 	}
 
 	return 0;
 }
 
+void GetPivots(RGIndex *index,
+		RGBinary *rg,
+		int64_t *starts,
+		int64_t *ends,
+		int64_t numThreads)
+{
+	char *FnName="GetPivots";
+	int64_t i, ind;
+	int32_t returnLength, returnPosition;
+	RGReads reads;
+	RGRanges ranges;
+
+	RGReadsInitialize(&reads);
+	RGRangesInitialize(&ranges);
+
+	/* One less than threads since numThreads-1 will divide
+	 * the index into numThread parts */
+	RGReadsAllocate(&reads, numThreads-1);
+	for(i=0;i<reads.numReads;i++) {
+		/* Get the place in the index */
+		ind = (i+1)*((index->length)/numThreads);
+		/* Initialize */
+		reads.readLength[i] = index->totalLength;
+		reads.strand[i] = FORWARD;
+		reads.offset[i] = 0;
+		/* Allocate memory */
+		reads.reads[i] = malloc(sizeof(char)*(reads.readLength[i]+1));
+		if(reads.reads[i] == NULL) {
+			PrintError(FnName,
+					"reads.reads[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Get read */
+		RGBinaryGetSequence(rg,
+				index->chromosomes[ind],
+				index->positions[ind],
+				FORWARD,
+				0,
+				reads.reads[i],
+				reads.readLength[i],
+				&returnLength,
+				&returnPosition);
+		assert(returnLength == reads.readLength[i]);
+		assert(returnPosition == index->positions[ind]);
+	}
+	/* Search reads in the index */
+	/* Get the matches */
+	for(i=0;i<reads.numReads;i++) {
+		RGIndexGetRanges(index,
+				rg,
+				reads.reads[i],
+				reads.readLength[i],
+				reads.strand[i],
+				reads.offset[i],
+				&ranges);
+	}
+
+	/* Update starts and ends */
+	starts[0] = 0;
+	for(i=0;i<numThreads-1;i++) {
+		starts[i+1] = ranges.startIndex[i]+1;
+		ends[i] = ranges.startIndex[i];
+	}
+	ends[numThreads-1] = index->length-1;
+
+	/*
+	   for(i=0;i<numThreads;i++) {
+	   fprintf(stderr, "%lld\t%lld\t%lld\n",
+	   i,
+	   starts[i],
+	   ends[i]);
+	   }
+	   */
+
+	/* Check */
+	for(i=0;i<numThreads;i++) {
+		assert(starts[i] <= ends[i]);
+	}
+	for(i=0;i<numThreads-1;i++) {
+		assert(ends[i] == starts[i+1] - 1);
+	}
+
+}
 void PrintHistogram(RGIndex *index, 
 		RGBinary *rg,
 		int numMismatchesStart,
 		int numMismatchesEnd,
+		int numThreads,
 		char *histogramFileName)
 {
 	char *FnName = "PrintHistogram";
+	int64_t i, j;
+	int64_t *starts, *ends;
+	pthread_t *threads=NULL;
+	ThreadData *data=NULL;
+	int errCode;
+	void *status;
+	FILE *fp;
 	char tmpFileName[2048]="\0";
-	int i;
-	int64_t j;
-	int64_t curIndex, nextIndex;
-	int64_t counter;
+	int64_t numDifferent, numTotal, cur, sum, totalForward, totalReverse;
+	int numCountsLeft;
+
+	/* Not implemented for numMismatchesStart > 0 */
+	assert(numMismatchesStart == 0);
+
+	/* Allocate memory for the thread starts and ends */
+	starts = malloc(sizeof(int64_t)*numThreads);
+	if(NULL == starts) {
+		PrintError(FnName,
+				"starts",
+				"Could not allocate memory",
+				Exit,
+				OutOfRange);
+	}
+	ends = malloc(sizeof(int64_t)*numThreads);
+	if(NULL == ends) {
+		PrintError(FnName,
+				"ends",
+				"Could not allocate memory",
+				Exit,
+				OutOfRange);
+	}
+
+	/* Allocate memory for threads */
+	threads=malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError(FnName,
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory to pass data to threads */
+	data=malloc(sizeof(ThreadData)*numThreads);
+	if(NULL==data) {
+		PrintError(FnName,
+				"data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Get pivots */
+	GetPivots(index,
+			rg,
+			starts,
+			ends,
+			numThreads);
+
+	/* Initialize thread data */
+	numTotal = 0;
+	for(i=0;i<numThreads;i++) {
+		data[i].startIndex = starts[i];
+		data[i].endIndex = ends[i];
+		numTotal += ends[i] - starts[i] + 1;
+		data[i].index = index;
+		data[i].rg = rg;
+		data[i].c.counts = NULL;
+		data[i].c.maxCount = NULL;
+		data[i].numMismatchesStart = numMismatchesStart;
+		data[i].numMismatchesEnd = numMismatchesEnd;
+		data[i].numDifferent = 0;
+		data[i].threadID = i+1;
+	}
+	assert(numTotal == index->length);
+
+	fprintf(stderr, "In total, will examine %lld reads.\n",
+			(long long int)(index->length));
+	fprintf(stderr, "For a given thread, out of %lld, currently on:\n0",
+			(long long int)(index->length/numThreads)
+		   );
+
+	/* Open threads */
+	for(i=0;i<numThreads;i++) {
+		/* Start thread */
+		errCode = pthread_create(&threads[i], /* thread struct */
+				NULL, /* default thread attributes */
+				PrintHistogramThread, /* start routine */
+				&data[i]); /* data to routine */
+		if(0!=errCode) {
+			PrintError(FnName,
+					"pthread_create: errCode",
+					"Could not start thread",
+					Exit,
+					ThreadError);
+		}
+	}
+	/* Wait for threads to return */
+	for(i=0;i<numThreads;i++) {
+		/* Wait for the given thread to return */
+		errCode = pthread_join(threads[i],
+				&status);
+		/* Check the return code of the thread */
+		if(0!=errCode) {
+			PrintError(FnName,
+					"pthread_join: errCode",
+					"Thread returned an error",
+					Exit,
+					ThreadError);
+		}
+	}
+
+	/* Get the total number of different */
+	numDifferent = 0;
+	totalForward = 0;
+	totalReverse = 0;
+	for(i=0;i<numThreads;i++) {
+		numDifferent += data[i].numDifferent;
+		totalForward += data[i].totalForward;
+		totalReverse += data[i].totalReverse;
+	}
+
+	fprintf(stderr, "total forward:%lld\ttotal reverse:%lld\n",
+			(long long int)totalForward,
+			(long long int)totalReverse);
+
+	fprintf(stderr, "\nFound %lld unique reads.\n",
+			(long long int)numDifferent);
+
+	/* Print counts from threads */
+	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
+		/* Create file name */
+		sprintf(tmpFileName, "%s.%d.%lld",
+				histogramFileName,
+				index->totalLength,
+				(long long int)i);
+		if(!(fp = fopen(tmpFileName, "w"))) {
+			PrintError(FnName,
+					tmpFileName,
+					"Could not open file for writing",
+					Exit,
+					OpenFileError);
+		}
+
+		fprintf(fp, "# Number of unique places was: %lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
+				(long long int)numDifferent,
+				(long long int)2*index->length, /* Times two for both strands */
+				(long long int)numDifferent,
+				((double)index->length*2.0)/numDifferent); /* Times two for both strands */
+		fprintf(fp, "# Found counts for %lld mismatches:\n",
+				(long long int)i);
+
+		/* Print the counts, sum over all threads */
+		numCountsLeft = numThreads;
+		cur = 0;
+		while(numCountsLeft > 0) {
+			/* Get the result from all threads */
+			sum = 0;
+			for(j=0;j<numThreads;j++) {
+				if(cur <= data[j].c.maxCount[i]) {
+					assert(data[j].c.counts[i][cur] >= 0);
+					sum += data[j].c.counts[i][cur]; 
+					/* Update */
+					if(data[j].c.maxCount[i] == cur) {
+						numCountsLeft--;
+					}
+				}
+			}
+			assert(sum >= 0);
+			/* Print */
+			fprintf(fp, "%lld\t%lld\n",
+					(long long int)cur,
+					(long long int)sum);
+			cur++;
+		}
+		fclose(fp);
+	}
+
+	/* Free memory */
+	for(i=0;i<numThreads;i++) {
+		for(j=numMismatchesStart;j<=numMismatchesEnd;j++) {
+			free(data[i].c.counts[j]);
+			data[i].c.counts[j] = NULL;
+		}
+		free(data[i].c.counts);
+		data[i].c.counts=NULL;
+		free(data[i].c.maxCount);
+		data[i].c.maxCount = NULL;
+	}
+	free(threads);
+	free(data);
+	free(starts);
+	starts=NULL;
+	free(ends);
+	ends=NULL;
+}
+
+void *PrintHistogramThread(void *arg)
+{
+	char *FnName = "PrintHistogramThread";
+
+	/* Get thread data */
+	ThreadData *data = (ThreadData*)arg;
+	int64_t startIndex = data->startIndex;
+	int64_t endIndex = data->endIndex;
+	RGIndex *index = data->index;
+	RGBinary *rg = data->rg;
+	Counts *c = &data->c;
+	int numMismatchesStart = data->numMismatchesStart;
+	int numMismatchesEnd = data->numMismatchesEnd;
+	int threadID = data->threadID;
+
+	/* Local variables */
+	int64_t i=0;
+	int64_t j=0;
+	int64_t curIndex=0, nextIndex=0;
+	int64_t counter=0;
 	int64_t numDifferent = 0;
 	int64_t numReadsNoMismatches = 0;
-	int numForward, numReverse;
-	Counts c; /* Used to store the histogram data */
-	FILE *fp;
+	int64_t numReadsNoMismatchesTotal = 0;
+	int64_t numForward, numReverse;
+	int64_t totalForward, totalReverse; 
+	int64_t numMatches;
 
 	/* Not implemented for numMismatchesStart > 0 */
 	assert(numMismatchesStart == 0);
 
 	/* Allocate memory to hold histogram data */
-	c.counts = malloc(sizeof(int64_t*)*(numMismatchesEnd - numMismatchesStart + 1));
-	if(NULL == c.counts) {
+	c->counts = malloc(sizeof(int64_t*)*(numMismatchesEnd - numMismatchesStart + 1));
+	if(NULL == c->counts) {
 		PrintError(FnName,
-				"c.counts",
+				"c->counts",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
-	c.maxCount = malloc(sizeof(int64_t)*(numMismatchesEnd - numMismatchesStart + 1));
-	if(NULL == c.maxCount) {
+	c->maxCount = malloc(sizeof(int64_t)*(numMismatchesEnd - numMismatchesStart + 1));
+	if(NULL == c->maxCount) {
 		PrintError(FnName,
-				"c.maxCount",
+				"c->maxCount",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
@@ -123,27 +427,31 @@ void PrintHistogram(RGIndex *index,
 
 	/* Initialize counts */
 	for(i=0;i<(numMismatchesEnd - numMismatchesStart + 1);i++) {
-		c.counts[i] = NULL;
-		c.maxCount[i] = 0;
+		c->counts[i] = malloc(sizeof(int64_t));
+		if(NULL == c->counts[i]) {
+			PrintError(FnName,
+					"c->counts[i]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		c->counts[i][0] = 0;
+		c->maxCount[i] = 0;
 	}
 
 	/* Go through every possible read in the genome using the index */
-	fprintf(stderr, "Out of %lld, currently on\n0",
-			(long long int)index->length);
-	curIndex = 0;
-	nextIndex = 0;
-	numDifferent = 0;
 	/* Go through the index */
-	for(curIndex=0, nextIndex=0, counter=0, numDifferent=0;
-			curIndex < index->length;
+	totalForward = 0;
+	totalReverse = 0;
+	for(curIndex=startIndex, nextIndex=startIndex, counter=0, numDifferent=0;
+			curIndex <= endIndex;
 			curIndex = nextIndex) {
 		if(counter >= BINDEXSTAT_ROTATE_NUM) {
-			fprintf(stderr, "\r%lld", (long long int)curIndex);
+			fprintf(stderr, "\rthreadID:%d\t%lld", 
+					threadID,
+					(long long int)(curIndex-startIndex));
 			counter -= BINDEXSTAT_ROTATE_NUM;
 		}
-		/* Initialize */
-		curIndex = nextIndex;
-		numReadsNoMismatches = 0;
 		/* Try each mismatch */
 		for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 
@@ -157,11 +465,19 @@ void PrintHistogram(RGIndex *index,
 					&numReverse);
 			assert(numForward > 0);
 
+			numMatches = numForward + numReverse;
+
 			/* Update the value of numReadsNoMismatches and numDifferent
 			 * if we have the rsults for no mismatches */
 			if(i==0) {
-				/* This will be the basis for update c.counts */
-				numReadsNoMismatches = numForward + numReverse;
+				/* The forward and reverse hits should be the same i.e. symmetric */ 
+				totalForward += numForward;
+				totalReverse += numReverse;
+				/* This will be the basis for update c->counts */
+				/* Only choose the ones on the forward since we multiply by two to acheive
+				 * symmetry */
+				numReadsNoMismatches = 2*numForward;
+				numReadsNoMismatchesTotal += numReadsNoMismatches;
 				numDifferent++;
 				/* If the reverse compliment does not match the + strand then 
 				 * count it as unique. */
@@ -174,13 +490,13 @@ void PrintHistogram(RGIndex *index,
 			}
 
 			/* Add to our list.  We may have to reallocate this array */
-			if(numForward + numReverse > c.maxCount[i]) {
-				j = c.maxCount[i]+1; /* This will determine where we begin initialization after reallocation */
+			if(numMatches > c->maxCount[i]) {
+				j = c->maxCount[i]+1; /* This will determine where we begin initialization after reallocation */
 				/* Reallocate */
-				c.maxCount[i] = numForward + numReverse;
-				assert(c.maxCount[i] > 0);
-				c.counts[i] = realloc(c.counts[i], sizeof(int64_t)*(c.maxCount[i]+1));
-				if(NULL == c.counts[i]) {
+				c->maxCount[i] = numMatches;
+				assert(c->maxCount[i] > 0);
+				c->counts[i] = realloc(c->counts[i], sizeof(int64_t)*(c->maxCount[i]+1));
+				if(NULL == c->counts[i]) {
 					PrintError(FnName,
 							"counts",
 							"Could not allocate memory",
@@ -188,59 +504,30 @@ void PrintHistogram(RGIndex *index,
 							MallocMemory);
 				}
 				/* Initialize from j to maxCount */
-				while(j<=c.maxCount[i]) {
-					c.counts[i][j] = 0;
+				while(j<=c->maxCount[i]) {
+					c->counts[i][j] = 0;
 					j++;
 				}
 			}
-			/* Add twice the number of reads when we searched with no mismatches, since these are the original seeds.
-			 * Add it twice since the forward and reverse strands will be symmetric. */
 			assert(numReadsNoMismatches > 0);
-			c.counts[i][numForward+numReverse] += 2*numReadsNoMismatches;
+			assert(numMatches <= c->maxCount[i]);
+			assert(c->counts[i][numMatches] >= 0);
+			/* Add the number of reads that were found with no mismatches */
+			c->counts[i][numForward+numReverse] += numReadsNoMismatches;
+			assert(c->counts[i][numForward+numReverse] > 0);
 		}
 	}
-	fprintf(stderr, "\r%lld\n", (long long int)index->length);
+	fprintf(stderr, "\rthreadID:%d\t%lld", 
+			threadID,
+			(long long int)(endIndex-startIndex+1));
 
-	/* Print results */
-	for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
-		/* Create file name */
-		sprintf(tmpFileName, "%s.%d.%d",
-				histogramFileName,
-				index->totalLength,
-				i);
-		if(!(fp = fopen(tmpFileName, "w"))) {
-			PrintError(FnName,
-					tmpFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
-		}
-		fprintf(fp, "# Number of unique places was: %lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
-				(long long int)numDifferent,
-				(long long int)numDifferent,
-				(long long int)2*index->length, /* Times two for both strands */
-				((double)index->length*2.0)/numDifferent); /* Times two for both strands */
-		fprintf(fp, "# Found counts for %d mismatches ranging from %d to %lld.\n",
-				i,
-				1,
-				(long long int)c.maxCount[i]);
-		for(j=0;j<=c.maxCount[i];j++) {
-			fprintf(fp, "%lld\t%lld\n",
-					(long long int)j,
-					(long long int)c.counts[i][j]);
-		}
-		fclose(fp);
-	}
+	assert(totalForward == endIndex - startIndex + 1);
+	/* Copy over numDifferent */
+	data->numDifferent = numDifferent;
+	data->totalForward = totalForward;
+	data->totalReverse = totalReverse;
 
-	/* Free memory */
-	for(i=0;i<(numMismatchesEnd - numMismatchesStart + 1);i++) {
-		free(c.counts[i]);
-		c.counts[i] = NULL;
-	}
-	free(c.counts);
-	c.counts = NULL;
-	free(c.maxCount);
-	c.maxCount = NULL;
+	return NULL;
 }
 
 /* Get the matches for the chr/pos */
@@ -249,8 +536,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 		uint32_t curChr,
 		uint32_t curPos,
 		int numMismatches,
-		int *numForward,
-		int *numReverse)
+		int64_t *numForward,
+		int64_t *numReverse)
 {
 	char *FnName = "GetMatchesFromChrPos";
 	char read[SEQUENCE_LENGTH]="\0";
