@@ -33,7 +33,7 @@ void RGReadsFindMatches(RGIndex *index,
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
-		int maxMatches)
+		int maxNumMatches)
 {
 	int64_t i;
 	int64_t numEntries = 0;
@@ -110,7 +110,8 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Only copy to rgmatches if there are matches and fewer matches than
 	 * max Matches */
-	if(numEntries <= maxMatches && 0 < numEntries) {
+	if(0 < numEntries && 
+			(maxNumMatches == 0 || numEntries <= maxNumMatches)) {
 		/* Allocate memory for the matches */
 		RGMatchAllocate(match, numEntries);
 

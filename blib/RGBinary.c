@@ -964,16 +964,17 @@ int32_t RGBinaryIsRepeat(RGBinary *rg,
 int32_t RGBinaryIsBaseRepeat(int8_t curBase)
 {
 	switch(curBase) {
-		case 'A':
+		/* Lower case is repat */
 		case 'a':
-		case 'C':
 		case 'c':
-		case 'G':
 		case 'g':
-		case 'T':
 		case 't':
 			return 1;
 			break;
+		case 'A':
+		case 'G':
+		case 'C':
+		case 'T':
 		default:
 			return 0;
 			break;

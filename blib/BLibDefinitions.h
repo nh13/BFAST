@@ -116,6 +116,7 @@ typedef struct {
 	int32_t numTiles;
 	int32_t *tileLengths;
 	int32_t *gaps; /* There should be numTiles - 1 gaps */
+	int32_t repeatMasker;
 
 	/* Index range */
 	int32_t startChr;

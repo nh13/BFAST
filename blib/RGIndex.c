@@ -23,14 +23,14 @@ void RGIndexCreate(RGIndex *index,
 		int32_t endPos,
 		int32_t layoutIndex,
 		int32_t numThreads,
-		int32_t includeRepeats, 
+		int32_t repeatMasker,
 		int32_t includeNs,
 		char *tmpDir) 
 {
 
 	/* The sort will take care of most of the work.  We just want 
-	 * to make sure that we only include sequence that agrees with
-	 * includeRepeats and includeNs
+	 * to make sure that we only include sequences that agrees with
+	 * repeatMasker and includeNs
 	 * */
 
 	char *FnName = "RGIndexCreate";
@@ -55,6 +55,9 @@ void RGIndexCreate(RGIndex *index,
 	index->startPos = startPos;
 	index->endChr = endChr;
 	index->endPos = endPos;
+
+	/* Copy over other */
+	index->repeatMasker = repeatMasker;
 
 	assert(index->startChr > rg->startChr || (index->startChr == rg->startChr && index->startPos >= rg->startPos));
 	assert(index->endChr < rg->endChr || (index->endChr == rg->endChr && index->endPos <= rg->endPos));
@@ -152,7 +155,7 @@ void RGIndexCreate(RGIndex *index,
 					for(curReferencePos=0, curTile = 0;curTile < index->numTiles && 1==insert;curTile++) {
 						for(curTilePos=0;curTilePos < index->tileLengths[curTile] && 1==insert;curTilePos++) {
 							/* Check if there are any repeats in any of the tiles */
-							if(0==includeRepeats && 1==RGBinaryIsBaseRepeat(reference[curReferencePos])) {
+							if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(reference[curReferencePos])) {
 								insert = 0;
 							}
 							else if(0==includeNs && 1==RGBinaryIsBaseN(reference[curReferencePos])) {
@@ -1305,6 +1308,7 @@ void RGIndexDelete(RGIndex *index)
 	index->chromosomes = NULL;
 	index->length = 0;
 	index->totalLength = 0;
+	index->repeatMasker = 0;
 
 	index->hashLength=0;
 	index->hashWidth=0;
@@ -1698,6 +1702,8 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 			index.endPos);
 	fprintf(stderr, "index length:\t\t%u\n",
 			index.length);
+	fprintf(stderr, "repeat masker:\t\t%d\n",
+			index.repeatMasker);
 	fprintf(stderr, "hash width:\t\t%u\n",
 			index.hashWidth);
 	fprintf(stderr, "hash length:\t\t%lld\n",
@@ -1724,12 +1730,13 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
 	if(binaryOutput == 0) {
-		fprintf(fp, "%u\t%u\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\n",
+		fprintf(fp, "%u\t%u\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 				index->length,
 				index->hashWidth,
 				(long long int)index->hashLength,
 				index->totalLength,
 				index->numTiles,
+				index->repeatMasker,
 				index->startChr,
 				index->startPos,
 				index->endChr,
@@ -1742,6 +1749,7 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 				fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
 				fwrite(&index->totalLength, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->numTiles, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->startChr, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->endChr, sizeof(int32_t), 1, fp) != 1 ||
@@ -1760,12 +1768,13 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
 	/* Read in header */
 	if(binaryInput == 0) {
-		if(fscanf(fp, "%u %u %lld %d %d %d %d %d %d",
+		if(fscanf(fp, "%u %u %lld %d %d %d %d %d %d %d",
 					&index->length,
 					&index->hashWidth,
 					(long long int *)&index->hashLength,
 					&index->totalLength,
 					&index->numTiles,
+					&index->repeatMasker,
 					&index->startChr,
 					&index->startPos,
 					&index->endChr,
@@ -1783,6 +1792,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 				|| fread(&index->hashLength, sizeof(int64_t), 1, fp)!=1
 				|| fread(&index->totalLength, sizeof(int32_t), 1, fp)!=1
 				|| fread(&index->numTiles, sizeof(int32_t), 1, fp)!=1 
+				|| fread(&index->repeatMasker, sizeof(int32_t), 1, fp)!=1
 				|| fread(&index->startChr, sizeof(int32_t), 1, fp)!=1
 				|| fread(&index->startPos, sizeof(int32_t), 1, fp)!=1
 				|| fread(&index->endChr, sizeof(int32_t), 1, fp)!=1
@@ -1801,6 +1811,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 	assert(index->hashLength > 0);
 	assert(index->totalLength > 0);
 	assert(index->numTiles > 0);
+	assert(index->repeatMasker == 0 || index->repeatMasker == 1);
 	assert(index->startChr > 0);
 	assert(index->startPos > 0);
 	assert(index->endChr > 0);
@@ -2386,6 +2397,7 @@ void RGIndexInitialize(RGIndex *index)
 	index->numTiles = 0;
 	index->starts = NULL;
 	index->ends = NULL;
+	index->repeatMasker = 0;
 
 	index->totalLength = 0;
 	index->numTiles = 0;

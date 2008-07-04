@@ -29,7 +29,7 @@ typedef struct {
 	int numGapInsertions;
 	int numGapDeletions;
 	int pairedEnd;
-	int maxMatches;
+	int maxNumMatches;
 	int numMatches;
 	int threadID;
 } ThreadIndexData;
@@ -47,7 +47,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
-		int maxMatches,
+		int maxNumMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
@@ -70,7 +70,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
-		int maxMatches,
+		int maxNumMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *indexFP,

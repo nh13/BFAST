@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 
 		strcpy(inputFileName, argv[1]);
 
+		fprintf(stderr, "Getting info for %s.\n", inputFileName);
 		if(!(fp=fopen(inputFileName, "rb"))) {
 			PrintError("bheader",
 					inputFileName,

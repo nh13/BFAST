@@ -83,10 +83,8 @@ static struct argp_option options[] = {
 	{"numDeletions", 'z', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
 	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
 	{"numGapDeletions", 'Z', "numGapDeletions", 0, "Specifies the number of gap deletions allowd in the gap between paris", 2},
+	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of matches to consider", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
-	/*
-	   {"maxMatches", 'm', "maxMatches", 0, "Specifies the maximum number of matches to consider", 2},
-	   */
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
@@ -204,7 +202,7 @@ main (int argc, char **argv)
 								arguments.numGapInsertions,
 								arguments.numGapDeletions,
 								arguments.pairedEnd,
-								arguments.maxMatches,
+								arguments.maxNumMatches,
 								arguments.numThreads,
 								arguments.tmpDir,
 								arguments.timing);
@@ -322,8 +320,8 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->maxMatches <= 0) {
-		PrintError(FnName, "maxMatches", "Command line argument", Exit, OutOfRange);
+	if(args->maxNumMatches < 0) {
+		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->numThreads<=0) {
@@ -429,7 +427,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numGapInsertions = 0;
 	args->numGapDeletions = 0;
 	args->pairedEnd = 0;
-	args->maxMatches = INT_MAX;
+	args->maxNumMatches = 0;
 	args->numThreads = 1;
 
 	args->outputID =
@@ -478,9 +476,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
-	/*
-	   fprintf(fp, "maxMatches:\t\t\t\t%d\n", args->maxMatches);
-	   */
+	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -555,10 +551,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->bfastMainIndexesFileName = OPTARG;break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG);break;
-						/*
-						   case 'm':
-						   arguments->maxMatches=atoi(OPTARG);break;
-						   */
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
 						arguments->outputID = OPTARG;break;
@@ -584,6 +576,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'I':
 						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
 						arguments->bfastSecondaryIndexesFileName = OPTARG;break;
+					case 'M':
+						arguments->maxNumMatches=atoi(OPTARG);break;
 					case 'O':
 						if(arguments->offsetsFileName) free(arguments->offsetsFileName);
 						arguments->offsetsFileName = OPTARG;break;

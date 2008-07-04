@@ -58,7 +58,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
-	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescNumThreads, 
+	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescRepeatMasker, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -80,6 +80,7 @@ static struct argp_option options[] = {
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
+	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
@@ -114,7 +115,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:n:o:r:s:E:S:bhpt";
+"a:d:e:i:n:o:r:s:E:S:bhptR";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -179,6 +180,7 @@ main (int argc, char **argv)
 										arguments.startPos,
 										arguments.endChr,
 										arguments.endPos,
+										arguments.repeatMasker,
 										arguments.numThreads,
 										arguments.outputID,
 										arguments.outputDir,
@@ -335,6 +337,7 @@ int ValidateInputs(struct arguments *args) {
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
+	assert(args->repeatMasker == 0 || args->repeatMasker == 1);
 
 	/* Cross-check arguments */
 	if(args->startChr > args->endChr) {
@@ -402,6 +405,8 @@ AssignDefaultValues(struct arguments *args)
 	args->endChr=1;
 	args->endPos=1;
 
+	args->repeatMasker=0;
+
 	args->numThreads = 1;
 
 	args->outputID =
@@ -441,6 +446,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
+	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -531,6 +537,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   */
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
+					case 'R':
+						arguments->repeatMasker=1;break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
 					case 'T':

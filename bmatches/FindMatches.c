@@ -32,7 +32,7 @@ void FindMatches(char *outputFileName,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
-		int maxMatches,
+		int maxNumMatches,
 		int numThreads,
 		char *tmpDir,
 		int timing
@@ -214,7 +214,7 @@ void FindMatches(char *outputFileName,
 			numGapInsertions,
 			numGapDeletions,
 			pairedEnd,
-			maxMatches,
+			maxNumMatches,
 			numThreads,
 			&tempSeqFPs,
 			&tempSeqFileNames,
@@ -353,7 +353,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
-		int maxMatches,
+		int maxNumMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
@@ -443,7 +443,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
-				maxMatches,
+				maxNumMatches,
 				numThreads,
 				tempSeqFPs,
 				tempOutputIndexFPs[i],
@@ -473,7 +473,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				tempOutputFP,
 				pairedEnd,
 				binaryOutput,
-				maxMatches);
+				maxNumMatches);
 		endTime=time(NULL);
 		(*totalOutputTime)+=endTime-startTime;
 
@@ -578,7 +578,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
-		int maxMatches,
+		int maxNumMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *indexFP,
@@ -681,7 +681,7 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].numGapInsertions = numGapInsertions;
 		data[i].numGapDeletions = numGapDeletions;
 		data[i].pairedEnd = pairedEnd;
-		data[i].maxMatches = maxMatches;
+		data[i].maxNumMatches = maxNumMatches;
 		data[i].threadID = i;
 	}
 
@@ -798,7 +798,7 @@ void *FindMatchesInIndexThread(void *arg)
 	int numGapDeletions = data->numGapDeletions;
 	int binaryOutput = data->binaryOutput;
 	int pairedEnd = data->pairedEnd;
-	int maxMatches = data->maxMatches;
+	int maxNumMatches = data->maxNumMatches;
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
@@ -845,7 +845,7 @@ void *FindMatchesInIndexThread(void *arg)
 				numDeletions,
 				numGapInsertions,
 				numGapDeletions,
-				maxMatches);
+				maxNumMatches);
 		if(pairedEnd==1) {
 			RGReadsFindMatches(index,
 					rg,
@@ -859,7 +859,7 @@ void *FindMatchesInIndexThread(void *arg)
 					numDeletions,
 					numGapInsertions,
 					numGapDeletions,
-					maxMatches);
+					maxNumMatches);
 		}
 
 		if((readMatch.numEntries > 0 && readMatch.maxReached != 1) || 

@@ -7,6 +7,6 @@
 
 #include "../blib/BLibDefinitions.h"
 
-void GenerateIndex(RGBinary*, RGIndexLayout*, int, int, int, int, int, char*, char*, char*, int);
+void GenerateIndex(RGBinary*, RGIndexLayout*, int, int, int, int, int, int, char*, char*, char*, int);
 
 #endif

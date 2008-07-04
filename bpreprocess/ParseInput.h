@@ -11,6 +11,7 @@ struct arguments
 	unsigned int startPos;					/* -S */
 	int endChr;								/* -e */
 	unsigned int endPos;					/* -E */
+	int repeatMasker;						/* -R */
 	int numThreads;                         /* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */

@@ -17,6 +17,7 @@ void GenerateIndex(RGBinary *rg,
 		int startPos,
 		int endChr,
 		int endPos,
+		int repeatMasker,
 		int numThreads,
 		char *outputID,
 		char *outputDir,
@@ -48,7 +49,7 @@ void GenerateIndex(RGBinary *rg,
 				endPos,
 				i,
 				numThreads,
-				1, /* Include repeat masker */
+				repeatMasker,
 				0, /* Do not include Ns */
 				tmpDir);
 
@@ -59,7 +60,7 @@ void GenerateIndex(RGBinary *rg,
 		}
 
 		/* Create the file name */
-		sprintf(outputFileName, "%s%s.index.file.%s.%d.%d.%d.%d.%d.%s",
+		sprintf(outputFileName, "%s%s.index.file.%s.%d.%d.%d.%d.%d.%d.%s",
 				outputDir,
 				PROGRAM_NAME,
 				outputID,
@@ -67,6 +68,7 @@ void GenerateIndex(RGBinary *rg,
 				index.startPos,
 				index.endChr,
 				index.endPos,
+				repeatMasker,
 				i+1,
 				BFAST_INDEX_FILE_EXTENSION);
 

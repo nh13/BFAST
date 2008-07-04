@@ -10,7 +10,7 @@
 
 /* TODO */
 void RGMatchRemoveDuplicates(RGMatch *s,
-		int32_t maxMatches)
+		int32_t maxNumMatches)
 {
 	int32_t i;
 	int32_t prevIndex=0;
@@ -44,7 +44,7 @@ void RGMatchRemoveDuplicates(RGMatch *s,
 		RGMatchReallocate(s, prevIndex+1);
 
 		/* Check to see if we have too many matches */
-		if(maxMatches > 0 && s->numEntries > maxMatches) {
+		if(maxNumMatches > 0 && s->numEntries > maxNumMatches) {
 			RGMatchFree(s);
 			s->maxReached=1;
 			return;
@@ -517,7 +517,7 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 		FILE *outputFP,
 		int32_t pairedEnd,
 		int32_t binaryOutput,
-		int32_t maxMatches)
+		int32_t maxNumMatches)
 {
 	char *FnName="RGMatchMergeFilesAndOutput";
 	int32_t i;
@@ -621,9 +621,9 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			}
 			else {
 				/* Append temp matches to matches */
-				RGMatchAppend(&tempMatch, &match, maxMatches);
+				RGMatchAppend(&tempMatch, &match, maxNumMatches);
 				if(pairedEnd == 1) {
-					RGMatchAppend(&tempPairedMatch, &pairedMatch, maxMatches);
+					RGMatchAppend(&tempPairedMatch, &pairedMatch, maxNumMatches);
 				}
 			}
 
@@ -656,9 +656,9 @@ int32_t RGMatchMergeFilesAndOutput(FILE **tempFPs,
 			}
 
 			/* Remove duplicates */
-			RGMatchRemoveDuplicates(&match, maxMatches);
+			RGMatchRemoveDuplicates(&match, maxNumMatches);
 			if(pairedEnd==1) {
-				RGMatchRemoveDuplicates(&pairedMatch, maxMatches);
+				RGMatchRemoveDuplicates(&pairedMatch, maxNumMatches);
 			}
 
 			/* Print to output file */
@@ -844,7 +844,7 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 }
 
 /* TODO */
-void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxMatches) 
+void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxNumMatches) 
 {
 	int32_t i, start;
 
@@ -857,7 +857,7 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest, int maxMatches)
 		RGMatchCopyAtIndex(src, i-start, dest, i);
 	}
 
-	if(maxMatches > 0 && dest->numEntries > maxMatches) {
+	if(maxNumMatches > 0 && dest->numEntries > maxNumMatches) {
 		dest->maxReached = 1;
 	}
 
