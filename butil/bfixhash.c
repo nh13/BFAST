@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -13,13 +14,15 @@ int main(int argc, char *argv[])
 	FILE *fp=NULL;
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
+	int hashWidth;
 
-	if(argc == 3) {
+	if(argc == 4) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
+		hashWidth = atoi(argv[3]);
 
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
@@ -42,7 +45,10 @@ int main(int argc, char *argv[])
 		index.starts=NULL;
 		free(index.ends);
 		index.ends=NULL;
-		assert(index.hashLength > 0);
+
+		/* Update to new width */
+		index.hashWidth = hashWidth;
+		index.hashLength = pow(4, index.hashWidth);
 
 		/* Fix the hash by recreating it */
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -50,7 +56,6 @@ int main(int argc, char *argv[])
 		RGIndexCreateHash(&index, &rg);
 
 		/* Print the new index */ 
-		/*
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Outputting to %s.\n", indexFileName);
 		if(!(fp=fopen(indexFileName, "wb"))) {
@@ -62,7 +67,6 @@ int main(int argc, char *argv[])
 		}
 		RGIndexPrint(fp, &index, 1);
 		fclose(fp);
-		*/
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Cleaning up.\n");
@@ -72,7 +76,7 @@ int main(int argc, char *argv[])
 		RGBinaryDelete(&rg);
 	}
 	else {
-		fprintf(stdout, "Please give a reference genome file name then an index file name.  Terminating!\n");
+		fprintf(stdout, "Please give a reference genome file name, an index file name, and then the new hash width.  Terminating!\n");
 	}
 
 	return 0;

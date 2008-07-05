@@ -34,6 +34,7 @@ typedef struct {
 	int numIndexes;
 	int numEventsToSample;
 	int numIndexesToSample;
+	int greedy;
 	int numMismatchesStart;
 	int numMismatchesEnd;
 	int insertionLengthStart;
@@ -96,6 +97,20 @@ void RunMismatches(Indexes *indexes,
 		int numMismatchesLeft,
 		int64_t *totalGenerated,
 		int64_t *totalMatched);
+void RunSamplingGreedy(Indexes *mainIndexes,
+		FILE *fp,
+		int readLength,
+		int indexLength,
+		int numIndexes,
+		int numIndexesToSample,
+		int numEventsToSample,
+		int numMismatchesStart,
+		int numMismatchesEnd,
+		int insertionLengthStart,
+		int insertionLengthEnd,
+		int numDeletionsStart,
+		int numDeletionsEnd,
+		int numErrors);
 void RunSampling(Indexes *mainIndexes,
 		FILE *fp,
 		int readLength,
@@ -339,8 +354,11 @@ void GenerateRandomIndexes(Indexes *indexes,
 	int i;
 
 	assert(numIndexes + numMainIndexes == indexes->numIndexes);
+
 	/* For each index */
-	for(i=numMainIndexes;i<indexes->numIndexes;i++) {
+	for(i=numMainIndexes;
+			i < numMainIndexes + numIndexes;
+			i++) {
 		GenerateRandomIndex(indexes->indexes[i],
 				&indexes->indexLengths[i],
 				readLength,
@@ -751,6 +769,339 @@ void RunMismatches(Indexes *indexes,
 	}
 }
 
+void RunSamplingGreedy(Indexes *mainIndexes,
+		FILE *fp,
+		int readLength,
+		int indexLength,
+		int numIndexes,
+		int numIndexesToSample,
+		int numEventsToSample,
+		int numMismatchesStart,
+		int numMismatchesEnd,
+		int insertionLengthStart,
+		int insertionLengthEnd,
+		int numDeletionsStart,
+		int numDeletionsEnd,
+		int numErrors)
+{
+	int i, j, k, l, foundOptimal, curNumIndexes;
+	int *curRead=NULL;
+	Indexes curIndexes;
+	Indexes bestIndexes;
+	int64_t curMatched, numEvents, bestMatched=-1, totalMatched, totalGenerated;
+	int exact;
+	curRead = malloc(sizeof(int)*readLength);
+	if(NULL == curRead) {
+		fprintf(stderr, "Error.  Could not allocate memory for curRead.  Terminating!\n");
+		exit(1);
+	}
+	for(i=0;i<readLength;i++) {
+		curRead[i] = -1;
+	}
+
+	InitializeIndexes(&curIndexes);
+	AllocateIndexes(&curIndexes,
+			numIndexes+mainIndexes->numIndexes,
+			readLength);
+	InitializeIndexes(&bestIndexes);
+	AllocateIndexes(&bestIndexes,
+			numIndexes+mainIndexes->numIndexes,
+			readLength);
+
+	/* Copy over main indexes */
+	for(i=0;i<mainIndexes->numIndexes;i++) {
+		curIndexes.indexLengths[i] = mainIndexes->indexLengths[i];
+		for(j=0;j<mainIndexes->indexLengths[i];j++) {
+			curIndexes.indexes[i][j] =  mainIndexes->indexes[i][j];
+		}
+	}
+
+	for(i=numMismatchesStart; 0 < i &&  i<=numMismatchesEnd;i++) {
+		fprintf(fp, "%s", BREAK_LINE);
+		fprintf(fp, "Currently processing %d mismatches and %d errors.\nOut of %lld, currently on:\n0",
+				i,
+				numErrors,
+				(long long int)numIndexesToSample);
+		fflush(fp);
+
+		/* If the total number of mismatches possible is less than we wish
+		 * to sample then just brute-force */
+		exact = (NChooseR(readLength, i+numErrors) <= numEventsToSample)?1:0;
+
+		/* Do a greedy approach.  Start by adding one index.  Then keep iteratively adding indexes
+		 * based on the previous ones. */
+		for(curNumIndexes=mainIndexes->numIndexes;
+				curNumIndexes < mainIndexes->numIndexes + numIndexes;
+				curNumIndexes++) {
+
+			/* Initialize */
+			bestMatched = -1;
+			foundOptimal = 0;
+			curIndexes.numIndexes = curNumIndexes + 1; /* We only want to add one index */
+
+			/* Sample indexes */
+			numEvents = 0;
+			for(j=0;foundOptimal != 1 && j<numIndexesToSample;j++) {
+				if(j%RANDOM_ROTATE_NUM == 0) {
+					fprintf(fp, "\r%10d",
+							j);
+					fflush(fp);
+				}
+				/* Generate random indexes */
+				/* Update for one index */
+				GenerateRandomIndexes(&curIndexes,
+						readLength,
+						indexLength,
+						curNumIndexes,
+						1); /* Generate only one index */
+				curMatched = 0;
+				numEvents = 0;
+				/* Initialize read */
+				for(k=0;k<readLength;k++) {
+					curRead[k] = NO_EVENT;
+				}
+				/* Sample mismatches */
+				if(0==exact) {
+					for(k=0;k<numEventsToSample;k++) {
+						/* Generate random read with j mismatches */ 
+						GenerateRandomMismatchRead(curRead,
+								readLength,
+								i+numErrors);
+
+						/* Test the read against the indexes */
+						switch(CheckReadAgainstIndexes(&curIndexes, curRead, readLength)) {
+							case 0:
+								/* do nothing */
+								break;
+							case 1:
+								/* increment */
+								curMatched++;
+								break;
+							default:
+								/* do nothing */
+								break;
+						}
+						numEvents++;
+					}
+				}
+				else {
+					RunMismatches(&curIndexes,
+							curRead,
+							readLength,
+							0,
+							i+numErrors,
+							&numEvents,
+							&curMatched);
+				}
+
+				/* Check the results against the best so far */
+				if(curMatched > bestMatched) {
+					bestMatched = curMatched;
+					bestIndexes.numIndexes = curIndexes.numIndexes;
+
+					for(k=0;k<curIndexes.numIndexes;k++) {
+						bestIndexes.indexLengths[k] = curIndexes.indexLengths[k];
+						for(l=0;l<curIndexes.indexLengths[k];l++) {
+							bestIndexes.indexes[k][l] = curIndexes.indexes[k][l];
+						}
+					}
+					if(bestMatched == numEvents) {
+						foundOptimal = 1;
+					}
+				}
+			}
+			/* Copy over bestIndexes to curIndexes */
+			assert(curIndexes.numIndexes == bestIndexes.numIndexes);
+			bestIndexes.numIndexes = curIndexes.numIndexes;
+			for(k=0;k<bestIndexes.numIndexes;k++) {
+				curIndexes.indexLengths[k] = bestIndexes.indexLengths[k];
+				for(l=0;l<bestIndexes.indexLengths[k];l++) {
+					curIndexes.indexes[k][l] = bestIndexes.indexes[k][l];
+				}
+			}
+		}
+		fprintf(fp, "\r%10d\n",
+				(int)numIndexesToSample);
+		/* Print asymptotic */
+		fprintf(fp, "Best index found for %d mismatches and %d errors (%lld out of %lld [%3.3lf]):\n",
+				i,
+				numErrors,
+				(long long int)bestMatched,
+				(long long int)numEvents,
+				(bestMatched*100.0)/numEvents);
+		fflush(fp);
+		totalGenerated=0;
+		totalMatched=0;
+		/* Initialize read */
+		for(j=0;j<readLength;j++) {
+			curRead[j] = NO_EVENT;
+		}
+		RunMismatches(&bestIndexes,
+				curRead,
+				readLength,
+				0,
+				i+numErrors,
+				&totalGenerated,
+				&totalMatched);
+		/* Print truth for the best one */
+		fprintf(fp, "Mismatches[%d,%d]: %lld out of %lld [%3.3lf].\n",
+				i,
+				numErrors,
+				(long long int)totalMatched,
+				(long long int)totalGenerated,
+				(totalMatched*100.0)/totalGenerated);
+		fflush(fp);
+		PrintIndexes(&bestIndexes, fp);
+	}
+
+	for(i=insertionLengthStart; 0 < insertionLengthStart && i<=insertionLengthEnd;i++) {
+		fprintf(fp, "%s", BREAK_LINE);
+		fprintf(fp, "Currently processing an insertion of length %d and %d errors.\nOut of %lld, currently on:\n0",
+				i,
+				numErrors,
+				(long long int)numIndexesToSample);
+		fflush(fp);
+
+		/* If the total number of insertion locations possible is less than we wish
+		 * to sample then just brute-force.  Remember to factor in errors. */
+		if(numErrors > 0) {
+			exact = (NChooseR(readLength, numErrors)*(readLength - i + 1) <= numEventsToSample)?1:0;
+		}
+		else {
+			exact = ((readLength - i + 1) <= numEventsToSample)?1:0;
+		}
+
+		/* Do a greedy approach.  Start by adding one index.  Then keep iteratively adding indexes
+		 * based on the previous ones. */
+		for(curNumIndexes=mainIndexes->numIndexes;
+				curNumIndexes < mainIndexes->numIndexes + numIndexes;
+				curNumIndexes++) {
+
+			/* Initialize */
+			bestMatched = -1;
+			foundOptimal = 0;
+			curIndexes.numIndexes = curNumIndexes + 1; /* We only want to add one index */
+
+			/* Sample indexes */
+			numEvents = 0;
+			for(j=0;foundOptimal != 1 && j<numIndexesToSample;j++) {
+				if(j%RANDOM_ROTATE_NUM == 0) {
+					fprintf(fp, "\r%10d",
+							j);
+					fflush(fp);
+				}
+				/* Generate random indexes */
+				GenerateRandomIndexes(&curIndexes,
+						readLength,
+						indexLength,
+						curNumIndexes,
+						1); /* Generate only one index */
+
+				curMatched = 0;
+				numEvents = 0;
+				/* Initialize read */
+				for(k=0;k<readLength;k++) {
+					curRead[k] = NO_EVENT;
+				}
+				/* Sample insertions */
+				if(0==exact) {
+					for(k=0;k<numEventsToSample;k++) {
+						/* Generate random read with j mismatches */ 
+						GenerateRandomInsertionRead(curRead,
+								readLength,
+								i,
+								numErrors);
+
+						/* Test the read against the indexes */
+						switch(CheckReadAgainstIndexes(&curIndexes, curRead, readLength)) {
+							case 0:
+								/* do nothing */
+								break;
+							case 1:
+								/* increment */
+								curMatched++;
+								break;
+							default:
+								/* do nothing */
+								break;
+						}
+						numEvents++;
+					}
+				}
+				else {
+					RunInsertion(&curIndexes,
+							curRead,
+							readLength,
+							i,
+							numErrors,
+							&numEvents,
+							&curMatched);
+				}
+
+				/* Check the results against the best so far */
+				if(curMatched > bestMatched) {
+					bestMatched = curMatched;
+					bestIndexes.numIndexes = curIndexes.numIndexes;
+
+					for(k=0;k<curIndexes.numIndexes;k++) {
+						bestIndexes.indexLengths[k] = curIndexes.indexLengths[k];
+						for(l=0;l<curIndexes.indexLengths[k];l++) {
+							bestIndexes.indexes[k][l] = curIndexes.indexes[k][l];
+						}
+					}
+					if(bestMatched == numEvents) {
+						foundOptimal = 1;
+					}
+				}
+			}
+			/* Copy over bestIndexes to curIndexes */
+			assert(curIndexes.numIndexes == bestIndexes.numIndexes);
+			bestIndexes.numIndexes = curIndexes.numIndexes;
+			for(k=0;k<bestIndexes.numIndexes;k++) {
+				curIndexes.indexLengths[k] = bestIndexes.indexLengths[k];
+				for(l=0;l<bestIndexes.indexLengths[k];l++) {
+					curIndexes.indexes[k][l] = bestIndexes.indexes[k][l];
+				}
+			}
+		}
+		fprintf(fp, "\r%10d\n",
+				(int)numIndexesToSample);
+		/* Print asymptotic */
+		fprintf(fp, "Best index found insertion of length %d and %d errors (%lld out of %lld [%3.3lf]):\n",
+				i,
+				numErrors,
+				(long long int)bestMatched,
+				(long long int)numEvents,
+				(bestMatched*100.0)/numEvents);
+		fflush(fp);
+		totalGenerated=0;
+		totalMatched=0;
+		RunInsertion(&bestIndexes,
+				curRead,
+				readLength,
+				i,
+				numErrors,
+				&totalGenerated,
+				&totalMatched);
+		/* Print truth for the best one */
+		fprintf(fp, "Insertion[%d,%d]: %lld out of %lld [%3.3lf].\n",
+				i,
+				numErrors,
+				(long long int)totalMatched,
+				(long long int)totalGenerated,
+				(totalMatched*100.0)/totalGenerated);
+		fflush(fp);
+		PrintIndexes(&bestIndexes, fp);
+	}
+
+	/* Free memory */
+	free(curRead);
+	curRead=NULL;
+	DeleteIndexes(&curIndexes);
+	DeleteIndexes(&bestIndexes);
+
+}
+
 void RunSampling(Indexes *mainIndexes,
 		FILE *fp,
 		int readLength,
@@ -1152,10 +1503,10 @@ void FindBestIndexes(Indexes *indexes,
 			/* Try all indexes */
 			totalGenerated = 0;
 			curMatched = 0;
-		/* Initialize read */
-		for(j=0;j<readLength;j++) {
-			read[j] = NO_EVENT;
-		}
+			/* Initialize read */
+			for(j=0;j<readLength;j++) {
+				read[j] = NO_EVENT;
+			}
 			RunMismatches(&curIndexes,
 					read,
 					readLength,
@@ -1444,6 +1795,7 @@ void PrintUsage()
 	fprintf(stderr, "\t-n\tINT\tnumber of indexes in a set of indexes (for -a 1 and -a 2)\n");
 	fprintf(stderr, "\t-s\tINT\tnumber of indexes to sample (for -a 2)\n");
 	fprintf(stderr, "\t-S\tINT\tnumber of events to sample (for -a 2)\n");
+	fprintf(stderr, "\t-G\tNULL\tuses a greedy approach (for -a 2)\n");
 	fprintf(stderr, "******************************* Event Options (default =0 ) ***********************************\n");
 	fprintf(stderr, "\t-m\tINT\tminimum number of mismatches\n");
 	fprintf(stderr, "\t-M\tINT\tmaximum number of mismatches\n");
@@ -1467,6 +1819,7 @@ void PrintProgramParameters(arguments *args)
 	fprintf(stdout, "number of indexes in a set:\t%d\n", args->numIndexes);
 	fprintf(stdout, "number of indexes to sample:\t%d\n", args->numIndexesToSample);
 	fprintf(stdout, "number of events to sample:\t%d\n", args->numEventsToSample);
+	fprintf(stdout, "use a greedy approach:\t\t%d\n", args->greedy);
 	fprintf(stdout, "number of mismatches:\t\tfrom %d to %d\n", args->numMismatchesStart, args->numMismatchesEnd);
 	fprintf(stdout, "insertion length:\t\tfrom %d to %d\n", args->insertionLengthStart, args->insertionLengthEnd);
 	fprintf(stdout, "number of errors:\t\t%d\n", args->numErrors);
@@ -1482,6 +1835,7 @@ void AssignDefaultValues(arguments *args)
 	args->numIndexes=0;
 	args->numEventsToSample=0;
 	args->numIndexesToSample=0;
+	args->greedy=0;
 	args->numMismatchesStart=0;
 	args->numMismatchesEnd=0;
 	args->insertionLengthStart=0;
@@ -1561,6 +1915,10 @@ void ParseCommandLineArguments(int argc, char *argv[], arguments *args)
 				break;
 			case 'I':
 				args->insertionLengthEnd = atoi(argv[i+1]);
+				break;
+			case 'G':
+				args->greedy = 1;
+				i--; /* since there is not argument with G */
 				break;
 			case 'h':
 				PrintUsage();
@@ -1684,6 +2042,7 @@ int main(int argc, char *argv[])
 			/* Initialize seed */
 			srand(time(NULL));
 			/* Sample */
+			if(args.greedy == 0) {
 			RunSampling(&indexes,
 					stdout,
 					args.readLength,
@@ -1698,6 +2057,23 @@ int main(int argc, char *argv[])
 					NUM_DELETIONS_START,
 					NUM_DELETIONS_END,
 					args.numErrors);
+			}
+			else {
+			RunSamplingGreedy(&indexes,
+					stdout,
+					args.readLength,
+					args.indexLength,
+					args.numIndexes,
+					args.numIndexesToSample,
+					args.numEventsToSample,
+					args.numMismatchesStart,
+					args.numMismatchesEnd,
+					args.insertionLengthStart,
+					args.insertionLengthEnd,
+					NUM_DELETIONS_START,
+					NUM_DELETIONS_END,
+					args.numErrors);
+			}
 			DeleteIndexes(&indexes);
 			break;
 		case ProgramParameters:
