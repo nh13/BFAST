@@ -1,5 +1,5 @@
-#ifndef BINDEXSTAT_H_
-#define BINDEXSTAT_H_
+#ifndef BINDEXHIST_H_
+#define BINDEXHIST_H_
 
 #include "../blib/RGIndex.h"
 #include "../blib/RGBinary.h"

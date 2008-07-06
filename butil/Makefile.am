@@ -1,4 +1,4 @@
-bin_PROGRAMS = bheader bfixhash bindexstat brepeat btestindexes
+bin_PROGRAMS = bheader bfixhash bindexhist brepeat btestindexes bindexdist
 
 bheader_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
@@ -22,7 +22,7 @@ bfixhash_SOURCES = \
 
 bfixhash_LDADD =
 
-bindexstat_SOURCES = \
+bindexhist_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/BLib.c	../blib/BLib.h \
@@ -30,9 +30,9 @@ bindexstat_SOURCES = \
 	../blib/RGMatch.c ../blib/RGMatch.h \
 	../blib/RGRanges.c ../blib/RGRanges.h \
 	../blib/RGReads.c	../blib/RGReads.h \
-	bindexstat.c	bindexstat.h
+	bindexhist.c	bindexhist.h
 
-bindexstat_LDADD =
+bindexhist_LDADD =
 
 brepeat_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
@@ -49,3 +49,15 @@ btestindexes_SOURCES = \
 				   btestindexes.c
 
 btestindexes_LDADD =
+
+bindexdist_SOURCES = \
+	../blib/BError.c	../blib/BError.h \
+	../blib/RGIndex.c	../blib/RGIndex.h \
+	../blib/BLib.c	../blib/BLib.h \
+	../blib/RGBinary.c ../blib/RGBinary.h \
+	../blib/RGMatch.c ../blib/RGMatch.h \
+	../blib/RGRanges.c ../blib/RGRanges.h \
+	../blib/RGReads.c	../blib/RGReads.h \
+	bindexdist.c	bindexdist.h
+
+bindexdist_LDADD =

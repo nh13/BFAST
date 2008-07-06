@@ -12,9 +12,9 @@
 #include "../blib/RGRanges.h"
 #include "../blib/RGMatch.h"
 #include "../blib/RGReads.h"
-#include "bindexstat.h"
+#include "bindexhist.h"
 
-#define BINDEXSTAT_ROTATE_NUM 1000000
+#define BINDEXHIST_ROTATE_NUM 1000000
 #define NUM_MISMATCHES_START 0
 #define NUM_MISMATCHES_END 4
 
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
-		fprintf(stderr, "Usage: bindexstat [OPTIONS]\n");
+		fprintf(stderr, "Usage: bindexhist [OPTIONS]\n");
 		fprintf(stderr, "\t\t<reference genome file name>\n");
 		fprintf(stderr, "\t\t<index file name>\n");
 		fprintf(stderr, "\t\t<number of mismatches for histogram>\n");
@@ -446,11 +446,11 @@ void *PrintHistogramThread(void *arg)
 	for(curIndex=startIndex, nextIndex=startIndex, counter=0, numDifferent=0;
 			curIndex <= endIndex;
 			curIndex = nextIndex) {
-		if(counter >= BINDEXSTAT_ROTATE_NUM) {
+		if(counter >= BINDEXHIST_ROTATE_NUM) {
 			fprintf(stderr, "\rthreadID:%2d\t%10lld", 
 					threadID,
 					(long long int)(curIndex-startIndex));
-			counter -= BINDEXSTAT_ROTATE_NUM;
+			counter -= BINDEXHIST_ROTATE_NUM;
 		}
 		/* Try each mismatch */
 		for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
