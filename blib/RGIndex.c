@@ -34,14 +34,19 @@ void RGIndexCreate(RGIndex *index,
 	 * */
 
 	char *FnName = "RGIndexCreate";
+
+	/* For storing the bases */
+	int8_t bases[SEQUENCE_LENGTH]="\0";
+	int32_t basesLength=0;
+	int32_t basesIndex=0;
+	int32_t curBasesPos=0; 
+	int32_t toInsert=1;
 	int32_t curPos=-1;
 	int32_t curStartPos=-1;
 	int32_t curEndPos=-1;
 	int32_t curChr=-1;
-	int32_t i;
+	int64_t i, j;
 	int32_t chrIndex = 0;
-	int numConsecutivePassed = 0;
-	char curBase = '\0';
 
 
 	/* Initialize the index */
@@ -67,6 +72,7 @@ void RGIndexCreate(RGIndex *index,
 	index->hashWidth = rgLayout->hashLengths[layoutIndex];
 	index->hashLength = pow(4, index->hashWidth);
 	index->numTiles = rgLayout->numTiles[layoutIndex];
+
 	/* Allocate memory and copy over tile lengths */
 	index->tileLengths = malloc(sizeof(int32_t)*rgLayout->numTiles[layoutIndex]);
 	if(NULL == index->tileLengths) {
@@ -126,8 +132,9 @@ void RGIndexCreate(RGIndex *index,
 			curEndPos = rg->chromosomes[chrIndex].endPos;
 		}
 
-		numConsecutivePassed = 0;
-		curBase = '\0';
+		/* Initialize variables */
+		basesLength = 0; /* Have not looked at any bases */
+		basesIndex = 0; 
 
 		/* For each position */
 		for(curPos=curStartPos;curPos<=curEndPos;curPos++) {
@@ -139,53 +146,71 @@ void RGIndexCreate(RGIndex *index,
 				}
 			}
 
-			/* Get the current base */
-			curBase = RGBinaryGetBase(rg,
+			/* Get the current base and insert into bases */
+			bases[basesIndex] = RGBinaryGetBase(rg,
 					curChr,
 					curPos);
-			/* Check if the current base passes */
-			if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(curBase)) {
-				/* Did not pass, start over */
-				numConsecutivePassed = 0;
-			}
-			else if(0==includeNs && 1==RGBinaryIsBaseN(curBase)) {
-				/* Did not pass, start over */
-				numConsecutivePassed = 0;
+			/* Update where to put the next base */
+			basesIndex = (basesIndex+1)%index->totalLength;
+
+			/* Check if we have enough bases */
+			if(basesLength < index->totalLength) {
+				/* Do nothing since we do not have enough bases */
+				basesLength++;
 			}
 			else {
-				/* Passed, so update the number of consecutive bases that have passed */
-				numConsecutivePassed++;
-			}
+				assert(index->totalLength == basesLength);
 
-			/* See if we should insert into the index.  We should have enough consecutive bases. */
-			if(numConsecutivePassed == index->totalLength) {
-				/* Insert */
-				index->length++;
+				/* Find the starting position, this is equal to the current position since period is the same as the total length */
+				curBasesPos = basesIndex;
+				toInsert = 1;
 
-				/* Reallocate memory */
-				index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
-				if(NULL == index->positions) {
-					PrintError("RGBinaryCreate",
-							"index->positions",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
-				}
-				index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
-				if(NULL == index->chromosomes) {
-					PrintError("RGBinaryCreate",
-							"index->chromosomes",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+				for(i=0;i<index->numTiles && 1==toInsert;i++) { /* For each tile */
+					/* Go through the tile */
+					for(j=0;j<index->tileLengths[i] && 1==toInsert;j++) { /* For each position within the tile */
+						if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(bases[curBasesPos])) {
+							/* Did not pass */
+							toInsert = 0;
+						}
+						else if(0==includeNs && 1==RGBinaryIsBaseN(bases[curBasesPos])) {
+							/* Did not pass */
+							toInsert = 0;
+						}
+						/* Update position in bases */
+						curBasesPos++;
+					}
+					if(i < index->numTiles-1) { /* Skip over the gap for all but the last tile */
+						curBasesPos = (curBasesPos + index->gaps[i])%index->totalLength;
+					}
 				}
 
-				/* Copy over.  Remember that we are at the end of the read. */
-				index->positions[index->length-1] = curPos - index->totalLength + 1;
-				index->chromosomes[index->length-1] = curChr;
+				/* See if we should insert into the index.  We should have enough consecutive bases. */
+				if(1==toInsert) {
+					/* Insert */
+					index->length++;
 
-				/* Reinitialize the number consecutive passed to one less than required */
-				numConsecutivePassed = index->totalLength-1;
+					/* Reallocate memory */
+					index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
+					if(NULL == index->positions) {
+						PrintError("RGBinaryCreate",
+								"index->positions",
+								"Could not reallocate memory",
+								Exit,
+								ReallocMemory);
+					}
+					index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
+					if(NULL == index->chromosomes) {
+						PrintError("RGBinaryCreate",
+								"index->chromosomes",
+								"Could not reallocate memory",
+								Exit,
+								ReallocMemory);
+					}
+
+					/* Copy over.  Remember that we are at the end of the read. */
+					index->positions[index->length-1] = curPos - index->totalLength + 1;
+					index->chromosomes[index->length-1] = curChr;
+				}
 			}
 		}
 	}
