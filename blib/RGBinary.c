@@ -159,7 +159,7 @@ void RGBinaryRead(char *rgFileName,
 		}
 
 		/* Read in header */
-		if(fscanf(fpRG, "%s", header) == EOF) {
+		if(fgets(header, MAX_FILENAME_LENGTH, fpRG) == NULL) { 
 			PrintError("RGBinaryRead",
 					chrFileNames[curChr-1],
 					"Could not read header from the current file",

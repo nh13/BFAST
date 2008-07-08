@@ -372,7 +372,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 		if(SORT_TYPE == 0) {
 			/* Quick sort */
 
-
 			/* Allocate memory for the pivots */
 			pivots = malloc(sizeof(int64_t)*(2*numThreads));
 			if(NULL == pivots) {

@@ -6,27 +6,20 @@
 #include "../blib/RGMatch.h"
 
 typedef struct {
-	int64_t **counts;
-	int64_t *maxCount;
-} Counts;
-
-typedef struct {
-	int64_t startIndex;
-	int64_t endIndex;
-	RGIndex *index;
-	RGBinary *rg;
-	Counts c;
-	int numMismatchesStart;
-	int numMismatchesEnd;
-	int numDifferent;
-	int64_t totalForward;
-	int64_t totalReverse;
+	char **reads;
+	int64_t *readCounts;
+	int64_t low;
+	int64_t high;
+	char *tmpDir;
+	int readLength;
+	int showPercentComplete;
 	int threadID;
 } ThreadData;
 
-void PrintDistribution(RGIndex*, RGBinary*, char*, int, char*);
+void PrintDistribution(RGIndex*, RGBinary*, char*, int, char*, int);
 void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*, char*, char*);
-void ReverseFile(FILE**, char**, char*);
-void MergeFiles(FILE*, FILE*, FILE*);
+void *MergeSortReads(void *arg);
+void MergeSortReadsHelper(char**, int64_t*, int64_t, int64_t, int64_t, int64_t, int, double*, char*, int);
+void MergeHelper(char**, int64_t*, int64_t, int64_t, int64_t, char*, int);
 
 #endif

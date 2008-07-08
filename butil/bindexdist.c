@@ -15,7 +15,8 @@
 #include "bindexdist.h"
 
 #define Name "bindexdist"
-#define BINDEXDIST_ROTATE_NUM 1000000
+#define BINDEXDIST_ROTATE_NUM 10000
+#define BINDEXDIST_SORT_ROTATE_INC 0.01
 
 int main(int argc, char *argv[]) 
 {
@@ -23,21 +24,32 @@ int main(int argc, char *argv[])
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
 	char distributionFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
+	char outputDir[MAX_FILENAME_LENGTH]="\0";
+	char outputID[MAX_FILENAME_LENGTH]="\0";
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
 	int numMismatches = 0;
+	int numThreads = 0;
 
-	if(argc == 5) {
+	if(argc == 8) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		numMismatches = atoi(argv[3]);
-		strcpy(tmpDir, argv[4]);
+		strcpy(outputDir, argv[4]);
+		strcpy(outputID, argv[5]);
+		strcpy(tmpDir, argv[6]);
+		numThreads = atoi(argv[7]);
 
 		/* Create the distribution file name */
-		strcpy(distributionFileName, indexFileName);
-		strcat(distributionFileName, ".dist");
+		sprintf(distributionFileName, "%s%s.dist.%d",
+				outputDir,
+				outputID,
+				numMismatches);
+
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Starting %s.\n", Name);
 
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
@@ -60,7 +72,8 @@ int main(int argc, char *argv[])
 				&rg, 
 				distributionFileName,
 				numMismatches,
-				tmpDir);
+				tmpDir,
+				numThreads);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -78,7 +91,10 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t\t<reference genome file name>\n");
 		fprintf(stderr, "\t\t<index file name>\n");
 		fprintf(stderr, "\t\t<number of mismatches>\n");
+		fprintf(stderr, "\t\t<output directory>\n");
+		fprintf(stderr, "\t\t<output id>\n");
 		fprintf(stderr, "\t\t<tmp file directory>\n");
+		fprintf(stderr, "\t\t<number of threads>\n");
 	}
 
 	return 0;
@@ -88,7 +104,8 @@ void PrintDistribution(RGIndex *index,
 		RGBinary *rg,
 		char *distributionFileName,
 		int numMismatches,
-		char *tmpDir)
+		char *tmpDir,
+		int numThreads)
 {
 	char *FnName = "PrintDistribution";
 	FILE *fp;
@@ -100,35 +117,17 @@ void PrintDistribution(RGIndex *index,
 	int64_t numForward, numReverse;
 	char read[SEQUENCE_LENGTH] = "\0";
 	char reverseRead[SEQUENCE_LENGTH] = "\0";
-	int numTmpFiles=2;
-	int i;
-	char **tmpFileNames;
-	FILE **tmpFPs;
+	int64_t i, j;
+	char **reads=NULL;
+	int64_t *readCounts=NULL;
+	int64_t numReads=0;
+	pthread_t *threads=NULL;
+	ThreadData *data=NULL;
+	int errCode;
+	void *status;
 
-	/* Allocate memory for temporary file pointer and names */
-	tmpFileNames = malloc(sizeof(char*)*numTmpFiles);
-	if(NULL==tmpFileNames) {
-		PrintError(FnName,
-				"tmpFileNames",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	tmpFPs = malloc(sizeof(FILE*)*numTmpFiles);
-	if(NULL==tmpFPs) {
-		PrintError(FnName,
-				"tmpFPs",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
-	/* Open temporary files */
-	for(i=0;i<numTmpFiles;i++) {
-		tmpFPs[i] = OpenTmpFile(tmpDir,
-				&tmpFileNames[i]);
-	}
-
+	fprintf(stderr, "Out of %lld, currently on:\n0",
+			(long long int)(endIndex - startIndex + 1));
 	/* Go through every possible read in the genome using the index */
 	for(curIndex=startIndex, nextIndex=startIndex, counter=0, numDifferent=0;
 			curIndex <= endIndex;
@@ -153,22 +152,131 @@ void PrintDistribution(RGIndex *index,
 		nextIndex += numForward;
 		counter += numForward;
 
-		/* Print the number of matches to file */
-		assert(numTmpFiles == 2); /* One for + strand, one for - strand */
-		fprintf(tmpFPs[0], "%s\t%lld\n",
-				read,
-				(long long int)(numForward+numReverse));
-		fprintf(tmpFPs[1], "%s\t%lld\n",
-				reverseRead,
-				(long long int)(numForward+numReverse));
+		/* Reallocate memory */
+		numReads+=2; /* One for both strands */
+		reads = realloc(reads, sizeof(char*)*numReads);
+		if(NULL==reads) {
+			PrintError(FnName,
+					"reads",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		reads[numReads-2] = malloc(sizeof(char)*(index->totalLength+1));
+		if(NULL==reads[numReads-2]) {
+			PrintError(FnName,
+					"reads[numReads-1]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		reads[numReads-1] = malloc(sizeof(char)*(index->totalLength+1));
+		if(NULL==reads[numReads-1]) {
+			PrintError(FnName,
+					"reads[numReads-1]",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		readCounts = realloc(readCounts, sizeof(int64_t)*numReads);
+		if(NULL==readCounts) {
+			PrintError(FnName,
+					"readCounts",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Copy over */
+		strcpy(reads[numReads-2], read);
+		strcpy(reads[numReads-1], reverseRead);
+		readCounts[numReads-1] = numForward+numReverse;
+		readCounts[numReads-2] = numForward+numReverse;
+
 	}
 	fprintf(stderr, "\r%10lld\n", 
-			(long long int)(curIndex-startIndex));
+			(long long int)(curIndex-startIndex+1));
 
-	/* Reverse the "reverse" strand file */
-	ReverseFile(&tmpFPs[1], &tmpFileNames[1], tmpDir);
+	/* Allocate memory for threads */
+	threads=malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError(FnName,
+				"threads",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate memory to pass data to threads */
+	data=malloc(sizeof(ThreadData)*numThreads);
+	if(NULL==data) {
+		PrintError(FnName,
+				"data",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	for(i=0;i<numThreads;i++) {
+		data[i].reads = reads;
+		data[i].readCounts = readCounts;
+		data[i].low = i*(numReads/numThreads);
+		data[i].high = (i+1)*(numReads/numThreads)-1;
+		data[i].tmpDir = tmpDir;
+		data[i].readLength = index->totalLength;
+		data[i].showPercentComplete = 0;
+	}
+	data[0].low = 0;
+	data[numThreads-1].high = numReads-1;
+	data[numThreads-1].showPercentComplete = 1;
+
+	/* Open threads */
+	for(i=0;i<numThreads;i++) {
+		/* Start thread */
+		errCode = pthread_create(&threads[i], /* thread struct */
+				NULL, /* default thread attributes */
+				MergeSortReads, /* start routine */
+				&data[i]); /* data to routine */
+		if(0!=errCode) {
+			PrintError(FnName,
+					"pthread_create: errCode",
+					"Could not start thread",
+					Exit,
+					ThreadError);
+		}
+	}
+	/* Wait for threads to return */
+	for(i=0;i<numThreads;i++) {
+		/* Wait for the given thread to return */
+		errCode = pthread_join(threads[i],
+				&status);
+		/* Check the return code of the thread */
+		if(0!=errCode) {
+			PrintError(FnName,
+					"pthread_join: errCode",
+					"Thread returned an error",
+					Exit,
+					ThreadError);
+		}
+	}
+
+	/* Merge results from the sorts */
+	fprintf(stderr, "\rMerging sorts from threads...    \n");
+	for(j=1;j<numThreads;j=j*2) {
+		for(i=0;i<numThreads;i+=2*j) {
+			MergeHelper(reads,
+					readCounts,
+					data[i].low,
+					data[i+j].low-1,
+					data[i+2*j-1].high,
+					tmpDir,
+					index->totalLength);
+		}
+	}
+	fprintf(stderr, "Sorting complete.\n");
+	fprintf(stderr, "%s", BREAK_LINE);
 
 	/* Open the output file */
+	fprintf(stderr, "Outputting to %s.\n",
+			distributionFileName);
 	if(!(fp = fopen(distributionFileName, "w"))) {
 		PrintError(FnName,
 				distributionFileName,
@@ -177,19 +285,25 @@ void PrintDistribution(RGIndex *index,
 				OpenFileError);
 	}
 
-	/* Merge the files in to the output */
-	MergeFiles(tmpFPs[0],
-			tmpFPs[1],
-			fp);
+	/* Print */
+	for(i=0;i<numReads;i++) {
+		fprintf(fp, "%s\t%lld\n",
+				reads[i],
+				(long long int)readCounts[i]);
+	}
 
 	/* Close the file */
 	fclose(fp);
 
-	/* Close temporary files */
-	for(i=0;i<numTmpFiles;i++) {
-		CloseTmpFile(&tmpFPs[i],
-				&tmpFileNames[i]);
+	/* Free memory */
+	for(i=0;i<numReads;i++) {
+		free(reads[i]);
+		reads[i]=NULL;
 	}
+	free(reads);
+	reads=NULL;
+	free(readCounts);
+	readCounts=NULL;
 }
 
 /* Get the matches for the chr/pos */
@@ -325,119 +439,305 @@ void GetMatchesFromChrPos(RGIndex *index,
 	RGRangesFree(&ranges);
 }
 
-void ReverseFile(FILE **fp,
-		char **fileName,
-		char *tmpDir)
+void *MergeSortReads(void *arg)
 {
-	char *FnName="ReverseFile";
-	FILE *tmpFP=NULL;
-	char *tmpFileName=NULL;
-	char read[SEQUENCE_LENGTH]="\0";
-	long long int count=0;
+	ThreadData *data = (ThreadData*)arg;
+	char **reads = data->reads;
+	int64_t *readCounts = data->readCounts;
+	int64_t low = data->low;
+	int64_t high = data->high;
+	char *tmpDir = data->tmpDir;
+	int readLength = data->readLength;
 
-	/* Move to the beginning of the file to be read */
-	fseek((*fp), 0, SEEK_SET);
-
-	/* Open a tmp file */
-	tmpFP=OpenTmpFile(tmpDir,
-			&tmpFileName);
-
-	/* Write to tmp file */
-	while(0 < fscanf((*fp), 
-				"%s %lld",
-				read,
-				&count)) {
-		if(0 > fprintf(tmpFP, "%s\t%lld\n",
-					read,
-					count)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write read or count",
-					Exit,
-					WriteFileError);
-		}
+	double curPercentComplete = 0.0;
+	/* Call helper */
+	if(data->showPercentComplete == 1) {
+		fprintf(stderr, "\r%3.2lf percent complete", 0.0);
 	}
 
-	/* Close the tmp file that we read in from */
-	CloseTmpFile(fp, fileName); 
+	MergeSortReadsHelper(reads,
+			readCounts,
+			low,
+			high,
+			low,
+			high - low,
+			data->showPercentComplete,
+			&curPercentComplete,
+			tmpDir,
+			readLength);
+	if(data->showPercentComplete == 1) {
+		fprintf(stderr, "\r");
+		fprintf(stderr, "thread %3.2lf percent complete", 100.0);
+	}
 
-	/* Now adjust memory pointers */
-	(*fp) = tmpFP;
-	(*fileName) = tmpFileName;
-	tmpFP = NULL;
-	tmpFileName = NULL;
+	return NULL;
 }
 
-void MergeFiles(FILE *fpIn1,
-		FILE *fpIn2,
-		FILE *fpOut)
+void MergeSortReadsHelper(char **reads,
+		int64_t *readCounts,
+		int64_t low,
+		int64_t high,
+		int64_t startLow,
+		int64_t total,
+		int showPercentComplete,
+		double *curPercentComplete,
+		char *tmpDir,
+		int readLength)
 {
-	char read1[SEQUENCE_LENGTH]="\0";
-	char read2[SEQUENCE_LENGTH]="\0";
-	long long int count1, count2;
-	int eof1=0, eof2=0;
-	int getCount1=1, getCount2=1;
+	int64_t mid = (low + high)/2;
+	if(low >= high) {
 
-	/* Move to the beginning of the files */
-	fseek(fpIn1, 0, SEEK_SET);
-	fseek(fpIn2, 0, SEEK_SET);
-
-	while(eof1 != 1 || 
-			eof2 != 1) {
-		/* Get data */
-		if(getCount1 == 1 && eof1 != 1) {
-			if(EOF == fscanf(fpIn1, 
-						"%s %lld",
-						read1,
-						&count1)) {
-				eof1 = 1;
+		if(showPercentComplete == 1) {
+			assert(NULL!=curPercentComplete);
+			if((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
+				while((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
+					(*curPercentComplete) += BINDEXDIST_SORT_ROTATE_INC;
+				}
+				PrintPercentCompleteShort((*curPercentComplete));
 			}
 		}
-		if(getCount2 == 1 && eof2 != 1) {
-			if(EOF == fscanf(fpIn2, 
-						"%s %lld",
-						read2,
-						&count2)) {
-				eof2 = 1;
-			}
+		return;
+	}
+
+	/* Sort recursively */
+	MergeSortReadsHelper(reads,
+			readCounts,
+			low,
+			mid,
+			startLow, 
+			total,
+			showPercentComplete,
+			curPercentComplete,
+			tmpDir,
+			readLength);
+	MergeSortReadsHelper(reads,
+			readCounts,
+			mid+1,
+			high,
+			startLow, 
+			total,
+			showPercentComplete,
+			curPercentComplete,
+			tmpDir,
+			readLength);
+
+	/* Merge the two lists */
+	MergeHelper(reads,
+			readCounts,
+			low,
+			mid,
+			high,
+			tmpDir,
+			readLength);
+}
+
+void MergeHelper(char **reads,
+		int64_t *readCounts,
+		int64_t low,
+		int64_t mid,
+		int64_t high,
+		char *tmpDir,
+		int readLength)
+{
+	char *FnName = "MergeHelper";
+	int64_t i=0;
+	char **tmpReads=NULL;
+	int64_t *tmpReadCounts=NULL;
+	int64_t startUpper, startLower, endUpper, endLower;
+	int64_t ctr=0;
+	FILE *tmpLowerFP=NULL;
+	FILE *tmpUpperFP=NULL;
+	char *tmpLowerFileName=NULL;
+	char *tmpUpperFileName=NULL;
+	char tmpLowerRead[SEQUENCE_LENGTH]="\0";
+	char tmpUpperRead[SEQUENCE_LENGTH]="\0";
+	long long int tmpLowerReadCount=0;
+	long long int tmpUpperReadCount=0;
+	int eofLower, eofUpper;
+
+	/* Merge the two lists */
+	/* Since we want to keep space requirement small, use an upper bound on memory,
+	 * so that we use tmp files when memory requirements become to large */
+	if( (high-low+1)*(sizeof(int64_t) + sizeof(char*)) <= ONE_GIGABYTE) {
+
+		/* Use memory */
+		tmpReads = malloc(sizeof(char*)*(high-low+1));
+		if(NULL == tmpReads) {
+			PrintError(FnName,
+					"tmpReads",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
 		}
-		if(eof1 != 1 && eof2 != 1) {
-			/* Compare */
-			int cmp = strcmp(read1, read2);
-			if(cmp == 0) {
-				fprintf(fpOut, "%s\t%lld\n",
-						read1,
-						(count1 + count2));
-				getCount1 = getCount2 = 1;
-			}
-			else if(cmp < 0) {
-				fprintf(fpOut, "%s\t%lld\n",
-						read1,
-						count1); 
-				getCount1 = 1;
-				getCount2 = 0;
+		tmpReadCounts = malloc(sizeof(int64_t)*(high-low+1));
+		if(NULL == tmpReadCounts) {
+			PrintError(FnName,
+					"tmpReadCounts",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Merge */
+		startLower = low;
+		endLower = mid;
+		startUpper = mid+1;
+		endUpper = high;
+		ctr=0;
+		while( (startLower <= endLower) && (startUpper <= endUpper) ) {
+			if(strcmp(reads[startLower], reads[startUpper]) <= 0) {
+				tmpReads[ctr] = reads[startLower];
+				tmpReadCounts[ctr] = readCounts[startLower];
+				startLower++;
 			}
 			else {
-				fprintf(fpOut, "%s\t%lld\n",
-						read2,
-						count2); 
-				getCount1 = 0;
-				getCount2 = 1;
+				tmpReads[ctr] = reads[startUpper];
+				tmpReadCounts[ctr] = readCounts[startUpper];
+				startUpper++;
+			}
+			ctr++;
+		}
+		while(startLower <= endLower) {
+			tmpReads[ctr] = reads[startLower];
+			tmpReadCounts[ctr] = readCounts[startLower];
+			startLower++;
+			ctr++;
+		}
+		while(startUpper <= endUpper) {
+			tmpReads[ctr] = reads[startUpper];
+			tmpReadCounts[ctr] = readCounts[startUpper];
+			startUpper++;
+			ctr++;
+		}
+		/* Copy back */
+		for(i=low, ctr=0;
+				i<=high;
+				i++, ctr++) {
+			reads[i] = tmpReads[ctr];
+			readCounts[i] = tmpReadCounts[ctr];
+		}
+
+		/* Free memory */
+		free(tmpReads);
+		tmpReads=NULL;
+		free(tmpReadCounts);
+		tmpReadCounts=NULL;
+	}
+	else {
+		/* Use tmp files */
+		assert(sizeof(int64_t) == sizeof(long long int));
+
+		/* Open tmp files */
+		tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
+		tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
+
+		/* Print to tmp files */
+		for(i=low;i<=mid;i++) {
+			if(0 > fprintf(tmpLowerFP, "%s\t%lld\n", 
+						reads[i],
+						(long long int)readCounts[i])) { 
+				PrintError(FnName,
+						NULL,
+						"Could not write to tmp lower file",
+						Exit,
+						WriteFileError);
 			}
 		}
-		else if(eof1 != 1 && eof2 != 1) {
-			fprintf(fpOut, "%s\t%lld\n",
-					read1,
-					count1); 
-			getCount1 = 1;
-			getCount2 = 0;
+		for(i=mid+1;i<=high;i++) {
+			if(0 > fprintf(tmpUpperFP, "%s\t%lld\n",
+						reads[i],
+						(long long int)readCounts[i])) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to tmp upper file",
+						Exit,
+						WriteFileError);
+			}
 		}
-		else if(eof1 == 1 && eof2 != 1) {
-			fprintf(fpOut, "%s\t%lld\n",
-					read2,
-					count2); 
-			getCount1 = 0;
-			getCount2 = 1;
+
+		/* Move to beginning of the files */
+		fseek(tmpLowerFP, 0 , SEEK_SET);
+		fseek(tmpUpperFP, 0 , SEEK_SET);
+
+		/* Merge tmp files back into index */
+		/* Get first chr/pos */
+		if(0 > fscanf(tmpLowerFP, "%s %lld\n",
+					tmpLowerRead,
+					&tmpLowerReadCount)) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in tmp lower",
+					Exit,
+					ReadFileError);
 		}
+		if(0 > fscanf(tmpUpperFP, "%s %lld\n",
+					tmpUpperRead,
+					&tmpUpperReadCount)) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in tmp upper",
+					Exit,
+					ReadFileError);
+		}
+		for(i=low, ctr=0, eofLower = 0, eofUpper = 0;
+				i<=high &&
+				eofLower == 0 &&
+				eofUpper == 0;
+				i++, ctr++) {
+			if(strcmp(tmpLowerRead, tmpUpperRead) <= 0) {
+				/* Copy lower */
+				strcpy(reads[i], tmpLowerRead);
+				readCounts[i] = tmpLowerReadCount;
+				/* Get new tmpLower */
+				if(0 > fscanf(tmpLowerFP, "%s %lld\n",
+							tmpLowerRead,
+							&tmpLowerReadCount)) {
+					eofLower = 1;
+				}
+			}
+			else {
+				/* Copy upper */
+				strcpy(reads[i], tmpUpperRead);
+				readCounts[i] = tmpUpperReadCount;
+				/* Get new tmpUpper */
+				if(0 > fscanf(tmpUpperFP, "%s %lld\n",
+							tmpUpperRead,
+							&tmpUpperReadCount)) {
+					eofUpper = 1;
+				}
+			}
+		}
+		while(eofLower != 1) {
+			/* Copy lower */
+			strcpy(reads[i], tmpLowerRead);
+			readCounts[i] = tmpLowerReadCount;
+			/* Get new tmpLower */
+			if(0 > fscanf(tmpLowerFP, "%s %lld\n",
+						tmpLowerRead,
+						&tmpLowerReadCount)) {
+				eofLower = 1;
+			}
+			i++;
+			ctr++;
+		}
+		while(eofUpper != 1) {
+			/* Copy upper */
+			strcpy(reads[i], tmpUpperRead);
+			readCounts[i] = tmpUpperReadCount;
+			/* Get new tmpUpper */
+			if(0 > fscanf(tmpUpperFP, "%s %lld\n",
+						tmpUpperRead,
+						&tmpUpperReadCount)) {
+				eofUpper = 1;
+			}
+			i++;
+			ctr++;
+		}
+		assert(ctr == (high - low + 1));
+		assert(i == high + 1);
+
+		/* Close tmp files */
+		CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
+		CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
 	}
 }
