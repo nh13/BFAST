@@ -23,13 +23,17 @@ int main(int argc, char *argv[])
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
 	char distributionFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
+	char tmpDir[MAX_FILENAME_LENGTH]="\0";
+	int numMismatches = 0;
 
-	if(argc == 3) {
+	if(argc == 5) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
+		numMismatches = atoi(argv[3]);
+		strcpy(tmpDir, argv[4]);
 
 		/* Create the distribution file name */
 		strcpy(distributionFileName, indexFileName);
@@ -54,7 +58,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 		PrintDistribution(&index, 
 				&rg, 
-				distributionFileName);
+				distributionFileName,
+				numMismatches,
+				tmpDir);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -71,6 +77,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: bindexdist [OPTIONS]\n");
 		fprintf(stderr, "\t\t<reference genome file name>\n");
 		fprintf(stderr, "\t\t<index file name>\n");
+		fprintf(stderr, "\t\t<number of mismatches>\n");
+		fprintf(stderr, "\t\t<tmp file directory>\n");
 	}
 
 	return 0;
@@ -78,7 +86,9 @@ int main(int argc, char *argv[])
 
 void PrintDistribution(RGIndex *index, 
 		RGBinary *rg,
-		char *distributionFileName)
+		char *distributionFileName,
+		int numMismatches,
+		char *tmpDir)
 {
 	char *FnName = "PrintDistribution";
 	FILE *fp;
@@ -89,18 +99,35 @@ void PrintDistribution(RGIndex *index,
 	int64_t numDifferent = 0;
 	int64_t numForward, numReverse;
 	char read[SEQUENCE_LENGTH] = "\0";
+	char reverseRead[SEQUENCE_LENGTH] = "\0";
+	int numTmpFiles=2;
+	int i;
+	char **tmpFileNames;
+	FILE **tmpFPs;
 
-	/* Open the file */
-	if(!(fp = fopen(distributionFileName, "w"))) {
+	/* Allocate memory for temporary file pointer and names */
+	tmpFileNames = malloc(sizeof(char*)*numTmpFiles);
+	if(NULL==tmpFileNames) {
 		PrintError(FnName,
-				distributionFileName,
-				"Could not open file for writing",
+				"tmpFileNames",
+				"Could not allocate memory",
 				Exit,
-				OpenFileError);
+				MallocMemory);
+	}
+	tmpFPs = malloc(sizeof(FILE*)*numTmpFiles);
+	if(NULL==tmpFPs) {
+		PrintError(FnName,
+				"tmpFPs",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
 
-	/* Print header */
-	fprintf(fp, "Read\tTotal\tForward\tReverse\n");
+	/* Open temporary files */
+	for(i=0;i<numTmpFiles;i++) {
+		tmpFPs[i] = OpenTmpFile(tmpDir,
+				&tmpFileNames[i]);
+	}
 
 	/* Go through every possible read in the genome using the index */
 	for(curIndex=startIndex, nextIndex=startIndex, counter=0, numDifferent=0;
@@ -116,26 +143,53 @@ void PrintDistribution(RGIndex *index,
 				rg,
 				index->chromosomes[curIndex],
 				index->positions[curIndex],
+				numMismatches,
 				&numForward, 
 				&numReverse,
-				read);
+				read,
+				reverseRead);
 		assert(numForward > 0);
 
 		nextIndex += numForward;
 		counter += numForward;
 
 		/* Print the number of matches to file */
-		fprintf(fp, "%s\t%lld\t%lld\t%lld\n",
+		assert(numTmpFiles == 2); /* One for + strand, one for - strand */
+		fprintf(tmpFPs[0], "%s\t%lld\n",
 				read,
-				(long long int)(numForward+numReverse),
-				(long long int)numForward,
-				(long long int)numReverse);
+				(long long int)(numForward+numReverse));
+		fprintf(tmpFPs[1], "%s\t%lld\n",
+				reverseRead,
+				(long long int)(numForward+numReverse));
 	}
 	fprintf(stderr, "\r%10lld\n", 
 			(long long int)(curIndex-startIndex));
 
+	/* Reverse the "reverse" strand file */
+	ReverseFile(&tmpFPs[1], &tmpFileNames[1], tmpDir);
+
+	/* Open the output file */
+	if(!(fp = fopen(distributionFileName, "w"))) {
+		PrintError(FnName,
+				distributionFileName,
+				"Could not open file for writing",
+				Exit,
+				OpenFileError);
+	}
+
+	/* Merge the files in to the output */
+	MergeFiles(tmpFPs[0],
+			tmpFPs[1],
+			fp);
+
 	/* Close the file */
 	fclose(fp);
+
+	/* Close temporary files */
+	for(i=0;i<numTmpFiles;i++) {
+		CloseTmpFile(&tmpFPs[i],
+				&tmpFileNames[i]);
+	}
 }
 
 /* Get the matches for the chr/pos */
@@ -143,12 +197,13 @@ void GetMatchesFromChrPos(RGIndex *index,
 		RGBinary *rg,
 		uint32_t curChr,
 		uint32_t curPos,
+		int numMismatches,
 		int64_t *numForward,
 		int64_t *numReverse, 
-		char *read)
+		char *read,
+		char *reverseRead)
 {
 	char *FnName = "GetMatchesFromChrPos";
-	char reverseRead[SEQUENCE_LENGTH]="\0";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
 	int i;
@@ -195,6 +250,31 @@ void GetMatchesFromChrPos(RGIndex *index,
 			index->gaps,
 			index->totalLength,
 			&reads);
+
+	if(numMismatches > 0) {
+		/* Generate reads with the necessary mismatches for 
+		 *          * both the forward and reverse strands */
+		RGReadsGenerateMismatches(reverseRead,
+				readLength,
+				REVERSE,
+				0,
+				index->numTiles,
+				index->tileLengths,
+				index->gaps,
+				index->totalLength,
+				numMismatches,
+				&reads);
+		RGReadsGenerateMismatches(read,
+				readLength,
+				FORWARD,
+				0,
+				index->numTiles,
+				index->tileLengths,
+				index->gaps,
+				index->totalLength,
+				numMismatches,
+				&reads);
+	}
 
 	for(i=0;i<reads.numReads;i++) {
 		/* Get the matches for the read */
@@ -243,4 +323,121 @@ void GetMatchesFromChrPos(RGIndex *index,
 	/* Free memory */
 	RGReadsFree(&reads);
 	RGRangesFree(&ranges);
+}
+
+void ReverseFile(FILE **fp,
+		char **fileName,
+		char *tmpDir)
+{
+	char *FnName="ReverseFile";
+	FILE *tmpFP=NULL;
+	char *tmpFileName=NULL;
+	char read[SEQUENCE_LENGTH]="\0";
+	long long int count=0;
+
+	/* Move to the beginning of the file to be read */
+	fseek((*fp), 0, SEEK_SET);
+
+	/* Open a tmp file */
+	tmpFP=OpenTmpFile(tmpDir,
+			&tmpFileName);
+
+	/* Write to tmp file */
+	while(0 < fscanf((*fp), 
+				"%s %lld",
+				read,
+				&count)) {
+		if(0 > fprintf(tmpFP, "%s\t%lld\n",
+					read,
+					count)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write read or count",
+					Exit,
+					WriteFileError);
+		}
+	}
+
+	/* Close the tmp file that we read in from */
+	CloseTmpFile(fp, fileName); 
+
+	/* Now adjust memory pointers */
+	(*fp) = tmpFP;
+	(*fileName) = tmpFileName;
+	tmpFP = NULL;
+	tmpFileName = NULL;
+}
+
+void MergeFiles(FILE *fpIn1,
+		FILE *fpIn2,
+		FILE *fpOut)
+{
+	char read1[SEQUENCE_LENGTH]="\0";
+	char read2[SEQUENCE_LENGTH]="\0";
+	long long int count1, count2;
+	int eof1=0, eof2=0;
+	int getCount1=1, getCount2=1;
+
+	/* Move to the beginning of the files */
+	fseek(fpIn1, 0, SEEK_SET);
+	fseek(fpIn2, 0, SEEK_SET);
+
+	while(eof1 != 1 || 
+			eof2 != 1) {
+		/* Get data */
+		if(getCount1 == 1 && eof1 != 1) {
+			if(EOF == fscanf(fpIn1, 
+						"%s %lld",
+						read1,
+						&count1)) {
+				eof1 = 1;
+			}
+		}
+		if(getCount2 == 1 && eof2 != 1) {
+			if(EOF == fscanf(fpIn2, 
+						"%s %lld",
+						read2,
+						&count2)) {
+				eof2 = 1;
+			}
+		}
+		if(eof1 != 1 && eof2 != 1) {
+			/* Compare */
+			int cmp = strcmp(read1, read2);
+			if(cmp == 0) {
+				fprintf(fpOut, "%s\t%lld\n",
+						read1,
+						(count1 + count2));
+				getCount1 = getCount2 = 1;
+			}
+			else if(cmp < 0) {
+				fprintf(fpOut, "%s\t%lld\n",
+						read1,
+						count1); 
+				getCount1 = 1;
+				getCount2 = 0;
+			}
+			else {
+				fprintf(fpOut, "%s\t%lld\n",
+						read2,
+						count2); 
+				getCount1 = 0;
+				getCount2 = 1;
+			}
+		}
+		else if(eof1 != 1 && eof2 != 1) {
+			fprintf(fpOut, "%s\t%lld\n",
+					read1,
+					count1); 
+			getCount1 = 1;
+			getCount2 = 0;
+		}
+		else if(eof1 == 1 && eof2 != 1) {
+			fprintf(fpOut, "%s\t%lld\n",
+					read2,
+					count2); 
+			getCount1 = 0;
+			getCount2 = 1;
+		}
+	}
 }

@@ -24,7 +24,9 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void PrintDistribution(RGIndex*, RGBinary*, char*);
-void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int64_t*, int64_t*, char*);
+void PrintDistribution(RGIndex*, RGBinary*, char*, int, char*);
+void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*, char*, char*);
+void ReverseFile(FILE**, char**, char*);
+void MergeFiles(FILE*, FILE*, FILE*);
 
 #endif
