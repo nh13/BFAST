@@ -11,7 +11,7 @@
 #define DEFAULT_OUTPUT_ID "OutputID"
 #define DEFAULT_OUTPUT_DIR "\0"
 #define BREAK_LINE "************************************************************\n"
-#define SEQUENCE_LENGTH 512
+#define SEQUENCE_LENGTH 2048
 #define SEQUENCE_NAME_LENGTH 4028
 /* 0 - quick sort in place
  * 1 - merge sort with tmp file I/O (not fully debugged) */

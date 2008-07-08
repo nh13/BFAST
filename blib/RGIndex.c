@@ -38,11 +38,11 @@ void RGIndexCreate(RGIndex *index,
 	int32_t curStartPos=-1;
 	int32_t curEndPos=-1;
 	int32_t curChr=-1;
-	int32_t insert, i, curTilePos, curTile, curReferencePos;
+	int32_t i;
 	int32_t chrIndex = 0;
-	char reference[SEQUENCE_LENGTH]="\0";
-	int returnReferenceLength;
-	int returnPosition;
+	int numConsecutivePassed = 0;
+	char curBase = '\0';
+
 
 	/* Initialize the index */
 	RGIndexInitialize(index);
@@ -98,6 +98,7 @@ void RGIndexCreate(RGIndex *index,
 
 	assert(index->numTiles > 0);
 	assert(index->tileLengths != NULL);
+	assert(index->totalLength < SEQUENCE_LENGTH);
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Currently on [chr,pos]:\n");
@@ -125,6 +126,9 @@ void RGIndexCreate(RGIndex *index,
 			curEndPos = rg->chromosomes[chrIndex].endPos;
 		}
 
+		numConsecutivePassed = 0;
+		curBase = '\0';
+
 		/* For each position */
 		for(curPos=curStartPos;curPos<=curEndPos;curPos++) {
 			if(VERBOSE >= 0) {
@@ -135,69 +139,53 @@ void RGIndexCreate(RGIndex *index,
 				}
 			}
 
-			/* Make sure that there is enough sequence */
-			if(index->totalLength + curPos - 1 <= rg->chromosomes[chrIndex].endPos) {
-				/* Get the sequence for the forward strand only */
-				RGBinaryGetSequence(rg,
-						curChr,
-						curPos,
-						FORWARD,
-						0,
-						reference,
-						index->totalLength,
-						&returnReferenceLength,
-						&returnPosition);
-				/* Only proceed if the sequence was successfully retrieved.  */
-				if(returnReferenceLength == index->totalLength &&
-						returnPosition == curPos) {
-					/* Check the reference */
-					insert = 1;
-					for(curReferencePos=0, curTile = 0;curTile < index->numTiles && 1==insert;curTile++) {
-						for(curTilePos=0;curTilePos < index->tileLengths[curTile] && 1==insert;curTilePos++) {
-							/* Check if there are any repeats in any of the tiles */
-							if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(reference[curReferencePos])) {
-								insert = 0;
-							}
-							else if(0==includeNs && 1==RGBinaryIsBaseN(reference[curReferencePos])) {
-								insert = 0;
-							}
-							/* Update position in the read*/
-							curReferencePos++;
-						}   
-						if(curTile < index->numTiles-1) {
-							/* Skip over the gap */
-							curReferencePos += index->gaps[curTile];
-						}   
-					}   
+			/* Get the current base */
+			curBase = RGBinaryGetBase(rg,
+					curChr,
+					curPos);
+			/* Check if the current base passes */
+			if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(curBase)) {
+				/* Did not pass, start over */
+				numConsecutivePassed = 0;
+			}
+			else if(0==includeNs && 1==RGBinaryIsBaseN(curBase)) {
+				/* Did not pass, start over */
+				numConsecutivePassed = 0;
+			}
+			else {
+				/* Passed, so update the number of consecutive bases that have passed */
+				numConsecutivePassed++;
+			}
 
-					/* Insert if desired */
-					if(1==insert) {
-						/* Insert */
-						index->length++;
+			/* See if we should insert into the index.  We should have enough consecutive bases. */
+			if(numConsecutivePassed == index->totalLength) {
+				/* Insert */
+				index->length++;
 
-						/* Allocate memory */
-						index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
-						if(NULL == index->positions) {
-							PrintError("RGBinaryCreate",
-									"index->positions",
-									"Could not reallocate memory",
-									Exit,
-									ReallocMemory);
-						}
-						index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
-						if(NULL == index->chromosomes) {
-							PrintError("RGBinaryCreate",
-									"index->chromosomes",
-									"Could not reallocate memory",
-									Exit,
-									ReallocMemory);
-						}
-
-						/* Copy over */
-						index->positions[index->length-1] = curPos;
-						index->chromosomes[index->length-1] = curChr;
-					}
+				/* Reallocate memory */
+				index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
+				if(NULL == index->positions) {
+					PrintError("RGBinaryCreate",
+							"index->positions",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
 				}
+				index->chromosomes = realloc(index->chromosomes, sizeof(uint8_t)*index->length);
+				if(NULL == index->chromosomes) {
+					PrintError("RGBinaryCreate",
+							"index->chromosomes",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
+
+				/* Copy over.  Remember that we are at the end of the read. */
+				index->positions[index->length-1] = curPos - index->totalLength + 1;
+				index->chromosomes[index->length-1] = curChr;
+
+				/* Reinitialize the number consecutive passed to one less than required */
+				numConsecutivePassed = index->totalLength-1;
 			}
 		}
 	}
@@ -1608,6 +1596,7 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 {
 	char *FnName = "RGIndexPrintInfo";
 	int64_t i;
+	int32_t tileLength, gapLength;
 	RGIndex index;
 
 	if(binaryInput == 0) {
@@ -1710,20 +1699,27 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 			(long long int)index.hashLength);
 	fprintf(stderr, "number of tiles:\t%d\n",
 			index.numTiles);
-	fprintf(stderr, "tiles - total length:\t%d\n",
+	fprintf(stderr, "total length:\t\t%d\n",
 			index.totalLength);
+	tileLength = gapLength = 0;
 	for(i=0;i<index.numTiles;i++) {
 		/* Print tile length */
 		fprintf(stderr, "tile [%lld] length:\t%d\n",
 				(long long int)i,
 				index.tileLengths[i]);
+		tileLength += index.tileLengths[i];
 		/* Print the gap */
 		if(i<index.numTiles-1) {
 			fprintf(stderr, "gap  [%lld] length:\t%d\n",
 					(long long int)i,
 					index.gaps[i]);
+			gapLength += index.gaps[i];
 		}
 	}
+	fprintf(stderr, "tile length:\t\t%d\n",
+			tileLength);
+	fprintf(stderr, "gap length:\t\t%d\n",
+			gapLength);
 }
 
 /* TODO */
@@ -2309,27 +2305,27 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 
 			/* Old code, works with any size alphabet */
 			/*
-			switch(readBase) {
-				case 'a':
-					break;
-				case 'c':
-					hashIndex += pow(ALPHABET_SIZE, cur);
-					break;
-				case 'g':
-					hashIndex += pow(ALPHABET_SIZE, cur)*2;
-					break;
-				case 't':
-					hashIndex += pow(ALPHABET_SIZE, cur)*3;
-					break;
-				default:
-					PrintError(FnName,
-							"readBase",
-							"Could not understand base",
-							Exit,
-							OutOfRange);
-					break;
-			}
-			*/
+			   switch(readBase) {
+			   case 'a':
+			   break;
+			   case 'c':
+			   hashIndex += pow(ALPHABET_SIZE, cur);
+			   break;
+			   case 'g':
+			   hashIndex += pow(ALPHABET_SIZE, cur)*2;
+			   break;
+			   case 't':
+			   hashIndex += pow(ALPHABET_SIZE, cur)*3;
+			   break;
+			   default:
+			   PrintError(FnName,
+			   "readBase",
+			   "Could not understand base",
+			   Exit,
+			   OutOfRange);
+			   break;
+			   }
+			   */
 
 			/* Only works with a four letter alphabet */
 			hashIndex = hashIndex << 2;

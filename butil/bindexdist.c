@@ -14,6 +14,7 @@
 #include "../blib/RGReads.h"
 #include "bindexdist.h"
 
+#define Name "bindexdist"
 #define BINDEXDIST_ROTATE_NUM 1000000
 
 int main(int argc, char *argv[]) 
@@ -41,7 +42,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Reading in index from %s.\n",
 				indexFileName);
 		if(!(fp=fopen(indexFileName, "rb"))) {
-			PrintError("bfixhash",
+			PrintError(Name,
 					indexFileName,
 					"Could not open file for reading",
 					Exit,
@@ -79,7 +80,7 @@ void PrintDistribution(RGIndex *index,
 		RGBinary *rg,
 		char *distributionFileName)
 {
-	char *FnName = "PrintHistogram";
+	char *FnName = "PrintDistribution";
 	FILE *fp;
 	int64_t startIndex = 0;
 	int64_t endIndex = index->length-1;

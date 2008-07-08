@@ -14,6 +14,7 @@
 #include "../blib/RGReads.h"
 #include "bindexhist.h"
 
+#define Name "bindexhist"
 #define BINDEXHIST_ROTATE_NUM 1000000
 #define NUM_MISMATCHES_START 0
 #define NUM_MISMATCHES_END 4
@@ -49,7 +50,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Reading in index from %s.\n",
 				indexFileName);
 		if(!(fp=fopen(indexFileName, "rb"))) {
-			PrintError("bfixhash",
+			PrintError(Name,
 					indexFileName,
 					"Could not open file for reading",
 					Exit,
