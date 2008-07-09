@@ -4,13 +4,13 @@
 #include <math.h>
 #include <sys/types.h>
 #include <string.h>
+#include <time.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "RGMatch.h"
 #include "RGMatches.h"
 
 /* TODO */
-/* Append to to the end of the matches */
 int32_t RGMatchesRead(FILE *fp,
 		RGMatches *m,
 		int32_t pairedEnd,
@@ -75,6 +75,14 @@ int32_t RGMatchesRead(FILE *fp,
 						ReadFileError);
 			}
 		}
+		/* Check paired end */
+		if(m->pairedEnd != pairedEnd) {
+			PrintError(FnName,
+					"pairedEnd",
+					"Error.  Paired end did not match",
+					Exit,
+					OutOfRange);
+		}
 
 		/* Read read name length */
 		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp)!=1) {
@@ -119,6 +127,9 @@ int32_t RGMatchesRead(FILE *fp,
 				binaryInput);
 	}
 
+	/* Check m */
+	RGMatchesCheck(m);
+
 	return 1;
 }
 
@@ -130,9 +141,11 @@ void RGMatchesPrint(FILE *fp,
 {
 	char *FnName = "RGMatchesPrint";
 	assert(fp!=NULL);
-	assert(m->readNameLength > 0);
-	/* Print the matches to the output file */
 
+	/* Check m */
+	RGMatchesCheck(m);
+
+	/* Print the matches to the output file */
 	if(binaryOutput == 0) {
 		/* Print paired end, read name length, and read name */
 		if(0 > fprintf(fp, "%d %d %s\n",
@@ -176,14 +189,12 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 		int32_t maxNumMatches)
 {
 	RGMatchRemoveDuplicates(&m->matchOne, maxNumMatches);
-	RGMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
-}
+	if(1==m->pairedEnd) {
+		RGMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
+	}
 
-/* TODO */
-void RGMatchesQuickSort(RGMatches *m) 
-{
-	RGMatchQuickSort(&m->matchOne, 0, m->matchOne.numEntries-1);
-	RGMatchQuickSort(&m->matchTwo, 0, m->matchTwo.numEntries-1);
+	/* Check m */
+	RGMatchesCheck(m);
 }
 
 /* TODO */
@@ -241,13 +252,10 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 							OutOfRange);
 				}
 				/* Append temp matches to matches */
-				assert(tempMatches.matchOne.readLength > 0);
-				assert(tempMatches.matchTwo.readLength > 0);
 				RGMatchesAppend(&tempMatches, &matches);
-				assert(matches.matchOne.readLength > 0);
-				assert(matches.matchTwo.readLength > 0);
 			}
 
+			/* Free temp matches */
 			RGMatchesFree(&tempMatches);
 		}
 		/* We must finish all at the same time */
@@ -259,11 +267,9 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 
 			/* Print to output file */
 			if(matches.matchOne.numEntries > 0 ||
-					matches.matchTwo.numEntries > 0) {
+					(1==pairedEnd && matches.matchTwo.numEntries > 0)) {
 				numMatches++;
 			}
-			assert(matches.matchOne.readLength > 0);
-			assert(matches.matchTwo.readLength > 0);
 			RGMatchesPrint(outputFP,
 					&matches,
 					pairedEnd,
@@ -272,6 +278,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 		/* Free memory */
 		RGMatchesFree(&matches);
 	}
+
 	if(VERBOSE >=0) {
 		fprintf(stderr, "\r%d... completed.\n", counter-1);
 	}
@@ -375,10 +382,14 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 {
 	char *FnName = "RGMatchesAppend";
+	/* Check that we are not appending to ourselves */
 	assert(src != dest);
+
+	/* Check to see if we need to add in the read name */
 	if(dest->readNameLength <= 0) {
 		assert(dest->readName == NULL);
 		dest->readNameLength = src->readNameLength;
+		/* Allocate memory for the read name */
 		dest->readName = malloc(sizeof(int8_t)*(dest->readNameLength+1));
 		if(NULL==dest->readName) {
 			PrintError(FnName,
@@ -391,8 +402,12 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 		dest->pairedEnd = src->pairedEnd;
 	}
 	assert(src->pairedEnd == dest->pairedEnd);
+
+	/* Append the matches */
 	RGMatchAppend(&src->matchOne, &dest->matchOne);
-	RGMatchAppend(&src->matchTwo, &dest->matchTwo);
+	if(1==dest->pairedEnd) {
+		RGMatchAppend(&src->matchTwo, &dest->matchTwo);
+	}
 }
 
 /* TODO */
@@ -441,5 +456,40 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 				m->matchOne.positions[i] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
 			}
 		}
+		/* Check m */
+		RGMatchesCheck(m);
+	}
+}
+
+/* TODO */
+void RGMatchesCheck(RGMatches *m) 
+{
+	char *FnName="RGMatchesCheck";
+	/* Basic asserts */
+	assert(m->pairedEnd == 0 || m->pairedEnd == 1);
+	/* Check that the read name length is the same as the length of the read name */
+	if(((int)strlen(m->readName)) != m->readNameLength) {
+		PrintError(FnName,
+				NULL,
+				"strlen(m->readName)) != m->readNameLength",
+				Exit,
+				OutOfRange);
+	}
+	if(0 == m->pairedEnd) {
+		/* Check the first match */
+		RGMatchCheck(&m->matchOne);
+		/* Make sure the second match is nulled */
+		assert(m->matchTwo.readLength == 0);
+		assert(m->matchTwo.read == NULL);
+		assert(m->matchTwo.maxReached == 0);
+		assert(m->matchTwo.numEntries == 0);
+		assert(m->matchTwo.chromosomes == NULL);
+		assert(m->matchTwo.positions == NULL);
+		assert(m->matchTwo.strand == NULL);
+	}
+	else {
+		/* Check both matches */
+		RGMatchCheck(&m->matchOne);
+		RGMatchCheck(&m->matchTwo);
 	}
 }

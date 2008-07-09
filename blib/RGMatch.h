@@ -16,6 +16,7 @@ void RGMatchReallocate(RGMatch*, int32_t);
 void RGMatchClearMatches(RGMatch*);
 void RGMatchFree(RGMatch*);
 void RGMatchInitialize(RGMatch*);
+void RGMatchCheck(RGMatch*);
 
 #endif
 

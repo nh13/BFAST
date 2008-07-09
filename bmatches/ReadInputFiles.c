@@ -110,7 +110,6 @@ void WriteReadsToTempFile(FILE *seqFP,
 		int pairedEnd,
 		int numThreads,
 		char *tmpDir,
-		int timing,
 		int *numWritten,
 		int *numFiltered)
 {
@@ -118,8 +117,6 @@ void WriteReadsToTempFile(FILE *seqFP,
 	int i;
 	int curSeqFPIndex=0;
 	int curReadNum = 1;
-	time_t startTime = time(NULL);
-	time_t endTime;
 	RGMatches m;
 
 	(*numFiltered)=0;
@@ -163,21 +160,6 @@ void WriteReadsToTempFile(FILE *seqFP,
 	/* reset pointer to temp files to the beginning of the file */
 	for(i=0;i<numThreads;i++) {
 		fseek((*tempSeqFPs)[i], 0, SEEK_SET);
-	}
-
-	endTime = time(NULL);
-	int seconds = endTime - startTime;
-	int hours = seconds/3600;
-	seconds -= hours*3600;
-	int minutes = seconds/60;
-	seconds -= minutes*60;
-
-	if(timing == 1) {
-		fprintf(stderr, "Reading to temp file took: %d hours, %d minutes and %d seconds.\n",
-				hours,
-				minutes,
-				seconds
-			   );
 	}
 }
 

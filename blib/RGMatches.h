@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include "BLibDefinitions.h"
 
-void RGMatchesRemoveDuplicates(RGMatches*, int32_t);
-void RGMatchesQuickSort(RGMatches*);
 int32_t RGMatchesRead(FILE*, RGMatches*, int32_t, int32_t);
 void RGMatchesPrint(FILE*, RGMatches*, int32_t, int32_t);
+void RGMatchesRemoveDuplicates(RGMatches*, int32_t);
 int32_t RGMatchesMergeFilesAndOutput(FILE**, int32_t, FILE*, int32_t, int32_t, int32_t);
 int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE**, int32_t, FILE*, int32_t, int32_t);
 int32_t RGMatchesCompareAtIndex(RGMatches*, int32_t, RGMatches*, int32_t);
@@ -18,6 +17,7 @@ void RGMatchesReallocate(RGMatches*, int32_t);
 void RGMatchesFree(RGMatches*);
 void RGMatchesInitialize(RGMatches*);
 void RGMatchesMirrorPairedEnd(RGMatches*, int32_t);
+void RGMatchesCheck(RGMatches*);
 
 #endif
 

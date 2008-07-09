@@ -477,7 +477,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
-	fprintf(fp, "pairedEndLength:\t\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
+	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -525,7 +525,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case '2':
 						arguments->pairedEnd = 1;break;
-
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
 						/*

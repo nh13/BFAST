@@ -177,7 +177,7 @@ void RGIndexCreate(RGIndex *index,
 							toInsert = 0;
 						}
 						/* Update position in bases */
-						curBasesPos++;
+						curBasesPos = (curBasesPos + 1)%index->totalLength;
 					}
 					if(i < index->numTiles-1) { /* Skip over the gap for all but the last tile */
 						curBasesPos = (curBasesPos + index->gaps[i])%index->totalLength;

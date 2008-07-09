@@ -59,7 +59,7 @@ void FindMatches(char *outputFileName,
 	int numReads;
 	int numReadsFiltered;
 
-	int startTime, endTime;
+	time_t startTime, endTime;
 	int seconds, minutes, hours;
 	int totalReadRGTime = 0;
 	int totalDataStructureTime = 0; /* This will only give the to load and deleted the indexes and trees (excludes searching and other things) */
@@ -160,7 +160,6 @@ void FindMatches(char *outputFileName,
 			pairedEnd,
 			numThreads,
 			tmpDir,
-			timing,
 			&numReads,
 			&numReadsFiltered);
 	/* Close the read file */
@@ -380,8 +379,8 @@ int FindMatchesInIndexes(char **indexFileNames,
 	char **tempOutputIndexFileNames=NULL;
 	int numWritten=0, numReads=0, numReadsFiltered=0;
 	int numMatches = 0;
-	int startTime;
-	int endTime;
+	time_t startTime, endTime;
+	int seconds, minutes, hours;
 	FILE *tempSeqFP=NULL;
 	char *tempSeqFileName=NULL;
 
@@ -481,6 +480,17 @@ int FindMatchesInIndexes(char **indexFileNames,
 				binaryOutput,
 				maxNumMatches);
 		endTime=time(NULL);
+		if(VERBOSE >= 0 && timing == 1) {
+			seconds = (int)(endTime - startTime);
+			hours = seconds/3600;
+			seconds -= hours*3600;
+			minutes = seconds/60;
+			seconds -= minutes*60;
+			fprintf(stderr, "Merging matches from the indexes took: %d hours, %d minutes and %d seconds\n",
+					hours,
+					minutes,
+					seconds);
+		}
 		(*totalOutputTime)+=endTime-startTime;
 
 		/* If we had more than one index, then this is the total merged number of matches */
@@ -541,7 +551,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 				pairedEnd,
 				numThreads,
 				tmpDir,
-				timing,
 				&numReads,
 				&numReadsFiltered);
 		/* In this case, all the reads should be valid so we should apportion all reads */
@@ -602,7 +611,8 @@ int FindMatchesInIndex(char *indexFileName,
 	char **tempOutputThreadFileNames=NULL;
 	RGIndex index;
 	int numMatches = 0;
-	int startTime, endTime;
+	time_t startTime, endTime;
+	int seconds, minutes, hours;
 	int errCode;
 	ThreadIndexData *data=NULL;
 	pthread_t *threads=NULL;
@@ -738,11 +748,24 @@ int FindMatchesInIndex(char *indexFileName,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging thread temp files...\n");
 		}
+		startTime = time(NULL);
 		i=RGMatchesMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
 				indexFP,
 				pairedEnd,
 				binaryOutput);
+		endTime = time(NULL);
+		if(VERBOSE >= 0 && timing == 1) {
+			seconds = (int)(endTime - startTime);
+			hours = seconds/3600;
+			seconds -= hours*3600;
+			minutes = seconds/60;
+			seconds -= minutes*60;
+			fprintf(stderr, "Merging matches from threads took: %d hours, %d minutes and %d seconds\n",
+					hours,
+					minutes,
+					seconds);
+		}
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merged %d reads from threads.\n", i);
 		}
@@ -781,8 +804,8 @@ int FindMatchesInIndex(char *indexFileName,
 void *FindMatchesInIndexThread(void *arg)
 {
 	/*
-	char *FnName="FindMatchesInIndex";
-	*/
+	   char *FnName="FindMatchesInIndex";
+	   */
 	RGMatches m;
 	int numRead = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
