@@ -267,6 +267,10 @@ void FindMatches(char *outputFileName,
 				&totalOutputTime
 					);
 	}
+	else {
+		/* Close the output file */
+		fclose(outputFP);
+	}
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
