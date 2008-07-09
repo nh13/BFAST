@@ -24,8 +24,6 @@ char ALPHABET[ALPHABET_SIZE] = "acgt";
 void RGReadsFindMatches(RGIndex *index, 
 		RGBinary *rg,
 		RGMatch *match,
-		char *read,
-		int readLength,
 		int *offsets,
 		int numOffsets,
 		int numMismatches,
@@ -46,11 +44,11 @@ void RGReadsFindMatches(RGIndex *index,
 	RGRangesInitialize(&ranges);
 
 	/* Get the reverse compliment */
-	GetReverseComplimentAnyCase(read, reverseRead, readLength);
+	GetReverseComplimentAnyCase(match->read, reverseRead, match->readLength);
 
 	/* Generate reads */
-	RGReadsGenerateReads(read,
-			readLength,
+	RGReadsGenerateReads(match->read,
+			match->readLength,
 			index,
 			&reads,
 			FORWARD,
@@ -64,7 +62,7 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Generate reads */
 	RGReadsGenerateReads(reverseRead,
-			readLength,
+			match->readLength,
 			index,
 			&reads,
 			REVERSE,

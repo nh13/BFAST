@@ -8,7 +8,8 @@
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
 #include "../blib/RGBinary.h"
-#include "../blib/RGMatch.h" /* To read in the matches */
+#include "../blib/RGMatch.h" 
+#include "../blib/RGMatches.h" 
 #include "../blib/AlignEntries.h"
 #include "../blib/AlignEntry.h" 
 #include "Align.h"
@@ -213,11 +214,7 @@ void RunDynamicProgramming(FILE *matchFP,
 {
 	/* local variables */
 	ScoringMatrix sm;
-	char readName[SEQUENCE_NAME_LENGTH]="\0";
-	char read[SEQUENCE_LENGTH]="\0";
-	char pairedRead[SEQUENCE_LENGTH]="\0";
-	RGMatch readMatch;
-	RGMatch pairedReadMatch;
+	RGMatches m;
 	int i;
 	int continueReading=0;
 	int numMatches=0;
@@ -231,9 +228,8 @@ void RunDynamicProgramming(FILE *matchFP,
 	int errCode;
 	void *status;
 
-	/* Initialize match */
-	RGMatchInitialize(&readMatch);
-	RGMatchInitialize(&pairedReadMatch);
+	/* Initialize */
+	RGMatchesInitialize(&m);
 
 	/* Allocate memory for thread arguments */
 	data = malloc(sizeof(ThreadData)*numThreads);
@@ -277,12 +273,8 @@ void RunDynamicProgramming(FILE *matchFP,
 		fprintf(stderr, "Filtering and partitioning matches for threads...\n0");
 	}
 	i=0;
-	while(EOF!=RGMatchRead(matchFP, 
-				readName, 
-				read, 
-				pairedRead, 
-				&readMatch,
-				&pairedReadMatch,
+	while(EOF!=RGMatchesRead(matchFP, 
+				&m,
 				pairedEnd,
 				binaryInput) 
 		 ) {
@@ -294,54 +286,39 @@ void RunDynamicProgramming(FILE *matchFP,
 		numMatches++;
 
 		/* Filter one if it has too many entries */
-		if(maxNumMatches != 0 && readMatch.numEntries > maxNumMatches) {
+		if(maxNumMatches != 0 && m.matchOne.numEntries > maxNumMatches) {
 			/* Do not align this one */
-			RGMatchFree(&readMatch);
+			RGMatchFree(&m.matchOne);
 		}
-		if(maxNumMatches != 0 && pairedEnd == 1 && pairedReadMatch.numEntries > maxNumMatches) {
+		if(maxNumMatches != 0 && pairedEnd == 1 && m.matchTwo.numEntries > maxNumMatches) {
 			/* Do not align this one */
-			RGMatchFree(&pairedReadMatch);
+			RGMatchFree(&m.matchTwo);
 		}
 
 		/* Filter those reads we will not be able to align */
-
 		/* line 1 - if both were found to have too many alignments in bmatches */
-		/* line 2 - if both have too many alignments in balign */
 		/* line 3 - if both do not have any possible matches */
-		if( (readMatch.maxReached == 1 && (pairedEnd == 0 || pairedReadMatch.maxReached == 1)) ||
-				(readMatch.numEntries <= 0 && (pairedEnd == 0 || pairedReadMatch.numEntries <= 0))
+		if( (m.matchOne.maxReached == 1 && (pairedEnd == 0 || m.matchTwo.maxReached == 1)) ||
+				(m.matchOne.numEntries <= 0 && (pairedEnd == 0 || m.matchTwo.numEntries <= 0))
 		  )	{
 			numNotAligned++;
-			RGMatchPrint(notAlignedFP,
-					readName,
-					read,
-					pairedRead,
-					&readMatch,
-					&pairedReadMatch,
+			RGMatchesPrint(notAlignedFP,
+					&m,
 					pairedEnd,
 					0); /* Do not print in binary */
 		}
 		else {
-			/* If one has too many entries, do not align that one */
-
 			/* Print match to temp file */
-			RGMatchPrint(data[i].inputFP,
-					readName,
-					read,
-					pairedRead,
-					&readMatch,
-					&pairedReadMatch,
+			RGMatchesPrint(data[i].inputFP,
+					&m,
 					pairedEnd,
 					binaryInput);
 			/* Increment */
 			i = (i+1)%numThreads;
 		}
 
-		/* Free match */
-		RGMatchFree(&readMatch);
-		if(pairedEnd==1) {
-			RGMatchFree(&pairedReadMatch);
-		}
+		/* Free memory */
+		RGMatchesFree(&m);
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r[%d]\n", numMatches);
@@ -349,7 +326,6 @@ void RunDynamicProgramming(FILE *matchFP,
 				numNotAligned,
 				numMatches);
 	}
-
 
 	/* End file handling timer */
 	endTime = time(NULL);
@@ -476,14 +452,9 @@ void RunDynamicProgramming(FILE *matchFP,
 
 		continueReading=1;
 		while(continueReading==1) {
-			RGMatchInitialize(&readMatch);
-			RGMatchInitialize(&pairedReadMatch);
-			if(RGMatchRead(data[i].notAlignedFP,
-						readName,
-						read,
-						pairedRead,
-						&readMatch,
-						&pairedReadMatch,
+			RGMatchesInitialize(&m);
+			if(RGMatchesRead(data[i].notAlignedFP,
+						&m,
 						pairedEnd,
 						0) == EOF) {
 				continueReading = 0;
@@ -493,17 +464,12 @@ void RunDynamicProgramming(FILE *matchFP,
 					fprintf(stderr, "\r[%d]", numNotAligned);
 				}
 				numNotAligned++;
-				RGMatchPrint(notAlignedFP,
-						readName,
-						read,
-						pairedRead,
-						&readMatch,
-						&pairedReadMatch,
+				RGMatchesPrint(notAlignedFP,
+						&m,
 						pairedEnd,
 						0);
 
-				RGMatchFree(&readMatch);
-				RGMatchFree(&pairedReadMatch);
+				RGMatchesFree(&m);
 			}
 		}
 	}
@@ -553,8 +519,8 @@ void *RunDynamicProgrammingThread(void *arg)
 	RGBinary *rgBinary=data->rgBinary;
 	int offsetLength=data->offsetLength;
 	int pairedEnd=data->pairedEnd;
-		int usePairedEndLength=data->usePairedEndLength;
-		int pairedEndLength=data->pairedEndLength;
+	int usePairedEndLength=data->usePairedEndLength;
+	int pairedEndLength=data->pairedEndLength;
 	int binaryInput=data->binaryInput;
 	int threadID=data->threadID;
 	ScoringMatrix *sm = data->sm;
@@ -564,43 +530,24 @@ void *RunDynamicProgrammingThread(void *arg)
 	   */
 	AlignEntries aEntries;
 	int numAlignEntries=0;
-	char readName[SEQUENCE_NAME_LENGTH]="\0";
-	char read[SEQUENCE_LENGTH]="\0";
-	char pairedRead[SEQUENCE_LENGTH]="\0";
-	RGMatch readMatch;
-	RGMatch pairedReadMatch;
-	int readLength, pairedReadLength=0;
+	RGMatches m;
 	int i;
 	int numMatches=0;
 
 	/* Initialize */
-	RGMatchInitialize(&readMatch);
-	RGMatchInitialize(&pairedReadMatch);
+	RGMatchesInitialize(&m);
 	AlignEntriesInitialize(&aEntries);
 
 	/* Go through each read in the match file */
-	while(EOF!=RGMatchRead(inputFP, 
-				readName, 
-				read, 
-				pairedRead, 
-				&readMatch,
-				&pairedReadMatch,
+	while(EOF!=RGMatchesRead(inputFP, 
+				&m,
 				pairedEnd,
 				binaryInput)) {
 		numMatches++;
-
 		numAlignEntries = 0;
 
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
-		}
-
-		/* Get the read length */
-		readLength = strlen(read);
-		assert(readLength+2*offsetLength < SEQUENCE_LENGTH);
-		if(pairedEnd == 1) {
-			pairedReadLength = strlen(pairedRead);
-			assert(pairedReadLength+2*offsetLength < SEQUENCE_LENGTH);
 		}
 
 		/* Check to see if we should try to align one read with no candidate
@@ -608,52 +555,41 @@ void *RunDynamicProgrammingThread(void *arg)
 		 *
 		 * This assumes that the the first read is 5'->3' before the second read.
 		 * */
-		if(pairedEnd == 1 && usePairedEndLength &&
-				(readMatch.numEntries <= 0 || pairedReadMatch.numEntries <= 0)) {
-			assert(readMatch.numEntries > 0 || pairedReadMatch.numEntries > 0);
-			if(readMatch.numEntries > 0) {
-				/* readLength + pairedEndLength since the pairedEndLength is the gap between the
-				 * end of the first read and the beginning of the second */
-				RGMatchMirrorPairedEnd(&readMatch, &pairedReadMatch, readLength+pairedEndLength);
-			}
-			else {
-				/* readLength - pairedEndLength since we must traverse the gap between and then
-				 * back to the beginning of the first read */
-				RGMatchMirrorPairedEnd(&pairedReadMatch, &readMatch, 0-pairedEndLength-readLength);
-			}
+		if(pairedEnd == 1 && usePairedEndLength == 1) {
+				RGMatchesMirrorPairedEnd(&m, pairedEndLength);
 		}
 
 		/* Allocate memory for the AlignEntries */
 		AlignEntriesAllocate(&aEntries,
-				readMatch.numEntries,
-				pairedReadMatch.numEntries,
+				m.matchOne.numEntries,
+				m.matchTwo.numEntries,
 				pairedEnd);
 		/* Copy over read name */
-		strcpy(aEntries.readName, readName);
+		strcpy(aEntries.readName, m.readName);
 
 		/* Run the aligner */
 		/* First entry */
-		assert(readMatch.numEntries == aEntries.numEntriesOne);
-		for(i=0;i<readMatch.numEntries;i++) { /* For each match */
+		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
+		for(i=0;i<m.matchOne.numEntries;i++) { /* For each match */
 			RunDynamicProgrammingThreadHelper(rgBinary,
-					readMatch.chromosomes[i],
-					readMatch.positions[i],
-					readMatch.strand[i],
-					read,
-					readLength,
+					m.matchOne.chromosomes[i],
+					m.matchOne.positions[i],
+					m.matchOne.strand[i],
+					m.matchOne.read,
+					m.matchOne.readLength,
 					offsetLength,
 					sm,
 					&aEntries.entriesOne[i]);
 		}
 		/* Second entry */
-		assert(pairedReadMatch.numEntries == aEntries.numEntriesTwo);
-		for(i=0;i<pairedReadMatch.numEntries;i++) { /* For each match */
+		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
+		for(i=0;i<m.matchTwo.numEntries;i++) { /* For each match */
 			RunDynamicProgrammingThreadHelper(rgBinary,
-					pairedReadMatch.chromosomes[i],
-					pairedReadMatch.positions[i],
-					pairedReadMatch.strand[i],
-					pairedRead,
-					pairedReadLength,
+					m.matchTwo.chromosomes[i],
+					m.matchTwo.positions[i],
+					m.matchTwo.strand[i],
+					m.matchTwo.read,
+					m.matchTwo.readLength,
 					offsetLength,
 					sm,
 					&aEntries.entriesTwo[i]);
@@ -670,13 +606,9 @@ void *RunDynamicProgrammingThread(void *arg)
 		AlignEntriesPrint(&aEntries,
 				outputFP);
 
-		/* Free alignment entry */
+		/* Free memory */
 		AlignEntriesFree(&aEntries);
-		/* Free match */
-		RGMatchFree(&readMatch);
-		if(pairedEnd==1) {
-			RGMatchFree(&pairedReadMatch);
-		}
+		RGMatchesFree(&m);
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);

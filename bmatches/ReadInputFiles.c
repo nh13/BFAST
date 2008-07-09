@@ -6,46 +6,96 @@
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
 #include "../blib/RGMatch.h"
+#include "../blib/RGMatches.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 
 
 /* TODO */
 /* Read the next read from the stream */
-int GetNextRead(FILE *fp, char **read, int *readLength, char **pairedRead, int *pairedReadLength,  char**readName, int pairedEnd)
+int GetNextRead(FILE *fp, 
+		RGMatches *m,
+		int pairedEnd)
 {
-	if(pairedEnd == 1) {
-		if(EOF==fscanf(fp, "%s", (*readName)) || EOF==fscanf(fp, "%s", (*read)) || EOF==fscanf(fp, "%s", (*pairedRead))) {
-			return EOF;
-		}
-		(*readLength) = strlen((*read));
-		(*pairedReadLength) = strlen((*pairedRead));
+	char *FnName = "GetNextRead";
+	char readName[SEQUENCE_NAME_LENGTH]="\0";
+	char readOne[SEQUENCE_LENGTH]="\0";
+	char readTwo[SEQUENCE_LENGTH]="\0";
+
+	m->pairedEnd = pairedEnd;
+
+	/* Read in read name and read */
+	if(EOF==fscanf(fp, "%s", readName) || 
+			EOF==fscanf(fp, "%s", readOne) || 
+			EOF==fscanf(fp, "%s", readTwo)) {
+		return EOF;
 	}
-	else {
-		if(EOF==fscanf(fp, "%s", (*readName)) || EOF==fscanf(fp, "%s", (*read))) {
+
+	/* Copy read name length and read length */
+	m->readNameLength = strlen(readName);
+	m->matchOne.readLength = strlen(readOne);
+
+	/* Allocate memory */
+	m->readName = malloc(sizeof(int8_t)*(m->readNameLength+1));
+	if(NULL == m->readName) {
+		PrintError(FnName,
+				"m->readName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	m->matchOne.read = malloc(sizeof(int8_t)*(m->matchOne.readLength+1));
+	if(NULL == m->matchOne.read) {
+		PrintError(FnName,
+				"m->matchOne.read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Copy over */
+	strcpy(m->readName, readName);
+	strcpy(m->matchOne.read, readOne);
+
+	/* Read in paired end if necessary */
+	if(pairedEnd == 1) {
+		/* Read in read number two */
+		if(EOF==fscanf(fp, "%s", readTwo)) {
 			return EOF;
 		}
-		(*readLength) = strlen((*read));
-		(*pairedRead)[0]='\0';
-		(*pairedReadLength)=0;
+		/* Copy over read two length */
+		m->matchTwo.readLength = strlen(readTwo);
+		/* Allocate memory */
+		m->matchTwo.read = malloc(sizeof(int8_t)*(m->matchTwo.readLength+1));
+		if(NULL == m->matchTwo.read) {
+			PrintError(FnName,
+					"m->matchTwo.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Copy over */
+		strcpy(m->matchTwo.read, readTwo);
 	}
 	return 1;
 }
 
 /* TODO */
-int WriteRead(FILE *fp, char *readName, char *read, char *pairedRead, int pairedEnd)
+int WriteRead(FILE *fp, RGMatches *m, int pairedEnd) 
 {
+	assert(m->pairedEnd == pairedEnd);
+
 	/* Print read */
-	if(fprintf(fp, "%s\n", readName) < 0) {
+	if(fprintf(fp, "%s\n", m->readName) < 0) {
 		return EOF;
 	}
 	/* Print read */
-	if(fprintf(fp, "%s\n", read) < 0) {
+	if(fprintf(fp, "%s\n", m->matchOne.read) < 0) {
 		return EOF;
 	}
 	/* Print paired read */
 	if(pairedEnd==1) {
-		if(fprintf(fp, "%s\n", pairedRead) < 0) {
+		if(fprintf(fp, "%s\n", m->matchTwo.read) < 0) {
 			return EOF;
 		}
 	}
@@ -68,61 +118,32 @@ void WriteReadsToTempFile(FILE *seqFP,
 	char *FnName = "WriteReadsToTempFile";
 	int i;
 	int curSeqFPIndex=0;
-	char *readName=NULL;
-	char *read=NULL;
-	char *pairedRead=NULL;
-	int readLength;
-	int pairedReadLength;
 	int curReadNum = 1;
 	time_t startTime = time(NULL);
 	time_t endTime;
+	RGMatches m;
 
 	(*numFiltered)=0;
 	(*numWritten)=0;
+	RGMatchesInitialize(&m);
 
-	/* Allocate memory for the read name, read and paired read */
-	readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-	if(NULL == readName) {
-		PrintError(FnName,
-				"readName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL == read) {
-		PrintError(FnName,
-				"read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	pairedRead = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL == pairedRead) {
-		PrintError(FnName,
-				"pairedRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-			
-
-	/* open one temporary file, one for each thread */
+	/* Open one temporary file, one for each thread */
 	for(i=0;i<numThreads;i++) {
 		assert((*tempSeqFPs)[i] == NULL);
 		(*tempSeqFPs)[i] = OpenTmpFile(tmpDir, &(*tempSeqFileNames)[i]);
 	}
 
 	while((endReadNum<=0 || endReadNum >= curReadNum) && 
-			EOF != GetNextRead(seqFP, &read, &readLength, &pairedRead, &pairedReadLength, &readName, pairedEnd)) {
+			EOF != GetNextRead(seqFP, &m, pairedEnd)) {
 		/* Get which tmp file to put the read in */
 		curSeqFPIndex = (curReadNum-1)%numThreads;
 
 		/* Print only if we are within the desired limit and the read checks out */
 		if( (startReadNum<=0 || curReadNum >= startReadNum)  /* Only if we are within the bounds for the reads */
-				&& (1 == UpdateRead(read, readLength)) /* The read is valid */
-				&& (0 == pairedEnd || 1 == UpdateRead(pairedRead, pairedReadLength))) { /* The paired read is valid */
-			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], readName, read, pairedRead, pairedEnd)) {
+				&& (1 == UpdateRead(m.matchOne.read, m.matchOne.readLength)) /* The first read is valid */
+				&& (1 == UpdateRead(m.matchTwo.read, m.matchTwo.readLength))) { /* The second read is valid */
+			/* Print */
+			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m, pairedEnd)) {
 				PrintError(FnName,
 						NULL,
 						"Could not write read",
@@ -136,20 +157,14 @@ void WriteReadsToTempFile(FILE *seqFP,
 		}
 		/* Increment read number */
 		curReadNum++;
+		/* Free memory */
+		RGMatchesFree(&m);
 	}
 
 	/* reset pointer to temp files to the beginning of the file */
 	for(i=0;i<numThreads;i++) {
 		fseek((*tempSeqFPs)[i], 0, SEEK_SET);
 	}
-
-	/* Free memory */
-	free(readName);
-	readName=NULL;
-	free(read);
-	readName=NULL;
-	free(pairedRead);
-	pairedRead=NULL;
 
 	endTime = time(NULL);
 	int seconds = endTime - startTime;
@@ -179,46 +194,33 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 		int binaryOutput)
 {
 	char *FnName = "ReadTempReadsAndOutput";
-	char readName[SEQUENCE_NAME_LENGTH];
-	char read[SEQUENCE_LENGTH];
-	char pairedRead[SEQUENCE_LENGTH];
-	RGMatch readMatch;
-	RGMatch pairedReadMatch;
+	RGMatches m;
 	int numReads = 0;
 	int numOutputted=0;
 
-	/* Initialize match structures */
-	RGMatchInitialize(&readMatch);
-	RGMatchInitialize(&pairedReadMatch);
+	/* Initialize */
+	RGMatchesInitialize(&m);
 
 	/* Go to the beginning of the temporary output file */
 	fseek(tempOutputFP, 0, SEEK_SET);
 
-	while(RGMatchRead(tempOutputFP, 
-				readName, 
-				read, 
-				pairedRead, 
-				&readMatch, 
-				&pairedReadMatch,
+	while(RGMatchesRead(tempOutputFP, 
+				&m,
 				pairedEnd,
 				binaryOutput)!=EOF) {
 		/* Output if either pair has more than one entry */
-		if(readMatch.numEntries > 0 ||
-				pairedReadMatch.numEntries > 0) {
+		if(m.matchOne.numEntries > 0 ||
+				m.matchTwo.numEntries > 0) {
 			/* Output to final output file */
-			RGMatchPrint(outputFP,
-					readName,
-					read,
-					pairedRead,
-					&readMatch,
-					&pairedReadMatch,
+			RGMatchesPrint(outputFP,
+					&m,
 					pairedEnd,
 					binaryOutput);
 			numOutputted++;
 		}
 		else {
 			/* Put back in the read file */
-			if(EOF == WriteRead(tempSeqFP, readName, read, pairedRead, pairedEnd)) {
+			if(EOF == WriteRead(tempSeqFP, &m, pairedEnd)) {
 				PrintError(FnName,
 						NULL,
 						"Could not write read.",
@@ -228,9 +230,8 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 			numReads++;
 		}
 
-		/* Free match memory and reinitialize match structures */
-		RGMatchFree(&readMatch);
-		RGMatchFree(&pairedReadMatch);
+		/* Free memory */
+		RGMatchesFree(&m);
 	}
 	return numReads;
 }

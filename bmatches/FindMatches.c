@@ -11,6 +11,8 @@
 #include "../blib/RGBinary.h"
 #include "../blib/RGIndex.h"
 #include "../blib/RGReads.h"
+#include "../blib/RGMatch.h"
+#include "../blib/RGMatches.h"
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 #include "FindMatches.h"
@@ -468,7 +470,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 		startTime=time(NULL);
 		/* Merge the temp index files into the all indexes file */
-		numWritten=RGMatchMergeFilesAndOutput(tempOutputIndexFPs,
+		numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
 				numIndexes,
 				tempOutputFP,
 				pairedEnd,
@@ -732,7 +734,7 @@ int FindMatchesInIndex(char *indexFileName,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging thread temp files...\n");
 		}
-		i=RGMatchMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
+		i=RGMatchesMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
 				indexFP,
 				pairedEnd,
@@ -774,16 +776,12 @@ int FindMatchesInIndex(char *indexFileName,
 /* TODO */
 void *FindMatchesInIndexThread(void *arg)
 {
+	/*
 	char *FnName="FindMatchesInIndex";
-	char *readName=NULL;
-	char *read=NULL;
-	char *pairedRead=NULL;
-	RGMatch readMatch;
-	RGMatch pairedReadMatch;
+	*/
+	RGMatches m;
 	int numRead = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
-	int readLength;
-	int pairedReadLength;
 	/* Function arguments */
 	FILE *tempSeqFP = data->tempSeqFP;
 	FILE *tempOutputFP = data->tempOutputFP;
@@ -803,20 +801,7 @@ void *FindMatchesInIndexThread(void *arg)
 	data->numMatches = 0;
 
 	/* Initialize match structures */
-	RGMatchInitialize(&readMatch);
-	RGMatchInitialize(&pairedReadMatch);
-
-	/* Allocate memory for the data */
-	readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-	read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	pairedRead = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL == readName || NULL == read || NULL == pairedRead) {
-		PrintError(FnName,
-				"readName, read or pairedRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
+	RGMatchesInitialize(&m);
 
 	/* For each read */
 	if(VERBOSE >= 0) {
@@ -824,7 +809,9 @@ void *FindMatchesInIndexThread(void *arg)
 				threadID,
 				numRead);
 	}
-	while(EOF!=GetNextRead(tempSeqFP, &read, &readLength, &pairedRead, &pairedReadLength, &readName, pairedEnd)) {
+	while(EOF!=GetNextRead(tempSeqFP, 
+				&m,
+				pairedEnd)) {
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
@@ -833,11 +820,10 @@ void *FindMatchesInIndexThread(void *arg)
 					numRead);
 		}
 
+		/* Read one */
 		RGReadsFindMatches(index,
 				rg,
-				&readMatch,
-				read,
-				readLength,
+				&m.matchOne,
 				offsets,
 				numOffsets,
 				numMismatches,
@@ -849,9 +835,7 @@ void *FindMatchesInIndexThread(void *arg)
 		if(pairedEnd==1) {
 			RGReadsFindMatches(index,
 					rg,
-					&pairedReadMatch,
-					pairedRead,
-					pairedReadLength,
+					&m.matchTwo,
 					offsets,
 					numOffsets,
 					numMismatches,
@@ -862,36 +846,25 @@ void *FindMatchesInIndexThread(void *arg)
 					maxNumMatches);
 		}
 
-		if((readMatch.numEntries > 0 && readMatch.maxReached != 1) || 
-				(pairedReadMatch.numEntries > 0 && pairedReadMatch.maxReached != 1) 
-		  ) {
+		if((m.matchOne.numEntries > 0 && m.matchOne.maxReached != 1) ||
+				(m.matchTwo.numEntries > 0 && m.matchTwo.maxReached != 1)) {
 			data->numMatches++;
 		}
 
 		/* Output to file */
-		RGMatchPrint(tempOutputFP, 
-				readName, 
-				read, 
-				pairedRead, 
-				&readMatch, 
-				&pairedReadMatch, 
+		RGMatchesPrint(tempOutputFP, 
+				&m,
 				pairedEnd, 
 				binaryOutput); 
 
 		/* Free matches */
-		RGMatchFree(&readMatch);
-		RGMatchFree(&pairedReadMatch);
+		RGMatchesFree(&m);
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
 				threadID,
 				numRead);
 	}
-
-	/* Free memory */
-	free(readName);
-	free(read);
-	free(pairedRead);
 
 	return NULL;
 }

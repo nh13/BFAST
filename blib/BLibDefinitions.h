@@ -55,12 +55,24 @@ enum {KILOBYTES, MEGABYTES, GIGABYTES};
 
 /* TODO */
 typedef struct {
+	int32_t readLength;
+	int8_t *read;
+	int32_t maxReached;
+	int32_t numEntries;
 	uint8_t *chromosomes;
 	uint32_t *positions;
 	int8_t *strand;
-	int32_t numEntries;
-	int32_t maxReached;
 } RGMatch;
+
+/* TODO */
+typedef struct {
+	int32_t pairedEnd;
+	int32_t readNameLength;
+	int8_t *readName;
+	RGMatch matchOne;
+	RGMatch matchTwo;
+} RGMatches;
+
 
 /* TODO */
 typedef struct { 

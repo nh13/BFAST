@@ -11,6 +11,7 @@
 #include "../blib/RGIndex.h"
 #include "../blib/RGRanges.h"
 #include "../blib/RGMatch.h"
+#include "../blib/RGMatches.h"
 #include "../blib/RGReads.h"
 #include "bpairedenddist.h"
 
@@ -59,36 +60,26 @@ int main(int argc, char *argv[])
 void PrintDistribution(FILE *fpIn,
 		FILE *fpOut)
 {
-	RGMatch m1, m2;
-	char name[SEQUENCE_NAME_LENGTH]="\0";
-	char read1[SEQUENCE_LENGTH]="\0";
-	char read2[SEQUENCE_LENGTH]="\0";
+	RGMatches m;
 
 	/* Initialize */
-	RGMatchInitialize(&m1);
-	RGMatchInitialize(&m2);
+	RGMatchesInitialize(&m);
 
-	/* Wow, a do-while loop */
-	while(EOF != RGMatchRead(fpIn,
-				name,
-				read1, 
-				read2,
-				&m1,
-				&m2,
+	while(EOF != RGMatchesRead(fpIn,
+				&m,
 				1,
 				1)) {
 		/* Only use unique sequences on the same chromosome and strand */
-		if(1 == m1.numEntries &&
-				1== m2.numEntries &&
-				m1.chromosomes[0] == m2.chromosomes[0] &&
-				m1.strand[0] == m2.strand[0]) {
+		if(1 == m.matchOne.numEntries &&
+				1== m.matchTwo.numEntries &&
+				m.matchOne.chromosomes[0] == m.matchTwo.chromosomes[0] &&
+				m.matchOne.strand[0] == m.matchTwo.strand[0]) {
 			/* Print */
 			fprintf(stderr, "%d",
-					(m1.positions[0] - m2.positions[0]));
+					(m.matchOne.positions[0] - m.matchTwo.positions[0]));
 		}
 
 		/* Free matches */
-		RGMatchFree(&m1);
-		RGMatchFree(&m2);
+		RGMatchesFree(&m);
 	}
 }

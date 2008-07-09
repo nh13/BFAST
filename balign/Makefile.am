@@ -6,6 +6,7 @@ balign_SOURCES = \
 	ReadInputFiles.c	ReadInputFiles.h \
 	../blib/BError.c	../blib/BError.h \
 	../blib/BLib.c	../blib/BLib.h \
+	../blib/RGMatches.c	../blib/RGMatches.h \
 	../blib/RGMatch.c	../blib/RGMatch.h \
 	../blib/RGRanges.c	../blib/RGRanges.h \
 	../blib/RGBinary.c	../blib/RGBinary.h \

@@ -68,6 +68,7 @@ bpairedenddist_SOURCES = \
 	../blib/BLib.c	../blib/BLib.h \
 	../blib/RGBinary.c ../blib/RGBinary.h \
 	../blib/RGMatch.c ../blib/RGMatch.h \
+	../blib/RGMatches.c ../blib/RGMatches.h \
 	../blib/RGRanges.c ../blib/RGRanges.h \
 	../blib/RGReads.c	../blib/RGReads.h \
 	bpairedenddist.c	bpairedenddist.h
