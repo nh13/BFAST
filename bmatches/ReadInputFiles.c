@@ -26,8 +26,7 @@ int GetNextRead(FILE *fp,
 
 	/* Read in read name and read */
 	if(EOF==fscanf(fp, "%s", readName) || 
-			EOF==fscanf(fp, "%s", readOne) || 
-			EOF==fscanf(fp, "%s", readTwo)) {
+			EOF==fscanf(fp, "%s", readOne)) {
 		return EOF;
 	}
 

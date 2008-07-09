@@ -609,9 +609,6 @@ int CheckReadAgainstIndexes(Indexes *indexes,
 				curReadPos++;
 			}
 			if(found == 1) {
-				/*
-				   fprintf(stderr, "HERE found\n");
-				   */
 				return 1;
 			}
 			assert(found == 0);

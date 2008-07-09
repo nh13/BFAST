@@ -35,7 +35,6 @@ int32_t RGMatchRead(FILE *fp,
 					Exit,
 					MallocMemory);
 		}
-
 		/* Read in the read */
 		if(fscanf(fp, "%s", m->read) ==EOF) {
 			PrintError(FnName,
@@ -96,8 +95,8 @@ int32_t RGMatchRead(FILE *fp,
 						ReadFileError);
 			}
 		}
-		assert(m->readLength > 0);
 		assert(m->readLength < SEQUENCE_LENGTH);
+		assert(m->readLength > 0);
 
 		/* Allocate memory for the read */
 		m->read = malloc(sizeof(int8_t)*(m->readLength+1));
@@ -177,10 +176,10 @@ void RGMatchPrint(FILE *fp,
 	char *FnName = "RGMatchPrint";
 	int32_t i;
 	assert(fp!=NULL);
+	assert(m->readLength > 0);
 
 	/* Print the matches to the output file */
 	if(binaryOutput == 0) {
-
 		if(0 > fprintf(fp, "%d\t%s\t%d\t%d",
 					m->readLength,
 					m->read,
@@ -248,7 +247,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 
 	/* Check to see if the max has been reached.  If so free all matches and return */
 	if(m->maxReached == 1) {
-		RGMatchFree(m);
+		RGMatchClearMatches(m);
 		m->maxReached=1;
 		return;
 	}
@@ -276,7 +275,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 
 		/* Check to see if we have too many matches */
 		if(maxNumMatches > 0 && m->numEntries > maxNumMatches) {
-			RGMatchFree(m);
+			RGMatchClearMatches(m);
 			m->maxReached=1;
 			return;
 		}
@@ -361,9 +360,24 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 /* TODO */
 void RGMatchAppend(RGMatch *src, RGMatch *dest)
 {
+	char *FnName = "RGMatchAppend";
 	int32_t i, start;
 
 	assert(src != dest);
+
+	if(dest->readLength <= 0) {
+		assert(dest->read == NULL);
+		dest->readLength = src->readLength;
+		dest->read = malloc(sizeof(int8_t)*(dest->readLength+1));
+		if(NULL==dest->read) {
+			PrintError(FnName,
+					"dest->read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}   
+		strcpy(dest->read, src->read);
+	}
 
 	start = dest->numEntries;
 	RGMatchReallocate(dest, dest->numEntries + src->numEntries);
@@ -425,6 +439,7 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 	}
 }
 
+/* TODO */
 void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 {
 	char *FnName = "RGMatchReallocate";
@@ -467,6 +482,22 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 	}
 }
 
+/* TODO */
+/* Does not free read */
+void RGMatchClearMatches(RGMatch *m) 
+{
+	m->maxReached=0;
+	m->numEntries=0;
+	/* Free */
+	free(m->positions);
+	free(m->chromosomes);
+	free(m->strand);
+	m->positions=NULL;
+	m->chromosomes=NULL;
+	m->strand=NULL;
+}
+
+/* TODO */
 void RGMatchFree(RGMatch *m) 
 {
 	free(m->read);
@@ -476,6 +507,7 @@ void RGMatchFree(RGMatch *m)
 	RGMatchInitialize(m);
 }
 
+/* TODO */
 void RGMatchInitialize(RGMatch *m)
 {
 	m->readLength=0;

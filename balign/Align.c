@@ -482,7 +482,6 @@ int AlignmentGetScore(char *read,
 				aEntry->length,
 				aEntry->read,
 				aEntry->reference);
-		/* HERE */
 		exit(1);
 	}
 

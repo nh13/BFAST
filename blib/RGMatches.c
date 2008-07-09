@@ -42,7 +42,6 @@ int32_t RGMatchesRead(FILE *fp,
 		}
 		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
 		assert(m->readNameLength > 0);
-
 		/* Allocate memory for the read name */
 		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
 		if(NULL == m->readName) {
@@ -131,11 +130,12 @@ void RGMatchesPrint(FILE *fp,
 {
 	char *FnName = "RGMatchesPrint";
 	assert(fp!=NULL);
+	assert(m->readNameLength > 0);
 	/* Print the matches to the output file */
 
 	if(binaryOutput == 0) {
 		/* Print paired end, read name length, and read name */
-		if(0 > fprintf(fp, "%d %d %s",
+		if(0 > fprintf(fp, "%d %d %s\n",
 					m->pairedEnd,
 					m->readNameLength,
 					m->readName)) {
@@ -241,7 +241,11 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 							OutOfRange);
 				}
 				/* Append temp matches to matches */
+				assert(tempMatches.matchOne.readLength > 0);
+				assert(tempMatches.matchTwo.readLength > 0);
 				RGMatchesAppend(&tempMatches, &matches);
+				assert(matches.matchOne.readLength > 0);
+				assert(matches.matchTwo.readLength > 0);
 			}
 
 			RGMatchesFree(&tempMatches);
@@ -258,6 +262,8 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 					matches.matchTwo.numEntries > 0) {
 				numMatches++;
 			}
+			assert(matches.matchOne.readLength > 0);
+			assert(matches.matchTwo.readLength > 0);
 			RGMatchesPrint(outputFP,
 					&matches,
 					pairedEnd,
@@ -368,7 +374,23 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 /* TODO */
 void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 {
+	char *FnName = "RGMatchesAppend";
 	assert(src != dest);
+	if(dest->readNameLength <= 0) {
+		assert(dest->readName == NULL);
+		dest->readNameLength = src->readNameLength;
+		dest->readName = malloc(sizeof(int8_t)*(dest->readNameLength+1));
+		if(NULL==dest->readName) {
+			PrintError(FnName,
+					"dest->readName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		strcpy(dest->readName, src->readName);
+		dest->pairedEnd = src->pairedEnd;
+	}
+	assert(src->pairedEnd == dest->pairedEnd);
 	RGMatchAppend(&src->matchOne, &dest->matchOne);
 	RGMatchAppend(&src->matchTwo, &dest->matchTwo);
 }
@@ -400,7 +422,6 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 
 	if(m->pairedEnd == 1) {
 		if(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0) {
-			RGMatchInitialize(&m->matchTwo);
 			RGMatchReallocate(&m->matchTwo, m->matchOne.numEntries);
 			/* Copy over */
 			for(i=0;i<m->matchOne.numEntries;i++) {
@@ -411,7 +432,6 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 			}
 		}
 		else if(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0) {
-			RGMatchInitialize(&m->matchOne);
 			RGMatchReallocate(&m->matchOne, m->matchTwo.numEntries);
 			/* Copy over */
 			for(i=0;i<m->matchTwo.numEntries;i++) {

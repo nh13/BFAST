@@ -78,7 +78,7 @@ int AlignEntryRead(AlignEntry *aEntry,
 				aEntry->read)==EOF) {
 		return EOF;
 	}
-	assert(strlen(aEntry->read) == aEntry->length);
+	assert(((int)strlen(aEntry->read)) == aEntry->length);
 	assert(strlen(aEntry->reference) == aEntry->length);
 
 	/* Update reference length */

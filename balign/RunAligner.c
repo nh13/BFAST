@@ -288,11 +288,13 @@ void RunDynamicProgramming(FILE *matchFP,
 		/* Filter one if it has too many entries */
 		if(maxNumMatches != 0 && m.matchOne.numEntries > maxNumMatches) {
 			/* Do not align this one */
-			RGMatchFree(&m.matchOne);
+			RGMatchClearMatches(&m.matchOne);
+			assert(m.matchOne.readLength > 0);
 		}
 		if(maxNumMatches != 0 && pairedEnd == 1 && m.matchTwo.numEntries > maxNumMatches) {
 			/* Do not align this one */
-			RGMatchFree(&m.matchTwo);
+			RGMatchClearMatches(&m.matchTwo);
+			assert(m.matchTwo.readLength > 0);
 		}
 
 		/* Filter those reads we will not be able to align */
@@ -556,7 +558,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		 * This assumes that the the first read is 5'->3' before the second read.
 		 * */
 		if(pairedEnd == 1 && usePairedEndLength == 1) {
-				RGMatchesMirrorPairedEnd(&m, pairedEndLength);
+			RGMatchesMirrorPairedEnd(&m, pairedEndLength);
 		}
 
 		/* Allocate memory for the AlignEntries */
