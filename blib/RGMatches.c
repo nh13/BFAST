@@ -226,11 +226,11 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 	/* Read in each sequence/match one at a time */
 	counter = 0;
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r%d", 0);
+		fprintf(stderr, "\r[%d]", 0);
 	}
 	while(numFinished == 0) {
 		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
-			fprintf(stderr, "\r%d", counter);
+			fprintf(stderr, "\r[%d]", counter);
 		}
 		counter++;
 
@@ -280,7 +280,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 	}
 
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r%d... completed.\n", counter-1);
+		fprintf(stderr, "\r[%d]... completed.\n", counter-1);
 	}
 
 	return numMatches;
@@ -326,7 +326,7 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 	counter = 0;
 	numFinished = 0;
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d", counter);
+		fprintf(stderr, "\r[%d]", counter);
 	}
 	while(numFinished < numThreads) {
 		/* For each thread */
@@ -348,10 +348,10 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 					   counter++;
 					   }
 					   */
-					counter++;
-					if(VERBOSE >= 0) {
-						fprintf(stderr, "\r%d", counter);
+					if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
+						fprintf(stderr, "\r[%d]", counter);
 					}
+					counter++;
 
 					RGMatchesPrint(outputFP,
 							&matches,
@@ -365,7 +365,7 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 		}
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d\n", counter);
+		fprintf(stderr, "\r[%d]\n", counter);
 	}
 	assert(numFinished == numThreads);
 	for(i=0;i<numThreads;i++) {

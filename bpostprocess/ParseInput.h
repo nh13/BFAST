@@ -4,16 +4,21 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *inputFileName;					/* -i */
-	int inputFormat;						/* -I */
 	int binaryInput;                        /* -b */
-	int uniqueMatches;						/* -u */
-	int bestScore;							/* -B */
-	int minScore;							/* -m */
+	int algorithmReads;						/* -a */
+	int minScoreReads;						/* -m */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */
 	int endChr;                             /* -e */
 	int endPos;                             /* -E */
-	int regionLength;						/* -r */
+	int pairedEnd;							/* -2 */
+	int algorithmReadsPaired;				/* -A */
+	int minScoreReadsPaired;				/* -M */
+	int minDistancePaired;					/* -X */
+	int maxDistancePaired;					/* -Y */
+	int meanDistancePaired;					/* -Z */
+	int chrAbPaired;						/* -C */
+	int inversionsPaired;					/* -I */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
 	char *tmpDir;							/* -T */
