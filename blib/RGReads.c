@@ -108,8 +108,10 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Only copy to rgmatches if there are matches and fewer matches than
 	 * max Matches */
-	if(0 < numEntries && 
-			(maxNumMatches == 0 || numEntries <= maxNumMatches)) {
+	if(maxNumMatches != 0 && numEntries > maxNumMatches) {
+		match->maxReached = 1;
+	}
+	else if(0 < numEntries) {
 		/* Allocate memory for the matches */
 		RGMatchAllocate(match, numEntries);
 
@@ -118,6 +120,10 @@ void RGReadsFindMatches(RGIndex *index,
 				index,
 				match);
 	}
+
+	/* Remove duplicates */
+	RGMatchRemoveDuplicates(match,
+			maxNumMatches);
 
 	/* Free memory */
 	RGRangesFree(&ranges);

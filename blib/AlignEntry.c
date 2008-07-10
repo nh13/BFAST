@@ -16,18 +16,18 @@ int AlignEntryPrint(AlignEntry *aEntry,
 
 	/* Print the read name, alignment length, chromosome, position, strand, score */
 	if(fprintf(outputFP, "%d\t%d\t%d\t%c\t%lf\n",
-			aEntry->length,
-			aEntry->chromosome,
-			aEntry->position,
-			aEntry->strand,
-			aEntry->score) < 0) {
+				aEntry->length,
+				aEntry->chromosome,
+				aEntry->position,
+				aEntry->strand,
+				aEntry->score) < 0) {
 		return EOF;
 	}
 
 	/* Print the reference and read alignment */
 	if(fprintf(outputFP, "%s\n%s\n",
-			aEntry->reference,
-			aEntry->read) < 0) {
+				aEntry->reference,
+				aEntry->read) < 0) {
 		return EOF;
 	}
 
@@ -104,8 +104,8 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		/* Sort the array */
 		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
 		/*
-		AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
-		*/
+		   AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+		   */
 
 		/* Check sort */
 		/*
@@ -340,10 +340,10 @@ void AlignEntryMergeSort(AlignEntry **a,
 
 	/* Test sort */
 	/* 
-	for(i=low+1;i<=high;i++) {
-		assert(AlignEntryCompareAtIndex((*a), i-1, (*a), i, sortOrder) <= 0);
-	}
-	*/
+	   for(i=low+1;i<=high;i++) {
+	   assert(AlignEntryCompareAtIndex((*a), i-1, (*a), i, sortOrder) <= 0);
+	   }
+	   */
 }
 
 /* TODO */
@@ -355,13 +355,23 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 
 	if(sortOrder == AlignEntrySortByAll) {
 
-		cmp[0] = strcmp(a[indexA].read, b[indexB].read);
-		cmp[1] = strcmp(a[indexA].reference, b[indexB].reference);
-		cmp[2] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
-		cmp[3] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		cmp[4] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
+		/* Old 
+		   cmp[0] = strcmp(a[indexA].read, b[indexB].read);
+		   cmp[1] = strcmp(a[indexA].reference, b[indexB].reference);
+		   cmp[2] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		   cmp[3] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+		   cmp[4] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
+		   */
 
-		top = 5;
+		/* If there are multiple alignments to the same starting chr/pos/strand with the same score,
+		 * this will pick ensure that we will only pick one of them.
+		 * */
+		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+		cmp[2] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
+		cmp[3] = (a[indexA].score <= b[indexB].score)?((a[indexA].score<b[indexB].score)?-1:0):1;
+
+		top = 4;
 	}
 	else {
 		assert(sortOrder == AlignEntrySortByChrPos);
@@ -371,22 +381,22 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		top = 2;
 
 		/*
-		fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
-				indexA,
-				a[indexA].chromosome,
-				indexA,
-				a[indexA].position);
-		fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
-				indexB,
-				a[indexB].chromosome,
-				indexB,
-				a[indexB].position);
-		fprintf(stderr, "cmp[%d]=%d\ncmp[%d]=%d\n",
-				0,
-				cmp[0],
-				1,
-				cmp[1]);
-		*/
+		   fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
+		   indexA,
+		   a[indexA].chromosome,
+		   indexA,
+		   a[indexA].position);
+		   fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
+		   indexB,
+		   a[indexB].chromosome,
+		   indexB,
+		   a[indexB].position);
+		   fprintf(stderr, "cmp[%d]=%d\ncmp[%d]=%d\n",
+		   0,
+		   cmp[0],
+		   1,
+		   cmp[1]);
+		   */
 	}
 
 	/* ingenious */

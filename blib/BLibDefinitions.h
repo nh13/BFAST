@@ -77,12 +77,12 @@ typedef struct {
 	RGMatch matchTwo;
 } RGMatches;
 
-
 /* TODO */
 typedef struct { 
 	int64_t *startIndex;
 	int64_t *endIndex;
 	int8_t *strand;
+	int32_t *offset;
 	int32_t numEntries;
 } RGRanges;
 

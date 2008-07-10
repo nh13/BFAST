@@ -1880,6 +1880,7 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 			r->startIndex[r->numEntries-1] = startIndex;
 			r->endIndex[r->numEntries-1] = endIndex;
 			r->strand[r->numEntries-1] = direction;
+			r->offset[r->numEntries-1] = offset;
 		}
 	}
 }

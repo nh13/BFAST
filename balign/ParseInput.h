@@ -7,7 +7,7 @@ struct arguments
 	char *rgFileName;                   	/* -r */
 	char *matchesFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
-	int binaryInput;                        /* -b - not used*/
+	int binaryInput;                        /* -b */
 	int algorithm;							/* -a */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */

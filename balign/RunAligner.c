@@ -303,6 +303,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		if( (m.matchOne.maxReached == 1 && (pairedEnd == 0 || m.matchTwo.maxReached == 1)) ||
 				(m.matchOne.numEntries <= 0 && (pairedEnd == 0 || m.matchTwo.numEntries <= 0))
 		  )	{
+			/* Print to the not aligned file */
 			numNotAligned++;
 			RGMatchesPrint(notAlignedFP,
 					&m,
@@ -597,11 +598,12 @@ void *RunDynamicProgrammingThread(void *arg)
 					&aEntries.entriesTwo[i]);
 		}
 
-		if(aEntries.numEntriesOne > 0 && aEntries.numEntriesTwo > 0) {
+		if(aEntries.numEntriesOne > 0 ||
+				(pairedEnd == 1 && aEntries.numEntriesTwo > 0)) {
+
 			/* Remove duplicates */
 			AlignEntriesRemoveDuplicates(&aEntries,
 					AlignEntrySortByAll);
-			assert(aEntries.numEntriesOne > 0 && aEntries.numEntriesTwo > 0);
 		}
 
 		/* Output alignment */

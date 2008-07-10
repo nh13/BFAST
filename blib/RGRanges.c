@@ -61,7 +61,8 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 			for(j=r->startIndex[i];j<=r->endIndex[i];j++) {
 				assert(j>=0 && j<index->length);
 				assert(counter >= 0 && counter < m->numEntries);
-				m->positions[counter] = index->positions[j];
+				/* Adjust position with the offset */
+				m->positions[counter] = (uint32_t)(index->positions[j] - r->offset[i]);
 				m->chromosomes[counter] = index->chromosomes[j];
 				m->strand[counter] = r->strand[i];
 				counter++;
@@ -127,19 +128,28 @@ void RGRangesQuickSort(RGRanges *r, int32_t low, int32_t high)
 /* TODO */
 int32_t RGRangesCompareAtIndex(RGRanges *rOne, int32_t indexOne, RGRanges *rTwo, int32_t indexTwo) 
 {
+	int i;
+	int cmp[4] = {0,0,0,0};
+	int top = 4;
+
 	assert(indexOne >= 0 && indexOne < rOne->numEntries);
 	assert(indexTwo >= 0 && indexTwo < rTwo->numEntries);
-	if(rOne->startIndex[indexOne] < rTwo->startIndex[indexTwo] ||
-			(rOne->startIndex[indexOne] == rTwo->startIndex[indexTwo] && rOne->endIndex[indexOne] < rTwo->endIndex[indexTwo]) ||
-			(rOne->startIndex[indexOne] == rTwo->startIndex[indexTwo] && rOne->endIndex[indexOne] == rTwo->endIndex[indexTwo] && rOne->strand[indexOne] < rTwo->strand[indexTwo])) {
-		return -1;
+
+	cmp[0] = (rOne->startIndex[indexOne]<=rTwo->startIndex[indexTwo])?((rOne->startIndex[indexOne]<rTwo->startIndex[indexTwo])?-1:0):1;
+	cmp[1] = (rOne->endIndex[indexOne]<=rTwo->endIndex[indexTwo])?((rOne->endIndex[indexOne]<rTwo->endIndex[indexTwo])?-1:0):1;
+	cmp[2] = (rOne->strand[indexOne]<=rTwo->startIndex[indexTwo])?((rOne->startIndex[indexOne]<rTwo->startIndex[indexTwo])?-1:0):1;
+	cmp[3] = (rOne->offset[indexOne]<=rTwo->startIndex[indexTwo])?((rOne->startIndex[indexOne]<rTwo->startIndex[indexTwo])?-1:0):1;
+
+	for(i=0;i<top;i++) {
+		if(cmp[i] < 0) {
+			return cmp[i];
+		}
+		else if(cmp[i] > 0) {
+			return cmp[i];
+		}
 	}
-	else if(rOne->startIndex[indexOne] ==  rTwo->startIndex[indexTwo] && rOne->endIndex[indexOne] == rTwo->endIndex[indexTwo] && rOne->strand[indexOne] == rTwo->strand[indexTwo]) {
-		return 0;
-	}
-	else {
-		return 1;
-	}
+
+	return 0;
 }
 
 /* TODO */
@@ -167,6 +177,7 @@ void RGRangesCopyAtIndex(RGRanges *src, int32_t srcIndex, RGRanges *dest, int32_
 		dest->startIndex[destIndex] = src->startIndex[srcIndex];
 		dest->endIndex[destIndex] = src->endIndex[srcIndex];
 		dest->strand[destIndex] = src->strand[srcIndex];
+		dest->offset[destIndex] = src->offset[srcIndex];
 	}
 }
 
@@ -201,6 +212,15 @@ void RGRangesAllocate(RGRanges *r, int32_t numEntries)
 				Exit,
 				MallocMemory);
 	}
+	assert(r->offset==NULL);
+	r->offset = malloc(sizeof(int32_t)*numEntries); 
+	if(NULL == r->offset) {
+		PrintError("RGRangesAllocate",
+				"r->offset",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 }
 
 void RGRangesReallocate(RGRanges *r, int32_t numEntries)
@@ -231,6 +251,14 @@ void RGRangesReallocate(RGRanges *r, int32_t numEntries)
 					Exit,
 					ReallocMemory);
 		}
+		r->offset = realloc(r->offset, sizeof(int32_t)*numEntries); 
+		if(numEntries > 0 && NULL == r->offset) {
+			PrintError("RGRangesReallocate",
+					"r->offset",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 	}
 	else {
 		RGRangesFree(r);
@@ -243,6 +271,7 @@ void RGRangesFree(RGRanges *r)
 		free(r->startIndex);
 		free(r->endIndex);
 		free(r->strand);
+		free(r->offset);
 	}
 	RGRangesInitialize(r);
 }
@@ -253,4 +282,5 @@ void RGRangesInitialize(RGRanges *r)
 	r->startIndex=NULL;
 	r->endIndex=NULL;
 	r->strand=NULL;
+	r->offset=NULL;
 }

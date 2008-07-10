@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
+	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, DescBinaryInput, 
 	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -71,9 +71,7 @@ static struct argp_option options[] = {
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
 	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of bmf files", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
-	/*
-	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
-	   */
+	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to use 0: Dynamic Programming", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
@@ -420,7 +418,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 1;
+	args->binaryInput = 0;
 
 	args->algorithm = DEFAULT_ALGORITHM;
 	args->startChr=0;
@@ -465,9 +463,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
-	/*
-	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	   */
+	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -527,10 +523,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->pairedEnd = 1;break;
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
-						/*
-						   case 'b':
-						   arguments->binaryInput = 1;break;
-						   */
+					case 'b':
+						arguments->binaryInput = 1;break;
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;
