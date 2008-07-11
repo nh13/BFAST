@@ -22,9 +22,12 @@ int main(int argc, char *argv[])
 {
 	FILE *fp=NULL;
 	char matchesFileName[MAX_FILENAME_LENGTH]="\0";
+	int binaryInput;
 
-	if(argc == 2) {
+	if(argc == 3) {
 		strcpy(matchesFileName, argv[1]);
+		binaryInput = atoi(argv[2]);
+		assert(binaryInput == 0 || binaryInput == 1);
 
 		/* Read the index */
 		fprintf(stderr, "Reading in bfast matches file from %s.\n",
@@ -39,7 +42,8 @@ int main(int argc, char *argv[])
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		PrintDistribution(fp,
-				stderr);
+				binaryInput,
+				stdout);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Close the file */
@@ -52,12 +56,14 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t\t<bfast matches file name>\n");
+		fprintf(stderr, "\t\t<binary Input: 0-text 1-binary>\n");
 	}
 
 	return 0;
 }
 
 void PrintDistribution(FILE *fpIn,
+		int binaryInput,
 		FILE *fpOut)
 {
 	RGMatches m;
@@ -68,10 +74,10 @@ void PrintDistribution(FILE *fpIn,
 	while(EOF != RGMatchesRead(fpIn,
 				&m,
 				1,
-				1)) {
+				binaryInput)) {
 		/* Only use unique sequences on the same chromosome and strand */
 		if(1 == m.matchOne.numEntries &&
-				1== m.matchTwo.numEntries &&
+				1 == m.matchTwo.numEntries &&
 				m.matchOne.chromosomes[0] == m.matchTwo.chromosomes[0] &&
 				m.matchOne.strand[0] == m.matchTwo.strand[0]) {
 			/* Print */

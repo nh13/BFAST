@@ -5,6 +5,6 @@
 #include "../blib/RGBinary.h"
 #include "../blib/RGMatch.h"
 
-void PrintDistribution(FILE*, FILE*);
+void PrintDistribution(FILE*, int, FILE*);
 
 #endif
