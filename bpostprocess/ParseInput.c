@@ -39,6 +39,7 @@
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
+#include "InputOutputToFiles.c"
 #include "ParseInput.h"
 
 const char *argp_program_version =
@@ -54,8 +55,10 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescInputFileName, DescBinaryInput,
-	DescAlgoTitle, DescAlgorithmReads, DescMinScoreReads, DescStartChr, DescStartPos, DescEndChr, DescEndPos, 
-	DescPairedEndTitle, DescPairedEnd, DescAlgorithmPaired, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, DescChrAbPaired, DescInversionsPaired,
+	DescAlgoTitle, DescRunFiltering, DescPairedEnd,
+	DescGenFiltTitle, DescStartChr, DescStartPos, DescEndChr, DescEndPos, 
+	DescSingleEndTitle, DescAlgorithmReads, DescMinScoreReads, 
+	DescPairedEndTitle, DescAlgorithmReadsPaired, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, DescChrAbPaired, DescInversionsPaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -69,36 +72,39 @@ static struct argp_option options[] = {
 	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
+	{"runFiltering", 'r', 0, OPTION_NO_USAGE, "Specifies that the reads will be filtered based on the options below", 2},
+	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
+	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
+	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 3},
+	{"startPos", 'S', "startPos", 0, "Specifies the end position", 3},
+	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 3},
+	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 3},
+	{0, 0, 0, 0, "=========== Single End Filter Options ===============================================", 4},
 	{"algorithmReads", 'a', "algorithmReads", 0, "Algorithm to determine alignments:"
-		"\n\t\t\t\t0: Specifies to only consider reads that have been aligned uniquely"
-			"\n\t\t\t\t1: Specifies to choose the alignment with the best score", 2},
-	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider", 2},
-	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
-	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
-	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
-	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
-	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 3},
+		"\n\t\t0: Specifies to only consider reads that have been aligned uniquely"
+			"\n\t\t1: Specifies to choose the alignment with the best score", 4},
+	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider", 4},
+	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 5},
 	{"algorithmReadsPaired", 'A', "algorithmReadsPaired", 0, "Algorithm to determine paired alignments:"
-		"\n\t\t\t\t\t0: Specifies to only consider paired reads that have both been aligned uniquely"
-			"\n\t\t\t\t\t1: Specifies for both ends of the pair to choose the alignment with the best score"
-			"\n\t\t\t\t\t2: Specifies to prefer pairs of reads that are closest to the mean distance and are the unique pair with that idstance  (must specify -Z)", 3},
-			"\n\t\t\t\t\t2: Specifies to prefer pairs of reads that are closest to the mean distance and have the best score with that distance (must specify -Z)", 3},
-	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 3},
-	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends", 3},
-	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends", 3},
-	{"meanDistancePaired", 'Z', "meanDistancePaired", 0, "Specifies the mean distance between the paired ends (for use with -A 2)", 3},
-	{"chrAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand", 3},
-	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on opposite strands", 3},
-	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
-	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 4},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
-	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 1:wig 2:bed 3:bed & wig ", 4},
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
-	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
-	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 5},
-	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 5},
+		"\n\t\t0: Specifies to only consider paired reads that have both been aligned uniquely"
+			"\n\t\t1: Specifies for both ends of the pair to choose the alignment with the best score"
+			"\n\t\t2: Specifies to prefer pairs of reads that are closest to the mean distance and are the unique pair with that distance  (must specify -Z)"
+			"\n\t\t3: Specifies to prefer pairs of reads that are closest to the mean distance and have the best score with that distance (must specify -Z)", 5},
+	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 5},
+	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends", 5},
+	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends", 5},
+	{"meanDistancePaired", 'Z', "meanDistancePaired", 0, "Specifies the mean distance between the paired ends (for use with -A 2)", 5},
+	{"chrAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand", 5},
+	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on opposite strands", 5},
+	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
+	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 6},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: MAF", 6},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 6},
+	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 7},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 7},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 7},
 	{0, 0, 0, 0, 0, 0}
 };
 /*
@@ -120,7 +126,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:s:A:E:I:M:O:S:T:X:Y:Z:2bhptCI";
+"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:Z:2bhprtCI";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -167,6 +173,43 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
+						switch(arguments.runFiltering) {
+							case 0:
+								ReadInputAndOutput(arguments.inputFileName,
+										arguments.binaryInput,
+										arguments.pairedEnd,
+										arguments.outputID,
+										arguments.outputDir,
+										arguments.tmpDir,
+										arguments.outputFormat);
+								break;
+							case 1:
+								ReadInputFilterAndOutput(arguments.inputFileName,
+										arguments.binaryInput,
+										arguments.pairedEnd,
+										arguments.startChr,
+										arguments.startPos,
+										arguments.endChr,
+										arguments.endPos,
+										arguments.algorithmReads,
+										arguments.minScoreReads,
+										arguments.algorithmReadsPaired,
+										arguments.minScoreReadsPaired,
+										arguments.minDistancePaired,
+										arguments.maxDistancePaired,
+										arguments.meanDistancePaired,
+										arguments.chrAbPaired,
+										arguments.inversionsPaired,
+										arguments.outputID,
+										arguments.outputDir,
+										arguments.tmpDir,
+										arguments.outputFormat);
+								break;
+							default:
+								/* Control should not reach here */
+								assert(1==0);
+								break;
+						}
 
 						if(arguments.timing == 1) {
 							/* Get the time information */
@@ -239,12 +282,8 @@ int ValidateInputs(struct arguments *args) {
 				InputArguments);
 	}
 
-	if(args->algorithmReads < 0 || 
-			args->algorithmReads > 1) {
-		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
-	}
-
 	/* This should hold internally */
+	assert(args->runFiltering == 0 || args->runFiltering == 1);
 	assert(args->pairedEnd == 0 || args->pairedEnd == 1);
 
 	if(args->startChr <= 0) {
@@ -263,6 +302,11 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->algorithmReads < 0 || 
+			args->algorithmReads > 1) {
+		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
+	}
+
 	/* This should internally hold */
 	if(args->algorithmReadsPaired < 0 || 
 			args->algorithmReadsPaired > 2) {
@@ -274,9 +318,27 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "minDistancePaired > maxDistancePaired", "Command line argument", Exit, OutOfRange);
 	}
 
+	/* Check that if we use the mean distance, it falls between min and max */
+	if(args->algorithmReadsPaired == 2 || args->algorithmReadsPaired == 3) {
+		if(args->meanDistancePaired < args->minDistancePaired) {
+			PrintError(FnName, "meanDistancePaired < minDistancePaired", "Command line argument", Exit, OutOfRange);
+		}
+		if(args->meanDistancePaired < args->maxDistancePaired) {
+			PrintError(FnName, "meanDistancePaired < maxDistancePaired", "Command line argument", Exit, OutOfRange);
+		}
+	}
+
 	/* This must hold internally */
 	assert(args->chrAbPaired == 0 || args->chrAbPaired == 1);
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
+
+	if(args->pairedEnd == 0 && args->chrAbPaired == 1) {
+		PrintError(FnName, "Cannot use chrAbPaired without paired end", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->pairedEnd == 0 && args->inversionsPaired == 1) {
+		PrintError(FnName, "Cannot use inversionsPaired without paired end", "Command line argument", Exit, OutOfRange);
+	}
 
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
@@ -299,7 +361,7 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->outputFormat < 0) {
+	if(args->outputFormat < 0 || args->outputFormat > 0) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -351,15 +413,17 @@ AssignDefaultValues(struct arguments *args)
 
 	args->binaryInput = 0;
 
-	args->algorithmReads=0;
-	args->minScoreReads=INT_MIN;
+	args->runFiltering=0;
+	args->pairedEnd=0;
 
 	args->startChr=0;
 	args->startPos=0;
 	args->endChr=0;
 	args->endPos=0;
 
-	args->pairedEnd=0;
+	args->algorithmReads=0;
+	args->minScoreReads=INT_MIN;
+
 	args->algorithmReadsPaired=0;
 	args->minScoreReadsPaired=INT_MIN;
 	args->minDistancePaired=INT_MIN;
@@ -395,19 +459,20 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char algorithm[2][64] = {"Unique", "Best Score"};
+	char algorithm[4][64] = {"Unique", "Best Score", "Mean Distance Unique", "Mean Distance Best Score"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "inputFileName:\t\t%s\n", args->inputFileName);
 	fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
-	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
-	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
+	fprintf(fp, "runFiltering:\t\t%d\n", args->runFiltering);
+	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "startChr:\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
-	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
+	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
 	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
 	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
@@ -492,6 +557,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'r':
+						arguments->runFiltering=1;break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
 					case 't':

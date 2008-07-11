@@ -5,13 +5,14 @@ struct arguments
 	char *args[1];							/* No arguments to this function */
 	char *inputFileName;					/* -i */
 	int binaryInput;                        /* -b */
-	int algorithmReads;						/* -a */
-	int minScoreReads;						/* -m */
+	int runFiltering;						/* -r */
+	int pairedEnd;							/* -2 */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */
 	int endChr;                             /* -e */
 	int endPos;                             /* -E */
-	int pairedEnd;							/* -2 */
+	int algorithmReads;						/* -a */
+	int minScoreReads;						/* -m */
 	int algorithmReadsPaired;				/* -A */
 	int minScoreReadsPaired;				/* -M */
 	int minDistancePaired;					/* -X */

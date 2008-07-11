@@ -7,6 +7,10 @@ bpostprocess_SOURCES = \
 	../blib/RGBinary.c ../blib/RGBinary.h \
 	../blib/RGMatch.c ../blib/RGMatch.h \
 	../blib/RGRanges.c ../blib/RGRanges.h \
+	../blib/AlignEntries.c	../blib/AlignEntries.h \
+	../blib/AlignEntry.c	../blib/AlignEntry.h \
+	Filter.c	Filter.h \
+	InputOutputToFiles.c	InputOutputToFiles.h \
 	ParseInput.c	ParseInput.h \
 	Definitions.h
 	

@@ -207,6 +207,7 @@ void AlignEntriesMergeSort(AlignEntries *aEntries,
 			aEntries->numEntriesTwo-1);
 }
 
+/* TODO */
 void AlignEntriesReallocate(AlignEntries *aEntries,
 		int numEntriesOne,
 		int numEntriesTwo,
@@ -265,6 +266,7 @@ void AlignEntriesReallocate(AlignEntries *aEntries,
 
 }
 
+/* TODO */
 void AlignEntriesAllocate(AlignEntries *aEntries,
 		int numEntriesOne,
 		int numEntriesTwo,
@@ -322,6 +324,7 @@ void AlignEntriesAllocate(AlignEntries *aEntries,
 	}
 }
 
+/* TODO */
 void AlignEntriesFree(AlignEntries *aEntries)
 {
 	int i;
@@ -337,6 +340,7 @@ void AlignEntriesFree(AlignEntries *aEntries)
 	AlignEntriesInitialize(aEntries);
 }
 
+/* TODO */
 void AlignEntriesInitialize(AlignEntries *aEntries) 
 {
 	aEntries->readName=NULL;
@@ -345,4 +349,38 @@ void AlignEntriesInitialize(AlignEntries *aEntries)
 	aEntries->entriesTwo=NULL;
 	aEntries->numEntriesTwo=0;
 	aEntries->pairedEnd=0;
+}
+
+/* TODO */
+void AlignEntriesKeepOnly(AlignEntries *a,
+		int indexOne,
+		int indexTwo,
+		int pairedEnd)
+{
+	assert(pairedEnd == a->pairedEnd);
+	/* First read */
+	assert(0 <= indexOne && indexOne < a->numEntriesOne);
+	/* Copy to the front */
+	if(indexOne > 0) {
+		AlignEntryCopy(&a->entriesOne[indexOne], &a->entriesOne[0]);
+	}
+
+	/* Only for paired end */
+	if(1==pairedEnd) {
+		assert(0 <= indexTwo && indexTwo < a->numEntriesTwo);
+		if(indexTwo > 0) {
+			AlignEntryCopy(&a->entriesTwo[indexTwo], &a->entriesTwo[0]);
+		}
+		/* Reallocate */
+		AlignEntriesReallocate(a,
+				1,
+				1,
+				1);
+	}
+	else {
+		AlignEntriesReallocate(a,
+				1,
+				0,
+				0);
+	}
 }
