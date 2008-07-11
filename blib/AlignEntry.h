@@ -11,9 +11,8 @@ typedef struct {
 	char *read; /* The read */
 	char *reference;
 	unsigned int length; /* The length of the alignment */
-	unsigned int referenceLength; /* The number of bases excluding gaps in the reference string */
 	int32_t chromosome;
-	int32_t position;
+	uint32_t position;
 	char strand;
 	double score;
 } AlignEntry;

@@ -430,7 +430,6 @@ int AlignmentGetScore(char *read,
 	offset = startCol;
 
 	aEntry->length=0;
-	aEntry->referenceLength=0;
 	for(i=pathLength-2;i>=0;i--) {
 		if(AlignmentGetScore_DEBUG_ON == 1) {
 			fprintf(stderr, "(row,col)=[%d,%d]\t",
@@ -444,7 +443,6 @@ int AlignmentGetScore(char *read,
 			}
 			aEntry->read[aEntry->length] = read[rows[i] - 1];;
 			aEntry->reference[aEntry->length] = reference[cols[i] - 1];
-			aEntry->referenceLength++;
 		}
 		else if(rows[i] == (rows[i+1] + 1) &&
 				cols[i] == cols[i+1]) {
@@ -461,7 +459,6 @@ int AlignmentGetScore(char *read,
 			}
 				aEntry->read[aEntry->length] = GAP;
 				aEntry->reference[aEntry->length] = reference[cols[i] - 1];
-			aEntry->referenceLength++;
 		}
 		else {
 			PrintError(FnName,

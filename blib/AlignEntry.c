@@ -81,15 +81,6 @@ int AlignEntryRead(AlignEntry *aEntry,
 	assert(((int)strlen(aEntry->read)) == aEntry->length);
 	assert(strlen(aEntry->reference) == aEntry->length);
 
-	/* Update reference length */
-	aEntry->referenceLength = aEntry->length;
-	for(i=0;i<aEntry->length;i++) {
-		if(GAP == aEntry->reference[i]) {
-			aEntry->referenceLength--;
-		}
-	}
-	assert(aEntry->referenceLength >= 0 && aEntry->referenceLength <= aEntry->length);
-
 	return 1;
 }
 
@@ -447,7 +438,6 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		assert(src->reference!= NULL);
 		strcpy(dest->reference, src->reference);
 		dest->length = src->length;
-		dest->referenceLength = src->referenceLength;
 		dest->chromosome = src->chromosome;
 		dest->position = src->position;
 		dest->strand = src->strand;
@@ -467,7 +457,6 @@ void AlignEntryInitialize(AlignEntry *aEntry)
 	aEntry->read=NULL;
 	aEntry->reference=NULL;
 	aEntry->length=0;
-	aEntry->referenceLength=0;
 	aEntry->chromosome=0;
 	aEntry->position=0;
 	aEntry->strand=0;

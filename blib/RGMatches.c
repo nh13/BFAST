@@ -128,7 +128,9 @@ int32_t RGMatchesRead(FILE *fp,
 	}
 
 	/* Check m */
+	/*
 	RGMatchesCheck(m);
+	*/
 
 	return 1;
 }
@@ -143,7 +145,9 @@ void RGMatchesPrint(FILE *fp,
 	assert(fp!=NULL);
 
 	/* Check m */
+	/*
 	RGMatchesCheck(m);
+	*/
 
 	/* Print the matches to the output file */
 	if(binaryOutput == 0) {
@@ -194,7 +198,9 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 	}
 
 	/* Check m */
+	/*
 	RGMatchesCheck(m);
+	*/
 }
 
 /* TODO */
@@ -457,7 +463,9 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 			}
 		}
 		/* Check m */
+		/*
 		RGMatchesCheck(m);
+		*/
 	}
 }
 

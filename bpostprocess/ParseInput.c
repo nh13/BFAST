@@ -39,7 +39,7 @@
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
-#include "InputOutputToFiles.c"
+#include "InputOutputToFiles.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =

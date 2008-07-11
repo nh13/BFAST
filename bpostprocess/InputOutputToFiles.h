@@ -32,8 +32,18 @@ void ReadInputAndOutput(char *inputFileName,
 		char *tmpDir,
 		int outputFormat);
 
+void PrintHeader(FILE *fp,
+		int outputFormat);
+
 void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 		FILE *fp,
 		int outputFormat);
+
+void PrintAlignEntriesToMAF(AlignEntries *a,
+		FILE *fp);
+
+void PrintAlignEntryToMAF(AlignEntry *a,
+		char *readName,
+		FILE *fp);
 
 #endif

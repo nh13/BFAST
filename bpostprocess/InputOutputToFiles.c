@@ -283,13 +283,20 @@ void ReadInputAndOutput(char *inputFileName,
 }
 
 /* TODO */
-void PrintAlignEntriesToOutputFormat(AlignEntries *a, 
-		FILE *fp,
-		int outputFormat)
+void PrintHeader(FILE *fp,
+		int outputFormat) 
 {
-	char *FnName = "PrintAlignEntriesToOutputFormat";
+	char *FnName = "PrintHeader";
 	switch(outputFormat) {
 		case MAF:
+			if(0>fprintf(fp, "##maf version=1 scoring=%s\n",
+						PROGRAM_NAME)) {
+				PrintError(FnName,
+						"header",
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
 			break;
 		default:
 			PrintError(FnName,
@@ -298,5 +305,125 @@ void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 					Exit,
 					OutOfRange);
 			break;
+	}
+}
+
+/* TODO */
+void PrintAlignEntriesToOutputFormat(AlignEntries *a, 
+		FILE *fp,
+		int outputFormat)
+{
+	char *FnName = "PrintAlignEntriesToOutputFormat";
+	switch(outputFormat) {
+		case MAF:
+			PrintAlignEntriesToMAF(a, fp);
+			break;
+		default:
+			PrintError(FnName,
+					"outputFormat",
+					"Could not understand outputFormat",
+					Exit,
+					OutOfRange);
+			break;
+	}
+}
+
+/* TODO */
+void PrintAlignEntriesToMAF(AlignEntries *a,
+		FILE *fp)
+{
+	char *FnName="PrintAlignEntriesToMAF";
+	int i;
+
+	/* Get Data */
+	if(0==a->pairedEnd) {
+		for(i=0;i<a->numEntriesOne;i++) {
+			if(0>fprintf(fp, "# paired-end=%d\n",
+						a->pairedEnd)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, fp); 
+		}
+	}
+	else {
+		for(i=0;i<a->numEntriesOne;i++) {
+			if(0>fprintf(fp, "# paired-end=%d\n# pair=%d\n",
+						a->pairedEnd,
+						1)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, fp); 
+		}
+		for(i=0;i<a->numEntriesTwo;i++) {
+			if(0>fprintf(fp, "# paired-end=%d\n# pair=%d\n",
+						a->pairedEnd,
+						2)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, fp); 
+		}
+	}
+
+}
+
+/* TODO */
+void PrintAlignEntryToMAF(AlignEntry *a,
+		char *readName,
+		FILE *fp)
+{
+	char *FnName="PrintAlignEntryToMAF";
+	int i;
+	int originalReferenceLength=0;
+	int originalReadLength=0; 
+
+	/* Recover origan lengths */
+	for(i=0;i<a->length;i++) {
+		if(a->reference[i] != GAP) {
+			originalReferenceLength++;
+		}
+		if(a->read[i] != GAP) {
+			originalReadLength++;
+		}
+	}
+
+	/* Print the reference */
+	if(0>fprintf(stderr, "s chr%d %u %d %c %d %s\n",
+				a->chromosome,
+				a->position-1, /* zero based */
+				a->length,
+				a->strand,
+				originalReferenceLength,
+				a->reference)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* Print the read */
+	if(0>fprintf(stderr, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
+				readName,
+				0,
+				a->length,
+				a->strand,
+				originalReadLength,
+				a->read)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
 	}
 }
