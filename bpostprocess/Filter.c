@@ -22,8 +22,8 @@ int FilterAlignEntries(AlignEntries *a,
 		int maxDistancePaired,
 		int meanDistancePaired)
 {
-	assert(a->pairedEnd == pairedEnd);
 	int foundType=NoneFound;
+	assert(a->pairedEnd == pairedEnd);
 
 	/* We should only modify "a" if it is going to be reported */ 
 

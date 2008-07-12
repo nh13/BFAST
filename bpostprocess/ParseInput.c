@@ -59,7 +59,7 @@ enum {
 	DescGenFiltTitle, DescStartChr, DescStartPos, DescEndChr, DescEndPos, 
 	DescSingleEndTitle, DescAlgorithmReads, DescMinScoreReads, 
 	DescPairedEndTitle, DescAlgorithmReadsPaired, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, DescChrAbPaired, DescInversionsPaired,
-	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescOutputFormat, DescTiming,
+	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -99,7 +99,6 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
-	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 6},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: MAF", 6},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 6},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 7},
@@ -180,7 +179,6 @@ main (int argc, char **argv)
 										arguments.pairedEnd,
 										arguments.outputID,
 										arguments.outputDir,
-										arguments.tmpDir,
 										arguments.outputFormat);
 								break;
 							case 1:
@@ -202,7 +200,6 @@ main (int argc, char **argv)
 										arguments.inversionsPaired,
 										arguments.outputID,
 										arguments.outputDir,
-										arguments.tmpDir,
 										arguments.outputFormat);
 								break;
 							default:
@@ -354,13 +351,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->tmpDir!=0) {
-		fprintf(stderr, "Validating tmpDir path %s. \n",
-				args->tmpDir);
-		if(ValidateFileName(args->tmpDir)==0)
-			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
-	}
-
 	if(args->outputFormat < 0 || args->outputFormat > 0) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
@@ -442,11 +432,6 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
-	args->tmpDir =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
-	assert(args->tmpDir!=0);
-	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
-
 	args->outputFormat=0;
 
 	args->timing = 0;
@@ -482,7 +467,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t%s\n", args->outputDir);
-	fprintf(fp, "tmpDir:\t\t\t%s\n", args->tmpDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
 	fprintf(fp, "timing:\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
@@ -536,12 +520,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;
-						/* set the tmp directory to the output director */
-						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
-							free(arguments->tmpDir);
-							arguments->tmpDir = malloc(sizeof(char)*(strlen(arguments->outputDir)+1));
-							strcpy(arguments->tmpDir, arguments->outputDir);
-						}
 						break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
@@ -577,9 +555,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputFormat=atoi(OPTARG);break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
-					case 'T':
-						if(arguments->tmpDir) free(arguments->tmpDir);
-						arguments->tmpDir = OPTARG;break;
 					case 'X':
 						arguments->minDistancePaired = atoi(OPTARG);break;
 					case 'Y':

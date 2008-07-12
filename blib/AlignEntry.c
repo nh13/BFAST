@@ -39,7 +39,6 @@ int AlignEntryRead(AlignEntry *aEntry,
 		FILE *inputFP)
 {
 	char *FnName = "AlignEntryRead";
-	int i;
 
 	if(aEntry->read == NULL) {
 		aEntry->read = malloc(sizeof(char)*SEQUENCE_LENGTH);

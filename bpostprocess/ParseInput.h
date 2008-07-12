@@ -22,7 +22,6 @@ struct arguments
 	int inversionsPaired;					/* -I */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
-	char *tmpDir;							/* -T */
 	int outputFormat;						/* -O */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 

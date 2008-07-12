@@ -57,7 +57,8 @@ void AlignEntriesPrint(AlignEntries *aEntries,
 
 /* TODO */
 int AlignEntriesRead(AlignEntries *aEntries,
-		FILE *inputFP)
+		FILE *inputFP,
+		int pairedEnd)
 {
 	char *FnName = "AlignEntriesRead";
 	int i;
@@ -84,6 +85,13 @@ int AlignEntriesRead(AlignEntries *aEntries,
 	}
 
 	assert(aEntries->pairedEnd == 1 || aEntries->numEntriesTwo == 0);
+	if(aEntries->pairedEnd != pairedEnd) {
+		PrintError(FnName,
+				"aEntries->pairedEnd != pairedEnd",
+				"Paired end does not match",
+				Exit,
+				OutOfRange);
+	}
 
 	/* Allocate memory for the first entry */ 
 	aEntries->entriesOne = malloc(sizeof(AlignEntry)*aEntries->numEntriesOne);
@@ -214,7 +222,6 @@ void AlignEntriesReallocate(AlignEntries *aEntries,
 		int pairedEnd)
 {
 	char *FnName = "AlignEntriesReallocate";
-	int i;
 
 	aEntries->numEntriesOne = numEntriesOne;
 	aEntries->numEntriesTwo = numEntriesTwo;
@@ -244,10 +251,6 @@ void AlignEntriesReallocate(AlignEntries *aEntries,
 					MallocMemory);
 		}
 	}
-	/* Initialize */
-	for(i=0;i<aEntries->numEntriesOne;i++) {
-		AlignEntryInitialize(&aEntries->entriesOne[i]);
-	}
 	aEntries->entriesTwo = realloc(aEntries->entriesTwo, sizeof(AlignEntry)*aEntries->numEntriesTwo);
 	if(aEntries->numEntriesTwo > 0 && NULL==aEntries->entriesTwo) {
 		assert(aEntries->pairedEnd == 1);
@@ -259,11 +262,6 @@ void AlignEntriesReallocate(AlignEntries *aEntries,
 					MallocMemory);
 		}
 	}
-	/* Initialize */
-	for(i=0;i<aEntries->numEntriesTwo;i++) {
-		AlignEntryInitialize(&aEntries->entriesTwo[i]);
-	}
-
 }
 
 /* TODO */

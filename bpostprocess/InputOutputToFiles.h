@@ -21,7 +21,6 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		int inversionsPaired,
 		char *outputID,
 		char *outputDir,
-		char *tmpDir,
 		int outputFormat);
 
 void ReadInputAndOutput(char *inputFileName,
@@ -29,7 +28,6 @@ void ReadInputAndOutput(char *inputFileName,
 		int pairedEnd,
 		char *outputID,
 		char *outputDir,
-		char *tmpDir,
 		int outputFormat);
 
 void PrintHeader(FILE *fp,

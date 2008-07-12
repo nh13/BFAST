@@ -27,7 +27,6 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		int inversionsPaired,
 		char *outputID,
 		char *outputDir,
-		char *tmpDir,
 		int outputFormat)
 {
 	char *FnName="ReadInputFilterAndOutput";
@@ -42,6 +41,9 @@ void ReadInputFilterAndOutput(char *inputFileName,
 	FILE *fpInversions=NULL;
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpNotReported=NULL;
+
+	/* Only implemented for MAF */
+	assert(outputFormat == MAF);
 
 	/* Open the input file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
@@ -83,6 +85,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 					Exit,
 					OpenFileError);
 		}
+		PrintHeader(fpChrAb, outputFormat);
 	}
 	if(inversionsPaired == 1) {
 		assert(1==pairedEnd);
@@ -93,6 +96,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 					Exit,
 					OpenFileError);
 		}
+		PrintHeader(fpInversions, outputFormat);
 	}
 	if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
 		PrintError(FnName,
@@ -101,6 +105,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				Exit,
 				OpenFileError);
 	}
+		PrintHeader(fpNotReported, outputFormat);
 	if(!(fpOut=fopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
@@ -108,6 +113,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				Exit,
 				OpenFileError);
 	}
+		PrintHeader(fpOut, outputFormat);
 
 	/* Initialize */
 	AlignEntriesInitialize(&a);
@@ -117,7 +123,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
 	counter = numReported = numNotReported = numChrAb = numInversions = 0;
-	while(EOF != AlignEntriesRead(&a, fp)) {
+	while(EOF != AlignEntriesRead(&a, fp, pairedEnd)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -136,7 +142,8 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				minDistancePaired,          
 				maxDistancePaired,
 				meanDistancePaired);
-
+		
+		
 		/* Print the apporiate files based on the return type */
 		switch(foundType) {
 			case NoneFound:
@@ -212,7 +219,6 @@ void ReadInputAndOutput(char *inputFileName,
 		int pairedEnd,
 		char *outputID,
 		char *outputDir,
-		char *tmpDir,
 		int outputFormat)
 {
 	char *FnName="ReadInputAndOutput";
@@ -254,7 +260,7 @@ void ReadInputAndOutput(char *inputFileName,
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
 	counter = 0;
-	while(EOF != AlignEntriesRead(&a, fp)) {
+	while(EOF != AlignEntriesRead(&a, fp, pairedEnd)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -398,8 +404,18 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 		}
 	}
 
+	/* Print the score */
+	if(0>fprintf(fp, "a score=%lf\n",
+				a->score)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+
 	/* Print the reference */
-	if(0>fprintf(stderr, "s chr%d %u %d %c %d %s\n",
+	if(0>fprintf(fp, "s chr%d %u %d %c %d %s\n",
 				a->chromosome,
 				a->position-1, /* zero based */
 				a->length,
@@ -413,7 +429,7 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 				WriteFileError);
 	}
 	/* Print the read */
-	if(0>fprintf(stderr, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
+	if(0>fprintf(fp, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
 				readName,
 				0,
 				a->length,

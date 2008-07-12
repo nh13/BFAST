@@ -17,7 +17,7 @@ typedef struct {
 } AlignEntries;
 
 void AlignEntriesPrint(AlignEntries*, FILE*);
-int AlignEntriesRead(AlignEntries*, FILE*);
+int AlignEntriesRead(AlignEntries*, FILE*, int);
 void AlignEntriesRemoveDuplicates(AlignEntries*, int);
 void AlignEntriesQuickSort(AlignEntries*, int, int);
 void AlignEntriesMergeSort(AlignEntries*, int, int);
