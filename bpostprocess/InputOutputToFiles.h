@@ -42,6 +42,8 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 
 void PrintAlignEntryToMAF(AlignEntry *a,
 		char *readName,
+		int pairedEnd,
+		int readNum,
 		FILE *fp);
 
 #endif

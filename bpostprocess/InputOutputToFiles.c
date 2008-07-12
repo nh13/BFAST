@@ -338,47 +338,23 @@ void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 void PrintAlignEntriesToMAF(AlignEntries *a,
 		FILE *fp)
 {
+	/*
 	char *FnName="PrintAlignEntriesToMAF";
+	*/
 	int i;
 
 	/* Get Data */
 	if(0==a->pairedEnd) {
 		for(i=0;i<a->numEntriesOne;i++) {
-			if(0>fprintf(fp, "# paired-end=%d\n",
-						a->pairedEnd)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, 1, fp); 
 		}
 	}
 	else {
 		for(i=0;i<a->numEntriesOne;i++) {
-			if(0>fprintf(fp, "# paired-end=%d\n# pair=%d\n",
-						a->pairedEnd,
-						1)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, 1, fp); 
 		}
 		for(i=0;i<a->numEntriesTwo;i++) {
-			if(0>fprintf(fp, "# paired-end=%d\n# pair=%d\n",
-						a->pairedEnd,
-						2)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
-			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, fp); 
+			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, a->pairedEnd, 2, fp); 
 		}
 	}
 
@@ -387,6 +363,8 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 /* TODO */
 void PrintAlignEntryToMAF(AlignEntry *a,
 		char *readName,
+		int pairedEnd,
+		int readNum,
 		FILE *fp)
 {
 	char *FnName="PrintAlignEntryToMAF";
@@ -405,8 +383,10 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 
 	/* Print the score */
-	if(0>fprintf(fp, "a score=%lf\n",
-				a->score)) {
+	if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d\n",
+				a->score,
+				pairedEnd,
+				readNum)) {
 		PrintError(FnName,
 				NULL,
 				"Could not write to file",
