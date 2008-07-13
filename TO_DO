@@ -36,15 +36,3 @@ Multi-threaded support when sorting.
 2. 
 Sorts could have shallow copying for their tmp space.  For example, the strings
 only need to have pointers, not whole copies.
-
-===============================================================================
-bcommand
-===============================================================================
-1.
-Update for bpostprocess.
-2.
-Check all command options.
-3.
-Allow for multiple .sh files.
-4. 
-Add man page for bcommand.
