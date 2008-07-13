@@ -143,7 +143,6 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				maxDistancePaired,
 				meanDistancePaired);
 		
-		
 		/* Print the apporiate files based on the return type */
 		switch(foundType) {
 			case NoneFound:
@@ -208,81 +207,6 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		assert(1==pairedEnd);
 		fclose(fpChrAb);
 	}
-
-	/* Close the input file */
-	fclose(fp);
-}
-
-/* TODO */
-void ReadInputAndOutput(char *inputFileName,
-		int binaryInput,
-		int pairedEnd,
-		char *outputID,
-		char *outputDir,
-		int outputFormat)
-{
-	char *FnName="ReadInputAndOutput";
-	FILE *fp=NULL;
-	int64_t counter;
-	AlignEntries a;
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *fpOut=NULL;
-
-	/* Open the input file */
-	if(!(fp=fopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open inputFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-
-	/* Create output file names */
-	sprintf(outputFileName, "%s%s.report.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			BFAST_MAF_FILE_EXTENSION);
-	/* Open output file */
-	if(!(fpOut=fopen(outputFileName, "wb"))) {
-		PrintError(FnName,
-				outputFileName,
-				"Could not open outputFileName for writing",
-				Exit,
-				OpenFileError);
-	}
-
-	/* Initialize */
-	AlignEntriesInitialize(&a);
-
-	/* Go through each read */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Processing reads, currently on:\n0");
-	}
-	counter = 0;
-	while(EOF != AlignEntriesRead(&a, fp, pairedEnd)) {
-		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%lld",
-					(long long int)counter);
-		}
-
-		assert(a.pairedEnd == pairedEnd);
-
-		/* Print to Output file */
-		PrintAlignEntriesToOutputFormat(&a, fpOut, outputFormat);
-
-		/* Free memory */
-		AlignEntriesFree(&a);
-		/* Increment counter */
-		counter++;
-	}
-	if(VERBOSE>=0) {
-		fprintf(stderr, "\r%lld\n",
-				(long long int)counter);
-	}
-
-	/* Close output files, if necessary */
-	fclose(fpOut);
 
 	/* Close the input file */
 	fclose(fp);

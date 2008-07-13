@@ -55,7 +55,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescInputFileName, DescBinaryInput,
-	DescAlgoTitle, DescRunFiltering, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescChrAbPaired, DescInversionsPaired,
+	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescChrAbPaired, DescInversionsPaired,
 	DescGenFiltTitle, DescStartChr, DescStartPos, DescEndChr, DescEndPos, 
 	DescSingleEndTitle, DescMinScoreReads, 
 	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, 
@@ -72,16 +72,19 @@ static struct argp_option options[] = {
 	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file from the balign program", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
-	{"runFiltering", 'r', 0, OPTION_NO_USAGE, "Specifies that the reads will be filtered based on the options below", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each single-end read after filtering:"
-		"\n\t\t0: Specifies to only consider reads that have been aligned uniquely"
-			"\n\t\t1: Specifies to choose the alignment with the best score", 2},
+		"\n\t\t0: Specifies no filtering will occur"
+			"\n\t\t1: Specifies that all alignments that pass the filters will be outputted"
+			"\n\t\t2: Specifies to only consider reads that have been aligned uniquely"
+			"\n\t\t3: Specifies to choose the alignment with the best score", 2},
 	{"algorithmReadsPaired", 'A', "algorithmReadsPaired", 0, "Specifies the algorithm to choose the alignment for each paired-end read after filtering:"
-		"\n\t\t0: Specifies to only consider paired reads where both reads have been aligned uniquely"
-			"\n\t\t1: Specifies to choose the alignment with the best score when the alignment score from either end is combined"
-			"\n\t\t2: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and are the unique pair within that maximum and minimum distance (-X and -Y)"
-			"\n\t\t3: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and have the best score with that distance", 2},
+		"\n\t\t0: Specifies no filtering will occur"
+			"\n\t\t1: Specifies that all alignments for either end that pass the filters will be outputted"
+			"\n\t\t2: Specifies to only consider paired reads where both reads have been aligned uniquely"
+			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined"
+			"\n\t\t4: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and are the unique pair within that maximum and minimum distance (-X and -Y)"
+			"\n\t\t5: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and have the best score with that distance", 2},
 	{"chrAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 5},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
@@ -125,7 +128,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:Z:2bhprtCI";
+"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:Z:2bhptCI";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -172,42 +175,25 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
-						switch(arguments.runFiltering) {
-							case 0:
-								ReadInputAndOutput(arguments.inputFileName,
-										arguments.binaryInput,
-										arguments.pairedEnd,
-										arguments.outputID,
-										arguments.outputDir,
-										arguments.outputFormat);
-								break;
-							case 1:
-								ReadInputFilterAndOutput(arguments.inputFileName,
-										arguments.binaryInput,
-										arguments.pairedEnd,
-										arguments.startChr,
-										arguments.startPos,
-										arguments.endChr,
-										arguments.endPos,
-										arguments.algorithmReads,
-										arguments.minScoreReads,
-										arguments.algorithmReadsPaired,
-										arguments.minScoreReadsPaired,
-										arguments.minDistancePaired,
-										arguments.maxDistancePaired,
-										arguments.meanDistancePaired,
-										arguments.chrAbPaired,
-										arguments.inversionsPaired,
-										arguments.outputID,
-										arguments.outputDir,
-										arguments.outputFormat);
-								break;
-							default:
-								/* Control should not reach here */
-								assert(1==0);
-								break;
-						}
-
+						ReadInputFilterAndOutput(arguments.inputFileName,
+								arguments.binaryInput,
+								arguments.pairedEnd,
+								arguments.startChr,
+								arguments.startPos,
+								arguments.endChr,
+								arguments.endPos,
+								arguments.algorithmReads,
+								arguments.minScoreReads,
+								arguments.algorithmReadsPaired,
+								arguments.minScoreReadsPaired,
+								arguments.minDistancePaired,
+								arguments.maxDistancePaired,
+								arguments.meanDistancePaired,
+								arguments.chrAbPaired,
+								arguments.inversionsPaired,
+								arguments.outputID,
+								arguments.outputDir,
+								arguments.outputFormat);
 						if(arguments.timing == 1) {
 							/* Get the time information */
 							endTime = time(NULL);
@@ -280,7 +266,6 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* This should hold internally */
-	assert(args->runFiltering == 0 || args->runFiltering == 1);
 	assert(args->pairedEnd == 0 || args->pairedEnd == 1);
 
 	if(args->startChr < 0) {
@@ -299,14 +284,14 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->algorithmReads < 0 || 
-			args->algorithmReads > 1) {
+	if(args->algorithmReads < MIN_FILTER || 
+			args->algorithmReads > MAX_FILTER_SE) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 
 	/* This should internally hold */
-	if(args->algorithmReadsPaired < 0 || 
-			args->algorithmReadsPaired > 2) {
+	if(args->algorithmReadsPaired < MIN_FILTER || 
+			args->algorithmReadsPaired > MAX_FILTER_PE) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -403,7 +388,6 @@ AssignDefaultValues(struct arguments *args)
 
 	args->binaryInput = 0;
 
-	args->runFiltering=0;
 	args->pairedEnd=0;
 
 	args->startChr=0;
@@ -444,13 +428,12 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char algorithm[4][64] = {"Unique", "Best Score", "Mean Distance Unique", "Mean Distance Best Score"};
+	char algorithm[6][64] = {"No Filtering", "Location Only", "Unique", "Best Score", "Mean Distance Unique", "Mean Distance Best Score"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "inputFileName:\t\t%s\n", args->inputFileName);
 	fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
-	fprintf(fp, "runFiltering:\t\t%d\n", args->runFiltering);
 	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
 	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
@@ -535,8 +518,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputID = OPTARG;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
-					case 'r':
-						arguments->runFiltering=1;break;
 					case 's':
 						arguments->startChr=atoi(OPTARG);break;
 					case 't':

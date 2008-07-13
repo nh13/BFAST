@@ -17,13 +17,14 @@ int FilterAlignEntries(AlignEntries *a,
 		int maxDistancePaired,
 		int meanDistancePaired);
 
-int FilterFirstReadInAlignEntries(AlignEntries *a,
+int FilterReadInAlignEntries(AlignEntries *a,
 		int algorithmReads,
 		int minScoreReads,
 		int startChr,
 		int startPos,
 		int endChr,
-		int endPos);
+		int endPos,
+		int which);
 
 int FilterAlignEntry(AlignEntry *a,
 		int minScoreReads,

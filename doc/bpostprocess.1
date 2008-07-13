@@ -19,7 +19,6 @@ bpostprocess \- converts alignment files to the user-specified format.
 bpostprocess
 	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-inputFileName=\fIFILENAME\fR]
 	[\fB\-b\fR] 		[\fB\-\-binaryInput\fR]
-	[\fB\-r\fR]			[\fB\-\-runFiltering\fR]
 	[\fB\-2\fR]			[\fB\-\-pairedEnd\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithmReads=\fIINTEGER\fR]
 	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-algorithmReadsPaired=\fIINTEGER\fR]
@@ -73,18 +72,22 @@ Specifies that paired end data is to be expected.
 .TP 4
 \fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithmReads=\fIINTEGER\fR
 This specifies the algorithm to choose the alignment for each single-end read after filtering.
-The option \fB\-\-a 0\fR outputs only reads that have been aligned uniquely. 
-The option \fB\-\-a 1\fR chooses the alignment with the best score for each read.
+The option \fB\-\-a 0\fR specifies that no filtering will occur.
+The option \fB\-\-a 1\fR specifies that all alignments that pass the filters will be outputted.
+The option \fB\-\-a 2\fR outputs only reads that have been aligned uniquely. 
+The option \fB\-\-a 3\fR chooses the alignment with the best score for each read.
 If multiple alignments have the same best score, the read is not reported.
 .
 .TP 4
 \fB\-A\fR \fIINTEGER\fR, \fB\-\-algorithmReadsPaired=\fIINTEGER\fR
 This specifies the algorithm to choose the alignment for each paired-end reads after filtering.
-The option \fB\-\-a 0\fR outputs only paired reads where both ends have been aligned uniquely.
-The option \fB\-\-a 1\fR chooses the alignment with the best score when the alignment score from either end is combined.
+The option \fB\-\-a 0\fR specifies that no filtering will occur.
+The option \fB\-\-a 1\fR specifies that all alignments for either end that pass the filters will be outputted.
+The option \fB\-\-a 2\fR outputs only paired reads where both ends have been aligned uniquely.
+The option \fB\-\-a 3\fR chooses the alignment with the best score when the alignment score from either end is combined.
 If multiple alignments have the same best score, an alignment is not reported.
-The option \fB\-\-a 2\fR chooses pairs of reads that are closest to the mean distance (\fB\-Z\fR) and are the unique pair within that maximum and minimum distance (\fB\-X\fR and \fB\-Y\fR).
-The option \fB\-\-a 3\fR chooses pairs of reads that are closest to the mean distance (\fB-Z\fR) and have the best score.
+The option \fB\-\-a 4\fR chooses pairs of reads that are closest to the mean distance (\fB\-Z\fR) and are the unique pair within that maximum and minimum distance (\fB\-X\fR and \fB\-Y\fR).
+The option \fB\-\-a 5\fR chooses pairs of reads that are closest to the mean distance (\fB-Z\fR) and have the best score.
 If multiple alignments have the same best score, an alignment is not reported.
 .
 .TP 4

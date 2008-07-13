@@ -23,13 +23,6 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		char *outputDir,
 		int outputFormat);
 
-void ReadInputAndOutput(char *inputFileName,
-		int binaryInput,
-		int pairedEnd,
-		char *outputID,
-		char *outputDir,
-		int outputFormat);
-
 void PrintHeader(FILE *fp,
 		int outputFormat);
 

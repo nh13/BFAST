@@ -5,7 +5,6 @@ struct arguments
 	char *args[1];							/* No arguments to this function */
 	char *inputFileName;					/* -i */
 	int binaryInput;                        /* -b */
-	int runFiltering;						/* -r */
 	int pairedEnd;							/* -2 */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */

@@ -26,5 +26,6 @@ void AlignEntriesReallocate(AlignEntries*, int, int, int);
 void AlignEntriesFree(AlignEntries*);
 void AlignEntriesInitialize(AlignEntries*);
 void AlignEntriesKeepOnly(AlignEntries*, int, int, int);
+void AlignEntriesCopy(AlignEntries*, AlignEntries*);
 #endif
 
