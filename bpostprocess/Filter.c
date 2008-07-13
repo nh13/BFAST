@@ -135,10 +135,10 @@ int FilterAlignEntry(AlignEntry *a,
 		return 1;
 	}
 	/* Check the genomic location */
-	if(a->chromosome < startChr || 
-			(a->chromosome == startChr && a->position < startPos) ||
-			(a->chromosome == endChr && a->position > endPos) ||
-			(a->chromosome > endChr)) {
+	if((startChr != 0 && a->chromosome < startChr) || 
+			(startChr != 0 && a->chromosome == startChr && startPos != 0 && a->position < startPos) ||
+			(endChr != 0 && a->chromosome == endChr && endPos != 0 && a->position > endPos) ||
+			(endChr != 0 && a->chromosome > endChr)) {
 		return 1;
 	}
 	return 0;
@@ -186,57 +186,84 @@ int FilterOneAlignEntries(AlignEntries *a,
 
 	/* Go through all possible pairs of alignments */
 	for(i=0;i<a->numEntriesOne;i++) { /* First read */
-		for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
-			/* Get the distance between the two */
-			curChrDistance = a->entriesTwo[j].chromosome - a->entriesOne[i].chromosome;
-			curPositionDistance = a->entriesTwo[j].position - a->entriesOne[i].position;
-			if(minScoreReadsPaired <= (a->entriesOne[i].score + a->entriesTwo[j].score)) {
-				if(0==curChrDistance &&
-						curPositionDistance <= maxDistancePaired &&
-						curPositionDistance >= minDistancePaired) {
-					/* Inside the bounds */
+		/* Filter first entry for chromosome position */
+		if(0 == FilterAlignEntry(&a->entriesOne[i],
+					INT_MIN,
+					startChr,
+					startPos,
+					endChr,
+					endPos)) {
+			for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
+				/* Filter second entry for chromosome position.  Also filter based on score. */
+				if(0 == FilterAlignEntry(&a->entriesTwo[j],
+							INT_MIN,
+							startChr,
+							startPos,
+							endChr,
+							endPos) &&
+						(minScoreReadsPaired <= (a->entriesOne[i].score + a->entriesTwo[j].score))) {
+					/* Get the distance between the two */
+					curChrDistance = a->entriesTwo[j].chromosome - a->entriesOne[i].chromosome;
+					curPositionDistance = a->entriesTwo[j].position - a->entriesOne[i].position;
+					if(0==curChrDistance &&
+							curPositionDistance <= maxDistancePaired &&
+							curPositionDistance >= minDistancePaired) {
+						/* Inside the bounds */
 
-					/* best score */
-					if(0==bestScoreInitialized ||
-							(a->entriesOne[bestScoreOne].score + a->entriesTwo[bestScoreTwo].score) <=
-							(a->entriesOne[i].score + a->entriesTwo[j].score)) {
-						if((a->entriesOne[bestScoreOne].score + a->entriesTwo[bestScoreTwo].score) ==
+						/* best score */
+						if(0==bestScoreInitialized ||
+								(a->entriesOne[bestScoreOne].score + a->entriesTwo[bestScoreTwo].score) <=
 								(a->entriesOne[i].score + a->entriesTwo[j].score)) {
-							/* If we have the same score update the number */ 
-							assert(numBestScore > 0);
-							numBestScore++;
-						}
-						else {
-							/* Update the score */
-							bestScoreOne = i;
-							bestScoreTwo = j;
-							numBestScore=1;
-							bestScoreInitialized = 1;
-						}
-					}
-					/* unique */
-					numUnique++;
-					uniqueOne = i;
-					uniqueTwo = j;
-					/* closest to the mean unique/best score */ 
-					curDistanceToMean = abs(curPositionDistance - meanDistancePaired);
-					if(algorithmReadsPaired == 2) { /* closest unique */
-						if(curDistanceToMean == closestToMean) {
-							/* Increment */
-							numClosestToMean++;
-						}
-						else if(curDistanceToMean < closestToMean) {
-							/* Update */
-							closestToMean = curDistanceToMean;
-							closestToMeanOne = i;
-							closestToMeanTwo = j;
-							numClosestToMean = 1;
-						}
-					}
-					else if(algorithmReadsPaired == 3) { /* closest best score */
-						if(curDistanceToMean == closestToMean) {
-							if((a->entriesOne[closestToMeanOne].score + a->entriesTwo[closestToMeanTwo].score) < 
+							if((a->entriesOne[bestScoreOne].score + a->entriesTwo[bestScoreTwo].score) ==
 									(a->entriesOne[i].score + a->entriesTwo[j].score)) {
+								/* If we have the same score update the number */ 
+								assert(numBestScore > 0);
+								numBestScore++;
+							}
+							else {
+								/* Update the score */
+								bestScoreOne = i;
+								bestScoreTwo = j;
+								numBestScore=1;
+								bestScoreInitialized = 1;
+							}
+						}
+						/* unique */
+						numUnique++;
+						uniqueOne = i;
+						uniqueTwo = j;
+						/* closest to the mean unique/best score */ 
+						curDistanceToMean = abs(curPositionDistance - meanDistancePaired);
+						if(algorithmReadsPaired == 2) { /* closest unique */
+							if(curDistanceToMean == closestToMean) {
+								/* Increment */
+								numClosestToMean++;
+							}
+							else if(curDistanceToMean < closestToMean) {
+								/* Update */
+								closestToMean = curDistanceToMean;
+								closestToMeanOne = i;
+								closestToMeanTwo = j;
+								numClosestToMean = 1;
+							}
+						}
+						else if(algorithmReadsPaired == 3) { /* closest best score */
+							if(curDistanceToMean == closestToMean) {
+								if((a->entriesOne[closestToMeanOne].score + a->entriesTwo[closestToMeanTwo].score) < 
+										(a->entriesOne[i].score + a->entriesTwo[j].score)) {
+									/* Update */
+									closestToMean = curDistanceToMean;
+									closestToMeanOne = i;
+									closestToMeanTwo = j;
+									closestToMeanScore = (a->entriesOne[i].score + a->entriesTwo[j].score);
+									numClosestToMean = 1;
+								}
+								else if((a->entriesOne[closestToMeanOne].score + a->entriesTwo[closestToMeanTwo].score) == 
+										(a->entriesOne[i].score + a->entriesTwo[j].score)) {
+									numClosestToMean++;
+								}
+							}
+							else if(curDistanceToMean < closestToMean) {
 								/* Update */
 								closestToMean = curDistanceToMean;
 								closestToMeanOne = i;
@@ -244,46 +271,34 @@ int FilterOneAlignEntries(AlignEntries *a,
 								closestToMeanScore = (a->entriesOne[i].score + a->entriesTwo[j].score);
 								numClosestToMean = 1;
 							}
-							else if((a->entriesOne[closestToMeanOne].score + a->entriesTwo[closestToMeanTwo].score) == 
+						}
+					}
+					else {
+						/* Outside the bounds */
+
+						/* best score outside */
+						if(0==bestScoreOutsideInitialized ||
+								(a->entriesOne[bestScoreOutsideOne].score + a->entriesTwo[bestScoreOutsideTwo].score) <=
+								(a->entriesOne[i].score + a->entriesTwo[j].score)) {
+							if((a->entriesOne[bestScoreOutsideOne].score + a->entriesTwo[bestScoreOutsideTwo].score) ==
 									(a->entriesOne[i].score + a->entriesTwo[j].score)) {
-								numClosestToMean++;
+								/* If we have the same score update the number */ 
+								assert(numBestScoreOutside > 0);
+								numBestScoreOutside++;
+							}
+							else {
+								/* Update the score */
+								bestScoreOutsideOne = i;
+								bestScoreOutsideTwo = j;
+								numBestScoreOutside=1;
+								bestScoreOutsideInitialized = 1;
 							}
 						}
-						else if(curDistanceToMean < closestToMean) {
-							/* Update */
-							closestToMean = curDistanceToMean;
-							closestToMeanOne = i;
-							closestToMeanTwo = j;
-							closestToMeanScore = (a->entriesOne[i].score + a->entriesTwo[j].score);
-							numClosestToMean = 1;
-						}
+						/* unique outside */
+						numUniqueOutside++;
+						uniqueOutsideOne = i;
+						uniqueOutsideTwo = j;
 					}
-				}
-				else {
-					/* Outside the bounds */
-
-					/* best score outside */
-					if(0==bestScoreOutsideInitialized ||
-							(a->entriesOne[bestScoreOutsideOne].score + a->entriesTwo[bestScoreOutsideTwo].score) <=
-							(a->entriesOne[i].score + a->entriesTwo[j].score)) {
-						if((a->entriesOne[bestScoreOutsideOne].score + a->entriesTwo[bestScoreOutsideTwo].score) ==
-								(a->entriesOne[i].score + a->entriesTwo[j].score)) {
-							/* If we have the same score update the number */ 
-							assert(numBestScoreOutside > 0);
-							numBestScoreOutside++;
-						}
-						else {
-							/* Update the score */
-							bestScoreOutsideOne = i;
-							bestScoreOutsideTwo = j;
-							numBestScoreOutside=1;
-							bestScoreOutsideInitialized = 1;
-						}
-					}
-					/* unique outside */
-					numUniqueOutside++;
-					uniqueOutsideOne = i;
-					uniqueOutsideTwo = j;
 				}
 			}
 		}

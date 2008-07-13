@@ -21,6 +21,7 @@ balign
 	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchesFileName=\fIFILENAME\fR]
 	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm=\fIINTEGER\fR]
+	[\fB\-b\fR \fIINTEGER\fR]	[\fB\-\-binaryInput\fR]
 	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startChr=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR]	[\fB\-\-endChr=\fIINTEGER\fR]
@@ -29,6 +30,7 @@ balign
 	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fIINTEGER\fR]
 	[\fB\-2\fR]			[\fB\-\-pairedEnd\fR]
 	[\fB\-n\fR \fIINTEGER\fR]	[\fB\-\-numThreads=\fINTEGER\fR]
+	[\fB\-l\fR \fIINTEGER\fR]	[\fB\-\-pairedEndLength=\fINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR]	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR]	[\fB\-\-outputDir=\fIDIRECTORY\fR]
 	[\fB\-T\fR \fIDIRECTORY\fR] [\fB\-\-tmpDir=\fIDIRECTORY\fR]
@@ -73,11 +75,15 @@ The file specified contains the list of files specifying the sequence of the ref
 .
 .TP 4
 \fB\-m\fR \fIFILENAME\fR, \fB\-\-matchesFileName=\fIFILENAME\fR
-Specifies a file containing a list of matches files.
+Specifies a file containing a list of matches files from the bmatches program.
 .
 .TP 4
 \fB\-x\fR \fIFILENAME\fR, \fB\-\-scoringMatrixFileName=\fIFILENAME\fR
 Specifies the scoring matrix file.
+.
+.TP 4
+\fB\-b\fR, \fB\-\-binaryInput\fR
+Specifies the matches files will be in binary format.
 .
 .TP 4
 \fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR
@@ -116,6 +122,10 @@ This option is not yet supported.
 \fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fINTEGER\fR
 Specifies the number of threads to create.
 This will allow the reads to be aligned in parallel.
+.
+.TP 4
+\fB\-l\fR \fIINTEGER\fR, \fB\-\-pairedEndLength=\fINTEGER\fR
+Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read's CAL.
 .
 .TP 4
 \fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
@@ -159,7 +169,6 @@ Stanley F. Nelson <snelson@ucla.edu>
 .P
 .
 .BR bfast "(1), "
-.BR bcommand "(1), "
 .BR bpreprocess "(1), "
 .BR bmatches "(1), "
 .BR bpostprocess "(1)."
@@ -179,7 +188,8 @@ the terms of the LICENSE file distributed with this software.
 .P
 In any work or product derived from the use of this Software, proper
 attribution of the authors as the source of the software or data must
-be made.  The following URL should be cited:
+be made.  Please reference the original BFAST paper PMID<to be published>.
+In addition, the following URL should be cited:
 .
 .P
-.I <insert address here>
+.I <http://genome.ucla.edu/bfast>

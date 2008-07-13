@@ -11,7 +11,7 @@
 .hy 0
 .TH bpreprocess 1 "Jul 01, 2008" "version 0.1.1" "UCLA bfast"
 .SH NAME
-bpreprocess \- pre-computes suitable indexes that can be re-used in subsequent alignment runs.
+bpreprocess \- pre-computes suitable indexes and genomes that can be re-used in subsequent alignment runs.
 .SH SYNOPSIS
 .P
 .fam C
@@ -24,6 +24,7 @@ bpreprocess
 	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endChr=\fIINTEGER\fR]
 	[\fB\-E\fR \fIINTEGER\fR] 	[\fB\-\-endPos=\fIINTEGER\fR]
+	[\fB\-R\fR]			[\fB\-\-repeatMasker\fR]
 	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
@@ -55,7 +56,8 @@ To generate an index (\fB\-a 0\fR), the reference genome sequence must be given 
 The number of indexes to be generated and their respective layouts must also be given (see \fB\-i\fR).
 The index does not have to range over the whole-genome, and can be narrowed to a range be using options \fB\-s\fR, \fB\-S\fR, \fB\-e\fR and \fB\-E\fR to specify start chromosome and position as well as end chromosome and position for the range.
 If you are using a multi-core and/or a multi-processor machine, it is beneficial to specify the number of threads (see \fB\-n\fR) to match the number of independent processing units as to speed up the generating time.
-The indexes are stored in binary format (see \fB\-B\fR) to reduce disk space as well as speed up subsequent loading time.
+The indexes are stored in binary format to reduce disk space as well as speed up subsequent loading time.
+To ignore lower case bases, which correspond to RepeatMasker sequence, use the \fB\-R\fR option.
 .
 .SH OPTIONS
 .TP 4
@@ -92,6 +94,11 @@ Specifies the end chromosome range to consider when building the indexes.
 .TP 4
 \fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
 Specifies the end position range to consider when building the indexes.
+.
+.TP 4
+\fB\-R\fR, \fB\-\-RepeatMasker\fR
+Ignores lower case bases when creating the indexes (\fB-a 0\fR).
+This typically corresponds to RepeatMasker sequence.
 .
 .TP 4
 \fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fINTEGER\fR
@@ -135,7 +142,6 @@ Stanley F. Nelson <snelson@ucla.edu>
 .SH SEE ALSO
 .P
 .BR bfast "(1), "
-.BR bcommand "(1), "
 .BR bmatches "(1), "
 .BR balign "(1), "
 .BR bpostprocess "(1)."
@@ -155,7 +161,9 @@ the terms of the LICENSE file distributed with this software.
 .P
 In any work or product derived from the use of this Software, proper
 attribution of the authors as the source of the software or data must
-be made.  The following URL should be cited:
+be made.  
+Please reference the original BFAST paper PMID<to be published>.
+In addition, the following URL should be cited:
 .
 .P
-.I <insert address here>
+.I <http://genome.ucla.edu/bfast>

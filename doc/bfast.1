@@ -42,7 +42,6 @@ bfast \- blat-like fast alignment search tool
 .P
 .fam C
 .nf 
-bcommand [\fBoptions\fR]
 bpreprocess [\fBoptions\fR]
 bmatches [\fBoptions\fR]
 balign [\fBoptions\fR]
@@ -52,17 +51,13 @@ bpostprocess [\fBoptions\fR]
 .
 .SH DESCRIPTION
 .P
-bfast is a software package that provides alignment tools.
+bfast is a software package that provides alignment tools for DNA sequencing.
 The bfast system consists of four executable programs:
 .BR bpreprocess "," 
 .BR bmatches "," 
 .BR bpalign "," 
 and
 .BR bpostprocess "."
-.
-.P
-.BR bcommand
-will automatically generate the necessary scripts and files needed to run the four executables.
 .
 .P
 \fBbpreprocess\fR
@@ -76,7 +71,7 @@ is used to find the candidate alignment locations using the indexes generated fr
 .
 .P
 \fBbalign\fR
-is used to give the final alignment score for each read and its associated candidate alignment location generated from
+is used to give the final alignment score for each read and its associated candidate alignment locations generated from
 \fBbmatches\fR.
 .
 .P
@@ -90,13 +85,13 @@ into a user-specified format.
 \fBbfast\fR uses the GNU Build System.
 To install from source, go to the main directory and type in 
 .br 
-\fB./configure\fR
+\fBconfigure\fR
 .br
 \fBmake\fR
 .br
 \fBmake install\fR
 .br
-To generated \fBconfigure\fR, type in
+To generate \fBconfigure\fR, type in
 .br
 \fBautoreconf\fR
 .br
@@ -122,6 +117,7 @@ chr...
 .B Index Layout
 The file specified will contain the layout for each index that you wish to generate.
 The first line in the file will be the number of indexes you wish to generate.
+This allows for serial generation of indexes.
 Each subsequent line will be a layout for the index.
 The output file names for the indexes will be labeled according to this order (i.e. *.$i.bif where $i is the index number in the layouts file).
 The entries in a line should be tab or space deliminated.
@@ -149,6 +145,8 @@ The first line will contain the read name.
 The read name must have no whitespace characters.
 The second line will contain the sequence of the read.
 The third line will contain the sequence of the paired end read, if available.
+The reads should be specified 5'->3' from left-to-right.
+If the read is paired end, both the reads should be 5'->3' from left-to-right and on the same strand.
 An example is:
 .br
 >chr22:28454027-28454058
@@ -211,10 +209,6 @@ The penalty to substitute a read base of C for a reference base N would be -1 (r
 The target compilation environment is gcc and a number of gcc-specific 
 features are used including the argp commandline argument processing 
 system so bfast may not compile on non-gcc C/C++ compilers.
-.TP
-.B Paired End
-Paired end support is currently not tested.  
-As such, it is not supported.
 .
 .
 .SH AUTHORS
@@ -227,7 +221,6 @@ Stanley F. Nelson <snelson@ucla.edu>
 .
 .SH "SEE ALSO"
 .P
-.BR bcommand "(1), "
 .BR bpreprocess "(1), " 
 .BR bmatches "(1), "
 .BR balign "(1), "
@@ -248,7 +241,8 @@ the terms of the LICENSE file distributed with this software.
 .P
 In any work or product derived from the use of this Software, proper
 attribution of the authors as the source of the software or data must
-be made.  The following URL should be cited:
+be made.  Please reference the original BFAST paper PMID<to be published>.  
+In addition, the following URL should be cited:
 .
 .P
-.I <insert address here>
+.I <http://genome.ucla.edu/bfast>

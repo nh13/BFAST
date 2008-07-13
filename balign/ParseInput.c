@@ -69,7 +69,7 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
-	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of bmf files", 1},
+	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of input files from the bmatches program", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
@@ -83,7 +83,7 @@ static struct argp_option options[] = {
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that reads that have no candidates will be aligned this distance away.\n\t\t\tThis assumes that the first read is 5'->3' before the second.", 3},
+	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read's CALs", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},

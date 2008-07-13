@@ -55,10 +55,10 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescInputFileName, DescBinaryInput,
-	DescAlgoTitle, DescRunFiltering, DescPairedEnd,
+	DescAlgoTitle, DescRunFiltering, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescChrAbPaired, DescInversionsPaired,
 	DescGenFiltTitle, DescStartChr, DescStartPos, DescEndChr, DescEndPos, 
-	DescSingleEndTitle, DescAlgorithmReads, DescMinScoreReads, 
-	DescPairedEndTitle, DescAlgorithmReadsPaired, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, DescChrAbPaired, DescInversionsPaired,
+	DescSingleEndTitle, DescMinScoreReads, 
+	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -69,33 +69,33 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file", 1},
+	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file from the balign program", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"runFiltering", 'r', 0, OPTION_NO_USAGE, "Specifies that the reads will be filtered based on the options below", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
-	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
-	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 3},
-	{"startPos", 'S', "startPos", 0, "Specifies the end position", 3},
-	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 3},
-	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 3},
-	{0, 0, 0, 0, "=========== Single End Filter Options ===============================================", 4},
-	{"algorithmReads", 'a', "algorithmReads", 0, "Algorithm to determine alignments:"
+	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each single-end read after filtering:"
 		"\n\t\t0: Specifies to only consider reads that have been aligned uniquely"
-			"\n\t\t1: Specifies to choose the alignment with the best score", 4},
-	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider", 4},
+			"\n\t\t1: Specifies to choose the alignment with the best score", 2},
+	{"algorithmReadsPaired", 'A', "algorithmReadsPaired", 0, "Specifies the algorithm to choose the alignment for each paired-end read after filtering:"
+		"\n\t\t0: Specifies to only consider paired reads where both reads have been aligned uniquely"
+			"\n\t\t1: Specifies to choose the alignment with the best score when the alignment score from either end is combined"
+			"\n\t\t2: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and are the unique pair within that maximum and minimum distance (-X and -Y)"
+			"\n\t\t3: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and have the best score with that distance", 2},
+	{"chrAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
+	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 5},
+	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
+	{"startChr", 's', "startChr", 0, "Specifies the start chromosome for filtering", 3},
+	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
+	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome for filtering", 3},
+	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
+	{0, 0, 0, 0, "=========== Single End Filter Options ===============================================", 4},
+	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads", 4},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 5},
-	{"algorithmReadsPaired", 'A', "algorithmReadsPaired", 0, "Algorithm to determine paired alignments:"
-		"\n\t\t0: Specifies to only consider paired reads that have both been aligned uniquely"
-			"\n\t\t1: Specifies for both ends of the pair to choose the alignment with the best score"
-			"\n\t\t2: Specifies to prefer pairs of reads that are closest to the mean distance and are the unique pair with that distance  (must specify -Z)"
-			"\n\t\t3: Specifies to prefer pairs of reads that are closest to the mean distance and have the best score with that distance (must specify -Z)", 5},
 	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 5},
-	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends", 5},
-	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends", 5},
+	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends for filtering", 5},
+	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends for filtering", 5},
 	{"meanDistancePaired", 'Z', "meanDistancePaired", 0, "Specifies the mean distance between the paired ends (for use with -A 2)", 5},
-	{"chrAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand", 5},
-	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on opposite strands", 5},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
@@ -283,19 +283,19 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->runFiltering == 0 || args->runFiltering == 1);
 	assert(args->pairedEnd == 0 || args->pairedEnd == 1);
 
-	if(args->startChr <= 0) {
+	if(args->startChr < 0) {
 		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->startPos <= 0) {
+	if(args->startPos < 0) {
 		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endChr <= 0) {
+	if(args->endChr < 0) {
 		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endPos <= 0) {
+	if(args->endPos < 0) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -452,19 +452,19 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	fprintf(fp, "runFiltering:\t\t%d\n", args->runFiltering);
 	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
+	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
+	fprintf(fp, "chrAbPaired:\t\t%d\n", args->chrAbPaired);
+	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "startChr:\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t%d\n", args->endChr);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
-	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
 	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
-	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
 	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
 	fprintf(fp, "maxDistancePaired:\t%d\n", args->maxDistancePaired);
 	fprintf(fp, "meanDistancePaired:\t%d\n", args->meanDistancePaired);
-	fprintf(fp, "chrAbPaired:\t\t%d\n", args->chrAbPaired);
-	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
