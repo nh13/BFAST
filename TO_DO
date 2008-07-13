@@ -17,22 +17,13 @@ bmatches
 Flag perfect matches so that the alignment score is already known. 
 2.
 Only read in reference genome needed by the indexes.
-3.
-Paired end support here?.
 
 ===============================================================================
 balign
 ===============================================================================
 1. 
-Paired end.
-2. 
-ABI support.
+ABI support for permuting errors/mutations.
 
 ===============================================================================
 bpostprocess
 ===============================================================================
-1.
-Multi-threaded support when sorting.
-2. 
-Sorts could have shallow copying for their tmp space.  For example, the strings
-only need to have pointers, not whole copies.
