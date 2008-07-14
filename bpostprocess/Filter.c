@@ -145,7 +145,7 @@ int FilterReadInAlignEntries(AlignEntries *a,
 	int i;
 	int numNotFiltered = 0;
 	int uniqueIndex=-1;
-	int bestScore = INT_MAX;
+	int bestScore = INT_MIN;
 	double numBestScore = 0;
 	int bestScoreIndex = -1;
 	int foundType = Found;

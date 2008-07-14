@@ -1,4 +1,4 @@
-bin_PROGRAMS = bheader bfixhash bindexhist brepeat btestindexes bindexdist bpairedenddist bmfconvert
+bin_PROGRAMS = bheader bfixhash bindexhist brepeat btestindexes bindexdist bpairedenddist bmfconvert bmafconvert
 
 bheader_SOURCES = \
 	../blib/BError.c	../blib/BError.h \
@@ -87,3 +87,16 @@ bmfconvert_SOURCES = \
 	bmfconvert.c	bmfconvert.h
 
 bmfconvert_LDADD =
+
+bmafconvert_SOURCES = \
+	../blib/BError.c	../blib/BError.h \
+	../blib/RGIndex.c	../blib/RGIndex.h \
+	../blib/BLib.c	../blib/BLib.h \
+	../blib/RGBinary.c ../blib/RGBinary.h \
+	../blib/RGMatch.c ../blib/RGMatch.h \
+	../blib/RGMatches.c ../blib/RGMatches.h \
+	../blib/RGRanges.c ../blib/RGRanges.h \
+	../blib/RGReads.c	../blib/RGReads.h \
+	bmafconvert.c	bmafconvert.h
+
+bmafconvert_LDADD =
