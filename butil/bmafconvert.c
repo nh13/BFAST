@@ -311,13 +311,14 @@ void MAFInitialize(MAF *m)
 void MAFPrintToBedAndWig(MAF *m,
 		int numEntries,
 		int chromosome,
+		int64_t startPos,
+		int64_t endPos,
 		FILE *bedFP,
 		FILE *wigFP)
 {
 	char *FnName="MAFPrintToWig";
 	char reference[SEQUENCE_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
-	int32_t curChromosome;
 	int64_t curPos;
 	char referenceBase='n';
 	char indel[SEQUENCE_LENGTH]="\0";
@@ -332,31 +333,46 @@ void MAFPrintToBedAndWig(MAF *m,
 	}
 
 	/* Initialize */
-	curChromosome = m[0].chromosome;
-	curPos = m[0].position;
-	start = 0;
-	while(start<numEntries &&
-			m[start].position <= curPos &&
-			curPos <= m[start].position + m[start].referenceLength - 1) {
-		/*
-		fprintf(stderr, "\nstart=%d, curPos=%lld, m[start].position=%d, m[start].position + m[start].referenceLength - 1=%d\n",
-				start,
-				(long long int)curPos,
-				m[start].position,
-				m[start].position + m[start].referenceLength - 1);
-				*/
+	for(curPos=startPos, start=0;
+			start<numEntries &&
+			curPos <= endPos;
+			curPos++) { /* For each position */
 		/* Initialize */
 		fCounts[0] = fCounts[1] = fCounts[2] = fCounts[3] = fCounts[4] = 0;
 		rCounts[0] = rCounts[1] = rCounts[2] = rCounts[3] = rCounts[4] = 0;
 		total = totalF = totalR = 0;
 		referenceBase = 'n';
 
+		/*
+		fprintf(stderr, "Before\tcurPos=%lld\tm[%d].position=%d\tm[start].position + m[start].referenceLength - 1=%d\n",
+				(long long int)curPos,
+				start,
+				m[start].position,
+				m[start].position + m[start].referenceLength - 1);
+				*/
+		/* Either move curPos or start */
+		if(curPos < m[start].position) {
+			/* If curPos < m[start].position then we should move to the next entry's start position */
+			curPos = m[start].position;
+		}
+		else if(m[start].position + m[start].referenceLength - 1 < curPos) {
+			/* Move to the appropriate entry */
+			while(start < numEntries && 
+					m[start].position + m[start].referenceLength - 1 < curPos) {
+				start++;
+			}
+		}
+		/*
+		fprintf(stderr, "After\tcurPos=%lld\n",
+				(long long int)curPos);
+				*/
+
 		/* Go through every entry at that overlaps this position */
 		for(cur = start;cur < numEntries &&
 				m[cur].position <= curPos &&
 				curPos <= m[cur].position + m[cur].referenceLength - 1;
 				cur++) {
-			assert(m[cur].chromosome == curChromosome);
+			assert(m[cur].chromosome == chromosome);
 			/* Update next start index */
 			/* Copy over reference and read.  Adjust if they are on the - strand */
 			switch(m[cur].strand) {
@@ -567,7 +583,7 @@ void MAFPrintToBedAndWig(MAF *m,
 			}
 			assert(fCounts[i] + rCounts[i] <= total);
 			if(0>fprintf(wigFP, "chr%d %lld %lld %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
-						curChromosome,
+						chromosome,
 						(long long int)curPos-SUBTRACT,
 						(long long int)curPos+1-SUBTRACT,
 						fCounts[0],
@@ -590,21 +606,6 @@ void MAFPrintToBedAndWig(MAF *m,
 						WriteFileError);
 			}
 		}
-		/* Update position */
-		int64_t prevPos = curPos;
-		curPos++;
-		/* Update startIndex */
-		while(start < numEntries &&
-				m[start].position + m[start].referenceLength - 1 < curPos) {
-			start++;
-		}
-		if(start < numEntries &&
-				curPos < m[start].position) {
-			curPos = m[start].position;
-		}
-		assert(start >= numEntries || 
-				(m[start].position <= curPos && curPos <= m[start].position + m[start].referenceLength - 1));
-		assert(prevPos < curPos);
 	}
 }
 
@@ -665,13 +666,13 @@ int SplitIntoTmpFilesByChr(char *inputFileName,
 		if(m.position < (*tmpFiles)[m.chromosome-1].minPos) {
 			(*tmpFiles)[m.chromosome-1].minPos = m.position; 
 		}
-		if(m.position > (*tmpFiles)[m.chromosome-1].maxPos) {
-			(*tmpFiles)[m.chromosome-1].maxPos = m.position; 
+		if(m.position + m.referenceLength - 1 > (*tmpFiles)[m.chromosome-1].maxPos) {
+			(*tmpFiles)[m.chromosome-1].maxPos = m.position + m.referenceLength - 1; 
 		}
 		MAFInitialize(&m);
 	}
-			fprintf(stderr, "\r%lld\n",
-					(long long int)counter);
+	fprintf(stderr, "\r%lld\n",
+			(long long int)counter);
 
 	/* Close the input file */
 	fclose(fpIn);
@@ -725,7 +726,7 @@ void SplitMAFAndPrint(FILE *bedFP,
 		/* Sort */
 		MAFMergeSort(entries, 0, numEntries-1, MAFSortByChrPos);
 		/* Print Out */
-		MAFPrintToBedAndWig(entries, numEntries, tmpFile->chromosome, bedFP, wigFP);
+		MAFPrintToBedAndWig(entries, numEntries, tmpFile->chromosome, tmpFile->minPos, tmpFile->maxPos, bedFP, wigFP);
 		/* Free memory */
 		free(entries);
 		entries = NULL;
@@ -745,27 +746,22 @@ void SplitMAFAndPrint(FILE *bedFP,
 		while(EOF != MAFRead(tmpFile->FP, &m)) {
 			/* Print to the appropriate file */
 			assert(m.chromosome == tmpFile->chromosome);
+
+			/* Update meta-data */
+			belowTmpFile.minPos = tmpFile->minPos; 
+			belowTmpFile.maxPos = meanPos - 1; 
+			aboveTmpFile.minPos = meanPos; 
+			aboveTmpFile.maxPos = tmpFile->maxPos; 
+
+			/* Print */
 			if(m.position < meanPos) {
 				MAFPrint(belowTmpFile.FP, &m);
-				/* Update meta-data */
 				belowTmpFile.numEntries++;
-				if(m.position < belowTmpFile.minPos) {
-					belowTmpFile.minPos = m.position; 
-				}
-				if(m.position > belowTmpFile.maxPos) {
-					belowTmpFile.maxPos = m.position; 
-				}
 			}
-			else {
+			if(meanPos <= m.position ||
+					meanPos <= m.position + m.referenceLength - 1 ) {
 				MAFPrint(aboveTmpFile.FP, &m);
-				/* Update meta-data */
 				aboveTmpFile.numEntries++;
-				if(m.position < aboveTmpFile.minPos) {
-					aboveTmpFile.minPos = m.position; 
-				}
-				if(m.position > aboveTmpFile.maxPos) {
-					aboveTmpFile.maxPos = m.position; 
-				}
 			}
 		}
 
@@ -810,13 +806,13 @@ int main(int argc, char *argv[])
 		strcpy(tmpDir, argv[3]);
 
 		/* Split MAF by chromosome */
-				fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "%s", BREAK_LINE);
 		numTmpFiles=SplitIntoTmpFilesByChr(inputFileName,
 				&tmpFiles,
 				tmpDir,
 				startChr,
 				endChr);
-				fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Output bed and wig files for each chromosome */
 		for(i=0;i<numTmpFiles;i++) {
@@ -850,7 +846,7 @@ int main(int argc, char *argv[])
 						tmpFiles[i].chromosome,
 						tmpFiles[i].minPos,
 						tmpFiles[i].maxPos
-						);
+					   );
 				SplitMAFAndPrint(bedFP,
 						wigFP,
 						&tmpFiles[i],

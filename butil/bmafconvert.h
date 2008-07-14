@@ -34,7 +34,7 @@ void MAFMergeSort(MAF*, int, int, int);
 int MAFCompare(MAF*, MAF*, int);
 void MAFCopy(MAF*, MAF*);
 void MAFInitialize(MAF*);
-void MAFPrintToBedAndWig(MAF*, int, int, FILE*, FILE*);
+void MAFPrintToBedAndWig(MAF*, int, int, int64_t, int64_t, FILE*, FILE*);
 
 int SplitIntoTmpFilesByChr(char*, TmpFile**, char*, int, int);
 void SplitMAFAndPrint(FILE*, FILE*, TmpFile*, char*, int);
