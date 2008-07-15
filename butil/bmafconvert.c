@@ -349,7 +349,8 @@ void MAFPrintToBedAndWig(MAF *m,
 				start,
 				m[start].position,
 				m[start].position + m[start].referenceLength - 1);
-				*/
+		}
+		*/
 		/* Either move curPos or start */
 		if(curPos < m[start].position) {
 			/* If curPos < m[start].position then we should move to the next entry's start position */
@@ -358,7 +359,7 @@ void MAFPrintToBedAndWig(MAF *m,
 		else if(m[start].position + m[start].referenceLength - 1 < curPos) {
 			/* Move to the appropriate entry */
 			while(start < numEntries && 
-					m[start].position + m[start].referenceLength - 1 < curPos) {
+					m[start].position < curPos) {
 				start++;
 			}
 		}
@@ -369,9 +370,11 @@ void MAFPrintToBedAndWig(MAF *m,
 
 		/* Go through every entry at that overlaps this position */
 		for(cur = start;cur < numEntries &&
-				m[cur].position <= curPos &&
-				curPos <= m[cur].position + m[cur].referenceLength - 1;
+				m[cur].position <= curPos;
 				cur++) {
+			/* Only use if it is within bounds */ 
+			if(m[cur].position <= curPos &&
+					curPos <= m[cur].position + m[cur].referenceLength - 1) {
 			assert(m[cur].chromosome == chromosome);
 			/* Update next start index */
 			/* Copy over reference and read.  Adjust if they are on the - strand */
@@ -551,6 +554,7 @@ void MAFPrintToBedAndWig(MAF *m,
 				}
 			}
 		}
+		}
 		/* Print out counts */
 		if(total > 0) {
 			i=0;
@@ -584,8 +588,8 @@ void MAFPrintToBedAndWig(MAF *m,
 			assert(fCounts[i] + rCounts[i] <= total);
 			if(0>fprintf(wigFP, "chr%d %lld %lld %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
 						chromosome,
-						(long long int)curPos-SUBTRACT,
-						(long long int)curPos+1-SUBTRACT,
+						(long long int)(curPos-SUBTRACT),
+						(long long int)(curPos+1-SUBTRACT),
 						fCounts[0],
 						fCounts[1],
 						fCounts[2],
