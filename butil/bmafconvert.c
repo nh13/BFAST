@@ -250,7 +250,7 @@ void MAFMergeSort(MAF *entries,
 int MAFCompare(MAF *m1, MAF *m2, int sortOrder) 
 {
 	char *FnName="MAFCompare";
-	int cmp[3]={0,0,0};
+	int cmp[2]={0,0};
 	int top=1;
 	int i;
 	assert(m1 != NULL);
@@ -261,8 +261,7 @@ int MAFCompare(MAF *m1, MAF *m2, int sortOrder)
 			cmp[0] = (m1->chromosome <= m2->chromosome)?( (m1->chromosome == m2->chromosome)?0:-1):1;
 			cmp[1] = (m1->position <= m2->position)?( (m1->position==m2->position)?0:-1):1;
 			/* We want longer reference lengths first */
-			cmp[2] = (m1->referenceLength >= m2->referenceLength)?( (m1->referenceLength==m2->referenceLength)?0:-1):1;
-			top=3;
+			top=2;
 			break;
 		default:
 			PrintError(FnName,
@@ -326,7 +325,7 @@ void MAFPrintToBedAndWig(MAF *m,
 	int fCounts[5] = {0,0,0,0,0};
 	int rCounts[5] = {0,0,0,0,0};
 	int total, totalF, totalR;
-	int32_t start, next, cur, i, j, tempJ;
+	int32_t start, cur, i, j, tempJ;
 
 	if(numEntries <= 0) {
 		return;
@@ -343,212 +342,219 @@ void MAFPrintToBedAndWig(MAF *m,
 		total = totalF = totalR = 0;
 		referenceBase = 'n';
 
+		/* HERE */
 		/*
-		   fprintf(stderr, "Before\tcurPos=%lld\tm[%d].position=%d\tm[start].position + m[start].referenceLength - 1=%d\n",
-		   (long long int)curPos,
-		   start,
-		   m[start].position,
-		   m[start].position + m[start].referenceLength - 1);
-		   }
-		   */
+		fprintf(stderr, "Before\tcurPos=%lld\tm[%d].position=%d\tm[start].position + m[start].referenceLength - 1=%d\n",
+				(long long int)curPos,
+				start,
+				m[start].position,
+				m[start].position + m[start].referenceLength - 1);
+				*/
+
+		if(curPos < m[start].position) {
+			curPos = m[start].position;
+		}
 		assert(m[start].position <= curPos &&
 				curPos <= m[start].position + m[start].referenceLength -1);
 
-			/* Go through every entry at that overlaps this position */
-			for(cur = start, next = -1;
-					cur < numEntries &&
-					m[cur].position <= curPos;
-					cur++) {
-				/* Update next */
-				if(next == -1 &&
-						m[cur].position <= curPos + 1 &&
-						curPos + 1 <= m[cur].position + m[cur].referenceLength - 1) {
-					assert(next == -1);
-					next = cur;
+		/* Go through every entry at that overlaps this position */
+		for(cur = start;
+				cur < numEntries &&
+				m[cur].position <= curPos;
+				cur++) {
+			/* Only use if it is within bounds */ 
+			if(m[cur].position <= curPos &&
+					curPos <= m[cur].position + m[cur].referenceLength - 1) {
+				assert(m[cur].chromosome == chromosome);
+				/* Copy over reference and read.  Adjust if they are on the - strand */
+				switch(m[cur].strand) {
+					case FORWARD:
+						strcpy(reference, m[cur].reference);
+						strcpy(read, m[cur].read);
+						break;
+					case REVERSE:
+						GetReverseComplimentAnyCase(m[cur].reference, reference, m[cur].alignmentLength);
+						GetReverseComplimentAnyCase(m[cur].read, read, m[cur].alignmentLength);
+						break;
+					default:
+						PrintError(FnName,
+								"m[cur].strand",
+								"Could not understand strand",
+								Exit,
+								OutOfRange);
 				}
-				/* Only use if it is within bounds */ 
-				if(m[cur].position <= curPos &&
-						curPos <= m[cur].position + m[cur].referenceLength - 1) {
-					assert(m[cur].chromosome == chromosome);
-					/* Update next start index */
-					/* Copy over reference and read.  Adjust if they are on the - strand */
-					switch(m[cur].strand) {
-						case FORWARD:
-							strcpy(reference, m[cur].reference);
-							strcpy(read, m[cur].read);
-							break;
-						case REVERSE:
-							GetReverseComplimentAnyCase(m[cur].reference, reference, m[cur].alignmentLength);
-							GetReverseComplimentAnyCase(m[cur].read, read, m[cur].alignmentLength);
-							break;
-						default:
-							PrintError(FnName,
-									"m[cur].strand",
-									"Could not understand strand",
-									Exit,
-									OutOfRange);
-					}
-					/* Add to counts */
-					/* Move to correct position */
-					i=0;
-					j=0;
-					while(m[cur].position + i < curPos) {
-						assert(j < m[cur].alignmentLength);
-						/* Only move our position if there is not gap */
-						if(reference[j] != GAP) {
-							i++;
-						}
-						j++;
-					}
-					tempJ = j; /* Save this for bed */
-					/************/
-					/* WIG FILE */
-					/************/
-					/* Skip over gaps in the reference */
-					while(j < m[cur].alignmentLength &&
-							reference[j] == GAP) {
-						j++;
-					}
-					/* We should not end with a gap so this should be true */
+				/* Add to counts */
+				/* Move to correct position */
+				i=0;
+				j=0;
+				while(m[cur].position + i < curPos) {
 					assert(j < m[cur].alignmentLength);
-					assert(reference[j] != GAP);
-					/* Update based on the current base */
-					if(referenceBase == 'n') {
-						referenceBase = reference[j];
-						assert(referenceBase != GAP);
+					/* Only move our position if there is not gap */
+					if(reference[j] != GAP) {
+						i++;
 					}
-					/* Update counts */
-					switch(m[cur].strand) {
-						case FORWARD:
-							totalF++;
-							total++;
-							switch(read[j]) {
-								case 'a':
-								case 'A':
-									fCounts[0]++;
-									break;
-								case 'c':
-								case 'C':
-									fCounts[1]++;
-									break;
-								case 'g':
-								case 'G':
-									fCounts[2]++;
-									break;
-								case 't':
-								case 'T':
-									fCounts[3]++;
-									break;
-								case GAP:
-									fCounts[4]++;
-									break;
-								default:
-									PrintError(FnName,
-											"read[j]",
-											"Could not understand base forward",
-											Exit,
-											OutOfRange);
-							}
-							break;
-						case REVERSE:
-							totalR++;
-							total++;
-							switch(read[j]) {
-								case 'a':
-								case 'A':
-									rCounts[0]++;
-									break;
-								case 'c':
-								case 'C':
-									rCounts[1]++;
-									break;
-								case 'g':
-								case 'G':
-									rCounts[2]++;
-									break;
-								case 't':
-								case 'T':
-									rCounts[3]++;
-									break;
-								case GAP:
-									rCounts[4]++;
-									break;
-								default:
-									PrintError(FnName,
-											"read[j]",
-											"Could not understand base reverse",
-											Exit,
-											OutOfRange);
-							}
-							break;
-						default:
-							PrintError(FnName,
-									"m[cur].strand",
-									"Could not understand strand",
-									Exit,
-									OutOfRange);
-							break;
-					}
-					/************/
-					/* WIG FILE */
-					/************/
-					j = tempJ;
-					/* The indel starts after the current base */
-					if(j < m[cur].alignmentLength - 1) { /* Don't check if were at the last letter in the alignment */
-						j=j+1;
-						i=0;
-						type='N';
-						/* Check gap in reference */
-						while(j<m[cur].alignmentLength && 
-								reference[j] == GAP) {
-							/* Get the insertion in the read */
-							indel[i] = read[j];
-							type = 'I';
-							i++;
-							j++;
-						}
-						/* Check gap in read */
-						while(j<m[cur].alignmentLength && 
-								read[j] == GAP) {
-							/* Get the deletion from the read */
-							indel[i] = reference[j];
-							type = 'D';
-							i++;
-							j++;
-						}
-						/* Print out */
-						indel[i]='\0';
-						switch(type) {
-							case 'N':
-								/* Do nothing */
+					j++;
+				}
+				tempJ = j; /* Save this for bed */
+				/* HERE */
+				/*
+				fprintf(stderr, "HERE curPos=%lld m[%d].[start,end]=[%d,%d] i=%d j=%d\n",
+						(long long int)curPos,
+						cur,
+						m[cur].position,
+						m[cur].position + m[cur].referenceLength - 1,
+						i,
+						j);
+						*/
+				assert(m[cur].position + i == curPos);
+				/************/
+				/* WIG FILE */
+				/************/
+				/* Skip over gaps in the reference */
+				while(j < m[cur].alignmentLength &&
+						reference[j] == GAP) {
+					j++;
+				}
+				/* We should not end with a gap so this should be true */
+				assert(j < m[cur].alignmentLength);
+				assert(reference[j] != GAP);
+				/* Update based on the current base */
+				if(referenceBase == 'n') {
+					referenceBase = reference[j];
+					assert(referenceBase != GAP);
+				}
+				/* Update counts */
+				switch(m[cur].strand) {
+					case FORWARD:
+						totalF++;
+						total++;
+						switch(read[j]) {
+							case 'a':
+							case 'A':
+								fCounts[0]++;
 								break;
-							case 'I':
-							case 'D':
-								assert(i>0);
-								if(0>fprintf(bedFP, "chr%d %lld %lld %c %c %s\n",
-											m[cur].chromosome,
-											(long long int)(curPos-SUBTRACT),
-											(long long int)(curPos+i-1-SUBTRACT),
-											m[cur].strand,
-											type,
-											indel)) {
-									PrintError(FnName,
-											"bedFP",
-											"Could not write to file",
-											Exit,
-											WriteFileError);
-								}
+							case 'c':
+							case 'C':
+								fCounts[1]++;
+								break;
+							case 'g':
+							case 'G':
+								fCounts[2]++;
+								break;
+							case 't':
+							case 'T':
+								fCounts[3]++;
+								break;
+							case GAP:
+								fCounts[4]++;
 								break;
 							default:
 								PrintError(FnName,
-										"type",
-										"Could not understand type",
+										"read[j]",
+										"Could not understand base forward",
 										Exit,
 										OutOfRange);
 						}
+						break;
+					case REVERSE:
+						totalR++;
+						total++;
+						switch(read[j]) {
+							case 'a':
+							case 'A':
+								rCounts[0]++;
+								break;
+							case 'c':
+							case 'C':
+								rCounts[1]++;
+								break;
+							case 'g':
+							case 'G':
+								rCounts[2]++;
+								break;
+							case 't':
+							case 'T':
+								rCounts[3]++;
+								break;
+							case GAP:
+								rCounts[4]++;
+								break;
+							default:
+								PrintError(FnName,
+										"read[j]",
+										"Could not understand base reverse",
+										Exit,
+										OutOfRange);
+						}
+						break;
+					default:
+						PrintError(FnName,
+								"m[cur].strand",
+								"Could not understand strand",
+								Exit,
+								OutOfRange);
+						break;
+				}
+				/************/
+				/* WIG FILE */
+				/************/
+				j = tempJ;
+				/* The indel starts after the current base */
+				if(j < m[cur].alignmentLength - 1) { /* Don't check if were at the last letter in the alignment */
+					j=j+1;
+					i=0;
+					type='N';
+					/* Check gap in reference */
+					while(j<m[cur].alignmentLength && 
+							reference[j] == GAP) {
+						/* Get the insertion in the read */
+						indel[i] = read[j];
+						type = 'I';
+						i++;
+						j++;
+					}
+					/* Check gap in read */
+					while(j<m[cur].alignmentLength && 
+							read[j] == GAP) {
+						/* Get the deletion from the read */
+						indel[i] = reference[j];
+						type = 'D';
+						i++;
+						j++;
+					}
+					/* Print out */
+					indel[i]='\0';
+					switch(type) {
+						case 'N':
+							/* Do nothing */
+							break;
+						case 'I':
+						case 'D':
+							assert(i>0);
+							if(0>fprintf(bedFP, "chr%d %lld %lld %c %c %s\n",
+										m[cur].chromosome,
+										(long long int)(curPos-SUBTRACT),
+										(long long int)(curPos+i-1-SUBTRACT),
+										m[cur].strand,
+										type,
+										indel)) {
+								PrintError(FnName,
+										"bedFP",
+										"Could not write to file",
+										Exit,
+										WriteFileError);
+							}
+							break;
+						default:
+							PrintError(FnName,
+									"type",
+									"Could not understand type",
+									Exit,
+									OutOfRange);
 					}
 				}
 			}
+		}
 		/* Print out counts */
 		if(total > 0) {
 			i=0;
@@ -580,10 +586,11 @@ void MAFPrintToBedAndWig(MAF *m,
 							OutOfRange);
 			}
 			assert(fCounts[i] + rCounts[i] <= total);
-			if(0>fprintf(wigFP, "chr%d %lld %lld %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
+			if(0>fprintf(wigFP, "chr%d %lld %lld %d %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
 						chromosome,
 						(long long int)(curPos-SUBTRACT),
 						(long long int)(curPos+1-SUBTRACT),
+						total,
 						fCounts[0],
 						fCounts[1],
 						fCounts[2],
@@ -604,13 +611,12 @@ void MAFPrintToBedAndWig(MAF *m,
 						WriteFileError);
 			}
 		}
-		if(next == -1) {
-			start = numEntries;
+		/* Update next start index */
+		while(start < numEntries && 
+				m[start].position + m[start].referenceLength - 1 < curPos + 1) {
+				start++;
 		}
-		else {
-			start = next;
-		}
-}
+	}
 }
 
 int SplitIntoTmpFilesByChr(char *inputFileName,
