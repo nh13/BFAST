@@ -16,6 +16,10 @@
 #define NUM_DELETIONS_START 1
 #define NUM_DELETIONS_END 1
 
+/* Is a utility that tests, searches, and compares layouts for indexes against certain events,
+ * such as errors, mismatches and insertions.
+ * */
+
 enum {ReadFromFile, BruteForce, Sample, ProgramParameters}; 
 char Algorithm[4][2048] = {"Read From File", "Brute Force", "Sample", "Print Program Parameters"}; 
 enum {NO_EVENT, MISMATCH, INSERTION, DELETION};
@@ -2040,36 +2044,36 @@ int main(int argc, char *argv[])
 			srand(time(NULL));
 			/* Sample */
 			if(args.greedy == 0) {
-			RunSampling(&indexes,
-					stdout,
-					args.readLength,
-					args.indexLength,
-					args.numIndexes,
-					args.numIndexesToSample,
-					args.numEventsToSample,
-					args.numMismatchesStart,
-					args.numMismatchesEnd,
-					args.insertionLengthStart,
-					args.insertionLengthEnd,
-					NUM_DELETIONS_START,
-					NUM_DELETIONS_END,
-					args.numErrors);
+				RunSampling(&indexes,
+						stdout,
+						args.readLength,
+						args.indexLength,
+						args.numIndexes,
+						args.numIndexesToSample,
+						args.numEventsToSample,
+						args.numMismatchesStart,
+						args.numMismatchesEnd,
+						args.insertionLengthStart,
+						args.insertionLengthEnd,
+						NUM_DELETIONS_START,
+						NUM_DELETIONS_END,
+						args.numErrors);
 			}
 			else {
-			RunSamplingGreedy(&indexes,
-					stdout,
-					args.readLength,
-					args.indexLength,
-					args.numIndexes,
-					args.numIndexesToSample,
-					args.numEventsToSample,
-					args.numMismatchesStart,
-					args.numMismatchesEnd,
-					args.insertionLengthStart,
-					args.insertionLengthEnd,
-					NUM_DELETIONS_START,
-					NUM_DELETIONS_END,
-					args.numErrors);
+				RunSamplingGreedy(&indexes,
+						stdout,
+						args.readLength,
+						args.indexLength,
+						args.numIndexes,
+						args.numIndexesToSample,
+						args.numEventsToSample,
+						args.numMismatchesStart,
+						args.numMismatchesEnd,
+						args.insertionLengthStart,
+						args.insertionLengthEnd,
+						NUM_DELETIONS_START,
+						NUM_DELETIONS_END,
+						args.numErrors);
 			}
 			DeleteIndexes(&indexes);
 			break;

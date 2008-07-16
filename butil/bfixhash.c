@@ -9,6 +9,12 @@
 #include "../blib/RGIndex.h"
 #include "bfixhash.h"
 
+#define Name "bfixhash"
+
+/* Regenerates the hash lookup table for an index given 
+ * a new hash width. 
+ * */
+
 int main(int argc, char *argv[]) 
 {
 	FILE *fp=NULL;
@@ -76,7 +82,10 @@ int main(int argc, char *argv[])
 		RGBinaryDelete(&rg);
 	}
 	else {
-		fprintf(stdout, "Please give a reference genome file name, an index file name, and then the new hash width.  Terminating!\n");
+		fprintf(stderr, "%s [OPTIONS]\n", Name);
+		fprintf(stderr, "\t<bfast reference genome file>\n");
+		fprintf(stderr, "\t<bfast index file>\n");
+		fprintf(stderr, "\t<new hash width>\n");
 	}
 
 	return 0;

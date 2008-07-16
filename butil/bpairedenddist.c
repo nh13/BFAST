@@ -18,6 +18,11 @@
 #define Name "bpairedenddist"
 #define BINDEXDIST_ROTATE_NUM 1000000
 
+/* Prints the distribution of the distance between paired-end reads
+ * using reads that after running bmatches, both ends had only one
+ * CAL on the same strand.
+ * */
+
 int main(int argc, char *argv[]) 
 {
 	FILE *fp=NULL;
@@ -81,8 +86,7 @@ void PrintDistribution(FILE *fpIn,
 			if(1 == m.matchOne.numEntries &&
 					1 == m.matchTwo.numEntries &&
 					m.matchOne.chromosomes[0] == m.matchTwo.chromosomes[0] &&
-					/* HERE - short term for solexa */
-					m.matchOne.strand[0] != m.matchTwo.strand[0]) {
+					m.matchOne.strand[0] == m.matchTwo.strand[0]) {
 				/* Simple way to avoid overflow */
 				posOne = m.matchOne.positions[0];
 				posTwo = m.matchTwo.positions[0];

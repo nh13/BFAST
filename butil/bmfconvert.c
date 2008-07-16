@@ -10,6 +10,9 @@
 #define Name "bmfconvert"
 #define BMFCONVERT_ROTATE_NUM 100000
 
+/* Converts a bmatches file from binary to plaintext or vice versa.
+ * */
+
 int main(int argc, char *argv[])
 {
 

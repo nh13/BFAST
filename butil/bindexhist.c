@@ -19,6 +19,11 @@
 #define NUM_MISMATCHES_START 0
 #define NUM_MISMATCHES_END 4
 
+/* Prints a histogram that counts the number of k-mers in the genome
+ * that occur X number of times.  The k-mer chosen comes from the 
+ * layout of the index.
+ * */
+
 int main(int argc, char *argv[]) 
 {
 	FILE *fp=NULL;

@@ -10,6 +10,12 @@
 #include "../blib/RGBinary.h"
 #include "brepeat.h"
 
+#define Name "brepeat"
+
+/* Finds all contiguous repeats in the genome specified by the index that fall within the
+ * specified unit length range and minimum contiguous length.
+ * */
+
 int main(int argc, char *argv[]) 
 {
 	FILE *fp;
@@ -154,7 +160,11 @@ int main(int argc, char *argv[])
 		fclose(fp);
 	}
 	else {
-		fprintf(stderr, "Incorrect number of arguments.  See source code.\n");
+		fprintf(stderr, "%s [OPTIONS]\n", Name);
+		fprintf(stderr, "\t<bfast reference genome file>\n");
+		fprintf(stderr, "\t<minimum unit length>\n");
+		fprintf(stderr, "\t<maximum unit length>\n");
+		fprintf(stderr, "\t<minimum total repeat length>\n");
 	}
 
 	return 0;

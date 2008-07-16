@@ -18,6 +18,10 @@
 #define BINDEXDIST_ROTATE_NUM 10000
 #define BINDEXDIST_SORT_ROTATE_INC 0.01
 
+/* Prints the number of times each unique read from the genome occurs, 
+ * where the genome is contained in the bfast index file.
+ * */
+
 int main(int argc, char *argv[]) 
 {
 	FILE *fp=NULL;

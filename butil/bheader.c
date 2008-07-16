@@ -8,6 +8,11 @@
 #include "../blib/RGIndex.h"
 #include "bheader.h"
 
+#define Name "bheader"
+
+/* Prints the header of a bfast index file; the header completely 
+ * defines the index. */
+
 int main(int argc, char *argv[]) 
 {
 	FILE *fp=NULL;
@@ -36,7 +41,8 @@ int main(int argc, char *argv[])
 		fclose(fp);
 	}
 	else {
-		fprintf(stdout, "Please give a input file name.  Terminating!\n");
+		fprintf(stderr, "%s [OPTIONS]\n", Name);
+		fprintf(stderr, "\t<bfast index file>\n");
 	}
 
 	return 0;

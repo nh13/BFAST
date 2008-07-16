@@ -17,6 +17,11 @@
 #define WIG "WIG"
 #define DELIMINATORS "\t\n "
 
+/* Converts a bfast .maf file to bfast .bed and .wig files.  The
+ * generated files do not conform with USCS standards but are 
+ * nonetheless more verbose.
+ * */
+
 void TmpFileOpen(TmpFile *tmpFile,
 		char *tmpDir,
 		int chromosome) 
