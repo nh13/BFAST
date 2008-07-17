@@ -429,6 +429,11 @@ int UpdateRead(char *read, int readLength)
 {
 	int i;
 
+	if(readLength <= 0) {
+		/* Ignore zero length reads */
+		return 0;
+	}
+
 	/* Update the read if possible to lower case, 
 	 * if we encounter a base we do not recognize, 
 	 * return 0 

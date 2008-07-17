@@ -34,7 +34,7 @@ typedef struct {
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(char*, int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, char*, int);
+void FindMatches(int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
 int FindMatchesInIndexes(char **rgIndexFileNames,
 		int binaryInput,
 		RGBinary *rg,

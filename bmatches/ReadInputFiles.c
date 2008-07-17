@@ -25,14 +25,23 @@ int GetNextRead(FILE *fp,
 	m->pairedEnd = pairedEnd;
 
 	/* Read in read name and read */
-	if(EOF==fscanf(fp, "%s", readName) || 
-			EOF==fscanf(fp, "%s", readOne)) {
+	if(NULL==fgets(readName, SEQUENCE_NAME_LENGTH-1, fp)) {
 		return EOF;
 	}
+	if(NULL==fgets(readOne, SEQUENCE_LENGTH-1, fp)) {
+		PrintError(FnName,
+				"readOne",
+				"Could not read from file",
+				Exit,
+				ReadFileError);
+	}
 
-	/* Copy read name length and read length */
-	m->readNameLength = strlen(readName);
-	m->matchOne.readLength = strlen(readOne);
+	/* Copy read name length and read length as well as updating null character (to 
+	 * reduce the string by one letter, namely the "\n" character). */
+	m->readNameLength = strlen(readName)-1;
+	readName[m->readNameLength]='\0';
+	m->matchOne.readLength = strlen(readOne)-1;
+	readOne[m->matchOne.readLength]='\0';
 
 	/* Allocate memory */
 	m->readName = malloc(sizeof(int8_t)*(m->readNameLength+1));
@@ -59,11 +68,17 @@ int GetNextRead(FILE *fp,
 	/* Read in paired end if necessary */
 	if(pairedEnd == 1) {
 		/* Read in read number two */
-		if(EOF==fscanf(fp, "%s", readTwo)) {
-			return EOF;
+		if(NULL==fgets(readTwo, SEQUENCE_LENGTH-1, fp)) {
+			PrintError(FnName,
+					"readTwo",
+					"Could not read from file",
+					Exit,
+					ReadFileError);
 		}
-		/* Copy over read two length */
-		m->matchTwo.readLength = strlen(readTwo);
+		/* Copy over read two length as well as adjusting the 
+		 * read to get rid of the "\n" character. */
+		m->matchTwo.readLength = strlen(readTwo)-1;
+		readTwo[m->matchTwo.readLength]='\0';
 		/* Allocate memory */
 		m->matchTwo.read = malloc(sizeof(int8_t)*(m->matchTwo.readLength+1));
 		if(NULL == m->matchTwo.read) {
@@ -103,6 +118,7 @@ int WriteRead(FILE *fp, RGMatches *m, int pairedEnd)
 
 /* TODO */
 void WriteReadsToTempFile(FILE *seqFP,
+		FILE *seqFilteredFP,
 		FILE ***tempSeqFPs, /* One for each thread */ 
 		char ***tempSeqFileNames,
 		int startReadNum, 
@@ -149,6 +165,15 @@ void WriteReadsToTempFile(FILE *seqFP,
 			(*numWritten)++;
 		}
 		else {
+			assert(seqFilteredFP != NULL);
+			/* Write to filtered read file */
+			if(EOF == WriteRead(seqFilteredFP, &m, pairedEnd)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write read",
+						Exit,
+						WriteFileError);
+			}
 			(*numFiltered)++;
 		}
 		/* Increment read number */

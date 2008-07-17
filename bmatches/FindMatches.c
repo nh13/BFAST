@@ -18,7 +18,7 @@
 #include "FindMatches.h"
 
 /* TODO */
-void FindMatches(char *outputFileName,
+void FindMatches(
 		int binaryOutput,
 		char *rgFileName,
 		char *rgIndexMainListFileName,
@@ -36,10 +36,15 @@ void FindMatches(char *outputFileName,
 		int pairedEnd,
 		int maxNumMatches,
 		int numThreads,
+		char *outputID,
+		char *outputDir,
 		char *tmpDir,
 		int timing
 		)
 {
+	char outputFileName[MAX_FILENAME_LENGTH]="\0";
+	char readsFilteredFileName[MAX_FILENAME_LENGTH]="\0";
+
 	int numMainIndexes=0;
 	char **mainIndexFileNames=NULL;
 
@@ -50,6 +55,7 @@ void FindMatches(char *outputFileName,
 	int numOffsets=0;
 
 	FILE *seqFP=NULL;
+	FILE *seqFilteredFP=NULL;
 	FILE **tempSeqFPs=NULL;
 	char **tempSeqFileNames=NULL;
 	FILE *outputFP=NULL;
@@ -68,6 +74,21 @@ void FindMatches(char *outputFileName,
 
 	RGBinary rg;
 	int startChr, startPos, endChr, endPos;
+
+	/* Create output file name */
+	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+			outputDir,
+			PROGRAM_NAME,
+			outputID,
+			startReadNum,
+			endReadNum,
+			numMismatches,
+			numInsertions,
+			numDeletions,
+			numGapInsertions,
+			numGapDeletions,
+			pairedEnd,
+			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Read in the main RGIndex File Names */
 	numMainIndexes=ReadFileNames(rgIndexMainListFileName, &mainIndexFileNames);
@@ -117,11 +138,33 @@ void FindMatches(char *outputFileName,
 	 * to a temporary file, thereby elmininating the need to iterate through the 
 	 * source read read file for each index. 
 	 * */
+	/* Create filtered reads file name */
+	sprintf(readsFilteredFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+			outputDir,
+			PROGRAM_NAME,
+			outputID,
+			startReadNum,
+			endReadNum,
+			numMismatches,
+			numInsertions,
+			numDeletions,
+			numGapInsertions,
+			numGapDeletions,
+			pairedEnd,
+			BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
 	/* open read file */
 	if((seqFP=fopen(readFileName, "r"))==0) {
 		PrintError("FindMatches",
 				readFileName,
 				"Could not open readFileName for reading",
+				Exit,
+				OpenFileError);
+	}
+	/* open reads filtered file */
+	if((seqFilteredFP=fopen(readsFilteredFileName, "w"))==0) {
+		PrintError("FindMatches",
+				readsFilteredFileName,
+				"Could not open readsFilteredFileName for reading",
 				Exit,
 				OpenFileError);
 	}
@@ -153,6 +196,7 @@ void FindMatches(char *outputFileName,
 	}
 	/* This will close the reads file */
 	WriteReadsToTempFile(seqFP,
+			seqFilteredFP,
 			&tempSeqFPs,
 			&tempSeqFileNames,
 			startReadNum,
@@ -164,6 +208,7 @@ void FindMatches(char *outputFileName,
 			&numReadsFiltered);
 	/* Close the read file */
 	fclose(seqFP);
+	fclose(seqFilteredFP);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Out of %d reads, will process %d reads and omit %d reads due to filtering.\n",
 				numReads+numReadsFiltered,
@@ -544,6 +589,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		 * searching the secondary indexes 
 		 * */
 		WriteReadsToTempFile(tempSeqFP,
+				NULL, /* We should have already filtered the reads */
 				tempSeqFPs,
 				tempSeqFileNames,
 				0,

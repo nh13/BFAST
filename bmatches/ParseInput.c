@@ -130,8 +130,6 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 	int
 main (int argc, char **argv)
 {
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-
 	struct arguments arguments;
 	time_t startTime = time(NULL);
 	time_t endTime;
@@ -170,23 +168,8 @@ main (int argc, char **argv)
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute Program */
 
-						/* Create output file name */
-						sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
-								arguments.outputDir,
-								PROGRAM_NAME,
-								arguments.outputID,
-								arguments.startReadNum,
-								arguments.endReadNum,
-								arguments.numMismatches,
-								arguments.numInsertions,
-								arguments.numDeletions,
-								arguments.numGapInsertions,
-								arguments.numGapDeletions,
-								arguments.pairedEnd,
-								BFAST_MATCHES_FILE_EXTENSION);
-
 						/* Run Matches */
-						FindMatches(outputFileName,
+						FindMatches(
 								arguments.binaryOutput,
 								arguments.rgFileName,
 								arguments.bfastMainIndexesFileName,
@@ -204,6 +187,8 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.maxNumMatches,
 								arguments.numThreads,
+								arguments.outputID,
+								arguments.outputDir,
 								arguments.tmpDir,
 								arguments.timing);
 
