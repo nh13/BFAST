@@ -115,7 +115,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:n:o:r:s:E:S:bhptR";
+"a:d:e:i:n:o:r:s:E:S:T:bhptR";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -403,7 +403,7 @@ AssignDefaultValues(struct arguments *args)
 	args->startChr=1;
 	args->startPos=1;
 	args->endChr=1;
-	args->endPos=1;
+	args->endPos=INT_MAX;
 
 	args->repeatMasker=0;
 
