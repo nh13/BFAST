@@ -153,7 +153,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 		/* Print only if we are within the desired limit and the read checks out */
 		if( (startReadNum<=0 || curReadNum >= startReadNum)  /* Only if we are within the bounds for the reads */
 				&& (1 == UpdateRead(m.matchOne.read, m.matchOne.readLength)) /* The first read is valid */
-				&& (1 == UpdateRead(m.matchTwo.read, m.matchTwo.readLength))) { /* The second read is valid */
+				&& (0 == pairedEnd || 1 == UpdateRead(m.matchTwo.read, m.matchTwo.readLength))) { /* The second read is valid */
 			/* Print */
 			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m, pairedEnd)) {
 				PrintError(FnName,
