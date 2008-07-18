@@ -504,8 +504,12 @@ void MAFPrintToBedAndWig(MAF *m,
 				/* WIG FILE */
 				/************/
 				j = tempJ;
-				/* The indel starts after the current base */
-				if(j < m[cur].alignmentLength - 1) { /* Don't check if were at the last letter in the alignment */
+				/* Don't output if we are on the last letter */
+				/* Don't output if we are in a gap already in either the reference or the read */
+				if(j < m[cur].alignmentLength - 1 &&
+						reference[j] != GAP &&
+						read[j] != GAP) { 
+					/* The indel starts after the current base */
 					j=j+1;
 					i=0;
 					type='N';

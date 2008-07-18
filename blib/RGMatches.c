@@ -10,6 +10,8 @@
 #include "RGMatch.h"
 #include "RGMatches.h"
 
+#define RGMATCHES_CHECK 0
+
 /* TODO */
 int32_t RGMatchesRead(FILE *fp,
 		RGMatches *m,
@@ -128,9 +130,9 @@ int32_t RGMatchesRead(FILE *fp,
 	}
 
 	/* Check m */
-	/*
-	RGMatchesCheck(m);
-	*/
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
+	}
 
 	return 1;
 }
@@ -145,9 +147,9 @@ void RGMatchesPrint(FILE *fp,
 	assert(fp!=NULL);
 
 	/* Check m */
-	/*
-	RGMatchesCheck(m);
-	*/
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
+	}
 
 	/* Print the matches to the output file */
 	if(binaryOutput == 0) {
@@ -195,12 +197,14 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 	RGMatchRemoveDuplicates(&m->matchOne, maxNumMatches);
 	if(1==m->pairedEnd) {
 		RGMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
+		assert(m->matchTwo.numEntries <= maxNumMatches);
 	}
+	assert(m->matchOne.numEntries <= maxNumMatches);
 
 	/* Check m */
-	/*
-	RGMatchesCheck(m);
-	*/
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
+	}
 }
 
 /* TODO */
@@ -463,9 +467,9 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 			}
 		}
 		/* Check m */
-		/*
-		RGMatchesCheck(m);
-		*/
+		if(1==RGMATCHES_CHECK) {
+			RGMatchesCheck(m);
+		}
 	}
 }
 

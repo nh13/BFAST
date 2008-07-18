@@ -276,7 +276,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		RGMatchReallocate(m, prevIndex+1);
 
 		/* Check to see if we have too many matches */
-		if(maxNumMatches > 0 && m->numEntries > maxNumMatches) {
+		if(m->numEntries > maxNumMatches) {
 			/* Clear the entries but don't free the read */
 			RGMatchClearMatches(m);
 			m->maxReached=1;
@@ -527,6 +527,7 @@ void RGMatchCheck(RGMatch *m)
 	/* Basic asserts */
 	assert(m->readLength >= 0);
 	assert(m->maxReached == 0 || m->maxReached == 1);
+	assert(m->maxReached == 0 || m->numEntries == 0);
 	assert(m->numEntries >= 0);
 	/* Check that if the read length is greater than zero the read is not null */
 	if(m->readLength > 0 && m->read == NULL) {

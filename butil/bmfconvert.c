@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "%s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<matches file name>\n");
+		fprintf(stderr, "\t<bfast matches file name>\n");
 		fprintf(stderr, "\t<input type: 0-text 1-binary>\n");
 		fprintf(stderr, "\t<0-single-end 1-paired end>\n");
 	}

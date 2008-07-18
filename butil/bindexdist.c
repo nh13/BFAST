@@ -18,8 +18,9 @@
 #define BINDEXDIST_ROTATE_NUM 10000
 #define BINDEXDIST_SORT_ROTATE_INC 0.01
 
-/* Prints the number of times each unique read from the genome occurs, 
- * where the genome is contained in the bfast index file.
+/* Prints each unique read from the genome and the number 
+ * of times it occurs, where the genome is contained in 
+ * the bfast index file.
  * */
 
 int main(int argc, char *argv[]) 
@@ -92,8 +93,8 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: bindexdist [OPTIONS]\n");
-		fprintf(stderr, "\t\t<reference genome file name>\n");
-		fprintf(stderr, "\t\t<index file name>\n");
+		fprintf(stderr, "\t\t<bfast reference genome file name>\n");
+		fprintf(stderr, "\t\t<bfast index file name>\n");
 		fprintf(stderr, "\t\t<number of mismatches>\n");
 		fprintf(stderr, "\t\t<output directory>\n");
 		fprintf(stderr, "\t\t<output id>\n");

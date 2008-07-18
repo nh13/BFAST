@@ -16,7 +16,7 @@
 #define NUM_DELETIONS_START 1
 #define NUM_DELETIONS_END 1
 
-/* Is a utility that tests, searches, and compares layouts for indexes against certain events,
+/* Is a utility that tests, searches for, and compares layouts for indexes against certain events,
  * such as errors, mismatches and insertions.
  * */
 

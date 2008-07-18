@@ -412,7 +412,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numGapInsertions = 0;
 	args->numGapDeletions = 0;
 	args->pairedEnd = 0;
-	args->maxNumMatches = 0;
+	args->maxNumMatches = INT_MAX;
 	args->numThreads = 1;
 
 	args->outputID =

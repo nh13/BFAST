@@ -85,10 +85,10 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: bindexhist [OPTIONS]\n");
-		fprintf(stderr, "\t\t<reference genome file name>\n");
-		fprintf(stderr, "\t\t<index file name>\n");
-		fprintf(stderr, "\t\t<number of mismatches for histogram>\n");
-		fprintf(stderr, "\t\t<number of threads>\n");
+		fprintf(stderr, "\t<bfast reference genome file name>\n");
+		fprintf(stderr, "\t<bfast index file name>\n");
+		fprintf(stderr, "\t<number of mismatches for histogram>\n");
+		fprintf(stderr, "\t<number of threads>\n");
 	}
 
 	return 0;

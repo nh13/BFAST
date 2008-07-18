@@ -297,7 +297,7 @@ void FindMatches(
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
-				INT_MAX,
+				maxNumMatches,
 				numThreads,
 				&tempSeqFPs,
 				&tempSeqFileNames,

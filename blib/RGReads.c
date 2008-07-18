@@ -108,7 +108,7 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Only copy to rgmatches if there are matches and fewer matches than
 	 * max Matches */
-	if(maxNumMatches != 0 && numEntries > maxNumMatches) {
+	if(numEntries > maxNumMatches) {
 		match->maxReached = 1;
 	}
 	else if(0 < numEntries) {

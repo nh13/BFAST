@@ -19,8 +19,8 @@
 #define BINDEXDIST_ROTATE_NUM 1000000
 
 /* Prints the distribution of the distance between paired-end reads
- * using reads that after running bmatches, both ends had only one
- * CAL on the same strand.
+ * using reads that have both ends matching only one location on 
+ * the same strand.
  * */
 
 int main(int argc, char *argv[]) 
