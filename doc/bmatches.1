@@ -25,13 +25,13 @@ bmatches
 	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startReadNum=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endReadNum=\fIINTEGER\fR]
 	[\fB\-x\fR \fIINTEGER\fR] 	[\fB\-\-numMismatches=\fIINTEGER\fR]
-	[\fB\-y\fR \fIINTEGER\fR] 	[\fB\-\-numInsertions=\fINTEGER\fR]
-	[\fB\-z\fR \fIINTEGER\fR] 	[\fB\-\-numDeletions=\fINTEGER\fR]
-	[\fB\-Y\fR \fIINTEGER\fR] 	[\fB\-\-numGapInsertions=\fINTEGER\fR]
-	[\fB\-Z\fR \fIINTEGER\fR] 	[\fB\-\-numGapDeletions=\fINTEGER\fR]
-	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fINTEGER\fR]
+	[\fB\-y\fR \fIINTEGER\fR] 	[\fB\-\-numInsertions=\fIINTEGER\fR]
+	[\fB\-z\fR \fIINTEGER\fR] 	[\fB\-\-numDeletions=\fIINTEGER\fR]
+	[\fB\-Y\fR \fIINTEGER\fR] 	[\fB\-\-numGapInsertions=\fIINTEGER\fR]
+	[\fB\-Z\fR \fIINTEGER\fR] 	[\fB\-\-numGapDeletions=\fIINTEGER\fR]
+	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fIINTEGER\fR]
 	[\fB\-2\fR] 		[\fB\-\-pairedEnd\fR]
-	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fINTEGER\fR]
+	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fIINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
 	[\fB\-T\fR \fIDIRECTORY\fR]	[\fB\-\-tmpDir=\fIDIRECTORY\fR]
@@ -142,23 +142,23 @@ Specifies the last read to which to process.
 Specifies the maximum number of mismatches to allow in the tiles.
 .
 .TP 4
-\fB\-y\fR \fIINTEGER\fR, \fB\-\-numInsertions=\fINTEGER\fR
+\fB\-y\fR \fIINTEGER\fR, \fB\-\-numInsertions=\fIINTEGER\fR
 Specifies the maximum number of insertions to allow in the tiles.
 .
 .TP 4
-\fB\-z\fR \fIINTEGER\fR, \fB\-\-numDeletions=\fINTEGER\fR
+\fB\-z\fR \fIINTEGER\fR, \fB\-\-numDeletions=\fIINTEGER\fR
 Specifies the maximum number of deletions to allow in the tiles.
 .
 .TP 4
-\fB\-Y\fR \fIINTEGER\fR, \fB\-\-numGapInsertions=\fINTEGER\fR
+\fB\-Y\fR \fIINTEGER\fR, \fB\-\-numGapInsertions=\fIINTEGER\fR
 Specifies the maximum number of insertions to allow in the gaps between tiles.
 .
 .TP 4
-\fB\-Z\fR \fIINTEGER\fR, \fB\-\-numGapDeletions=\fINTEGER\fR
+\fB\-Z\fR \fIINTEGER\fR, \fB\-\-numGapDeletions=\fIINTEGER\fR
 Specifies the maximum number of deletions to allow in the gaps between tiles.
 .
 .TP 4
-\fB\-M\fR \fIINTEGER\fR, \fB\-\-maxNumMatches=\fINTEGER\fR
+\fB\-M\fR \fIINTEGER\fR, \fB\-\-maxNumMatches=\fIINTEGER\fR
 Specifies the maximum number of CALs to allow for a read before we stop searching for CALS for this read.
 .
 .TP 4
@@ -167,7 +167,7 @@ Specifies that the reads will be given in paired end format.
 This option is not yet supported.
 .
 .TP 4
-\fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fINTEGER\fR
+\fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fIINTEGER\fR
 Specifies the number of threads to create.
 This will allow the reads to be processed in parallel.
 .
