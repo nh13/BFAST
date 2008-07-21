@@ -102,17 +102,11 @@ void FindMatches(
 
 	/* Read in the RGIndex File Names */
 	numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
-	if(numSecondaryIndexes<=0) {
-		PrintError("FindMatches",
-				"numSecondaryIndexes",
-				"Read zero indexes",
-				Exit,
-				OutOfRange);
-	}
 
 	/* Check the indexes.
 	 * 1. We want the two sets of files to have the same range.
 	 * */
+	if(numSecondaryIndexes > 0) {
 	CheckRGIndexes(mainIndexFileNames, 
 			numMainIndexes,
 			secondaryIndexFileNames,
@@ -122,6 +116,7 @@ void FindMatches(
 			&startPos,
 			&endChr,
 			&endPos);
+	}
 
 	/* Read in the reference genome */
 	startTime = time(NULL);
@@ -274,7 +269,8 @@ void FindMatches(
 			&totalOutputTime
 				);
 
-	if(numReads-numMatches > 0) {
+	if(numReads-numMatches > 0
+			&& numSecondaryIndexes > 0) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "%s", BREAK_LINE);
