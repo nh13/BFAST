@@ -24,11 +24,75 @@ void GenerateIndex(RGBinary *rg,
 		char *tmpDir,
 		int binaryOutput)
 {
+	char *FnName="GenerateIndex";
 	int32_t i;
 	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
 	FILE *fp=NULL;
 
 	RGIndex index;
+
+	/* Adjust start and end based on reference genome */
+	/* Adjust start */
+	if(startChr < rg->startChr) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: startChr was less than reference genome's start chromosome.\n");
+			fprintf(stderr, "Defaulting to reference genome's start chromosome and position: chr%d:%d.\n",
+					rg->startChr,
+					rg->startPos);
+		}
+		startChr = rg->startChr;
+		startPos = rg->startPos;
+	}
+	else if(startChr == rg->startChr &&
+			startPos < rg->startPos) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: startPos was less than reference genome's start position.\n");
+			fprintf(stderr, "Defaulting to reference genome's start position: %d.\n",
+					rg->startPos);
+		}
+		startPos = rg->startPos;
+	}
+	/* Adjust end */
+	if(endChr > rg->endChr) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: endChr was less than reference genome's end chromosome.\n");
+			fprintf(stderr, "Defaulting to reference genome's end chromosome and position: chr%d:%d.\n",
+					rg->endChr,
+					rg->endPos);
+		}
+		endChr = rg->endChr;
+		endPos = rg->endPos;
+	}
+	else if(endChr == rg->endChr &&
+			endPos > rg->endPos) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: endPos was less than reference genome's end position.\n");
+			fprintf(stderr, "Defaulting to reference genome's end position: %d.\n",
+					rg->endPos);
+		}
+		endPos = rg->endPos;
+	}
+
+	/* Check that the start and end bounds are ok */
+	if(startChr > endChr) {
+		PrintError(FnName,
+				NULL,
+				"The start chromosome is greater than the end chromosome",
+				Exit,
+				OutOfRange);
+	}
+	else if(startChr == endChr &&
+			startPos > endPos) {
+		PrintError(FnName,
+				NULL,
+				"The start position is greater than the end position on the same chromosome",
+				Exit,
+				OutOfRange);
+	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);

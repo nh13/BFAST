@@ -97,23 +97,21 @@ void RGBinaryRead(char *rgFileName,
 	/* Update the start and end locations based on the files read in. 
 	 * This is only based off of the number of files, not the file names
 	 * themselves. */
-	if(endChr < 1) {
+	/* Adjust start */
+	if(startChr < 1) {
 		startChr=1;
 		startPos=1;
+	}
+	else if(startPos < 1) {
+		startPos = 1;
+	}
+	/* Adjust end */
+	if(endChr < 1) {
 		endChr=numChrFileNames;
 		endPos=INT_MAX;
 	}
-	else {
-		if(endPos < 1) {
-			endPos=INT_MAX;
-		}
-		if(startChr < 1) {
-			startChr=1;
-			startPos=1;
-		}
-		else if(startPos < 1) {
-			startPos = 1;
-		}
+	else if(endPos < 1) {
+		endPos=INT_MAX;
 	}
 	assert(startChr>=1 && startChr<=numChrFileNames);
 	assert(startPos>=1);

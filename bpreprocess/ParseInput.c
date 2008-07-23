@@ -400,10 +400,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->algorithm = 0;
 
-	args->startChr=1;
-	args->startPos=1;
-	args->endChr=1;
-	args->endPos=INT_MAX;
+	args->startChr=0;
+	args->startPos=0;
+	args->endChr=0;
+	args->endPos=0;
 
 	args->repeatMasker=0;
 

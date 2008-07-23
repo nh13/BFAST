@@ -48,7 +48,6 @@ void RGIndexCreate(RGIndex *index,
 	int64_t i, j;
 	int32_t chrIndex = 0;
 
-
 	/* Initialize the index */
 	RGIndexInitialize(index);
 

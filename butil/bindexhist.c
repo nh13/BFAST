@@ -598,9 +598,9 @@ void GetMatchesFromChrPos(RGIndex *index,
 	if(numMismatches > 0) {
 		/* Generate reads with the necessary mismatches for 
 		 * both the forward and reverse strands */
-		RGReadsGenerateMismatches(reverseRead,
+		RGReadsGenerateMismatches(read,
 				readLength,
-				REVERSE,
+				FORWARD,
 				0,
 				index->numTiles,
 				index->tileLengths,
@@ -608,9 +608,9 @@ void GetMatchesFromChrPos(RGIndex *index,
 				index->totalLength,
 				numMismatches,
 				&reads);
-		RGReadsGenerateMismatches(read,
+		RGReadsGenerateMismatches(reverseRead,
 				readLength,
-				FORWARD,
+				REVERSE,
 				0,
 				index->numTiles,
 				index->tileLengths,
@@ -646,6 +646,9 @@ void GetMatchesFromChrPos(RGIndex *index,
 	/* Return the number of FORWARD strand matches so that we can skip over */
 	(*numForward) = (*numReverse) = 0;
 	for(i=0;i<ranges.numEntries;i++) {
+		assert(ranges.startIndex[i] != UINT_MAX);
+		assert(ranges.endIndex[i] != UINT_MAX);
+		assert(ranges.endIndex[i] - ranges.startIndex[i] >= 0);
 		switch(ranges.strand[i]) {
 			case FORWARD:
 				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
