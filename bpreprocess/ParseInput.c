@@ -402,8 +402,8 @@ AssignDefaultValues(struct arguments *args)
 
 	args->startChr=0;
 	args->startPos=0;
-	args->endChr=0;
-	args->endPos=0;
+	args->endChr=INT_MAX;
+	args->endPos=INT_MAX;
 
 	args->repeatMasker=0;
 

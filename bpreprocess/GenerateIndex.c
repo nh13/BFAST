@@ -28,7 +28,6 @@ void GenerateIndex(RGBinary *rg,
 	int32_t i;
 	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
 	FILE *fp=NULL;
-
 	RGIndex index;
 
 	/* Adjust start and end based on reference genome */
@@ -79,6 +78,9 @@ void GenerateIndex(RGBinary *rg,
 
 	/* Check that the start and end bounds are ok */
 	if(startChr > endChr) {
+		fprintf(stderr, "startChr:%d\nendChr:%d\n",
+				startChr,
+				endChr);
 		PrintError(FnName,
 				NULL,
 				"The start chromosome is greater than the end chromosome",

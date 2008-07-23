@@ -106,7 +106,8 @@ void RGBinaryRead(char *rgFileName,
 		startPos = 1;
 	}
 	/* Adjust end */
-	if(endChr < 1) {
+	if(endChr < 1 ||
+			endChr > numChrFileNames) {
 		endChr=numChrFileNames;
 		endPos=INT_MAX;
 	}

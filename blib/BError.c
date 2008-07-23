@@ -34,6 +34,7 @@ PrintError(char* FunctionName, char *VariableName,
 			exit(EXIT_FAILURE); 
 			break; /* Not necessary actually! */
 		case Warn:
+			fprintf(stderr, " ***** Warning *****\n");
 			return; break;
 		default:
 			fprintf(stderr, "Trouble!!!\n");
