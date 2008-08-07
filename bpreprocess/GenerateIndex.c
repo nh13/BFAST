@@ -57,7 +57,7 @@ void GenerateIndex(RGBinary *rg,
 	if(endChr > rg->endChr) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Warning: endChr was less than reference genome's end chromosome.\n");
+			fprintf(stderr, "Warning: endChr was greater than reference genome's end chromosome.\n");
 			fprintf(stderr, "Defaulting to reference genome's end chromosome and position: chr%d:%d.\n",
 					rg->endChr,
 					rg->endPos);
@@ -69,7 +69,7 @@ void GenerateIndex(RGBinary *rg,
 			endPos > rg->endPos) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Warning: endPos was less than reference genome's end position.\n");
+			fprintf(stderr, "Warning: endPos was greater than reference genome's end position.\n");
 			fprintf(stderr, "Defaulting to reference genome's end position: %d.\n",
 					rg->endPos);
 		}
