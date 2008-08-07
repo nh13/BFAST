@@ -17,6 +17,11 @@ butil \- utilities for bfast (not supported)
 .fam C
 .nf
 .
+bexonify
+	<bfast reference genome file>
+	<bfast index file>
+	<exon list file>
+
 bfixhash
 	<bfast reference genome file>
 	<bfast index file>
@@ -90,6 +95,11 @@ There is no support or warranty for these utilities.
 If options are not specified in the correct order, data may be overwritten, and crashes will certainly occur.
 Please use at your own risk and consult the source code if problems arise.
 If you find one of these utilities incredibly useful, please contact the authors/developers as to recommend a utility be supported.
+.
+.P
+.B bexonify
+modifies an index to only include locations specified by the user.  
+The main purpose is to allow for alignment to exons, multiple subregions or the like.
 .
 .P
 .B bfixhash
