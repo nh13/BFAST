@@ -173,10 +173,10 @@ void GetPivots(RGIndex *index,
 	/* Check */
 	for(i=1;i<numThreads;i++) {
 		assert(RGIndexCompareAt(index,
-				rg,
-				ends[i-1],
-				starts[i],
-				0)<0);
+					rg,
+					ends[i-1],
+					starts[i],
+					0)<0);
 	}
 	for(i=0;i<numThreads;i++) {
 		assert(starts[i] <= ends[i]);
@@ -469,20 +469,16 @@ void *PrintHistogramThread(void *arg)
 					i,
 					&numForward, 
 					&numReverse);
-			assert(numForward > 0);
-
 			numMatches = numForward + numReverse;
+			assert(numMatches > 0);
 
 			/* Update the value of numReadsNoMismatches and numDifferent
 			 * if we have the rsults for no mismatches */
 			if(i==0) {
-				/* The forward and reverse hits should be the same i.e. symmetric */ 
 				totalForward += numForward;
 				totalReverse += numReverse;
 				/* This will be the basis for update c->counts */
-				/* Only choose the ones on the forward since we multiply by two to acheive
-				 * symmetry */
-				numReadsNoMismatches = 2*numForward;
+				numReadsNoMismatches = numForward + numReverse;
 				numReadsNoMismatchesTotal += numReadsNoMismatches;
 				numDifferent++;
 				/* If the reverse compliment does not match the + strand then 
@@ -491,8 +487,14 @@ void *PrintHistogramThread(void *arg)
 					numDifferent++;
 				}
 				/* Add the range since we will be skipping over them */
-				nextIndex += numForward;
-				counter += numForward;
+				if(numForward <= 0) {
+					nextIndex++;
+					counter++;
+				}
+				else {
+					nextIndex += numForward;
+					counter += numForward;
+				}
 			}
 
 			/* Add to our list.  We may have to reallocate this array */
@@ -519,15 +521,15 @@ void *PrintHistogramThread(void *arg)
 			assert(numMatches <= c->maxCount[i]);
 			assert(c->counts[i][numMatches] >= 0);
 			/* Add the number of reads that were found with no mismatches */
-			c->counts[i][numForward+numReverse] += numReadsNoMismatches;
-			assert(c->counts[i][numForward+numReverse] > 0);
+			c->counts[i][numMatches] += numReadsNoMismatches;
+			assert(c->counts[i][numMatches] > 0);
 		}
 	}
 	fprintf(stderr, "\rthreadID:%2d\t%10lld", 
 			threadID,
 			(long long int)(endIndex-startIndex+1));
 
-	assert(totalForward == endIndex - startIndex + 1);
+	assert(totalForward <= endIndex - startIndex + 1);
 	/* Copy over numDifferent */
 	data->numDifferent = numDifferent;
 	data->totalForward = totalForward;
@@ -665,7 +667,25 @@ void GetMatchesFromChrPos(RGIndex *index,
 				break;
 		}
 	}
-	assert((*numForward)>0);
+	if((*numForward) + (*numReverse) <= 0) {
+		fprintf(stderr, "numForward=%lld\nnumReverse=%lld\n",
+				(*numForward),
+				(*numReverse));
+		fprintf(stderr, "read=%s\nreverseRead=%s\n",
+				read,
+				reverseRead);
+		fprintf(stderr, "ranges.numEntries=%lld\n",
+				(long long int)ranges.numEntries);
+		for(i=0;i<ranges.numEntries;i++) {
+			fprintf(stderr, "i=%d\t%lld\t%lld\t%c\t[%lld]\n",
+					i,
+					(long long int)ranges.startIndex[i],
+					(long long int)ranges.endIndex[i],
+					ranges.strand[i],
+					(long long int)(ranges.endIndex[i] - ranges.startIndex[i] + 1));
+		}
+	}
+	assert((*numForward) + (*numReverse)>0);
 
 	/* Free memory */
 	RGReadsFree(&reads);
