@@ -304,6 +304,7 @@ void PrintHistogram(RGIndex *index,
 					ThreadError);
 		}
 	}
+	fprintf(stderr, "\n");
 
 	/* Get the total number of different */
 	numDifferent = 0;
