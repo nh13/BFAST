@@ -254,7 +254,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 			}
 			else {
 				if(matches.readName != NULL &&
-						strcmp(matches.readName, tempMatches.readName)!=0) {
+						strcmp((char*)matches.readName, (char*)tempMatches.readName)!=0) {
 					PrintError(FnName,
 							NULL,
 							"Read names do not match",
@@ -408,7 +408,7 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 					Exit,
 					MallocMemory);
 		}
-		strcpy(dest->readName, src->readName);
+		strcpy((char*)dest->readName, (char*)src->readName);
 		dest->pairedEnd = src->pairedEnd;
 	}
 	assert(src->pairedEnd == dest->pairedEnd);
@@ -480,7 +480,7 @@ void RGMatchesCheck(RGMatches *m)
 	/* Basic asserts */
 	assert(m->pairedEnd == 0 || m->pairedEnd == 1);
 	/* Check that the read name length is the same as the length of the read name */
-	if(((int)strlen(m->readName)) != m->readNameLength) {
+	if(((int)strlen((char*)m->readName)) != m->readNameLength) {
 		PrintError(FnName,
 				NULL,
 				"strlen(m->readName)) != m->readNameLength",

@@ -44,10 +44,10 @@ void RGReadsFindMatches(RGIndex *index,
 	RGRangesInitialize(&ranges);
 
 	/* Get the reverse compliment */
-	GetReverseComplimentAnyCase(match->read, reverseRead, match->readLength);
+	GetReverseComplimentAnyCase((char*)match->read, reverseRead, match->readLength);
 
 	/* Generate reads */
-	RGReadsGenerateReads(match->read,
+	RGReadsGenerateReads((char*)match->read,
 			match->readLength,
 			index,
 			&reads,

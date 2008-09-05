@@ -62,8 +62,8 @@ int GetNextRead(FILE *fp,
 	}
 
 	/* Copy over */
-	strcpy(m->readName, readName);
-	strcpy(m->matchOne.read, readOne);
+	strcpy((char*)m->readName, readName);
+	strcpy((char*)m->matchOne.read, readOne);
 
 	/* Read in paired end if necessary */
 	if(pairedEnd == 1) {
@@ -89,7 +89,7 @@ int GetNextRead(FILE *fp,
 					MallocMemory);
 		}
 		/* Copy over */
-		strcpy(m->matchTwo.read, readTwo);
+		strcpy((char*)m->matchTwo.read, readTwo);
 	}
 	return 1;
 }
@@ -152,8 +152,8 @@ void WriteReadsToTempFile(FILE *seqFP,
 
 		/* Print only if we are within the desired limit and the read checks out */
 		if( (startReadNum<=0 || curReadNum >= startReadNum)  /* Only if we are within the bounds for the reads */
-				&& (1 == UpdateRead(m.matchOne.read, m.matchOne.readLength)) /* The first read is valid */
-				&& (0 == pairedEnd || 1 == UpdateRead(m.matchTwo.read, m.matchTwo.readLength))) { /* The second read is valid */
+				&& (1 == UpdateRead((char*)m.matchOne.read, m.matchOne.readLength)) /* The first read is valid */
+				&& (0 == pairedEnd || 1 == UpdateRead((char*)m.matchTwo.read, m.matchTwo.readLength))) { /* The second read is valid */
 			/* Print */
 			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m, pairedEnd)) {
 				PrintError(FnName,

@@ -381,7 +381,7 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest)
 					Exit,
 					MallocMemory);
 		}   
-		strcpy(dest->read, src->read);
+		strcpy((char*)dest->read, (char*)src->read);
 	}
 
 	start = dest->numEntries;
@@ -538,7 +538,7 @@ void RGMatchCheck(RGMatch *m)
 				OutOfRange);
 	}
 	/* Check that the read length matches the read */
-	if(((int)strlen(m->read)) != m->readLength) {
+	if(((int)strlen((char*)m->read)) != m->readLength) {
 		PrintError(FnName,
 				NULL,
 				"m->readLength and strlen(m->read) do not match",

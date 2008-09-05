@@ -568,7 +568,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				m.matchTwo.numEntries,
 				pairedEnd);
 		/* Copy over read name */
-		strcpy(aEntries.readName, m.readName);
+		strcpy(aEntries.readName, (char*)m.readName);
 
 		/* Run the aligner */
 		/* First entry */
@@ -578,7 +578,7 @@ void *RunDynamicProgrammingThread(void *arg)
 					m.matchOne.chromosomes[i],
 					m.matchOne.positions[i],
 					m.matchOne.strand[i],
-					m.matchOne.read,
+					(char*)m.matchOne.read,
 					m.matchOne.readLength,
 					offsetLength,
 					sm,
@@ -591,7 +591,7 @@ void *RunDynamicProgrammingThread(void *arg)
 					m.matchTwo.chromosomes[i],
 					m.matchTwo.positions[i],
 					m.matchTwo.strand[i],
-					m.matchTwo.read,
+					(char*)m.matchTwo.read,
 					m.matchTwo.readLength,
 					offsetLength,
 					sm,
