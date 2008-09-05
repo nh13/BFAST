@@ -152,10 +152,15 @@ void PrintDistribution(RGIndex *index,
 				&numReverse,
 				read,
 				reverseRead);
-		assert(numForward > 0);
+		assert(numForward + numReverse> 0);
 
 		nextIndex += numForward;
 		counter += numForward;
+		/* In case reverse is zero */
+		if(numForward <= 0) {
+			nextIndex++;
+			counter++;
+		}
 
 		/* Reallocate memory */
 		numReads+=2; /* One for both strands */
@@ -196,7 +201,6 @@ void PrintDistribution(RGIndex *index,
 		strcpy(reads[numReads-1], reverseRead);
 		readCounts[numReads-1] = numForward+numReverse;
 		readCounts[numReads-2] = numForward+numReverse;
-
 	}
 	fprintf(stderr, "\r%10lld\n", 
 			(long long int)(curIndex-startIndex+1));
@@ -325,7 +329,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 	char *FnName = "GetMatchesFromChrPos";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
-	int i;
+	int i, j, curPosRead;
 	RGReads reads;
 	RGRanges ranges;
 
@@ -351,6 +355,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 	GetReverseComplimentAnyCase(read,
 			reverseRead,
 			readLength);
+
 	RGReadsGeneratePerfectMatch(read,
 			readLength,
 			FORWARD,
@@ -437,7 +442,20 @@ void GetMatchesFromChrPos(RGIndex *index,
 				break;
 		}
 	}
-	assert((*numForward)>0);
+
+	/* Null out the gaps */
+	curPosRead = 0;
+	for(i=0;i<index->numTiles;i++) {
+		curPosRead += index->tileLengths[i];
+		if(i<index->numTiles-1) {
+			for(j=0;j<index->gaps[i];j++) {
+				read[curPosRead] = 'N';
+				reverseRead[curPosRead] = 'N';
+				curPosRead++;
+			}
+		}
+	}
+
 
 	/* Free memory */
 	RGReadsFree(&reads);

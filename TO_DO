@@ -9,6 +9,7 @@ say 2000 exons.
 bpreprocess
 ===============================================================================
 1. Indexes can be created specifying only regions (like exon boundaries).
+2. Create indexes and reference genomes in color space.
 
 ===============================================================================
 bmatches
@@ -23,6 +24,8 @@ balign
 ===============================================================================
 1. 
 ABI support for permuting errors/mutations.
+2. 
+ABI color space local aligner.
 
 ===============================================================================
 bpostprocess
