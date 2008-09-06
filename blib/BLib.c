@@ -6,6 +6,8 @@
 #include "BError.h"
 #include "BLib.h"
 
+char DNA[5] = "ACGTN";
+
 /* TODO */
 char ToLower(char a) 
 {
@@ -516,7 +518,7 @@ int CheckReadBase(char base)
 }
 
 /* TODO */
-uint8_t ConvertToColorSpace(uint8_t A, 
+uint8_t ConvertBaseToColorSpace(uint8_t A, 
 		uint8_t B)
 {
 	char *FnName = "ConvertToColorSpace";
@@ -587,4 +589,30 @@ uint8_t ConvertToColorSpace(uint8_t A,
 		result = (result% ALPHABET_SIZE);
 	}
 	return result;
+}
+
+/* TODO */
+uint8_t ConvertBaseAndColor(uint8_t base, uint8_t color) 
+{
+	/* sneaky */
+	return (uint8_t)DNA[(int)ConvertBaseToColorSpace(base, DNA[(int)color])];
+}
+
+/* TODO */
+void ConvertReadFromColorSpace(char **read,
+		int *readLength)
+{
+	int i, index;
+
+	for(i=0;i<(*readLength)-1;i++) { 
+		if(0==i) {
+			index = 0;
+		}
+		else {
+			index = i-1; 
+		}
+		(*read)[i] = ConvertBaseAndColor((*read)[index], (*read)[i+1]); 
+	}
+	(*read)[(*readLength)-1] = '\0';
+	(*readLength)--;
 }

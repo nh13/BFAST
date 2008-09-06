@@ -101,22 +101,22 @@ void FindMatches(
 				OutOfRange);
 	}
 
-	/* Read in the RGIndex File Names */
+	/* Read in the secondary RGIndex File Names */
 	numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
 
 	/* Check the indexes.
 	 * 1. We want the two sets of files to have the same range.
 	 * */
 	if(numSecondaryIndexes > 0) {
-	CheckRGIndexes(mainIndexFileNames, 
-			numMainIndexes,
-			secondaryIndexFileNames,
-			numSecondaryIndexes,
-			binaryInput,
-			&startChr,
-			&startPos,
-			&endChr,
-			&endPos);
+		CheckRGIndexes(mainIndexFileNames, 
+				numMainIndexes,
+				secondaryIndexFileNames,
+				numSecondaryIndexes,
+				binaryInput,
+				&startChr,
+				&startPos,
+				&endChr,
+				&endPos);
 	}
 
 	/* Read in the reference genome */
@@ -201,7 +201,8 @@ void FindMatches(
 			numThreads,
 			tmpDir,
 			&numReads,
-			&numReadsFiltered);
+			&numReadsFiltered,
+			colorSpace);
 	/* Close the read file */
 	fclose(seqFP);
 	fclose(seqFilteredFP);
@@ -599,7 +600,8 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numThreads,
 				tmpDir,
 				&numReads,
-				&numReadsFiltered);
+				&numReadsFiltered,
+				0);
 		/* In this case, all the reads should be valid so we should apportion all reads */
 		assert(numReadsFiltered == 0);
 		assert(numReads == numWritten);
@@ -888,7 +890,8 @@ void *FindMatchesInIndexThread(void *arg)
 	}
 	while(EOF!=GetNextRead(tempSeqFP, 
 				&m,
-				pairedEnd)) {
+				pairedEnd,
+				0)) {
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {

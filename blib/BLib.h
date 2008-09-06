@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "RGIndex.h"
 
+extern char DNA[5];
+
 char ToLower(char);
 char ToUpper(char);
 void GetReverseComplimentAnyCase(char*, char*, int);
@@ -20,7 +22,9 @@ void PrintPercentCompleteLong(double);
 int UpdateRead(char*, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);
-uint8_t ConvertToColorSpace(uint8_t, uint8_t);
+uint8_t ConvertBaseToColorSpace(uint8_t, uint8_t);
+uint8_t ConvertBaseAndColor(uint8_t, uint8_t);
+void ConvertReadFromColorSpace(char**, int*);
 
 #endif
 

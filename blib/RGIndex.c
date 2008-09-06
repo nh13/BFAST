@@ -2136,11 +2136,11 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 
 			/* Color space */
 			if(1==colorSpace) {
-				tempBase = ConvertToColorSpace(prevABase, aBase);
+				tempBase = ConvertBaseToColorSpace(prevABase, aBase);
 				prevABase = aBase;
 				aBase = tempBase;
 
-				tempBase = ConvertToColorSpace(prevBBase, bBase);
+				tempBase = ConvertBaseToColorSpace(prevBBase, bBase);
 				prevBBase = bBase;
 				bBase = tempBase;
 			}
@@ -2252,11 +2252,11 @@ int32_t RGIndexCompareRead(RGIndex *index,
 
 			/* Color space */
 			if(1==colorSpace) {
-				tempBase = ConvertToColorSpace(prevABase, aBase);
+				tempBase = ConvertBaseToColorSpace(prevABase, aBase);
 				prevABase = aBase;
 				aBase = tempBase;
 
-				tempBase = ConvertToColorSpace(prevReadBase, readBase);
+				tempBase = ConvertBaseToColorSpace(prevReadBase, readBase);
 				prevReadBase = readBase;
 				readBase = tempBase;
 			}
