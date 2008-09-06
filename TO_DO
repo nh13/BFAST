@@ -9,7 +9,7 @@ say 2000 exons.
 bpreprocess
 ===============================================================================
 1. Indexes can be created specifying only regions (like exon boundaries).
-2. Create indexes and reference genomes in color space.
+2. Create indexes using comparison in color space.
 
 ===============================================================================
 bmatches
@@ -18,6 +18,9 @@ bmatches
 Flag perfect matches so that the alignment score is already known. 
 2.
 Only read in reference genome needed by the indexes.
+3.
+Enumeration procedures (-x, -y, -z, -Y, and -Z) need to be updated for color
+space.
 
 ===============================================================================
 balign

@@ -26,6 +26,7 @@ void RGReadsFindMatches(RGIndex *index,
 		RGMatch *match,
 		int *offsets,
 		int numOffsets,
+		int colorSpace,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -94,7 +95,8 @@ void RGReadsFindMatches(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
-				&ranges);
+				&ranges,
+				colorSpace);
 	}
 
 	/* Remove duplicate ranges */

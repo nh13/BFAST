@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
-	DescAlgoTitle, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, /*DescMaxMatches, */DescNumThreads, 
+	DescAlgoTitle, DescColorSpace, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, /*DescMaxMatches, */DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -76,6 +76,7 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
+	{"colorSpace", 'A', "colorSpace", 0, "Specifies that the reads are in color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
 	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
@@ -176,6 +177,7 @@ main (int argc, char **argv)
 								arguments.bfastSecondaryIndexesFileName,
 								arguments.readsFileName,
 								arguments.offsetsFileName,
+								arguments.colorSpace,
 								arguments.binaryInput,
 								arguments.startReadNum,
 								arguments.endReadNum,
@@ -280,6 +282,7 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	assert(args->binaryOutput == 0 || args->binaryOutput== 1);
+	assert(args->colorSpace == 0 || args->colorSpace == 1);
 
 	if(args->numMismatches < 0) {
 		PrintError(FnName, "numMismatches", "Command line argument", Exit, OutOfRange);
@@ -403,6 +406,7 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
 	args->binaryInput = 1;
+	args->colorSpace = 0;
 
 	args->startReadNum = -1;
 	args->endReadNum = -1;
@@ -453,6 +457,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
+	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
@@ -558,6 +563,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   case 'B':
 						   arguments->binaryOutput = 1;break;
 						   */
+					case 'A':
+						arguments->colorSpace=1;break;
 					case 'I':
 						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
 						arguments->bfastSecondaryIndexesFileName = OPTARG;break;

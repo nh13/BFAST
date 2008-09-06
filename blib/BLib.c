@@ -514,3 +514,77 @@ int CheckReadBase(char base)
 			break;
 	}
 }
+
+/* TODO */
+uint8_t ConvertToColorSpace(uint8_t A, 
+		uint8_t B)
+{
+	char *FnName = "ConvertToColorSpace";
+	int start=0;
+	int by=0;
+	int result=0;
+
+	switch(A) {
+		case 'A':
+		case 'a':
+			start = 0;
+			by = 1;
+			break;
+		case 'C':
+		case 'c':
+			start = 1;
+			by = -1;
+			break;
+		case 'G':
+		case 'g':
+			start = 2;
+			by = 1;
+			break;
+		case 'T':
+		case 't':
+			start = 3;
+			by = -1;
+			break;
+		default:
+			PrintError(FnName,
+					"A",
+					"Could not understand base",
+					Exit,
+					OutOfRange);
+			break;
+	}
+
+	switch(B) {
+		case 'A':
+		case 'a':
+			result = start;
+			break;
+		case 'C':
+		case 'c':
+			result = start + by;
+			break;
+		case 'G':
+		case 'g':
+			result = start + 2*by;
+			break;
+		case 'T':
+		case 't':
+			result = start + 3*by;
+			break;
+		default:
+			PrintError(FnName,
+					"B",
+					"Could not understand base",
+					Exit,
+					OutOfRange);
+			break;
+	}
+
+	if(result < 0) {
+		result =  ALPHABET_SIZE - ( (-1*result)% ALPHABET_SIZE);
+	}
+	else {
+		result = (result% ALPHABET_SIZE);
+	}
+	return result;
+}

@@ -20,6 +20,7 @@ void PrintPercentCompleteLong(double);
 int UpdateRead(char*, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);
+uint8_t ConvertToColorSpace(uint8_t, uint8_t);
 
 #endif
 

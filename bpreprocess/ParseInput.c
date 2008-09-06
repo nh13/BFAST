@@ -58,7 +58,8 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
-	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescRepeatMasker, DescNumThreads, 
+	DescAlgoTitle, DescAlgorithm, DescColorSpace, DescStartChr, DescStartPos, 
+	DescEndChr, DescEndPos, DescRepeatMasker, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -76,6 +77,7 @@ static struct argp_option options[] = {
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create an index 1: create a 4-bit file from the reference chromosomes", 2},
+	{"colorSpace", 'A', 0, OPTION_NO_USAGE, "Specifies that the output should be in color space", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
@@ -176,6 +178,7 @@ main (int argc, char **argv)
 								/* Generate the indexes */
 								GenerateIndex(&rg,
 										&rgLayout,
+										arguments.colorSpace,
 										arguments.startChr,
 										arguments.startPos,
 										arguments.endChr,
@@ -293,6 +296,8 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
 
+	assert(args->colorSpace == 0 || args->colorSpace == 1);
+
 	if(args->startChr < 0) {
 		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
 	}
@@ -400,6 +405,8 @@ AssignDefaultValues(struct arguments *args)
 
 	args->algorithm = 0;
 
+	args->colorSpace = 0;
+
 	args->startChr=0;
 	args->startPos=0;
 	args->endChr=INT_MAX;
@@ -442,6 +449,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
+	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
@@ -535,6 +543,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   case 'B':
 						   arguments->binaryOutput=1;break;
 						   */
+					case 'A':
+						arguments->colorSpace=1;break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'R':

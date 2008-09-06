@@ -25,6 +25,7 @@ void FindMatches(
 		char *rgIndexSecondaryListFileName,
 		char *readFileName, 
 		char *offsetsFileName,
+		int colorSpace,
 		int binaryInput,
 		int startReadNum,
 		int endReadNum,
@@ -249,6 +250,7 @@ void FindMatches(
 			numMainIndexes,
 			offsets,
 			numOffsets,
+			colorSpace,
 			numMismatches,
 			numInsertions,
 			numDeletions,
@@ -287,6 +289,7 @@ void FindMatches(
 				numSecondaryIndexes,
 				offsets,
 				numOffsets,
+				colorSpace,
 				numMismatches,
 				numInsertions,
 				numDeletions,
@@ -393,6 +396,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int numIndexes,
 		int *offsets,
 		int numOffsets,
+		int colorSpace,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -483,6 +487,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				rg,
 				offsets,
 				numOffsets,
+				colorSpace,
 				numMismatches,
 				numInsertions,
 				numDeletions,
@@ -629,6 +634,7 @@ int FindMatchesInIndex(char *indexFileName,
 		RGBinary *rg,
 		int *offsets,
 		int numOffsets,
+		int colorSpace,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -733,6 +739,7 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].rg = rg;
 		data[i].offsets = offsets;
 		data[i].numOffsets = numOffsets;
+		data[i].colorSpace = colorSpace;
 		data[i].numMismatches = numMismatches;
 		data[i].numInsertions = numInsertions;
 		data[i].numDeletions = numDeletions;
@@ -858,6 +865,7 @@ void *FindMatchesInIndexThread(void *arg)
 	RGBinary *rg = data->rg;
 	int *offsets = data->offsets;
 	int numOffsets = data->numOffsets;
+	int colorSpace = data->colorSpace;
 	int numMismatches = data->numMismatches;
 	int numInsertions = data->numInsertions;
 	int numDeletions = data->numDeletions;
@@ -895,6 +903,7 @@ void *FindMatchesInIndexThread(void *arg)
 				&m.matchOne,
 				offsets,
 				numOffsets,
+				colorSpace,
 				numMismatches,
 				numInsertions,
 				numDeletions,
@@ -907,6 +916,7 @@ void *FindMatchesInIndexThread(void *arg)
 					&m.matchTwo,
 					offsets,
 					numOffsets,
+					colorSpace,
 					numMismatches,
 					numInsertions,
 					numDeletions,

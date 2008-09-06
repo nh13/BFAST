@@ -23,6 +23,7 @@ typedef struct {
 	RGBinary *rg;
 	int *offsets;
 	int numOffsets;
+	int colorSpace;
 	int numMismatches;
 	int numInsertions;
 	int numDeletions;
@@ -34,13 +35,14 @@ typedef struct {
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
+void FindMatches(int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
 int FindMatchesInIndexes(char **rgIndexFileNames,
 		int binaryInput,
 		RGBinary *rg,
 		int numRGIndexes,
 		int *offsets,
 		int numOffsets,
+		int colorSpace,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -64,6 +66,7 @@ int FindMatchesInIndex(char *indexFileName,
 		RGBinary *rg,
 		int *offsets,
 		int numOffsets,
+		int colorSpace,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,

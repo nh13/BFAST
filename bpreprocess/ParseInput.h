@@ -7,6 +7,7 @@ struct arguments
 	char *indexLayoutFileName;				/* -i */
 	int binaryInput;						/* -b - not used */
 	int algorithm;							/* -a */
+	int colorSpace;							/* -A */
 	int startChr;							/* -s */
 	unsigned int startPos;					/* -S */
 	int endChr;								/* -e */

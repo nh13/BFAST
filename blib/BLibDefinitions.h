@@ -48,6 +48,7 @@
 #define REVERSE '-'
 #define GAP '-'
 #define NULL_LETTER 'N'
+#define COLOR_SPACE_START_NT 'A'
 
 /* For RGIndex.c */
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
@@ -153,6 +154,7 @@ typedef struct {
 typedef struct {
 	RGIndex *index;
 	RGBinary *rg;
+	int32_t colorSpace;
 	int64_t low;
 	int64_t high;
 	int32_t threadID;
