@@ -33,8 +33,9 @@ int main(int argc, char *argv[])
 	int numMismatchesStart = NUM_MISMATCHES_START;
 	int numMismatchesEnd = NUM_MISMATCHES_END;
 	int numThreads;
+	int colorSpace;
 
-	if(argc == 5) {
+	if(argc == 6) {
 		RGBinary rg;
 		RGIndex index;
 
@@ -42,6 +43,8 @@ int main(int argc, char *argv[])
 		strcpy(indexFileName, argv[2]);
 		numMismatchesEnd = atoi(argv[3]);
 		numThreads = atoi(argv[4]);
+		colorSpace = atoi(argv[5]);
+		assert(colorSpace == 0 || colorSpace == 1);
 		assert(numMismatchesEnd >= numMismatchesStart);
 
 		/* Create the histogram file name */
@@ -70,7 +73,8 @@ int main(int argc, char *argv[])
 				numMismatchesStart,
 				numMismatchesEnd,
 				numThreads,
-				histogramFileName);
+				histogramFileName,
+				colorSpace);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -89,6 +93,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<bfast index file name>\n");
 		fprintf(stderr, "\t<number of mismatches for histogram>\n");
 		fprintf(stderr, "\t<number of threads>\n");
+		fprintf(stderr, "\t<colorSpace (0=FALSE, 1=TRUE)>\n");
 	}
 
 	return 0;
@@ -98,7 +103,8 @@ void GetPivots(RGIndex *index,
 		RGBinary *rg,
 		int64_t *starts,
 		int64_t *ends,
-		int64_t numThreads)
+		int64_t numThreads,
+		int32_t colorSpace)
 {
 	char *FnName="GetPivots";
 	int64_t i, ind;
@@ -150,7 +156,8 @@ void GetPivots(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
-				&ranges);
+				&ranges,
+				colorSpace);
 	}
 
 	/* Update starts and ends */
@@ -176,6 +183,7 @@ void GetPivots(RGIndex *index,
 					rg,
 					ends[i-1],
 					starts[i],
+					colorSpace,
 					0)<0);
 	}
 	for(i=0;i<numThreads;i++) {
@@ -191,7 +199,8 @@ void PrintHistogram(RGIndex *index,
 		int numMismatchesStart,
 		int numMismatchesEnd,
 		int numThreads,
-		char *histogramFileName)
+		char *histogramFileName,
+		int32_t colorSpace)
 {
 	char *FnName = "PrintHistogram";
 	int64_t i, j;
@@ -250,7 +259,8 @@ void PrintHistogram(RGIndex *index,
 			rg,
 			starts,
 			ends,
-			numThreads);
+			numThreads,
+			colorSpace);
 
 	/* Initialize thread data */
 	numTotal = 0;
@@ -266,6 +276,7 @@ void PrintHistogram(RGIndex *index,
 		data[i].numMismatchesEnd = numMismatchesEnd;
 		data[i].numDifferent = 0;
 		data[i].threadID = i+1;
+		data[i].colorSpace = colorSpace;
 	}
 	assert(numTotal == index->length);
 
@@ -398,6 +409,7 @@ void *PrintHistogramThread(void *arg)
 	int numMismatchesStart = data->numMismatchesStart;
 	int numMismatchesEnd = data->numMismatchesEnd;
 	int threadID = data->threadID;
+	int colorSpace = data->colorSpace;
 
 	/* Local variables */
 	int64_t i=0;
@@ -469,7 +481,8 @@ void *PrintHistogramThread(void *arg)
 					index->positions[curIndex],
 					i,
 					&numForward, 
-					&numReverse);
+					&numReverse,
+					colorSpace);
 			numMatches = numForward + numReverse;
 			assert(numMatches > 0);
 
@@ -546,7 +559,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 		uint32_t curPos,
 		int numMismatches,
 		int64_t *numForward,
-		int64_t *numReverse)
+		int64_t *numReverse,
+		int32_t colorSpace)
 {
 	char *FnName = "GetMatchesFromChrPos";
 	char read[SEQUENCE_LENGTH]="\0";
@@ -631,7 +645,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
-				&ranges);
+				&ranges,
+				colorSpace);
 	}
 
 	/* Remove duplicates */

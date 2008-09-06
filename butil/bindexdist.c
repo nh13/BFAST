@@ -34,8 +34,9 @@ int main(int argc, char *argv[])
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
 	int numMismatches = 0;
 	int numThreads = 0;
+	int32_t colorSpace;
 
-	if(argc == 8) {
+	if(argc == 9) {
 		RGBinary rg;
 		RGIndex index;
 
@@ -46,6 +47,8 @@ int main(int argc, char *argv[])
 		strcpy(outputID, argv[5]);
 		strcpy(tmpDir, argv[6]);
 		numThreads = atoi(argv[7]);
+		colorSpace = atoi(argv[8]);
+		assert(colorSpace == 0 || colorSpace == 1);
 
 		/* Create the distribution file name */
 		sprintf(distributionFileName, "%s%s.dist.%d",
@@ -78,7 +81,8 @@ int main(int argc, char *argv[])
 				distributionFileName,
 				numMismatches,
 				tmpDir,
-				numThreads);
+				numThreads, 
+				colorSpace);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -100,6 +104,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t\t<output id>\n");
 		fprintf(stderr, "\t\t<tmp file directory>\n");
 		fprintf(stderr, "\t\t<number of threads>\n");
+		fprintf(stderr, "\t<colorSpace (0=FALSE, 1=TRUE)>\n");
 	}
 
 	return 0;
@@ -110,7 +115,8 @@ void PrintDistribution(RGIndex *index,
 		char *distributionFileName,
 		int numMismatches,
 		char *tmpDir,
-		int numThreads)
+		int numThreads,
+		int32_t colorSpace)
 {
 	char *FnName = "PrintDistribution";
 	FILE *fp;
@@ -151,7 +157,8 @@ void PrintDistribution(RGIndex *index,
 				&numForward, 
 				&numReverse,
 				read,
-				reverseRead);
+				reverseRead,
+				colorSpace);
 		assert(numForward + numReverse> 0);
 
 		nextIndex += numForward;
@@ -324,7 +331,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 		int64_t *numForward,
 		int64_t *numReverse, 
 		char *read,
-		char *reverseRead)
+		char *reverseRead,
+		int32_t colorSpace)
 {
 	char *FnName = "GetMatchesFromChrPos";
 	int readLength = index->totalLength;
@@ -408,7 +416,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
-				&ranges);
+				&ranges,
+				colorSpace);
 	}
 
 	/* Remove duplicates */

@@ -21,14 +21,17 @@ int main(int argc, char *argv[])
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
 	int hashWidth;
+	int colorSpace;
 
-	if(argc == 4) {
+	if(argc == 5) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		hashWidth = atoi(argv[3]);
+		colorSpace = atoi(argv[4]);
+		assert(colorSpace == 0 || colorSpace == 1);
 
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
@@ -59,7 +62,7 @@ int main(int argc, char *argv[])
 		/* Fix the hash by recreating it */
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Fixing hash.\n");
-		RGIndexCreateHash(&index, &rg);
+		RGIndexCreateHash(&index, &rg, colorSpace);
 
 		/* Print the new index */ 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -86,6 +89,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<bfast reference genome file>\n");
 		fprintf(stderr, "\t<bfast index file>\n");
 		fprintf(stderr, "\t<new hash width>\n");
+		fprintf(stderr, "\t<colorSpace (0=FALSE, 1=TRUE)>\n");
 	}
 
 	return 0;
