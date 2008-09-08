@@ -94,8 +94,8 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		/* Sort the array */
 		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
 		/*
-		   AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
-		   */
+		AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+		*/
 
 		/* Check sort */
 		/*
@@ -108,10 +108,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		prevIndex=0;
 		for(i=1;i<length;i++) {
 			if(AlignEntryCompareAtIndex((*a), prevIndex, (*a), i, sortOrder)==0) {
-				assert((*a)[i].read!=NULL);
-				assert((*a)[i].reference!=NULL);
-				/* Free memory */
-				AlignEntryFree(&(*a)[i]);
+				/* Do nothing */
 			}
 			else {
 				/* Increment prevIndex */
@@ -121,8 +118,13 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 			}
 		}
 
-		/* Reallocate pair */
+		/* Free duplicates */
+		for(i=prevIndex+1;i<length;i++) {
+			AlignEntryFree(&((*a)[i]));
+		}
+		/* Update length */
 		length = prevIndex+1;
+		/* Reallocate based on new length */
 		(*a) = realloc((*a), sizeof(AlignEntry)*length);
 		if(NULL == (*a)) {
 			PrintError("AlignEntryRemoveDuplicates",
@@ -131,6 +133,7 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 					Exit,
 					ReallocMemory);
 		}
+		/* END HERE */
 	}
 	return length;
 }
