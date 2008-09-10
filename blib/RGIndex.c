@@ -541,6 +541,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 				data[i].high = (i+1)*(index->length/numThreads)-1;
 				data[i].showPercentComplete = 0;
 				data[i].tmpDir = tmpDir;
+				data[i].colorSpace = colorSpace;
 				assert(data[i].low >= 0 && data[i].high < index->length);
 			}
 			data[0].low = 0;
@@ -663,8 +664,11 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 	}
 
 	/* Test that we sorted correctly */
-	/* 
+	/*
 	for(i=1;i<index->length;i++) {
+		if(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) > 0) {
+			RGIndexCompareAt(index, rg, i-1, i, colorSpace, 1);
+		}
 		assert(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) <= 0);
 	}
 	*/
@@ -2237,14 +2241,15 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	prevABase = COLOR_SPACE_START_NT;
 	prevReadBase = COLOR_SPACE_START_NT;
 
-	/*
+	if(debug > 0) {
 	   fprintf(stderr, "%d\t%s", 
 	   index->totalLength,
 	   BREAK_LINE);
 	   fprintf(stderr, "read[%d]:%s\n", 
 	   (int)strlen(read),
 	   read);
-	   */
+	}
+
 	for(i=0;i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
 		for(j=0;j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
 			aBase=ToLower(RGBinaryGetBase(rg,
