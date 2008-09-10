@@ -521,7 +521,7 @@ int CheckReadBase(char base)
 uint8_t ConvertBaseToColorSpace(uint8_t A, 
 		uint8_t B)
 {
-	char *FnName = "ConvertToColorSpace";
+	char *FnName = "ConvertBaseToColorSpace";
 	int start=0;
 	int by=0;
 	int result=0;
@@ -548,6 +548,9 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 			by = -1;
 			break;
 		default:
+			fprintf(stderr, "\nA=(%c,%d)\n",
+					A,
+					(int)A);
 			PrintError(FnName,
 					"A",
 					"Could not understand base",
@@ -574,6 +577,9 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 			result = start + 3*by;
 			break;
 		default:
+			fprintf(stderr, "B=(%c,%d)\n",
+					B,
+					(int)B);
 			PrintError(FnName,
 					"B",
 					"Could not understand base",
@@ -618,6 +624,8 @@ void ConvertReadFromColorSpace(char **read,
 				break;
 			case '3':
 				(*read)[i] = 3;
+				break;
+			default:
 				break;
 		}
 	}

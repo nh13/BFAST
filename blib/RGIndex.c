@@ -2177,14 +2177,18 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 			bCurTilePos += index->gaps[i];
 			/* For color space, we must have the previous base */
 			if(1==colorSpace) {
-				/* There is a danger of N's here */
 				prevABase = ToLower(RGBinaryGetBase(rg,
 							aChr,
 							aCurTilePos-1));
 				prevBBase = ToLower(RGBinaryGetBase(rg,
 							bChr,
 							bCurTilePos-1));
-
+				if(1==RGBinaryIsBaseN(prevABase)) {
+					prevABase = COLOR_SPACE_START_NT;
+				}
+				if(1==RGBinaryIsBaseN(prevBBase)) {
+					prevBBase = COLOR_SPACE_START_NT;
+				}
 			}
 		}
 	}
@@ -2294,11 +2298,14 @@ int32_t RGIndexCompareRead(RGIndex *index,
 			curReadPos += index->gaps[i];
 			/* For color space, we must have the previous base */
 			if(1==colorSpace) {
-				/* There is a danger of N's here */
 				prevABase = ToLower(RGBinaryGetBase(rg,
 							aChr,
 							aCurTilePos-1));
+				/* There is a danger of N's here */
 				prevReadBase = read[curReadPos-1];
+				if(1==RGBinaryIsBaseN(prevABase)) {
+					prevABase = COLOR_SPACE_START_NT;
+				}
 			}
 		}
 	}
@@ -2401,10 +2408,12 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 			aCurTilePos += index->gaps[i];
 			/* For color space, we must have the previous base */
 			if(1==colorSpace) {
-				/* There is a danger of N's here */
 				prevABase = ToLower(RGBinaryGetBase(rg,
 							aChr,
 							aCurTilePos-1));
+				if(1==RGBinaryIsBaseN(prevABase)) {
+					prevABase = COLOR_SPACE_START_NT;
+				}
 			}
 		}
 	}
