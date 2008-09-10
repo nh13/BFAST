@@ -277,12 +277,12 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg, int32_t colorSpace)
 		fprintf(stderr, "Creating a hash. Out of %u, currently on:\n0",
 				(uint32_t)index->length);
 	}
-	startHash = RGIndexGetHashIndex(index, rg, 0, 0);
+	startHash = RGIndexGetHashIndex(index, rg, 0, colorSpace, 0);
 	for(end=1, start=0;end < index->length;end++) {
 		if(VERBOSE >= 0 && end%RGINDEX_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%u", end);
 		}
-		curHash = RGIndexGetHashIndex(index, rg, end, 0);
+		curHash = RGIndexGetHashIndex(index, rg, end, colorSpace, 0);
 		assert(curHash >= startHash);
 		if(curHash == startHash) {
 			/* Do nothing */
@@ -663,11 +663,11 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 	}
 
 	/* Test that we sorted correctly */
-	/*
-	   for(i=1;i<index->length;i++) {
-	   assert(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) <= 0);
-	   }
-	   */
+	/* 
+	for(i=1;i<index->length;i++) {
+		assert(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) <= 0);
+	}
+	*/
 }
 
 /* TODO */
@@ -1868,7 +1868,7 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
 	 * zero bounds for the binary search on the index */
-	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
+	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, colorSpace, 0);
 	assert(hashIndex >= 0 && hashIndex < index->hashLength);
 
 	if(index->starts[hashIndex] == UINT_MAX || 
@@ -2117,6 +2117,14 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 	prevABase = COLOR_SPACE_START_NT;
 	prevBBase = COLOR_SPACE_START_NT;
 
+	if(debug == 1) {
+		fprintf(stderr, "\n[%d,%d]\t[%d,%d]\n",
+				(int)aChr,
+				aPos,
+				(int)bChr,
+				bPos);
+	}
+
 	for(i=0;i<index->numTiles;i++) { /* For each tile */
 		for(j=0;j<index->tileLengths[i];j++) { /* For each position in the tile */
 			aBase = ToLower(RGBinaryGetBase(rg,
@@ -2125,14 +2133,6 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 			bBase = ToLower( RGBinaryGetBase(rg,
 						bChr,
 						bCurTilePos));
-
-			if(debug > 0) {
-				fprintf(stderr, "a[%d,%c]\tb[%d,%c]\n",
-						aCurTilePos,
-						aBase,
-						bCurTilePos,
-						bBase);
-			}
 
 			/* Color space */
 			if(1==colorSpace) {
@@ -2143,6 +2143,16 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 				tempBase = ConvertBaseToColorSpace(prevBBase, bBase);
 				prevBBase = bBase;
 				bBase = tempBase;
+			}
+
+			if(debug > 0) {
+				fprintf(stderr, "a[%d,%c,%d]\tb[%d,%c,%d]\n",
+						aCurTilePos,
+						prevABase,
+						(int)aBase,
+						bCurTilePos,
+						prevBBase,
+						(int)bBase);
 			}
 
 			/* Compare */
@@ -2296,22 +2306,28 @@ int32_t RGIndexCompareRead(RGIndex *index,
 uint32_t RGIndexGetHashIndex(RGIndex *index,
 		RGBinary *rg,
 		uint32_t a,
+		int32_t colorSpace,
 		int debug)
 {
 	assert(a>=0 && a<index->length);
+
+	char *FnName = "RGIndexGetHashIndex";
 
 	int32_t i, j;
 	uint32_t aChr = index->chromosomes[a];
 	uint32_t aPos = index->positions[a];
 
 	uint32_t aCurTilePos;
-	uint8_t aBase;
+	uint8_t aBase, prevABase, tempBase;
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
 
 	/* Compare base by base */
 	aCurTilePos = aPos;
+
+	/* Initialize for color space */
+	prevABase = COLOR_SPACE_START_NT;
 
 	assert(ALPHABET_SIZE == 4);
 
@@ -2327,16 +2343,27 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 						cur);
 			}
 
+			/* Color space */
+			if(1==colorSpace) {
+				tempBase = ConvertBaseToColorSpace(prevABase, aBase);
+				prevABase = aBase;
+				aBase = tempBase;
+			}
+
 			switch(aBase) {
+				case 0:
 				case 'a':
 					/* Do nothing since a is zero base 4 */
 					break;
+				case 1:
 				case 'c':
 					hashIndex += pow(ALPHABET_SIZE, cur);
 					break;
+				case 2:
 				case 'g':
 					hashIndex += pow(ALPHABET_SIZE, cur)*2;
 					break;
+				case 3:
 				case 't':
 					hashIndex += pow(ALPHABET_SIZE, cur)*3;
 					break;
@@ -2344,7 +2371,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 					fprintf(stderr, "\n[%c,%d]\n",
 							aBase,
 							(int)aBase);
-					PrintError("RGIndexGetHashIndex",
+					PrintError(FnName,
 							"aBase",
 							"Could not understand base",
 							Exit,
@@ -2352,8 +2379,9 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 					break;
 			}
 			/*
-			   fprintf(stderr, "%c\t%d\t%lf\t%d\n",
+			   fprintf(stderr, "[%c,%d]\t[%d]\t[%lf]\t[%d]\n",
 			   aBase,
+			   (int)aBase,
 			   cur,
 			   pow(ALPHABET_SIZE, cur),
 			   hashIndex);
@@ -2366,6 +2394,13 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 		}
 		if(i<index->numTiles-1) { /* Add gap */
 			aCurTilePos += index->gaps[i];
+			/* For color space, we must have the previous base */
+			if(1==colorSpace) {
+				/* There is a danger of N's here */
+				prevABase = ToLower(RGBinaryGetBase(rg,
+							aChr,
+							aCurTilePos-1));
+			}
 		}
 	}
 
@@ -2378,15 +2413,19 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		RGBinary *rg,
 		char *read,
 		int32_t readLength,
+		int32_t colorSpace,
 		int debug)
 {
 	char *FnName = "RGIndexGetHashIndexFromRead";
 	int32_t i, j;
 	int32_t curReadPos=0;
-	uint8_t readBase;
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
+	uint8_t readBase, prevReadBase, tempBase;
+
+	/* Initialize for color space */
+	prevReadBase = COLOR_SPACE_START_NT;
 
 	for(i=0;cur >= 0 && i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
 		for(j=0;cur >= 0 &&  j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
@@ -2398,6 +2437,13 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 						cur,
 						curReadPos,
 						readLength);
+			}
+
+			/* Color space */
+			if(1==colorSpace) {
+				tempBase = ConvertBaseToColorSpace(prevReadBase, readBase);
+				prevReadBase = readBase;
+				readBase = tempBase;
 			}
 
 			/* Old code, works with any size alphabet */
@@ -2427,14 +2473,18 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 			/* Only works with a four letter alphabet */
 			hashIndex = hashIndex << 2;
 			switch(readBase) {
+				case 0:
 				case 'a':
 					break;
+				case 1:
 				case 'c':
 					hashIndex += 1;
 					break;
+				case 2:
 				case 'g':
 					hashIndex += 2;
 					break;
+				case 3:
 				case 't':
 					hashIndex += 3;
 					break;
@@ -2452,6 +2502,11 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		}
 		if(i<index->numTiles-1) { /* Add gap */
 			curReadPos += index->gaps[i];
+			/* For color space, we must have the previous base */
+			if(1==colorSpace) {
+				/* There is a danger of N's here */
+				prevReadBase = read[curReadPos-1];
+			}
 		}
 	}
 

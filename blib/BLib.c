@@ -604,6 +604,24 @@ void ConvertReadFromColorSpace(char **read,
 {
 	int i, index;
 
+	/* Convert character numbers to 8-bit ints */
+	for(i=0;i<(*readLength);i++) {
+		switch((*read)[i]) {
+			case '0':
+				(*read)[i] = 0;
+				break;
+			case '1':
+				(*read)[i] = 1;
+				break;
+			case '2':
+				(*read)[i] = 2;
+				break;
+			case '3':
+				(*read)[i] = 3;
+				break;
+		}
+	}
+
 	for(i=0;i<(*readLength)-1;i++) { 
 		if(0==i) {
 			index = 0;
@@ -615,4 +633,5 @@ void ConvertReadFromColorSpace(char **read,
 	}
 	(*read)[(*readLength)-1] = '\0';
 	(*readLength)--;
+
 }
