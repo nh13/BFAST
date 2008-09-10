@@ -1,90 +1,30 @@
-bfast Project LICENSE File
------------------------------
+                     Academic Software License
+             BFAST: Blat-like Fast Accurate Search Tool
+                          No Commercial Use
 
-                     ACADEMIC AND RESEARCH LICENSE 
-        (c) 2008, The University of California - Los Angeles.
-                         All rights reserved
 
-1. License. The University of California - Los Angeles (UCLA) hereby 
-grants you a non-exclusive, non-transferable right to use the bfast
-software (the "Software"), subject to the terms and conditions of this 
-Academic and Research License (License). You should carefully read this 
-License before using the Software. YOUR DOWNLOAD AND USE OF THE SOFTWARE 
-INDICATES YOUR ACCEPTANCE OF THIS LICENSE AND ALL OF THE FOLLOWING TERMS 
-AND CONDITIONS.
+This License governs use of the accompanying Software, and your use of the Software constitutes acceptance of this license.
 
-2. Academic and Research Purposes. This License is limited to, and you
-may use the Software solely for, your own internal and non-commercial
-use for academic and research purposes. Without limiting the foregoing,
-you may not use the Software as part of, or in any way in connection with 
-the production, marketing, sale or support of any commercial product or
-service or for any governmental purposes.
+You may use this Software for any non-commercial purpose, subject to the restrictions in this license. Uses which are non-commercial include teaching, academic research, and personal experimentation. 
 
-3. Commercial Use. If you desire to use the Software for any commercial
-or governmental purpose whatsoever, you agree to negotiate in good faith
-to obtain an appropriate license from UCLA prior to such commercial or
-governmental use, unless UCLA otherwise consents in writing. UCLA shall 
-have no obligation to grant such license to you, and may grant exclusive 
-or non-exclusive licenses to third parties.  You agree to notify UCLA of 
-any inquiries you may receive regarding commercial or governmental use 
-of the Software or its modifications. Any inquiries or notices regarding 
-commercial or governmental use of the Software should be directed to 
-licensing@ucla.edu.
+You may not use or distribute this Software or any derivative works in any form for any commercial purpose. Examples of commercial purposes would be running business operations, licensing, leasing, or selling the Software, or distributing the Software for use with commercial products. 
 
-4. Disclaimer of Warranty. Because the Software is licensed free of
-charge, UCLA makes no warranties or representations of any kind
-regarding the Software or any modifications or documentation relating to
-the Software, including without limitation, that the Software is free
-from errors. UCLA is under no obligation to provide any services, by way
-of maintenance, update, or otherwise with respect to the Software. THE
-SOFTWARE AND ANY MODIFICATIONS OR DOCUMENTATION RELATED THERETO ARE
-LICENSED "AS IS" AND WITHOUT WARRANTIES AS TO PERFORMANCE, MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE OR ANY OTHER WARRANTIES WHETHER
-EXPRESSED OR IMPLIED. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE
-OF THE SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU
-ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION. 
+You may modify this Software and distribute the modified Software for non-commercial purposes; however, you may not grant rights to the Software or derivative works that are broader than those provided by this License. For example, you may not distribute modifications of the Software under terms that would permit commercial use, or under terms that purport to require the Software or derivative works to be sublicensed to others.
 
-5. Limitation of Liability. IN NO EVENT WILL UCLA BE LIABLE TO YOU OR
-ANY THIRD PARTIES FOR DAMAGES OF ANY KIND, INCLUDING WITHOUT LIMITATION,
-GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES, ARISING OUT OF
-THE USE, OR INABILITY TO USE, THE SOFTWARE, INCLUDING WITHOUT
-LIMITATION, ANY LOSS OF DATA, DATA BEING RENDERED INACCURATE, LOSSES
-SUSTAINED BY YOU OR THIRD PARTIES, OR A FAILURE OF THE SOFTWARE TO
-OPERATE WITH OTHER PROGRAMS, EVEN IF UCLA HAS BEEN ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGES.
+You agree: 
 
-6. No Other Rights Granted. Except as expressly stated herein, this
-License does not constitute a grant to you, or an intention or
-commitment to grant to you, any right, title or interest in or to the
-Software or UCLA's trade secrets or other intellectual property
-related to the Software.
+1.	Not remove any copyright or other notices from the Software.
 
-7. No Assignment. This License is personal to the person or entity
-downloading and using the Software pursuant hereto and you may not sell,
-assign or transfer it to any other party.
+2.	That if you distribute the Software in source or object form, you will include a verbatim copy of this license.
 
-8. Use of Names. You may not use the names 'The University of California
-Los Angeles' or 'UCLA', or any variations or
-adaptations thereof, or any marks related thereto, in any publicity or
-advertising without the prior written consent from UCLA in each case,
-which may be granted or withheld in UCLA's sole discretion.  In any work
-or product derived from the use of this Software, proper attribution of
-the authors as the source of the Software or data must be made.
+3.	That if you distribute derivative works of the Software in source code form you do so only under a license that includes all of the provisions of this License, and if you distribute derivative works of the Software solely in object form you do so only under a license that complies with this License.
 
-9. Governing Law. This License shall be governed by the laws of the
-State of California, without regard to choice of law principles.  Any 
-legal action or proceeding arising out of or relating to this License 
-must be instituted in a state or federal court in Phoenix, California 
-and you irrevocably submit to such jurisdiction.
+4.	That if you have modified the Software or created derivative works, and distribute such modifications or derivative works, you will cause the modified files to carry prominent notices so that recipients know that they are not receiving the original Software. Such notices must state: (i) that you have changed the Software; and (ii) the date of any changes.
 
-10. Termination. This License is effective until terminated. UCLA may
-terminate this License upon 60 days written notice to you.  You may
-terminate this License at any time by destroying all copies of the
-Software and any documentation or other associated materials in your
-possession. This License will terminate immediately without notice from
-UCLA if (a) you fail to comply with any of the terms and conditions of
-this License or (b) the Software (or any component thereof or any
-documentation or modification) is found to infringe upon the
-intellectual property rights of any third party. Upon termination, you
-must destroy all copies of the Software and any documentation or other
-associated materials.
+5.	THAT THIS PRODUCT IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS PRODUCT, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.  YOU MUST PASS THIS LIMITATION OF LIABILITY ON WHENEVER YOU DISTRIBUTE THE SOFTWARE OR DERIVATIVE WORKS.
+
+6.	That if you sue anyone over patents that you think may apply to the Software or anyone's use of the Software, your license to the Software ends automatically.
+
+7.	That your rights under the License end automatically if you breach it in any way.
+
+8.	UCLA reserves all rights not expressly granted to you in this license.
