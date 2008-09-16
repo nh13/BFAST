@@ -128,7 +128,7 @@ void GenerateIndex(RGBinary *rg,
 		}
 
 		/* Create the file name */
-		sprintf(outputFileName, "%s%s.index.file.%s.%d.%d.%d.%d.%d.%d.%s.%s",
+		sprintf(outputFileName, "%s%s.index.file.%s.%d.%d.%d.%d.%d.%d.%d.%s",
 				outputDir,
 				PROGRAM_NAME,
 				outputID,
