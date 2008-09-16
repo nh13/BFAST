@@ -13,6 +13,8 @@ balign_SOURCES = \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/AlignEntry.c	../blib/AlignEntry.h \
 	../blib/AlignEntries.c	../blib/AlignEntries.h \
+	AlignNTSpace.c	AlignNTSpace.h \
+	AlignColorSpace.c	AlignColorSpace.h \
 	Align.c		Align.h \
 	Definitions.h
 	

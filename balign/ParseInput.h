@@ -8,7 +8,7 @@ struct arguments
 	char *matchesFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
 	int binaryInput;                        /* -b */
-	int algorithm;							/* -a */
+	int colorSpace;							/* -A */
 	int startChr;                           /* -s */
 	int startPos;                           /* -S */
 	int endChr;                             /* -e */

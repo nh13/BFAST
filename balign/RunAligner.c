@@ -20,7 +20,7 @@
 void RunAligner(RGBinary *rgBinary,
 		char *matchesFileName,
 		char *scoringMatrixFileName,
-		int algorithm,
+		int colorSpace,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
@@ -95,14 +95,14 @@ void RunAligner(RGBinary *rgBinary,
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			algorithm,
+			colorSpace,
 			BFAST_ALIGN_FILE_EXTENSION);
 	/* Create not aligned file name */
 	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			algorithm,
+			colorSpace,
 			BFAST_NOT_ALIGNED_FILE_EXTENSION);
 
 	/* Open output file */
@@ -147,33 +147,23 @@ void RunAligner(RGBinary *rgBinary,
 					OpenFileError);
 		}
 
-		/* Run selected algorithm */
-		switch(algorithm) {
-			case 0:
-				RunDynamicProgramming(matchFP,
-						rgBinary,
-						scoringMatrixFileName,
-						offsetLength,
-						maxNumMatches,
-						pairedEnd,
-						binaryInput,
-						numThreads,
-						usePairedEndLength,
-						pairedEndLength,
-						tmpDir,
-						outputFP,
-						notAlignedFP,
-						totalAlignTime,
-						totalFileHandlingTime);
-				break;
-			default:
-				PrintError("RunAligner",
-						NULL,
-						"Could not understand algorithm option",
-						Exit,
-						OutOfRange);
-				break;
-		}
+		RunDynamicProgramming(matchFP,
+				rgBinary,
+				scoringMatrixFileName,
+				colorSpace,
+				offsetLength,
+				maxNumMatches,
+				pairedEnd,
+				binaryInput,
+				numThreads,
+				usePairedEndLength,
+				pairedEndLength,
+				tmpDir,
+				outputFP,
+				notAlignedFP,
+				totalAlignTime,
+				totalFileHandlingTime);
+
 		/* Close the match file */
 		fclose(matchFP);
 		matchFP=NULL;
@@ -199,6 +189,7 @@ void RunAligner(RGBinary *rgBinary,
 void RunDynamicProgramming(FILE *matchFP,
 		RGBinary *rgBinary,
 		char *scoringMatrixFileName,
+		int colorSpace,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
@@ -339,6 +330,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		fseek(data[i].inputFP, 0, SEEK_SET);
 		fseek(data[i].outputFP, 0, SEEK_SET);
 		data[i].rgBinary=rgBinary;
+		data[i].colorSpace=colorSpace;
 		data[i].offsetLength=offsetLength;
 		data[i].pairedEnd=pairedEnd;
 		data[i].usePairedEndLength = usePairedEndLength;
@@ -520,6 +512,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	   FILE *notAlignedFP = data->notAlignedFP;
 	   */
 	RGBinary *rgBinary=data->rgBinary;
+	int colorSpace=data->colorSpace;
 	int offsetLength=data->offsetLength;
 	int pairedEnd=data->pairedEnd;
 	int usePairedEndLength=data->usePairedEndLength;
@@ -580,6 +573,7 @@ void *RunDynamicProgrammingThread(void *arg)
 					m.matchOne.strand[i],
 					(char*)m.matchOne.read,
 					m.matchOne.readLength,
+					colorSpace,
 					offsetLength,
 					sm,
 					&aEntries.entriesOne[i]);
@@ -593,6 +587,7 @@ void *RunDynamicProgrammingThread(void *arg)
 					m.matchTwo.strand[i],
 					(char*)m.matchTwo.read,
 					m.matchTwo.readLength,
+					colorSpace,
 					offsetLength,
 					sm,
 					&aEntries.entriesTwo[i]);
@@ -629,6 +624,7 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 		int8_t strand,
 		char *read,
 		int readLength,
+		int colorSpace,
 		int offsetLength,
 		ScoringMatrix *sm,
 		AlignEntry *aEntry)
@@ -671,22 +667,24 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 	switch(strand) {
 		case FORWARD:
 			/* Get alignment */
-			adjustPosition=AlignmentGetScore(read,
+			adjustPosition=Align(read,
 					readLength,
 					reference,
 					referenceLength,
 					sm,
-					aEntry);
+					aEntry,
+					colorSpace);
 			break;
 		case REVERSE:
 			GetReverseComplimentAnyCase(read, reverseRead, readLength);
 			/* Get alignment */
-			adjustPosition=AlignmentGetScore(reverseRead,
+			adjustPosition=Align(reverseRead,
 					readLength,
 					reference,
 					referenceLength,
 					sm,
-					aEntry);
+					aEntry,
+					colorSpace);
 			/* We must reverse the alignment to match the REVERSE stand */
 			GetReverseComplimentAnyCase(aEntry->read, tmpString, aEntry->length);
 			strcpy(aEntry->read, tmpString);

@@ -73,7 +73,7 @@ static struct argp_option options[] = {
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to use 0: Dynamic Programming", 2},
+	{"colorSpace", 'A', 0, OPTION_NO_USAGE, "Specifies that the reads are in color space", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
@@ -113,7 +113,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:l:m:n:o:r:s:x:E:H:M:O:S:T:2hpt";
+"d:e:l:m:n:o:r:s:x:E:H:M:O:S:T:2Ahpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -178,7 +178,7 @@ main (int argc, char **argv)
 						RunAligner(&rg,
 								arguments.matchesFileName,
 								arguments.scoringMatrixFileName,
-								arguments.algorithm,
+								arguments.colorSpace,
 								arguments.offsetLength,
 								arguments.maxNumMatches,
 								arguments.pairedEnd,
@@ -304,10 +304,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->algorithm < MIN_ALGORITHM || args->algorithm > MAX_ALGORITHM) {
-		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
-	}
-
 	if(args->startChr < 0) {
 		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
 	}
@@ -362,6 +358,7 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* If this does not hold, we have done something wrong internally */
+	assert(args->colorSpace == 0 || args->colorSpace == 1);
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == 0 || args->binaryInput == 1);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
@@ -420,7 +417,7 @@ AssignDefaultValues(struct arguments *args)
 
 	args->binaryInput = 0;
 
-	args->algorithm = DEFAULT_ALGORITHM;
+	args->colorSpace = 0;
 	args->startChr=0;
 	args->startPos=0;
 	args->endChr=0;
@@ -464,7 +461,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
+	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
 	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
@@ -521,8 +518,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case '2':
 						arguments->pairedEnd = 1;break;
-					case 'a':
-						arguments->algorithm=atoi(OPTARG);break;
 					case 'b':
 						arguments->binaryInput = 1;break;
 					case 'd':
@@ -562,6 +557,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'x':
 						if(arguments->scoringMatrixFileName) free(arguments->scoringMatrixFileName);
 						arguments->scoringMatrixFileName = OPTARG;break;
+					case 'A':
+						arguments->colorSpace=1;break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'M':

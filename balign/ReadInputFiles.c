@@ -92,6 +92,10 @@ int ReadScoringMatrix(char *scoringMatrixFileName, ScoringMatrix *sm)
 		}
 	}
 
+	/* Hard-coded color errors for now */
+	sm->colorMatch = COLOR_MATCH;
+	sm->colorError = COLOR_ERROR;
+
 	/* Close the file */
 	fclose(fp);
 
