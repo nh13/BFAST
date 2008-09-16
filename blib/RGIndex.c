@@ -1353,7 +1353,6 @@ void RGIndexDelete(RGIndex *index)
 	free(index->ends);
 	index->ends=NULL;
 
-	/* Only free if we have allocated gaps */
 	free(index->gaps);
 	index->gaps=NULL;
 	index->numTiles=0;
