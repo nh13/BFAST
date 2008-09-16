@@ -133,6 +133,7 @@ typedef struct {
 	int32_t *tileLengths;
 	int32_t *gaps; /* There should be numTiles - 1 gaps */
 	int32_t repeatMasker;
+	int32_t colorSpace;
 
 	/* Index range */
 	int32_t startChr;

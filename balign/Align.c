@@ -80,6 +80,15 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				Exit,
 				MallocMemory);
 	}
+	assert(NULL==aEntry->colorError);
+	aEntry->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==aEntry->colorError) {
+		PrintError(FnName,
+				"aEntry->colorError",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	/* HERE */
 	if(ALIGN_DEBUG_ON == 1) {
 		/*
@@ -131,11 +140,37 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	curRow=startRow;
 	curCol=startCol;
 	curCell=startCell;
-	curReadBase = read[curRow-1];
+	curReadBase = 'X';
+	/*Initialize the current read base */
+	switch(curCell) {
+		case 0:
+			curReadBase = 'A';
+			break;
+		case 1:
+			curReadBase = 'C';
+			break;
+		case 2:
+			curReadBase = 'G';
+			break;
+		case 3:
+			curReadBase = 'T';
+			break;
+		case 4:
+		case 5:
+			curReadBase = GAP;
+			break;
+		default:
+			PrintError(FnName,
+					"curCell",
+					"Could not initialize curCell",
+					Exit,
+					OutOfRange);
+	}
 	i=matrix[curRow][curCol].length[curCell]-1;
 	aEntry->length=matrix[curRow][curCol].length[curCell];
 	aEntry->read[i+1]='\0';
 	aEntry->reference[i+1]='\0';
+	aEntry->colorError[i+1]='\0';
 	aEntry->score = maxScore;
 	/* HERE */
 	if(ALIGN_DEBUG_ON == 1) {
@@ -160,6 +195,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 
 		/* Where did the current cell come from */
 		curFrom = matrix[curRow][curCol].from[curCell];
+		/* Get if there was a color error */
+		aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
 
 		/* Update alignment */
 		switch(curFrom) {

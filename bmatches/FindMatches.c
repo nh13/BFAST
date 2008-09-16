@@ -116,7 +116,8 @@ void FindMatches(
 				&startChr,
 				&startPos,
 				&endChr,
-				&endPos);
+				&endPos,
+				colorSpace);
 	}
 
 	/* Read in the reference genome */
@@ -722,7 +723,7 @@ int FindMatchesInIndex(char *indexFileName,
 
 	/* Read in the RG Index */
 	startTime = time(NULL);
-	ReadRGIndex(indexFileName, &index, binaryInput);
+	ReadRGIndex(indexFileName, &index, binaryInput, colorSpace);
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
 

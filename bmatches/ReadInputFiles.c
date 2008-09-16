@@ -256,7 +256,7 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 
 /* TODO */
 /* Reads in a RGIndexfrom file */
-void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput)
+void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput, int colorSpace)
 {
 	FILE *fp;
 
@@ -279,6 +279,14 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput)
 
 	/* close file */
 	fclose(fp);
+
+	if(index->colorSpace != colorSpace) {
+		PrintError("colorSpace",
+				rgIndexFileName,
+				"The index has a different color space parity than specified",
+				Exit,
+				OutOfRange);
+	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Read index from %s.\n",

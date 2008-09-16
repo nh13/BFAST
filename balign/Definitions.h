@@ -34,24 +34,13 @@ typedef struct {
 	double **ColorScores;
 } ScoringMatrix;
 
-/* Structure for the dynamic programming with affine gap penalties */
-typedef struct {
-	double hScore; /* horizontal score */
-	int hType;
-	double vScore; /* vertical score */
-	int vType;
-	double dScore; /* diagonal score */
-	int dType;
-	int prevRow; /* previous row */
-	int prevCol; /* previous column */
-} MatrixEntry;
-
 /* TODO */
 typedef struct {
 	/* add three for the insertion, deletion and best score */
 	double score[ALIGNMATRIXCELL_NUM_SUB_CELLS];
 	int from[ALIGNMATRIXCELL_NUM_SUB_CELLS];
 	int length[ALIGNMATRIXCELL_NUM_SUB_CELLS];
+	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS];
 } AlignMatrix;
 
 /* For the "from" in the struct "AlignMatrixCell" */

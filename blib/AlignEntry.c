@@ -13,6 +13,7 @@ int AlignEntryPrint(AlignEntry *aEntry,
 {
 	assert(NULL != aEntry->read);
 	assert(NULL != aEntry->reference);
+	assert(NULL != aEntry->colorError);
 
 	/* Print the read name, alignment length, chromosome, position, strand, score */
 	if(fprintf(outputFP, "%d\t%d\t%d\t%c\t%lf\n",
@@ -25,9 +26,10 @@ int AlignEntryPrint(AlignEntry *aEntry,
 	}
 
 	/* Print the reference and read alignment */
-	if(fprintf(outputFP, "%s\n%s\n",
+	if(fprintf(outputFP, "%s\n%s\n%s\n",
 				aEntry->reference,
-				aEntry->read) < 0) {
+				aEntry->read,
+				aEntry->colorError) < 0) {
 		return EOF;
 	}
 
@@ -60,6 +62,16 @@ int AlignEntryRead(AlignEntry *aEntry,
 					MallocMemory);
 		}
 	}
+	if(aEntry->colorError == NULL) {
+		aEntry->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == aEntry->colorError) {
+			PrintError(FnName,
+					"aEntry->colorError",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
 
 	/* Read the read name, alignment length, chromosome, position, strand, score */
 	if(fscanf(inputFP, "%d %d %d %c %lf\n",
@@ -72,13 +84,18 @@ int AlignEntryRead(AlignEntry *aEntry,
 	}
 
 	/* Read the reference and read alignment */
-	if(fscanf(inputFP, "%s %s", 
+	if(fscanf(inputFP, "%s %s %s", 
 				aEntry->reference,
-				aEntry->read)==EOF) {
+				aEntry->read,
+				aEntry->colorError)==EOF) {
 		return EOF;
 	}
+
+	/*
 	assert(((int)strlen(aEntry->read)) == aEntry->length);
 	assert(strlen(aEntry->reference) == aEntry->length);
+	assert((int)strlen(aEntry->colorError) == aEntry->length);
+	*/
 
 	return 1;
 }
@@ -438,6 +455,18 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		}
 		assert(src->reference!= NULL);
 		strcpy(dest->reference, src->reference);
+		if(NULL == dest->colorError) {
+			dest->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+			if(NULL == dest->colorError) {
+				PrintError(FnName,
+						"dest->colorError",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+		}
+		assert(src->colorError!= NULL);
+		strcpy(dest->colorError, src->colorError);
 		dest->length = src->length;
 		dest->chromosome = src->chromosome;
 		dest->position = src->position;
@@ -450,6 +479,7 @@ void AlignEntryFree(AlignEntry *aEntry)
 {
 	free(aEntry->read);
 	free(aEntry->reference);
+	free(aEntry->colorError);
 	AlignEntryInitialize(aEntry);
 }
 
@@ -457,6 +487,7 @@ void AlignEntryInitialize(AlignEntry *aEntry)
 {
 	aEntry->read=NULL;
 	aEntry->reference=NULL;
+	aEntry->colorError=NULL;
 	aEntry->length=0;
 	aEntry->chromosome=0;
 	aEntry->position=0;

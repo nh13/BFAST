@@ -10,6 +10,7 @@ enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
 typedef struct {
 	char *read; /* The read */
 	char *reference;
+	char *colorError;
 	unsigned int length; /* The length of the alignment */
 	int32_t chromosome;
 	uint32_t position;

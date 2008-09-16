@@ -22,6 +22,7 @@ balign
 	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm=\fIINTEGER\fR]
 	[\fB\-b\fR \fIINTEGER\fR]	[\fB\-\-binaryInput\fR]
+	[\fB\-A\fR]			[\fB\-\-colorSpace\fR]
 	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startChr=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR]	[\fB\-\-endChr=\fIINTEGER\fR]
@@ -90,6 +91,9 @@ Specifies the matches files will be in binary format.
 Specifies the algorithm to use when scoring alignments.
 Currently only the Dynamic Programming algorithm is available and is specified using the value \fB0\fR.
 .
+.TP 4
+\fB\-A\fR, \fB\-\-colorSpace\fR
+Specifies that the local alignment should occur in color space.
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
 Specifies the start chromosome of candidate alignment locations to consider.

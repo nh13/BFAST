@@ -19,7 +19,8 @@ bpreprocess \- pre-computes suitable indexes and genomes that can be re-used in 
 bpreprocess
 	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-rgFileName=\fIFILENAME\fR]
 	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-indexLayoutFileName=\fIFILENAME\fR]
-	[\fB\-a\fR \fIINTEGER\fR] 	[\fB\-\-algorithm=\fIINTEGER\fR]
+	[\fB\-a\fR] 		[\fB\-\-colorSpace\fR]
+	[\fB\-A\fR \fIINTEGER\fR] 	[\fB\-\-algorithm=\fIINTEGER\fR]
 	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startChr=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endChr=\fIINTEGER\fR]
@@ -78,6 +79,11 @@ This specifies what should be pre-computed.
 If \fB\-a 0\fR is given, we will create an index according to the layouts (\fB\-i\fR) given.
 If \fB\-a 1\fR is given, we will create binary files for the reference genome.
 \fB\-a 1\fR is not yet implemented.
+.
+.TP 4
+\fB\-A\fR, \fB\-\-colorSpace\fR
+Specifies that the index should be created in color space.
+This option affects only the index creation (\fB\-a\fR).
 .
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR

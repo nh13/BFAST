@@ -93,7 +93,7 @@ To install from source, go to the main directory and type in
 .br
 To generate \fBconfigure\fR, type in
 .br
-\fBautoreconf\fR
+\fBautoconf\fR
 .br
 .
 .SH FILE FORMATS
@@ -163,6 +163,29 @@ GAAGACCAGCCAGGCCTGCTGTGATATATGAC
 .br
 Three reads are specified above, with there names in this example corresponding to their known position in the genome.
 Typically, the read name will be dependent on the sequence technology used.
+For color space reads, the format has same requirements as above but the read itself is the first base of the primer, followed by the color sequence in numbers.
+An example is:
+.br
+>920_23_612_R3
+.br
+G0100033000010000111000103
+.br
+>920_23_729_R3
+.br
+G0100000000000300013000100
+.br
+>920_24_604_R3
+.br
+G0100013002020200111100103
+.br
+>920_24_651_R3
+.br
+G0120031000021000000000010
+.br
+>920_24_757_R3
+.br
+G0100011000020100132100022i
+.br
 .
 .TP
 .B Offsets File
@@ -178,11 +201,12 @@ Three offsets are specified above.
 .B Scoring Matrix File
 The scoring matrix file is used when aligning the reads to their respective candidate alignment locations.
 For nucleotide alignments or four letter alphabets there will be seven lines.
+An additional four lines will be included for color space alignment.
 The first line specifies the gap open penalty.
 The second line specifies the gap extension penalty.
 The third to the seventh line gives the substitution matrix for the four letters plus "anything else".
 The rows labels on the rows and columns of the substitution matrix is A,C,G,T, and N, where N stands for "anything else".
-For example:
+An example without a color space substitution matrix is:
 .br
 -2
 .br
@@ -201,7 +225,32 @@ For example:
 would specify a gap open penalty of -2, and a gap extension penalty of -1.
 The penalty to substitute a read base of A for a reference base C would be -1 (row 1 column 2 of the substitution matrix).
 The penalty to substitute a read base of C for a reference base N would be -1 (row 2 column 5 of the substitution matrix).
-.
+If aligning in color space, the eighth to the eleventh line gives the substitution matrix for the four colors.
+There are four colors that can substitute for each other.
+An example with a color substitution matrix is:
+.br
+-2
+.br
+-1
+.br
+2  -1   -1  -1  -1
+.br
+-1  2   -1  -1  -1
+.br
+-1  -1  2   -1  -1
+.br
+-1  -1  -1  2   -1
+.br
+-1  -1  -1  -1  0
+.br
+0   -1  -1  -1
+.br
+-1  0   -1  -1
+.br
+-1  -1  0   -1
+.br
+-1  -1  -1  0
+.br
 .
 .SH KNOWN ISSUES
 .TP

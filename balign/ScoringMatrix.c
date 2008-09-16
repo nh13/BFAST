@@ -256,10 +256,25 @@ double ScoringMatrixGetColorScore(uint8_t a,
 		uint8_t b,
 		ScoringMatrix *sm)
 {
+	char *FnName="ScoringMatrixGetColorScore";
 	int indexA=(int)a;
-	int indexB=-(int)b;
-	assert(indexA >= 0 && indexA <= 3);
-	assert(indexB >= 0 && indexB <= 3);
+	int indexB=(int)b;
+	if(indexA < 0 || indexA > 3) {
+		fprintf(stderr, "indexA=%d\n", indexA);
+		PrintError(FnName,
+				NULL,
+				"indexA out of range",
+				Exit,
+				OutOfRange);
+	}
+	if(indexB < 0 || indexB > 3) {
+		fprintf(stderr, "indexB=%d\n", indexB);
+		PrintError(FnName,
+				NULL,
+				"indexB out of range",
+				Exit,
+				OutOfRange);
+	}
 
 	return sm->ColorScores[indexA][indexB];
 }

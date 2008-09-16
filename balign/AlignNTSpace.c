@@ -66,6 +66,7 @@ int AlignNTSpace(char *read,
 			matrix[i][0].score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].from[k] = Start;
 			matrix[i][0].length[k] = 0;
+			matrix[i][0].colorError[k] = '0';
 		}
 	}
 	/* Row 0 column j should be zero since we want to find the best
@@ -75,12 +76,18 @@ int AlignNTSpace(char *read,
 			matrix[0][j].score[k] = 0.0;
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
+			matrix[i][0].colorError[k] = '0';
 		}
 	}
 
 	/* Fill in the matrix according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
 		for(j=0;j<referenceLength;j++) { /* reference/columns */
+			/* No color errors */
+			matrix[i+1][i+1].colorError[0] = '0';
+			matrix[i+1][i+1].colorError[1] = '0';
+			matrix[i+1][i+1].colorError[2] = '0';
+
 			/* Deletion is down a row, insertion is across a column, and
 			 * match/mismatch is a diagonal */
 			

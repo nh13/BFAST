@@ -53,6 +53,7 @@ int AlignColorSpace(char *read,
 			matrix[i][0].score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].from[k] = Start;
 			matrix[i][0].length[k] = 0;
+			matrix[i][0].colorError[k] = '0';
 		}
 	}
 	/* Row 0 column j should be zero since we want to find the best
@@ -62,6 +63,7 @@ int AlignColorSpace(char *read,
 			matrix[0][j].score[k] = 0;
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
+			matrix[0][j].colorError[k] = '0';
 		}
 	}
 
@@ -86,11 +88,13 @@ int AlignColorSpace(char *read,
 				char DNA[4] = "ACGT";
 				double maxScore = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
+				char maxColorError = '0';
 				int maxLength = 0;
-				double curScore;
-				int curFrom, curLength;
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
+					double curScore;
+					int curFrom, curLength;
+					uint8_t convertedColor;
 					switch(k) {
 						case 0:
 						case 1:
@@ -107,15 +111,12 @@ int AlignColorSpace(char *read,
 								case 2:
 								case 3:
 									/* Diagonals */
-									curScore += ScoringMatrixGetColorScore(curColor,
-											ConvertBaseToColorSpace(DNA[l], DNA[k]),
-											sm);
+									convertedColor=ConvertBaseToColorSpace(DNA[l], DNA[k]);
 									break;
 								case 4:
 								case 5:
 									/* Use previous base for indels */
-									curScore += ScoringMatrixGetColorScore(curColor,
-											ConvertBaseToColorSpace(prevReadBase, DNA[k]), sm);
+									convertedColor=ConvertBaseToColorSpace(prevReadBase, DNA[k]);
 									break;
 								default:
 									PrintError(FnName,
@@ -125,6 +126,10 @@ int AlignColorSpace(char *read,
 											OutOfRange);
 									break;
 							}
+							/* Add score for color error, if any */
+									curScore += ScoringMatrixGetColorScore(curColor,
+											convertedColor,
+											sm);
 							/* Add score for NT */
 							curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
@@ -136,6 +141,7 @@ int AlignColorSpace(char *read,
 							if(curScore > maxScore) {
 								maxScore = curScore;
 								maxLength = curLength;
+								maxColorError = (curColor == convertedColor)?'0':'1';
 								switch(l) {
 									case 0:
 										maxFrom = DiagA;
@@ -207,6 +213,7 @@ int AlignColorSpace(char *read,
 							if(curScore > maxScore && l != 5) {
 								maxScore = curScore;
 								maxFrom = curFrom;
+								maxColorError = '0';
 								maxLength = curLength;
 							}
 							break;
@@ -252,6 +259,7 @@ int AlignColorSpace(char *read,
 							if(curScore > maxScore && l != 4) {
 								maxScore = curScore;
 								maxFrom = curFrom;
+								maxColorError = '0';
 								maxLength = curLength;
 							}
 							break;
@@ -273,6 +281,7 @@ int AlignColorSpace(char *read,
 				assert(maxFrom >= 0);
 				matrix[i+1][j+1].score[k] = maxScore;
 				matrix[i+1][j+1].from[k] = maxFrom;
+				matrix[i+1][j+1].colorError[k] = maxColorError;
 				matrix[i+1][j+1].length[k] = maxLength;
 			}
 		}

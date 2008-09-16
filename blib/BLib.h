@@ -14,7 +14,7 @@ char GetReverseComplimentAnyCaseBase(char);
 int ValidateBasePair(char);
 int IsAPowerOfTwo(unsigned int);
 char TransformFromIUPAC(char);
-void CheckRGIndexes(char**, int, char**, int, int, int32_t*, int32_t*, int32_t*, int32_t*);
+void CheckRGIndexes(char**, int, char**, int, int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t);
 FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
 void PrintPercentCompleteShort(double);

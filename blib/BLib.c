@@ -206,11 +206,13 @@ void CheckRGIndexes(char **mainFileNames,
 		int32_t *startChr,
 		int32_t *startPos,
 		int32_t *endChr,
-		int32_t *endPos)
+		int32_t *endPos,
+		int32_t colorSpace)
 {
 	int i;
 	int32_t mainStartChr, mainStartPos, mainEndChr, mainEndPos;
 	int32_t secondaryStartChr, secondaryStartPos, secondaryEndChr, secondaryEndPos;
+	int32_t mainColorSpace, secondaryColorSpace;
 	mainStartChr = mainStartPos = mainEndChr = mainEndPos = 0;
 	secondaryStartChr = secondaryStartPos = secondaryEndChr = secondaryEndPos = 0;
 
@@ -239,6 +241,7 @@ void CheckRGIndexes(char **mainFileNames,
 			mainStartPos = tempIndex.startPos;
 			mainEndChr = tempIndex.endChr;
 			mainEndPos = tempIndex.endPos;
+			mainColorSpace = tempIndex.colorSpace;
 		}
 		else {
 			/* Update bounds if necessary */
@@ -252,6 +255,7 @@ void CheckRGIndexes(char **mainFileNames,
 				mainEndChr = tempIndex.endChr;
 				mainEndPos = tempIndex.endPos;
 			}
+			assert(mainColorSpace == tempIndex.colorSpace);
 		}
 
 		/* Close file */
@@ -279,6 +283,7 @@ void CheckRGIndexes(char **mainFileNames,
 			secondaryStartPos = tempIndex.startPos;
 			secondaryEndChr = tempIndex.endChr;
 			secondaryEndPos = tempIndex.endPos;
+			secondaryColorSpace = tempIndex.colorSpace;
 		}
 		else {
 			/* Update bounds if necessary */
@@ -292,6 +297,7 @@ void CheckRGIndexes(char **mainFileNames,
 				secondaryEndChr = tempIndex.endChr;
 				secondaryEndPos = tempIndex.endPos;
 			}
+			assert(secondaryColorSpace == tempIndex.colorSpace);
 		}
 
 		/* Close file */
@@ -302,7 +308,8 @@ void CheckRGIndexes(char **mainFileNames,
 	if(mainStartChr != secondaryStartChr ||
 			mainStartPos != secondaryStartPos ||
 			mainEndChr != secondaryEndChr ||
-			mainEndPos != secondaryEndPos) {
+			mainEndPos != secondaryEndPos ||
+			mainColorSpace != secondaryColorSpace) {
 		PrintError("CheckRGIndexes",
 				NULL,
 				"The ranges between main and secondary indexes differ",
@@ -314,6 +321,9 @@ void CheckRGIndexes(char **mainFileNames,
 	(*startPos) = mainStartPos;
 	(*endChr) = mainEndChr;
 	(*endPos) = mainEndPos;
+
+	assert(mainColorSpace == colorSpace);
+	assert(secondaryColorSpace == colorSpace);
 }
 
 /* TODO */

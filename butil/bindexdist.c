@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t\t<output id>\n");
 		fprintf(stderr, "\t\t<tmp file directory>\n");
 		fprintf(stderr, "\t\t<number of threads>\n");
-		fprintf(stderr, "\t<colorSpace (0=FALSE, 1=TRUE)>\n");
+		fprintf(stderr, "\t\t<colorSpace (0=FALSE, 1=TRUE)>\n");
 	}
 
 	return 0;
