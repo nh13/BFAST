@@ -3,7 +3,6 @@ bin_PROGRAMS = balign
 balign_SOURCES = \
 	RunAligner.c	RunAligner.h \
 	ParseInput.c	ParseInput.h \
-	ReadInputFiles.c	ReadInputFiles.h \
 	../blib/BError.c	../blib/BError.h \
 	../blib/BLib.c	../blib/BLib.h \
 	../blib/RGMatches.c	../blib/RGMatches.h \
@@ -13,6 +12,7 @@ balign_SOURCES = \
 	../blib/RGIndex.c	../blib/RGIndex.h \
 	../blib/AlignEntry.c	../blib/AlignEntry.h \
 	../blib/AlignEntries.c	../blib/AlignEntries.h \
+	ScoringMatrix.c	ScoringMatrix.h \
 	AlignNTSpace.c	AlignNTSpace.h \
 	AlignColorSpace.c	AlignColorSpace.h \
 	Align.c		Align.h \

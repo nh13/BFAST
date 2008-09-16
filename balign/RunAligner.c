@@ -3,7 +3,6 @@
 #include <string.h>
 #include <assert.h>
 #include <pthread.h>
-#include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
@@ -13,6 +12,7 @@
 #include "../blib/AlignEntries.h"
 #include "../blib/AlignEntry.h" 
 #include "Align.h"
+#include "ScoringMatrix.h"
 #include "Definitions.h"
 #include "RunAligner.h"
 
@@ -221,6 +221,7 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
+	ScoringMatrixInitialize(&sm);
 
 	/* Allocate memory for thread arguments */
 	data = malloc(sizeof(ThreadData)*numThreads);
@@ -245,7 +246,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	startTime = time(NULL);
 
 	/* Read in scoring matrix */
-	ReadScoringMatrix(scoringMatrixFileName, &sm); 
+	ScoringMatrixRead(scoringMatrixFileName, &sm, colorSpace); 
 
 	/**/
 	/* Split the input file into equal temp files for each thread */
@@ -494,11 +495,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	free(threads);
 	AlignEntriesFree(&aEntries);
 	/* Free scores */
-	free(sm.key);
-	for(i=0;i<ALPHABET_SIZE+1;i++) {
-		free(sm.scores[i]);
-	}
-	free(sm.scores);
+	ScoringMatrixFree(&sm);
 }
 
 /* TODO */

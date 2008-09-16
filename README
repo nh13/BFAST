@@ -1,12 +1,11 @@
 Welcome to bfast.
 
-bfast is copyrighted software. Please see the file COPYING for details.
+bfast is copyrighted software. Please see the file LICENSE for details.
 
 For manual pages, including installation directions, please use:
 man doc/bfast.1
 man doc/bpreprocess.1
 man doc/bmatches.1
-man doc/balaign.1
+man doc/balign.1
 man doc/bpostprocess.1
-
-bfast is not intended for distribution.
+man doc/butil.1

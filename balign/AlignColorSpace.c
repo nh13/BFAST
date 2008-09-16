@@ -3,11 +3,11 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-#include "ReadInputFiles.h"
 #include "../blib/BLib.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
+#include "ScoringMatrix.h"
 #include "Align.h"
 #include "AlignColorSpace.h"
 
@@ -107,14 +107,14 @@ int AlignColorSpace(char *read,
 								case 2:
 								case 3:
 									/* Diagonals */
-									curScore += GetColorScore(curColor,
+									curScore += ScoringMatrixGetColorScore(curColor,
 											ConvertBaseToColorSpace(DNA[l], DNA[k]),
 											sm);
 									break;
 								case 4:
 								case 5:
 									/* Use previous base for indels */
-									curScore += GetColorScore(curColor,
+									curScore += ScoringMatrixGetColorScore(curColor,
 											ConvertBaseToColorSpace(prevReadBase, DNA[k]), sm);
 									break;
 								default:
@@ -126,7 +126,7 @@ int AlignColorSpace(char *read,
 									break;
 							}
 							/* Add score for NT */
-							curScore += GetNTScore(reference[j], DNA[k], sm);
+							curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
 							if(curScore < NEGATIVE_INFINITY) {
 								curScore = NEGATIVE_INFINITY;

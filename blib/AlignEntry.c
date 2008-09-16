@@ -133,7 +133,6 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 					Exit,
 					ReallocMemory);
 		}
-		/* END HERE */
 	}
 	return length;
 }

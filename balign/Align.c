@@ -3,7 +3,6 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-#include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
@@ -37,89 +36,6 @@ int Align(char *read,
 					aEntry);
 			break;
 	}
-}
-
-/* TODO */
-double GetNTScore(char a,
-		char b, 
-		ScoringMatrix *sm)
-{
-	int indexA=-1;
-	int indexB=-1;
-
-	/* Get index for a */
-	switch(a) {
-		case 'A':
-		case 'a':
-			indexA=0;
-			break;
-		case 'C':
-		case 'c':
-			indexA=1;
-			break;
-		case 'G':
-		case 'g':
-			indexA=2;
-			break;
-		case 'T':
-		case 't':
-			indexA=3;
-			break;
-		case 'N':
-		case 'n':
-			indexA=4;
-			break;
-		default:
-			fprintf(stderr, "\n[%c]\n", a);
-			PrintError("GetNTScore",
-					NULL,
-					"Could not understand key",
-					Exit,
-					OutOfRange);
-	}
-
-	/* Get index for b */
-	switch(b) {
-		case 'A':
-		case 'a':
-			indexB=0;
-			break;
-		case 'C':
-		case 'c':
-			indexB=1;
-			break;
-		case 'G':
-		case 'g':
-			indexB=2;
-			break;
-		case 'T':
-		case 't':
-			indexB=3;
-			break;
-		case 'N':
-		case 'n':
-			indexB=4;
-			break;
-		default:
-			fprintf(stderr, "b key:[%c]\n", b);
-			PrintError("GetNTScore",
-					NULL,
-					"Could not understand 'b' key",
-					Exit,
-					OutOfRange);
-			break;
-	}
-
-	return sm->scores[indexA][indexB];
-}
-
-/* TODO */
-double GetColorScore(uint8_t a, 
-		uint8_t b,
-		ScoringMatrix *sm) 
-{
-	/* simple for now */
-	return (a==b)?(sm->colorMatch):(sm->colorError);
 }
 
 int FillAlignEntryFromMatrix(AlignEntry *aEntry,
@@ -283,39 +199,50 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		}
 		/* HERE */
 		if(ALIGN_DEBUG_ON == 1) {
-			fprintf(stderr, "[%c][%c]\n",
+			fprintf(stderr, "[%c][%c](%c,%c)\n",
 					aEntry->read[i],
-					aEntry->reference[i]);
+					aEntry->reference[i],
+					read[curRow-1],
+					reference[curCol-1]);
 		}
 
-		/* Update previous base (relevant for color errors */
+		/* Update previous base (relevant for color errors) and the
+		 * next cell */
 		if(colorSpace==1) {
 			switch(curFrom) {
 				case DiagA:
 				case DeletionA:
 				case InsertionA:
 					curReadBase = 'A';
+					curCell = 0;
 					break;
 				case DiagC:
 				case DeletionC:
 				case InsertionC:
 					curReadBase = 'C';
+					curCell = 1;
 					break;
 				case DiagG:
 				case DeletionG:
 				case InsertionG:
 					curReadBase = 'G';
+					curCell = 2;
 					break;
 				case DiagT:
 				case DeletionT:
 				case InsertionT:
 					curReadBase = 'T';
+					curCell = 3;
 					break;
 				case DeletionExt:
-				case InsertionExt:
 				case DeletionEnd:
+					curReadBase = GAP;
+					curCell = 4;
+					break;
+				case InsertionExt:
 				case InsertionEnd:
 					curReadBase = GAP;
+					curCell = 5;
 					break;
 				default:
 					fprintf(stderr, "curFrom=%d\n", curFrom);

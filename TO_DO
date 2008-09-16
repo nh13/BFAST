@@ -29,7 +29,14 @@ balign
 ABI support for permuting errors/mutations.
 2. 
 ABI color space local aligner.
+3. 
+Annotate where the color errors occur.  Keep the before (pre-color correction) 
+and after (post-color correction) sequences.
 
 ===============================================================================
 bpostprocess
+===============================================================================
+
+===============================================================================
+butil
 ===============================================================================

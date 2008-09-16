@@ -28,11 +28,10 @@ enum {
 typedef struct {
 	double gapOpenPenalty;
 	double gapExtensionPenalty;
-	int alphabetSize; /* = ALPHABET_SIZE */
-	char *key;
-	double **scores;
-	double colorMatch;
-	double colorError;
+	char *NTKeys;
+	double **NTScores;
+	int *ColorKeys;
+	double **ColorScores;
 } ScoringMatrix;
 
 /* Structure for the dynamic programming with affine gap penalties */

@@ -40,7 +40,6 @@
 #include "../blib/BError.h"
 #include "../blib/RGBinary.h"
 #include "Definitions.h"
-#include "ReadInputFiles.h"
 #include "RunAligner.h"
 #include "ParseInput.h"
 

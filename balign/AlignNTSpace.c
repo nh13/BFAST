@@ -3,10 +3,10 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-#include "ReadInputFiles.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
+#include "ScoringMatrix.h"
 #include "Align.h"
 #include "AlignNTSpace.h"
 
@@ -108,7 +108,7 @@ int AlignNTSpace(char *read,
 
 			/* Update diagonal */
 			/* Get mismatch score */
-			matrix[i+1][j+1].score[0] = matrix[i][j].score[0] + GetNTScore(read[i], reference[j], sm);
+			matrix[i+1][j+1].score[0] = matrix[i][j].score[0] + ScoringMatrixGetNTScore(read[i], reference[j], sm);
 			matrix[i+1][j+1].length[0] = matrix[i][j].length[0] + 1;
 			matrix[i+1][j+1].from[0] = DiagA;
 			/* Get the maximum score of the three cases: horizontal, vertical and diagonal */
