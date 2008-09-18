@@ -576,8 +576,9 @@ void RGMatchFilterOutOfRange(RGMatch *m,
 	/* Filter chr/pos */
 	/* Remove duplicates */
 	prevIndex = -1;
+	int filter;
 	for(i=0;i<m->numEntries;i++) {
-
+		filter = 0;
 		if(m->chromosomes[i] < startChr || 
 				(m->chromosomes[i] == startChr && (m->positions[i] + m->readLength - 1) < startPos) ||
 				(m->chromosomes[i] == endChr && m->positions[i] > endPos) ||

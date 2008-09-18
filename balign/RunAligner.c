@@ -38,6 +38,7 @@ void RunAligner(RGBinary *rgBinary,
 		int *totalAlignTime,
 		int *totalFileHandlingTime)
 {
+	char *FnName = "RunAligner";
 	int i;
 	FILE *outputFP=NULL;
 	FILE *notAlignedFP=NULL;
@@ -53,9 +54,25 @@ void RunAligner(RGBinary *rgBinary,
 	/* Start file handling timer */
 	startTime = time(NULL);
 
+	/* Check rg to make sure it is not in color space */
+	if(rgBinary->colorSpace == 1) {
+		PrintError(FnName,
+				"rg->colorSpace",
+				"The reference genome must not be in color space",
+				Exit,
+				OutOfRange);
+	}
+
+	/* Adjust start and end based on reference genome */
+	AdjustBounds(rgBinary,
+			&startChr,
+			&startPos,
+			&endChr,
+			&endPos);
+
 	/* Open matches file */
 	if((matchesFP=fopen(matchesFileName, "r"))==0) {
-		PrintError("RunAligner",
+		PrintError(FnName,
 				matchesFileName,
 				"Could not open matchesFileName for reading",
 				Exit,
@@ -68,7 +85,7 @@ void RunAligner(RGBinary *rgBinary,
 		/* Reallocate memory */
 		matchFileNames = (char**)realloc(matchFileNames, sizeof(char*)*numMatchFileNames);
 		if(NULL==matchFileNames) {
-			PrintError("RunAligner",
+			PrintError(FnName,
 					"matchFileNames",
 					"Could not reallocate memory",
 					Exit,
@@ -77,7 +94,7 @@ void RunAligner(RGBinary *rgBinary,
 		/* Allocate memory */
 		matchFileNames[numMatchFileNames-1] = malloc(sizeof(char)*(strlen(tempFileName)+1));
 		if(NULL==matchFileNames[numMatchFileNames-1]) {
-			PrintError("RunAligner",
+			PrintError(FnName,
 					"matchFileNames[numMatchFileNames-1]",
 					"Could not allocate memory",
 					Exit,
@@ -111,7 +128,7 @@ void RunAligner(RGBinary *rgBinary,
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "w"))==0) {
-		PrintError("RunAligner",
+		PrintError(FnName,
 				outputFileName,
 				"Could not open file for writing",
 				Exit,
@@ -120,7 +137,7 @@ void RunAligner(RGBinary *rgBinary,
 
 	/* Open not aligned file */
 	if((notAlignedFP=fopen(notAlignedFileName, "w"))==0) {
-		PrintError("RunAligner",
+		PrintError(FnName,
 				notAlignedFileName,
 				"Could not open file for writing",
 				Exit,
@@ -144,7 +161,7 @@ void RunAligner(RGBinary *rgBinary,
 
 		/* Open current match file */
 		if((matchFP=fopen(matchFileNames[i], "r"))==0) {
-			PrintError("RunAligner",
+			PrintError(FnName,
 					matchFileNames[i],
 					"Could not open matchesFileNames[] for reading",
 					Exit,
@@ -579,10 +596,10 @@ void *RunDynamicProgrammingThread(void *arg)
 			matchReadLength = m.matchOne.readLength;
 			/* HERE A1 */
 			/*
-			fprintf(stderr, "HERE A1\nmatchRead=%s\nmatchReadLength=%d\n",
-					matchRead,
-					matchReadLength);
-					*/
+			   fprintf(stderr, "HERE A1\nmatchRead=%s\nmatchReadLength=%d\n",
+			   matchRead,
+			   matchReadLength);
+			   */
 			matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
 		}
 		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
@@ -686,10 +703,10 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 
 	/* HERE 41 */
 	/* 
-	fprintf(stderr, "HERE 41\nread=%s\nreference=%s\n",
-			read,
-			reference);
-			*/
+	   fprintf(stderr, "HERE 41\nread=%s\nreference=%s\n",
+	   read,
+	   reference);
+	   */
 
 	/* Get alignment */
 	adjustPosition=Align(read,

@@ -654,13 +654,13 @@ int ConvertReadFromColorSpace(char *read,
 
 	/* HERE A2 */
 	/*
-	fprintf(stderr, "HERE A2\nread=%s\n",
-			read);
-	fprintf(stderr, "readLength=%d\n",
-			(int)strlen(read));
-	fprintf(stderr, "act length=%d\n",
-			readLength);
-			*/
+	   fprintf(stderr, "HERE A2\nread=%s\n",
+	   read);
+	   fprintf(stderr, "readLength=%d\n",
+	   (int)strlen(read));
+	   fprintf(stderr, "act length=%d\n",
+	   readLength);
+	   */
 
 	/* Convert character numbers to 8-bit ints */
 	for(i=0;i<readLength;i++) {
@@ -694,7 +694,7 @@ int ConvertReadFromColorSpace(char *read,
 	}
 	read[readLength-1] = '\0';
 	readLength--;
-	
+
 	return readLength;
 }
 
@@ -822,3 +822,77 @@ char ConvertColorToStorage(char c)
 	}
 	return c;
 }
+
+/* TODO */
+void AdjustBounds(RGBinary *rg,
+		int32_t *startChr,
+		int32_t *startPos,
+		int32_t *endChr,
+		int32_t *endPos
+		)
+{
+	char *FnName = "AdjustBounds";
+
+	/* Adjust start and end based on reference genome */
+	/* Adjust start */
+	if((*startChr) < rg->startChr) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: startChr was less than reference genome's start chromosome.\n");
+			fprintf(stderr, "Defaulting to reference genome's start chromosome and position: chr%d:%d.\n",
+					rg->startChr,
+					rg->startPos);
+		}
+		(*startChr) = rg->startChr;
+		(*startPos) = rg->startPos;
+	}
+	else if((*startChr) == rg->startChr &&
+			(*startPos) < rg->startPos) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: startPos was less than reference genome's start position.\n");
+			fprintf(stderr, "Defaulting to reference genome's start position: %d.\n",
+					rg->startPos);
+		}
+		(*startPos) = rg->startPos;
+	}
+	/* Adjust end */
+	if((*endChr) > rg->endChr) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: endChr was greater than reference genome's end chromosome.\n");
+			fprintf(stderr, "Defaulting to reference genome's end chromosome and position: chr%d:%d.\n",
+					rg->endChr,
+					rg->endPos);
+		}
+		(*endChr) = rg->endChr;
+		(*endPos) = rg->endPos;
+	}
+	else if((*endChr) == rg->endChr &&
+			(*endPos) > rg->endPos) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: endPos was greater than reference genome's end position.\n");
+			fprintf(stderr, "Defaulting to reference genome's end position: %d.\n",
+					rg->endPos);
+		}
+		(*endPos) = rg->endPos;
+	}
+	/* Check that the start and end bounds are ok */
+	if((*startChr) > (*endChr)) {
+		PrintError(FnName,
+				NULL,
+				"The start chromosome is greater than the end chromosome",
+				Exit,
+				OutOfRange);
+	}
+	else if((*startChr) == (*endChr) &&
+			(*startPos) > (*endPos)) {
+		PrintError(FnName,
+				NULL,
+				"The start position is greater than the end position on the same chromosome",
+				Exit,
+				OutOfRange);
+	}
+}
+
