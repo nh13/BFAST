@@ -206,7 +206,7 @@ The first line specifies the gap open penalty.
 The second line specifies the gap extension penalty.
 The third to the seventh line gives the substitution matrix for the four letters plus "anything else".
 The rows labels on the rows and columns of the substitution matrix is A,C,G,T, and N, where N stands for "anything else".
-An example without a color space substitution matrix is:
+An example with a file without a color space substitution matrix is:
 .br
 -2
 .br
@@ -225,9 +225,9 @@ An example without a color space substitution matrix is:
 would specify a gap open penalty of -2, and a gap extension penalty of -1.
 The penalty to substitute a read base of A for a reference base C would be -1 (row 1 column 2 of the substitution matrix).
 The penalty to substitute a read base of C for a reference base N would be -1 (row 2 column 5 of the substitution matrix).
-If aligning in color space, the eighth to the eleventh line gives the substitution matrix for the four colors.
-There are four colors that can substitute for each other.
-An example with a color substitution matrix is:
+If aligning in color space, the eighth to the twelfth line gives the substitution matrix for the four colors.
+There are four colors that can substitute for each other, plus a fifth color which stands for "anything else".
+An example of such a file with a color substitution matrix is:
 .br
 -2
 .br
@@ -243,13 +243,15 @@ An example with a color substitution matrix is:
 .br
 -1  -1  -1  -1  0
 .br
-0   -1  -1  -1
+0   -4  -4  -4  -4
 .br
--1  0   -1  -1
+-4  0   -4  -4  -4
 .br
--1  -1  0   -1
+-4  -4  0   -4  -4
 .br
--1  -1  -1  0
+-4  -4  -4  0   -4
+.br
+-4  -4  -4  -4   0
 .br
 .
 .SH KNOWN ISSUES

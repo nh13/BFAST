@@ -10,7 +10,9 @@
 
 #define Name "bupdateheader"
 
-/* Updates the head of a bfast index file */
+/* Updates the header of a bfast index file.  This is useful for 
+ * converting old index files, with obsolete headers, as to work
+ * with new bfast index files. */
 
 int main(int argc, char *argv[]) 
 {

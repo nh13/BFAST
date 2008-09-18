@@ -21,13 +21,11 @@ bexonify
 	<bfast reference genome file>
 	<bfast index file>
 	<exon list file>
-	<colorSpace (0=FALSE, 1=TRUE)>
 
 bfixhash
 	<bfast reference genome file>
 	<bfast index file>
 	<new hash width>
-	<colorSpace (0=FALSE, 1=TRUE)>
 
 bheader
 	<bfast index file>
@@ -40,14 +38,12 @@ bindexdist
 	<output id>
 	<tmp file directory>
 	<number of threads>
-	<colorSpace (0=FALSE, 1=TRUE)>
 
 bindexhist
 	<bfast reference genome file name>
 	<bfast index file name>
 	<number of mismatches for histogram>
 	<number of threads>
-	<colorSpace (0=FALSE, 1=TRUE)>
 
 bmafconvert
 	<bfast maf file name>
@@ -88,6 +84,11 @@ btestindexes
 	-e	INT	number of errors
 	-p	NULL	prints the program parameters
 	-h	NULL	prints this message
+
+bupdateheader
+	<bfast index file>
+	<missing:
+			0: color space flag>
 .fi
 .fam
 .
@@ -142,6 +143,11 @@ finds all contiguous repeats in the genome specified by the index that fall with
 .P
 .B btestindexes
 is a utility that tests, searches for, and compares layouts for indexes against certain events, such as errors, mismatches and insertions.
+.
+.P 
+.B bupdateheader
+is a utility that updates the header of a bfast index file. 
+This is useful for converting old index files, with obsolete headers, as to work with new bfast index files.
 .
 .
 .SH KNOWN ISSUES

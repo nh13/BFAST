@@ -1761,33 +1761,32 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 			index.repeatMasker);
 	fprintf(stderr, "color space:\t\t%d\n",
 			index.colorSpace);
-	fprintf(stderr, "hash width:\t\t%u\n",
-			index.hashWidth);
 	fprintf(stderr, "hash length:\t\t%lld\n",
 			(long long int)index.hashLength);
-	fprintf(stderr, "number of tiles:\t%d\n",
+	/* layout style */
+	fprintf(stderr, "formatted layout:\t%u %d ",
+			index.hashWidth,
 			index.numTiles);
-	fprintf(stderr, "total length:\t\t%d\n",
-			index.totalLength);
 	tileLength = gapLength = 0;
 	for(i=0;i<index.numTiles;i++) {
 		/* Print tile length */
-		fprintf(stderr, "tile [%lld] length:\t%d\n",
-				(long long int)i,
+		fprintf(stderr, "%d ",
 				index.tileLengths[i]);
 		tileLength += index.tileLengths[i];
 		/* Print the gap */
 		if(i<index.numTiles-1) {
-			fprintf(stderr, "gap  [%lld] length:\t%d\n",
-					(long long int)i,
+			fprintf(stderr, "%d ",
 					index.gaps[i]);
 			gapLength += index.gaps[i];
 		}
 	}
+	fprintf(stderr, "\n");
 	fprintf(stderr, "tile length:\t\t%d\n",
 			tileLength);
 	fprintf(stderr, "gap length:\t\t%d\n",
 			gapLength);
+	fprintf(stderr, "total length:\t\t%d\n",
+			index.totalLength);
 }
 
 /* TODO */

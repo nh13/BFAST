@@ -73,6 +73,9 @@ If multiple cores or processors are available, one can use \fB\-n\fR to parallel
 .TP 4
 \fB\-r\fR \fIFILENAME\fR, \fB\-\-rgFileName=\fIFILENAME\fR
 The file specified contains the list of files specifying the sequence of the reference genome in bfast binary format.
+In all cases (including the \fB-A\fR option) the reference genome should not be formatted in color space. 
+For more information regarding the creation of a reference genome, see 
+.BR bpreprocess "(1)."
 .
 .TP 4
 \fB\-m\fR \fIFILENAME\fR, \fB\-\-matchesFileName=\fIFILENAME\fR
@@ -93,7 +96,7 @@ Currently only the Dynamic Programming algorithm is available and is specified u
 .
 .TP 4
 \fB\-A\fR, \fB\-\-colorSpace\fR
-Specifies that the local alignment should occur in color space.
+Specifies that the local alignment should occur support color space.
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
 Specifies the start chromosome of candidate alignment locations to consider.
