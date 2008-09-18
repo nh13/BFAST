@@ -200,11 +200,13 @@ main (int argc, char **argv)
 										arguments.startChr,
 										arguments.startPos,
 										arguments.endChr,
-										arguments.endPos);
-								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%d.%d.%d.%s",
+										arguments.endPos,
+										arguments.colorSpace);
+								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%d.%d.%d.%d.%s",
 										arguments.outputDir,
 										PROGRAM_NAME,
 										arguments.outputID,
+										rg.colorSpace,
 										rg.startChr,
 										rg.startPos,
 										rg.endChr,

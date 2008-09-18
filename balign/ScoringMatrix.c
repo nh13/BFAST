@@ -113,9 +113,10 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		sm->ColorKeys[1] = 1;
 		sm->ColorKeys[2] = 2;
 		sm->ColorKeys[3] = 3;
+		sm->ColorKeys[4] = 4;
 
 		/* Allocate memory for the scores */
-		sm->ColorScores = (double**)malloc(sizeof(double*)*(ALPHABET_SIZE));
+		sm->ColorScores = (double**)malloc(sizeof(double*)*(ALPHABET_SIZE+1));
 		if(NULL==sm->ColorScores) {
 			PrintError(FnName,
 					"sm->ColorScores",
@@ -123,8 +124,8 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 					Exit,
 					MallocMemory);
 		}
-		for(i=0;i<ALPHABET_SIZE;i++) {
-			sm->ColorScores[i] = (double*)malloc(sizeof(double)*(ALPHABET_SIZE));
+		for(i=0;i<ALPHABET_SIZE+1;i++) {
+			sm->ColorScores[i] = (double*)malloc(sizeof(double)*(ALPHABET_SIZE+1));
 			if(NULL==sm->ColorScores[i]) {
 				PrintError(FnName,
 						"sm->ColorScores[i]",
@@ -134,8 +135,8 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 			}
 		}
 		/* Read in the score matrix */
-		for(i=0;i<ALPHABET_SIZE;i++) { /* Read row */
-			for(j=0;j<ALPHABET_SIZE;j++) { /* Read column */
+		for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
+			for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 				if(fscanf(fp, "%lf", &sm->ColorScores[i][j])==EOF) {
 					PrintError(FnName,
 							scoringMatrixFileName,

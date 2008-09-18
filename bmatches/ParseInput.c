@@ -79,7 +79,8 @@ static struct argp_option options[] = {
 	{"colorSpace", 'A', 0, OPTION_NO_USAGE,  "Specifies that the reads are in color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates", 2},
+	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates\n\t\t\t"
+		"(SNPs in NT space and color errors in color space)", 2},
 	{"numInsertions", 'y', "numInsertions", 0, "Specifies the number of insertions to allow when searching for candidates", 2},
 	{"numDeletions", 'z', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
 	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},

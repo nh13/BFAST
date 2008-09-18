@@ -171,6 +171,8 @@ main (int argc, char **argv)
 						startTime = time(NULL);
 						RGBinaryReadBinary(&rg,
 								arguments.rgFileName);
+						/* Do not use color space */
+						assert(rg.colorSpace == 0);
 						endTime = time(NULL);
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
@@ -178,6 +180,10 @@ main (int argc, char **argv)
 								arguments.matchesFileName,
 								arguments.scoringMatrixFileName,
 								arguments.colorSpace,
+								arguments.startChr,
+								arguments.startPos,
+								arguments.endChr,
+								arguments.endPos,
 								arguments.offsetLength,
 								arguments.maxNumMatches,
 								arguments.pairedEnd,

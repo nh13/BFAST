@@ -67,6 +67,7 @@ void RGIndexCreate(RGIndex *index,
 
 	assert(index->startChr > rg->startChr || (index->startChr == rg->startChr && index->startPos >= rg->startPos));
 	assert(index->endChr < rg->endChr || (index->endChr == rg->endChr && index->endPos <= rg->endPos));
+	assert(rg->colorSpace == colorSpace);
 
 	/* Copy over index information from the layout */
 	index->totalLength = 0;
@@ -151,13 +152,26 @@ void RGIndexCreate(RGIndex *index,
 			bases[basesIndex] = RGBinaryGetBase(rg,
 					curChr,
 					curPos);
+			basesLength++;
+			if(basesLength > index->totalLength) {
+				basesLength = index->totalLength;
+			}
+
+			/* HERE 35 */
+			/*
+			if(curPos < 10) {
+				fprintf(stderr, "[%lld,%c]\n",
+						(long long int)curPos,
+						bases[basesIndex]);
+			}
+			*/
+
 			/* Update where to put the next base */
 			basesIndex = (basesIndex+1)%index->totalLength;
 
 			/* Check if we have enough bases */
 			if(basesLength < index->totalLength) {
 				/* Do nothing since we do not have enough bases */
-				basesLength++;
 			}
 			else {
 				assert(index->totalLength == basesLength);
@@ -226,21 +240,44 @@ void RGIndexCreate(RGIndex *index,
 
 	assert(index->length > 0);
 
+	/* HERE 22 */
+	/*
+	char *read="GTGAAAGCTAGGCGCGCTCACTAA";
+	int found=0;
+	for(i=0;i<index->length;i++) {
+		if(index->positions[i] == 2) {
+			found = 1;
+			if(0==RGIndexCompareRead(index, rg, read, i, 1)) {
+				fprintf(stderr, "Eureka, found at index:%lld\n", 
+						(long long int)i);
+				exit(1);
+			}
+			else {
+				fprintf(stderr, "exit here, not found at position\n");
+				exit(1);
+			}
+		}
+	}
+	fprintf(stderr, "found=%d\n", found);
+	exit(1);
+	*/
+
 	/* Sort the nodes in the index */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorting...\n");
 	}
-	RGIndexSortNodes(index, rg, numThreads, tmpDir, colorSpace);
+	RGIndexSortNodes(index, rg, numThreads, tmpDir);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorted.\n");
 	}
 
 	/* Create hash table from the index */
-	RGIndexCreateHash(index, rg, colorSpace);
+	RGIndexCreateHash(index, rg);
+
 }
 
 /* TODO */
-void RGIndexCreateHash(RGIndex *index, RGBinary *rg, int32_t colorSpace) 
+void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 {
 	char *FnName = "RGIndexCreateHash";
 	uint32_t start, end;
@@ -278,12 +315,12 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg, int32_t colorSpace)
 		fprintf(stderr, "Creating a hash. Out of %u, currently on:\n0",
 				(uint32_t)index->length);
 	}
-	startHash = RGIndexGetHashIndex(index, rg, 0, colorSpace, 0);
+	startHash = RGIndexGetHashIndex(index, rg, 0, 0);
 	for(end=1, start=0;end < index->length;end++) {
 		if(VERBOSE >= 0 && end%RGINDEX_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%u", end);
 		}
-		curHash = RGIndexGetHashIndex(index, rg, end, colorSpace, 0);
+		curHash = RGIndexGetHashIndex(index, rg, end, 0);
 		assert(curHash >= startHash);
 		if(curHash == startHash) {
 			/* Do nothing */
@@ -322,10 +359,10 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg, int32_t colorSpace)
 
 			/* Check correctness */
 			if(index->starts[startHash] > 0 && index->starts[startHash] != UINT_MAX) {
-				assert( RGIndexCompareAt(index, rg, index->starts[startHash]-1, index->starts[startHash], colorSpace, 0) < 0);
+				assert( RGIndexCompareAt(index, rg, index->starts[startHash]-1, index->starts[startHash], 0) < 0);
 			}
 			if(index->ends[startHash] < index->length-1 && index->ends[startHash] != UINT_MAX) {
-				assert( RGIndexCompareAt(index, rg, index->ends[startHash], index->ends[startHash]+1, colorSpace, 0) < 0);
+				assert( RGIndexCompareAt(index, rg, index->ends[startHash], index->ends[startHash]+1, 0) < 0);
 			}
 
 			/* Update start */
@@ -347,17 +384,17 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg, int32_t colorSpace)
 	   assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
 	   (index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
 	   if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
-	   assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], colorSpace, 0) < 0);
+	   assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], 0) < 0);
 	   }
 	   if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
-	   assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, colorSpace, 0) < 0);
+	   assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
 	   }
 	   }
 	   */
 }
 
 /* TODO */
-void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir, int32_t colorSpace)
+void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 {
 	char *FnName = FnName;
 	int64_t i, j;
@@ -420,8 +457,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 					index->length-1,
 					pivots,
 					1,
-					numThreads,
-					colorSpace);
+					numThreads);
 			/* The last one must be less than index->length */
 			pivots[2*numThreads-1]--;
 
@@ -467,7 +503,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 				data[i].high = pivots[2*i+1];
 				data[i].showPercentComplete = 0;
 				data[i].tmpDir = NULL;
-				data[i].colorSpace = colorSpace;
 				assert(data[i].low >= 0 && data[i].high < index->length);
 				if(data[i].high - data[i].low >= max) {
 					maxIndex = i;
@@ -542,7 +577,6 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 				data[i].high = (i+1)*(index->length/numThreads)-1;
 				data[i].showPercentComplete = 0;
 				data[i].tmpDir = tmpDir;
-				data[i].colorSpace = colorSpace;
 				assert(data[i].low >= 0 && data[i].high < index->length);
 			}
 			data[0].low = 0;
@@ -603,8 +637,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 							data[i].low,
 							data[i+j].low-1,
 							data[i+2*j-1].high,
-							tmpDir, 
-							colorSpace);
+							tmpDir);
 				}
 			}
 		}
@@ -631,8 +664,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 					rg,
 					0,
 					index->length-1,
-					1,
-					colorSpace);
+					1);
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "\r100.00 percent complete\n");
 			}
@@ -649,8 +681,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 					&curPercentComplete,
 					0,
 					index->length-1,
-					tmpDir,
-					colorSpace);
+					tmpDir);
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "\r100.00 percent complete\n");
 			}
@@ -666,13 +697,13 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 
 	/* Test that we sorted correctly */
 	/*
-	for(i=1;i<index->length;i++) {
-		if(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) > 0) {
-			RGIndexCompareAt(index, rg, i-1, i, colorSpace, 1);
-		}
-		assert(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) <= 0);
-	}
-	*/
+	   for(i=1;i<index->length;i++) {
+	   if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
+	   RGIndexCompareAt(index, rg, i-1, i, 1);
+	   }
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
 }
 
 /* TODO */
@@ -689,8 +720,7 @@ void *RGIndexQuickSortNodes(void *arg)
 			data->rg,
 			data->low,
 			data->high,
-			data->showPercentComplete,
-			data->colorSpace);
+			data->showPercentComplete);
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
 		fprintf(stderr, "thread %3.3lf percent complete", 100.0);
@@ -705,8 +735,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 		RGBinary *rg,
 		int64_t low,
 		int64_t high,
-		int32_t showPercentComplete,
-		int32_t colorSpace)
+		int32_t showPercentComplete)
 {
 	/* Stack for log n space and non-recursive implementation */
 	int64_t *lowStack=NULL;
@@ -771,7 +800,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 			 * but lets just choose the median of the front, middle and end 
 			 * */
-			pivot = RGIndexGetPivot(index, rg, curLow, curHigh, colorSpace);
+			pivot = RGIndexGetPivot(index, rg, curLow, curHigh);
 			assert(pivot >=0 && pivot<index->length);
 			assert(curLow >=0 && curLow<index->length);
 			assert(curHigh >=0 && curHigh<index->length);
@@ -794,7 +823,7 @@ void RGIndexQuickSortNodesHelper(RGIndex *index,
 			for(i=curLow;i<curHigh;i++) {
 				assert(pivot >= 0 && pivot <= curHigh); 
 				assert(i>=0 && i <= curHigh);
-				if(RGIndexCompareAt(index, rg, i, curHigh, colorSpace, 0) <= 0) {
+				if(RGIndexCompareAt(index, rg, i, curHigh, 0) <= 0) {
 					/* Swap node at i with node at the new pivot index */
 					if(i!=pivot) {
 						RGIndexSwapAt(index, pivot, i);
@@ -845,8 +874,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		int64_t high,
 		int64_t *pivots,
 		int32_t lowPivot,
-		int32_t highPivot,
-		int32_t colorSpace)
+		int32_t highPivot)
 {
 	/* local variables */
 	int64_t i;
@@ -856,7 +884,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
 		 * but lets just choose the median of the front, middle and end 
 		 * */
-		pivot = RGIndexGetPivot(index, rg, low, high, colorSpace);
+		pivot = RGIndexGetPivot(index, rg, low, high);
 		assert(pivot >=0 && pivot<index->length);
 		assert(low >=0 && low<index->length);
 		assert(high >=0 && high<index->length);
@@ -876,7 +904,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 		for(i=low;i<high;i++) {
 			assert(pivot >= 0 && pivot <= high); 
 			assert(i>=0 && i <= high);
-			if(RGIndexCompareAt(index, rg, i, high, colorSpace, 0) <= 0) {
+			if(RGIndexCompareAt(index, rg, i, high, 0) <= 0) {
 				/* Swap node at i with node at the new pivot index */
 				if(i!=pivot) {
 					RGIndexSwapAt(index, pivot, i);
@@ -909,8 +937,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 					pivot-1,
 					pivots, 
 					lowPivot, 
-					(lowPivot+highPivot)/2,
-					colorSpace);
+					(lowPivot+highPivot)/2);
 			/* Sort above */
 			assert(pivot+1 > low);
 			RGIndexQuickSortNodesGetPivots(index, 
@@ -919,8 +946,7 @@ void RGIndexQuickSortNodesGetPivots(RGIndex *index,
 					high, 
 					pivots, 
 					(lowPivot+highPivot)/2 + 1, 
-					highPivot,
-					colorSpace);
+					highPivot);
 		}
 	}
 	else {
@@ -952,8 +978,7 @@ void *RGIndexMergeSortNodes(void *arg)
 			&curPercentComplete,
 			data->low,
 			data->high - data->low,
-			data->tmpDir,
-			data->colorSpace);
+			data->tmpDir);
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
 		fprintf(stderr, "thread %3.3lf percent complete", 100.0);
@@ -972,8 +997,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 		double *curPercentComplete,
 		int64_t startLow,
 		int64_t total,
-		char *tmpDir,
-		int32_t colorSpace)
+		char *tmpDir)
 {
 	/* Local Variables */
 	int64_t mid = (low + high)/2;
@@ -1000,8 +1024,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			curPercentComplete,
 			startLow,
 			total,
-			tmpDir,
-			colorSpace);
+			tmpDir);
 	RGIndexMergeSortNodesHelper(index,
 			rg,
 			mid+1,
@@ -1010,8 +1033,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			curPercentComplete,
 			startLow,
 			total,
-			tmpDir,
-			colorSpace);
+			tmpDir);
 
 	/* Merge the two lists */
 	RGIndexMergeHelper(index,
@@ -1019,8 +1041,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			low,
 			mid,
 			high,
-			tmpDir,
-			colorSpace);
+			tmpDir);
 }
 
 /* TODO */
@@ -1029,8 +1050,7 @@ void RGIndexMergeHelper(RGIndex *index,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
-		char *tmpDir,
-		int32_t colorSpace) 
+		char *tmpDir)
 {
 	char *FnName = "RGIndexMergeHelper";
 	int64_t i=0;
@@ -1077,7 +1097,7 @@ void RGIndexMergeHelper(RGIndex *index,
 		endUpper = high;
 		ctr=0;
 		while( (startLower <= endLower) && (startUpper <= endUpper) ) {
-			if(RGIndexCompareAt(index, rg, startLower, startUpper, colorSpace, 0) <= 0) {
+			if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
 				tmpPositions[ctr] = index->positions[startLower];
 				tmpChromosomes[ctr] = index->chromosomes[startLower];
 				startLower++;
@@ -1189,7 +1209,6 @@ void RGIndexMergeHelper(RGIndex *index,
 						tmpLowerPosition,
 						tmpUpperChromosome,
 						tmpUpperPosition,
-						colorSpace, 
 						0)<=0) {
 				/* Copy lower */
 				index->positions[i] = tmpLowerPosition;
@@ -1249,7 +1268,7 @@ void RGIndexMergeHelper(RGIndex *index,
 	/* Test merge */
 	/*
 	   for(i=low+1;i<=high;i++) {
-	   assert(RGIndexCompareAt(index, rg, i-1, i, colorSpace, 0) <= 0);
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 	   }
 	   */
 }
@@ -1264,8 +1283,7 @@ void RGIndexShellSortNodesHelper(RGIndex *index,
 		int32_t showPercentComplete,
 		double *curPercent,
 		int64_t lowTotal,
-		int64_t highTotal,
-		int32_t colorSpace)
+		int64_t highTotal)
 {
 	/* local variables */
 	int64_t i, j, increment, length;
@@ -1301,7 +1319,7 @@ void RGIndexShellSortNodesHelper(RGIndex *index,
 			   }
 			   */
 			j=i;
-			while( (j>=increment+low) && RGIndexCompareAt(index, rg, j-increment, j, colorSpace, 0) > 0) {
+			while( (j>=increment+low) && RGIndexCompareAt(index, rg, j-increment, j, 0) > 0) {
 				/*
 				   if(showPercentComplete==1 && VERBOSE >= 0) {
 				   fprintf(stderr, "\rincrement:%Ld\ti:%Ld\tj:%Ld\tlow:%Ld\thigh:%Ld\n",
@@ -1635,6 +1653,7 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 					ReadFileError);
 		}
 	}
+
 }
 
 /* TODO */
@@ -1870,18 +1889,55 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, RGRanges *r, int32_t colorSpace)
+void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, RGRanges *r)
 {
 	int64_t startIndex=-1;
 	int64_t endIndex=-1;
 	int64_t foundIndex=0;
 	uint32_t hashIndex=0;
 
+	/* HERE 14 */
+	/*
+	fprintf(stderr, "\nHERE 14\n");
+	fprintf(stderr, "read=%s\n", read);
+	*/
+
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
 	 * zero bounds for the binary search on the index */
-	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, colorSpace, 0);
+	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
 	assert(hashIndex >= 0 && hashIndex < index->hashLength);
+
+	/* HERE 15 */
+	/*
+	fprintf(stderr, "hashIndex=%u\n",
+			hashIndex);
+	fprintf(stderr, "(starts,ends)=(%u,%u,%u)\n",
+			index->starts[hashIndex],
+			index->ends[hashIndex],
+			UINT_MAX);
+			*/
+	/* HERE 18 */
+	/*
+	int64_t i;
+	int found=0;
+	for(i=0;i<index->length;i++) {
+		if(index->positions[i] == 2) {
+			found = 1;
+			if(0==RGIndexCompareRead(index, rg, read, i, 1)) {
+				fprintf(stderr, "Eureka, found at index:%lld\n", 
+						(long long int)i);
+				exit(1);
+			}
+			else {
+				fprintf(stderr, "exit here, not found at position\n");
+				exit(1);
+			}
+		}
+	}
+	fprintf(stderr, "found=%d\n", found);
+	exit(1);
+	*/
 
 	if(index->starts[hashIndex] == UINT_MAX || 
 			index->ends[hashIndex] == UINT_MAX) {
@@ -1898,8 +1954,7 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 				index->ends[hashIndex],
 				read,
 				&startIndex,
-				&endIndex,
-				colorSpace);
+				&endIndex);
 
 		if(foundIndex>0) {
 			/* (Re)Allocate memory for the new range */
@@ -1923,20 +1978,19 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		int64_t high,
 		char *read,
 		int64_t *startIndex,
-		int64_t *endIndex,
-		int32_t colorSpace)
+		int64_t *endIndex)
 {
 	int64_t mid=-1;
 	int32_t cmp;
 	int32_t cont = 1;
 	int64_t tmpLow, tmpMid, tmpHigh;
 
-	assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, colorSpace, 0) > 0);
-	assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, colorSpace, 0) < 0); 
+	assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0) > 0);
+	assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
 
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
-		cmp = RGIndexCompareRead(index, rg, read, mid, colorSpace, 0);
+		cmp = RGIndexCompareRead(index, rg, read, mid, 0);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "low:%lld\tmid:%lld\thigh:%lld\tcmp:%d\n",
 					(long long int)low,
@@ -1956,9 +2010,9 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	}
 	/* If we found an entry that matches, get the bounds (start and end indexes */
 	if(cont == 0) {
-		assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, colorSpace, 0) > 0);
-		assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, colorSpace, 0) < 0); 
-		assert(RGIndexCompareRead(index, rg, read, mid, colorSpace, 0) == 0);
+		assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0) > 0);
+		assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
+		assert(RGIndexCompareRead(index, rg, read, mid, 0) == 0);
 		tmpLow = low;
 		tmpMid = mid;
 		tmpHigh = high;
@@ -1973,7 +2027,7 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		high = tmpMid;
 		while(low < high) {
 			mid = (low+high)/2;
-			cmp = RGIndexCompareRead(index, rg, read, mid, colorSpace, 0);
+			cmp = RGIndexCompareRead(index, rg, read, mid, 0);
 			assert(cmp >= 0);
 			/*
 			   fprintf(stderr, "start:%lld\t%lld\t%lld\t%d\n",
@@ -1992,14 +2046,14 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		}
 		(*startIndex) = low;
 		assert(low == high);
-		assert(RGIndexCompareRead(index, rg, read, (*startIndex), colorSpace, 0)==0);
-		assert((*startIndex) == 0 || RGIndexCompareRead(index, rg, read, (*startIndex)-1, colorSpace, 0)>0);
+		assert(RGIndexCompareRead(index, rg, read, (*startIndex), 0)==0);
+		assert((*startIndex) == 0 || RGIndexCompareRead(index, rg, read, (*startIndex)-1, 0)>0);
 		/* Get upper start Index */
 		low = tmpMid;
 		high = tmpHigh;
 		while(low < high) {
 			mid = (low+high)/2+1;
-			cmp = RGIndexCompareRead(index, rg, read, mid, colorSpace, 0);
+			cmp = RGIndexCompareRead(index, rg, read, mid, 0);
 			assert(cmp <= 0);
 			/*
 			   fprintf(stderr, "end:%lld\t%lld\t%lld\t%d\n",
@@ -2019,8 +2073,8 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		assert(low == high);
 		/* adjust endIndex */
 		(*endIndex) = low;
-		assert(RGIndexCompareRead(index, rg, read, (*endIndex), colorSpace, 0)==0);
-		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1, colorSpace, 0)<0);
+		assert(RGIndexCompareRead(index, rg, read, (*endIndex), 0)==0);
+		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1, 0)<0);
 		return 1;
 	}
 	else {
@@ -2043,13 +2097,13 @@ void RGIndexSwapAt(RGIndex *index, int64_t a, int64_t b)
 }
 
 /* TODO */
-int64_t RGIndexGetPivot(RGIndex *index, RGBinary *rg, int64_t low, int64_t high, int32_t colorSpace)
+int64_t RGIndexGetPivot(RGIndex *index, RGBinary *rg, int64_t low, int64_t high)
 {
 	int64_t pivot = (low+high)/2;
 	int32_t cmp[3];
-	cmp[0] = RGIndexCompareAt(index, rg, low, pivot, colorSpace, 0);
-	cmp[1] = RGIndexCompareAt(index, rg, low, high, colorSpace, 0);
-	cmp[2] = RGIndexCompareAt(index, rg, pivot, high, colorSpace, 0);
+	cmp[0] = RGIndexCompareAt(index, rg, low, pivot, 0);
+	cmp[1] = RGIndexCompareAt(index, rg, low, high, 0);
+	cmp[2] = RGIndexCompareAt(index, rg, pivot, high, 0);
 
 	if(cmp[0] <= 0) {
 		/* low <= pivot */
@@ -2103,13 +2157,12 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 		uint32_t aPos,
 		uint8_t bChr,
 		uint32_t bPos,
-		int32_t colorSpace,
 		int debug)
 {
 	int64_t i, j;
 	uint32_t aCurTilePos;
 	uint32_t bCurTilePos;
-	uint8_t aBase, prevABase, tempBase;
+	uint8_t aBase, prevABase;
 	uint8_t bBase, prevBBase;
 
 	if(!(aChr >= index->startChr && aChr <= index->endChr)) {
@@ -2146,16 +2199,6 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 						bChr,
 						bCurTilePos));
 
-			/* Color space */
-			if(1==colorSpace) {
-				tempBase = ConvertBaseToColorSpace(prevABase, aBase);
-				prevABase = aBase;
-				aBase = tempBase;
-
-				tempBase = ConvertBaseToColorSpace(prevBBase, bBase);
-				prevBBase = bBase;
-				bBase = tempBase;
-			}
 
 			if(debug > 0) {
 				fprintf(stderr, "a[%d,%c,%d]\tb[%d,%c,%d]\n",
@@ -2183,21 +2226,6 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 		if(i<index->numTiles-1) { /* Add gap */
 			aCurTilePos += index->gaps[i];
 			bCurTilePos += index->gaps[i];
-			/* For color space, we must have the previous base */
-			if(1==colorSpace) {
-				prevABase = ToLower(RGBinaryGetBase(rg,
-							aChr,
-							aCurTilePos-1));
-				prevBBase = ToLower(RGBinaryGetBase(rg,
-							bChr,
-							bCurTilePos-1));
-				if(1==RGBinaryIsBaseN(prevABase)) {
-					prevABase = COLOR_SPACE_START_NT;
-				}
-				if(1==RGBinaryIsBaseN(prevBBase)) {
-					prevBBase = COLOR_SPACE_START_NT;
-				}
-			}
 		}
 	}
 
@@ -2210,7 +2238,6 @@ int32_t RGIndexCompareAt(RGIndex *index,
 		RGBinary *rg,
 		int64_t a,
 		int64_t b, 
-		int32_t colorSpace,
 		int debug)
 {
 	assert(a>=0 && a<index->length);
@@ -2222,7 +2249,6 @@ int32_t RGIndexCompareAt(RGIndex *index,
 			index->positions[a],
 			index->chromosomes[b],
 			index->positions[b],
-			colorSpace,
 			debug);
 }
 
@@ -2231,7 +2257,6 @@ int32_t RGIndexCompareRead(RGIndex *index,
 		RGBinary *rg,
 		char *read,
 		int64_t a,
-		int32_t colorSpace,
 		int debug)
 {
 	assert(a>=0 && a<index->length);
@@ -2243,7 +2268,7 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	uint32_t aPos = index->positions[a];
 
 	uint32_t aCurTilePos;
-	uint8_t aBase, prevABase, tempBase;
+	uint8_t aBase, prevABase;
 	uint8_t readBase, prevReadBase;
 
 	/* Compare base by base */
@@ -2254,12 +2279,12 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	prevReadBase = COLOR_SPACE_START_NT;
 
 	if(debug > 0) {
-	   fprintf(stderr, "%d\t%s", 
-	   index->totalLength,
-	   BREAK_LINE);
-	   fprintf(stderr, "read[%d]:%s\n", 
-	   (int)strlen(read),
-	   read);
+		fprintf(stderr, "%d\n%s", 
+				index->totalLength,
+				BREAK_LINE);
+		fprintf(stderr, "read[%d]:%s\n", 
+				(int)strlen(read),
+				read);
 	}
 
 	for(i=0;i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
@@ -2275,17 +2300,6 @@ int32_t RGIndexCompareRead(RGIndex *index,
 						aBase,
 						curReadPos,
 						readBase);
-			}
-
-			/* Color space */
-			if(1==colorSpace) {
-				tempBase = ConvertBaseToColorSpace(prevABase, aBase);
-				prevABase = aBase;
-				aBase = tempBase;
-
-				tempBase = ConvertBaseToColorSpace(prevReadBase, readBase);
-				prevReadBase = readBase;
-				readBase = tempBase;
 			}
 
 			/* Compare */
@@ -2304,19 +2318,16 @@ int32_t RGIndexCompareRead(RGIndex *index,
 		if(i<index->numTiles-1) { /* Add gap */
 			aCurTilePos += index->gaps[i];
 			curReadPos += index->gaps[i];
-			/* For color space, we must have the previous base */
-			if(1==colorSpace) {
-				prevABase = ToLower(RGBinaryGetBase(rg,
-							aChr,
-							aCurTilePos-1));
-				/* There is a danger of N's here */
-				prevReadBase = read[curReadPos-1];
-				if(1==RGBinaryIsBaseN(prevABase)) {
-					prevABase = COLOR_SPACE_START_NT;
-				}
-			}
 		}
 	}
+
+	/* HERE 20 */
+	/*
+	   if(debug > 0) {
+	   fprintf(stderr, "HERE 20\n");
+	   exit(1);
+	   }
+	   */
 
 	/* All bases were equal, return 0 */
 	return 0;
@@ -2326,7 +2337,6 @@ int32_t RGIndexCompareRead(RGIndex *index,
 uint32_t RGIndexGetHashIndex(RGIndex *index,
 		RGBinary *rg,
 		uint32_t a,
-		int32_t colorSpace,
 		int debug)
 {
 	assert(a>=0 && a<index->length);
@@ -2338,7 +2348,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 	uint32_t aPos = index->positions[a];
 
 	uint32_t aCurTilePos;
-	uint8_t aBase, prevABase, tempBase;
+	uint8_t aBase, prevABase;
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
@@ -2361,13 +2371,6 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 						aCurTilePos,
 						aBase,
 						cur);
-			}
-
-			/* Color space */
-			if(1==colorSpace) {
-				tempBase = ConvertBaseToColorSpace(prevABase, aBase);
-				prevABase = aBase;
-				aBase = tempBase;
 			}
 
 			switch(aBase) {
@@ -2414,15 +2417,6 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 		}
 		if(i<index->numTiles-1) { /* Add gap */
 			aCurTilePos += index->gaps[i];
-			/* For color space, we must have the previous base */
-			if(1==colorSpace) {
-				prevABase = ToLower(RGBinaryGetBase(rg,
-							aChr,
-							aCurTilePos-1));
-				if(1==RGBinaryIsBaseN(prevABase)) {
-					prevABase = COLOR_SPACE_START_NT;
-				}
-			}
 		}
 	}
 
@@ -2435,7 +2429,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		RGBinary *rg,
 		char *read,
 		int32_t readLength,
-		int32_t colorSpace,
 		int debug)
 {
 	char *FnName = "RGIndexGetHashIndexFromRead";
@@ -2444,10 +2437,18 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
-	uint8_t readBase, prevReadBase, tempBase;
+	uint8_t readBase, prevReadBase;
 
 	/* Initialize for color space */
 	prevReadBase = COLOR_SPACE_START_NT;
+
+	/* HERE 16 */
+	/*
+	   fprintf(stderr, "%s\nread=%s\nreadLength=%d\n",
+	   FnName,
+	   read,
+	   readLength);
+	   */
 
 	for(i=0;cur >= 0 && i<index->numTiles && curReadPos < readLength;i++) { /* For each tile */
 		for(j=0;cur >= 0 &&  j<index->tileLengths[i] && curReadPos < readLength;j++) { /* For each position in the tile */
@@ -2459,13 +2460,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 						cur,
 						curReadPos,
 						readLength);
-			}
-
-			/* Color space */
-			if(1==colorSpace) {
-				tempBase = ConvertBaseToColorSpace(prevReadBase, readBase);
-				prevReadBase = readBase;
-				readBase = tempBase;
 			}
 
 			/* Old code, works with any size alphabet */
@@ -2524,11 +2518,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		}
 		if(i<index->numTiles-1) { /* Add gap */
 			curReadPos += index->gaps[i];
-			/* For color space, we must have the previous base */
-			if(1==colorSpace) {
-				/* There is a danger of N's here */
-				prevReadBase = read[curReadPos-1];
-			}
 		}
 	}
 

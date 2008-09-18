@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#include "../blib/BLib.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
@@ -10,32 +11,150 @@
 #include "AlignColorSpace.h"
 #include "Align.h"
 
+/* TODO */
+/* Assumes the read and reference are both forward strand */
+/* If we are in color space, the read should also be in 
+ * color space */
 int Align(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
 		AlignEntry *aEntry,
+		char strand,
 		int colorSpace)
 {
+	char *FnName="Align";
+	int returnValue;
+	char reverseRead[SEQUENCE_LENGTH]="\0";
+	char tmpString[SEQUENCE_LENGTH]="\0";
+	char *reverseReference=NULL;
+
+	/* HERE 42 */
+	/*
+	   fprintf(stderr, "HERE 42\nread=%s\nreference=%s\n",
+	   read,
+	   reference);
+	   */
+
 	switch(colorSpace) {
 		case 0:
-			return AlignNTSpace(read,
-					readLength,
-					reference,
-					referenceLength,
-					sm,
-					aEntry);
+			/* Not color space */
+			switch(strand) {
+				case FORWARD:
+					/* Matches the forward strand */
+					/* Align */
+					returnValue = AlignNTSpace(read,
+							readLength,
+							reference,
+							referenceLength,
+							sm,
+							aEntry);
+					break;
+				case REVERSE:
+					/* Reverse the read to match the forward strand  */
+					GetReverseComplimentAnyCase(read, reverseRead, readLength);
+					/* Align */
+					returnValue = AlignNTSpace(reverseRead,
+							readLength,
+							reference,
+							referenceLength,
+							sm,
+							aEntry);
+					/* We must reverse the alignment to match the REVERSE stand */
+					GetReverseComplimentAnyCase(aEntry->read, tmpString, aEntry->length);
+					strcpy(aEntry->read, tmpString);
+					GetReverseComplimentAnyCase(aEntry->reference, tmpString, aEntry->length);
+					strcpy(aEntry->reference, tmpString);
+					break;
+				default:
+					PrintError(FnName,
+							NULL,
+							"Could not understand strand",
+							Exit,
+							OutOfRange);
+					break;
+
+			}
 			break;
 		default:
-			return AlignColorSpace(read,
-					readLength,
-					reference,
-					referenceLength,
-					sm,
-					aEntry);
+			/* HERE 49 */
+			/*
+			   fprintf(stderr, "HERE 49\nreference=%s\nread=%s\n",
+			   reference,
+			   read);
+			   */
+			/* Color Space */
+			switch(strand) {
+				case FORWARD:
+					/* Matches the forward strand */
+					/* Align */
+					/* HERE 51 */
+					/*
+					   fprintf(stderr, "HERE 51\nreference=%s\nread=%s\nreverseRead=%s\n",
+					   reference,
+					   read,
+					   reverseRead);
+					   */
+					returnValue = AlignColorSpace(read,
+							readLength,
+							reference,
+							referenceLength,
+							sm,
+							aEntry,
+							FORWARD);
+					break;
+				case REVERSE:
+					/* Matches the reverse strand */
+					/* Reverse compliment the reference */
+					reverseReference = malloc(sizeof(char)*referenceLength);
+					if(NULL==reverseReference) {
+						PrintError(FnName,
+								"reverseReference",
+								"Could not allocate memory",
+								Exit,
+								MallocMemory);
+					}
+					GetReverseComplimentAnyCase(reference,
+							reverseReference,
+							referenceLength);
+					/* HERE 50 */
+					/*
+					   fprintf(stderr, "HERE 50\nreference=%s\nread=%s\nreverseRead=%s\n",
+					   reference,
+					   read,
+					   reverseRead);
+					   */
+					/* Align */
+					returnValue = AlignColorSpace(read,
+							readLength,
+							reverseReference,
+							referenceLength,
+							sm,
+							aEntry,
+							REVERSE);
+					/* No need to reverse alignment, since we reversed the reference
+					 * to be the reverse strand */
+
+					free(reverseReference);
+					reverseReference=NULL;
+					break;
+				default:
+					PrintError(FnName,
+							NULL,
+							"Could not understand strand",
+							Exit,
+							OutOfRange);
+					break;
+
+			}
+			/* HERE 39 */
+			/*
+			   fprintf(stderr, "HERE 39\n");
+			   */
 			break;
 	}
+	return returnValue;
 }
 
 int FillAlignEntryFromMatrix(AlignEntry *aEntry,
@@ -91,21 +210,22 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	}
 	/* HERE */
 	if(ALIGN_DEBUG_ON == 1) {
-		/*
 		for(i=0;i<readLength+1;i++) {
 			for(j=0;j<referenceLength+1;j++) {
 				int k;
 				for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) {
-					fprintf(stderr, "(row,col,cell,score,length)=(%d,%d,%d,%lf,%d)\n",
+					fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
 							i,
 							j,
 							k,
 							matrix[i][j].score[k],
-							matrix[i][j].length[k]);
+							matrix[i][j].length[k],
+							matrix[i][j].from[k],
+							matrix[i][j].colorError[k]
+							);
 				}
 			}
 		}
-		*/
 	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then

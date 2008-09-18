@@ -21,14 +21,13 @@ int main(int argc, char *argv[])
 	/* I have to admit, this is kind of a hack, we could 
 	 * just modify the data structure of the index.  Oh well.
 	 * */
-	if(argc == 5) {
+	if(argc == 4) {
 
 		FILE *fp;
 		char rgFileName[MAX_FILENAME_LENGTH]="\0";
 		char indexFileName[MAX_FILENAME_LENGTH]="\0";
 		char exonsFileName[MAX_FILENAME_LENGTH]="\0";
 		char outputFileName[MAX_FILENAME_LENGTH]="\0";
-		int32_t colorSpace;
 
 		RGBinary rg;
 		RGIndex index;
@@ -38,8 +37,6 @@ int main(int argc, char *argv[])
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		strcpy(exonsFileName, argv[3]);
-		colorSpace = atoi(argv[4]);
-		assert(colorSpace == 0 || colorSpace == 1);
 
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
@@ -78,7 +75,7 @@ int main(int argc, char *argv[])
 		/* Fix the hash by recreating it */
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Regenerating the hash.\n");
-		RGIndexCreateHash(&index, &rg, colorSpace);
+		RGIndexCreateHash(&index, &rg);
 
 		/* Create new file name */
 		sprintf(outputFileName, "%s.index.file.%s.%s",
@@ -111,7 +108,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<bfast reference genome file>\n");
 		fprintf(stderr, "\t<bfast index file>\n");
 		fprintf(stderr, "\t<exon list file>\n");
-		fprintf(stderr, "\t<colorSpace (0=FALSE, 1=TRUE)>\n");
 	}
 
 	return 0;

@@ -36,6 +36,8 @@ void RGReadsFindMatches(RGIndex *index,
 {
 	int64_t i;
 	int64_t numEntries = 0;
+	int readLength=0;
+	char read[SEQUENCE_LENGTH]="\0";
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 	RGReads reads;
 	RGRanges ranges;
@@ -44,17 +46,37 @@ void RGReadsFindMatches(RGIndex *index,
 	RGReadsInitialize(&reads);
 	RGRangesInitialize(&ranges);
 
-	/* Get the reverse compliment */
-	GetReverseComplimentAnyCase((char*)match->read, reverseRead, match->readLength);
+	/* Remove adaptor and first color if we are in color space */
+	if(colorSpace==1) {
+		/* First letter is adapter, second letter is the color (unusable) */
+		for(i=2;i<match->readLength;i++) {
+			read[i-2] = match->read[i];
+		}
+		readLength = match->readLength-2;
+		read[readLength] = '\0';
+		/* In color space, the reverse compliment is just the reverse of the colors */
+		ReverseRead(read, reverseRead, readLength);
+		/* Update the colors in the read */
+		ConvertColorsToStorage(read, readLength);
+		ConvertColorsToStorage(reverseRead, readLength);
+	}
+	else {
+		/* Copy over */
+		strcpy(read, (char*)match->read);
+		readLength = match->readLength;
+		/* Get the reverse compliment */
+		GetReverseComplimentAnyCase(read, reverseRead, readLength);
+	}
 
 	/* Generate reads */
-	RGReadsGenerateReads((char*)match->read,
-			match->readLength,
+	RGReadsGenerateReads(read,
+			readLength,
 			index,
 			&reads,
 			FORWARD,
 			offsets,
 			numOffsets,
+			colorSpace,
 			numMismatches,
 			numInsertions,
 			numDeletions,
@@ -63,17 +85,20 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Generate reads */
 	RGReadsGenerateReads(reverseRead,
-			match->readLength,
+			readLength,
 			index,
 			&reads,
 			REVERSE,
 			offsets,
 			numOffsets,
+			colorSpace,
 			numMismatches,
 			numInsertions,
 			numDeletions,
 			numGapInsertions,
 			numGapDeletions);
+
+	/* TODO HERE */
 
 	/* Merge all reads */
 	/* This may be necessary for a large number of generated reads, but omit for now */
@@ -95,8 +120,7 @@ void RGReadsFindMatches(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
-				&ranges,
-				colorSpace);
+				&ranges);
 	}
 
 	/* Remove duplicate ranges */
@@ -127,12 +151,22 @@ void RGReadsFindMatches(RGIndex *index,
 	RGMatchRemoveDuplicates(match,
 			maxNumMatches);
 
+	/* In color space we removed the first base/color so we need to 
+	 * decrement the positions by one.
+	 * */
+	if(colorSpace == 1) {
+		for(i=0;i<match->numEntries;i++) {
+			match->positions[i]--;
+		}
+	}
+
 	/* Free memory */
 	RGRangesFree(&ranges);
 	RGReadsFree(&reads);
 }
 
 /* TODO */
+/* We may want to include enumeration of SNPs in color space */
 void RGReadsGenerateReads(char *read,
 		int readLength,
 		RGIndex *index,
@@ -140,6 +174,7 @@ void RGReadsGenerateReads(char *read,
 		char direction,
 		int *offsets,
 		int numOffsets,
+		int colorSpace,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,

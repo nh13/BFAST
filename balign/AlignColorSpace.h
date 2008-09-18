@@ -4,6 +4,6 @@
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
 
-int AlignColorSpace(char*, int, char*, int, ScoringMatrix*, AlignEntry*);
+int AlignColorSpace(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char);
 
 #endif

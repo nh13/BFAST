@@ -132,12 +132,12 @@ void GenerateIndex(RGBinary *rg,
 				outputDir,
 				PROGRAM_NAME,
 				outputID,
+				colorSpace,
 				index.startChr,
 				index.startPos,
 				index.endChr,
 				index.endPos,
 				repeatMasker,
-				colorSpace,
 				i+1,
 				BFAST_INDEX_FILE_EXTENSION);
 

@@ -17,13 +17,21 @@ int AlignColorSpace(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *aEntry)
+		AlignEntry *aEntry,
+		char strand)
 {
 	/* read goes on the rows, reference on the columns */
 	char *FnName = "AlignColorSpace";
 	AlignMatrix **matrix=NULL;
 	int offset = 0;
 	int i, j, k, l;
+
+	/* HERE 40 */
+	/*
+	fprintf(stderr, "HERE 40\nreference=%s\nread=%s\n",
+			reference,
+			read);
+			*/
 
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrix*)*(readLength+1));
@@ -60,7 +68,18 @@ int AlignColorSpace(char *read,
 	 * local alignment within the reference */
 	for(j=0;j<referenceLength+1;j++) {
 		for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) {
-			matrix[0][j].score[k] = 0;
+			/* Assumes both DNA and COLOR_SPACE_START_NT are upper case */
+			if(DNA[k] == COLOR_SPACE_START_NT) { 
+				/* Starting adaptor NT */
+				matrix[0][j].score[k] = 0;
+			}
+			else if(k>=4) {
+				/* Gap */
+				matrix[0][j].score[k] = 0;
+			}
+			else {
+				matrix[0][j].score[k] = NEGATIVE_INFINITY;
+			}
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
 			matrix[0][j].colorError[k] = '0';
@@ -126,10 +145,33 @@ int AlignColorSpace(char *read,
 											OutOfRange);
 									break;
 							}
+							/* HERE A5 */
+							/*
+							if(i==j) {
+								fprintf(stderr, "HERE A5\n");
+								char stuff[6] = "ACGTDI";
+								fprintf(stderr, "(%d,%d,%d,%d)=>%d,%d,%c,%c,%lf,%lf,%lf,%lf(from=%c,to=%c)\n",
+										i+1,
+										j+1,
+										k,
+										l,
+										(int)curColor,
+										(int)convertedColor,
+										(int)reference[j],
+										(int)DNA[k],
+										curScore,
+										ScoringMatrixGetColorScore(curColor, convertedColor, sm),
+										ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
+										curScore + ScoringMatrixGetColorScore(curColor, convertedColor, sm) + ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
+										stuff[l],
+										stuff[k]
+									   );
+							}
+							*/
 							/* Add score for color error, if any */
-									curScore += ScoringMatrixGetColorScore(curColor,
-											convertedColor,
-											sm);
+							curScore += ScoringMatrixGetColorScore(curColor,
+									convertedColor,
+									sm);
 							/* Add score for NT */
 							curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
@@ -283,6 +325,23 @@ int AlignColorSpace(char *read,
 				matrix[i+1][j+1].from[k] = maxFrom;
 				matrix[i+1][j+1].colorError[k] = maxColorError;
 				matrix[i+1][j+1].length[k] = maxLength;
+
+				/* HERE A4 */
+				/*
+				fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
+						i+1,
+						j+1,
+						k,
+						matrix[i+1][j+1].score[k],
+						matrix[i+1][j+1].length[k],
+						matrix[i+1][j+1].from[k],
+						matrix[i+1][j+1].colorError[k]
+					   );
+				if(i==j) {
+					fprintf(stderr, "HERE A4\n");
+					exit(1);
+				}
+				*/
 			}
 		}
 	}
@@ -305,6 +364,17 @@ int AlignColorSpace(char *read,
 	}
 	free(matrix);
 	matrix=NULL;
+
+	/* HERE */
+	/*
+	   fprintf(stderr, "%s\n%s\n%s\n%lf\n",
+	   aEntry->reference,
+	   aEntry->read,
+	   aEntry->colorError,
+	   aEntry->score);
+	   fprintf(stderr, "Exiting HERE\n");
+	   exit(1);
+	   */
 
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;

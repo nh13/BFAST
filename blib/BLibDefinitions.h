@@ -112,6 +112,7 @@ typedef struct {
 	int32_t startPos;
 	int32_t endChr;
 	int32_t endPos;
+	int32_t colorSpace;
 } RGBinary;
 
 /* TODO */

@@ -5,7 +5,7 @@
 
 #define ALIGN_DEBUG_ON 0
 
-int Align(char*, int, char*, int, ScoringMatrix*, AlignEntry*, int);
+int Align(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int);
 double GetNTScore(char, char, ScoringMatrix*);
 double GetColorScore(uint8_t, uint8_t, ScoringMatrix*);
 double GetScoreFromMatrix(char, char, ScoringMatrix*);

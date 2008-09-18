@@ -14,7 +14,8 @@ void RGBinaryRead(char *rgFileName,
 		int32_t startChr,
 		int32_t startPos,
 		int32_t endChr,
-		int32_t endPos)
+		int32_t endPos,
+		int32_t colorSpace)
 {
 	int32_t i;
 	FILE *fpRG=NULL;
@@ -32,6 +33,7 @@ void RGBinaryRead(char *rgFileName,
 	int32_t numChrFileNames=0;
 	char defaultFileName[MAX_FILENAME_LENGTH]="\0";
 	char header[MAX_FILENAME_LENGTH]="\0";
+	char prevBase = COLOR_SPACE_START_NT; /* For color space */
 
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
@@ -44,6 +46,7 @@ void RGBinaryRead(char *rgFileName,
 	rg->endPos=endPos;
 	rg->chromosomes=NULL;
 	rg->numChrs=endChr-startChr+1;
+	rg->colorSpace=colorSpace;
 
 	/*****/
 	/* Read in the file names for each chromosome */
@@ -185,6 +188,7 @@ void RGBinaryRead(char *rgFileName,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Reading in [chr,pos]:\n[-1,-1]");
 		}
+		prevBase = COLOR_SPACE_START_NT; /* For color space */
 		curPos=1;
 		continueReading=1;
 		while(continueReading==1 && fscanf(fpRG, "%c", &original) > 0) {
@@ -194,27 +198,49 @@ void RGBinaryRead(char *rgFileName,
 			 * Null Character: N,n
 			 * */
 
-			original=TransformFromIUPAC(original);
-
-			/* Save the character as lower */
-			c=ToLower(original);
-
-			if(VERBOSE >= 0) {
-				if(curPos%READ_ROTATE_NUM==0) {
-					fprintf(stderr, "\r[%d,%d]",
-							curChr,
-							curPos);
-				}
-			}
-
 			/* Reallocate memory in increments.  This allows us to avoid having
 			 * to reallocate memory every iteration through the loop, thus speeding
 			 * up computation.  
 			 * */
-			if(c == '\n') {
+			if(original == '\n') {
 				/* ignore */
 			}
 			else {
+				/* Convert to color space */
+				if(1==colorSpace) {
+					/* Convert color space to A,C,G,T */
+					c = ConvertBaseToColorSpace(prevBase, original);
+					/* Convert to nucleotide equivalent for storage */
+					/* Store 0=A, 1=C, 2=G, 3=T, else N */
+					c = ConvertColorToStorage(c);
+					/* Update if it is a repeat */
+					/* For repeat sequence, if both the previous base and 
+					 * current base are non-repeat, the color is non-repeat.
+					 * Otherwise, it is repeat sequence */
+					if (RGBinaryIsBaseRepeat(prevBase) == 1 || RGBinaryIsBaseRepeat(original) == 1) {
+						/* Repeat */
+						prevBase = original; /* Update the previous base */
+						original = ToUpper(c);
+					}
+					else {
+						/* Non-repeat */
+						prevBase = original; /* Update the previous base */
+						original = ToLower(c);
+					}
+				}
+				else {
+					/* Transform IUPAC codes */
+					original=TransformFromIUPAC(original);
+				}
+
+				if(VERBOSE >= 0) {
+					if(curPos%READ_ROTATE_NUM==0) {
+						fprintf(stderr, "\r[%d,%d]",
+								curChr,
+								curPos);
+					}
+				}
+
 				/* Validate base pair */
 				if(ValidateBasePair(original)==0) {
 					fprintf(stderr, "Base:[%c]\n", original);
@@ -250,7 +276,7 @@ void RGBinaryRead(char *rgFileName,
 						rg->chromosomes[numChrs-1].sequence[rg->chromosomes[numChrs-1].numBytes-1] = 0;
 					}
 					/* Insert the sequence correctly (as opposed to incorrectly) */
-					RGBinaryInsertBase(&rg->chromosomes[numChrs-1].sequence[rg->chromosomes[numChrs-1].numBytes-1], byteIndex, c, original);
+					RGBinaryInsertBase(&rg->chromosomes[numChrs-1].sequence[rg->chromosomes[numChrs-1].numBytes-1], byteIndex, original);
 					numPosRead++;
 				}
 				curPos++;
@@ -361,7 +387,8 @@ void RGBinaryReadBinary(RGBinary *rg,
 			fread(&rg->startChr, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->startPos, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->endChr, sizeof(int32_t), 1, fpRG)!=1 ||
-			fread(&rg->endPos, sizeof(int32_t), 1, fpRG)!=1) {
+			fread(&rg->endPos, sizeof(int32_t), 1, fpRG)!=1 ||
+			fread(&rg->colorSpace, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
@@ -452,7 +479,8 @@ void RGBinaryWriteBinary(RGBinary *rg,
 			fwrite(&rg->startChr, sizeof(int32_t), 1, fpRG) != 1 || 
 			fwrite(&rg->startPos, sizeof(int32_t), 1, fpRG) != 1 ||
 			fwrite(&rg->endChr, sizeof(int32_t), 1, fpRG) != 1 ||
-			fwrite(&rg->endPos, sizeof(int32_t), 1, fpRG) != 1) {
+			fwrite(&rg->endPos, sizeof(int32_t), 1, fpRG) != 1 ||
+			fwrite(&rg->colorSpace, sizeof(int32_t), 1, fpRG) != 1) {
 		PrintError(FnName,
 				NULL,
 				"Could not output rg header",
@@ -502,13 +530,13 @@ void RGBinaryDelete(RGBinary *rg)
 	rg->startPos = 0;
 	rg->endChr = 0;
 	rg->endPos = 0;
+	rg->colorSpace = 0;
 }
 
 /* TODO */
 void RGBinaryInsertBase(uint8_t *dest,
 		int32_t byteIndex,
-		int8_t src,
-		int8_t repeat)
+		int8_t base)
 {
 	/*********************************
 	 * In four bits we hold two no:
@@ -520,10 +548,10 @@ void RGBinaryInsertBase(uint8_t *dest,
 	 * 		3 - undefined
 	 *
 	 * right-most:
-	 * 		0 - a
-	 * 		1 - c
-	 * 		2 - g
-	 * 		3 - t
+	 * 		0 - aAnN
+	 * 		1 - cC
+	 * 		2 - gG
+	 * 		3 - tt
 	 *********************************
 	 * */
 	int32_t numCharsPerByte;
@@ -535,7 +563,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 		case 0:
 			(*dest)=0;
 			/* left-most 2-bits will hold the repeat*/
-			switch(repeat) {
+			switch(base) {
 				case 'a':
 				case 'c':
 				case 'g':
@@ -558,22 +586,27 @@ void RGBinaryInsertBase(uint8_t *dest,
 				default:
 					PrintError("RGBinaryInsertSequenceLetterIntoByte",
 							NULL,
-							"Could not understand case 0 repeat",
+							"Could not understand case 0 base",
 							Exit,
 							OutOfRange);
 			}
 			/* third and fourth bits from the left will hold the sequence */
-			switch(src) {
+			switch(base) {
+				case 'N':
 				case 'n': /* This does not matter if the base is an n */
+				case 'A':
 				case 'a':
 					(*dest) = (*dest) | 0x00;
 					break;
+				case 'C':
 				case 'c':
 					(*dest) = (*dest) | 0x10;
 					break;
+				case 'G':
 				case 'g':
 					(*dest) = (*dest) | 0x20;
 					break;
+				case 'T':
 				case 't':
 					(*dest) = (*dest) | 0x30;
 					break;
@@ -588,7 +621,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 			break;
 		case 1:
 			/* third and fourth bits from the right will hold the repeat*/
-			switch(repeat) {
+			switch(base) {
 				case 'a':
 				case 'c':
 				case 'g':
@@ -616,17 +649,22 @@ void RGBinaryInsertBase(uint8_t *dest,
 							OutOfRange);
 			}
 			/* right most 2-bits will hold the sequence */
-			switch(src) {
+			switch(base) {
+				case 'N':
 				case 'n': /* This does not matter if the base is an n */
+				case 'A':
 				case 'a':
 					(*dest) = (*dest) | 0x00;
 					break;
+				case 'C':
 				case 'c':
 					(*dest) = (*dest) | 0x01;
 					break;
+				case 'G':
 				case 'g':
 					(*dest) = (*dest) | 0x02;
 					break;
+				case 'T':
 				case 't':
 					(*dest) = (*dest) | 0x03;
 					break;

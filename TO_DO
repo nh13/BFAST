@@ -32,6 +32,8 @@ ABI color space local aligner.
 3. 
 Annotate where the color errors occur.  Keep the before (pre-color correction) 
 and after (post-color correction) sequences.
+4.
+Implement start and end (-s, -S, -e, -E).
 
 ===============================================================================
 bpostprocess

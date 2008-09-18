@@ -22,12 +22,11 @@ typedef struct {
 	int64_t totalForward;
 	int64_t totalReverse;
 	int threadID;
-	int32_t colorSpace;
 } ThreadData;
 
-void PrintHistogram(RGIndex*, RGBinary*, int, int, int, char*, int32_t);
+void PrintHistogram(RGIndex*, RGBinary*, int, int, int, char*);
 void *PrintHistogramThread(void *arg);
-void GetPivots(RGIndex*, RGBinary*, int64_t*, int64_t*, int64_t, int32_t);
-void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*, int32_t);
+void GetPivots(RGIndex*, RGBinary*, int64_t*, int64_t*, int64_t);
+void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*);
 
 #endif

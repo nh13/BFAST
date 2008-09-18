@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include "BLibDefinitions.h"
 
-void RGBinaryRead(char*, RGBinary*, int32_t, int32_t, int32_t, int32_t);
+void RGBinaryRead(char*, RGBinary*, int32_t, int32_t, int32_t, int32_t, int32_t);
 void RGBinaryReadBinary(RGBinary*, char*);
 void RGBinaryWriteBinary(RGBinary*, char*);
 void RGBinaryDelete(RGBinary*);
-void RGBinaryInsertBase(uint8_t*, int32_t, int8_t, int8_t);
+void RGBinaryInsertBase(uint8_t*, int32_t, int8_t);
 void RGBinaryGetSequence(RGBinary*, int32_t, int32_t, int8_t, int32_t, char*, int32_t, int32_t*, int32_t*);
 int8_t RGBinaryGetBase(RGBinary*, int32_t, int32_t);
 int32_t RGBinaryIsRepeat(RGBinary*, int32_t, int32_t);

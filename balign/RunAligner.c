@@ -21,6 +21,10 @@ void RunAligner(RGBinary *rgBinary,
 		char *matchesFileName,
 		char *scoringMatrixFileName,
 		int colorSpace,
+		int startChr,
+		int startPos,
+		int endChr,
+		int endPos,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
@@ -151,6 +155,10 @@ void RunAligner(RGBinary *rgBinary,
 				rgBinary,
 				scoringMatrixFileName,
 				colorSpace,
+				startChr,
+				startPos,
+				endChr,
+				endPos,
 				offsetLength,
 				maxNumMatches,
 				pairedEnd,
@@ -190,6 +198,10 @@ void RunDynamicProgramming(FILE *matchFP,
 		RGBinary *rgBinary,
 		char *scoringMatrixFileName,
 		int colorSpace,
+		int startChr,
+		int startPos,
+		int endChr,
+		int endPos,
 		int offsetLength,
 		int maxNumMatches,
 		int pairedEnd,
@@ -277,17 +289,14 @@ void RunDynamicProgramming(FILE *matchFP,
 		/* increment */
 		numMatches++;
 
+		/* Filter the matches that are not within the bounds */
 		/* Filter one if it has too many entries */
-		if(maxNumMatches != 0 && m.matchOne.numEntries > maxNumMatches) {
-			/* Do not align this one */
-			RGMatchClearMatches(&m.matchOne);
-			assert(m.matchOne.readLength > 0);
-		}
-		if(maxNumMatches != 0 && pairedEnd == 1 && m.matchTwo.numEntries > maxNumMatches) {
-			/* Do not align this one */
-			RGMatchClearMatches(&m.matchTwo);
-			assert(m.matchTwo.readLength > 0);
-		}
+		RGMatchesFilterOutOfRange(&m,
+				startChr,
+				startPos,
+				endChr,
+				endPos,
+				maxNumMatches);
 
 		/* Filter those reads we will not be able to align */
 		/* line 1 - if both were found to have too many alignments in bmatches */
@@ -521,6 +530,8 @@ void *RunDynamicProgrammingThread(void *arg)
 	/*
 	   char *FnName = "RunDynamicProgrammingThread";
 	   */
+	char matchRead[SEQUENCE_LENGTH]="\0";
+	int matchReadLength=0;
 	AlignEntries aEntries;
 	int numAlignEntries=0;
 	RGMatches m;
@@ -560,30 +571,47 @@ void *RunDynamicProgrammingThread(void *arg)
 		/* Copy over read name */
 		strcpy(aEntries.readName, (char*)m.readName);
 
+
 		/* Run the aligner */
 		/* First entry */
+		if(m.matchOne.numEntries > 0) {
+			strcpy(matchRead, (char*)m.matchOne.read);
+			matchReadLength = m.matchOne.readLength;
+			/* HERE A1 */
+			/*
+			fprintf(stderr, "HERE A1\nmatchRead=%s\nmatchReadLength=%d\n",
+					matchRead,
+					matchReadLength);
+					*/
+			matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
+		}
 		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
 		for(i=0;i<m.matchOne.numEntries;i++) { /* For each match */
 			RunDynamicProgrammingThreadHelper(rgBinary,
 					m.matchOne.chromosomes[i],
 					m.matchOne.positions[i],
 					m.matchOne.strand[i],
-					(char*)m.matchOne.read,
-					m.matchOne.readLength,
+					matchRead,
+					matchReadLength,
 					colorSpace,
 					offsetLength,
 					sm,
 					&aEntries.entriesOne[i]);
 		}
 		/* Second entry */
+		if(m.matchTwo.numEntries > 0) {
+			strcpy(matchRead, (char*)m.matchTwo.read);
+			matchReadLength = m.matchTwo.readLength;
+			matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
+		}
 		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
 		for(i=0;i<m.matchTwo.numEntries;i++) { /* For each match */
 			RunDynamicProgrammingThreadHelper(rgBinary,
 					m.matchTwo.chromosomes[i],
 					m.matchTwo.positions[i],
 					m.matchTwo.strand[i],
-					(char*)m.matchTwo.read,
-					m.matchTwo.readLength,
+					matchRead,
+					matchReadLength,
 					colorSpace,
 					offsetLength,
 					sm,
@@ -627,9 +655,7 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 		AlignEntry *aEntry)
 {
 	char *FnName = "RunDynamicProgrammingThreadHelper";
-	char reverseRead[SEQUENCE_LENGTH]="\0";
 	char *reference=NULL;
-	char tmpString[SEQUENCE_LENGTH]="\0";
 	int referenceLength=0;
 	int referencePosition=0;
 	int adjustPosition=0;
@@ -658,44 +684,23 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 			&referencePosition);
 	assert(referenceLength > 0);
 
-	/* If the direction was reverse, then give the
-	 * reverse compliment for the read.
-	 * */
-	switch(strand) {
-		case FORWARD:
-			/* Get alignment */
-			adjustPosition=Align(read,
-					readLength,
-					reference,
-					referenceLength,
-					sm,
-					aEntry,
-					colorSpace);
-			break;
-		case REVERSE:
-			GetReverseComplimentAnyCase(read, reverseRead, readLength);
-			/* Get alignment */
-			adjustPosition=Align(reverseRead,
-					readLength,
-					reference,
-					referenceLength,
-					sm,
-					aEntry,
-					colorSpace);
-			/* We must reverse the alignment to match the REVERSE stand */
-			GetReverseComplimentAnyCase(aEntry->read, tmpString, aEntry->length);
-			strcpy(aEntry->read, tmpString);
-			GetReverseComplimentAnyCase(aEntry->reference, tmpString, aEntry->length);
-			strcpy(aEntry->reference, tmpString);
-			break;
-		default:
-			PrintError(FnName,
-					NULL,
-					"Could not understand strand",
-					Exit,
-					OutOfRange);
-			break;
-	}
+	/* HERE 41 */
+	/* 
+	fprintf(stderr, "HERE 41\nread=%s\nreference=%s\n",
+			read,
+			reference);
+			*/
+
+	/* Get alignment */
+	adjustPosition=Align(read,
+			readLength,
+			reference,
+			referenceLength,
+			sm,
+			aEntry,
+			strand,
+			colorSpace);
+
 	/* Update adjustPosition based on offsetLength */
 	assert(adjustPosition >= 0 && adjustPosition <= referenceLength);
 

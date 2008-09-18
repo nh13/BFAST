@@ -77,10 +77,11 @@ void FindMatches(
 	int startChr, startPos, endChr, endPos;
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
+			colorSpace,
 			startReadNum,
 			endReadNum,
 			numMismatches,
@@ -124,6 +125,7 @@ void FindMatches(
 	startTime = time(NULL);
 	RGBinaryReadBinary(&rg,
 			rgFileName);
+	assert(rg.colorSpace == colorSpace);
 	endTime = time(NULL);
 	totalReadRGTime = endTime - startTime;
 
@@ -136,10 +138,11 @@ void FindMatches(
 	 * source read read file for each index. 
 	 * */
 	/* Create filtered reads file name */
-	sprintf(readsFilteredFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+	sprintf(readsFilteredFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
+			colorSpace,
 			startReadNum,
 			endReadNum,
 			numMismatches,
@@ -202,8 +205,7 @@ void FindMatches(
 			numThreads,
 			tmpDir,
 			&numReads,
-			&numReadsFiltered,
-			colorSpace);
+			&numReadsFiltered);
 	/* Close the read file */
 	fclose(seqFP);
 	fclose(seqFilteredFP);
@@ -601,8 +603,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numThreads,
 				tmpDir,
 				&numReads,
-				&numReadsFiltered,
-				0);
+				&numReadsFiltered);
 		/* In this case, all the reads should be valid so we should apportion all reads */
 		assert(numReadsFiltered == 0);
 		assert(numReads == numWritten);
@@ -891,8 +892,7 @@ void *FindMatchesInIndexThread(void *arg)
 	}
 	while(EOF!=GetNextRead(tempSeqFP, 
 				&m,
-				pairedEnd,
-				0)) {
+				pairedEnd)) {
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
@@ -939,6 +939,15 @@ void *FindMatchesInIndexThread(void *arg)
 				&m,
 				pairedEnd, 
 				binaryOutput); 
+
+		/* HERE 13 */
+		/*
+		fprintf(stderr, "\nHERE 13\n");
+		RGMatchesPrint(stderr,
+				&m,
+				pairedEnd,
+				0);
+				*/
 
 		/* Free matches */
 		RGMatchesFree(&m);

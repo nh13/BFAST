@@ -9,6 +9,7 @@ extern char DNA[5];
 
 char ToLower(char);
 char ToUpper(char);
+void ReverseRead(char*, char*, int);
 void GetReverseComplimentAnyCase(char*, char*, int);
 char GetReverseComplimentAnyCaseBase(char);
 int ValidateBasePair(char);
@@ -24,7 +25,11 @@ int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);
 uint8_t ConvertBaseToColorSpace(uint8_t, uint8_t);
 uint8_t ConvertBaseAndColor(uint8_t, uint8_t);
-void ConvertReadFromColorSpace(char**, int*);
+int ConvertReadFromColorSpace(char*, int);
+void ConvertReadToColorSpace(char**, int*);
+void NormalizeRead(char**, int*, char);
+void ConvertColorsToStorage(char*, int);
+char ConvertColorToStorage(char);
 
 #endif
 

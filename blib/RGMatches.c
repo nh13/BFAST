@@ -505,3 +505,27 @@ void RGMatchesCheck(RGMatches *m)
 		RGMatchCheck(&m->matchTwo);
 	}
 }
+
+/* TODO */
+void RGMatchesFilterOutOfRange(RGMatches *m,
+		int32_t startChr,
+		int32_t startPos,
+		int32_t endChr,
+		int32_t endPos,
+		int32_t maxNumMatches)
+{
+	RGMatchFilterOutOfRange(&m->matchOne,
+			startChr,
+			startPos,
+			endChr,
+			endPos,
+			maxNumMatches);
+	if(m->pairedEnd == 1) {
+		RGMatchFilterOutOfRange(&m->matchTwo,
+				startChr,
+				startPos,
+				endChr,
+				endPos,
+				maxNumMatches);
+	}
+}

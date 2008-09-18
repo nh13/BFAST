@@ -562,3 +562,43 @@ void RGMatchCheck(RGMatch *m)
 				OutOfRange);
 	}
 }
+
+/* TODO */
+void RGMatchFilterOutOfRange(RGMatch *m,
+		int32_t startChr,
+		int32_t startPos,
+		int32_t endChr,
+		int32_t endPos,
+		int32_t maxNumMatches)
+{
+	int32_t i, prevIndex;
+
+	/* Filter chr/pos */
+	/* Remove duplicates */
+	prevIndex = -1;
+	for(i=0;i<m->numEntries;i++) {
+
+		if(m->chromosomes[i] < startChr || 
+				(m->chromosomes[i] == startChr && (m->positions[i] + m->readLength - 1) < startPos) ||
+				(m->chromosomes[i] == endChr && m->positions[i] > endPos) ||
+				(m->chromosomes[i] > endChr)) {
+			/* ignore */
+		}
+		else {
+			/* Do not filter */
+			prevIndex++;
+			/* Copy chr/pos at i to chr/pos at prevIndex */
+			RGMatchCopyAtIndex(m, i, m, prevIndex);
+		}
+	}
+
+	/* Reallocate pair */
+	RGMatchReallocate(m, prevIndex+1);
+
+	/* Filter based on the maximum number of matches */
+	if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
+		/* Do not align this one */
+		RGMatchClearMatches(m);
+		assert(m->readLength > 0);
+	}
+}

@@ -17,6 +17,7 @@ void RGMatchClearMatches(RGMatch*);
 void RGMatchFree(RGMatch*);
 void RGMatchInitialize(RGMatch*);
 void RGMatchCheck(RGMatch*);
+void RGMatchFilterOutOfRange(RGMatch*, int32_t, int32_t, int32_t, int32_t, int32_t);
 
 #endif
 

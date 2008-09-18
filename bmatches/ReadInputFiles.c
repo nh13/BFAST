@@ -15,8 +15,7 @@
 /* Read the next read from the stream */
 int GetNextRead(FILE *fp, 
 		RGMatches *m,
-		int pairedEnd,
-		int colorSpace)
+		int pairedEnd)
 {
 	char *FnName = "GetNextRead";
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
@@ -66,11 +65,6 @@ int GetNextRead(FILE *fp,
 	strcpy((char*)m->readName, readName);
 	strcpy((char*)m->matchOne.read, readOne);
 
-	/* Convert from color space if necessary */
-	if(1==colorSpace) {
-		ConvertReadFromColorSpace((char**)&m->matchOne.read, &m->matchOne.readLength);
-	}
-
 	/* Read in paired end if necessary */
 	if(pairedEnd == 1) {
 		/* Read in read number two */
@@ -96,11 +90,6 @@ int GetNextRead(FILE *fp,
 		}
 		/* Copy over */
 		strcpy((char*)m->matchTwo.read, readTwo);
-
-		/* Convert from color space if necessary */
-		if(1==colorSpace) {
-			ConvertReadFromColorSpace((char**)&m->matchTwo.read, &m->matchTwo.readLength);
-		}
 	}
 	return 1;
 }
@@ -138,8 +127,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 		int numThreads,
 		char *tmpDir,
 		int *numWritten,
-		int *numFiltered,
-		int colorSpace)
+		int *numFiltered)
 {
 	char *FnName = "WriteReadsToTempFile";
 	int i;
@@ -158,7 +146,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 	}
 
 	while((endReadNum<=0 || endReadNum >= curReadNum) && 
-			EOF != GetNextRead(seqFP, &m, pairedEnd, colorSpace)) {
+			EOF != GetNextRead(seqFP, &m, pairedEnd)) {
 		/* Get which tmp file to put the read in */
 		curSeqFPIndex = (curReadNum-1)%numThreads;
 

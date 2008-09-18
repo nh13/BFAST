@@ -54,6 +54,19 @@ char ToUpper(char a)
 }
 
 /* TODO */
+void ReverseRead(char *s,
+		char *r,
+		int length)
+{       
+	int i;
+	/* Get reverse */
+	for(i=length-1;i>=0;i--) {
+		r[i] = s[length-1-i];
+	}
+	r[length]='\0';
+}
+
+/* TODO */
 void GetReverseComplimentAnyCase(char *s,
 		char *r,
 		int length)
@@ -166,7 +179,7 @@ char TransformFromIUPAC(char a)
 			return 'T';
 			break;
 		case 'u':
-			return 'u';
+			return 't';
 			break;
 		case 'R':
 		case 'Y':
@@ -457,6 +470,10 @@ int UpdateRead(char *read, int readLength)
 			case 'c':
 			case 'g':
 			case 't':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
 				break;
 			case 'A':
 				read[i] = 'a';
@@ -528,6 +545,9 @@ int CheckReadBase(char base)
 }
 
 /* TODO */
+/* Two bases */
+/* If either of the two bases is an "N" or an "n", then
+ * we return the color code 4 */
 uint8_t ConvertBaseToColorSpace(uint8_t A, 
 		uint8_t B)
 {
@@ -556,6 +576,10 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 		case 't':
 			start = 3;
 			by = -1;
+			break;
+		case 'N':
+		case 'n':
+			return 4;
 			break;
 		default:
 			fprintf(stderr, "\nA=(%c,%d)\n",
@@ -586,8 +610,12 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 		case 't':
 			result = start + 3*by;
 			break;
+		case 'N':
+		case 'n':
+			return 4;
+			break;
 		default:
-			fprintf(stderr, "B=(%c,%d)\n",
+			fprintf(stderr, "\nB=(%c,%d)\n",
 					B,
 					(int)B);
 			PrintError(FnName,
@@ -602,12 +630,14 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 		result =  ALPHABET_SIZE - ( (-1*result)% ALPHABET_SIZE);
 	}
 	else {
-		result = (result% ALPHABET_SIZE);
+		result = (result%ALPHABET_SIZE);
 	}
+
 	return result;
 }
 
 /* TODO */
+/* color must be an integer, and a base a character */
 uint8_t ConvertBaseAndColor(uint8_t base, uint8_t color) 
 {
 	/* sneaky */
@@ -615,41 +645,180 @@ uint8_t ConvertBaseAndColor(uint8_t base, uint8_t color)
 }
 
 /* TODO */
-void ConvertReadFromColorSpace(char **read,
-		int *readLength)
+/* Include the first letter adaptor */
+/* Does not reallocate memory */
+int ConvertReadFromColorSpace(char *read,
+		int readLength)
 {
 	int i, index;
 
+	/* HERE A2 */
+	/*
+	fprintf(stderr, "HERE A2\nread=%s\n",
+			read);
+	fprintf(stderr, "readLength=%d\n",
+			(int)strlen(read));
+	fprintf(stderr, "act length=%d\n",
+			readLength);
+			*/
+
 	/* Convert character numbers to 8-bit ints */
-	for(i=0;i<(*readLength);i++) {
-		switch((*read)[i]) {
+	for(i=0;i<readLength;i++) {
+		switch(read[i]) {
 			case '0':
-				(*read)[i] = 0;
+				read[i] = 0;
 				break;
 			case '1':
-				(*read)[i] = 1;
+				read[i] = 1;
 				break;
 			case '2':
-				(*read)[i] = 2;
+				read[i] = 2;
 				break;
 			case '3':
-				(*read)[i] = 3;
+				read[i] = 3;
 				break;
 			default:
+				/* Ignore */
 				break;
 		}
 	}
 
-	for(i=0;i<(*readLength)-1;i++) { 
+	for(i=0;i<readLength-1;i++) { 
 		if(0==i) {
 			index = 0;
 		}
 		else {
 			index = i-1; 
 		}
-		(*read)[i] = ConvertBaseAndColor((*read)[index], (*read)[i+1]); 
+		read[i] = ConvertBaseAndColor(read[index], read[i+1]); 
 	}
-	(*read)[(*readLength)-1] = '\0';
-	(*readLength)--;
+	read[readLength-1] = '\0';
+	readLength--;
+	
+	return readLength;
+}
 
+/* TODO */
+/* Must reallocate memory */
+void ConvertReadToColorSpace(char **read,
+		int *readLength)
+{
+	char *FnName="ConvertReadToColorSpace";
+	int i;
+	char tempRead[SEQUENCE_LENGTH]="\0";
+
+	/* Initialize */
+	tempRead[0] =  COLOR_SPACE_START_NT;
+
+	/* Go through read and convert to colors */
+	for(i=0;i<(*readLength);i++) {
+		tempRead[i+1] = ConvertBaseToColorSpace(tempRead[i], (*read)[i]);
+		switch(tempRead[i+1]) {
+			case 0:
+				tempRead[i+1] = '0';
+				break;
+			case 1:
+				tempRead[i+1] = '1';
+				break;
+			case 2:
+				tempRead[i+1] = '2';
+				break;
+			case 3:
+				tempRead[i+1] = '3';
+				break;
+			default:
+				PrintError(FnName,
+						"result",
+						"Could not understand result",
+						Exit,
+						OutOfRange);
+		}
+	}
+	tempRead[(*readLength)+1]='\0';
+
+	/* Reallocate read to make sure */
+	(*read) = realloc((*read), sizeof(char)*SEQUENCE_LENGTH);
+	if((*read)==NULL) {
+		PrintError(FnName,
+				"(*read)",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	strcpy((*read), tempRead);
+	(*readLength)++;
+}
+
+/* TODO */
+/* Takes in a NT read, converts to color space,
+ * and then converts back to NT space using the
+ * start NT */
+void NormalizeRead(char **read,
+		int *readLength,
+		char startNT)
+{
+	int i;
+	char prevOldBase, prevNewBase;
+	uint8_t tempColor;
+
+	/* HERE 23 */
+	/*
+	   fprintf(stderr, "Before=%s\n",
+	   (*read));
+	   */
+
+	prevOldBase = startNT;
+	prevNewBase = COLOR_SPACE_START_NT;
+	for(i=0;i<(*readLength);i++) {
+		/* Convert to color space using the old previous NT and current old NT */
+		tempColor = ConvertBaseToColorSpace(prevOldBase, (*read)[i]);
+		prevOldBase = (*read)[i];
+		/* Convert to NT space but using the new previous NT and current color */
+		(*read)[i] = ConvertBaseAndColor(prevNewBase, tempColor);;
+		prevNewBase = (*read)[i];
+	}
+
+	/* HERE 24 */
+	/*
+	   fprintf(stderr, "\n");
+	   fprintf(stderr, "After=%s\n", 
+	   (*read));
+	   */
+}
+
+/* TODO */
+void ConvertColorsToStorage(char *colors, int length)
+{
+	int i;
+	for(i=0;i<length;i++) {
+		colors[i] = ConvertColorToStorage(colors[i]);
+	}
+}
+
+/* TODO */
+char ConvertColorToStorage(char c)
+{
+	switch(c) {
+		case 0:
+		case '0':
+			c = 'A';
+			break;
+		case 1:
+		case '1':
+			c = 'C';
+			break;
+		case 2:
+		case '2':
+			c = 'G';
+			break;
+		case 3:
+		case '3':
+			c = 'T';
+			break;
+		default:
+			c = 'N';
+			break;
+	}
+	return c;
 }
