@@ -65,6 +65,7 @@ void FindMatches(
 	int numMatches;
 	int numReads;
 	int numReadsFiltered;
+	RGMatches tempMatches;
 
 	time_t startTime, endTime;
 	int seconds, minutes, hours;
@@ -275,13 +276,13 @@ void FindMatches(
 			&totalOutputTime
 				);
 
-	if(numReads-numMatches > 0
+	if(numReads - numMatches > 0
 			&& numSecondaryIndexes > 0) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Processing remaining %d reads using %d secondary indexes.\n",
-					numReads-numMatches,
+					numReads - numMatches,
 					numSecondaryIndexes);
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
@@ -315,8 +316,28 @@ void FindMatches(
 					);
 	}
 	else {
-		/* Close the temporary read files */
+		/* Output the reads not aligned and close the temporary read files */
 		for(i=0;i<numThreads;i++) {
+			/* Go to the beginning of the temp file */
+			fseek(tempSeqFPs[i], 0, SEEK_SET);
+
+			/* Initialize */
+			RGMatchesInitialize(&tempMatches);
+
+			/* Read in the reads */
+			while(EOF!=GetNextRead(tempSeqFPs[i], 
+						&tempMatches,
+						pairedEnd)) {
+				/* Print the match to the output file */
+				RGMatchesPrint(outputFP, 
+						&tempMatches,
+						pairedEnd,
+						binaryOutput);
+				/* Free the matches data structure */
+				RGMatchesFree(&tempMatches);
+			}
+
+			/* Close the temp file */
 			CloseTmpFile(&tempSeqFPs[i],
 					&tempSeqFileNames[i]);
 		}
@@ -947,12 +968,12 @@ void *FindMatchesInIndexThread(void *arg)
 
 		/* HERE 13 */
 		/*
-		fprintf(stderr, "\nHERE 13\n");
-		RGMatchesPrint(stderr,
-				&m,
-				pairedEnd,
-				0);
-				*/
+		   fprintf(stderr, "\nHERE 13\n");
+		   RGMatchesPrint(stderr,
+		   &m,
+		   pairedEnd,
+		   0);
+		   */
 
 		/* Free matches */
 		RGMatchesFree(&m);
