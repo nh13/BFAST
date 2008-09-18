@@ -315,6 +315,11 @@ void FindMatches(
 					);
 	}
 	else {
+		/* Close the temporary read files */
+		for(i=0;i<numThreads;i++) {
+			CloseTmpFile(&tempSeqFPs[i],
+					&tempSeqFileNames[i]);
+		}
 		/* Close the output file */
 		fclose(outputFP);
 	}
