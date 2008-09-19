@@ -423,8 +423,8 @@ AssignDefaultValues(struct arguments *args)
 	args->colorSpace = 0;
 	args->startChr=0;
 	args->startPos=0;
-	args->endChr=0;
-	args->endPos=0;
+	args->endChr=INT_MAX;
+	args->endPos=INT_MAX;
 	args->offsetLength=0;
 	args->maxNumMatches=0;
 	args->pairedEnd = 0;

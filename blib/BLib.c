@@ -842,6 +842,7 @@ void AdjustBounds(RGBinary *rg,
 			fprintf(stderr, "Defaulting to reference genome's start chromosome and position: chr%d:%d.\n",
 					rg->startChr,
 					rg->startPos);
+			fprintf(stderr, "%s", BREAK_LINE);
 		}
 		(*startChr) = rg->startChr;
 		(*startPos) = rg->startPos;
@@ -853,6 +854,7 @@ void AdjustBounds(RGBinary *rg,
 			fprintf(stderr, "Warning: startPos was less than reference genome's start position.\n");
 			fprintf(stderr, "Defaulting to reference genome's start position: %d.\n",
 					rg->startPos);
+			fprintf(stderr, "%s", BREAK_LINE);
 		}
 		(*startPos) = rg->startPos;
 	}
@@ -864,6 +866,7 @@ void AdjustBounds(RGBinary *rg,
 			fprintf(stderr, "Defaulting to reference genome's end chromosome and position: chr%d:%d.\n",
 					rg->endChr,
 					rg->endPos);
+			fprintf(stderr, "%s", BREAK_LINE);
 		}
 		(*endChr) = rg->endChr;
 		(*endPos) = rg->endPos;
@@ -875,9 +878,11 @@ void AdjustBounds(RGBinary *rg,
 			fprintf(stderr, "Warning: endPos was greater than reference genome's end position.\n");
 			fprintf(stderr, "Defaulting to reference genome's end position: %d.\n",
 					rg->endPos);
+			fprintf(stderr, "%s", BREAK_LINE);
 		}
 		(*endPos) = rg->endPos;
 	}
+
 	/* Check that the start and end bounds are ok */
 	if((*startChr) > (*endChr)) {
 		PrintError(FnName,
