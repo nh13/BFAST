@@ -514,6 +514,16 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		fprintf(stderr, "i=%d\n", i);
 	}
 	assert(-1==i);
+		
+	/* HERE C1 */
+	/*
+	fprintf(stderr, "%s\n%s\n%s\n",
+			aEntry->reference,
+			aEntry->read,
+			aEntry->colorError);
+	fprintf(stderr, "HERE C1\n");
+	exit(1);
+	*/
 	/* This might be off by one */
 	offset = curCol;
 

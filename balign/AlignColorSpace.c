@@ -73,10 +73,6 @@ int AlignColorSpace(char *read,
 				/* Starting adaptor NT */
 				matrix[0][j].score[k] = 0;
 			}
-			else if(k>=4) {
-				/* Gap */
-				matrix[0][j].score[k] = 0;
-			}
 			else {
 				matrix[0][j].score[k] = NEGATIVE_INFINITY;
 			}
@@ -92,17 +88,14 @@ int AlignColorSpace(char *read,
 		uint8_t curColor;
 		char curReadBase, prevReadBase;
 		/* In color space, the first color is determined by the adapter NT */
-		if(i<=0) {
-			prevReadBase = COLOR_SPACE_START_NT;
-		}
-		else {
-			prevReadBase = read[i-1];
-		}
+		prevReadBase = (i<=0)?COLOR_SPACE_START_NT:read[i-1];
 		curReadBase = read[i];
-		/* Get the current color */
+
+		/* Get the current color for the read */
 		curColor = ConvertBaseToColorSpace(prevReadBase, curReadBase);
 
 		for(j=0;j<referenceLength;j++) { /* reference/columns */
+
 			for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) { /* To NT */
 				char DNA[4] = "ACGT";
 				double maxScore = NEGATIVE_INFINITY-1;
@@ -111,9 +104,10 @@ int AlignColorSpace(char *read,
 				int maxLength = 0;
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
-					double curScore;
-					int curFrom, curLength;
-					uint8_t convertedColor;
+					double curScore=NEGATIVE_INFINITY;
+					int curFrom=-1;
+					int curLength=-1;
+					uint8_t convertedColor='X';
 					switch(k) {
 						case 0:
 						case 1:
@@ -147,18 +141,20 @@ int AlignColorSpace(char *read,
 							}
 							/* HERE A5 */
 							/*
-							if(i==j) {
+							if(strcmp(read, "AGCTTTTCATTCTGACTGCAACGGT")==0 &&
+									i==readLength-1 &&
+									i==j) {
 								fprintf(stderr, "HERE A5\n");
 								char stuff[6] = "ACGTDI";
-								fprintf(stderr, "(%d,%d,%d,%d)=>%d,%d,%c,%c,%lf,%lf,%lf,%lf(from=%c,to=%c)\n",
+								fprintf(stderr, "(%d,%d,to=%c,from=%c)=>%d,%d,%c,%c,%lf,%lf,%lf,%lf(from=%c,to=%c)\n",
 										i+1,
 										j+1,
-										k,
-										l,
+										stuff[k],
+										stuff[l],
 										(int)curColor,
 										(int)convertedColor,
 										(int)reference[j],
-										(int)DNA[k],
+										(int)stuff[k],
 										curScore,
 										ScoringMatrixGetColorScore(curColor, convertedColor, sm),
 										ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
@@ -175,7 +171,7 @@ int AlignColorSpace(char *read,
 							/* Add score for NT */
 							curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
-							if(curScore < NEGATIVE_INFINITY) {
+							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
 							}
 
@@ -249,7 +245,7 @@ int AlignColorSpace(char *read,
 											Exit,
 											OutOfRange);
 							}
-							if(curScore < NEGATIVE_INFINITY) {
+							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
 							}
 							if(curScore > maxScore && l != 5) {
@@ -295,7 +291,7 @@ int AlignColorSpace(char *read,
 											Exit,
 											OutOfRange);
 							}
-							if(curScore < NEGATIVE_INFINITY) {
+							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
 							}
 							if(curScore > maxScore && l != 4) {
@@ -328,26 +324,38 @@ int AlignColorSpace(char *read,
 
 				/* HERE A4 */
 				/*
-				fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
-						i+1,
-						j+1,
-						k,
-						matrix[i+1][j+1].score[k],
-						matrix[i+1][j+1].length[k],
-						matrix[i+1][j+1].from[k],
-						matrix[i+1][j+1].colorError[k]
-					   );
-				if(i==j) {
-					fprintf(stderr, "HERE A4\n");
-					exit(1);
+				if(strcmp(read, "AGCTTTTCATTCTGACTGCAACGGT")==0 &&
+						i==readLength-1 &&
+						i==j) {
+					fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
+							i+1,
+							j+1,
+							k,
+							matrix[i+1][j+1].score[k],
+							matrix[i+1][j+1].length[k],
+							matrix[i+1][j+1].from[k],
+							matrix[i+1][j+1].colorError[k]
+						   );
 				}
 				*/
+				/*
+				   if(i == 18 && j== 21 && k == 5) {
+				   fprintf(stderr, "HERE A4\n");
+				   exit(1);
+				   }
+				   */
 			}
 		}
 	}
 
 	/* TODO */
 	/* Get results and store them in the align entry */
+
+	/* HERE A6 */
+	/*
+		fprintf(stderr, "HERE A6\n");
+		exit(1);
+		*/
 
 	offset = FillAlignEntryFromMatrix(aEntry,
 			matrix,
@@ -379,4 +387,3 @@ int AlignColorSpace(char *read,
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;
 }
-
