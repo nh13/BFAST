@@ -197,6 +197,9 @@ void RGBinaryRead(char *rgFileName,
 			 * Repeat sequence: A,C,G,T
 			 * Null Character: N,n
 			 * */
+					
+			/* Transform IUPAC codes */
+			original=TransformFromIUPAC(original);
 
 			/* Reallocate memory in increments.  This allows us to avoid having
 			 * to reallocate memory every iteration through the loop, thus speeding
@@ -227,10 +230,6 @@ void RGBinaryRead(char *rgFileName,
 						prevBase = original; /* Update the previous base */
 						original = ToLower(c);
 					}
-				}
-				else {
-					/* Transform IUPAC codes */
-					original=TransformFromIUPAC(original);
 				}
 
 				if(VERBOSE >= 0) {
