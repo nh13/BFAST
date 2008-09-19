@@ -671,23 +671,13 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 		ScoringMatrix *sm,
 		AlignEntry *aEntry)
 {
+	/*
 	char *FnName = "RunDynamicProgrammingThreadHelper";
+	*/
 	char *reference=NULL;
 	int referenceLength=0;
 	int referencePosition=0;
 	int adjustPosition=0;
-
-	/* Allocate memory for the reference */
-	referenceLength = 2*offsetLength + SEQUENCE_LENGTH + 1;
-	reference = malloc(sizeof(char)*(referenceLength+1));
-	if(NULL==reference) {
-		PrintError(FnName,
-				"reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	reference[referenceLength] = '\0'; /* Add null terminator */
 
 	/* Get the appropriate reference read */
 	RGBinaryGetSequence(rgBinary,
@@ -695,7 +685,7 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 			position,
 			FORWARD, /* We have been just reversing the read instead of the reference */
 			offsetLength,
-			reference,
+			&reference,
 			readLength,
 			&referenceLength,
 			&referencePosition);

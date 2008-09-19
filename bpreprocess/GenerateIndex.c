@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include "../blib/BLib.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
@@ -25,7 +26,9 @@ void GenerateIndex(RGBinary *rg,
 		char *tmpDir,
 		int binaryOutput)
 {
+	/*
 	char *FnName="GenerateIndex";
+	*/
 	int32_t i;
 	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
 	FILE *fp=NULL;

@@ -120,8 +120,8 @@ void PrintDistribution(RGIndex *index,
 	int64_t counter=0;
 	int64_t numDifferent = 0;
 	int64_t numForward, numReverse;
-	char read[SEQUENCE_LENGTH] = "\0";
-	char reverseRead[SEQUENCE_LENGTH] = "\0";
+	char *read=NULL;
+	char *reverseRead=NULL;
 	int64_t i, j;
 	char **reads=NULL;
 	int64_t *readCounts=NULL;
@@ -150,8 +150,8 @@ void PrintDistribution(RGIndex *index,
 				numMismatches,
 				&numForward, 
 				&numReverse,
-				read,
-				reverseRead);
+				&read,
+				&reverseRead);
 		assert(numForward + numReverse> 0);
 
 		nextIndex += numForward;
@@ -197,10 +197,18 @@ void PrintDistribution(RGIndex *index,
 					MallocMemory);
 		}
 		/* Copy over */
+		assert(strlen(read) < SEQUENCE_LENGTH);
+		assert(strlen(reverseRead) < SEQUENCE_LENGTH);
 		strcpy(reads[numReads-2], read);
 		strcpy(reads[numReads-1], reverseRead);
 		readCounts[numReads-1] = numForward+numReverse;
 		readCounts[numReads-2] = numForward+numReverse;
+
+		/* Free memory */
+		free(read);
+		read = NULL;
+		free(reverseRead);
+		reverseRead = NULL;
 	}
 	fprintf(stderr, "\r%10lld\n", 
 			(long long int)(curIndex-startIndex+1));
@@ -323,8 +331,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 		int numMismatches,
 		int64_t *numForward,
 		int64_t *numReverse, 
-		char *read,
-		char *reverseRead)
+		char **read,
+		char **reverseRead)
 {
 	char *FnName = "GetMatchesFromChrPos";
 	int readLength = index->totalLength;
@@ -352,11 +360,20 @@ void GetMatchesFromChrPos(RGIndex *index,
 
 	/* First generate the perfect match for the forward and
 	 * reverse strand */
-	GetReverseComplimentAnyCase(read,
-			reverseRead,
+
+	reverseRead = malloc(sizeof(char)*(returnLength+1));
+	if(NULL==reverseRead) {
+		PrintError(FnName,
+				"reverseRead",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	GetReverseComplimentAnyCase((*read),
+			(*reverseRead),
 			readLength);
 
-	RGReadsGeneratePerfectMatch(read,
+	RGReadsGeneratePerfectMatch((*read),
 			readLength,
 			FORWARD,
 			0,
@@ -365,7 +382,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 			index->gaps,
 			index->totalLength,
 			&reads);
-	RGReadsGeneratePerfectMatch(reverseRead,
+	RGReadsGeneratePerfectMatch((*reverseRead),
 			readLength,
 			REVERSE,
 			0,
@@ -378,7 +395,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 	if(numMismatches > 0) {
 		/* Generate reads with the necessary mismatches for 
 		 *          * both the forward and reverse strands */
-		RGReadsGenerateMismatches(reverseRead,
+		RGReadsGenerateMismatches((*reverseRead),
 				readLength,
 				REVERSE,
 				0,
@@ -388,7 +405,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 				index->totalLength,
 				numMismatches,
 				&reads);
-		RGReadsGenerateMismatches(read,
+		RGReadsGenerateMismatches((*read),
 				readLength,
 				FORWARD,
 				0,
@@ -449,8 +466,8 @@ void GetMatchesFromChrPos(RGIndex *index,
 		curPosRead += index->tileLengths[i];
 		if(i<index->numTiles-1) {
 			for(j=0;j<index->gaps[i];j++) {
-				read[curPosRead] = 'N';
-				reverseRead[curPosRead] = 'N';
+				(*read)[curPosRead] = 'N';
+				(*reverseRead)[curPosRead] = 'N';
 				curPosRead++;
 			}
 		}

@@ -1,8 +1,8 @@
 ===============================================================================
 General
-1. Reference genome can be a cat of fasta files.  For example the sequence of
+1. use the -O3 flag when compiling.
+2. Reference genome can be a cat of fasta files.  For example the sequence of
 say 2000 exons.
-2. Documentation needs updating to include color space.
 ===============================================================================
 
 ===============================================================================

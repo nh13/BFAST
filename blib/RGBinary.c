@@ -691,32 +691,33 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 		int32_t position,
 		int8_t strand,
 		int32_t offsetLength,
-		char *reference,
-		int32_t matchLength,
+		char **reference,
+		int32_t readLength,
 		int32_t *returnReferenceLength,
 		int32_t *returnPosition)
 {
+	char *FnName="RGBinaryGetSequence";
 	int32_t chrIndex;
 	char *reverseCompliment;
-	int32_t numCharsPerByte;
 	int32_t startPos, endPos;
-	int32_t referenceLength = 2*offsetLength + matchLength;
+	int32_t referenceLength;
 	int32_t curPos;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
-	numCharsPerByte=ALPHABET_SIZE/2;
 	startPos=-1;
 	endPos=-1;
+
+	/* Get bounds for the sequence to return */
 	if(FORWARD == strand) {
 		startPos = position - offsetLength;
-		endPos = position + matchLength - 1 + offsetLength;
+		endPos = position + readLength - 1 + offsetLength;
 	}
 	else if(REVERSE == strand) {
-		startPos = position - matchLength + 1 - offsetLength;
+		startPos = position - readLength + 1 - offsetLength;
 		endPos = position + offsetLength;
 	}
 	else {
-		PrintError("RGBinaryGetSequence",
+		PrintError(FnName,
 				NULL,
 				"Could not recognize strand",
 				Exit,
@@ -739,7 +740,7 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 
 	/* Check chromosome bounds */
 	if(chromosome < (int)rgBinary->startChr || chromosome > (int)rgBinary->endChr) {
-		PrintError("RGBinaryGetSequence",
+		PrintError(FnName,
 				NULL,
 				"Chromosome is out of range",
 				Exit,
@@ -768,6 +769,17 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 		}
 	}
 
+	/* Allocate memory for the reference */
+	referenceLength = endPos - startPos + 1;
+	(*reference) = malloc(sizeof(char)*(referenceLength+1));
+	if(NULL==(*reference)) {
+		PrintError(FnName,
+				"reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
 	/* Get the reference sequence */
 	if(VERBOSE >= DEBUG) {
 		fprintf(stderr, "startPos:%d\tendPos:%d\n",
@@ -775,13 +787,12 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 				endPos);
 	}
 	/* Update the reference length */
-	referenceLength = endPos - startPos + 1;
 	assert(startPos <= endPos);
 	assert(startPos >= 1);
 	for(curPos=startPos;curPos<=endPos;curPos++) {
-		reference[curPos-startPos] = RGBinaryGetBase(rgBinary, chromosome, curPos);
+		(*reference)[curPos-startPos] = RGBinaryGetBase(rgBinary, chromosome, curPos);
 	}
-	reference[curPos-startPos] = '\0';
+	(*reference)[curPos-startPos] = '\0';
 
 	/* Get the reverse compliment if necessary */
 	if(strand == FORWARD) {
@@ -791,19 +802,21 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 		/* Get the reverse compliment */
 		reverseCompliment = malloc(sizeof(char)*(referenceLength+1));
 		if(NULL == reverseCompliment) {
-			PrintError("RGBinaryGetSequence",
+			PrintError(FnName,
 					"reverseCompliment",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		GetReverseComplimentAnyCase(reference, reverseCompliment, referenceLength);
-		strcpy(reference, reverseCompliment);
-		/* Free the memory */
-		free(reverseCompliment);
+		GetReverseComplimentAnyCase((*reference), reverseCompliment, referenceLength);
+		/* Copy reverse compliment to the reference.  We could just strcpy or we 
+		 * could just use the wonderful world of pointers */
+		free((*reference)); /* Free memory pointed to by reference */
+		(*reference) = reverseCompliment; /* Point reference to reverse compliment's memory */
+		reverseCompliment=NULL; /* Destroy the pointer for reverse compliment */
 	}
 	else {
-		PrintError("RGBinaryGetSequence",
+		PrintError(FnName,
 				"strand",
 				"Could not understand strand",
 				Exit,
@@ -814,18 +827,19 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 	(*returnPosition) = startPos;
 	if(VERBOSE>=DEBUG) {
 		fprintf(stderr, "Exiting RGBinaryGetSequence:[%s] length [%d] referenceLength [%d] and startPos [%d].\n",
-				reference,
-				(int)strlen(reference),
+				(*reference),
+				(int)strlen((*reference)),
 				referenceLength,
 				startPos);
 	}
-	assert(referenceLength==strlen(reference));
+	assert(referenceLength==strlen((*reference)));
 }
 
 int8_t RGBinaryGetBase(RGBinary *rg,
 		int32_t chromosome,
 		int32_t position) 
 {
+	char *FnName = "RGBinaryGetBase";
 	assert(chromosome >= rg->startChr && chromosome <= rg->endChr);
 
 	int32_t numCharsPerByte=ALPHABET_SIZE/2;
@@ -865,7 +879,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 					repeat = 2;
 					break;
 				default:
-					PrintError("RGBinaryGetSequence",
+					PrintError(FnName,
 							NULL,
 							"Could not understand case 0 repeat",
 							Exit,
@@ -887,7 +901,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 					curChar = 't';
 					break;
 				default:
-					PrintError("RGBinaryGetSequence",
+					PrintError(FnName,
 							NULL,
 							"Could not understand case 0 base",
 							Exit,
@@ -909,7 +923,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 					repeat = 2;
 					break;
 				default:
-					PrintError("RGBinaryGetSequence",
+					PrintError(FnName,
 							NULL,
 							"Could not understand case 1 repeat",
 							Exit,
@@ -932,7 +946,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 					curChar = 't';
 					break;
 				default:
-					PrintError("RGBinaryGetSequence",
+					PrintError(FnName,
 							NULL,
 							"Could not understand case 1 base",
 							Exit,
@@ -941,7 +955,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 			}
 			break;
 		default:
-			PrintError("RGBinaryGetSequence",
+			PrintError(FnName,
 					"byteIndex",
 					"Could not understand byteIndex",
 					Exit,
@@ -961,8 +975,11 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 			curChar='N';
 			break;
 		default:
-			fprintf(stderr, "Error.  In RGBinaryGetSequence, could not understand repeat indexed [%d].  Terminating!\n",
-					repeat);
+			PrintError(FnName,
+					"repeat",
+					"Could not understand repeat",
+					Exit,
+					OutOfRange);
 			break;
 	}
 	/* Error check */
@@ -978,7 +995,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 		case 'N':
 			break;
 		default:
-			PrintError("RGBinaryGetSequence",
+			PrintError(FnName,
 					NULL,
 					"Could not understand base",
 					Exit,

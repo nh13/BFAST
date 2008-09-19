@@ -107,7 +107,7 @@ int Align(char *read,
 				case REVERSE:
 					/* Matches the reverse strand */
 					/* Reverse compliment the reference */
-					reverseReference = malloc(sizeof(char)*referenceLength);
+					reverseReference = malloc(sizeof(char)*(referenceLength+1));
 					if(NULL==reverseReference) {
 						PrintError(FnName,
 								"reverseReference",

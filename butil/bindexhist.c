@@ -100,7 +100,9 @@ void GetPivots(RGIndex *index,
 		int64_t *ends,
 		int64_t numThreads)
 {
+	/*
 	char *FnName="GetPivots";
+	*/
 	int64_t i, ind;
 	int32_t returnLength, returnPosition;
 	RGReads reads;
@@ -120,21 +122,14 @@ void GetPivots(RGIndex *index,
 		reads.strand[i] = FORWARD;
 		reads.offset[i] = 0;
 		/* Allocate memory */
-		reads.reads[i] = malloc(sizeof(char)*(reads.readLength[i]+1));
-		if(reads.reads[i] == NULL) {
-			PrintError(FnName,
-					"reads.reads[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+		reads.reads[i] = NULL;
 		/* Get read */
 		RGBinaryGetSequence(rg,
 				index->chromosomes[ind],
 				index->positions[ind],
 				FORWARD,
 				0,
-				reads.reads[i],
+				&reads.reads[i],
 				reads.readLength[i],
 				&returnLength,
 				&returnPosition);
@@ -549,7 +544,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 		int64_t *numReverse)
 {
 	char *FnName = "GetMatchesFromChrPos";
-	char read[SEQUENCE_LENGTH]="\0";
+	char *read=NULL;
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 	int readLength = index->totalLength;
 	int returnLength, returnPosition;
@@ -567,7 +562,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 			curPos,
 			FORWARD,
 			0,
-			read,
+			&read,
 			readLength,
 			&returnLength,
 			&returnPosition);
@@ -691,4 +686,6 @@ void GetMatchesFromChrPos(RGIndex *index,
 	/* Free memory */
 	RGReadsFree(&reads);
 	RGRangesFree(&ranges);
+	free(read);
+	read=NULL;
 }
