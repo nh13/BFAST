@@ -225,7 +225,8 @@ void CheckRGIndexes(char **mainFileNames,
 	int i;
 	int32_t mainStartChr, mainStartPos, mainEndChr, mainEndPos;
 	int32_t secondaryStartChr, secondaryStartPos, secondaryEndChr, secondaryEndPos;
-	int32_t mainColorSpace, secondaryColorSpace;
+	int32_t mainColorSpace=colorSpace;
+	int32_t secondaryColorSpace=colorSpace;
 	mainStartChr = mainStartPos = mainEndChr = mainEndPos = 0;
 	secondaryStartChr = secondaryStartPos = secondaryEndChr = secondaryEndPos = 0;
 
