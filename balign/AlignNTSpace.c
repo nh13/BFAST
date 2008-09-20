@@ -71,7 +71,7 @@ int AlignNTSpace(char *read,
 			matrix[0][j].score[k] = 0.0;
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
-			matrix[i][0].colorError[k] = '0';
+			matrix[0][j].colorError[k] = '0';
 		}
 	}
 
@@ -79,9 +79,9 @@ int AlignNTSpace(char *read,
 	for(i=0;i<readLength;i++) { /* read/rows */
 		for(j=0;j<referenceLength;j++) { /* reference/columns */
 			/* No color errors */
-			matrix[i+1][i+1].colorError[0] = '0';
-			matrix[i+1][i+1].colorError[1] = '0';
-			matrix[i+1][i+1].colorError[2] = '0';
+			matrix[i+1][j+1].colorError[0] = '0';
+			matrix[i+1][j+1].colorError[1] = '0';
+			matrix[i+1][j+1].colorError[2] = '0';
 
 			/* Deletion is down a row, insertion is across a column, and
 			 * match/mismatch is a diagonal */

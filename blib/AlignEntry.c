@@ -91,11 +91,9 @@ int AlignEntryRead(AlignEntry *aEntry,
 		return EOF;
 	}
 
-	/*
 	assert(((int)strlen(aEntry->read)) == aEntry->length);
 	assert(strlen(aEntry->reference) == aEntry->length);
 	assert((int)strlen(aEntry->colorError) == aEntry->length);
-	*/
 
 	return 1;
 }

@@ -86,6 +86,15 @@ int AlignEntriesRead(AlignEntries *a,
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 	if(a->pairedEnd != pairedEnd) {
+		/* HERE */
+		fprintf(stderr, "a->readName=[%s]\n",
+				a->readName);
+		fprintf(stderr, "a->pairedEnd=%d\npairedEnd=%d\n",
+				a->pairedEnd,
+				pairedEnd);
+		fprintf(stderr, "a->numEntriesOne=%d\na->numEntriesTwo=%d\n",
+				a->numEntriesOne,
+				a->numEntriesTwo);
 		PrintError(FnName,
 				"a->pairedEnd != pairedEnd",
 				"Paired end does not match",

@@ -588,7 +588,6 @@ void *RunDynamicProgrammingThread(void *arg)
 		/* Copy over read name */
 		strcpy(aEntries.readName, (char*)m.readName);
 
-
 		/* Run the aligner */
 		/* First entry */
 		if(m.matchOne.numEntries > 0) {
@@ -600,7 +599,9 @@ void *RunDynamicProgrammingThread(void *arg)
 			   matchRead,
 			   matchReadLength);
 			   */
-			matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
+			if(colorSpace == 1) {
+				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
+			}
 		}
 		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
 		for(i=0;i<m.matchOne.numEntries;i++) { /* For each match */
@@ -619,7 +620,9 @@ void *RunDynamicProgrammingThread(void *arg)
 		if(m.matchTwo.numEntries > 0) {
 			strcpy(matchRead, (char*)m.matchTwo.read);
 			matchReadLength = m.matchTwo.readLength;
-			matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
+			if(colorSpace == 1) {
+				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
+			}
 		}
 		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
 		for(i=0;i<m.matchTwo.numEntries;i++) { /* For each match */
@@ -642,6 +645,8 @@ void *RunDynamicProgrammingThread(void *arg)
 			AlignEntriesRemoveDuplicates(&aEntries,
 					AlignEntrySortByAll);
 		}
+
+		assert(pairedEnd == aEntries.pairedEnd);
 
 		/* Output alignment */
 		AlignEntriesPrint(&aEntries,
@@ -672,8 +677,8 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 		AlignEntry *aEntry)
 {
 	/*
-	char *FnName = "RunDynamicProgrammingThreadHelper";
-	*/
+	   char *FnName = "RunDynamicProgrammingThreadHelper";
+	   */
 	char *reference=NULL;
 	int referenceLength=0;
 	int referencePosition=0;
@@ -692,7 +697,7 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 	assert(referenceLength > 0);
 
 	/* HERE 41 */
-	/* 
+	/*
 	   fprintf(stderr, "HERE 41\nread=%s\nreference=%s\n",
 	   read,
 	   reference);
