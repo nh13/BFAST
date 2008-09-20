@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntries.h"
@@ -105,7 +106,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				Exit,
 				OpenFileError);
 	}
-		PrintHeader(fpNotReported, outputFormat);
+	PrintHeader(fpNotReported, outputFormat);
 	if(!(fpOut=fopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
@@ -113,7 +114,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				Exit,
 				OpenFileError);
 	}
-		PrintHeader(fpOut, outputFormat);
+	PrintHeader(fpOut, outputFormat);
 
 	/* Initialize */
 	AlignEntriesInitialize(&a);
@@ -142,7 +143,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				minDistancePaired,          
 				maxDistancePaired,
 				meanDistancePaired);
-		
+
 		/* Print the apporiate files based on the return type */
 		switch(foundType) {
 			case NoneFound:
@@ -263,22 +264,22 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 		FILE *fp)
 {
 	/*
-	char *FnName="PrintAlignEntriesToMAF";
-	*/
+	   char *FnName="PrintAlignEntriesToMAF";
+	   */
 	int i;
 
 	/* Get Data */
 	if(0==a->pairedEnd) {
 		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, 1, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 1, fp); 
 		}
 	}
 	else {
 		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, 1, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 1, fp); 
 		}
 		for(i=0;i<a->numEntriesTwo;i++) {
-			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, a->pairedEnd, 2, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 2, fp); 
 		}
 	}
 
@@ -288,6 +289,7 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 void PrintAlignEntryToMAF(AlignEntry *a,
 		char *readName,
 		int pairedEnd,
+		int colorSpace,
 		int readNum,
 		FILE *fp)
 {
@@ -307,15 +309,30 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 
 	/* Print the score */
-	if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d\n",
-				a->score,
-				pairedEnd,
-				readNum)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+	if(colorSpace == 1) {
+		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d color-errors=%s\n",
+					a->score,
+					pairedEnd,
+					readNum,
+					a->colorError)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d\n",
+					a->score,
+					pairedEnd,
+					readNum)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
 	}
 
 	/* Print the reference */

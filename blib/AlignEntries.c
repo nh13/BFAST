@@ -135,7 +135,7 @@ int AlignEntriesRead(AlignEntries *a,
 		AlignEntryInitialize(&a->entriesOne[i]);
 		if(EOF==AlignEntryRead(&a->entriesOne[i],
 					inputFP,
-					colorSpace)) {
+					a->colorSpace)) {
 			PrintError(FnName, 
 					NULL, 
 					"Could not read entriesOne",
@@ -148,7 +148,7 @@ int AlignEntriesRead(AlignEntries *a,
 			AlignEntryInitialize(&a->entriesTwo[i]);
 			if(EOF==AlignEntryRead(&a->entriesTwo[i],
 						inputFP,
-						colorSpace)) {
+						a->colorSpace)) {
 				PrintError(FnName, 
 						NULL, 
 						"Could not read entriesTwo",

@@ -16,6 +16,12 @@ int AlignEntryPrint(AlignEntry *aEntry,
 	assert(NULL != aEntry->reference);
 	assert(NULL != aEntry->colorError);
 
+	/*
+	assert(((int)strlen(aEntry->read)) == aEntry->length);
+	assert(strlen(aEntry->reference) == aEntry->length);
+	assert((int)strlen(aEntry->colorError) == aEntry->length);
+	*/
+
 	/* Print the read name, alignment length, chromosome, position, strand, score */
 	if(fprintf(outputFP, "%d\t%d\t%d\t%c\t%lf\n",
 				aEntry->length,
@@ -108,10 +114,10 @@ int AlignEntryRead(AlignEntry *aEntry,
 	}
 
 	/*
-	   assert(((int)strlen(aEntry->read)) == aEntry->length);
-	   assert(strlen(aEntry->reference) == aEntry->length);
-	   assert((int)strlen(aEntry->colorError) == aEntry->length);
-	   */
+	assert(((int)strlen(aEntry->read)) == aEntry->length);
+	assert(strlen(aEntry->reference) == aEntry->length);
+	assert((int)strlen(aEntry->colorError) == aEntry->length);
+	*/
 
 	return 1;
 }
