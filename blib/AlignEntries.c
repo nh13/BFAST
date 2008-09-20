@@ -18,9 +18,10 @@ void AlignEntriesPrint(AlignEntries *a,
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 
 	/* Print the read name and paired end flag */
-	if(fprintf(outputFP, "%s\t%d\t%d\t%d\n",
+	if(fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\n",
 				a->readName,
 				a->pairedEnd,
+				a->colorSpace,
 				a->numEntriesOne,
 				a->numEntriesTwo) < 0) {
 		PrintError(FnName,
@@ -32,7 +33,8 @@ void AlignEntriesPrint(AlignEntries *a,
 
 	for(i=0;i<a->numEntriesOne;i++) {
 		if(EOF == AlignEntryPrint(&a->entriesOne[i],
-					outputFP)) {
+					outputFP,
+					a->colorSpace)) {
 			PrintError(FnName,
 					"entriesOne",
 					"Could not write to file",
@@ -44,7 +46,8 @@ void AlignEntriesPrint(AlignEntries *a,
 	if(a->pairedEnd==1) {
 		for(i=0;i<a->numEntriesTwo;i++) {
 			if(EOF == AlignEntryPrint(&a->entriesTwo[i],
-						outputFP)) {
+						outputFP,
+						a->colorSpace)) {
 				PrintError(FnName,
 						"entriesTwo",
 						"Could not write to file",
@@ -58,7 +61,8 @@ void AlignEntriesPrint(AlignEntries *a,
 /* TODO */
 int AlignEntriesRead(AlignEntries *a,
 		FILE *inputFP,
-		int pairedEnd)
+		int pairedEnd,
+		int colorSpace)
 {
 	char *FnName = "AlignEntriesRead";
 	int i;
@@ -75,10 +79,11 @@ int AlignEntriesRead(AlignEntries *a,
 		}
 	}
 
-	/* Read the read name, paired end flag, and the number of entries for both entries */
-	if(fscanf(inputFP, "%s %d %d %d",
+	/* Read the read name, paired end flag, color space flag, and the number of entries for both entries */
+	if(fscanf(inputFP, "%s %d %d %d %d",
 				a->readName,
 				&a->pairedEnd,
+				&a->colorSpace,
 				&a->numEntriesOne,
 				&a->numEntriesTwo)==EOF) {
 		return EOF;
@@ -86,18 +91,17 @@ int AlignEntriesRead(AlignEntries *a,
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 	if(a->pairedEnd != pairedEnd) {
-		/* HERE */
-		fprintf(stderr, "a->readName=[%s]\n",
-				a->readName);
-		fprintf(stderr, "a->pairedEnd=%d\npairedEnd=%d\n",
-				a->pairedEnd,
-				pairedEnd);
-		fprintf(stderr, "a->numEntriesOne=%d\na->numEntriesTwo=%d\n",
-				a->numEntriesOne,
-				a->numEntriesTwo);
 		PrintError(FnName,
 				"a->pairedEnd != pairedEnd",
 				"Paired end does not match",
+				Exit,
+				OutOfRange);
+	}
+	if(colorSpace != SpaceDoesNotMatter &&
+			a->colorSpace != colorSpace) {
+		PrintError(FnName,
+				"a->colorSpace != colorSpace",
+				"Color space does not match",
 				Exit,
 				OutOfRange);
 	}
@@ -130,7 +134,8 @@ int AlignEntriesRead(AlignEntries *a,
 	for(i=0;i<a->numEntriesOne;i++) {
 		AlignEntryInitialize(&a->entriesOne[i]);
 		if(EOF==AlignEntryRead(&a->entriesOne[i],
-					inputFP)) {
+					inputFP,
+					colorSpace)) {
 			PrintError(FnName, 
 					NULL, 
 					"Could not read entriesOne",
@@ -142,7 +147,8 @@ int AlignEntriesRead(AlignEntries *a,
 		for(i=0;i<a->numEntriesTwo;i++) {
 			AlignEntryInitialize(&a->entriesTwo[i]);
 			if(EOF==AlignEntryRead(&a->entriesTwo[i],
-						inputFP)) {
+						inputFP,
+						colorSpace)) {
 				PrintError(FnName, 
 						NULL, 
 						"Could not read entriesTwo",

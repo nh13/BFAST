@@ -9,7 +9,8 @@
 
 /* TODO */
 int AlignEntryPrint(AlignEntry *aEntry,
-		FILE *outputFP)
+		FILE *outputFP,
+		int colorSpace)
 {
 	assert(NULL != aEntry->read);
 	assert(NULL != aEntry->reference);
@@ -26,11 +27,18 @@ int AlignEntryPrint(AlignEntry *aEntry,
 	}
 
 	/* Print the reference and read alignment */
-	if(fprintf(outputFP, "%s\n%s\n%s\n",
+	if(fprintf(outputFP, "%s\n%s\n",
 				aEntry->reference,
-				aEntry->read,
-				aEntry->colorError) < 0) {
+				aEntry->read) < 0) {
 		return EOF;
+	}
+
+	/* Print the color errors if necessary */
+	if(colorSpace == 1) {
+		if(fprintf(outputFP, "%s\n",
+					aEntry->colorError) < 0) {
+			return EOF;
+		}
 	}
 
 	return 1;
@@ -38,7 +46,8 @@ int AlignEntryPrint(AlignEntry *aEntry,
 
 /* TODO */
 int AlignEntryRead(AlignEntry *aEntry,
-		FILE *inputFP)
+		FILE *inputFP,
+		int colorSpace)
 {
 	char *FnName = "AlignEntryRead";
 
@@ -84,16 +93,25 @@ int AlignEntryRead(AlignEntry *aEntry,
 	}
 
 	/* Read the reference and read alignment */
-	if(fscanf(inputFP, "%s %s %s", 
+	if(fscanf(inputFP, "%s %s", 
 				aEntry->reference,
-				aEntry->read,
-				aEntry->colorError)==EOF) {
+				aEntry->read)==EOF) {
 		return EOF;
 	}
 
-	assert(((int)strlen(aEntry->read)) == aEntry->length);
-	assert(strlen(aEntry->reference) == aEntry->length);
-	assert((int)strlen(aEntry->colorError) == aEntry->length);
+	/* Read hte color errors if necessary */
+	if(colorSpace == 1) {
+		if(fscanf(inputFP, "%s",
+					aEntry->colorError)==EOF) {
+			return EOF;
+		}
+	}
+
+	/*
+	   assert(((int)strlen(aEntry->read)) == aEntry->length);
+	   assert(strlen(aEntry->reference) == aEntry->length);
+	   assert((int)strlen(aEntry->colorError) == aEntry->length);
+	   */
 
 	return 1;
 }
@@ -109,8 +127,8 @@ int AlignEntryRemoveDuplicates(AlignEntry **a,
 		/* Sort the array */
 		AlignEntryQuickSort(a, 0, length-1, sortOrder, 0, NULL, 0);
 		/*
-		AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
-		*/
+		   AlignEntryMergeSort(a, 0, length-1, sortOrder, 0, NULL, 0);
+		   */
 
 		/* Check sort */
 		/*
@@ -495,7 +513,7 @@ void AlignEntryInitialize(AlignEntry *aEntry)
 
 /* TODO */
 /* Debugging function */
-void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg)
+void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg, int colorSpace)
 {
 	char *FnName = "AlignEntryCheckReference";
 	int i;
@@ -520,7 +538,7 @@ void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg)
 						reference[i],
 						rgBase,
 						reference);
-				AlignEntryPrint(aEntry, stderr);
+				AlignEntryPrint(aEntry, stderr, colorSpace);
 				PrintError(FnName,
 						NULL,
 						"Reference in the align entry does not match the reference genome",

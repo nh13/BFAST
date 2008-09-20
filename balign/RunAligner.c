@@ -445,7 +445,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		continueReading=0;
 		for(i=0;i<numThreads;i++) {
 			/* Read in the align entries */
-			if(EOF != AlignEntriesRead(&aEntries, data[i].outputFP, pairedEnd)) {
+			if(EOF != AlignEntriesRead(&aEntries, data[i].outputFP, pairedEnd, colorSpace)) {
 				if(VERBOSE >=0 && numAligned%ALIGN_ROTATE_NUM == 0) {
 					fprintf(stderr, "\r[%d]", numAligned);
 				}

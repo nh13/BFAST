@@ -123,7 +123,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
 	counter = numReported = numNotReported = numChrAb = numInversions = 0;
-	while(EOF != AlignEntriesRead(&a, fp, pairedEnd)) {
+	while(EOF != AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);

@@ -14,10 +14,13 @@ typedef struct {
 	AlignEntry *entriesTwo;
 	int numEntriesTwo;
 	int pairedEnd;
+	int colorSpace;
 } AlignEntries;
 
+enum {SpaceDoesNotMatter, NTSpace, ColorSpace};
+
 void AlignEntriesPrint(AlignEntries*, FILE*);
-int AlignEntriesRead(AlignEntries*, FILE*, int);
+int AlignEntriesRead(AlignEntries*, FILE*, int, int);
 void AlignEntriesRemoveDuplicates(AlignEntries*, int);
 void AlignEntriesQuickSort(AlignEntries*, int, int);
 void AlignEntriesMergeSort(AlignEntries*, int, int);
