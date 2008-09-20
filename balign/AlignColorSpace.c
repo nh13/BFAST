@@ -28,10 +28,10 @@ int AlignColorSpace(char *read,
 
 	/* HERE 40 */
 	/*
-	fprintf(stderr, "HERE 40\nreference=%s\nread=%s\n",
-			reference,
-			read);
-			*/
+	   fprintf(stderr, "HERE 40\nreference=%s\nread=%s\n",
+	   reference,
+	   read);
+	   */
 
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrix*)*(readLength+1));
@@ -62,6 +62,7 @@ int AlignColorSpace(char *read,
 			matrix[i][0].from[k] = Start;
 			matrix[i][0].length[k] = 0;
 			matrix[i][0].colorError[k] = '0';
+			matrix[i][0].prevInsertionBase = COLOR_SPACE_START_NT;
 		}
 	}
 	/* Row 0 column j should be zero since we want to find the best
@@ -79,6 +80,7 @@ int AlignColorSpace(char *read,
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
 			matrix[0][j].colorError[k] = '0';
+			matrix[0][j].prevInsertionBase = COLOR_SPACE_START_NT;
 		}
 	}
 
@@ -102,11 +104,13 @@ int AlignColorSpace(char *read,
 				int maxFrom = -1;
 				char maxColorError = '0';
 				int maxLength = 0;
+				char maxPrevInsertionBase;
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
 					double curScore=NEGATIVE_INFINITY;
 					int curFrom=-1;
 					int curLength=-1;
+					char curPrevInsertionBase;
 					uint8_t convertedColor='X';
 					switch(k) {
 						case 0:
@@ -127,9 +131,12 @@ int AlignColorSpace(char *read,
 									convertedColor=ConvertBaseToColorSpace(DNA[l], DNA[k]);
 									break;
 								case 4:
-								case 5:
-									/* Use previous base for indels */
+									/* Use previous base for deletions */
 									convertedColor=ConvertBaseToColorSpace(prevReadBase, DNA[k]);
+									break;
+								case 5:
+									/* Use the previous base carried along by insertions */
+									convertedColor=ConvertBaseToColorSpace(matrix[i][j].prevInsertionBase, DNA[k]);
 									break;
 								default:
 									PrintError(FnName,
@@ -141,29 +148,29 @@ int AlignColorSpace(char *read,
 							}
 							/* HERE A5 */
 							/*
-							if(strcmp(read, "AGCTTTTCATTCTGACTGCAACGGT")==0 &&
-									i==readLength-1 &&
-									i==j) {
-								fprintf(stderr, "HERE A5\n");
-								char stuff[6] = "ACGTDI";
-								fprintf(stderr, "(%d,%d,to=%c,from=%c)=>%d,%d,%c,%c,%lf,%lf,%lf,%lf(from=%c,to=%c)\n",
-										i+1,
-										j+1,
-										stuff[k],
-										stuff[l],
-										(int)curColor,
-										(int)convertedColor,
-										(int)reference[j],
-										(int)stuff[k],
-										curScore,
-										ScoringMatrixGetColorScore(curColor, convertedColor, sm),
-										ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
-										curScore + ScoringMatrixGetColorScore(curColor, convertedColor, sm) + ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
-										stuff[l],
-										stuff[k]
-									   );
-							}
-							*/
+							   if(strcmp(read, "AGCTTTTCATTCTGACTGCAACGGT")==0 &&
+							   i==readLength-1 &&
+							   i==j) {
+							   fprintf(stderr, "HERE A5\n");
+							   char stuff[6] = "ACGTDI";
+							   fprintf(stderr, "(%d,%d,to=%c,from=%c)=>%d,%d,%c,%c,%lf,%lf,%lf,%lf(from=%c,to=%c)\n",
+							   i+1,
+							   j+1,
+							   stuff[k],
+							   stuff[l],
+							   (int)curColor,
+							   (int)convertedColor,
+							   (int)reference[j],
+							   (int)stuff[k],
+							   curScore,
+							   ScoringMatrixGetColorScore(curColor, convertedColor, sm),
+							   ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
+							   curScore + ScoringMatrixGetColorScore(curColor, convertedColor, sm) + ScoringMatrixGetNTScore(reference[j], DNA[k], sm),
+							   stuff[l],
+							   stuff[k]
+							   );
+							   }
+							   */
 							/* Add score for color error, if any */
 							curScore += ScoringMatrixGetColorScore(curColor,
 									convertedColor,
@@ -210,29 +217,29 @@ int AlignColorSpace(char *read,
 							}
 							break;
 						case 4:
-							/* Deletion */
-							curLength = matrix[i][j+1].length[l] + 1;
+							/* Deletion - previous column */
+							curLength = matrix[i+1][j].length[l] + 1;
 							switch(l) {
 								/* 0-3 gap open */
 								/* 4 gap extension */
 								case 0:
-									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curFrom = DeletionA;
 									break;
 								case 1:
-									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curFrom = DeletionC;
 									break;
 								case 2:
-									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curFrom = DeletionG;
 									break;
 								case 3:
-									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curFrom = DeletionT;
 									break;
 								case 4:
-									curScore = matrix[i][j+1].score[l] + sm->gapExtensionPenalty;
+									curScore = matrix[i+1][j].score[l] + sm->gapExtensionPenalty;
 									curFrom = DeletionExt;
 									break;
 								case 5:
@@ -256,32 +263,38 @@ int AlignColorSpace(char *read,
 							}
 							break;
 						case 5:
-							/* Insertion */
-							curLength = matrix[i+1][j].length[l] + 1;
+							/* Insertion - previous row */
+							curLength = matrix[i][j+1].length[l] + 1;
 							switch(l) {
 								/* 0-3 gap open */
 								/* 5 gap extension */
 								case 0:
-									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
 									curFrom = InsertionA;
+									curPrevInsertionBase = DNA[l];
 									break;
 								case 1:
-									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
 									curFrom = InsertionC;
+									curPrevInsertionBase = DNA[l];
 									break;
 								case 2:
-									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
 									curFrom = InsertionG;
+									curPrevInsertionBase = DNA[l];
 									break;
 								case 3:
-									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
 									curFrom = InsertionT;
+									curPrevInsertionBase = DNA[l];
 									break;
 								case 4:
 									break;
 								case 5:
-									curScore = matrix[i+1][j].score[l] + sm->gapExtensionPenalty;
+									curScore = matrix[i][j+1].score[l] + sm->gapExtensionPenalty;
 									curFrom = InsertionExt;
+									curPrevInsertionBase = ConvertBaseAndColor(matrix[i+1][j].prevInsertionBase, 
+											curColor);
 									break;
 								default:
 									fprintf(stderr, "l=%d\n", l);
@@ -299,6 +312,7 @@ int AlignColorSpace(char *read,
 								maxFrom = curFrom;
 								maxColorError = '0';
 								maxLength = curLength;
+								maxPrevInsertionBase = curPrevInsertionBase;
 							}
 							break;
 						default:
@@ -321,23 +335,33 @@ int AlignColorSpace(char *read,
 				matrix[i+1][j+1].from[k] = maxFrom;
 				matrix[i+1][j+1].colorError[k] = maxColorError;
 				matrix[i+1][j+1].length[k] = maxLength;
+				/* Update the previous insertion base */
+				if(k==5) {
+					matrix[i+1][j+1].prevInsertionBase = maxPrevInsertionBase;
+				}
+				/* Uncomment this to remove insertions */
+				/*
+				if(k>=5) {
+					matrix[i+1][j+1].score[k] = NEGATIVE_INFINITY; 
+				}
+				*/
 
 				/* HERE A4 */
 				/*
-				if(strcmp(read, "AGCTTTTCATTCTGACTGCAACGGT")==0 &&
-						i==readLength-1 &&
-						i==j) {
-					fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
-							i+1,
-							j+1,
-							k,
-							matrix[i+1][j+1].score[k],
-							matrix[i+1][j+1].length[k],
-							matrix[i+1][j+1].from[k],
-							matrix[i+1][j+1].colorError[k]
-						   );
-				}
-				*/
+				   if(strcmp(read, "AGCTTTTCATTCTGACTGCAACGGT")==0 &&
+				   i==readLength-1 &&
+				   i==j) {
+				   fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
+				   i+1,
+				   j+1,
+				   k,
+				   matrix[i+1][j+1].score[k],
+				   matrix[i+1][j+1].length[k],
+				   matrix[i+1][j+1].from[k],
+				   matrix[i+1][j+1].colorError[k]
+				   );
+				   }
+				   */
 				/*
 				   if(i == 18 && j== 21 && k == 5) {
 				   fprintf(stderr, "HERE A4\n");
@@ -353,9 +377,9 @@ int AlignColorSpace(char *read,
 
 	/* HERE A6 */
 	/*
-		fprintf(stderr, "HERE A6\n");
-		exit(1);
-		*/
+	   fprintf(stderr, "HERE A6\n");
+	   exit(1);
+	   */
 
 	offset = FillAlignEntryFromMatrix(aEntry,
 			matrix,
@@ -363,7 +387,32 @@ int AlignColorSpace(char *read,
 			readLength,
 			reference,
 			referenceLength,
+			1,
+			/* HERE */
 			1);
+
+	/* HERE E2 */
+	int count = 0;
+	for(i=0;i<aEntry->length;i++) {
+		if(aEntry->read[i] != GAP) {
+			count++;
+		}
+	}
+	if(count != strlen(read)) {
+		AlignEntryFree(aEntry);
+		offset = FillAlignEntryFromMatrix(aEntry,
+				matrix,
+				read,
+				readLength,
+				reference,
+				referenceLength,
+				1,
+				1);
+		fprintf(stderr, "read=%s\naEntry->read=%s\n",
+				read,
+				aEntry->read);
+	}
+	assert(count == strlen(read));
 
 	/* Free the matrix, free your mind */
 	for(i=0;i<readLength+1;i++) {

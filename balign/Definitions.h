@@ -37,37 +37,38 @@ typedef struct {
 /* TODO */
 typedef struct {
 	/* add three for the insertion, deletion and best score */
-	double score[ALIGNMATRIXCELL_NUM_SUB_CELLS];
-	int from[ALIGNMATRIXCELL_NUM_SUB_CELLS];
-	int length[ALIGNMATRIXCELL_NUM_SUB_CELLS];
-	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS];
+	double score[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
+	int from[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* previous arc */
+	int length[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* path length */
+	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* color error */
+	char prevInsertionBase; /* When we create a run of insertions, we must keep track of the bases in the read */
 } AlignMatrix;
 
 /* For the "from" in the struct "AlignMatrixCell" */
 enum {
-	Start,
+	Start, /* 0 */
 	/* From diagonals */
-	DiagA,
-	DiagC,
-	DiagG,
-	DiagT,
+	DiagA, /* 1 */
+	DiagC, /* 2 */
+	DiagG, /* 3 */
+	DiagT, /* 4 */
 	/* From deletion */
 	/* Start of deletion */
-	DeletionA,
-	DeletionC,
-	DeletionG,
-	DeletionT,
+	DeletionA, /* 5 */
+	DeletionC, /* 6 */
+	DeletionG, /* 7 */
+	DeletionT, /* 8 */
 	/* Extension of deletion */
-	DeletionExt,
+	DeletionExt, /* 9 */
 	/* End of deletion */
-	DeletionEnd,
+	DeletionEnd, /* 10 */
 	/* From insertion */
-	InsertionA,
-	InsertionC,
-	InsertionG,
-	InsertionT,
-	InsertionExt,
-	InsertionEnd,
+	InsertionA, /* 11 */
+	InsertionC, /* 12 */
+	InsertionG, /* 13 */
+	InsertionT, /* 14 */
+	InsertionExt, /* 15 */
+	InsertionEnd, /* 16 */
 };
 
 #endif

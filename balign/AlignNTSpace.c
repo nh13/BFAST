@@ -33,11 +33,6 @@ int AlignNTSpace(char *read,
 	int offset = 0;
 	int i, j, k, l;
 
-	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
-		fprintf(stderr, "%s\n", FnName);
-	}
-
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrix*)*(readLength+1));
 	if(NULL==matrix) {
@@ -90,26 +85,26 @@ int AlignNTSpace(char *read,
 
 			/* Deletion is down a row, insertion is across a column, and
 			 * match/mismatch is a diagonal */
-			
+
 			/* Update deletion */
-			matrix[i+1][j+1].score[1] = matrix[i][j+1].score[1] + sm->gapExtensionPenalty; 
-			matrix[i+1][j+1].length[1] = matrix[i][j+1].length[1] + 1;
+			matrix[i+1][j+1].score[1] = matrix[i+1][j].score[1] + sm->gapExtensionPenalty; 
+			matrix[i+1][j+1].length[1] = matrix[i+1][j].length[1] + 1;
 			matrix[i+1][j+1].from[1] = DeletionExt;
 			/* Check if starting a new deletion is better */
-			if(matrix[i][j+1].score[0] + sm->gapOpenPenalty > matrix[i][j].score[1]) {
-				matrix[i+1][j+1].score[1] = matrix[i][j].score[0] + sm->gapOpenPenalty;
-				matrix[i+1][j+1].length[1] = matrix[i][j].length[0] + 1;
+			if(matrix[i+1][j].score[0] + sm->gapOpenPenalty > matrix[i+1][j+1].score[1]) {
+				matrix[i+1][j+1].score[1] = matrix[i+1][j].score[0] + sm->gapOpenPenalty;
+				matrix[i+1][j+1].length[1] = matrix[i+1][j].length[0] + 1;
 				matrix[i+1][j+1].from[1] = DeletionA;
 			}
 
 			/* Update insertion */
-			matrix[i+1][j+1].score[2] = matrix[i+1][j].score[2] + sm->gapExtensionPenalty; 
-			matrix[i+1][j+1].length[2] = matrix[i+1][j].length[2] + 1;
+			matrix[i+1][j+1].score[2] = matrix[i][j+1].score[2] + sm->gapExtensionPenalty; 
+			matrix[i+1][j+1].length[2] = matrix[i][j+1].length[2] + 1;
 			matrix[i+1][j+1].from[2] = InsertionExt;
 			/* Check if starting a new insertion is better */
-			if(matrix[i+1][j].score[0] + sm->gapOpenPenalty > matrix[i][j].score[2]) {
-				matrix[i+1][j+1].score[2] = matrix[i][j].score[0] + sm->gapOpenPenalty;
-				matrix[i+1][j+1].length[2] = matrix[i][j].length[0] + 1;
+			if(matrix[i][j+1].score[0] + sm->gapOpenPenalty > matrix[i+1][j+1].score[2]) {
+				matrix[i+1][j+1].score[2] = matrix[i][j+1].score[0] + sm->gapOpenPenalty;
+				matrix[i+1][j+1].length[2] = matrix[i][j+1].length[0] + 1;
 				matrix[i+1][j+1].from[2] = InsertionA;
 			}
 
@@ -137,24 +132,24 @@ int AlignNTSpace(char *read,
 				matrix[i+1][j+1].from[l] = Start;
 			}
 			/* HERE */
-			if(ALIGN_DEBUG_ON == 1) {
-				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) {
-					fprintf(stderr, "(i,j,l,score)=(%d,%d,%d,%lf)\n",
-							i+1,
-							j+1,
-							l,
-							matrix[i+1][j+1].score[l]);
-				}
-			}
+			/*
+			   for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) {
+			   fprintf(stderr, "(i,j,l,score)=(%d,%d,%d,%lf)\n",
+			   i+1,
+			   j+1,
+			   l,
+			   matrix[i+1][j+1].score[l]);
+			   }
+			   */
 		}
 	}
 
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
-		fprintf(stderr, "read=%s\nreference=%s\n",
-				read,
-				reference);
-	}
+	/*
+	   fprintf(stderr, "read=%s\nreference=%s\n",
+	   read,
+	   reference);
+	   */
 
 	offset = FillAlignEntryFromMatrix(aEntry,
 			matrix,
@@ -162,18 +157,17 @@ int AlignNTSpace(char *read,
 			readLength,
 			reference,
 			referenceLength,
+			0,
 			0);
 
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
-		fprintf(stderr, "(%d,%d)\n",
-				aEntry->length,
-				(int)strlen(aEntry->read));
-		fprintf(stderr, "aEntry->reference=[%s]\naEntry->read=[%s]\n%lf\n%d\n\n", aEntry->reference, aEntry->read, aEntry->score, offset);
-		/*
-		   exit(1);
-		   */
-	}
+	/*
+	   fprintf(stderr, "(%d,%d)\n",
+	   aEntry->length,
+	   (int)strlen(aEntry->read));
+	   fprintf(stderr, "aEntry->reference=[%s]\naEntry->read=[%s]\n%lf\n%d\n\n", aEntry->reference, aEntry->read, aEntry->score, offset);
+	   exit(1);
+	   */
 
 	/* Free the matrix, free your mind */
 	for(i=0;i<readLength+1;i++) {

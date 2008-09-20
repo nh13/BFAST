@@ -2161,8 +2161,8 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 	int64_t i, j;
 	uint32_t aCurTilePos;
 	uint32_t bCurTilePos;
-	uint8_t aBase, prevABase;
-	uint8_t bBase, prevBBase;
+	uint8_t aBase;
+	uint8_t bBase;
 
 	if(!(aChr >= index->startChr && aChr <= index->endChr)) {
 	}
@@ -2178,8 +2178,6 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 	bCurTilePos = bPos;
 
 	/* Initialize for color space */
-	prevABase = COLOR_SPACE_START_NT;
-	prevBBase = COLOR_SPACE_START_NT;
 
 	if(debug == 1) {
 		fprintf(stderr, "\n[%d,%d]\t[%d,%d]\n",
@@ -2200,12 +2198,10 @@ int32_t RGIndexCompareChrPos(RGIndex *index,
 
 
 			if(debug > 0) {
-				fprintf(stderr, "a[%d,%c,%d]\tb[%d,%c,%d]\n",
+				fprintf(stderr, "a[%d,%d]\tb[%d,%d]\n",
 						aCurTilePos,
-						prevABase,
 						(int)aBase,
 						bCurTilePos,
-						prevBBase,
 						(int)bBase);
 			}
 
@@ -2267,15 +2263,11 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	uint32_t aPos = index->positions[a];
 
 	uint32_t aCurTilePos;
-	uint8_t aBase, prevABase;
-	uint8_t readBase, prevReadBase;
+	uint8_t aBase;
+	uint8_t readBase;
 
 	/* Compare base by base */
 	aCurTilePos = aPos;
-
-	/* Initialize for color space */
-	prevABase = COLOR_SPACE_START_NT;
-	prevReadBase = COLOR_SPACE_START_NT;
 
 	if(debug > 0) {
 		fprintf(stderr, "%d\n%s", 
@@ -2347,16 +2339,13 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 	uint32_t aPos = index->positions[a];
 
 	uint32_t aCurTilePos;
-	uint8_t aBase, prevABase;
+	uint8_t aBase;
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
 
 	/* Compare base by base */
 	aCurTilePos = aPos;
-
-	/* Initialize for color space */
-	prevABase = COLOR_SPACE_START_NT;
 
 	assert(ALPHABET_SIZE == 4);
 

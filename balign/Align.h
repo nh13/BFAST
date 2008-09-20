@@ -3,8 +3,6 @@
 #include "../blib/AlignEntry.h"
 #include "Definitions.h"
 
-#define ALIGN_DEBUG_ON 0
-
 int Align(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int);
 double GetNTScore(char, char, ScoringMatrix*);
 double GetColorScore(uint8_t, uint8_t, ScoringMatrix*);
@@ -14,6 +12,7 @@ int FillAlignEntryFromMatrix(AlignEntry*,
 		char*,
 		int,
 		char*,
+		int,
 		int,
 		int);
 

@@ -163,7 +163,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int colorSpace)
+		int colorSpace,
+		int debug)
 {
 	char *FnName="FillAlignEntryFromMatrix";
 	int curRow, curCol, curCell, startRow, startCol, startCell; 
@@ -174,7 +175,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	int offset;
 
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
+	if(debug == 1) {
 		fprintf(stderr, "\n%s\n", FnName);
 		fprintf(stderr, "read=%s\n", read);
 		fprintf(stderr, "reference=%s\n", reference);
@@ -209,7 +210,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				MallocMemory);
 	}
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
+	if(debug == 1) {
 		for(i=0;i<readLength+1;i++) {
 			for(j=0;j<referenceLength+1;j++) {
 				int k;
@@ -248,7 +249,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	assert(startRow >= 0 && startCol >= 0 && startCell >= 0);
 
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
+	if(debug == 1) {
 		fprintf(stderr, "(startRow,startCol,startCell,score,length)=(%d,%d,%d,%lf,%d)\n",
 				startRow,
 				startCol,
@@ -293,28 +294,29 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	aEntry->colorError[i+1]='\0';
 	aEntry->score = maxScore;
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
+	if(debug == 1) {
 		fprintf(stderr, "[%d,%lf]\n",
 				matrix[curRow][curCol].length[curCell],
 				maxScore);
 	}
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(curRow > 0 && curCol > 0) {
+		/* Where did the current cell come from */
+		curFrom = matrix[curRow][curCol].from[curCell];
+
 		/* HERE */
-		if(ALIGN_DEBUG_ON == 1) {
-			fprintf(stderr, "(curRow,curCol,i)=(%d,%d,%d)\n",
+		if(debug == 1) {
+			fprintf(stderr, "(curRow,curCol,i,curFrom,curCell)=(%d,%d,%d,%d,%d)\n",
 					curRow,
 					curCol,
-					i);
-			fprintf(stderr, "cur.length=%d,%d,%d\n",
-					matrix[curRow][curCol].length[0],
-					matrix[curRow][curCol].length[1],
-					matrix[curRow][curCol].length[2]);
+					i,
+					curFrom,
+					curCell);
+			fprintf(stderr, "cur.length=%d\n",
+					matrix[curRow][curCol].length[curCell]);
 		}
 		assert(i>=0);
 
-		/* Where did the current cell come from */
-		curFrom = matrix[curRow][curCol].from[curCell];
 		/* Get if there was a color error */
 		aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
 
@@ -342,6 +344,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			case InsertionG:
 			case InsertionT:
 			case InsertionExt:
+				assert(curReadBase != GAP);
 				aEntry->read[i] = curReadBase;
 				aEntry->reference[i] = GAP;
 				break;
@@ -355,7 +358,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 						OutOfRange);
 		}
 		/* HERE */
-		if(ALIGN_DEBUG_ON == 1) {
+		if(debug == 1) {
 			fprintf(stderr, "[%c][%c](%c,%c)\n",
 					aEntry->read[i],
 					aEntry->reference[i],
@@ -398,7 +401,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 					break;
 				case InsertionExt:
 				case InsertionEnd:
-					curReadBase = GAP;
+					curReadBase = matrix[curRow][curCol].prevInsertionBase;
 					curCell = 5;
 					break;
 				default:
@@ -460,14 +463,14 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			case DeletionG:
 			case DeletionT:
 			case DeletionExt:
-				curRow--;
+				curCol--;
 				break;
 			case InsertionA:
 			case InsertionC:
 			case InsertionG:
 			case InsertionT:
 			case InsertionExt:
-				curCol--;
+				curRow--;
 				break;
 			case Start:
 				curRow=-1;
@@ -481,9 +484,11 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 						OutOfRange);
 		}
 
+		assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
+
 		i--;
 		/* HERE */
-		if(ALIGN_DEBUG_ON == 1) {
+		if(debug == 1) {
 			fprintf(stderr, "next(row,col,i)=(%d,%d,%d)\n",
 					curRow,
 					curCol,
@@ -491,7 +496,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		}
 	}
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
+	if(debug == 1) {
 		int tempi=i;
 		for(i=0;i<readLength+1;i++) {
 			for(j=0;j<referenceLength+1;j++) {
@@ -510,7 +515,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	}
 
 	/* HERE */
-	if(ALIGN_DEBUG_ON == 1) {
+	if(debug == 1) {
 		fprintf(stderr, "i=%d\n", i);
 	}
 	assert(-1==i);
