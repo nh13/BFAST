@@ -584,7 +584,8 @@ void *RunDynamicProgrammingThread(void *arg)
 		AlignEntriesAllocate(&aEntries,
 				m.matchOne.numEntries,
 				m.matchTwo.numEntries,
-				pairedEnd);
+				pairedEnd,
+				colorSpace);
 		/* Copy over read name */
 		strcpy(aEntries.readName, (char*)m.readName);
 

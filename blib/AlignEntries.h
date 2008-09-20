@@ -24,11 +24,11 @@ int AlignEntriesRead(AlignEntries*, FILE*, int, int);
 void AlignEntriesRemoveDuplicates(AlignEntries*, int);
 void AlignEntriesQuickSort(AlignEntries*, int, int);
 void AlignEntriesMergeSort(AlignEntries*, int, int);
-void AlignEntriesAllocate(AlignEntries*, int, int, int);
-void AlignEntriesReallocate(AlignEntries*, int, int, int);
+void AlignEntriesAllocate(AlignEntries*, int, int, int, int);
+void AlignEntriesReallocate(AlignEntries*, int, int, int, int);
 void AlignEntriesFree(AlignEntries*);
 void AlignEntriesInitialize(AlignEntries*);
-void AlignEntriesKeepOnly(AlignEntries*, int, int, int);
+void AlignEntriesKeepOnly(AlignEntries*, int, int, int, int);
 void AlignEntriesCopy(AlignEntries*, AlignEntries*);
 #endif
 

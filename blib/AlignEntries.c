@@ -234,7 +234,8 @@ void AlignEntriesMergeSort(AlignEntries *a,
 void AlignEntriesReallocate(AlignEntries *a,
 		int numEntriesOne,
 		int numEntriesTwo,
-		int pairedEnd)
+		int pairedEnd,
+		int colorSpace)
 {
 	char *FnName = "AlignEntriesReallocate";
 	int i;
@@ -254,6 +255,7 @@ void AlignEntriesReallocate(AlignEntries *a,
 	a->numEntriesOne = numEntriesOne;
 	a->numEntriesTwo = numEntriesTwo;
 	a->pairedEnd = pairedEnd;
+	a->colorSpace = colorSpace;
 
 	a->readName = realloc(a->readName, sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(a->readName == NULL) {
@@ -296,7 +298,8 @@ void AlignEntriesReallocate(AlignEntries *a,
 void AlignEntriesAllocate(AlignEntries *a,
 		int numEntriesOne,
 		int numEntriesTwo,
-		int pairedEnd)
+		int pairedEnd,
+		int colorSpace)
 {
 	char *FnName = "AlignEntriesAllocate";
 	int i;
@@ -304,6 +307,7 @@ void AlignEntriesAllocate(AlignEntries *a,
 	a->numEntriesOne = numEntriesOne;
 	a->numEntriesTwo = numEntriesTwo;
 	a->pairedEnd = pairedEnd;
+	a->colorSpace = colorSpace;
 
 	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(a->readName == NULL) {
@@ -375,13 +379,15 @@ void AlignEntriesInitialize(AlignEntries *a)
 	a->entriesTwo=NULL;
 	a->numEntriesTwo=0;
 	a->pairedEnd=0;
+	a->colorSpace=0;
 }
 
 /* TODO */
 void AlignEntriesKeepOnly(AlignEntries *a,
 		int indexOne,
 		int indexTwo,
-		int pairedEnd)
+		int pairedEnd,
+		int colorSpace)
 {
 	assert(pairedEnd == a->pairedEnd);
 	/* First read */
@@ -401,13 +407,15 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 		AlignEntriesReallocate(a,
 				1,
 				1,
-				1);
+				1,
+				colorSpace);
 	}
 	else {
 		AlignEntriesReallocate(a,
 				1,
 				0,
-				0);
+				0,
+				colorSpace);
 	}
 }
 
@@ -420,7 +428,8 @@ void AlignEntriesCopy(AlignEntries *src, AlignEntries *dst)
 	AlignEntriesAllocate(dst,
 			src->numEntriesOne,
 			src->numEntriesTwo,
-			src->pairedEnd);
+			src->pairedEnd,
+			src->colorSpace);
 	/* Copy over */
 	for(i=0;i<src->numEntriesOne;i++) {
 		AlignEntryCopy(&src->entriesOne[i], &dst->entriesOne[i]);

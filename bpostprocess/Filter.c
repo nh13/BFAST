@@ -224,10 +224,10 @@ int FilterReadInAlignEntries(AlignEntries *a,
 					/* Reallocate */
 					switch(which) {
 						case First:
-							AlignEntriesReallocate(a, a->numEntriesOne-1, a->numEntriesTwo, a->pairedEnd); 
+							AlignEntriesReallocate(a, a->numEntriesOne-1, a->numEntriesTwo, a->pairedEnd, a->colorSpace); 
 							break;
 						case Second:
-							AlignEntriesReallocate(a, a->numEntriesOne, a->numEntriesTwo-1, a->pairedEnd); 
+							AlignEntriesReallocate(a, a->numEntriesOne, a->numEntriesTwo-1, a->pairedEnd, a->colorSpace); 
 							break;
 						default:
 							PrintError(FnName,
@@ -271,10 +271,10 @@ int FilterReadInAlignEntries(AlignEntries *a,
 				/* Copy to the front and update */
 				switch(which) {
 					case First:
-						AlignEntriesKeepOnly(a, uniqueIndex, 0, 0);
+						AlignEntriesKeepOnly(a, uniqueIndex, 0, 0, a->colorSpace);
 						break;
 					case Second:
-						AlignEntriesKeepOnly(a, 0, uniqueIndex, 0);
+						AlignEntriesKeepOnly(a, 0, uniqueIndex, 0, a->colorSpace);
 						break;
 					default:
 						PrintError(FnName,
@@ -295,10 +295,10 @@ int FilterReadInAlignEntries(AlignEntries *a,
 				/* Check if there is a best score (unique best score) */
 				switch(which) {
 					case First:
-						AlignEntriesKeepOnly(a, bestScoreIndex, 0, 0);
+						AlignEntriesKeepOnly(a, bestScoreIndex, 0, 0, a->colorSpace);
 						break;
 					case Second:
-						AlignEntriesKeepOnly(a, 0, bestScoreIndex, 0);
+						AlignEntriesKeepOnly(a, 0, bestScoreIndex, 0, a->colorSpace);
 						break;
 					default:
 						PrintError(FnName,
@@ -544,7 +544,8 @@ int FilterOneAlignEntries(AlignEntries *a,
 				AlignEntriesKeepOnly(a,
 						uniqueOne,
 						uniqueTwo,
-						1);
+						1,
+						a->colorSpace);
 				foundType=Found;
 			}
 			else if(numUnique == 0 &&
@@ -553,7 +554,8 @@ int FilterOneAlignEntries(AlignEntries *a,
 				AlignEntriesKeepOnly(a,
 						uniqueOutsideOne,
 						uniqueOutsideTwo,
-						1);
+						1,
+						a->colorSpace);
 				foundType=OutsideBounds;
 			}
 			else {
@@ -566,7 +568,8 @@ int FilterOneAlignEntries(AlignEntries *a,
 				AlignEntriesKeepOnly(a,
 						bestScoreOne,
 						bestScoreTwo,
-						1);
+						1,
+						a->colorSpace);
 				foundType=Found;
 			}
 			else if(numBestScore == 0 &&
@@ -575,7 +578,8 @@ int FilterOneAlignEntries(AlignEntries *a,
 				AlignEntriesKeepOnly(a,
 						bestScoreOutsideOne,
 						bestScoreOutsideTwo,
-						1);
+						1,
+						a->colorSpace);
 				foundType=OutsideBounds;
 			}
 			else {
@@ -588,7 +592,8 @@ int FilterOneAlignEntries(AlignEntries *a,
 				AlignEntriesKeepOnly(a,
 						closestToMeanOne,
 						closestToMeanTwo,
-						1);
+						1,
+						a->colorSpace);
 				foundType=Found;
 			}
 			else {
