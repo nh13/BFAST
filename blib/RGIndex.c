@@ -1831,12 +1831,13 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 /* TODO */
 void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
+	long long int tempLongLongInt;
 	/* Read in header */
 	if(binaryInput == 0) {
 		if(fscanf(fp, "%u %u %lld %d %d %d %d %d %d %d %d",
 					&index->length,
 					&index->hashWidth,
-					(long long int *)&index->hashLength,
+					&tempLongLongInt,
 					&index->totalLength,
 					&index->numTiles,
 					&index->repeatMasker,
@@ -1851,6 +1852,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 					Exit,
 					EndOfFile);
 		}
+		index->hashLength = tempLongLongInt;
 	}
 	else {
 		if(fread(&index->length, sizeof(uint32_t), 1, fp)!=1

@@ -25,7 +25,7 @@ int Align(char *read,
 		int colorSpace)
 {
 	char *FnName="Align";
-	int returnValue;
+	int returnValue=-1;
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 	char tmpString[SEQUENCE_LENGTH]="\0";
 	char *reverseReference=NULL;
@@ -238,7 +238,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	maxScore = NEGATIVE_INFINITY;
 	for(i=0;i<referenceLength+1;i++) {
 		for(j=0;j<ALIGNMATRIXCELL_NUM_SUB_CELLS;j++) {
-			if(matrix[readLength][i].score[j] > maxScore) {
+			/* Cannot end with a deletion from the read */
+			if(j != 4 && matrix[readLength][i].score[j] > maxScore) {
 				maxScore = matrix[readLength][i].score[j];
 				startRow = readLength;
 				startCol = i;
@@ -247,6 +248,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		}
 	}
 	assert(startRow >= 0 && startCol >= 0 && startCell >= 0);
+	/* Cannot end with a deletion from the read */
+	assert(startCell != 4);
 
 	/* HERE */
 	if(debug == 1) {
@@ -276,9 +279,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		case 3:
 			curReadBase = 'T';
 			break;
-		case 4:
 		case 5:
-			curReadBase = GAP;
+			curReadBase = matrix[curRow][curCol].prevInsertionBase;
 			break;
 		default:
 			PrintError(FnName,
@@ -299,6 +301,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				matrix[curRow][curCol].length[curCell],
 				maxScore);
 	}
+	int prevFrom=-2;
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(curRow > 0 && curCol > 0) {
 		/* Where did the current cell come from */
@@ -344,6 +347,11 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			case InsertionG:
 			case InsertionT:
 			case InsertionExt:
+				if(curReadBase == GAP) {
+					fprintf(stderr, "curFrom=%d\nprevFrom=%d\n",
+							curFrom,
+							prevFrom);
+				}
 				assert(curReadBase != GAP);
 				aEntry->read[i] = curReadBase;
 				aEntry->reference[i] = GAP;
@@ -402,6 +410,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				case InsertionExt:
 				case InsertionEnd:
 					curReadBase = matrix[curRow][curCol].prevInsertionBase;
+					assert(curReadBase != GAP);
 					curCell = 5;
 					break;
 				default:
@@ -494,6 +503,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 					curCol,
 					i);
 		}
+		/* HERE */
+		prevFrom = curFrom;
 	}
 	/* HERE */
 	if(debug == 1) {

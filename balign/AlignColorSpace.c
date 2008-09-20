@@ -104,13 +104,13 @@ int AlignColorSpace(char *read,
 				int maxFrom = -1;
 				char maxColorError = '0';
 				int maxLength = 0;
-				char maxPrevInsertionBase;
+				char maxPrevInsertionBase='0';
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
 					double curScore=NEGATIVE_INFINITY;
 					int curFrom=-1;
 					int curLength=-1;
-					char curPrevInsertionBase;
+					char curPrevInsertionBase='0';
 					uint8_t convertedColor='X';
 					switch(k) {
 						case 0:
