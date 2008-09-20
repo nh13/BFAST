@@ -38,6 +38,7 @@ typedef struct {
 typedef struct {
 	/* add three for the insertion, deletion and best score */
 	double score[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
+	double scoreNT[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
 	int from[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* previous arc */
 	int length[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* path length */
 	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* color error */

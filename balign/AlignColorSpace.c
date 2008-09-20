@@ -59,6 +59,7 @@ int AlignColorSpace(char *read,
 	for(i=1;i<readLength+1;i++) {
 		for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) {
 			matrix[i][0].score[k] = NEGATIVE_INFINITY;
+			matrix[i][0].scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].from[k] = Start;
 			matrix[i][0].length[k] = 0;
 			matrix[i][0].colorError[k] = '0';
@@ -73,9 +74,11 @@ int AlignColorSpace(char *read,
 			if(DNA[k] == COLOR_SPACE_START_NT) { 
 				/* Starting adaptor NT */
 				matrix[0][j].score[k] = 0;
+				matrix[0][j].scoreNT[k] = 0;
 			}
 			else {
 				matrix[0][j].score[k] = NEGATIVE_INFINITY;
+				matrix[0][j].scoreNT[k] = NEGATIVE_INFINITY;
 			}
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
@@ -101,6 +104,7 @@ int AlignColorSpace(char *read,
 			for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) { /* To NT */
 				char DNA[4] = "ACGT";
 				double maxScore = NEGATIVE_INFINITY-1;
+				double maxScoreNT = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
 				char maxColorError = '0';
 				int maxLength = 0;
@@ -108,6 +112,7 @@ int AlignColorSpace(char *read,
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
 					double curScore=NEGATIVE_INFINITY;
+					double curScoreNT=NEGATIVE_INFINITY;
 					int curFrom=-1;
 					int curLength=-1;
 					char curPrevInsertionBase='0';
@@ -120,6 +125,7 @@ int AlignColorSpace(char *read,
 							/* Check diagonals from NT */
 							/* Previous score */ 
 							curScore = matrix[i][j].score[l];
+							curScoreNT = matrix[i][j].scoreNT[l];
 							curLength = matrix[i][j].length[l] + 1;
 							/* Plus score for colors */
 							switch(l) {
@@ -177,14 +183,17 @@ int AlignColorSpace(char *read,
 									sm);
 							/* Add score for NT */
 							curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
+							curScoreNT += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
 							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
+								curScoreNT = NEGATIVE_INFINITY;
 							}
 
 							/* Check to see if this is better than the max */
 							if(curScore > maxScore) {
 								maxScore = curScore;
+								maxScoreNT = curScoreNT;
 								maxLength = curLength;
 								maxColorError = (curColor == convertedColor)?'0':'1';
 								switch(l) {
@@ -257,6 +266,7 @@ int AlignColorSpace(char *read,
 							}
 							if(curScore > maxScore && l != 5) {
 								maxScore = curScore;
+								maxScoreNT = curScore;
 								maxFrom = curFrom;
 								maxColorError = '0';
 								maxLength = curLength;
@@ -309,6 +319,7 @@ int AlignColorSpace(char *read,
 							}
 							if(curScore > maxScore && l != 4) {
 								maxScore = curScore;
+								maxScoreNT = curScore;
 								maxFrom = curFrom;
 								maxColorError = '0';
 								maxLength = curLength;
@@ -332,6 +343,7 @@ int AlignColorSpace(char *read,
 				}
 				assert(maxFrom >= 0);
 				matrix[i+1][j+1].score[k] = maxScore;
+				matrix[i+1][j+1].scoreNT[k] = maxScoreNT;
 				matrix[i+1][j+1].from[k] = maxFrom;
 				matrix[i+1][j+1].colorError[k] = maxColorError;
 				matrix[i+1][j+1].length[k] = maxLength;

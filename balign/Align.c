@@ -170,6 +170,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	int curRow, curCol, curCell, startRow, startCol, startCell; 
 	int curFrom;
 	double maxScore;
+	double maxScoreNT=NEGATIVE_INFINITY;
 	int i, j;
 	char curReadBase;
 	int offset;
@@ -236,11 +237,13 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	startCol=-1;
 	startCell=-1;
 	maxScore = NEGATIVE_INFINITY;
+	maxScoreNT = NEGATIVE_INFINITY;
 	for(i=0;i<referenceLength+1;i++) {
 		for(j=0;j<ALIGNMATRIXCELL_NUM_SUB_CELLS;j++) {
 			/* Cannot end with a deletion from the read */
 			if(j != 4 && matrix[readLength][i].score[j] > maxScore) {
 				maxScore = matrix[readLength][i].score[j];
+				maxScoreNT = matrix[readLength][i].scoreNT[j];
 				startRow = readLength;
 				startCol = i;
 				startCell = j;
@@ -295,6 +298,9 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	aEntry->reference[i+1]='\0';
 	aEntry->colorError[i+1]='\0';
 	aEntry->score = maxScore;
+	if(1==colorSpace) {
+		aEntry->score = maxScoreNT;
+	}
 	/* HERE */
 	if(debug == 1) {
 		fprintf(stderr, "[%d,%lf]\n",
