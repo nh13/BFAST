@@ -388,8 +388,7 @@ int AlignColorSpace(char *read,
 			reference,
 			referenceLength,
 			1,
-			/* HERE */
-			1);
+			0);
 
 	/* HERE E2 */
 	int count = 0;
