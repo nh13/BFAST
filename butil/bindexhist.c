@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
-		fprintf(stderr, "Usage: bindexhist [OPTIONS]\n");
+		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast reference genome file name>\n");
 		fprintf(stderr, "\t<bfast index file name>\n");
 		fprintf(stderr, "\t<number of mismatches for histogram>\n");
