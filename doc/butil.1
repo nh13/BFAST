@@ -30,6 +30,19 @@ bfixhash
 bheader
 	<bfast index file>
 
+bgeneratereads 
+	<bfast reference genome file name (must be in nt space)>
+	<space 0: nt space 1: color space>
+	<indel 0: none 1: deletion 2: insertion>
+	<indel length>
+	<include errors within insertion 0: false 1: true>
+	<# of SNPs>
+	<# of errors>
+	<read length>
+	<paired end 0: false 1: true>
+	<paired end length>
+	<number of reads>
+
 bindexdist
 	<bfast reference genome file>
 	<bfast index file name>
@@ -109,6 +122,10 @@ The main purpose is to allow for alignment to exons, multiple subregions or the 
 .P
 .B bfixhash
 regenerates the hash lookup table for an index given a new hash width.
+.
+.P
+.B bgeneratereads
+genererates synthetic reads given a number of variants and errors from a reference genome.
 .
 .P
 .B bheader

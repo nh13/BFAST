@@ -14,6 +14,9 @@
 
 char Colors[4] = "0123";
 
+/* Generate synthetic reads given a number of variants and errors
+ * from a reference genome. */
+
 /* Do not change read length, paired end, or paired end length */
 void ReadInitialize(Read *r)
 {

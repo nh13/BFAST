@@ -5,10 +5,7 @@
 #  Developers - the version number should *NEVER* be changed except by, 
 #  or with explicit permission from, Nils Homer.
 
-AC_INIT([bfast],
-		[0.1.1],
-		[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],
-		[bfast])
+AC_INIT([bfast],[0.1.1],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
 AC_REVISION($Id: configure.ac,v 0.1.1 2008-07-01 00:00:00 nhomer $)
 AC_COPYRIGHT(
@@ -26,7 +23,7 @@ AC_COPYRIGHT(
 AC_PREREQ(2.59)
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE([dist-bzip2])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 # Sets build_cpu, build_vendor and build_os variables
 AC_CANONICAL_BUILD
@@ -65,11 +62,12 @@ AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such 
 				  [extended_CFLAGS="${extended_CFLAGS} -mtune=nocona"], [])
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}"
 
-AC_STDC_HEADERS
+AC_HEADER_STDC([])
 
 
 AC_CHECK_LIB([m], [pow])
 AC_CHECK_FUNCS([pow])
+ AC_CHECK_FUNCS([strstr])
 AC_C_CONST
 AC_FUNC_MALLOC 
 AC_FUNC_REALLOC
@@ -132,10 +130,12 @@ AC_CHECK_HEADER([sys/time.h],
 				 [AC_DEFINE([HAVE_SYS_TIME_H], 1,
 							[Define to 1 if you have <sys/time.h> header file])],
 							[AC_MSG_ERROR([sys/time.h absent. Resource usage statistic won't be reported])]) 
+AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADER([unistd.h],
 				[AC_DEFINE([HAVE_UNISTD_H], 1,
 						   [Define to 1 if you have <unistd.h> header file])],
 						   [AC_MSG_ERROR([unistd.h not present])])
+AC_CHECK_HEADERS([limits.h])
 
 AC_CONFIG_FILES([Makefile
 				 doc/Makefile
