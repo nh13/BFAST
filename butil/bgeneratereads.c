@@ -788,20 +788,20 @@ void InsertColorErrors(Read *r,
 
 		/* Assumes the type can only be Default, Insertion, SNP, or InsertionAndSNP */
 		if(which == 0) {
-			if(withinInsertion == 1 && r->readOneType[index] == Insertion) {
-				r->readOneType[index] = InsertionAndError;
+			if(withinInsertion == 1 && r->readOneType[index-1] == Insertion) {
+				r->readOneType[index-1] = InsertionAndError;
 				toAdd = 1;
 			}
-			if(withinInsertion == 1 && r->readOneType[index] == InsertionAndSNP) {
-				r->readOneType[index] = InsertionSNPAndError;
+			if(withinInsertion == 1 && r->readOneType[index-1] == InsertionAndSNP) {
+				r->readOneType[index-1] = InsertionSNPAndError;
 				toAdd = 1;
 			}
-			else if(r->readOneType[index] == SNP) {
-				r->readOneType[index] = SNPAndError;
+			else if(r->readOneType[index-1] == SNP) {
+				r->readOneType[index-1] = SNPAndError;
 				toAdd = 1;
 			}
-			else if(r->readOneType[index] == Default) {
-				r->readOneType[index] = Error;
+			else if(r->readOneType[index-1] == Default) {
+				r->readOneType[index-1] = Error;
 				toAdd = 1;
 			}
 			if(1==toAdd) {
@@ -814,20 +814,20 @@ void InsertColorErrors(Read *r,
 			}
 		}
 		else {
-			if(withinInsertion == 1 && r->readTwoType[index] == Insertion) {
-				r->readTwoType[index] = InsertionAndError;
+			if(withinInsertion == 1 && r->readTwoType[index-1] == Insertion) {
+				r->readTwoType[index-1] = InsertionAndError;
 				toAdd = 1;
 			}
-			if(withinInsertion == 1 && r->readTwoType[index] == InsertionAndSNP) {
-				r->readTwoType[index] = InsertionSNPAndError;
+			if(withinInsertion == 1 && r->readTwoType[index-1] == InsertionAndSNP) {
+				r->readTwoType[index-1] = InsertionSNPAndError;
 				toAdd = 1;
 			}
-			else if(r->readTwoType[index] == SNP) {
-				r->readTwoType[index] = SNPAndError;
+			else if(r->readTwoType[index-1] == SNP) {
+				r->readTwoType[index-1] = SNPAndError;
 				toAdd = 1;
 			}
-			else if(r->readTwoType[index] == Default) {
-				r->readTwoType[index] = Error;
+			else if(r->readTwoType[index-1] == Default) {
+				r->readTwoType[index-1] = Error;
 				toAdd = 1;
 			}
 			if(1==toAdd) {
