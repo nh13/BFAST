@@ -783,6 +783,7 @@ void InsertColorErrors(Read *r,
 		which = (r->pairedEnd == 0)?0:(rand()%2);
 		/* Pick a color to modify */
 		index = (rand()%(r->readLength) )+ 1;
+		assert(index >= 1 && index < r->readLength + 1);
 		toAdd = 0;
 
 		/* Assumes the type can only be Default, Insertion, SNP, or InsertionAndSNP */
@@ -805,9 +806,9 @@ void InsertColorErrors(Read *r,
 			}
 			if(1==toAdd) {
 				/* Modify color to a new color */
-				for(original = r->readTwo[index];
-						original == r->readTwo[index];
-						r->readTwo[index] = Colors[rand()%4]) {
+				for(original = r->readOne[index];
+						original == r->readOne[index];
+						r->readOne[index] = Colors[rand()%4]) {
 				}
 				numErrorsLeft--;
 			}
