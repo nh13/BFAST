@@ -495,6 +495,9 @@ int ModifyRead(RGBinary *rg,
 				Error,
 				withinInsertion);
 	}
+				
+	assert(strlen(r->readOne) == r->readLength);
+	assert(strlen(r->readTwo) == r->readLength);
 
 	return 1;
 }
@@ -533,7 +536,7 @@ int InsertIndel(RGBinary *rg,
 					r->readOne[i] = r->readOne[i+indelLength];
 				}
 				/* Reallocate memory */
-				r->readOne = realloc(r->readOne, sizeof(char)*r->readLength);
+				r->readOne = realloc(r->readOne, sizeof(char)*(r->readLength+1));
 				if(NULL==r->readOne) {
 					PrintError(FnName,
 							"r->readOne",
@@ -541,6 +544,8 @@ int InsertIndel(RGBinary *rg,
 							Exit,
 							ReallocMemory);
 				}
+				r->readOne[r->readLength]='\0';
+				assert(strlen(r->readOne) == r->readLength);
 				/* Adjust position if reverse strand */
 				r->pos = (r->strand==REVERSE)?(r->pos + indelLength):r->pos;
 			}
@@ -562,7 +567,7 @@ int InsertIndel(RGBinary *rg,
 					r->readTwo[i] = r->readTwo[i+indelLength];
 				}
 				/* Reallocate memory */
-				r->readTwo = realloc(r->readTwo, sizeof(char)*r->readLength);
+				r->readTwo = realloc(r->readTwo, sizeof(char)*(r->readLength+1));
 				if(NULL==r->readTwo) {
 					PrintError(FnName,
 							"r->read",
@@ -570,6 +575,8 @@ int InsertIndel(RGBinary *rg,
 							Exit,
 							ReallocMemory);
 				}
+				r->readTwo[r->readLength]='\0';
+				assert(strlen(r->readTwo) == r->readLength);
 				/* Adjust position if reverse strand */
 				r->pos = (r->strand==REVERSE)?(r->pos + indelLength):r->pos;
 			}
