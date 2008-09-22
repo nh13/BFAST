@@ -619,21 +619,54 @@ void InsertMismatches(Read *r,
 		int type,
 		int withinInsertion)
 {
-	if(r->whichReadVariants == 0) {
-		InsertMismatchesHelper(r->readOne,
-				r->readLength,
-				r->readOneType,
-				numMismatches,
-				type,
-				withinInsertion);
-	}
-	else {
-		InsertMismatchesHelper(r->readTwo,
-				r->readLength,
-				r->readTwoType,
-				numMismatches,
-				type,
-				withinInsertion);
+	char *FnName = "InsertMismatches";
+	int i;
+	switch(type) {
+		case SNP:
+			if(r->whichReadVariants == 0) {
+				InsertMismatchesHelper(r->readOne,
+						r->readLength,
+						r->readOneType,
+						numMismatches,
+						type,
+						withinInsertion);
+			}
+			else {
+				InsertMismatchesHelper(r->readTwo,
+						r->readLength,
+						r->readTwoType,
+						numMismatches,
+						type,
+						withinInsertion);
+			}
+			break;
+		case Error:
+			/* Insert errors one at a time randomly selecting which read */
+			for(i=numMismatches;i>0;i--) {
+				if(0==(rand()%2)) {
+					InsertMismatchesHelper(r->readOne,
+							r->readLength,
+							r->readOneType,
+							1,
+							type,
+							withinInsertion);
+				}
+				else {
+					InsertMismatchesHelper(r->readTwo,
+							r->readLength,
+							r->readTwoType,
+							1,
+							type,
+							withinInsertion);
+				}
+			}
+			break;
+		default:
+			PrintError(FnName,
+					"type",
+					"Could not understand type",
+					Exit,
+					OutOfRange);
 	}
 }
 
