@@ -23,7 +23,7 @@ void ReadInitialize(Read *r)
 	r->chr = 0;
 	r->pos = 0;
 	r->strand = 0;
-	r->whichReadIndel = -1;
+	r->whichReadVariants = -1;
 	r->startIndel = -1;
 	for(i=0;i<SEQUENCE_LENGTH-1;i++) {
 		r->readOneType[i] = Default;
@@ -46,14 +46,14 @@ void ReadPrint(Read *r,
 	int i;
 
 	/* Read name */
-	fprintf(fp, ">strand=%c_chr=%d_pos=%d_pe=%d_pel=%d_rl=%d_wri=%d_si=%d_il=%d",
+	fprintf(fp, ">strand=%c_chr=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
 			r->strand,
 			r->chr,
 			r->pos,
 			r->pairedEnd,
 			r->pairedEndLength,
 			r->readLength,
-			r->whichReadIndel,
+			r->whichReadVariants,
 			r->startIndel,
 			r->indelLength);
 	fprintf(fp, "_r1=");
@@ -113,13 +113,6 @@ int main(int argc, char *argv[])
 		assert(indelLength > 0 || indel == 0);
 		assert(withinInsertion == 0 || (indel == 2 && withinInsertion == 1));
 		assert(numSNPs >= 0);
-		if(space == 0 && numErrors > 0) {
-			PrintError(Name,
-					"numErrors",
-					"Cannot use # of errors with nt space",
-					Exit,
-					OutOfRange);
-		}
 		assert(readLength > 0);
 		assert(readLength < SEQUENCE_LENGTH);
 		assert(pairedEnd == 0 || pairedEnd == 1);
@@ -161,9 +154,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<space 0: nt space 1: color space>\n");
 		fprintf(stderr, "\t<indel 0: none 1: deletion 2: insertion>\n");
 		fprintf(stderr, "\t<indel length>\n");
-		fprintf(stderr, "\t<include SNPs and color errors within insertion 0: false 1: true>\n");
-		fprintf(stderr, "\t<# of SNPs and/or nt space errors>\n");
-		fprintf(stderr, "\t<# of errors (color space only)>\n");
+		fprintf(stderr, "\t<include errors within insertion 0: false 1: true>\n");
+		fprintf(stderr, "\t<# of SNPs>\n");
+		fprintf(stderr, "\t<# of errors>\n");
 		fprintf(stderr, "\t<read length>\n");
 		fprintf(stderr, "\t<paired end 0: false 1: true>\n");
 		fprintf(stderr, "\t<paired end length>\n");
@@ -445,10 +438,13 @@ int ModifyRead(RGBinary *rg,
 	 * 1. insert an indel based on indel length 
 	 * 2. insert a SNP based on include within insertion
 	 * 3. convert to color space (if necessary)
-	 * 4. if in color space, insert errors 
-	 * */
+	 * 4. insert errors (color errors if in color space, otherwise nt errors )
+	 */
 	char *FnName="ModifyRead";
 	int tempReadLength=r->readLength;
+
+	/* Which read should the variants be contained within */
+	r->whichReadVariants= (r->pairedEnd == 0)?0:(rand()%2); 
 
 	/* 1. Insert an indel based on the indel length */
 	switch(indel) {
@@ -471,9 +467,10 @@ int ModifyRead(RGBinary *rg,
 	}
 
 	/* 2. SNPs */
-	InsertSNPs(r,
+	InsertMismatches(r,
 			numSNPs,
-			withinInsertion);
+			SNP,
+			0);
 
 	if(1 == space) {
 		/* 3. Convert to color space if necessary */
@@ -491,6 +488,13 @@ int ModifyRead(RGBinary *rg,
 				numErrors,
 				withinInsertion);
 	}
+	else {
+		/* 4. Insert NT errors */
+		InsertMismatches(r, 
+				numErrors,
+				Error,
+				withinInsertion);
+	}
 
 	return 1;
 }
@@ -506,15 +510,13 @@ int InsertIndel(RGBinary *rg,
 	int start; /* starting position within the read */
 	int success=1;
 
-	/* Which read should the indel be contained within */
-	r->whichReadIndel = (r->pairedEnd == 0)?0:(rand()%2); 
 	/* Pick a starting position within the read to insert */
 	start = rand() % (r->readLength - indelLength + 1);
 
 	if(indel == 1) {
 		/* Deletion */
 		/* Remove bases */
-		if(r->whichReadIndel == 0) {
+		if(r->whichReadVariants == 0) {
 			/* Free read */
 			free(r->readOne);
 			r->readOne = NULL;
@@ -575,7 +577,7 @@ int InsertIndel(RGBinary *rg,
 	}
 	else if(indel == 2) {
 		/* Insertion */
-		if(r->whichReadIndel == 0) {
+		if(r->whichReadVariants == 0) {
 			/* shift over all above */
 			for(i = r->readLength;i >= start + indelLength;i--) {
 				r->readOne[i] = r->readOne[i-indelLength];
@@ -612,61 +614,101 @@ int InsertIndel(RGBinary *rg,
 	return success;
 }
 
-void InsertSNPs(Read *r,
-		int numSNPs,
+void InsertMismatches(Read *r,
+		int numMismatches,
+		int type,
 		int withinInsertion)
 {
-	/*
-	   char *FnName = "InsertSNPs";
-	   */
-	int numSNPsLeft = numSNPs;
-	int which, index;
+	if(r->whichReadVariants == 0) {
+		InsertMismatchesHelper(r->readOne,
+				r->readLength,
+				r->readOneType,
+				numMismatches,
+				type,
+				withinInsertion);
+	}
+	else {
+		InsertMismatchesHelper(r->readTwo,
+				r->readLength,
+				r->readTwoType,
+				numMismatches,
+				type,
+				withinInsertion);
+	}
+}
+
+void InsertMismatchesHelper(char *read,
+		int readLength,
+		int *readType,
+		int numMismatches,
+		int type,
+		int withinInsertion)
+{
+	char *FnName = "InsertMismatches";
+	int numMismatchesLeft = numMismatches;
+	int index;
 	char original;
 	int toAdd;
 
-	while(numSNPsLeft > 0) {
-		/* Pick a read */
-		which = (r->pairedEnd == 0)?0:(rand()%2);
+	assert(type == SNP || type == Error);
+
+	while(numMismatchesLeft > 0) {
 		/* Pick a base to modify */
-		index = rand()%(r->readLength);
+		index = rand()%(readLength);
 		toAdd = 0;
 
-		/* Assumes the type can only be default, insertion, or SNP */
-		if(which == 0) {
-			if(withinInsertion == 1 && r->readOneType[index] == Insertion) {
-				r->readOneType[index] = InsertionAndSNP;
+		switch(readType[index]) {
+			case Default:
+				readType[index] = (type==SNP)?SNP:Error;
 				toAdd = 1;
-			}
-			else if(r->readOneType[index] == Default) {
-				r->readOneType[index] = SNP;
-				toAdd = 1;
-			}
-			if(1==toAdd) {
-				/* Modify base to a new base */
-				for(original = r->readOne[index];
-						original == r->readOne[index];
-						r->readOne[index] = DNA[rand()%4]) {
+				break;
+			case Insertion:
+				if(withinInsertion == 1) {
+					readType[index] = (type==SNP)?InsertionAndSNP:InsertionAndError;
+					toAdd = 1;
 				}
-				numSNPsLeft--;
-			}
+				break;
+			case SNP:
+				if(type == Error) {
+					readType[index] = SNPAndError;
+					toAdd = 1;
+				}
+				break;
+			case Error:
+				/* Nothing, since we assume that SNPs were applied before errors */
+				assert(type != SNP);
+				break;
+			case InsertionAndSNP:
+				if(withinInsertion == 1 && type == Error) {
+					readType[index] = InsertionSNPAndError;
+					toAdd = 1;
+				}
+				break;
+			case SNPAndError:
+				/* Nothing */
+				break;
+			case InsertionAndError:
+				/* Nothing, since we assume that SNPs were applied before errors */
+				assert(type != SNP);
+				break;
+			case InsertionSNPAndError:
+				/* Nothing */
+				break;
+			default:
+				PrintError(FnName,
+						"readType[index]",
+						"Could not understand type",
+						Exit,
+						OutOfRange);
+				break;
 		}
-		else {
-			if(withinInsertion == 1 && r->readTwoType[index] == Insertion) {
-				r->readTwoType[index] = InsertionAndSNP;
-				toAdd = 1;
+		if(1==toAdd) {
+			/* Modify base to a new base */
+			for(original = read[index];
+					original == read[index];
+					read[index] = DNA[rand()%4]) {
 			}
-			else if(r->readTwoType[index] == Default) {
-				r->readTwoType[index] = SNP;
-				toAdd = 1;
-			}
-			if(1==toAdd) {
-				/* Modify base to a new base */
-				for(original = r->readTwo[index];
-						original == r->readTwo[index];
-						r->readTwo[index] = DNA[rand()%4]) {
-				}
-				numSNPsLeft--;
-			}
+			numMismatchesLeft--;
 		}
 	}
 }

@@ -11,7 +11,7 @@ typedef struct {
 	int chr;
 	int pos;
 	char strand;
-	int whichReadIndel;
+	int whichReadVariants;
 	int startIndel;
 	/* Do not modify */
 	int readLength;
@@ -21,14 +21,14 @@ typedef struct {
 } Read;
 
 enum {
-	Default,
-	Insertion,
-	SNP,
-	Error,
-	InsertionAndSNP,
-	InsertionAndError,
-	SNPAndError,
-	InsertionSNPAndError
+	Default,				/* 0 */
+	Insertion,				/* 1 */
+	SNP,					/* 2 */
+	Error,					/* 3 */
+	InsertionAndSNP,		/* 4 */
+	InsertionAndError,		/* 5 */
+	SNPAndError,			/* 6 */
+	InsertionSNPAndError	/* 7 */
 };
 
 void ReadInitialize(Read*);
@@ -41,7 +41,8 @@ void GetRandomRead(RGBinary*, int64_t, Read*);
 void GetRandomChrPos(RGBinary*, int64_t, int*, int*, char*);
 int ModifyRead(RGBinary*, Read*, int, int, int, int, int, int);
 int InsertIndel(RGBinary*, Read*, int, int);
-void InsertSNPs(Read*, int, int);
+void InsertMismatches(Read*, int, int, int);
+void InsertMismatchesHelper(char*, int, int*, int, int, int);
 void InsertColorErrors(Read*, int, int);
 	
 #endif
