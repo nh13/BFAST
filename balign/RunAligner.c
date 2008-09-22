@@ -32,6 +32,7 @@ void RunAligner(RGBinary *rgBinary,
 		int numThreads,
 		int usePairedEndLength,
 		int pairedEndLength,
+		int forceMirroring,
 		char *outputID,
 		char *outputDir,
 		char *tmpDir,
@@ -183,6 +184,7 @@ void RunAligner(RGBinary *rgBinary,
 				numThreads,
 				usePairedEndLength,
 				pairedEndLength,
+				forceMirroring,
 				tmpDir,
 				outputFP,
 				notAlignedFP,
@@ -226,6 +228,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		int numThreads,
 		int usePairedEndLength,
 		int pairedEndLength,
+		int forceMirroring,
 		char *tmpDir,
 		FILE *outputFP,
 		FILE *notAlignedFP,
@@ -362,6 +365,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].pairedEnd=pairedEnd;
 		data[i].usePairedEndLength = usePairedEndLength;
 		data[i].pairedEndLength = pairedEndLength;
+		data[i].forceMirroring = forceMirroring;
 		data[i].binaryInput=binaryInput;
 		data[i].sm = &sm;
 		data[i].threadID = i;
@@ -540,6 +544,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int pairedEnd=data->pairedEnd;
 	int usePairedEndLength=data->usePairedEndLength;
 	int pairedEndLength=data->pairedEndLength;
+	int forceMirroring=data->forceMirroring;
 	int binaryInput=data->binaryInput;
 	int threadID=data->threadID;
 	ScoringMatrix *sm = data->sm;
@@ -577,7 +582,9 @@ void *RunDynamicProgrammingThread(void *arg)
 		 * This assumes that the the first read is 5'->3' before the second read.
 		 * */
 		if(pairedEnd == 1 && usePairedEndLength == 1) {
-			RGMatchesMirrorPairedEnd(&m, pairedEndLength);
+			RGMatchesMirrorPairedEnd(&m, 
+					pairedEndLength,
+					forceMirroring);
 		}
 
 		/* Allocate memory for the AlignEntries */

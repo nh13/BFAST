@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <time.h>
+#include <limits.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "RGMatch.h"
@@ -441,35 +442,42 @@ void RGMatchesInitialize(RGMatches *m)
 
 /* TODO */
 void RGMatchesMirrorPairedEnd(RGMatches *m,
-		int32_t pairedEndLength)
+		int32_t pairedEndLength,
+		int32_t forceMirroring)
 {
 	int i;
+	int numEntriesOne, numEntriesTwo;
 
 	if(m->pairedEnd == 1) {
-		if(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0) {
-			RGMatchReallocate(&m->matchTwo, m->matchOne.numEntries);
-			/* Copy over */
-			for(i=0;i<m->matchOne.numEntries;i++) {
-				m->matchTwo.chromosomes[i] = m->matchOne.chromosomes[i];
-				m->matchTwo.strand[i] = m->matchOne.strand[i];
+		numEntriesOne = m->matchOne.numEntries;
+		numEntriesTwo = m->matchTwo.numEntries;
+		/* Copy matches from first to second */
+		if(forceMirroring == 1 || 
+				(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0)) {
+			RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
+			for(i=0;i<numEntriesOne;i++) {
+				m->matchTwo.chromosomes[i+numEntriesTwo] = m->matchOne.chromosomes[i];
+				m->matchTwo.strand[i+numEntriesTwo] = m->matchOne.strand[i];
 				/* Adjust position */
-				m->matchTwo.positions[i] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
+				m->matchTwo.positions[i+numEntriesTwo] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
 			}
 		}
-		else if(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0) {
-			RGMatchReallocate(&m->matchOne, m->matchTwo.numEntries);
-			/* Copy over */
-			for(i=0;i<m->matchTwo.numEntries;i++) {
-				m->matchOne.chromosomes[i] = m->matchTwo.chromosomes[i];
-				m->matchOne.strand[i] = m->matchTwo.strand[i];
+		/* Copy matches from second to first */
+		if(forceMirroring == 1 || 
+				(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0)) {
+			RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
+			for(i=0;i<numEntriesTwo;i++) {
+				m->matchOne.chromosomes[i+numEntriesOne] = m->matchTwo.chromosomes[i];
+				m->matchOne.strand[i+numEntriesOne] = m->matchTwo.strand[i];
 				/* Adjust position */
-				m->matchOne.positions[i] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
+				m->matchOne.positions[i+numEntriesOne] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
 			}
 		}
 		/* Check m */
 		if(1==RGMATCHES_CHECK) {
 			RGMatchesCheck(m);
 		}
+		RGMatchesRemoveDuplicates(m, INT_MAX);
 	}
 }
 

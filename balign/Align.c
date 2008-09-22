@@ -244,14 +244,26 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	maxScore = NEGATIVE_INFINITY;
 	maxScoreNT = NEGATIVE_INFINITY;
 	for(i=0;i<referenceLength+1;i++) {
-		for(j=0;j<ALIGNMATRIXCELL_NUM_SUB_CELLS;j++) {
-			/* Cannot end with a deletion from the read */
-			if(j != 4 && matrix[readLength][i].score[j] > maxScore) {
-				maxScore = matrix[readLength][i].score[j];
-				maxScoreNT = matrix[readLength][i].scoreNT[j];
+		if(colorSpace == 1) {
+			for(j=0;j<ALIGNMATRIXCELL_NUM_SUB_CELLS;j++) {
+				/* Cannot end with a deletion from the read */
+				if(j != 4 && matrix[readLength][i].score[j] > maxScore) {
+					maxScore = matrix[readLength][i].score[j];
+					maxScoreNT = matrix[readLength][i].scoreNT[j];
+					startRow = readLength;
+					startCol = i;
+					startCell = j;
+				}
+			}
+		}
+		else {
+			/* Check only the first cell */
+			if(matrix[readLength][i].score[0] > maxScore) {
+				maxScore = matrix[readLength][i].score[0];
+				maxScoreNT = matrix[readLength][i].scoreNT[0];
 				startRow = readLength;
 				startCol = i;
-				startCell = j;
+				startCell = 0;
 			}
 		}
 	}
@@ -453,23 +465,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		} /* End loop */
 	}
 	else { /* NT space */
-
-		/*Initialize the current read base */
-		switch(curCell) {
-			case 0:
-			case 2:
-				/* Diagonal or insertion */
-				curReadBase = read[curRow-1];
-				break;
-			default:
-				/* Deletion not legal to end with */
-				PrintError(FnName,
-						"curCell",
-						"Could not initialize curCell",
-						Exit,
-						OutOfRange);
-		}
-		assert(curReadBase != 'X');
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
 		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
 		aEntry->score = maxScore; /* Copy over score */
@@ -483,6 +478,15 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 					matrix[curRow][curCol].length[curCell],
 					maxScore);
 		}
+		/* HERE C2 */
+		/*
+		curFrom = matrix[curRow][curCol].from[curCell];
+		fprintf(stderr, "HERE C2 (curRow=%d,curCol=%d,curCell=%d,curFrom=%d)\n",
+				curRow,
+				curCol,
+				curCell,
+				curFrom);
+				*/
 		/* Now trace back the alignment using the "from" member in the matrix */
 		while(curRow > 0 && curCol > 0) {
 
@@ -491,13 +495,12 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 
 			/* HERE */
 			if(debug == 1) {
-				fprintf(stderr, "(curRow,curCol,i,curFrom,curCell,curReadBase)=(%d,%d,%d,%d,%d,%c)\n",
+				fprintf(stderr, "(curRow,curCol,i,curFrom,curCell)=(%d,%d,%d,%d,%d)\n",
 						curRow,
 						curCol,
 						i,
 						curFrom,
-						curCell,
-						curReadBase);
+						curCell);
 				fprintf(stderr, "cur.length=%d\n",
 						matrix[curRow][curCol].length[curCell]);
 			}
@@ -511,7 +514,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			/* Update alignment */
 			switch(curFrom) {
 				case DiagA:
-					aEntry->read[i] = curReadBase;
+					aEntry->read[i] = read[curRow-1];
 					aEntry->reference[i] = reference[curCol-1];
 					break;
 				case DeletionA:
@@ -521,8 +524,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 					break;
 				case InsertionA:
 				case InsertionExt:
-					assert(curReadBase != GAP);
-					aEntry->read[i] = curReadBase;
+					aEntry->read[i] = read[curRow-1];
 					aEntry->reference[i] = GAP;
 					break;
 				default:
@@ -534,6 +536,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							Exit,
 							OutOfRange);
 			}
+
 			/* HERE */
 			if(debug == 1) {
 				fprintf(stderr, "aEntry:[%c][%c]\toriginal:(%c,%c)\n",
@@ -588,34 +591,9 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							OutOfRange);
 			}
 
-			/* Update next base */
-			switch(curFrom) {
-				case DiagA:
-				case InsertionA:
-				case InsertionExt:
-					if(curRow >= 2) {
-						nextReadBase = read[curRow-2];
-					}
-					else {
-						nextReadBase = 'X';
-					}
-					break;
-				case DeletionA:
-				case DeletionExt:
-					nextReadBase = GAP;
-					break;
-				default:
-					PrintError(FnName,
-							"curFrom",
-							"Could not understand curFrom (updating next read base)",
-							Exit,
-							OutOfRange);
-			}
-
 			assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
 
 			/* Update for next loop iteration */
-			curReadBase = nextReadBase;
 			curRow = nextRow;
 			curCol = nextCol;
 			curCell = nextCell;
@@ -623,13 +601,14 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 
 			/* HERE */
 			if(debug == 1) {
-				fprintf(stderr, "next(row,col,curCell,curReadBase)=(%d,%d,%d,%c)\n",
+				fprintf(stderr, "next(row,col,curCell)=(%d,%d,%d)\n",
 						nextRow,
 						nextCol,
-						nextCell,
-						curReadBase);
+						nextCell);
 				fprintf(stderr, "%s", BREAK_LINE);
 			}
+			/* HERE C3 */
+			assert(i!=-1 || aEntry->read[0] != GAP);
 		} /* End Loop */
 	}
 	/* HERE */

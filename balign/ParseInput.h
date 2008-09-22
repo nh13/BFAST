@@ -18,6 +18,7 @@ struct arguments
 	int pairedEnd;                          /* -2 */
 	int numThreads;                         /* -n */
 	int usePairedEndLength;					/* -l - compainion to pairedEndLength */
+	int forceMirroring;						/* -f */
 	int pairedEndLength;					/* -l */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */

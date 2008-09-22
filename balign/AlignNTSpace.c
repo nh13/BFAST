@@ -93,6 +93,7 @@ int AlignNTSpace(char *read,
 			/* Match/Mismatch is a diagonal */
 
 			/* Update deletion */
+			/* Deletion extension */
 			matrix[i+1][j+1].score[1] = matrix[i+1][j].score[1] + sm->gapExtensionPenalty; 
 			matrix[i+1][j+1].length[1] = matrix[i+1][j].length[1] + 1;
 			matrix[i+1][j+1].from[1] = DeletionExt;
@@ -104,6 +105,7 @@ int AlignNTSpace(char *read,
 			}
 
 			/* Update insertion */
+			/* Insertion extension */
 			matrix[i+1][j+1].score[2] = matrix[i][j+1].score[2] + sm->gapExtensionPenalty; 
 			matrix[i+1][j+1].length[2] = matrix[i][j+1].length[2] + 1;
 			matrix[i+1][j+1].from[2] = InsertionExt;
@@ -182,6 +184,10 @@ int AlignNTSpace(char *read,
 	}
 	free(matrix);
 	matrix=NULL;
+
+	/* Check alignment quickly HERE C1 */
+	assert(aEntry->read[0] != GAP);
+	assert(aEntry->read[aEntry->length-1] != GAP);
 
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;

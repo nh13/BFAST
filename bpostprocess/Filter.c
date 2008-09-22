@@ -73,7 +73,7 @@ int FilterAlignEntries(AlignEntries *a,
 		}
 	}
 	else {
-		switch(algorithmReads) {
+		switch(algorithmReadsPaired) {
 			case NoFiltering:
 				/* Do nothing */
 				foundType=Found;

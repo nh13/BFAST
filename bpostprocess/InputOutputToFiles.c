@@ -279,7 +279,7 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 1, fp); 
 		}
 		for(i=0;i<a->numEntriesTwo;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 2, fp); 
+			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, a->pairedEnd, a->colorSpace, 2, fp); 
 		}
 	}
 
@@ -298,7 +298,7 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	int originalReferenceLength=0;
 	int originalReadLength=0; 
 
-	/* Recover origan lengths */
+	/* Recover original lengths */
 	for(i=0;i<a->length;i++) {
 		if(a->reference[i] != GAP) {
 			originalReferenceLength++;

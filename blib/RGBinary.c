@@ -197,7 +197,7 @@ void RGBinaryRead(char *rgFileName,
 			 * Repeat sequence: A,C,G,T
 			 * Null Character: N,n
 			 * */
-					
+
 			/* Transform IUPAC codes */
 			original=TransformFromIUPAC(original);
 
@@ -772,7 +772,7 @@ void RGBinaryGetReference(RGBinary *rgBinary,
 	int32_t chrIndex;
 	int32_t startPos, endPos;
 	int success;
-	
+
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
 
@@ -802,25 +802,52 @@ void RGBinaryGetReference(RGBinary *rgBinary,
 			endPos = rgBinary->chromosomes[chrIndex].endPos;
 		}
 	}
-	
+
 	/* Check that enough bases remain */
 	if(endPos - startPos + 1 <= 0) {
-		PrintError(FnName,
-				NULL,
-				"Could not get enough bases",
-				Exit,
-				OutOfRange);
-	}
-	
-	/* Get reference */
-	success = RGBinaryGetSequence(rgBinary,
-			chromosome,
-			startPos,
-			strand,
-			reference,
-			endPos - startPos + 1);
+		/* HERE */
+		/*
+		   fprintf(stderr, "chr=%d\tpos=%d\tstrand=%c\n",
+		   chromosome,
+		   position,
+		   strand);
+		   fprintf(stderr, "offsetLength=%d\treadLength=%d\n",
+		   offsetLength,
+		   readLength);
+		   fprintf(stderr, "startPos=%d\tendPos=%d\n",
+		   startPos,
+		   endPos);
+		   fprintf(stderr, "chrStartPos=%d\tchrEndPos=%d\n",
+		   (int)rgBinary->chromosomes[chrIndex].startPos,
+		   (int)rgBinary->chromosomes[chrIndex].endPos);
+		   */
+		/* Return just one base = N */
+		assert((*reference)==NULL);
+		(*reference) = malloc(sizeof(char)*(2));
+		if(NULL==(*reference)) {
+			PrintError(FnName,
+					"reference",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		(*reference)[0] = 'N';
+		(*reference)[1] = '\0';
 
-	if(0 == success) {
+		(*returnReferenceLength) = 1;
+		(*returnPosition) = 1;
+	}
+	else {
+
+		/* Get reference */
+		success = RGBinaryGetSequence(rgBinary,
+				chromosome,
+				startPos,
+				strand,
+				reference,
+				endPos - startPos + 1);
+
+		if(0 == success) {
 			PrintError(FnName,
 					NULL,
 					"COuld not get reference",
@@ -828,9 +855,10 @@ void RGBinaryGetReference(RGBinary *rgBinary,
 					OutOfRange);
 		}
 
-	/* Update start pos and reference length */
-	(*returnReferenceLength) = endPos - startPos + 1;
-	(*returnPosition) = startPos;
+		/* Update start pos and reference length */
+		(*returnReferenceLength) = endPos - startPos + 1;
+		(*returnPosition) = startPos;
+	}
 }
 
 int8_t RGBinaryGetBase(RGBinary *rg,

@@ -83,6 +83,7 @@ static struct argp_option options[] = {
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
 	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read's CALs", 3},
+	{"forceMirroring", 'f', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
@@ -112,7 +113,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:l:m:n:o:r:s:x:E:H:M:O:S:T:2Ahpt";
+"d:e:l:m:n:o:r:s:x:E:H:M:O:S:T:2Afhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -189,6 +190,7 @@ main (int argc, char **argv)
 								arguments.numThreads,
 								arguments.usePairedEndLength,
 								arguments.pairedEndLength,
+								arguments.forceMirroring,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
@@ -365,6 +367,10 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == 0 || args->binaryInput == 1);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
+	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
+	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {
+		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);
+	}
 
 	return 1;
 }
@@ -431,6 +437,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numThreads = 1;
 	args->usePairedEndLength = 0;
 	args->pairedEndLength = 0;
+	args->forceMirroring = 0;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -474,6 +481,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
+	fprintf(fp, "forceMirroring:\t\t\t\t%d\n", args->forceMirroring);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -535,6 +543,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'e':
 						arguments->endChr=atoi(OPTARG);break;
+					case 'f':
+						arguments->forceMirroring=1;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
 					case 'l':

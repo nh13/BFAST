@@ -306,8 +306,8 @@ int ValidateInputs(struct arguments *args) {
 		if(args->meanDistancePaired < args->minDistancePaired) {
 			PrintError(FnName, "meanDistancePaired < minDistancePaired", "Command line argument", Exit, OutOfRange);
 		}
-		if(args->meanDistancePaired < args->maxDistancePaired) {
-			PrintError(FnName, "meanDistancePaired < maxDistancePaired", "Command line argument", Exit, OutOfRange);
+		if(args->meanDistancePaired >  args->maxDistancePaired) {
+			PrintError(FnName, "meanDistancePaired > maxDistancePaired", "Command line argument", Exit, OutOfRange);
 		}
 	}
 

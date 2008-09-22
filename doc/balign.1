@@ -32,6 +32,7 @@ balign
 	[\fB\-2\fR]			[\fB\-\-pairedEnd\fR]
 	[\fB\-n\fR \fIINTEGER\fR]	[\fB\-\-numThreads=\fIINTEGER\fR]
 	[\fB\-l\fR \fIINTEGER\fR]	[\fB\-\-pairedEndLength=\fIINTEGER\fR]
+	[\fB\-f\fR]			[\fB\-\-forceMirroring\fR]
 	[\fB\-o\fR \fISTRING\fR]	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR]	[\fB\-\-outputDir=\fIDIRECTORY\fR]
 	[\fB\-T\fR \fIDIRECTORY\fR] [\fB\-\-tmpDir=\fIDIRECTORY\fR]
@@ -133,6 +134,11 @@ This will allow the reads to be aligned in parallel.
 .TP 4
 \fB\-l\fR \fIINTEGER\fR, \fB\-\-pairedEndLength=\fIINTEGER\fR
 Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read's CAL.
+.
+.TP 4
+\fB\-f\fR, \fB\-\-forceMirroring\fR
+Specifies that we should always mirror CALs using the distance from \fB-l\fR for paired end reads.
+This will infer CALs for one read given the other paired read and the paire end distance (\fB-l\fR).
 .
 .TP 4
 \fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
