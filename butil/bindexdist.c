@@ -346,7 +346,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 	RGRangesInitialize(&ranges);
 
 	/* Get the read */
-	RGBinaryGetSequence(rg,
+	RGBinaryGetReference(rg,
 			curChr,
 			curPos,
 			FORWARD,

@@ -3,12 +3,78 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "../blib/BError.h"
 
+#include "../blib/BError.h"
+#include "../blib/BLib.h"
 #include "bgeneratereads.h"
 
 #define Name "bgeneratereads"
 #define MAX_COUNT 100
+
+char Colors[4] = "0123";
+
+/* Do not change read length, paired end, or paired end length */
+void ReadInitialize(Read *r)
+{
+	int i;
+	r->readOne = NULL;
+	r->readTwo = NULL;
+	r->chr = 0;
+	r->pos = 0;
+	r->strand = 0;
+	r->whichReadIndel = -1;
+	r->startIndel = -1;
+	for(i=0;i<SEQUENCE_LENGTH-1;i++) {
+		r->readOneType[i] = Default;
+		r->readTwoType[i] = Default;
+	}
+
+}
+
+/* Do not change read length, paired end, or paired end length */
+void ReadDelete(Read *r) 
+{
+	free(r->readOne);
+	free(r->readTwo);
+	ReadInitialize(r);
+}
+
+void ReadPrint(Read *r, 
+		FILE *fp)
+{
+	int i;
+
+	/* Read name */
+	fprintf(fp, ">strand=%c_chr=%d_pos=%d_pe=%d_pel=%d_rl=%d_wri=%d_si=%d_il=%d",
+			r->strand,
+			r->chr,
+			r->pos,
+			r->pairedEnd,
+			r->pairedEndLength,
+			r->readLength,
+			r->whichReadIndel,
+			r->startIndel,
+			r->indelLength);
+	fprintf(fp, "_r1=");
+	for(i=0;i<r->readLength;i++) {
+		fprintf(fp, "%1d", r->readOneType[i]);
+	}
+	if(r->pairedEnd==1) {
+		fprintf(fp, "_r2=");
+		for(i=0;i<r->readLength;i++) {
+			fprintf(fp, "%1d", r->readTwoType[i]);
+		}
+	}
+	fprintf(fp,"\n");
+
+	/* Read one */
+	fprintf(fp, "%s\n", r->readOne);
+
+	/* Read two */
+	if(r->pairedEnd==1) {
+		fprintf(fp, "%s\n", r->readTwo);
+	}
+}
 
 int main(int argc, char *argv[]) 
 {
@@ -17,7 +83,7 @@ int main(int argc, char *argv[])
 	int space = 0;
 	int indel = 0;
 	int indelLength = 0;
-	int withinIndel = 0;
+	int withinInsertion = 0;
 	int numSNPs = 0;
 	int numErrors = 0;
 	int readLength = 0;
@@ -32,7 +98,7 @@ int main(int argc, char *argv[])
 		space = atoi(argv[2]);
 		indel = atoi(argv[3]);
 		indelLength = atoi(argv[4]);
-		withinIndel = atoi(argv[5]);
+		withinInsertion = atoi(argv[5]);
 		numSNPs = atoi(argv[6]);
 		numErrors = atoi(argv[7]);
 		readLength = atoi(argv[8]);
@@ -42,9 +108,9 @@ int main(int argc, char *argv[])
 
 		/* Check cmd line options */
 		assert(space == 0 || space == 1);
-		assert(indel == 0 || indel == 1);
+		assert(indel >= 0 && indel <= 2);
 		assert(indelLength > 0 || indel == 0);
-		assert(withinIndel == 0 || withinIndel == 1);
+		assert(withinInsertion == 0 || (indel == 2 && withinInsertion == 1));
 		assert(numSNPs >= 0);
 		if(space == 0 && numErrors > 0) {
 			PrintError(Name,
@@ -54,13 +120,29 @@ int main(int argc, char *argv[])
 					OutOfRange);
 		}
 		assert(readLength > 0);
+		assert(readLength < SEQUENCE_LENGTH);
 		assert(pairedEnd == 0 || pairedEnd == 1);
 		assert(pairedEndLength > 0 || pairedEnd == 0);
 		assert(numReads > 0);
 
+		/* Should check if we have enough bases for everything */
+
 		/* Get reference genome */
 		RGBinaryReadBinary(&rg,
 				rgFileName);
+
+		/* Generate reads */
+		GenerateReads(&rg,
+				space,
+				indel,
+				indelLength,
+				withinInsertion,
+				numSNPs,
+				numErrors,
+				readLength,
+				pairedEnd,
+				pairedEndLength,
+				numReads);
 
 		/* Delete reference genome */
 		RGBinaryDelete(&rg);
@@ -71,8 +153,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<space 0: nt space 1: color space>\n");
 		fprintf(stderr, "\t<indel 0: none 1: deletion 2: insertion>\n");
 		fprintf(stderr, "\t<indel length>\n");
-		fprintf(stderr, "\t<SNPs and errors within indel 0: false 1: true>\n");
-		fprintf(stderr, "\t<# of SNPs>\n");
+		fprintf(stderr, "\t<include SNPs and color errors within insertion 0: false 1: true>\n");
+		fprintf(stderr, "\t<# of SNPs and/or nt space errors>\n");
 		fprintf(stderr, "\t<# of errors (color space only)>\n");
 		fprintf(stderr, "\t<read length>\n");
 		fprintf(stderr, "\t<paired end 0: false 1: true>\n");
@@ -87,7 +169,7 @@ void GenerateReads(RGBinary *rg,
 		int space,
 		int indel,
 		int indelLength,
-		int withinIndel,
+		int withinInsertion,
 		int numSNPs,
 		int numErrors,
 		int readLength,
@@ -115,7 +197,7 @@ void GenerateReads(RGBinary *rg,
 			space,
 			indel,
 			indelLength,
-			withinIndel,
+			withinInsertion,
 			numSNPs,
 			numErrors,
 			readLength,
@@ -136,6 +218,8 @@ void GenerateReads(RGBinary *rg,
 	r.readLength = readLength;
 	r.pairedEnd = pairedEnd;
 	r.pairedEndLength = pairedEndLength;
+	r.indelLength = indelLength;
+	ReadInitialize(&r);
 
 	/* Generate the reads */
 	for(i=0;i<numReads;i++) {
@@ -143,8 +227,28 @@ void GenerateReads(RGBinary *rg,
 		GetRandomRead(rg, 
 				rgLength,
 				&r);
+
+		/* Modify the read based on indel, SNPs, errors and color space */
+		if(1==ModifyRead(rg,
+					&r,
+					space,
+					indel,
+					indelLength,
+					withinInsertion,
+					numSNPs,
+					numErrors)) {
+			/* Output */
+			ReadPrint(&r,
+					fp);
+		}
+		else {
+			/* Do not output, try again */
+			i--;
+		}
+
+
 		/* Initialize read */
-		ReadInitialize(&r);
+		ReadDelete(&r);
 	}
 
 	/* Close output file */
@@ -156,9 +260,11 @@ void GetRandomRead(RGBinary *rg,
 		Read *r)
 {
 	char *FnName="GetRandomRead";
-	int posOne, posTwo;
-	int readLengthOne, readLengthTwo;
 	int count = 0;
+	int i;
+	int hasNs=0;
+	int readOneSuccess=0;
+	int readTwoSuccess=0;
 
 	do {
 		/* Avoid infinite loop */
@@ -172,7 +278,9 @@ void GetRandomRead(RGBinary *rg,
 		}
 
 		/* Initialize read */
-		ReadInitialize(r);
+		if(count > 1) {
+			ReadDelete(r);
+		}
 
 		/* Get the random chromosome and position */
 		GetRandomChrPos(rg,
@@ -181,45 +289,54 @@ void GetRandomRead(RGBinary *rg,
 				&r->pos,
 				&r->strand);
 
-		/* Get the sequence for the first read */
-		RGBinaryGetSequence(rg,
-				r->chr,
-				r->pos,
-				r->strand,
-				0,
-				&r->readOne,
-				r->readLength,
-				&readLengthOne,
-				&posOne);
-
-		/* Get the sequecne for the second read */
 		if(r->pairedEnd == 1) {
-			RGBinaryGetSequence(rg,
+			/* Get the sequence for the first read */
+			readOneSuccess = RGBinaryGetSequence(rg,
 					r->chr,
 					r->pos + r->readLength + r->pairedEndLength,
 					r->strand,
-					0,
+					&r->readOne,
+					r->readLength);
+			/* Get the sequence for the second read */
+			readTwoSuccess = RGBinaryGetSequence(rg,
+					r->chr,
+					r->pos,
+					r->strand,
 					&r->readTwo,
-					r->readLength,
-					&readLengthTwo,
-					&posTwo);
+					r->readLength);
+		}
+		else {
+			/* Get the sequence for the first read */
+			readOneSuccess = RGBinaryGetSequence(rg,
+					r->chr,
+					r->pos,
+					r->strand,
+					&r->readOne,
+					r->readLength);
 		}
 
-	} while(posOne != r->pos || /* First read has the same starting position */
-			readLengthOne != r->readLength || /* First read has the same length */ 
-			(r->pairedEnd == 1 && posTwo != r->pos + r->readLength + r->pairedEndLength) || /* Second read has the same starting position */
-			(r->pairedEnd == 1 && readLengthTwo != r->readLength)); /* Second read has the same length */
-}
+		/* Make sure there are no Ns */
+		hasNs = 0;
+		if(1==readOneSuccess) {
+			for(i=0;0==hasNs && i<r->readLength;i++) {
+				if(RGBinaryIsBaseN(r->readOne[i]) == 1) {
+					hasNs = 1;
+				}
+			}
+		}
+		if(r->pairedEnd == 1 && 1==readTwoSuccess) {
+			for(i=0;0==hasNs && i<r->readLength;i++) {
+				if(RGBinaryIsBaseN(r->readTwo[i]) == 1) {
+					hasNs = 1;
+				}
+			}
+		}
 
-/* Do not change read length, paired end, or paired end length */
-void ReadInitialize(Read *r)
-{
-	free(r->readOne);
-	r->readOne = NULL;
-	free(r->readTwo);
-	r->readTwo = NULL;
-	r->chr = 0;
-	r->pos = 0;
+	} while(
+			(readOneSuccess == 0) || /* Read one was successfully read */
+			(readTwoSuccess == 0) || /* Read two was successfully read */
+			(hasNs == 1) /* Either read end has an "N" */
+		   );
 }
 
 /* Get the random chromosome and position */
@@ -244,7 +361,14 @@ void GetRandomChrPos(RGBinary *rg,
 
 	/* Use coin flips to find position */
 	mid = (low + high)/2;
-	while(low <= high) {
+	while(low < high) {
+		/* HERE */
+		/*
+		   fprintf(stderr, "low=%lld\tmid=%lld\thigh=%lld\n",
+		   (long long int)low,
+		   (long long int)mid,
+		   (long long int)high);
+		   */
 		mid = (low + high)/2;
 		value = rand() % 2;
 		if(value == 0) {
@@ -277,10 +401,325 @@ void GetRandomChrPos(RGBinary *rg,
 			return;
 		}
 	}
-	
+
 	PrintError(FnName,
 			"mid",
 			"Mid was out of range",
 			Exit,
 			OutOfRange);
+}
+
+/* TODO */
+int ModifyRead(RGBinary *rg,
+		Read *r,
+		int space,
+		int indel,
+		int indelLength,
+		int withinInsertion,
+		int numSNPs,
+		int numErrors)
+{
+	/* Apply them in this order:
+	 * 1. insert an indel based on indel length 
+	 * 2. insert a SNP based on include within insertion
+	 * 3. convert to color space (if necessary)
+	 * 4. if in color space, insert errors 
+	 * */
+	char *FnName="ModifyRead";
+	int tempReadLength=r->readLength;
+
+	/* 1. Insert an indel based on the indel length */
+	switch(indel) {
+		case 0:
+			/* Do nothing */
+			break;
+		case 1:
+		case 2:
+			if(0==InsertIndel(rg, r, indel, indelLength)) {
+				/* Could not add an indel */
+				return 0;
+			}
+			break;
+		default:
+			PrintError(FnName,
+					"indel",
+					"indel out of range",
+					Exit,
+					OutOfRange);
+	}
+
+	/* 2. SNPs */
+	InsertSNPs(r,
+			numSNPs,
+			withinInsertion);
+
+	if(1 == space) {
+		/* 3. Convert to color space if necessary */
+		tempReadLength = r->readLength;
+		ConvertReadToColorSpace(&r->readOne,
+				&tempReadLength);
+		if(1==r->pairedEnd) {
+			tempReadLength = r->readLength;
+			ConvertReadToColorSpace(&r->readTwo,
+					&tempReadLength);
+		}
+
+		/* 4. Insert errors if necessary */
+		InsertColorErrors(r,
+				numErrors,
+				withinInsertion);
+	}
+
+	return 1;
+}
+
+/* TODO */
+int InsertIndel(RGBinary *rg,
+		Read *r,
+		int indel,
+		int indelLength)
+{
+	char *FnName="InsertIndel";
+	int i;
+	int start; /* starting position within the read */
+	char *toAdd=NULL;
+	int returnIndelLength = 0;
+	int returnIndelPosition = 0;
+	int success=1;
+
+	/* Which read should the indel be contained within */
+	r->whichReadIndel = (r->pairedEnd == 0)?0:(rand()%2); 
+	/* Pick a starting position within the read to insert */
+	start = rand() % (r->readLength - indelLength + 1);
+
+	if(indel == 1) {
+		/* Deletion */
+		/* Remove bases */
+		if(r->whichReadIndel == 0) {
+			/* Shift over bases */
+			for(i=start;i<r->readLength-indelLength;i++) {
+				r->readOne[i] = r->readOne[i+indelLength];
+			}
+			/* Get more bases */
+			RGBinaryGetReference(rg,
+					r->chr,
+					r->pos + r->readLength,
+					r->strand,
+					0,
+					&toAdd,
+					indelLength,
+					&returnIndelLength,
+					&returnIndelPosition);
+			if(returnIndelLength != indelLength || 
+					returnIndelPosition != r->pos + r->readLength) {
+				success = 0;
+			}
+			else {
+				/* Copy over bases */
+				for(i=r->readLength-indelLength;i<r->readLength;i++) {
+					r->readOne[i] = toAdd[i-(r->readLength-indelLength)];
+				}
+			}
+		}
+		else {
+			/* Shift over bases */
+			for(i=start;i<r->readLength-indelLength;i++) {
+				r->readTwo[i] = r->readTwo[i+indelLength];
+			}
+			/* Get more bases */
+			RGBinaryGetReference(rg,
+					r->chr,
+					r->pos + 2*r->readLength + r->pairedEndLength,
+					r->strand,
+					0,
+					&toAdd,
+					indelLength,
+					&returnIndelLength,
+					&returnIndelPosition);
+			if(returnIndelLength != indelLength || 
+					returnIndelPosition != r->pos + 2*r->readLength + r->pairedEndLength) {
+				success = 0;
+			}
+			else {
+				/* Copy over bases */
+				for(i=r->readLength-indelLength;i<r->readLength;i++) {
+					r->readTwo[i] = toAdd[i-(r->readLength-indelLength)];
+				}
+			}
+		}
+		/* Free memory */
+		free(toAdd);
+		toAdd=NULL;
+	}
+	else if(indel == 2) {
+		/* Insertion */
+		if(r->whichReadIndel == 0) {
+			/* shift over all above */
+			for(i = r->readLength;i >= start + indelLength;i--) {
+				r->readOne[i] = r->readOne[i-indelLength];
+			}
+			/* insert random bases */
+			for(i=start;i<start+indelLength;i++) {
+				r->readOne[i] = DNA[rand()%4];
+				r->readOneType[i] = Insertion;
+			}
+		}
+		else {
+			/* shift over all above */
+			for(i = r->readLength;i >= start + indelLength;i--) {
+				r->readTwo[i] = r->readTwo[i-indelLength];
+			}
+			/* insert random bases */
+			for(i=start;i<start+indelLength;i++) {
+				r->readTwo[i] = DNA[rand()%4];
+				r->readTwoType[i] = Insertion;
+			}
+		}
+	}
+	else {
+		PrintError(FnName,
+				"indel",
+				"indel out of range",
+				Exit,
+				OutOfRange);
+	}
+
+	/* Update the start of the indel */
+	r->startIndel = start;
+
+	return success;
+}
+
+void InsertSNPs(Read *r,
+		int numSNPs,
+		int withinInsertion)
+{
+	/*
+	   char *FnName = "InsertSNPs";
+	   */
+	int numSNPsLeft = numSNPs;
+	int which, index;
+	char original;
+	int toAdd;
+
+	while(numSNPsLeft > 0) {
+		/* Pick a read */
+		which = (r->pairedEnd == 0)?0:(rand()%2);
+		/* Pick a base to modify */
+		index = rand()%(r->readLength);
+		toAdd = 0;
+
+		/* Assumes the type can only be default, insertion, or SNP */
+		if(which == 0) {
+			if(withinInsertion == 1 && r->readOneType[index] == Insertion) {
+				r->readOneType[index] = InsertionAndSNP;
+				toAdd = 1;
+			}
+			else if(r->readOneType[index] == Default) {
+				r->readOneType[index] = SNP;
+				toAdd = 1;
+			}
+			if(1==toAdd) {
+				/* Modify base to a new base */
+				for(original = r->readOne[index];
+						original == r->readOne[index];
+						r->readOne[index] = DNA[rand()%4]) {
+				}
+				numSNPsLeft--;
+			}
+		}
+		else {
+			if(withinInsertion == 1 && r->readTwoType[index] == Insertion) {
+				r->readTwoType[index] = InsertionAndSNP;
+				toAdd = 1;
+			}
+			else if(r->readTwoType[index] == Default) {
+				r->readTwoType[index] = SNP;
+				toAdd = 1;
+			}
+			if(1==toAdd) {
+				/* Modify base to a new base */
+				for(original = r->readTwo[index];
+						original == r->readTwo[index];
+						r->readTwo[index] = DNA[rand()%4]) {
+				}
+				numSNPsLeft--;
+			}
+		}
+	}
+}
+
+void InsertColorErrors(Read *r,
+		int numErrors,
+		int withinInsertion)
+{
+	/*
+	   char *FnName = "InsertColorErrors";
+	   */
+	int numErrorsLeft = numErrors;
+	int which, index;
+	char original;
+	int toAdd;
+
+	while(numErrorsLeft > 0) {
+		/* Pick a read */
+		which = (r->pairedEnd == 0)?0:(rand()%2);
+		/* Pick a color to modify */
+		index = (rand()%(r->readLength) )+ 1;
+		toAdd = 0;
+
+		/* Assumes the type can only be Default, Insertion, SNP, or InsertionAndSNP */
+		if(which == 0) {
+			if(withinInsertion == 1 && r->readOneType[index] == Insertion) {
+				r->readOneType[index] = InsertionAndError;
+				toAdd = 1;
+			}
+			if(withinInsertion == 1 && r->readOneType[index] == InsertionAndSNP) {
+				r->readOneType[index] = InsertionSNPAndError;
+				toAdd = 1;
+			}
+			else if(r->readOneType[index] == SNP) {
+				r->readOneType[index] = SNPAndError;
+				toAdd = 1;
+			}
+			else if(r->readOneType[index] == Default) {
+				r->readOneType[index] = Error;
+				toAdd = 1;
+			}
+			if(1==toAdd) {
+				/* Modify color to a new color */
+				for(original = r->readTwo[index];
+						original == r->readTwo[index];
+						r->readTwo[index] = Colors[rand()%4]) {
+				}
+				numErrorsLeft--;
+			}
+		}
+		else {
+			if(withinInsertion == 1 && r->readTwoType[index] == Insertion) {
+				r->readTwoType[index] = InsertionAndError;
+				toAdd = 1;
+			}
+			if(withinInsertion == 1 && r->readTwoType[index] == InsertionAndSNP) {
+				r->readTwoType[index] = InsertionSNPAndError;
+				toAdd = 1;
+			}
+			else if(r->readTwoType[index] == SNP) {
+				r->readTwoType[index] = SNPAndError;
+				toAdd = 1;
+			}
+			else if(r->readTwoType[index] == Default) {
+				r->readTwoType[index] = Error;
+				toAdd = 1;
+			}
+			if(1==toAdd) {
+				/* Modify color to a new color */
+				for(original = r->readTwo[index];
+						original == r->readTwo[index];
+						r->readTwo[index] = Colors[rand()%4]) {
+				}
+				numErrorsLeft--;
+			}
+		}
+	}
 }

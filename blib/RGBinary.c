@@ -685,7 +685,80 @@ void RGBinaryInsertBase(uint8_t *dest,
 }
 
 /* TODO */
-void RGBinaryGetSequence(RGBinary *rgBinary,
+int32_t RGBinaryGetSequence(RGBinary *rgBinary,
+		int32_t chromosome,
+		int32_t position,
+		int8_t strand,
+		char **sequence,
+		int32_t sequenceLength)
+{
+	char *FnName="RGBinaryGetSequence";
+	char *reverseCompliment;
+	int32_t chrIndex;
+	int32_t curPos;
+
+	/* We assume that we can hold 2 [acgt] (nts) in each byte */
+	assert(ALPHABET_SIZE==4);
+
+	/* Get chromosome index in rgBinary */
+	chrIndex = chromosome - (int)rgBinary->startChr;
+
+	/* Allocate memory for the reference */
+	assert((*sequence)==NULL);
+	(*sequence) = malloc(sizeof(char)*(sequenceLength+1));
+	if(NULL==(*sequence)) {
+		PrintError(FnName,
+				"sequence",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Copy over bases */
+	for(curPos=position;curPos < position + sequenceLength;curPos++) {
+		(*sequence)[curPos-position] = RGBinaryGetBase(rgBinary, chromosome, curPos);
+		if(0==(*sequence)[curPos-position]) {
+			/* Free memory */
+			free((*sequence));
+			(*sequence) = NULL;
+			return 0;
+		}
+	}
+	(*sequence)[sequenceLength] = '\0';
+
+	/* Get the reverse compliment if necessary */
+	if(strand == FORWARD) {
+		/* ignore */
+	}
+	else if(strand == REVERSE) {
+		/* Get the reverse compliment */
+		reverseCompliment = malloc(sizeof(char)*(sequenceLength+1));
+		if(NULL == reverseCompliment) {
+			PrintError(FnName,
+					"reverseCompliment",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		GetReverseComplimentAnyCase((*sequence), reverseCompliment, sequenceLength);
+		/* Copy reverse compliment to the sequence.  We could just strcpy or we 
+		 * could just use the wonderful world of pointers */
+		free((*sequence)); /* Free memory pointed to by sequence */
+		(*sequence) = reverseCompliment; /* Point sequence to reverse compliment's memory */
+		reverseCompliment=NULL; /* Destroy the pointer for reverse compliment */
+	}
+	else {
+		PrintError(FnName,
+				"strand",
+				"Could not understand strand",
+				Exit,
+				OutOfRange);
+	}
+	return 1;
+}
+
+/* TODO */
+void RGBinaryGetReference(RGBinary *rgBinary,
 		int32_t chromosome,
 		int32_t position,
 		int8_t strand,
@@ -695,47 +768,20 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 		int32_t *returnReferenceLength,
 		int32_t *returnPosition)
 {
-	char *FnName="RGBinaryGetSequence";
+	char *FnName="RGBinaryGetReference";
 	int32_t chrIndex;
-	char *reverseCompliment;
 	int32_t startPos, endPos;
-	int32_t referenceLength;
-	int32_t curPos;
+	int success;
+	
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
-	startPos=-1;
-	endPos=-1;
 
 	/* Get bounds for the sequence to return */
-	if(FORWARD == strand) {
-		startPos = position - offsetLength;
-		endPos = position + readLength - 1 + offsetLength;
-	}
-	else if(REVERSE == strand) {
-		startPos = position - readLength + 1 - offsetLength;
-		endPos = position + offsetLength;
-	}
-	else {
-		PrintError(FnName,
-				NULL,
-				"Could not recognize strand",
-				Exit,
-				OutOfRange);
-	}
+	startPos = position - offsetLength;
+	endPos = position + readLength - 1 + offsetLength;
 
 	/* Get chromosome index in rgBinary */
 	chrIndex = chromosome - (int)rgBinary->startChr;
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In RGBinaryGetSequence: user chromosome [%d] position [%d] strand [%c].\n",
-				chromosome,
-				position,
-				strand);
-		fprintf(stderr, "In RGBinaryGetSequence: chromosome [%d] with range [%d,%d].\n",
-				chromosome,
-				rgBinary->startChr,
-				endPos == position + offsetLength);
-	}
 
 	/* Check chromosome bounds */
 	if(chromosome < (int)rgBinary->startChr || chromosome > (int)rgBinary->endChr) {
@@ -744,15 +790,6 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 				"Chromosome is out of range",
 				Exit,
 				OutOfRange);
-	}
-
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "In RGBinaryGetSequence: start position [%d] range [%d,%d] and adjusted range [%d,%d]\n",
-				position,
-				rgBinary->chromosomes[chrIndex].startPos,
-				rgBinary->chromosomes[chrIndex].endPos,
-				startPos,
-				endPos);
 	}
 
 	/* Check position bounds */
@@ -767,71 +804,35 @@ void RGBinaryGetSequence(RGBinary *rgBinary,
 			endPos = rgBinary->chromosomes[chrIndex].endPos;
 		}
 	}
-
-	/* Allocate memory for the reference */
-	referenceLength = endPos - startPos + 1;
-	(*reference) = malloc(sizeof(char)*(referenceLength+1));
-	if(NULL==(*reference)) {
+	
+	/* Check that enough bases remain */
+	if(endPos - startPos + 1 < readLength) {
 		PrintError(FnName,
-				"reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
-	/* Get the reference sequence */
-	if(VERBOSE >= DEBUG) {
-		fprintf(stderr, "startPos:%d\tendPos:%d\n",
-				startPos,
-				endPos);
-	}
-	/* Update the reference length */
-	assert(startPos <= endPos);
-	assert(startPos >= 1);
-	for(curPos=startPos;curPos<=endPos;curPos++) {
-		(*reference)[curPos-startPos] = RGBinaryGetBase(rgBinary, chromosome, curPos);
-	}
-	(*reference)[curPos-startPos] = '\0';
-
-	/* Get the reverse compliment if necessary */
-	if(strand == FORWARD) {
-		/* ignore */
-	}
-	else if(strand == REVERSE) {
-		/* Get the reverse compliment */
-		reverseCompliment = malloc(sizeof(char)*(referenceLength+1));
-		if(NULL == reverseCompliment) {
-			PrintError(FnName,
-					"reverseCompliment",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		GetReverseComplimentAnyCase((*reference), reverseCompliment, referenceLength);
-		/* Copy reverse compliment to the reference.  We could just strcpy or we 
-		 * could just use the wonderful world of pointers */
-		free((*reference)); /* Free memory pointed to by reference */
-		(*reference) = reverseCompliment; /* Point reference to reverse compliment's memory */
-		reverseCompliment=NULL; /* Destroy the pointer for reverse compliment */
-	}
-	else {
-		PrintError(FnName,
-				"strand",
-				"Could not understand strand",
+				NULL,
+				"Could not look enough bases",
 				Exit,
 				OutOfRange);
 	}
+	
+	/* Get reference */
+	success = RGBinaryGetSequence(rgBinary,
+			chromosome,
+			startPos,
+			strand,
+			reference,
+			endPos - startPos + 1);
+
+	if(0 == success) {
+			PrintError(FnName,
+					NULL,
+					"COuld not get reference",
+					Exit,
+					OutOfRange);
+		}
+
 	/* Update start pos and reference length */
-	(*returnReferenceLength) = referenceLength;
+	(*returnReferenceLength) = endPos - startPos + 1;
 	(*returnPosition) = startPos;
-	if(VERBOSE>=DEBUG) {
-		fprintf(stderr, "Exiting RGBinaryGetSequence:[%s] length [%d] referenceLength [%d] and startPos [%d].\n",
-				(*reference),
-				(int)strlen((*reference)),
-				referenceLength,
-				startPos);
-	}
-	assert(referenceLength==strlen((*reference)));
 }
 
 int8_t RGBinaryGetBase(RGBinary *rg,
@@ -839,14 +840,17 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 		int32_t position) 
 {
 	char *FnName = "RGBinaryGetBase";
-	assert(chromosome >= rg->startChr && chromosome <= rg->endChr);
-
 	int32_t numCharsPerByte=ALPHABET_SIZE/2;
 	uint8_t curByte, curChar;
 	int32_t repeat;
 	int32_t chrIndex = chromosome - rg->startChr;
 
-	assert(position >= rg->chromosomes[chrIndex].startPos && position <= rg->chromosomes[chrIndex].endPos);
+	if(chromosome < rg->startChr || 
+			chromosome > rg->endChr ||
+			position < rg->chromosomes[chrIndex].startPos ||
+			position > rg->chromosomes[chrIndex].endPos) {
+		return 0;
+	}
 
 	/* For DNA */
 	assert(numCharsPerByte == 2);

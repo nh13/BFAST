@@ -124,7 +124,7 @@ void GetPivots(RGIndex *index,
 		/* Allocate memory */
 		reads.reads[i] = NULL;
 		/* Get read */
-		RGBinaryGetSequence(rg,
+		RGBinaryGetReference(rg,
 				index->chromosomes[ind],
 				index->positions[ind],
 				FORWARD,
@@ -557,7 +557,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 	RGRangesInitialize(&ranges);
 
 	/* Get the read */
-	RGBinaryGetSequence(rg,
+	RGBinaryGetReference(rg,
 			curChr,
 			curPos,
 			FORWARD,

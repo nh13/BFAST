@@ -686,7 +686,7 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 	int adjustPosition=0;
 
 	/* Get the appropriate reference read */
-	RGBinaryGetSequence(rgBinary,
+	RGBinaryGetReference(rgBinary,
 			chromosome,
 			position,
 			FORWARD, /* We have been just reversing the read instead of the reference */
