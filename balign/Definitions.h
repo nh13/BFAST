@@ -15,15 +15,6 @@
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 
-enum {
-	HORIZONTAL,		/* 0 */ 
-	VERTICAL,		/* 1 */ 
-	DIAGONAL,		/* 2 */ 
-	GAP_OPEN,		/* 3 */ 
-	GAP_EXTENSION, 	/* 4 */
-	NO_TYPE 		/* 5 */
-};
-
 /* Align.c specific definitions */
 typedef struct {
 	double gapOpenPenalty;

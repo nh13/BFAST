@@ -68,7 +68,12 @@ int AlignNTSpace(char *read,
 	 * local alignment within the reference */
 	for(j=0;j<referenceLength+1;j++) {
 		for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) {
-			matrix[0][j].score[k] = 0.0;
+			if(k==0) {
+				matrix[0][j].score[k] = 0.0;
+			}
+			else {
+				matrix[0][j].score[k] = NEGATIVE_INFINITY;
+			}
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
 			matrix[0][j].colorError[k] = '0';
@@ -83,8 +88,9 @@ int AlignNTSpace(char *read,
 			matrix[i+1][j+1].colorError[1] = '0';
 			matrix[i+1][j+1].colorError[2] = '0';
 
-			/* Deletion is down a row, insertion is across a column, and
-			 * match/mismatch is a diagonal */
+			/* Deletion relative to reference across a column */
+			/* Insertion relative to reference is down a row */
+			/* Match/Mismatch is a diagonal */
 
 			/* Update deletion */
 			matrix[i+1][j+1].score[1] = matrix[i+1][j].score[1] + sm->gapExtensionPenalty; 
@@ -117,12 +123,12 @@ int AlignNTSpace(char *read,
 			if(matrix[i+1][j+1].score[1] > matrix[i+1][j+1].score[0]) {
 				matrix[i+1][j+1].score[0] = matrix[i+1][j+1].score[1];
 				matrix[i+1][j+1].length[0] = matrix[i+1][j+1].length[1];
-				matrix[i+1][j+1].from[0] = DeletionA;
+				matrix[i+1][j+1].from[0] = matrix[i+1][j+1].from[1];
 			}
 			if(matrix[i+1][j+1].score[2] > matrix[i+1][j+1].score[0]) {
 				matrix[i+1][j+1].score[0] = matrix[i+1][j+1].score[2];
 				matrix[i+1][j+1].length[0] = matrix[i+1][j+1].length[2];
-				matrix[i+1][j+1].from[0] = InsertionA;
+				matrix[i+1][j+1].from[0] = matrix[i+1][j+1].from[2];
 			}
 
 			/* Update the rest to negative infinity */

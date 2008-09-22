@@ -168,12 +168,17 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 {
 	char *FnName="FillAlignEntryFromMatrix";
 	int curRow, curCol, curCell, startRow, startCol, startCell; 
+	char curReadBase;
+	int nextRow, nextCol, nextCell;
+	char nextReadBase;
 	int curFrom;
 	double maxScore;
 	double maxScoreNT=NEGATIVE_INFINITY;
 	int i, j;
-	char curReadBase;
 	int offset;
+
+	curReadBase = nextReadBase = 'X';
+	nextRow = nextCol = nextCell = -1;
 
 	/* HERE */
 	if(debug == 1) {
@@ -224,7 +229,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							matrix[i][j].length[k],
 							matrix[i][j].from[k],
 							matrix[i][j].colorError[k]
-							);
+						   );
 				}
 			}
 		}
@@ -264,161 +269,157 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				matrix[startRow][startCol].length[startCell]);
 	}
 
+	/* Initialize variables for the loop */
 	curRow=startRow;
 	curCol=startCol;
 	curCell=startCell;
-	curReadBase = 'X';
-	/*Initialize the current read base */
-	switch(curCell) {
-		case 0:
-			curReadBase = 'A';
-			break;
-		case 1:
-			curReadBase = 'C';
-			break;
-		case 2:
-			curReadBase = 'G';
-			break;
-		case 3:
-			curReadBase = 'T';
-			break;
-		case 5:
-			curReadBase = matrix[curRow][curCol].prevInsertionBase;
-			break;
-		default:
-			PrintError(FnName,
-					"curCell",
-					"Could not initialize curCell",
-					Exit,
-					OutOfRange);
-	}
-	assert(curReadBase != 'X');
-	i=matrix[curRow][curCol].length[curCell]-1;
-	aEntry->length=matrix[curRow][curCol].length[curCell];
-	aEntry->read[i+1]='\0';
-	aEntry->reference[i+1]='\0';
-	aEntry->colorError[i+1]='\0';
-	aEntry->score = maxScore;
-	if(1==colorSpace) {
-		aEntry->score = maxScoreNT;
-	}
-	/* HERE */
-	if(debug == 1) {
-		fprintf(stderr, "[%d,%lf]\n",
-				matrix[curRow][curCol].length[curCell],
-				maxScore);
-	}
-	int prevFrom=-2;
-	/* Now trace back the alignment using the "from" member in the matrix */
-	while(curRow > 0 && curCol > 0) {
-		/* Where did the current cell come from */
-		curFrom = matrix[curRow][curCol].from[curCell];
 
-		/* HERE */
-		if(debug == 1) {
-			fprintf(stderr, "(curRow,curCol,i,curFrom,curCell)=(%d,%d,%d,%d,%d)\n",
-					curRow,
-					curCol,
-					i,
-					curFrom,
-					curCell);
-			fprintf(stderr, "cur.length=%d\n",
-					matrix[curRow][curCol].length[curCell]);
-		}
-		assert(i>=0);
-
-		/* Get if there was a color error */
-		aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
-
-		/* Update alignment */
-		switch(curFrom) {
-			case DiagA:
-			case DiagC:
-			case DiagG:
-			case DiagT:
-			case DeletionEnd:
-			case InsertionEnd:
-				aEntry->read[i] = curReadBase;
-				aEntry->reference[i] = reference[curCol-1];
+	/* Color space */
+	if(colorSpace == 1) {
+		/*Initialize the current read base */
+		switch(curCell) {
+			case 0:
+				curReadBase = 'A';
 				break;
-			case DeletionA:
-			case DeletionC:
-			case DeletionG:
-			case DeletionT:
-			case DeletionExt:
-				aEntry->read[i] = GAP;
-				aEntry->reference[i] = reference[curCol-1];
+			case 1:
+				curReadBase = 'C';
 				break;
-			case InsertionA:
-			case InsertionC:
-			case InsertionG:
-			case InsertionT:
-			case InsertionExt:
-				if(curReadBase == GAP) {
-					fprintf(stderr, "curFrom=%d\nprevFrom=%d\n",
-							curFrom,
-							prevFrom);
-				}
-				assert(curReadBase != GAP);
-				aEntry->read[i] = curReadBase;
-				aEntry->reference[i] = GAP;
+			case 2:
+				curReadBase = 'G';
+				break;
+			case 3:
+				curReadBase = 'T';
+				break;
+			case 5:
+				curReadBase = matrix[curRow][curCol].prevInsertionBase;
 				break;
 			default:
-				fprintf(stderr, "curFrom=%d\n", curFrom);
-				fprintf(stderr, "InsertionExt=%d\n", InsertionExt);
 				PrintError(FnName,
-						"curFrom",
-						"Could not understand curFrom",
+						"curCell",
+						"Could not initialize curCell",
 						Exit,
 						OutOfRange);
 		}
+		assert(curReadBase != 'X');
+		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
+		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
+		aEntry->score = maxScoreNT; /* Copy over score */
 		/* HERE */
 		if(debug == 1) {
-			fprintf(stderr, "[%c][%c](%c,%c)\n",
-					aEntry->read[i],
-					aEntry->reference[i],
-					read[curRow-1],
-					reference[curCol-1]);
+			fprintf(stderr, "[%d,%lf]\n",
+					matrix[curRow][curCol].length[curCell],
+					maxScore);
 		}
+		/* Now trace back the alignment using the "from" member in the matrix */
+		while(curRow > 0 && curCol > 0) {
+			/* Where did the current cell come from */
+			curFrom = matrix[curRow][curCol].from[curCell];
 
-		/* Update previous base (relevant for color errors) and the
-		 * next cell */
-		if(colorSpace==1) {
+			/* HERE */
+			if(debug == 1) {
+				fprintf(stderr, "(curRow,curCol,i,curFrom,curCell)=(%d,%d,%d,%d,%d)\n",
+						curRow,
+						curCol,
+						i,
+						curFrom,
+						curCell);
+				fprintf(stderr, "cur.length=%d\n",
+						matrix[curRow][curCol].length[curCell]);
+			}
+			assert(i>=0);
+
+			/* Get if there was a color error */
+			aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
+
+			/* Update alignment and next row/col */
+			switch(curFrom) {
+				case DiagA:
+				case DiagC:
+				case DiagG:
+				case DiagT:
+				case DeletionEnd:
+				case InsertionEnd:
+					aEntry->read[i] = curReadBase;
+					aEntry->reference[i] = reference[curCol-1];
+					nextRow = curRow-1;
+					nextCol = curCol-1;
+					break;
+				case DeletionA:
+				case DeletionC:
+				case DeletionG:
+				case DeletionT:
+				case DeletionExt:
+					aEntry->read[i] = GAP;
+					aEntry->reference[i] = reference[curCol-1];
+					nextRow = curRow;
+					nextCol = curCol-1;
+					break;
+				case InsertionA:
+				case InsertionC:
+				case InsertionG:
+				case InsertionT:
+				case InsertionExt:
+					assert(curReadBase != GAP);
+					aEntry->read[i] = curReadBase;
+					aEntry->reference[i] = GAP;
+					nextRow = curRow-1;
+					nextCol = curCol;
+					break;
+				default:
+					fprintf(stderr, "curFrom=%d\n", curFrom);
+					fprintf(stderr, "InsertionExt=%d\n", InsertionExt);
+					PrintError(FnName,
+							"curFrom",
+							"Could not understand curFrom",
+							Exit,
+							OutOfRange);
+			}
+			/* HERE */
+			if(debug == 1) {
+				fprintf(stderr, "[%c][%c](%c,%c)\n",
+						aEntry->read[i],
+						aEntry->reference[i],
+						read[curRow-1],
+						reference[curCol-1]);
+			}
+
+			/* Update previous base (relevant for color errors) and the
+			 * next cell */
 			switch(curFrom) {
 				case DiagA:
 				case DeletionA:
 				case InsertionA:
-					curReadBase = 'A';
-					curCell = 0;
+					nextReadBase = 'A';
+					nextCell = 0;
 					break;
 				case DiagC:
 				case DeletionC:
 				case InsertionC:
-					curReadBase = 'C';
-					curCell = 1;
+					nextReadBase = 'C';
+					nextCell = 1;
 					break;
 				case DiagG:
 				case DeletionG:
 				case InsertionG:
-					curReadBase = 'G';
-					curCell = 2;
+					nextReadBase = 'G';
+					nextCell = 2;
 					break;
 				case DiagT:
 				case DeletionT:
 				case InsertionT:
-					curReadBase = 'T';
-					curCell = 3;
+					nextReadBase = 'T';
+					nextCell = 3;
 					break;
 				case DeletionExt:
 				case DeletionEnd:
-					curReadBase = GAP;
-					curCell = 4;
+					nextReadBase = GAP;
+					nextCell = 4;
 					break;
 				case InsertionExt:
 				case InsertionEnd:
-					curReadBase = matrix[curRow][curCol].prevInsertionBase;
-					assert(curReadBase != GAP);
-					curCell = 5;
+					nextReadBase = matrix[curRow][curCol].prevInsertionBase;
+					assert(nextReadBase != GAP);
+					nextCell = 5;
 					break;
 				default:
 					fprintf(stderr, "curFrom=%d\n", curFrom);
@@ -428,90 +429,208 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							Exit,
 							OutOfRange);
 			}
+
+			/* Update next row and column */
+
+			assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
+
+			/* Update for next loop iteration */
+			curReadBase = nextReadBase;
+			curRow = nextRow;
+			curCol = nextCol;
+			curCell = nextCell;
+			i--;
+
+			/* HERE */
+			if(debug == 1) {
+				fprintf(stderr, "next(row,col,curCell,curReadBase)=(%d,%d,%d,%c)\n",
+						nextRow,
+						nextCol,
+						nextCell,
+						curReadBase);
+				fprintf(stderr, "%s", BREAK_LINE);
+			}
+		} /* End loop */
+	}
+	else { /* NT space */
+
+		/*Initialize the current read base */
+		switch(curCell) {
+			case 0:
+			case 2:
+				/* Diagonal or insertion */
+				curReadBase = read[curRow-1];
+				break;
+			default:
+				/* Deletion not legal to end with */
+				PrintError(FnName,
+						"curCell",
+						"Could not initialize curCell",
+						Exit,
+						OutOfRange);
 		}
-		else {
+		assert(curReadBase != 'X');
+		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
+		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
+		aEntry->score = maxScore; /* Copy over score */
+		/* HERE */
+		if(debug == 1) {
+			fprintf(stderr, "reference=%s\nread=%s\n",
+					reference,
+					read);
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "[%d,%lf]\n",
+					matrix[curRow][curCol].length[curCell],
+					maxScore);
+		}
+		/* Now trace back the alignment using the "from" member in the matrix */
+		while(curRow > 0 && curCol > 0) {
+
+			/* Where did the current cell come from */
+			curFrom = matrix[curRow][curCol].from[curCell];
+
+			/* HERE */
+			if(debug == 1) {
+				fprintf(stderr, "(curRow,curCol,i,curFrom,curCell,curReadBase)=(%d,%d,%d,%d,%d,%c)\n",
+						curRow,
+						curCol,
+						i,
+						curFrom,
+						curCell,
+						curReadBase);
+				fprintf(stderr, "cur.length=%d\n",
+						matrix[curRow][curCol].length[curCell]);
+			}
+			assert(i>=0);
+
+			/* Get if there was a color error (should not be possible
+			 * in nt space) */
+			aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
+			assert(aEntry->colorError[i] == '0');
+
+			/* Update alignment */
 			switch(curFrom) {
 				case DiagA:
-				case DeletionA:
-				case InsertionA:
-				case DiagC:
-				case DeletionC:
-				case InsertionC:
-				case DiagG:
-				case DeletionG:
-				case InsertionG:
-				case DiagT:
-				case DeletionT:
-				case InsertionT:
-					if(curRow>1) {
-						curReadBase = read[curRow-2];
-					}
-					else {
-						curReadBase = 'X';
-					}
+					aEntry->read[i] = curReadBase;
+					aEntry->reference[i] = reference[curCol-1];
 					break;
+				case DeletionA:
 				case DeletionExt:
+					aEntry->read[i] = GAP;
+					aEntry->reference[i] = reference[curCol-1];
+					break;
+				case InsertionA:
 				case InsertionExt:
-					curReadBase = GAP;
+					assert(curReadBase != GAP);
+					aEntry->read[i] = curReadBase;
+					aEntry->reference[i] = GAP;
 					break;
 				default:
+					fprintf(stderr, "curFrom=%d\n", curFrom);
+					fprintf(stderr, "InsertionExt=%d\n", InsertionExt);
 					PrintError(FnName,
 							"curFrom",
 							"Could not understand curFrom",
 							Exit,
 							OutOfRange);
 			}
-		}
+			/* HERE */
+			if(debug == 1) {
+				fprintf(stderr, "aEntry:[%c][%c]\toriginal:(%c,%c)\n",
+						aEntry->read[i],
+						aEntry->reference[i],
+						read[curRow-1],
+						reference[curCol-1]);
+			}
 
-		/* Get next row and column */
-		switch(curFrom) {
-			case DiagA:
-			case DiagC:
-			case DiagG:
-			case DiagT:
-			case DeletionEnd:
-			case InsertionEnd:
-				curRow--;
-				curCol--;
-				break;
-			case DeletionA:
-			case DeletionC:
-			case DeletionG:
-			case DeletionT:
-			case DeletionExt:
-				curCol--;
-				break;
-			case InsertionA:
-			case InsertionC:
-			case InsertionG:
-			case InsertionT:
-			case InsertionExt:
-				curRow--;
-				break;
-			case Start:
-				curRow=-1;
-				curCol=-1;
-				break;
-			default:
-				PrintError(FnName,
-						"curFrom",
-						"Could not understand curFrom",
-						Exit,
-						OutOfRange);
-		}
+			/* Next row and column */
+			switch(curFrom) {
+				case DiagA:
+					nextRow = curRow-1;
+					nextCol = curCol-1;
+					break;
+				case DeletionA:
+				case DeletionExt:
+					nextRow = curRow;
+					nextCol = curCol-1;
+					break;
+				case InsertionA:
+				case InsertionExt:
+					nextRow = curRow-1;
+					nextCol = curCol;
+					break;
+				default:
+					PrintError(FnName,
+							"curFrom",
+							"Could not understand curFrom (updating row/col)",
+							Exit,
+							OutOfRange);
+			}
 
-		assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
+			/* Next cell */
+			switch(curFrom) {
+				case DiagA:
+				case DeletionA:
+				case InsertionA:
+					nextCell = 0;
+					break;
+				case DeletionExt:
+					nextCell = 1;
+					break;
+				case InsertionExt:
+					nextCell = 2;
+					break;
+				default:
+					PrintError(FnName,
+							"curFrom",
+							"Could not understand curFrom (updating cell)",
+							Exit,
+							OutOfRange);
+			}
 
-		i--;
-		/* HERE */
-		if(debug == 1) {
-			fprintf(stderr, "next(row,col,i)=(%d,%d,%d)\n",
-					curRow,
-					curCol,
-					i);
-		}
-		/* HERE */
-		prevFrom = curFrom;
+			/* Update next base */
+			switch(curFrom) {
+				case DiagA:
+				case InsertionA:
+				case InsertionExt:
+					if(curRow >= 2) {
+						nextReadBase = read[curRow-2];
+					}
+					else {
+						nextReadBase = 'X';
+					}
+					break;
+				case DeletionA:
+				case DeletionExt:
+					nextReadBase = GAP;
+					break;
+				default:
+					PrintError(FnName,
+							"curFrom",
+							"Could not understand curFrom (updating next read base)",
+							Exit,
+							OutOfRange);
+			}
+
+			assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
+
+			/* Update for next loop iteration */
+			curReadBase = nextReadBase;
+			curRow = nextRow;
+			curCol = nextCol;
+			curCell = nextCell;
+			i--;
+
+			/* HERE */
+			if(debug == 1) {
+				fprintf(stderr, "next(row,col,curCell,curReadBase)=(%d,%d,%d,%c)\n",
+						nextRow,
+						nextCol,
+						nextCell,
+						curReadBase);
+				fprintf(stderr, "%s", BREAK_LINE);
+			}
+		} /* End Loop */
 	}
 	/* HERE */
 	if(debug == 1) {
@@ -537,18 +656,21 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		fprintf(stderr, "i=%d\n", i);
 	}
 	assert(-1==i);
-		
+
 	/* HERE C1 */
 	/*
-	fprintf(stderr, "%s\n%s\n%s\n",
-			aEntry->reference,
-			aEntry->read,
-			aEntry->colorError);
-	fprintf(stderr, "HERE C1\n");
-	exit(1);
-	*/
+	   fprintf(stderr, "%s\n%s\n%s\n",
+	   aEntry->reference,
+	   aEntry->read,
+	   aEntry->colorError);
+	   fprintf(stderr, "HERE C1\n");
+	   exit(1);
+	   */
 	/* This might be off by one */
 	offset = curCol;
+	aEntry->read[aEntry->length]='\0';
+	aEntry->reference[aEntry->length]='\0';
+	aEntry->colorError[aEntry->length]='\0';
 
 	return offset;
 }

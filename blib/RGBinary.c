@@ -796,20 +796,18 @@ void RGBinaryGetReference(RGBinary *rgBinary,
 	if(startPos < (int)rgBinary->chromosomes[chrIndex].startPos || endPos > (int)rgBinary->chromosomes[chrIndex].endPos) {
 		/* Adjust position bounds if possible */
 		if(startPos < (int)rgBinary->chromosomes[chrIndex].startPos) {
-			/* Check that we have enough sequence */
 			startPos = rgBinary->chromosomes[chrIndex].startPos;
 		}
 		if(endPos > (int)rgBinary->chromosomes[chrIndex].endPos) {
-			/* Check that we have enough sequence */
 			endPos = rgBinary->chromosomes[chrIndex].endPos;
 		}
 	}
 	
 	/* Check that enough bases remain */
-	if(endPos - startPos + 1 < readLength) {
+	if(endPos - startPos + 1 <= 0) {
 		PrintError(FnName,
 				NULL,
-				"Could not look enough bases",
+				"Could not get enough bases",
 				Exit,
 				OutOfRange);
 	}
