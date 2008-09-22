@@ -76,7 +76,7 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the reference genome will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create an index 1: create a 4-bit file from the reference chromosomes", 2},
+	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference chromosomes 1: create an index", 2},
 	{"colorSpace", 'A', 0, OPTION_NO_USAGE, "Specifies that the output should be in color space", 2},
 	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -169,6 +169,29 @@ main (int argc, char **argv)
 
 						switch(arguments.algorithm) {
 							case 0:
+								/* Read fasta files */
+								RGBinaryRead(arguments.rgFileName, 
+										&rg,
+										arguments.startChr,
+										arguments.startPos,
+										arguments.endChr,
+										arguments.endPos,
+										arguments.colorSpace);
+								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%d.%d.%d.%d.%s",
+										arguments.outputDir,
+										PROGRAM_NAME,
+										arguments.outputID,
+										rg.colorSpace,
+										rg.startChr,
+										rg.startPos,
+										rg.endChr,
+										rg.endPos,
+										BFAST_RG_FILE_EXTENSION);
+								/* Write binary */
+								RGBinaryWriteBinary(&rg,
+										outputFileName);
+								break;
+							case 1:
 								/* Read binary */
 								RGBinaryReadBinary(&rg,
 										arguments.rgFileName);
@@ -192,29 +215,6 @@ main (int argc, char **argv)
 
 								/* Free the RGIndex layout */
 								RGIndexLayoutDelete(&rgLayout);
-								break;
-							case 1:
-								/* Read fasta files */
-								RGBinaryRead(arguments.rgFileName, 
-										&rg,
-										arguments.startChr,
-										arguments.startPos,
-										arguments.endChr,
-										arguments.endPos,
-										arguments.colorSpace);
-								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%d.%d.%d.%d.%s",
-										arguments.outputDir,
-										PROGRAM_NAME,
-										arguments.outputID,
-										rg.colorSpace,
-										rg.startChr,
-										rg.startPos,
-										rg.endChr,
-										rg.endPos,
-										BFAST_RG_FILE_EXTENSION);
-								/* Write binary */
-								RGBinaryWriteBinary(&rg,
-										outputFileName);
 								break;
 							default:
 								break;

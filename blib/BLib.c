@@ -79,7 +79,9 @@ void GetReverseComplimentAnyCase(char *s,
 	r[length]='\0';
 }
 
-char GetReverseComplimentAnyCaseBase(char a) {
+char GetReverseComplimentAnyCaseBase(char a) 
+{
+	char *FnName = "GetReverseComplimentAnyCaseBase";
 	switch(a) {
 		case 'a':
 			return 't';
@@ -115,14 +117,14 @@ char GetReverseComplimentAnyCaseBase(char a) {
 			fprintf(stderr, "\n[%c]\t[%d]\n",
 					a,
 					(int)a);
-			PrintError("GetReverseComplimentAnyCaseBase",
+			PrintError(FnName,
 					NULL,
 					"Could not understand sequence base",
 					Exit,
 					OutOfRange);
 			break;
 	}
-	PrintError("GetReverseComplimentAnyCaseBase",
+	PrintError(FnName,
 			NULL,
 			"Control should not reach here",
 			Exit,

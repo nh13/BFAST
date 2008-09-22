@@ -292,6 +292,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 					Exit,
 					OutOfRange);
 	}
+	assert(curReadBase != 'X');
 	i=matrix[curRow][curCol].length[curCell]-1;
 	aEntry->length=matrix[curRow][curCol].length[curCell];
 	aEntry->read[i+1]='\0';
