@@ -10,6 +10,7 @@
 
 #define Name "bgeneratereads"
 #define MAX_COUNT 100
+#define READS_ROTATE_NUM 10000
 
 char Colors[4] = "0123";
 
@@ -145,7 +146,14 @@ int main(int argc, char *argv[])
 				numReads);
 
 		/* Delete reference genome */
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Deleting reference genome.\n");
 		RGBinaryDelete(&rg);
+		fprintf(stderr, "%s", BREAK_LINE);
+
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Terminating successfully.\n");
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
@@ -214,6 +222,11 @@ void GenerateReads(RGBinary *rg,
 				OpenFileError);
 	}
 
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Outputting to %s.\n",
+			outFileName);
+	fprintf(stderr, "%s", BREAK_LINE);
+
 	/* Initialize */
 	r.readLength = readLength;
 	r.pairedEnd = pairedEnd;
@@ -222,7 +235,13 @@ void GenerateReads(RGBinary *rg,
 	ReadInitialize(&r);
 
 	/* Generate the reads */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Out of %d reads, currently on:\n0", numReads);
 	for(i=0;i<numReads;i++) {
+		if((i+1) % READS_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d",
+					(i+1));
+		}
 		/* Get the read */
 		GetRandomRead(rg, 
 				rgLength,
@@ -250,6 +269,9 @@ void GenerateReads(RGBinary *rg,
 		/* Initialize read */
 		ReadDelete(&r);
 	}
+	fprintf(stderr, "\r%d\n%s",
+			numReads,
+			BREAK_LINE);
 
 	/* Close output file */
 	fclose(fp);
@@ -334,7 +356,7 @@ void GetRandomRead(RGBinary *rg,
 
 	} while(
 			(readOneSuccess == 0) || /* Read one was successfully read */
-			(readTwoSuccess == 0) || /* Read two was successfully read */
+			(r->pairedEnd == 1 && readTwoSuccess == 0) || /* Read two was successfully read */
 			(hasNs == 1) /* Either read end has an "N" */
 		   );
 }
@@ -482,9 +504,6 @@ int InsertIndel(RGBinary *rg,
 	char *FnName="InsertIndel";
 	int i;
 	int start; /* starting position within the read */
-	char *toAdd=NULL;
-	int returnIndelLength = 0;
-	int returnIndelPosition = 0;
 	int success=1;
 
 	/* Which read should the indel be contained within */
@@ -496,60 +515,63 @@ int InsertIndel(RGBinary *rg,
 		/* Deletion */
 		/* Remove bases */
 		if(r->whichReadIndel == 0) {
-			/* Shift over bases */
-			for(i=start;i<r->readLength-indelLength;i++) {
-				r->readOne[i] = r->readOne[i+indelLength];
-			}
-			/* Get more bases */
-			RGBinaryGetReference(rg,
+			/* Free read */
+			free(r->readOne);
+			r->readOne = NULL;
+			/* Get new read */
+			success = RGBinaryGetSequence(rg,
 					r->chr,
-					r->pos + r->readLength,
+					r->pos,
 					r->strand,
-					0,
-					&toAdd,
-					indelLength,
-					&returnIndelLength,
-					&returnIndelPosition);
-			if(returnIndelLength != indelLength || 
-					returnIndelPosition != r->pos + r->readLength) {
-				success = 0;
-			}
-			else {
-				/* Copy over bases */
-				for(i=r->readLength-indelLength;i<r->readLength;i++) {
-					r->readOne[i] = toAdd[i-(r->readLength-indelLength)];
+					&r->readOne,
+					r->readLength + indelLength);
+			if(success == 1) {
+				/* Shift over bases */
+				for(i=start;i<r->readLength-indelLength;i++) {
+					r->readOne[i] = r->readOne[i+indelLength];
 				}
+				/* Reallocate memory */
+				r->readOne = realloc(r->readOne, sizeof(char)*r->readLength);
+				if(NULL==r->readOne) {
+					PrintError(FnName,
+							"r->readOne",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
+				/* Adjust position if reverse strand */
+				r->pos = (r->strand==REVERSE)?(r->pos + indelLength):r->pos;
 			}
 		}
 		else {
-			/* Shift over bases */
-			for(i=start;i<r->readLength-indelLength;i++) {
-				r->readTwo[i] = r->readTwo[i+indelLength];
-			}
-			/* Get more bases */
-			RGBinaryGetReference(rg,
+			/* Free read */
+			free(r->readTwo);
+			r->readTwo = NULL;
+			/* Get new read */
+			success = RGBinaryGetSequence(rg,
 					r->chr,
-					r->pos + 2*r->readLength + r->pairedEndLength,
+					r->pos,
 					r->strand,
-					0,
-					&toAdd,
-					indelLength,
-					&returnIndelLength,
-					&returnIndelPosition);
-			if(returnIndelLength != indelLength || 
-					returnIndelPosition != r->pos + 2*r->readLength + r->pairedEndLength) {
-				success = 0;
-			}
-			else {
-				/* Copy over bases */
-				for(i=r->readLength-indelLength;i<r->readLength;i++) {
-					r->readTwo[i] = toAdd[i-(r->readLength-indelLength)];
+					&r->readTwo,
+					r->readLength + indelLength);
+			if(success == 1) {
+				/* Shift over bases */
+				for(i=start;i<r->readLength-indelLength;i++) {
+					r->readTwo[i] = r->readTwo[i+indelLength];
 				}
+				/* Reallocate memory */
+				r->readTwo = realloc(r->readTwo, sizeof(char)*r->readLength);
+				if(NULL==r->readTwo) {
+					PrintError(FnName,
+							"r->read",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
+				/* Adjust position if reverse strand */
+				r->pos = (r->strand==REVERSE)?(r->pos + indelLength):r->pos;
 			}
 		}
-		/* Free memory */
-		free(toAdd);
-		toAdd=NULL;
 	}
 	else if(indel == 2) {
 		/* Insertion */
