@@ -495,9 +495,11 @@ int ModifyRead(RGBinary *rg,
 				Error,
 				withinInsertion);
 	}
-				
+
 	assert(strlen(r->readOne) == r->readLength);
-	assert(strlen(r->readTwo) == r->readLength);
+	if(r->pairedEnd==1) {
+		assert(strlen(r->readTwo) == r->readLength);
+	}
 
 	return 1;
 }
@@ -650,7 +652,8 @@ void InsertMismatches(Read *r,
 		case Error:
 			/* Insert errors one at a time randomly selecting which read */
 			for(i=numMismatches;i>0;i--) {
-				if(0==(rand()%2)) {
+				if(r->pairedEnd == 0 || 
+						0==(rand()%2)) {
 					InsertMismatchesHelper(r->readOne,
 							r->readLength,
 							r->readOneType,
