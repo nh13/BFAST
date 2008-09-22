@@ -477,10 +477,12 @@ int ModifyRead(RGBinary *rg,
 		tempReadLength = r->readLength;
 		ConvertReadToColorSpace(&r->readOne,
 				&tempReadLength);
+		assert(tempReadLength == r->readLength+1);
 		if(1==r->pairedEnd) {
 			tempReadLength = r->readLength;
 			ConvertReadToColorSpace(&r->readTwo,
 					&tempReadLength);
+			assert(tempReadLength == r->readLength+1);
 		}
 
 		/* 4. Insert errors if necessary */
@@ -496,9 +498,17 @@ int ModifyRead(RGBinary *rg,
 				withinInsertion);
 	}
 
-	assert(strlen(r->readOne) == r->readLength);
-	if(r->pairedEnd==1) {
-		assert(strlen(r->readTwo) == r->readLength);
+	if(space == 1) {
+		assert(strlen(r->readOne) == r->readLength + 1);
+		if(r->pairedEnd==1) {
+			assert(strlen(r->readTwo) == r->readLength + 1);
+		}
+	}
+	else {
+		assert(strlen(r->readOne) == r->readLength);
+		if(r->pairedEnd==1) {
+			assert(strlen(r->readTwo) == r->readLength);
+		}
 	}
 
 	return 1;

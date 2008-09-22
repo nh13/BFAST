@@ -7,6 +7,7 @@
 #include "BLib.h"
 
 char DNA[5] = "ACGTN";
+char COLORS[5] = "01234";
 
 /* TODO */
 char ToLower(char a) 
@@ -703,6 +704,7 @@ int ConvertReadFromColorSpace(char *read,
 
 /* TODO */
 /* Must reallocate memory */
+/* NT read to color space */
 void ConvertReadToColorSpace(char **read,
 		int *readLength)
 {
@@ -710,32 +712,21 @@ void ConvertReadToColorSpace(char **read,
 	int i;
 	char tempRead[SEQUENCE_LENGTH]="\0";
 
+	assert((*readLength) < SEQUENCE_LENGTH);
+
 	/* Initialize */
 	tempRead[0] =  COLOR_SPACE_START_NT;
+	tempRead[1] = ConvertBaseToColorSpace(tempRead[0], (*read)[0]);
 
-	/* Go through read and convert to colors */
-	for(i=0;i<(*readLength);i++) {
-		tempRead[i+1] = ConvertBaseToColorSpace(tempRead[i], (*read)[i]);
-		switch(tempRead[i+1]) {
-			case 0:
-				tempRead[i+1] = '0';
-				break;
-			case 1:
-				tempRead[i+1] = '1';
-				break;
-			case 2:
-				tempRead[i+1] = '2';
-				break;
-			case 3:
-				tempRead[i+1] = '3';
-				break;
-			default:
-				PrintError(FnName,
-						"result",
-						"Could not understand result",
-						Exit,
-						OutOfRange);
-		}
+	/* Convert to colors represented as integers */
+	for(i=1;i<(*readLength);i++) {
+		tempRead[i+1] = ConvertBaseToColorSpace((*read)[i-1], (*read)[i]); 
+	}
+
+	/* Convert integers to characters */
+	for(i=1;i<(*readLength)+1;i++) {
+		assert(0<=tempRead[i] && tempRead[i] <= 4);
+		tempRead[i] = COLORS[(int)(tempRead[i])];
 	}
 	tempRead[(*readLength)+1]='\0';
 
