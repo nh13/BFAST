@@ -461,6 +461,9 @@ void Evaluate(char *baf,
 		ReadTypeInitialize(&r);
 	}
 	fprintf(stderr, "\r%d\n", count);
+	StatsPrint(&s, fpOut);
+
+	/* Print Stats */
 
 	/* Close the files */
 	fclose(fpIn);
