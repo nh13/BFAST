@@ -13,16 +13,42 @@ typedef struct {
 	int whichReadVariants;
 	int startIndel;
 	int indelLength;
-	/* Inferred data */
 	int numSNPs;
 	int numErrors;
 	int deletionLength;
 	int insertionLength;
+	/* Actual data */
+	int aChr;
+	int aPos;
+	int aStrand;
 } ReadType;
 
+typedef struct {
+	/* actual data */
+	int numReads;
+	int numCorrectlyAligned[5]; /* 0, 10, 100, 1000, 10000 */
+	/* meta data */
+	int space;
+	int pairedEnd;
+	int pairedEndLength;
+	int readLength;
+	int indelLength;
+	int numSNPs;
+	int numErrors;
+	int deletionLength;
+	int insertionLength;
+} Stats;
+
 void ReadTypeInitialize(ReadType*);
+void ReadTypeCopy(ReadType*,ReadType*);
+int ReadTypeCompare(ReadType*,ReadType*);
 void ReadTypeReadFromRAF(ReadType*, FILE*);
 
-void Evaluate(char*);
+void StatsInitialize(Stats*, ReadType*);
+void StatsPrintHeader(FILE*);
+void StatsPrint(Stats*, FILE*);
+void StatsAdd(Stats*, ReadType*);
+
+void Evaluate(char*, char*);
 
 #endif
