@@ -42,9 +42,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 	FILE *fpInversions=NULL;
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpNotReported=NULL;
-
-	/* Only implemented for MAF */
-	assert(outputFormat == MAF);
+	char fileExtension[256]="\0";
 
 	/* Open the input file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
@@ -55,27 +53,43 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				OpenFileError);
 	}
 
+	/* Get file extension for the output files */
+	switch(outputFormat) {
+		case BAF:
+			strcpy(fileExtension,  BFAST_ALIGN_FILE_EXTENSION);
+			break;
+		case MAF:
+			strcpy(fileExtension, BFAST_MAF_FILE_EXTENSION);
+			break;
+		default:
+				PrintError(FnName,
+						"outputFormat",
+						"Could not understand output format",
+						Exit,
+						OutOfRange);
+	}
 	/* Create output file names */
 	sprintf(chrAbFileName, "%s%s.chrab.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			BFAST_MAF_FILE_EXTENSION);
+			fileExtension);
 	sprintf(inversionsFileName, "%s%s.inversion.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			BFAST_MAF_FILE_EXTENSION);
+			fileExtension);
 	sprintf(notReportedFileName, "%s%s.not.reported.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			BFAST_MAF_FILE_EXTENSION);
+			fileExtension);
 	sprintf(outputFileName, "%s%s.report.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			BFAST_MAF_FILE_EXTENSION);
+			fileExtension);
+
 	/* Open output files, if necessary */
 	if(chrAbPaired == 1) {
 		assert(1==pairedEnd);
@@ -219,6 +233,9 @@ void PrintHeader(FILE *fp,
 {
 	char *FnName = "PrintHeader";
 	switch(outputFormat) {
+		case BAF:
+			/* Do nothing */
+			break;
 		case MAF:
 			if(0>fprintf(fp, "##maf version=1 scoring=%s\n",
 						PROGRAM_NAME)) {
@@ -246,6 +263,9 @@ void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 {
 	char *FnName = "PrintAlignEntriesToOutputFormat";
 	switch(outputFormat) {
+		case BAF:
+			AlignEntriesPrint(a, fp);
+			break;
 		case MAF:
 			PrintAlignEntriesToMAF(a, fp);
 			break;

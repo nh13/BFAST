@@ -17,7 +17,8 @@ typedef struct {
 	int colorSpace;
 } AlignEntries;
 
-enum {SpaceDoesNotMatter, NTSpace, ColorSpace};
+enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
+enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
 
 void AlignEntriesPrint(AlignEntries*, FILE*);
 int AlignEntriesRead(AlignEntries*, FILE*, int, int);

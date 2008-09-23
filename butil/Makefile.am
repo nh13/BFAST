@@ -1,4 +1,5 @@
-bin_PROGRAMS = bexonify \
+bin_PROGRAMS = bevalsim \
+			   bexonify \
 			   bfixhash \
 			   bgeneratereads \
 			   bheader \
@@ -10,6 +11,19 @@ bin_PROGRAMS = bexonify \
 			   brepeat \
 			   btestindexes \
 			   bupdateheader
+
+bevalsim_SOURCES = \
+				   ../blib/BError.c	../blib/BError.h \
+				   ../blib/RGIndex.c	../blib/RGIndex.h \
+				   ../blib/BLib.c	../blib/BLib.h \
+				   ../blib/RGBinary.c ../blib/RGBinary.h \
+				   ../blib/RGMatch.c ../blib/RGMatch.h \
+				   ../blib/RGRanges.c ../blib/RGRanges.h \
+				   ../blib/AlignEntries.c	../blib/AlignEntries.h \
+				   ../blib/AlignEntry.c	../blib/AlignEntry.h \
+				   bevalsim.c	bevalsim.h
+
+bevalsim_LDADD = 
 
 bexonify_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
@@ -34,13 +48,13 @@ bfixhash_SOURCES = \
 bfixhash_LDADD =
 
 bgeneratereads_SOURCES = \
-				  ../blib/BError.c	../blib/BError.h \
-				  ../blib/RGIndex.c	../blib/RGIndex.h \
-				  ../blib/BLib.c	../blib/BLib.h \
-				  ../blib/RGBinary.c ../blib/RGBinary.h \
-				  ../blib/RGMatch.c ../blib/RGMatch.h \
-				  ../blib/RGRanges.c ../blib/RGRanges.h \
-				  bgeneratereads.c	bgeneratereads.h 
+						 ../blib/BError.c	../blib/BError.h \
+						 ../blib/RGIndex.c	../blib/RGIndex.h \
+						 ../blib/BLib.c	../blib/BLib.h \
+						 ../blib/RGBinary.c ../blib/RGBinary.h \
+						 ../blib/RGMatch.c ../blib/RGMatch.h \
+						 ../blib/RGRanges.c ../blib/RGRanges.h \
+						 bgeneratereads.c	bgeneratereads.h 
 
 bgeneratereads_LDADD =  
 

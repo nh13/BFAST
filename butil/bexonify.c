@@ -7,6 +7,7 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
+#include "../blib/RGBinary.h"
 #include "bexonify.h"
 
 #define Name "bexonify"

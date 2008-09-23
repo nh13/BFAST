@@ -90,7 +90,12 @@ int AlignEntriesRead(AlignEntries *a,
 	}
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
-	if(a->pairedEnd != pairedEnd) {
+	if(pairedEnd != PairedEndDoesNotMatter &&
+			a->pairedEnd != pairedEnd) {
+		/* HERE */
+		fprintf(stderr, "(%d,%d)\n",
+				a->pairedEnd,
+				pairedEnd);
 		PrintError(FnName,
 				"a->pairedEnd != pairedEnd",
 				"Paired end does not match",

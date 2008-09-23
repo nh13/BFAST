@@ -103,7 +103,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: MAF", 6},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF", 6},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 6},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 7},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 7},
@@ -337,7 +337,7 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->outputFormat < 0 || args->outputFormat > 0) {
+	if(args->outputFormat < 0 || args->outputFormat > 1) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
 
