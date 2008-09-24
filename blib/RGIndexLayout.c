@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "RGIndexLayout.h"
 
 /* TODO */
-void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
+void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *layout)
 {
 	char *FnName="RGIndexLayoutRead";
-	int i, j;
-	int totalTileLength = 0;
+	int i;
+	char tempMask[MAX_MASK_LENGTH]="\0";
+	int32_t tempHashWidth;
 	FILE *fp=NULL;
 
 	/* Open the file */
@@ -22,121 +26,92 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 	}
 
 	/* Initialize the layout data structure */
-	rgLayout->numIndexes=0;
-	rgLayout->hashLengths=0;
-	rgLayout->numTiles=NULL;
-	rgLayout->tileLengths=NULL;
-	rgLayout->gaps=NULL;
+	layout->numIndexes=0;
+	layout->hashWidths=NULL;
+	layout->masks=NULL;
+	layout->widths=NULL;
+	layout->keysizes=NULL;
 
-	/* Read in the number of indexes */
-	if(EOF==fscanf(fp, "%d", &rgLayout->numIndexes)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read the number of indexes",
-				Exit,
-				EndOfFile);
-	}
-
-	/* Allocate memory for the hashLengths */
-	rgLayout->hashLengths = malloc(sizeof(int)*rgLayout->numIndexes);
-	if(NULL==rgLayout->hashLengths) {
-		PrintError(FnName,
-				"rgLayout->hashLengths",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Allocate memory for the number of tiles */
-	rgLayout->numTiles = malloc(sizeof(int)*rgLayout->numIndexes);
-	if(NULL==rgLayout->numTiles) {
-		PrintError(FnName,
-				"rgLayout->numTiles",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Allocate memory for tileLengths */
-	rgLayout->tileLengths = malloc(sizeof(int*)*rgLayout->numIndexes);
-	if(NULL==rgLayout->tileLengths) {
-		PrintError(FnName,
-				"rgLayout->tileLengths",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Allocate memory for gaps */
-	rgLayout->gaps = malloc(sizeof(int*)*rgLayout->numIndexes);
-	if(NULL==rgLayout->gaps) {
-		PrintError(FnName,
-				"rgLayout->gaps",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
-	/* Read the indexes */
-	for(i=0;i<rgLayout->numIndexes;i++) {
-		/* Read in the hash length */
-		if(EOF==fscanf(fp, "%u", &rgLayout->hashLengths[i])) {
+	/* Try reading in a layout */
+	while(EOF != fscanf(fp, "%d %s", &tempHashWidth, tempMask)) {
+		layout->numIndexes++;
+		/* Reallocate memory */
+		layout->hashWidths = realloc(layout->hashWidths, sizeof(int32_t)*layout->numIndexes);
+		if(NULL==layout->hashWidths) {
 			PrintError(FnName,
-					NULL,
-					"Could not read the hashLengths",
+					"layout->hashWidths",
+					"Could not reallocate memory",
 					Exit,
-					EndOfFile);
+					ReallocMemory);
 		}
-
-		/* Read in the number of tiles */
-		if(EOF==fscanf(fp, "%d", &rgLayout->numTiles[i])) {
+		layout->keysizes = realloc(layout->keysizes, sizeof(int32_t)*layout->numIndexes);
+		if(NULL==layout->keysizes) {
 			PrintError(FnName,
-					NULL,
-					"Could not read the number of tiles",
+					"layout->keysizes",
+					"Could not reallocate memory",
 					Exit,
-					EndOfFile);
+					ReallocMemory);
 		}
-
-		/* Allocate memory for the individual tile lengths and gaps */
-		rgLayout->tileLengths[i] = malloc(sizeof(int)*rgLayout->numTiles[i]);
-		if(NULL==rgLayout->tileLengths[i]) {
+		layout->widths = realloc(layout->widths, sizeof(int32_t)*layout->numIndexes);
+		if(NULL==layout->widths) {
 			PrintError(FnName,
-					"rgLayout->tileLengths[i]",
+					"layout->widths",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		layout->masks = realloc(layout->masks, sizeof(int32_t*)*layout->numIndexes);
+		if(NULL==layout->masks) {
+			PrintError(FnName,
+					"layout->masks",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		assert(tempHashWidth > 0);
+		/* Copy over hash width and width */
+		layout->hashWidths[layout->numIndexes-1] = tempHashWidth;
+		layout->widths[layout->numIndexes-1] = strlen(tempMask);
+		/* Allocate memory for the mask */
+		layout->masks[layout->numIndexes-1] = malloc(sizeof(int32_t)*layout->widths[layout->numIndexes-1]);
+		if(NULL==layout->masks[layout->numIndexes-1]) {
+			PrintError(FnName,
+					"layout->masks[layout->numIndexes-1]",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		rgLayout->gaps[i] = malloc(sizeof(int)*(rgLayout->numTiles[i]-1));
-		if(NULL==rgLayout->gaps[i]) {
-			PrintError(FnName,
-					"rgLayout->gaps[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-
-		/* Read in the tiles and gaps */
-		totalTileLength = 0;
-		for(j=0;j<rgLayout->numTiles[i];j++) {
-			if(EOF==fscanf(fp, "%d", &rgLayout->tileLengths[i][j])) {
-				PrintError(FnName,
-						"rgLayout->tileLengths[i][j]",
-						"Could not read in tile length",
-						Exit,
-						EndOfFile);
-			}
-			totalTileLength += rgLayout->tileLengths[i][j];
-			if(j<rgLayout->numTiles[i]-1) {
-				if(EOF==fscanf(fp, "%d", &rgLayout->gaps[i][j])) {
+		/* Copy over from temp mask */
+		layout->keysizes[layout->numIndexes-1]=0;
+		for(i=0;i<layout->widths[layout->numIndexes-1];i++) {
+			switch(tempMask[i]) {
+				case '0':
+					layout->masks[layout->numIndexes-1][i] = 0;
+					break;
+				case '1':
+					layout->masks[layout->numIndexes-1][i] = 1;
+					layout->keysizes[layout->numIndexes-1]++;
+					break;
+				default:
 					PrintError(FnName,
-							"rgLayout->gaps[i][j]",
-							"Could not read in tile length",
+							NULL,
+							"Could not understand mask",
 							Exit,
-							EndOfFile);
-				}
+							OutOfRange);
 			}
 		}
-		if(totalTileLength < rgLayout->hashLengths[i]) {
+		/* Check mask begins and ends with a one */
+		if(layout->masks[layout->numIndexes-1][0] == 0) {
 			PrintError(FnName,
 					NULL,
-					"Hash key length is larger than the tile length",
+					"Layout must begin with a one",
+					Exit,
+					OutOfRange);
+		}
+		if(layout->masks[layout->numIndexes-1][layout->widths[layout->numIndexes-1]-1] == 0) {
+			PrintError(FnName,
+					NULL,
+					"Layout must begin with a one",
 					Exit,
 					OutOfRange);
 		}
@@ -146,29 +121,22 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *rgLayout)
 	fclose(fp);
 }
 
-void RGIndexLayoutDelete(RGIndexLayout *rgLayout)
+void RGIndexLayoutDelete(RGIndexLayout *layout)
 {
 	int i;
 
-	/* Free the tile lengths for each layout*/
-	for(i=0;i<rgLayout->numIndexes;i++) {
-		free(rgLayout->tileLengths[i]);
-		rgLayout->tileLengths[i]=NULL;
+	free(layout->hashWidths);
+	layout->hashWidths = NULL;
+	for(i=0;i<layout->numIndexes;i++) {
+		free(layout->masks[i]);
+		layout->masks[i] = NULL;
 	}
-	/* Free the gaps */
-	for(i=0;i<rgLayout->numIndexes;i++) {
-		free(rgLayout->gaps[i]);
-		rgLayout->gaps[i]=NULL;
-	}
-	free(rgLayout->hashLengths);
-	rgLayout->hashLengths = NULL;
-	free(rgLayout->tileLengths);
-	rgLayout->tileLengths = NULL;
-	free(rgLayout->gaps);
-	rgLayout->gaps = NULL;
-	/* Free the numTiles */
-	free(rgLayout->numTiles);
-	rgLayout->numTiles = NULL;
+	free(layout->masks);
+	layout->masks=NULL;
+	free(layout->widths);
+	layout->widths=NULL;
+	free(layout->keysizes);
+	layout->keysizes=NULL;
 	/* Reinitialize the number of indexes */
-	rgLayout->numIndexes = 0;
+	layout->numIndexes = 0;
 }

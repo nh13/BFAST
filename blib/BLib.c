@@ -219,19 +219,21 @@ void CheckRGIndexes(char **mainFileNames,
 		char **secondaryFileNames,
 		int numSecondaryFileNames,
 		int binaryInput,
-		int32_t *startChr,
+		int32_t *startContig,
 		int32_t *startPos,
-		int32_t *endChr,
+		int32_t *endContig,
 		int32_t *endPos,
 		int32_t colorSpace)
 {
 	int i;
-	int32_t mainStartChr, mainStartPos, mainEndChr, mainEndPos;
-	int32_t secondaryStartChr, secondaryStartPos, secondaryEndChr, secondaryEndPos;
+	int32_t mainStartContig, mainStartPos, mainEndContig, mainEndPos;
+	int32_t secondaryStartContig, secondaryStartPos, secondaryEndContig, secondaryEndPos;
 	int32_t mainColorSpace=colorSpace;
 	int32_t secondaryColorSpace=colorSpace;
-	mainStartChr = mainStartPos = mainEndChr = mainEndPos = 0;
-	secondaryStartChr = secondaryStartPos = secondaryEndChr = secondaryEndPos = 0;
+	int32_t mainContigType=0;
+	int32_t secondaryContigType=0;
+	mainStartContig = mainStartPos = mainEndContig = mainEndPos = 0;
+	secondaryStartContig = secondaryStartPos = secondaryEndContig = secondaryEndPos = 0;
 
 	RGIndex tempIndex;
 	FILE *fp;
@@ -250,30 +252,36 @@ void CheckRGIndexes(char **mainFileNames,
 		/* Get the header */
 		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
 
-		assert(tempIndex.startChr < tempIndex.endChr ||
-				(tempIndex.startChr == tempIndex.endChr && tempIndex.startPos <= tempIndex.endPos));
+		assert(tempIndex.startContig < tempIndex.endContig ||
+				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
 
 		if(i==0) {
-			mainStartChr = tempIndex.startChr;
+			mainContigType = tempIndex.contigType;
+			mainStartContig = tempIndex.startContig;
 			mainStartPos = tempIndex.startPos;
-			mainEndChr = tempIndex.endChr;
+			mainEndContig = tempIndex.endContig;
 			mainEndPos = tempIndex.endPos;
 			mainColorSpace = tempIndex.colorSpace;
 		}
 		else {
 			/* Update bounds if necessary */
-			if(tempIndex.startChr < mainStartChr ||
-					(tempIndex.startChr == mainStartChr && tempIndex.startPos < mainStartPos)) {
-				mainStartChr = tempIndex.startChr;
+			assert(mainContigType == tempIndex.contigType);
+			if(tempIndex.startContig < mainStartContig ||
+					(tempIndex.startContig == mainStartContig && tempIndex.startPos < mainStartPos)) {
+				mainStartContig = tempIndex.startContig;
 				mainStartPos = tempIndex.startPos;
 			}
-			if(tempIndex.endChr > mainEndChr ||
-					(tempIndex.endChr == mainEndChr && tempIndex.endPos > mainEndPos)) {
-				mainEndChr = tempIndex.endChr;
+			if(tempIndex.endContig > mainEndContig ||
+					(tempIndex.endContig == mainEndContig && tempIndex.endPos > mainEndPos)) {
+				mainEndContig = tempIndex.endContig;
 				mainEndPos = tempIndex.endPos;
 			}
 			assert(mainColorSpace == tempIndex.colorSpace);
 		}
+
+		/* Free masks */
+		free(tempIndex.mask);
+		tempIndex.mask=NULL;
 
 		/* Close file */
 		fclose(fp);
@@ -292,39 +300,47 @@ void CheckRGIndexes(char **mainFileNames,
 		/* Get the header */
 		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
 
-		assert(tempIndex.startChr < tempIndex.endChr ||
-				(tempIndex.startChr == tempIndex.endChr && tempIndex.startPos <= tempIndex.endPos));
+		assert(tempIndex.startContig < tempIndex.endContig ||
+				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
 
 		if(i==0) {
-			secondaryStartChr = tempIndex.startChr;
+			secondaryContigType = tempIndex.contigType;
+			secondaryStartContig = tempIndex.startContig;
 			secondaryStartPos = tempIndex.startPos;
-			secondaryEndChr = tempIndex.endChr;
+			secondaryEndContig = tempIndex.endContig;
 			secondaryEndPos = tempIndex.endPos;
 			secondaryColorSpace = tempIndex.colorSpace;
 		}
 		else {
 			/* Update bounds if necessary */
-			if(tempIndex.startChr < secondaryStartChr ||
-					(tempIndex.startChr == secondaryStartChr && tempIndex.startPos < secondaryStartPos)) {
-				secondaryStartChr = tempIndex.startChr;
+			assert(secondaryContigType == tempIndex.contigType);
+			if(tempIndex.startContig < secondaryStartContig ||
+					(tempIndex.startContig == secondaryStartContig && tempIndex.startPos < secondaryStartPos)) {
+				secondaryStartContig = tempIndex.startContig;
 				secondaryStartPos = tempIndex.startPos;
 			}
-			if(tempIndex.endChr > secondaryEndChr ||
-					(tempIndex.endChr == secondaryEndChr && tempIndex.endPos > secondaryEndPos)) {
-				secondaryEndChr = tempIndex.endChr;
+			if(tempIndex.endContig > secondaryEndContig ||
+					(tempIndex.endContig == secondaryEndContig && tempIndex.endPos > secondaryEndPos)) {
+				secondaryEndContig = tempIndex.endContig;
 				secondaryEndPos = tempIndex.endPos;
 			}
 			assert(secondaryColorSpace == tempIndex.colorSpace);
 		}
+
+		/* Free masks */
+		free(tempIndex.mask);
+		tempIndex.mask=NULL;
 
 		/* Close file */
 		fclose(fp);
 	}
 
 	/* Check the bounds between main and secondary indexes */
-	if(mainStartChr != secondaryStartChr ||
+	assert(numSecondaryFileNames == 0 ||
+			mainContigType == secondaryContigType);
+	if(mainStartContig != secondaryStartContig ||
 			mainStartPos != secondaryStartPos ||
-			mainEndChr != secondaryEndChr ||
+			mainEndContig != secondaryEndContig ||
 			mainEndPos != secondaryEndPos ||
 			mainColorSpace != secondaryColorSpace) {
 		PrintError("CheckRGIndexes",
@@ -334,9 +350,9 @@ void CheckRGIndexes(char **mainFileNames,
 				OutOfRange);
 	}
 
-	(*startChr) = mainStartChr;
+	(*startContig) = mainStartContig;
 	(*startPos) = mainStartPos;
-	(*endChr) = mainEndChr;
+	(*endContig) = mainEndContig;
 	(*endPos) = mainEndPos;
 
 	assert(mainColorSpace == colorSpace);
@@ -505,28 +521,21 @@ int CheckReadAgainstIndex(RGIndex *index,
 		int readLength)
 {
 	char *FnName = "CheckReadAgainstIndex";
-	int curPos, curTile, curTilePos;
-	for(curPos = 0, curTile = 0;curTile < index->numTiles;curTile++) {
-		for(curTilePos=0;curTilePos < index->tileLengths[curTile];curTilePos++) {
-			switch(CheckReadBase(read[curPos])) {
-				case 0:
-					return 0;
-					break;
-				case 1:
-					break;
-				default:
-					PrintError(FnName,
-							NULL,
-							"Could not understand return value of CheckReadBase",
-							Exit,
-							OutOfRange);
-					break;
-			}
-			/* Update position */
-			curPos++;
-		}
-		if(curTile < index->numTiles-1) {
-			curPos += index->gaps[curTile];
+	int i;
+	for(i=0;i<index->width;i++) {
+		switch(CheckReadBase(read[i])) {
+			case 0:
+				return 0;
+				break;
+			case 1:
+				break;
+			default:
+				PrintError(FnName,
+						NULL,
+						"Could not understand return value of CheckReadBase",
+						Exit,
+						OutOfRange);
+				break;
 		}
 	}
 	return 1;
@@ -819,9 +828,9 @@ char ConvertColorToStorage(char c)
 
 /* TODO */
 void AdjustBounds(RGBinary *rg,
-		int32_t *startChr,
+		int32_t *startContig,
 		int32_t *startPos,
-		int32_t *endChr,
+		int32_t *endContig,
 		int32_t *endPos
 		)
 {
@@ -829,69 +838,66 @@ void AdjustBounds(RGBinary *rg,
 
 	/* Adjust start and end based on reference genome */
 	/* Adjust start */
-	if((*startChr) < rg->startChr) {
+	if((*startContig) <= 0) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Warning: startChr was less than reference genome's start chromosome.\n");
-			fprintf(stderr, "Defaulting to reference genome's start chromosome and position: chr%d:%d.\n",
-					rg->startChr,
-					rg->startPos);
+			fprintf(stderr, "Warning: startContig was less than zero.\n");
+			fprintf(stderr, "Defaulting to contig=%d and position=%d.\n",
+					1,
+					1);
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
-		(*startChr) = rg->startChr;
-		(*startPos) = rg->startPos;
+		(*startContig) = 1;
+		(*startPos) = 1;
 	}
-	else if((*startChr) == rg->startChr &&
-			(*startPos) < rg->startPos) {
+	else if((*startPos) <= 0) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Warning: startPos was less than reference genome's start position.\n");
-			fprintf(stderr, "Defaulting to reference genome's start position: %d.\n",
-					rg->startPos);
-			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Warning: startPos was less than zero.\n");
+			fprintf(stderr, "Defaulting to position=%d.\n",
+					1);
 		}
-		(*startPos) = rg->startPos;
+		(*startPos) = 1;
 	}
 	/* Adjust end */
-	if((*endChr) > rg->endChr) {
+	if((*endContig) > rg->numContigs) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Warning: endChr was greater than reference genome's end chromosome.\n");
-			fprintf(stderr, "Defaulting to reference genome's end chromosome and position: chr%d:%d.\n",
-					rg->endChr,
-					rg->endPos);
+			fprintf(stderr, "Warning: endContig was greater than the number of contigs in the reference genome.\n");
+			fprintf(stderr, "Defaulting to reference genome's end contig=%d and position=%d.\n",
+					rg->numContigs,
+					rg->contigs[rg->numContigs-1].sequenceLength);
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
-		(*endChr) = rg->endChr;
-		(*endPos) = rg->endPos;
+		(*endContig) = rg->numContigs;
+		(*endPos) = rg->contigs[rg->numContigs-1].sequenceLength;
 	}
-	else if((*endChr) == rg->endChr &&
-			(*endPos) > rg->endPos) {
+	else if((*endContig) == rg->numContigs && 
+			(*endPos) > rg->contigs[rg->numContigs-1].sequenceLength) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Warning: endPos was greater than reference genome's end position.\n");
 			fprintf(stderr, "Defaulting to reference genome's end position: %d.\n",
-					rg->endPos);
+					rg->contigs[rg->numContigs-1].sequenceLength);
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
-		(*endPos) = rg->endPos;
+		(*endPos) = rg->contigs[rg->numContigs-1].sequenceLength;
 	}
 
 	/* Check that the start and end bounds are ok */
-	if((*startChr) > (*endChr)) {
+	if((*startContig) > (*endContig)) {
 		PrintError(FnName,
 				NULL,
-				"The start chromosome is greater than the end chromosome",
+				"The start contig is greater than the end contig",
 				Exit,
 				OutOfRange);
 	}
-	else if((*startChr) == (*endChr) &&
+	else if((*startContig) == (*endContig) &&
 			(*startPos) > (*endPos)) {
 		PrintError(FnName,
 				NULL,
-				"The start position is greater than the end position on the same chromosome",
+				"The start position is greater than the end position on the same contig",
 				Exit,
 				OutOfRange);
 	}
 }
-

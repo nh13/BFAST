@@ -15,7 +15,6 @@ int32_t RGMatchRead(FILE *fp,
 {
 	char *FnName = "RGMatchRead";
 	int32_t i;
-	int32_t tempInt;
 
 	/* Read the matches from the input file */
 	if(binaryInput == 0) {
@@ -68,8 +67,8 @@ int32_t RGMatchRead(FILE *fp,
 
 		/* Read first sequence matches */
 		for(i=0;i<m->numEntries;i++) {
-			if(fscanf(fp, "%d %d %c", 
-						&tempInt,
+			if(fscanf(fp, "%u %d %c", 
+						&m->contigs[i],
 						&m->positions[i],
 						&m->strand[i])==EOF) {
 				PrintError(FnName,
@@ -78,7 +77,6 @@ int32_t RGMatchRead(FILE *fp,
 						Exit,
 						EndOfFile);
 			}
-			m->chromosomes[i] = tempInt;
 		}
 	}
 	else {
@@ -142,10 +140,10 @@ int32_t RGMatchRead(FILE *fp,
 		RGMatchReallocate(m, m->numEntries);
 
 		/* Read first sequence matches */
-		if(fread(m->chromosomes, sizeof(uint8_t), m->numEntries, fp)!=m->numEntries) {
+		if(fread(m->contigs, sizeof(uint32_t), m->numEntries, fp)!=m->numEntries) {
 			PrintError(FnName,
-					"m->chromosomes",
-					"Could not read in chromosomes",
+					"m->contigs",
+					"Could not read in contigs",
 					Exit,
 					ReadFileError);
 		}
@@ -193,13 +191,13 @@ void RGMatchPrint(FILE *fp,
 		}
 
 		for(i=0;i<m->numEntries;i++) {
-			if(0 > fprintf(fp, "\t%d\t%d\t%c", 
-						m->chromosomes[i],
+			if(0 > fprintf(fp, "\t%u\t%d\t%c", 
+						m->contigs[i],
 						m->positions[i],
 						m->strand[i])) {
 				PrintError(FnName,
 						NULL,
-						"Could not write m->chromosomes[i], m->positions[i], and m->strand[i]",
+						"Could not write m->contigs[i], m->positions[i], and m->strand[i]",
 						Exit,
 						WriteFileError);
 			}
@@ -225,13 +223,13 @@ void RGMatchPrint(FILE *fp,
 					WriteFileError);
 		}
 
-		/* Print the chromosomes, positions, and strands */
-		if(fwrite(m->chromosomes, sizeof(uint8_t), m->numEntries, fp) != m->numEntries ||
+		/* Print the contigs, positions, and strands */
+		if(fwrite(m->contigs, sizeof(uint32_t), m->numEntries, fp) != m->numEntries ||
 				fwrite(m->positions, sizeof(uint32_t), m->numEntries, fp) != m->numEntries ||
 				fwrite(m->strand, sizeof(int8_t), m->numEntries, fp) != m->numEntries) {
 			PrintError(FnName,
 					NULL,
-					"Could not write chromosomes, positions and strands",
+					"Could not write contigs, positions and strands",
 					Exit,
 					WriteFileError);
 		}
@@ -346,12 +344,12 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 {
 	assert(indexOne >= 0 && indexOne < mOne->numEntries);
 	assert(indexTwo >= 0 && indexTwo < mTwo->numEntries);
-	if(mOne->chromosomes[indexOne] < mTwo->chromosomes[indexTwo] ||
-			(mOne->chromosomes[indexOne] == mTwo->chromosomes[indexTwo] && mOne->positions[indexOne] < mTwo->positions[indexTwo]) ||
-			(mOne->chromosomes[indexOne] == mTwo->chromosomes[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] < mTwo->strand[indexTwo])) {
+	if(mOne->contigs[indexOne] < mTwo->contigs[indexTwo] ||
+			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] < mTwo->positions[indexTwo]) ||
+			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] < mTwo->strand[indexTwo])) {
 		return -1;
 	}
-	else if(mOne->chromosomes[indexOne] ==  mTwo->chromosomes[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] == mTwo->strand[indexTwo]) {
+	else if(mOne->contigs[indexOne] ==  mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] == mTwo->strand[indexTwo]) {
 		return 0;
 	}
 	else {
@@ -405,7 +403,7 @@ void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t d
 
 	if(src != dest || srcIndex != destIndex) {
 		dest->positions[destIndex] = src->positions[srcIndex];
-		dest->chromosomes[destIndex] = src->chromosomes[srcIndex];
+		dest->contigs[destIndex] = src->contigs[srcIndex];
 		dest->strand[destIndex] = src->strand[srcIndex];
 	}
 }
@@ -425,11 +423,11 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 				Exit,
 				MallocMemory);
 	}
-	assert(m->chromosomes==NULL);
-	m->chromosomes = malloc(sizeof(uint8_t)*numEntries); 
-	if(NULL == m->chromosomes) {
+	assert(m->contigs==NULL);
+	m->contigs = malloc(sizeof(uint32_t)*numEntries); 
+	if(NULL == m->contigs) {
 		PrintError(FnName,
-				"m->chromosomes",
+				"m->contigs",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
@@ -460,10 +458,10 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 					Exit,
 					ReallocMemory);
 		}
-		m->chromosomes = realloc(m->chromosomes, sizeof(uint8_t)*numEntries); 
-		if(numEntries > 0 && NULL == m->chromosomes) {
+		m->contigs = realloc(m->contigs, sizeof(uint32_t)*numEntries); 
+		if(numEntries > 0 && NULL == m->contigs) {
 			PrintError(FnName,
-					"m->chromosomes",
+					"m->contigs",
 					"Could not reallocate memory",
 					Exit,
 					ReallocMemory);
@@ -490,10 +488,10 @@ void RGMatchClearMatches(RGMatch *m)
 	m->maxReached=0;
 	m->numEntries=0;
 	/* Free */
-	free(m->chromosomes);
+	free(m->contigs);
 	free(m->positions);
 	free(m->strand);
-	m->chromosomes=NULL;
+	m->contigs=NULL;
 	m->positions=NULL;
 	m->strand=NULL;
 }
@@ -502,7 +500,7 @@ void RGMatchClearMatches(RGMatch *m)
 void RGMatchFree(RGMatch *m) 
 {
 	free(m->read);
-	free(m->chromosomes);
+	free(m->contigs);
 	free(m->positions);
 	free(m->strand);
 	RGMatchInitialize(m);
@@ -515,7 +513,7 @@ void RGMatchInitialize(RGMatch *m)
 	m->read=NULL;
 	m->maxReached=0;
 	m->numEntries=0;
-	m->chromosomes=NULL;
+	m->contigs=NULL;
 	m->positions=NULL;
 	m->strand=NULL;
 }
@@ -554,10 +552,10 @@ void RGMatchCheck(RGMatch *m)
 				OutOfRange);
 	}
 	/* Check that if the number of entries is greater than zero that the entries are not null */
-	if(m->numEntries > 0 && (m->chromosomes == NULL || m->positions == NULL || m->strand == NULL)) {
+	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strand == NULL)) {
 		PrintError(FnName,
 				NULL,
-				"m->numEntries > 0 && (m->chromosomes == NULL || m->positions == NULL || m->strand == NULL)",
+				"m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strand == NULL)",
 				Exit,
 				OutOfRange);
 	}
@@ -565,30 +563,30 @@ void RGMatchCheck(RGMatch *m)
 
 /* TODO */
 void RGMatchFilterOutOfRange(RGMatch *m,
-		int32_t startChr,
+		int32_t startContig,
 		int32_t startPos,
-		int32_t endChr,
+		int32_t endContig,
 		int32_t endPos,
 		int32_t maxNumMatches)
 {
 	int32_t i, prevIndex;
 
-	/* Filter chr/pos */
+	/* Filter contig/pos */
 	/* Remove duplicates */
 	prevIndex = -1;
 	int filter;
 	for(i=0;i<m->numEntries;i++) {
 		filter = 0;
-		if(m->chromosomes[i] < startChr || 
-				(m->chromosomes[i] == startChr && (m->positions[i] + m->readLength - 1) < startPos) ||
-				(m->chromosomes[i] == endChr && m->positions[i] > endPos) ||
-				(m->chromosomes[i] > endChr)) {
+		if(m->contigs[i] < startContig || 
+				(m->contigs[i] == startContig && (m->positions[i] + m->readLength - 1) < startPos) ||
+				(m->contigs[i] == endContig && m->positions[i] > endPos) ||
+				(m->contigs[i] > endContig)) {
 			/* ignore */
 		}
 		else {
 			/* Do not filter */
 			prevIndex++;
-			/* Copy chr/pos at i to chr/pos at prevIndex */
+			/* Copy contig/pos at i to contig/pos at prevIndex */
 			RGMatchCopyAtIndex(m, i, m, prevIndex);
 		}
 	}

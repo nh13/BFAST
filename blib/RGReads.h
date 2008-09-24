@@ -8,17 +8,23 @@
 
 void RGReadsFindMatches(RGIndex*, RGBinary*, RGMatch*, int*, int, int, int, int, int, int, int, int);
 void RGReadsGenerateReads(char*, int, RGIndex*, RGReads*, char, int*, int, int, int, int, int, int, int);
-void RGReadsGeneratePerfectMatch(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, RGReads*);
-void RGReadsGenerateMismatches(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
-void RGReadsGenerateMismatchesHelper(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, int, RGReads*, char*, int, int);
-void RGReadsGenerateDeletions(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
-void RGReadsGenerateDeletionsHelper(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, int, int, int, RGReads*, char*, int, int);
-void RGReadsGenerateInsertions(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
-void RGReadsGenerateInsertionsHelper(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, int, int, int, RGReads*, char*, int, int);
-void RGReadsGenerateGapDeletions(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
-void RGReadsGenerateGapDeletionsHelper(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*, char*);
-void RGReadsGenerateGapInsertions(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*);
-void RGReadsGenerateGapInsertionsHelper(char*, int, char, int, int32_t, int32_t*, int32_t*, int64_t, int, RGReads*, char*);
+
+void RGReadsGeneratePerfectMatch(char*, int, char, int, RGIndex*, RGReads*);
+
+void RGReadsGenerateMismatches(char*, int, char, int, int, RGIndex*, RGReads*);
+void RGReadsGenerateMismatchesHelper(char*, int, char, int, int, char*, int, RGIndex*, RGReads*);
+
+void RGReadsGenerateDeletions(char*, int, char, int, int, RGIndex*, RGReads*);
+void RGReadsGenerateDeletionsHelper(char*, int, char, int, int, int, int, char*, int, RGIndex*, RGReads*);
+
+void RGReadsGenerateInsertions(char*, int, char, int, int, RGIndex*, RGReads*);
+void RGReadsGenerateInsertionsHelper(char*, int, char, int, int, int, int, char*, int, RGIndex*, RGReads*);
+
+void RGReadsGenerateGapDeletions(char*, int, char, int, int, RGIndex*, RGReads*);
+void RGReadsGenerateGapDeletionsHelper(char*, int, char, int, int, char*, RGIndex*, RGReads*);
+
+void RGReadsGenerateGapInsertions(char*, int, char, int, int, RGIndex*, RGReads*);
+void RGReadsGenerateGapInsertionsHelper(char*, int, char, int, int, char*, RGIndex*, RGReads*);
 
 void RGReadsRemoveDuplicates(RGReads*);
 void RGReadsQuickSort(RGReads*, int, int);

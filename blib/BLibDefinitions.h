@@ -13,6 +13,7 @@
 #define BREAK_LINE "************************************************************\n"
 #define SEQUENCE_LENGTH 2048
 #define SEQUENCE_NAME_LENGTH 4028
+#define MAX_MASK_LENGTH 1024
 /* 0 - quick sort in place
  * 1 - merge sort with tmp file I/O (not fully debugged) */
 #define SORT_TYPE 1
@@ -49,9 +50,11 @@
 #define GAP '-'
 #define NULL_LETTER 'N'
 #define COLOR_SPACE_START_NT 'A'
+#define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 
-/* For RGIndex.c */
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
+enum {Contig_8, Contig_32};
+enum {NTSpace, ColorSpace};
 
 /************************************/
 /* 		Data structures 			*/
@@ -63,8 +66,8 @@ typedef struct {
 	int8_t *read;
 	int32_t maxReached;
 	int32_t numEntries;
-	uint8_t *chromosomes;
-	uint32_t *positions;
+	int32_t *contigs;
+	int32_t *positions;
 	int8_t *strand;
 } RGMatch;
 
@@ -97,59 +100,63 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	int32_t chromosome;
-	int32_t startPos;
-	int32_t endPos;
-	uint32_t numBytes;
+	/* Storage */
+	int32_t contigNameLength;
+	char *contigName;
+	/* Metadata */
 	uint8_t *sequence; 
-} RGBinaryChr;
+	int32_t sequenceLength;
+	uint32_t numBytes;
+} RGBinaryContig;
 
 /* TODO */
 typedef struct {
-	RGBinaryChr *chromosomes;
-	int32_t numChrs;
-	int32_t startChr;
-	int32_t startPos;
-	int32_t endChr;
-	int32_t endPos;
+	/* Storage type */
+	int32_t id;
+	/* RG storage */
+	RGBinaryContig *contigs;
+	int32_t numContigs;
+	/* Metadata */
 	int32_t colorSpace;
 } RGBinary;
 
 /* TODO */
 typedef struct {
+	/* Storage type */
+	int32_t id;
 	/* Index storage */
-	uint32_t *positions;
-	uint8_t *chromosomes;
-	uint32_t length;
-
+	uint8_t *contigs_8;
+	uint32_t *contigs_32;
+	int32_t *positions;
+	int64_t length;
+	int32_t contigType; 
+	/* Index range */
+	int32_t startContig;
+	int32_t startPos;
+	int32_t endContig;
+	int32_t endPos;
+	/* Index layout */
+	int32_t width;
+	int32_t keysize;
+	int32_t *mask;
+	/* Index properties */
+	int32_t repeatMasker;
+	int32_t colorSpace;
 	/* Hash storage */
 	uint32_t hashWidth; /* in bases */
 	int64_t hashLength; 
 	uint32_t *starts;
 	uint32_t *ends;
 
-	/* Index definition */
-	int32_t totalLength;
-	int32_t numTiles;
-	int32_t *tileLengths;
-	int32_t *gaps; /* There should be numTiles - 1 gaps */
-	int32_t repeatMasker;
-	int32_t colorSpace;
-
-	/* Index range */
-	int32_t startChr;
-	int32_t startPos;
-	int32_t endChr;
-	int32_t endPos;
 } RGIndex;
 
 /* TODO */
 typedef struct {
 	int32_t numIndexes;
-	int32_t *hashLengths;
-	int32_t *numTiles;
-	int32_t **tileLengths;
-	int32_t **gaps;
+	int32_t *hashWidths;
+	int32_t **masks;
+	int32_t *widths;
+	int32_t *keysizes;
 } RGIndexLayout;
 
 /* TODO */

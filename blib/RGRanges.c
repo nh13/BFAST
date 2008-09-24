@@ -61,9 +61,15 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 			for(j=r->startIndex[i];j<=r->endIndex[i];j++) {
 				assert(j>=0 && j<index->length);
 				assert(counter >= 0 && counter < m->numEntries);
+				/* Get contig number */ 
+				if(index->contigType == Contig_8) {
+					m->contigs[counter] = index->contigs_8[j];
+				}
+				else {
+					m->contigs[counter] = index->contigs_32[j];
+				}
 				/* Adjust position with the offset */
 				m->positions[counter] = (uint32_t)(index->positions[j] - r->offset[i]);
-				m->chromosomes[counter] = index->chromosomes[j];
 				m->strand[counter] = r->strand[i];
 				counter++;
 			}

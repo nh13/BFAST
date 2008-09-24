@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "BLibDefinitions.h"
 
-void RGBinaryRead(char*, RGBinary*, int32_t, int32_t, int32_t, int32_t, int32_t);
+void RGBinaryRead(char*, RGBinary*, int32_t);
 void RGBinaryReadBinary(RGBinary*, char*);
 void RGBinaryWriteBinary(RGBinary*, char*);
 void RGBinaryDelete(RGBinary*);

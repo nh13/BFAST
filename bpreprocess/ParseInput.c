@@ -58,8 +58,8 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
-	DescAlgoTitle, DescAlgorithm, DescColorSpace, DescStartChr, DescStartPos, 
-	DescEndChr, DescEndPos, DescRepeatMasker, DescNumThreads, 
+	DescAlgoTitle, DescAlgorithm, DescColorSpace, DescNumThreads, 
+	DescIndexSpecificTitle, DescRepeatMasker, DescStartContig, DescStartPos, DescEndContig, DescEndPos, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -76,25 +76,26 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the reference genome will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference chromosomes 1: create an index", 2},
+	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference contigs 1: create an index", 2},
 	{"colorSpace", 'A', 0, OPTION_NO_USAGE, "Specifies that the output should be in color space", 2},
-	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
-	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
-	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
-	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 2},
-	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
-	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
-	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
-	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
+	{0, 0, 0, 0, "=========== Index Specific Options: (Unless specified, default value = 0) ================", 3},
+	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 3},
+	{"startContig", 's', "startContig", 0, "Specifies the start contig", 3},
+	{"startPos", 'S', "startPos", 0, "Specifies the end position", 3},
+	{"endContig", 'e', "endContig", 0, "Specifies the end contig", 3},
+	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 3},
+	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
+	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
+	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
 	/*
-	   {"binaryOuput", 'B', 0, OPTION_NO_USAGE, "Specifies that we write the files as binary files", 3},
+	   {"binaryOuput", 'B', 0, OPTION_NO_USAGE, "Specifies that we write the files as binary files", 4},
 	   */	
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
-	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
-	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
-	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
+	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 5},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 5},
 	{0, 0, 0, 0, 0, 0}
 };
 /*
@@ -172,20 +173,12 @@ main (int argc, char **argv)
 								/* Read fasta files */
 								RGBinaryRead(arguments.rgFileName, 
 										&rg,
-										arguments.startChr,
-										arguments.startPos,
-										arguments.endChr,
-										arguments.endPos,
 										arguments.colorSpace);
-								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%d.%d.%d.%d.%s",
+								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%s",
 										arguments.outputDir,
 										PROGRAM_NAME,
 										arguments.outputID,
 										rg.colorSpace,
-										rg.startChr,
-										rg.startPos,
-										rg.endChr,
-										rg.endPos,
 										BFAST_RG_FILE_EXTENSION);
 								/* Write binary */
 								RGBinaryWriteBinary(&rg,
@@ -202,9 +195,9 @@ main (int argc, char **argv)
 								GenerateIndex(&rg,
 										&rgLayout,
 										arguments.colorSpace,
-										arguments.startChr,
+										arguments.startContig,
 										arguments.startPos,
-										arguments.endChr,
+										arguments.endContig,
 										arguments.endPos,
 										arguments.repeatMasker,
 										arguments.numThreads,
@@ -300,16 +293,16 @@ int ValidateInputs(struct arguments *args) {
 
 	assert(args->colorSpace == 0 || args->colorSpace == 1);
 
-	if(args->startChr < 0) {
-		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
+	if(args->startContig < 0) {
+		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startPos < 0) {
 		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endChr < 0) {
-		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
+	if(args->endContig < 0) {
+		PrintError(FnName, "endContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->endPos < 0) {
@@ -347,11 +340,11 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->repeatMasker == 0 || args->repeatMasker == 1);
 
 	/* Cross-check arguments */
-	if(args->startChr > args->endChr) {
-		PrintError(FnName, "startChr > endChr", "Command line argument", Exit, OutOfRange);
+	if(args->startContig > args->endContig) {
+		PrintError(FnName, "startContig > endContig", "Command line argument", Exit, OutOfRange);
 	}
-	if(args->startChr == args->endChr && args->startPos > args->endPos) {
-		PrintError(FnName, "endPos < startPos with startChr == endChr", "Command line argument", Exit, OutOfRange);
+	if(args->startContig == args->endContig && args->startPos > args->endPos) {
+		PrintError(FnName, "endPos < startPos with startContig == endContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	return 1;
@@ -406,17 +399,14 @@ AssignDefaultValues(struct arguments *args)
 	args->binaryInput = 1;
 
 	args->algorithm = 0;
-
 	args->colorSpace = 0;
-
-	args->startChr=0;
-	args->startPos=0;
-	args->endChr=INT_MAX;
-	args->endPos=INT_MAX;
+	args->numThreads = 1;
 
 	args->repeatMasker=0;
-
-	args->numThreads = 1;
+	args->startContig=0;
+	args->startPos=0;
+	args->endContig=INT_MAX;
+	args->endPos=INT_MAX;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -452,12 +442,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
-	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
-	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
-	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
+	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
+	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
+	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
+	fprintf(fp, "endContig:\t\t\t\t\t%d\n", args->endContig);
+	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -521,7 +511,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						}
 						break;
 					case 'e':
-						arguments->endChr=atoi(OPTARG);break;
+						arguments->endContig=atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'i':
@@ -538,7 +528,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						if(arguments->rgFileName) free(arguments->rgFileName);
 						arguments->rgFileName = OPTARG;break;
 					case 's':
-						arguments->startChr=atoi(OPTARG);break;
+						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
 						/*

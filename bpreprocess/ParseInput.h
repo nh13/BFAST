@@ -8,12 +8,12 @@ struct arguments
 	int binaryInput;						/* -b - not used */
 	int algorithm;							/* -a */
 	int colorSpace;							/* -A */
-	int startChr;							/* -s */
-	unsigned int startPos;					/* -S */
-	int endChr;								/* -e */
-	unsigned int endPos;					/* -E */
-	int repeatMasker;						/* -R */
 	int numThreads;                         /* -n */
+	int repeatMasker;						/* -R */
+	int startContig;						/* -s */
+	unsigned int startPos;					/* -S */
+	int endContig;							/* -e */
+	unsigned int endPos;					/* -E */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	char *tmpDir;                           /* -T */

@@ -456,7 +456,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 				(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0)) {
 			RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
 			for(i=0;i<numEntriesOne;i++) {
-				m->matchTwo.chromosomes[i+numEntriesTwo] = m->matchOne.chromosomes[i];
+				m->matchTwo.contigs[i+numEntriesTwo] = m->matchOne.contigs[i];
 				m->matchTwo.strand[i+numEntriesTwo] = m->matchOne.strand[i];
 				/* Adjust position */
 				m->matchTwo.positions[i+numEntriesTwo] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
@@ -467,7 +467,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 				(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0)) {
 			RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
 			for(i=0;i<numEntriesTwo;i++) {
-				m->matchOne.chromosomes[i+numEntriesOne] = m->matchTwo.chromosomes[i];
+				m->matchOne.contigs[i+numEntriesOne] = m->matchTwo.contigs[i];
 				m->matchOne.strand[i+numEntriesOne] = m->matchTwo.strand[i];
 				/* Adjust position */
 				m->matchOne.positions[i+numEntriesOne] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
@@ -503,7 +503,7 @@ void RGMatchesCheck(RGMatches *m)
 		assert(m->matchTwo.read == NULL);
 		assert(m->matchTwo.maxReached == 0);
 		assert(m->matchTwo.numEntries == 0);
-		assert(m->matchTwo.chromosomes == NULL);
+		assert(m->matchTwo.contigs == NULL);
 		assert(m->matchTwo.positions == NULL);
 		assert(m->matchTwo.strand == NULL);
 	}
