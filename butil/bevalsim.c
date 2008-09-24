@@ -46,7 +46,7 @@ void ReadTypeInitialize(ReadType *r)
 	r->strand=0;
 	r->contig=0;
 	r->pos=0;
-	r->space=0;
+	r->space=NTSpace;
 	r->pairedEnd=0;
 	r->pairedEndLength=0;
 	r->readLength=0;
@@ -156,7 +156,7 @@ int ReadTypeReadFromBAF(ReadType *r,
 	r->aStrand = a.entriesOne->strand;
 	/* Convert into read type */
 	int tempPairedEnd = a.pairedEnd;
-	r->space = a.colorSpace;
+	r->space = a.space;
 	/* Get the rest from read name */
 	if(tempPairedEnd == 0) {
 		if(EOF == sscanf(a.readName, 

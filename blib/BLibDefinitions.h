@@ -128,7 +128,7 @@ typedef struct {
 	RGBinaryContig *contigs;
 	int32_t numContigs;
 	/* Metadata */
-	int32_t colorSpace;
+	int32_t space;
 } RGBinary;
 
 /* TODO */
@@ -152,7 +152,7 @@ typedef struct {
 	int32_t *mask;
 	/* Index properties */
 	int32_t repeatMasker;
-	int32_t colorSpace;
+	int32_t space;
 	/* Hash storage */
 	uint32_t hashWidth; /* in bases */
 	int64_t hashLength; 
@@ -174,7 +174,7 @@ typedef struct {
 typedef struct {
 	RGIndex *index;
 	RGBinary *rg;
-	int32_t colorSpace;
+	int32_t space;
 	int64_t low;
 	int64_t high;
 	int32_t threadID;
@@ -201,7 +201,7 @@ typedef struct {
 typedef struct {
 	char *readName;
 	int32_t pairedEnd;
-	int32_t colorSpace;
+	int32_t space;
 	int32_t numEntriesOne;
 	int32_t numEntriesTwo;
 	AlignEntry *entriesOne;

@@ -23,7 +23,7 @@ typedef struct {
 	RGBinary *rg;
 	int *offsets;
 	int numOffsets;
-	int colorSpace;
+	int space;
 	int numMismatches;
 	int numInsertions;
 	int numDeletions;

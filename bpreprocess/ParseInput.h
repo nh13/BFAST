@@ -7,7 +7,7 @@ struct arguments
 	char *indexLayoutFileName;				/* -i */
 	int binaryInput;						/* -b - not used */
 	int algorithm;							/* -a */
-	int colorSpace;							/* -A */
+	int space;								/* -A */
 	int numThreads;                         /* -n */
 	int repeatMasker;						/* -R */
 	int startContig;						/* -s */

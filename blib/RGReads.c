@@ -26,7 +26,7 @@ void RGReadsFindMatches(RGIndex *index,
 		RGMatch *match,
 		int *offsets,
 		int numOffsets,
-		int colorSpace,
+		int space,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -47,7 +47,7 @@ void RGReadsFindMatches(RGIndex *index,
 	RGRangesInitialize(&ranges);
 
 	/* Remove adaptor and first color if we are in color space */
-	if(colorSpace==1) {
+	if(space==ColorSpace) {
 		/* First letter is adapter, second letter is the color (unusable) */
 		for(i=2;i<match->readLength;i++) {
 			read[i-2] = match->read[i];
@@ -61,6 +61,7 @@ void RGReadsFindMatches(RGIndex *index,
 		ConvertColorsToStorage(reverseRead, readLength);
 	}
 	else {
+		assert(space==NTSpace);
 		/* Copy over */
 		strcpy(read, (char*)match->read);
 		readLength = match->readLength;
@@ -76,7 +77,7 @@ void RGReadsFindMatches(RGIndex *index,
 			FORWARD,
 			offsets,
 			numOffsets,
-			colorSpace,
+			space,
 			numMismatches,
 			numInsertions,
 			numDeletions,
@@ -91,7 +92,7 @@ void RGReadsFindMatches(RGIndex *index,
 			REVERSE,
 			offsets,
 			numOffsets,
-			colorSpace,
+			space,
 			numMismatches,
 			numInsertions,
 			numDeletions,
@@ -154,7 +155,7 @@ void RGReadsFindMatches(RGIndex *index,
 	/* In color space we removed the first base/color so we need to 
 	 * decrement the positions by one.
 	 * */
-	if(colorSpace == 1) {
+	if(space == ColorSpace) {
 		for(i=0;i<match->numEntries;i++) {
 			match->positions[i]--;
 		}
@@ -174,7 +175,7 @@ void RGReadsGenerateReads(char *read,
 		char direction,
 		int *offsets,
 		int numOffsets,
-		int colorSpace,
+		int space,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,

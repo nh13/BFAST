@@ -24,7 +24,7 @@ void AlignEntriesPrint(AlignEntries *a,
 		if(fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\n",
 					a->readName,
 					a->pairedEnd,
-					a->colorSpace,
+					a->space,
 					a->numEntriesOne,
 					a->numEntriesTwo) < 0) {
 			PrintError(FnName,
@@ -39,7 +39,7 @@ void AlignEntriesPrint(AlignEntries *a,
 		if(fwrite(&tempReadNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(a->readName, sizeof(char), tempReadNameLength, outputFP) != tempReadNameLength ||
 				fwrite(&a->pairedEnd, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(&a->colorSpace, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(&a->space, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->numEntriesOne, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->numEntriesTwo, sizeof(int32_t), 1, outputFP) != 1) {
 			PrintError(FnName,
@@ -53,7 +53,7 @@ void AlignEntriesPrint(AlignEntries *a,
 	for(i=0;i<a->numEntriesOne;i++) {
 		if(EOF == AlignEntryPrint(&a->entriesOne[i],
 					outputFP,
-					a->colorSpace,
+					a->space,
 					binaryOutput)) {
 			PrintError(FnName,
 					"entriesOne",
@@ -67,7 +67,7 @@ void AlignEntriesPrint(AlignEntries *a,
 		for(i=0;i<a->numEntriesTwo;i++) {
 			if(EOF == AlignEntryPrint(&a->entriesTwo[i],
 						outputFP,
-						a->colorSpace,
+						a->space,
 						binaryOutput)) {
 				PrintError(FnName,
 						"entriesTwo",
@@ -83,7 +83,7 @@ void AlignEntriesPrint(AlignEntries *a,
 int AlignEntriesRead(AlignEntries *a,
 		FILE *inputFP,
 		int pairedEnd,
-		int colorSpace,
+		int space,
 		int binaryInput)
 {
 	char *FnName = "AlignEntriesRead";
@@ -102,12 +102,12 @@ int AlignEntriesRead(AlignEntries *a,
 		}
 	}
 
-	/* Read the read name, paired end flag, color space flag, and the number of entries for both entries */
+	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
 	if(binaryInput == TextInput) {
 		if(fscanf(inputFP, "%s %d %d %d %d",
 					a->readName,
 					&a->pairedEnd,
-					&a->colorSpace,
+					&a->space,
 					&a->numEntriesOne,
 					&a->numEntriesTwo)==EOF) {
 			return EOF;
@@ -119,7 +119,7 @@ int AlignEntriesRead(AlignEntries *a,
 		}
 		if(fread(a->readName, sizeof(char), tempReadNameLength, inputFP) != tempReadNameLength ||
 				fread(&a->pairedEnd, sizeof(int32_t), 1, inputFP) != 1 ||
-				fread(&a->colorSpace, sizeof(int32_t), 1, inputFP) != 1 ||
+				fread(&a->space, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->numEntriesOne, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->numEntriesTwo, sizeof(int32_t), 1, inputFP) != 1) {
 			PrintError(FnName,
@@ -143,11 +143,11 @@ int AlignEntriesRead(AlignEntries *a,
 				Exit,
 				OutOfRange);
 	}
-	if(colorSpace != SpaceDoesNotMatter &&
-			a->colorSpace != colorSpace) {
+	if(space != SpaceDoesNotMatter &&
+			a->space != space) {
 		PrintError(FnName,
-				"a->colorSpace != colorSpace",
-				"Color space does not match",
+				"a->space != space",
+				"Space does not match",
 				Exit,
 				OutOfRange);
 	}
@@ -181,7 +181,7 @@ int AlignEntriesRead(AlignEntries *a,
 		AlignEntryInitialize(&a->entriesOne[i]);
 		if(EOF==AlignEntryRead(&a->entriesOne[i],
 					inputFP,
-					a->colorSpace,
+					a->space,
 					binaryInput)) {
 			PrintError(FnName, 
 					NULL, 
@@ -195,7 +195,7 @@ int AlignEntriesRead(AlignEntries *a,
 			AlignEntryInitialize(&a->entriesTwo[i]);
 			if(EOF==AlignEntryRead(&a->entriesTwo[i],
 						inputFP,
-						a->colorSpace,
+						a->space,
 						binaryInput)) {
 				PrintError(FnName, 
 						NULL, 
@@ -283,7 +283,7 @@ void AlignEntriesReallocate(AlignEntries *a,
 		int numEntriesOne,
 		int numEntriesTwo,
 		int pairedEnd,
-		int colorSpace)
+		int space)
 {
 	char *FnName = "AlignEntriesReallocate";
 	int i;
@@ -303,7 +303,7 @@ void AlignEntriesReallocate(AlignEntries *a,
 	a->numEntriesOne = numEntriesOne;
 	a->numEntriesTwo = numEntriesTwo;
 	a->pairedEnd = pairedEnd;
-	a->colorSpace = colorSpace;
+	a->space = space;
 
 	a->readName = realloc(a->readName, sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(a->readName == NULL) {
@@ -347,7 +347,7 @@ void AlignEntriesAllocate(AlignEntries *a,
 		int numEntriesOne,
 		int numEntriesTwo,
 		int pairedEnd,
-		int colorSpace)
+		int space)
 {
 	char *FnName = "AlignEntriesAllocate";
 	int i;
@@ -355,7 +355,7 @@ void AlignEntriesAllocate(AlignEntries *a,
 	a->numEntriesOne = numEntriesOne;
 	a->numEntriesTwo = numEntriesTwo;
 	a->pairedEnd = pairedEnd;
-	a->colorSpace = colorSpace;
+	a->space = space;
 
 	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(a->readName == NULL) {
@@ -427,7 +427,7 @@ void AlignEntriesInitialize(AlignEntries *a)
 	a->entriesTwo=NULL;
 	a->numEntriesTwo=0;
 	a->pairedEnd=0;
-	a->colorSpace=0;
+	a->space=NTSpace;
 }
 
 /* TODO */
@@ -435,7 +435,7 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 		int indexOne,
 		int indexTwo,
 		int pairedEnd,
-		int colorSpace)
+		int space)
 {
 	assert(pairedEnd == a->pairedEnd);
 	/* First read */
@@ -456,14 +456,14 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 				1,
 				1,
 				1,
-				colorSpace);
+				space);
 	}
 	else {
 		AlignEntriesReallocate(a,
 				1,
 				0,
 				0,
-				colorSpace);
+				space);
 	}
 }
 
@@ -477,7 +477,7 @@ void AlignEntriesCopy(AlignEntries *src, AlignEntries *dst)
 			src->numEntriesOne,
 			src->numEntriesTwo,
 			src->pairedEnd,
-			src->colorSpace);
+			src->space);
 	/* Copy over */
 	for(i=0;i<src->numEntriesOne;i++) {
 		AlignEntryCopy(&src->entriesOne[i], &dst->entriesOne[i]);

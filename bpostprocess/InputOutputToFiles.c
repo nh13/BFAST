@@ -292,15 +292,15 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 	/* Get Data */
 	if(0==a->pairedEnd) {
 		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 1, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->space, 1, fp); 
 		}
 	}
 	else {
 		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->colorSpace, 1, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->space, 1, fp); 
 		}
 		for(i=0;i<a->numEntriesTwo;i++) {
-			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, a->pairedEnd, a->colorSpace, 2, fp); 
+			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, a->pairedEnd, a->space, 2, fp); 
 		}
 	}
 
@@ -310,7 +310,7 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 void PrintAlignEntryToMAF(AlignEntry *a,
 		char *readName,
 		int pairedEnd,
-		int colorSpace,
+		int space,
 		int readNum,
 		FILE *fp)
 {
@@ -330,7 +330,7 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 
 	/* Print the score */
-	if(colorSpace == 1) {
+	if(space == ColorSpace) {
 		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d color-errors=%s\n",
 					a->score,
 					pairedEnd,
@@ -344,6 +344,7 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 		}
 	}
 	else {
+		assert(space == NTSpace);
 		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d\n",
 					a->score,
 					pairedEnd,

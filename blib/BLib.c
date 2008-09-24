@@ -223,13 +223,13 @@ void CheckRGIndexes(char **mainFileNames,
 		int32_t *startPos,
 		int32_t *endContig,
 		int32_t *endPos,
-		int32_t colorSpace)
+		int32_t space)
 {
 	int i;
 	int32_t mainStartContig, mainStartPos, mainEndContig, mainEndPos;
 	int32_t secondaryStartContig, secondaryStartPos, secondaryEndContig, secondaryEndPos;
-	int32_t mainColorSpace=colorSpace;
-	int32_t secondaryColorSpace=colorSpace;
+	int32_t mainColorSpace=space;
+	int32_t secondaryColorSpace=space;
 	int32_t mainContigType=0;
 	int32_t secondaryContigType=0;
 	mainStartContig = mainStartPos = mainEndContig = mainEndPos = 0;
@@ -261,7 +261,7 @@ void CheckRGIndexes(char **mainFileNames,
 			mainStartPos = tempIndex.startPos;
 			mainEndContig = tempIndex.endContig;
 			mainEndPos = tempIndex.endPos;
-			mainColorSpace = tempIndex.colorSpace;
+			mainColorSpace = tempIndex.space;
 		}
 		else {
 			/* Update bounds if necessary */
@@ -276,7 +276,7 @@ void CheckRGIndexes(char **mainFileNames,
 				mainEndContig = tempIndex.endContig;
 				mainEndPos = tempIndex.endPos;
 			}
-			assert(mainColorSpace == tempIndex.colorSpace);
+			assert(mainColorSpace == tempIndex.space);
 		}
 
 		/* Free masks */
@@ -309,7 +309,7 @@ void CheckRGIndexes(char **mainFileNames,
 			secondaryStartPos = tempIndex.startPos;
 			secondaryEndContig = tempIndex.endContig;
 			secondaryEndPos = tempIndex.endPos;
-			secondaryColorSpace = tempIndex.colorSpace;
+			secondaryColorSpace = tempIndex.space;
 		}
 		else {
 			/* Update bounds if necessary */
@@ -324,7 +324,7 @@ void CheckRGIndexes(char **mainFileNames,
 				secondaryEndContig = tempIndex.endContig;
 				secondaryEndPos = tempIndex.endPos;
 			}
-			assert(secondaryColorSpace == tempIndex.colorSpace);
+			assert(secondaryColorSpace == tempIndex.space);
 		}
 
 		/* Free masks */
@@ -355,8 +355,8 @@ void CheckRGIndexes(char **mainFileNames,
 	(*endContig) = mainEndContig;
 	(*endPos) = mainEndPos;
 
-	assert(mainColorSpace == colorSpace);
-	assert(secondaryColorSpace == colorSpace);
+	assert(mainColorSpace == space);
+	assert(secondaryColorSpace == space);
 }
 
 /* TODO */

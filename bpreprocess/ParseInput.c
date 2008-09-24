@@ -58,7 +58,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
-	DescAlgoTitle, DescAlgorithm, DescColorSpace, DescNumThreads, 
+	DescAlgoTitle, DescAlgorithm, DescSpace, DescNumThreads, 
 	DescIndexSpecificTitle, DescRepeatMasker, DescStartContig, DescStartPos, DescEndContig, DescEndPos, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -77,7 +77,7 @@ static struct argp_option options[] = {
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference contigs 1: create an index", 2},
-	{"colorSpace", 'A', 0, OPTION_NO_USAGE, "Specifies that the output should be in color space", 2},
+	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Index Specific Options: (Unless specified, default value = 0) ================", 3},
 	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 3},
@@ -118,7 +118,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:n:o:r:s:E:S:T:hptAR";
+"a:d:e:i:n:o:r:s:A:E:S:T:hptR";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -173,12 +173,12 @@ main (int argc, char **argv)
 								/* Read fasta files */
 								RGBinaryRead(arguments.rgFileName, 
 										&rg,
-										arguments.colorSpace);
+										arguments.space);
 								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%s",
 										arguments.outputDir,
 										PROGRAM_NAME,
 										arguments.outputID,
-										rg.colorSpace,
+										rg.space,
 										BFAST_RG_FILE_EXTENSION);
 								/* Write binary */
 								assert(arguments.binaryOutput == BinaryOutput);
@@ -195,7 +195,7 @@ main (int argc, char **argv)
 								/* Generate the indexes */
 								GenerateIndex(&rg,
 										&rgLayout,
-										arguments.colorSpace,
+										arguments.space,
 										arguments.startContig,
 										arguments.startPos,
 										arguments.endContig,
@@ -292,7 +292,9 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
 
-	assert(args->colorSpace == 0 || args->colorSpace == 1);
+	if(args->space != NTSpace && args->space != ColorSpace) {
+		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
+	}
 
 	if(args->startContig < 0) {
 		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
@@ -400,7 +402,7 @@ AssignDefaultValues(struct arguments *args)
 	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
 
 	args->algorithm = 0;
-	args->colorSpace = 0;
+	args->space = NTSpace;
 	args->numThreads = 1;
 
 	args->repeatMasker=0;
@@ -444,7 +446,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
-	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
+	fprintf(fp, "space:\t\t\t\t%d\n", args->space);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
@@ -541,7 +543,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   arguments->binaryOutput=1;break;
 						   */
 					case 'A':
-						arguments->colorSpace=1;break;
+						arguments->space=atoi(OPTARG);break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'R':

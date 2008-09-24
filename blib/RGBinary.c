@@ -12,7 +12,7 @@
 /* Read from fasta file */
 void RGBinaryRead(char *rgFileName, 
 		RGBinary *rg,
-		int32_t colorSpace)
+		int32_t space)
 {
 	char *FnName="RGBinaryRead";
 	FILE *fpRG=NULL;
@@ -35,7 +35,7 @@ void RGBinaryRead(char *rgFileName,
 	rg->id=BFAST_ID;
 	rg->contigs=NULL;
 	rg->numContigs=0;
-	rg->colorSpace=colorSpace;
+	rg->space=space;
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -129,8 +129,8 @@ void RGBinaryRead(char *rgFileName,
 				}
 			}
 			else {
-				/* Convert to color space */
-				if(1==colorSpace) {
+				if(ColorSpace==space) {
+					/* Convert to color space */
 					/* Convert color space to A,C,G,T */
 					c = ConvertBaseToColorSpace(prevBase, original);
 					/* Convert to nucleotide equivalent for storage */
@@ -271,7 +271,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	/* Read RGBinary information */
 	if( fread(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
-			fread(&rg->colorSpace, sizeof(int32_t), 1, fpRG)!=1) {
+			fread(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
@@ -289,7 +289,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 
 	assert(rg->numContigs > 0);
-	assert(rg->colorSpace == NTSpace|| rg->colorSpace == ColorSpace);
+	assert(rg->space == NTSpace|| rg->space == ColorSpace);
 
 	/* Allocate memory for the contigs */
 	rg->contigs = malloc(sizeof(RGBinaryContig)*rg->numContigs);
@@ -390,7 +390,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	/* Output RGBinary information */
 	if(fwrite(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
 			fwrite(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
-			fwrite(&rg->colorSpace, sizeof(int32_t), 1, fpRG)!=1) {
+			fwrite(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
 				NULL,
 				"Could not output rg header",
@@ -437,7 +437,7 @@ void RGBinaryDelete(RGBinary *rg)
 	/* Initialize structure */
 	rg->id = 0;
 	rg->numContigs = 0;
-	rg->colorSpace = 0;
+	rg->space = NTSpace;
 }
 
 /* TODO */

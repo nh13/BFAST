@@ -25,7 +25,7 @@ void FindMatches(
 		char *rgIndexSecondaryListFileName,
 		char *readFileName, 
 		char *offsetsFileName,
-		int colorSpace,
+		int space,
 		int binaryInput,
 		int startReadNum,
 		int endReadNum,
@@ -82,7 +82,7 @@ void FindMatches(
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			colorSpace,
+			space,
 			startReadNum,
 			endReadNum,
 			numMismatches,
@@ -119,14 +119,14 @@ void FindMatches(
 				&startPos,
 				&endChr,
 				&endPos,
-				colorSpace);
+				space);
 	}
 
 	/* Read in the reference genome */
 	startTime = time(NULL);
 	RGBinaryReadBinary(&rg,
 			rgFileName);
-	assert(rg.colorSpace == colorSpace);
+	assert(rg.space == space);
 	endTime = time(NULL);
 	totalReadRGTime = endTime - startTime;
 
@@ -143,7 +143,7 @@ void FindMatches(
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			colorSpace,
+			space,
 			startReadNum,
 			endReadNum,
 			numMismatches,
@@ -255,7 +255,7 @@ void FindMatches(
 			numMainIndexes,
 			offsets,
 			numOffsets,
-			colorSpace,
+			space,
 			numMismatches,
 			numInsertions,
 			numDeletions,
@@ -294,7 +294,7 @@ void FindMatches(
 				numSecondaryIndexes,
 				offsets,
 				numOffsets,
-				colorSpace,
+				space,
 				numMismatches,
 				numInsertions,
 				numDeletions,
@@ -426,7 +426,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int numIndexes,
 		int *offsets,
 		int numOffsets,
-		int colorSpace,
+		int space,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -517,7 +517,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				rg,
 				offsets,
 				numOffsets,
-				colorSpace,
+				space,
 				numMismatches,
 				numInsertions,
 				numDeletions,
@@ -664,7 +664,7 @@ int FindMatchesInIndex(char *indexFileName,
 		RGBinary *rg,
 		int *offsets,
 		int numOffsets,
-		int colorSpace,
+		int space,
 		int numMismatches,
 		int numInsertions,
 		int numDeletions,
@@ -750,7 +750,7 @@ int FindMatchesInIndex(char *indexFileName,
 
 	/* Read in the RG Index */
 	startTime = time(NULL);
-	ReadRGIndex(indexFileName, &index, binaryInput, colorSpace);
+	ReadRGIndex(indexFileName, &index, binaryInput, space);
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
 
@@ -769,7 +769,7 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].rg = rg;
 		data[i].offsets = offsets;
 		data[i].numOffsets = numOffsets;
-		data[i].colorSpace = colorSpace;
+		data[i].space = space;
 		data[i].numMismatches = numMismatches;
 		data[i].numInsertions = numInsertions;
 		data[i].numDeletions = numDeletions;
@@ -895,7 +895,7 @@ void *FindMatchesInIndexThread(void *arg)
 	RGBinary *rg = data->rg;
 	int *offsets = data->offsets;
 	int numOffsets = data->numOffsets;
-	int colorSpace = data->colorSpace;
+	int space = data->space;
 	int numMismatches = data->numMismatches;
 	int numInsertions = data->numInsertions;
 	int numDeletions = data->numDeletions;
@@ -933,7 +933,7 @@ void *FindMatchesInIndexThread(void *arg)
 				&m.matchOne,
 				offsets,
 				numOffsets,
-				colorSpace,
+				space,
 				numMismatches,
 				numInsertions,
 				numDeletions,
@@ -946,7 +946,7 @@ void *FindMatchesInIndexThread(void *arg)
 					&m.matchTwo,
 					offsets,
 					numOffsets,
-					colorSpace,
+					space,
 					numMismatches,
 					numInsertions,
 					numDeletions,

@@ -22,7 +22,7 @@ int Align(char *read,
 		ScoringMatrix *sm,
 		AlignEntry *aEntry,
 		char strand,
-		int colorSpace)
+		int space)
 {
 	char *FnName="Align";
 	int returnValue=-1;
@@ -37,9 +37,9 @@ int Align(char *read,
 	   reference);
 	   */
 
-	switch(colorSpace) {
-		case 0:
-			/* Not color space */
+	switch(space) {
+		case NTSpace:
+			/* NT Space */
 			switch(strand) {
 				case FORWARD:
 					/* Matches the forward strand */
@@ -77,13 +77,7 @@ int Align(char *read,
 
 			}
 			break;
-		default:
-			/* HERE 49 */
-			/*
-			   fprintf(stderr, "HERE 49\nreference=%s\nread=%s\n",
-			   reference,
-			   read);
-			   */
+		case ColorSpace:
 			/* Color Space */
 			switch(strand) {
 				case FORWARD:
@@ -153,6 +147,12 @@ int Align(char *read,
 			   fprintf(stderr, "HERE 39\n");
 			   */
 			break;
+		default:
+			PrintError(FnName,
+					"space",
+					"Could not understand space",
+					Exit,
+					OutOfRange);
 	}
 	return returnValue;
 }
@@ -163,7 +163,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int colorSpace,
+		int space,
 		int debug)
 {
 	char *FnName="FillAlignEntryFromMatrix";
@@ -244,7 +244,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	maxScore = NEGATIVE_INFINITY;
 	maxScoreNT = NEGATIVE_INFINITY;
 	for(i=0;i<referenceLength+1;i++) {
-		if(colorSpace == 1) {
+		if(space == ColorSpace) {
 			for(j=0;j<ALIGNMATRIXCELL_NUM_SUB_CELLS;j++) {
 				/* Cannot end with a deletion from the read */
 				if(j != 4 && matrix[readLength][i].score[j] > maxScore) {
@@ -257,6 +257,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			}
 		}
 		else {
+			assert(space == NTSpace);
 			/* Check only the first cell */
 			if(matrix[readLength][i].score[0] > maxScore) {
 				maxScore = matrix[readLength][i].score[0];
@@ -286,8 +287,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	curCol=startCol;
 	curCell=startCell;
 
+	if(space == ColorSpace) {
 	/* Color space */
-	if(colorSpace == 1) {
 		/*Initialize the current read base */
 		switch(curCell) {
 			case 0:
@@ -465,6 +466,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		} /* End loop */
 	}
 	else { /* NT space */
+		assert(space == NTSpace);
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
 		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
 		aEntry->score = maxScore; /* Copy over score */

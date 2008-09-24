@@ -17,7 +17,7 @@
 void RGIndexCreate(RGIndex *index, 
 		RGBinary *rg, 
 		RGIndexLayout *layout, 
-		int32_t colorSpace,
+		int32_t space,
 		int32_t startContig,
 		int32_t startPos,
 		int32_t endContig,
@@ -49,7 +49,7 @@ void RGIndexCreate(RGIndex *index,
 	int64_t i;
 
 	/* Make sure we have the correct reference genome */
-	assert(rg->colorSpace == colorSpace);
+	assert(rg->space == space);
 
 	/* Initialize the index */
 	RGIndexInitialize(index);
@@ -72,7 +72,7 @@ void RGIndexCreate(RGIndex *index,
 
 	/* Copy over other metadata */
 	index->repeatMasker = repeatMasker;
-	index->colorSpace = colorSpace;
+	index->space = space;
 
 	/* Copy over index information from the layout */
 	index->hashWidth = layout->hashWidths[layoutIndex];
@@ -1842,8 +1842,8 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 			(long long int)index.length);
 	fprintf(stderr, "repeat masker:\t\t%d\n",
 			index.repeatMasker);
-	fprintf(stderr, "color space:\t\t%d\n",
-			index.colorSpace);
+	fprintf(stderr, "space:\t\t\t%d\n",
+			index.space);
 	fprintf(stderr, "hash width:\t\t%u\n",
 			index.hashWidth);
 	fprintf(stderr, "hash length:\t\t%lld\n",
@@ -1880,7 +1880,7 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 				index->width,
 				index->keysize,
 				index->repeatMasker,
-				index->colorSpace,
+				index->space,
 				index->hashWidth,
 				(long long int)index->hashLength
 			   );
@@ -1902,7 +1902,7 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 				fwrite(&index->width, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->colorSpace, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&index->space, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
 				fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
 				fwrite(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
@@ -1935,7 +1935,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 					&index->width,
 					&index->keysize,
 					&index->repeatMasker,
-					&index->colorSpace,
+					&index->space,
 					&index->hashWidth,
 					&tempLongLongInt[1])==EOF) {
 			PrintError(FnName,
@@ -1991,7 +1991,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 				fread(&index->width, sizeof(int32_t), 1, fp) != 1 ||
 				fread(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
 				fread(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->colorSpace, sizeof(int32_t), 1, fp) != 1 ||
+				fread(&index->space, sizeof(int32_t), 1, fp) != 1 ||
 				fread(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
 				fread(&index->hashLength, sizeof(int64_t), 1, fp) != 1) {
 			PrintError(FnName,
@@ -2030,7 +2030,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 	assert(index->width > 0);
 	assert(index->keysize > 0);
 	assert(index->repeatMasker == 0 || index->repeatMasker == 1);
-	assert(index->colorSpace == NTSpace || index->colorSpace == ColorSpace);
+	assert(index->space == NTSpace || index->space == ColorSpace);
 	assert(index->hashWidth > 0);
 	assert(index->hashLength > 0);
 }
@@ -2612,7 +2612,7 @@ void RGIndexInitialize(RGIndex *index)
 	index->mask = NULL;
 
 	index->repeatMasker = 0;
-	index->colorSpace = 0;
+	index->space = 0;
 
 	index->hashWidth = 0;
 	index->hashLength = 0;

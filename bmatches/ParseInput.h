@@ -9,7 +9,7 @@ struct arguments
 	char *bfastSecondaryIndexesFileName;	/* -I */
 	char *readsFileName;					/* -R */
 	char *offsetsFileName;					/* -O */
-	int colorSpace;							/* -A */
+	int space;								/* -A */
 	int binaryInput;						/* -b - not used */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */

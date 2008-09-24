@@ -10,7 +10,7 @@
 /* TODO */
 int AlignEntryPrint(AlignEntry *a,
 		FILE *outputFP,
-		int colorSpace,
+		int space,
 		int binaryOutput)
 {
 	assert(NULL != a->read);
@@ -44,7 +44,7 @@ int AlignEntryPrint(AlignEntry *a,
 		}
 
 		/* Print the color errors if necessary */
-		if(colorSpace == 1) {
+		if(space == ColorSpace) {
 			if(fprintf(outputFP, "%s\n",
 						a->colorError) < 0) {
 				return EOF;
@@ -63,7 +63,7 @@ int AlignEntryPrint(AlignEntry *a,
 				fwrite(a->reference, sizeof(char), a->length, outputFP) != a->length) {
 			return EOF;
 		}
-		if(1==colorSpace) {
+		if(ColorSpace==space) {
 			if(fwrite(a->colorError, sizeof(char), a->length, outputFP) != a->length) {
 				return EOF;
 			}
@@ -76,7 +76,7 @@ int AlignEntryPrint(AlignEntry *a,
 /* TODO */
 int AlignEntryRead(AlignEntry *a,
 		FILE *inputFP,
-		int colorSpace,
+		int space,
 		int binaryInput)
 {
 	char *FnName = "AlignEntryRead";
@@ -103,7 +103,7 @@ int AlignEntryRead(AlignEntry *a,
 					MallocMemory);
 		}
 	}
-	if(colorSpace == 1) {
+	if(space == ColorSpace) {
 		if(a->colorError == NULL) {
 			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == a->colorError) {
@@ -147,7 +147,7 @@ int AlignEntryRead(AlignEntry *a,
 		}
 
 		/* Read the color errors if necessary */
-		if(colorSpace == 1) {
+		if(space == ColorSpace) {
 			if(fscanf(inputFP, "%s",
 						a->colorError)==EOF) {
 				return EOF;
@@ -181,7 +181,7 @@ int AlignEntryRead(AlignEntry *a,
 		a->contigName[a->contigNameLength]='\0';
 		a->read[a->length]='\0';
 		a->reference[a->length]='\0';
-		if(1==colorSpace) {
+		if(ColorSpace==space) {
 			if(fread(a->colorError, sizeof(char), a->length, inputFP) != a->length) {
 				return EOF;
 			}
@@ -613,7 +613,7 @@ void AlignEntryInitialize(AlignEntry *a)
 
 /* TODO */
 /* Debugging function */
-void AlignEntryCheckReference(AlignEntry *a, RGBinary *rg, int colorSpace)
+void AlignEntryCheckReference(AlignEntry *a, RGBinary *rg, int space)
 {
 	char *FnName = "AlignEntryCheckReference";
 	int i;
@@ -638,7 +638,7 @@ void AlignEntryCheckReference(AlignEntry *a, RGBinary *rg, int colorSpace)
 						reference[i],
 						rgBase,
 						reference);
-				AlignEntryPrint(a, stderr, colorSpace, 0);
+				AlignEntryPrint(a, stderr, space, 0);
 				PrintError(FnName,
 						NULL,
 						"Reference in the align entry does not match the reference genome",

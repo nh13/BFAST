@@ -56,7 +56,7 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
-	DescAlgoTitle, DescColorSpace, DescStartReadNum, DescEndReadNum, 
+	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, 
 	DescMaxMatches, DescPairedEnd, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
@@ -78,7 +78,7 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"colorSpace", 'A', 0, OPTION_NO_USAGE,  "Specifies that the reads are in color space", 2},
+	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
 	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates\n\t\t\t"
@@ -122,7 +122,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:x:y:z:I:M:O:R:T:Y:Z:2hptA";
+"d:e:i:m:n:o:r:s:x:y:z:A:I:M:O:R:T:Y:Z:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -180,7 +180,7 @@ main (int argc, char **argv)
 								arguments.bfastSecondaryIndexesFileName,
 								arguments.readsFileName,
 								arguments.offsetsFileName,
-								arguments.colorSpace,
+								arguments.space,
 								arguments.binaryInput,
 								arguments.startReadNum,
 								arguments.endReadNum,
@@ -284,7 +284,9 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "offsetsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	assert(args->colorSpace == 0 || args->colorSpace == 1);
+	if(args->space != NTSpace && args->space != ColorSpace) {
+		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
+	}
 
 	if(args->numMismatches < 0) {
 		PrintError(FnName, "numMismatches", "Command line argument", Exit, OutOfRange);
@@ -409,7 +411,7 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
 	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
-	args->colorSpace = 0;
+	args->space = NTSpace;
 
 	args->startReadNum = -1;
 	args->endReadNum = -1;
@@ -460,7 +462,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
-	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
+	fprintf(fp, "space:\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
@@ -567,7 +569,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   arguments->binaryOutput = 1;break;
 						   */
 					case 'A':
-						arguments->colorSpace=1;break;
+						arguments->space=atoi(OPTARG);break;
 					case 'I':
 						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
 						arguments->bfastSecondaryIndexesFileName = OPTARG;break;

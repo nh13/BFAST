@@ -56,11 +56,11 @@ void RunAligner(RGBinary *rgBinary,
 	/* Start file handling timer */
 	startTime = time(NULL);
 
-	/* Check rg to make sure it is not in color space */
-	if(rgBinary->colorSpace == 1) {
+	/* Check rg to make sure it is in NT Space */
+	if(rgBinary->space != NTSpace) {
 		PrintError(FnName,
-				"rg->colorSpace",
-				"The reference genome must not be in color space",
+				"rg->space",
+				"The reference genome must be in NT space",
 				Exit,
 				OutOfRange);
 	}
