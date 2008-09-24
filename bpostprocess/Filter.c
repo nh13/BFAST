@@ -613,7 +613,7 @@ int FilterOneAlignEntries(AlignEntries *a,
 	/* If outside bounds, print accordingly */
 	if(OutsideBounds == foundType) {
 		if(a->entriesOne[0].strand == a->entriesTwo[0].strand) {
-			/* Same strand - chromosomal abnormality */
+			/* Same strand - contig abnormality */
 			foundType = ContigAb;
 		}
 		else {

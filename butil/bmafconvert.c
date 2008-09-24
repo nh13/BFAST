@@ -121,13 +121,14 @@ int MAFRead(FILE *fp,
 				break;
 			case 's':
 				if(sCounter==0) {
-					if(6>sscanf(line, "s contig%u %u %d %c %d %s",
+					if(6>sscanf(line, "s %u %u %d %c %d %s",
 								&m->contig,
 								&m->position,
 								&m->alignmentLength,
 								&m->strand,
 								&m->referenceLength,
 								m->reference)) {
+						fprintf(stderr, "line=%s\n", line);
 						PrintError(FnName,
 								"s line",
 								"Could not read in first s line",

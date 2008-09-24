@@ -208,5 +208,4 @@ typedef struct {
 	AlignEntry *entriesTwo;
 } AlignEntries;
 
-
 #endif

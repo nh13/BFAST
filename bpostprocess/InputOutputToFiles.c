@@ -331,10 +331,11 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 
 	/* Print the score */
 	if(space == ColorSpace) {
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d color-errors=%s\n",
+		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-name=%s color-errors=%s\n",
 					a->score,
 					pairedEnd,
 					readNum,
+					a->contigName,
 					a->colorError)) {
 			PrintError(FnName,
 					NULL,
@@ -345,10 +346,11 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 	else {
 		assert(space == NTSpace);
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d\n",
+		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-name=%s\n",
 					a->score,
 					pairedEnd,
-					readNum)) {
+					readNum,
+					a->contigName)) {
 			PrintError(FnName,
 					NULL,
 					"Could not write to file",
@@ -358,8 +360,8 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 
 	/* Print the reference */
-	if(0>fprintf(fp, "s chr%s %u %d %c %d %s\n",
-				a->contigName,
+	if(0>fprintf(fp, "s %d %u %d %c %d %s\n",
+				a->contig,
 				a->position-1, /* zero based */
 				a->length,
 				a->strand,
