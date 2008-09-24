@@ -23,7 +23,7 @@ typedef struct {
 	char *outputFileName;
 	FILE *notAlignedFP;
 	char *notAlignedFileName;
-	RGBinary *rgBinary;
+	RGBinary *rg;
 	int colorSpace;
 	int offsetLength;
 	int pairedEnd;

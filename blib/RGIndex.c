@@ -71,6 +71,7 @@ void RGIndexCreate(RGIndex *index,
 	assert(index->endContig > 0);
 
 	/* Copy over other metadata */
+	index->id = BFAST_ID;
 	index->repeatMasker = repeatMasker;
 	index->space = space;
 
@@ -146,14 +147,13 @@ void RGIndexCreate(RGIndex *index,
 			}
 			else {
 				basesLength=index->width;
-				assert(index->width == basesLength);
 
 				/* Find the starting position, this is equal to the current position since period is the same as the total length */
 				curBasesPos = basesIndex;
 				toInsert = 1;
 
 				for(i=0;i<index->width && 1==toInsert;i++) { /* For each base in the mask */
-					if(0==index->mask[i]) {
+					if(1==index->mask[i]) {
 						if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(bases[curBasesPos])) {
 							/* Did not pass */
 							toInsert = 0;
@@ -164,7 +164,7 @@ void RGIndexCreate(RGIndex *index,
 						}
 					}
 					/* Update position in bases */
-					curBasesPos = (curBasesPos + 1)%index->width;
+					curBasesPos = (curBasesPos+1)%index->width;
 				}
 
 				/* See if we should insert into the index.  We should have enough consecutive bases. */
@@ -666,13 +666,13 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 
 	/* Test that we sorted correctly */
 	/*
-	   for(i=1;i<index->length;i++) {
-	   if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
-	   RGIndexCompareAt(index, rg, i-1, i, 1);
-	   }
-	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	   }
-	   */
+	for(i=1;i<index->length;i++) {
+		if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
+			RGIndexCompareAt(index, rg, i-1, i, 1);
+		}
+		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	}
+	*/
 }
 
 /* TODO */
@@ -1028,8 +1028,8 @@ void RGIndexMergeHelper(RGIndex *index,
 		char *tmpDir)
 {
 	/*
-	char *FnName = "RGIndexMergeHelper";
-	*/
+	   char *FnName = "RGIndexMergeHelper";
+	   */
 
 	/* Merge the two lists */
 	/* Since we want to keep space requirement small, use an upper bound on memory,
@@ -2020,7 +2020,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 	}
 
 	/* Error checking */
-	assert(index->id == BFAST_ID);
+	assert(index->id == (int)BFAST_ID);
 	assert(index->length > 0);
 	assert(index->contigType == Contig_8 || index->contigType == Contig_32);
 	assert(index->startContig > 0);
@@ -2043,12 +2043,6 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 	int64_t endIndex=-1;
 	int64_t foundIndex=0;
 	uint32_t hashIndex=0;
-
-	/* HERE 14 */
-	/*
-	   fprintf(stderr, "\nHERE 14\n");
-	   fprintf(stderr, "read=%s\n", read);
-	   */
 
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
@@ -2479,9 +2473,6 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 						hashIndex += pow(ALPHABET_SIZE, cur)*3;
 						break;
 					default:
-						fprintf(stderr, "\n[%c,%d]\n",
-								aBase,
-								(int)aBase);
 						PrintError(FnName,
 								"aBase",
 								"Could not understand base",

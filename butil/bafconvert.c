@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	AlignEntries a;
 
-	if(argc == 4) {
+	if(argc == 3) {
 		strcpy(inputFileName, argv[1]);
 		binaryInput = atoi(argv[2]);
 

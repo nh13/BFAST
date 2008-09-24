@@ -15,7 +15,8 @@ int AlignEntryPrint(AlignEntry *a,
 {
 	assert(NULL != a->read);
 	assert(NULL != a->reference);
-	assert(NULL != a->colorError);
+	assert(space == NTSpace ||
+			(space == ColorSpace && NULL != a->colorError));
 
 	/*
 	   assert(((int)strlen(a->contigName)) == a->contigNameLength);

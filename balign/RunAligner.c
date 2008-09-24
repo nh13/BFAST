@@ -17,8 +17,8 @@
 #include "RunAligner.h"
 
 /* TODO */
-void RunAligner(RGBinary *rgBinary,
-		char *matchesFileName,
+void RunAligner(RGBinary *rg,
+		char *matchFileName,
 		char *scoringMatrixFileName,
 		int colorSpace,
 		int startContig,
@@ -41,23 +41,14 @@ void RunAligner(RGBinary *rgBinary,
 		int *totalFileHandlingTime)
 {
 	char *FnName = "RunAligner";
-	int i;
 	FILE *outputFP=NULL;
 	FILE *notAlignedFP=NULL;
-	FILE *matchesFP=NULL;
 	FILE *matchFP=NULL;
-	char **matchFileNames=NULL;
-	int numMatchFileNames=0;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char notAlignedFileName[MAX_FILENAME_LENGTH]="\0";
-	char tempFileName[MAX_FILENAME_LENGTH]="\0";
-	int startTime, endTime;
-
-	/* Start file handling timer */
-	startTime = time(NULL);
 
 	/* Check rg to make sure it is in NT Space */
-	if(rgBinary->space != NTSpace) {
+	if(rg->space != NTSpace) {
 		PrintError(FnName,
 				"rg->space",
 				"The reference genome must be in NT space",
@@ -66,52 +57,11 @@ void RunAligner(RGBinary *rgBinary,
 	}
 
 	/* Adjust start and end based on reference genome */
-	AdjustBounds(rgBinary,
+	AdjustBounds(rg,
 			&startContig,
 			&startPos,
 			&endContig,
 			&endPos);
-
-	/* Open matches file */
-	if((matchesFP=fopen(matchesFileName, "r"))==0) {
-		PrintError(FnName,
-				matchesFileName,
-				"Could not open matchesFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-
-	/* Read in the list of file names*/
-	while(fscanf(matchesFP, "%s", tempFileName)!=EOF) {
-		numMatchFileNames++;
-		/* Reallocate memory */
-		matchFileNames = (char**)realloc(matchFileNames, sizeof(char*)*numMatchFileNames);
-		if(NULL==matchFileNames) {
-			PrintError(FnName,
-					"matchFileNames",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-		/* Allocate memory */
-		matchFileNames[numMatchFileNames-1] = malloc(sizeof(char)*(strlen(tempFileName)+1));
-		if(NULL==matchFileNames[numMatchFileNames-1]) {
-			PrintError(FnName,
-					"matchFileNames[numMatchFileNames-1]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		/* Copy over file name */
-		strcpy(matchFileNames[numMatchFileNames-1], tempFileName);
-	}
-
-	/* Close matches file */
-	fclose(matchesFP);
-
-	/* End file handling timer */
-	endTime = time(NULL);
-	(*totalFileHandlingTime) += endTime - startTime;
 
 	/* Create output file name */
 	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%s",
@@ -152,71 +102,61 @@ void RunAligner(RGBinary *rgBinary,
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	for(i=0;i<numMatchFileNames;i++) { /* For each match file name */
-
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Reading match file #%d from %s.\n",
-					i+1,
-					matchFileNames[i]);
-		}
-
-		/* Open current match file */
-		if((matchFP=fopen(matchFileNames[i], "r"))==0) {
-			PrintError(FnName,
-					matchFileNames[i],
-					"Could not open matchesFileNames[] for reading",
-					Exit,
-					OpenFileError);
-		}
-
-		RunDynamicProgramming(matchFP,
-				rgBinary,
-				scoringMatrixFileName,
-				colorSpace,
-				startContig,
-				startPos,
-				endContig,
-				endPos,
-				offsetLength,
-				maxNumMatches,
-				pairedEnd,
-				binaryInput,
-				numThreads,
-				usePairedEndLength,
-				pairedEndLength,
-				forceMirroring,
-				tmpDir,
-				outputFP,
-				notAlignedFP,
-				binaryOutput,
-				totalAlignTime,
-				totalFileHandlingTime);
-
-		/* Close the match file */
-		fclose(matchFP);
-		matchFP=NULL;
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "%s", BREAK_LINE);
-		}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Reading match file from %s.\n",
+				matchFileName);
 	}
+
+	/* Open current match file */
+	if((matchFP=fopen(matchFileName, "rb"))==0) {
+		PrintError(FnName,
+				matchFileName,
+				"Could not open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
+	RunDynamicProgramming(matchFP,
+			rg,
+			scoringMatrixFileName,
+			colorSpace,
+			startContig,
+			startPos,
+			endContig,
+			endPos,
+			offsetLength,
+			maxNumMatches,
+			pairedEnd,
+			binaryInput,
+			numThreads,
+			usePairedEndLength,
+			pairedEndLength,
+			forceMirroring,
+			tmpDir,
+			outputFP,
+			notAlignedFP,
+			binaryOutput,
+			totalAlignTime,
+			totalFileHandlingTime);
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
+
+	/* Close the match file */
+	fclose(matchFP);
 
 	/* Close output file */
 	fclose(outputFP);
 
 	/* Close not aligned file */
 	fclose(notAlignedFP);
-
-	/* Free memory */
-	for(i=0;i<numMatchFileNames;i++) {
-		free(matchFileNames[i]);
-	}
-	free(matchFileNames);
 }
 
 /* TODO */
 void RunDynamicProgramming(FILE *matchFP,
-		RGBinary *rgBinary,
+		RGBinary *rg,
 		char *scoringMatrixFileName,
 		int colorSpace,
 		int startContig,
@@ -362,7 +302,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	for(i=0;i<numThreads;i++) {
 		fseek(data[i].inputFP, 0, SEEK_SET);
 		fseek(data[i].outputFP, 0, SEEK_SET);
-		data[i].rgBinary=rgBinary;
+		data[i].rg=rg;
 		data[i].colorSpace=colorSpace;
 		data[i].offsetLength=offsetLength;
 		data[i].pairedEnd=pairedEnd;
@@ -543,7 +483,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	/*
 	   FILE *notAlignedFP = data->notAlignedFP;
 	   */
-	RGBinary *rgBinary=data->rgBinary;
+	RGBinary *rg=data->rg;
 	int colorSpace=data->colorSpace;
 	int offsetLength=data->offsetLength;
 	int pairedEnd=data->pairedEnd;
@@ -619,7 +559,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
 		for(i=0;i<m.matchOne.numEntries;i++) { /* For each match */
-			RunDynamicProgrammingThreadHelper(rgBinary,
+			RunDynamicProgrammingThreadHelper(rg,
 					m.matchOne.contigs[i],
 					m.matchOne.positions[i],
 					m.matchOne.strand[i],
@@ -640,7 +580,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
 		for(i=0;i<m.matchTwo.numEntries;i++) { /* For each match */
-			RunDynamicProgrammingThreadHelper(rgBinary,
+			RunDynamicProgrammingThreadHelper(rg,
 					m.matchTwo.contigs[i],
 					m.matchTwo.positions[i],
 					m.matchTwo.strand[i],
@@ -680,7 +620,7 @@ void *RunDynamicProgrammingThread(void *arg)
 }
 
 /* TODO */
-void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
+void RunDynamicProgrammingThreadHelper(RGBinary *rg,
 		uint8_t contig,
 		uint32_t position,
 		int8_t strand,
@@ -691,16 +631,14 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 		ScoringMatrix *sm,
 		AlignEntry *aEntry)
 {
-	/*
-	   char *FnName = "RunDynamicProgrammingThreadHelper";
-	   */
+	char *FnName = "RunDynamicProgrammingThreadHelper";
 	char *reference=NULL;
 	int referenceLength=0;
 	int referencePosition=0;
 	int adjustPosition=0;
 
 	/* Get the appropriate reference read */
-	RGBinaryGetReference(rgBinary,
+	RGBinaryGetReference(rg,
 			contig,
 			position,
 			FORWARD, /* We have been just reversing the read instead of the reference */
@@ -735,10 +673,21 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 	aEntry->contig = contig;
 	aEntry->position = referencePosition+adjustPosition; /* Adjust position */
 	aEntry->strand = strand;
+	/* Allocate memory and copy over to contig name */
+	aEntry->contigNameLength = rg->contigs[aEntry->contig-1].contigNameLength;
+	aEntry->contigName = malloc(sizeof(char)*(aEntry->contigNameLength+1));
+	if(NULL==aEntry->contigName) {
+		PrintError(FnName,
+				"aEntry->contigName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	strcpy(aEntry->contigName, rg->contigs[aEntry->contig-1].contigName);
 
 	/* Check align entry */
 	/*
-	   AlignEntryCheckReference(&aEntry[i], rgBinary);
+	   AlignEntryCheckReference(&aEntry[i], rg);
 	   */
 	/* Free memory */
 	free(reference);

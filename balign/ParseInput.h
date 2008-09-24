@@ -5,7 +5,7 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *rgFileName;                   	/* -r */
-	char *matchesFileName;					/* -m */
+	char *matchFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
 	int binaryInput;                        /* -b - not used */
 	int space;								/* -A */

@@ -446,12 +446,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
-	fprintf(fp, "space:\t\t\t\t%d\n", args->space);
+	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endContig:\t\t\t\t\t%d\n", args->endContig);
+	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);

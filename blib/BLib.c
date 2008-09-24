@@ -10,6 +10,41 @@ char DNA[5] = "ACGTN";
 char COLORS[5] = "01234";
 
 /* TODO */
+int GetFastaHeaderLine(FILE *fp,
+		char *header)
+{
+	char *FnName="GetFastaHeaderLine";
+	char *ret;
+	int i, length;
+
+	/* Read in the line */
+	ret = fgets(header,  MAX_CONTIG_NAME_LENGTH, fp);
+	
+	/* Check teturn value */
+	if(ret != header) {
+		return EOF;
+	}
+
+	/* Check that the first character is a ">" */
+	if(header[0] != '>') {
+		PrintError(FnName,
+				"header",
+				"Header of a contig must start with a '>'",
+				Exit,
+				OutOfRange);
+	}
+
+	/* Shift over to remove the ">" */
+	length=(int)strlen(header);
+	for(i=1;i<length;i++) {
+		header[i-1] = header[i];
+	}
+	header[length-1] = '\0';
+
+	return 1;
+}
+
+/* TODO */
 char ToLower(char a) 
 {
 	switch(a) {

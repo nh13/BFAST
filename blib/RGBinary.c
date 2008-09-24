@@ -59,7 +59,7 @@ void RGBinaryRead(char *rgFileName,
 		fprintf(stderr, "Reading in [contig,pos]:\n[-1,-1]");
 	}
 	rg->numContigs=0;
-	while(EOF!=fscanf(fpRG, ">%s", header)) {
+	while(EOF!=GetFastaHeaderLine(fpRG, header)) {
 		rg->numContigs++;
 
 		if(VERBOSE>=0) {
@@ -227,6 +227,11 @@ void RGBinaryRead(char *rgFileName,
 					ReallocMemory);
 		}
 		/* End loop for the current contig */
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\r[%d,%d]\n", 
+				rg->numContigs, 
+				rg->contigs[rg->numContigs-1].sequenceLength);
 	}
 
 	/* Close file */

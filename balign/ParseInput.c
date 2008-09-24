@@ -55,7 +55,7 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
+	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
@@ -69,7 +69,7 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
-	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the bfast matches file", 1},
+	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	/*
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
@@ -182,7 +182,7 @@ main (int argc, char **argv)
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
 						RunAligner(&rg,
-								arguments.matchesFileName,
+								arguments.matchFileName,
 								arguments.scoringMatrixFileName,
 								arguments.space,
 								arguments.startContig,
@@ -302,11 +302,11 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->matchesFileName!=0) {
-		fprintf(stderr, "Validating matchesFileName path %s. \n",
-				args->matchesFileName);
-		if(ValidateFileName(args->matchesFileName)==0)
-			PrintError(FnName, "matchesFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->matchFileName!=0) {
+		fprintf(stderr, "Validating matchFileName path %s. \n",
+				args->matchFileName);
+		if(ValidateFileName(args->matchFileName)==0)
+			PrintError(FnName, "matchFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->scoringMatrixFileName!=0) {
@@ -376,7 +376,7 @@ int ValidateInputs(struct arguments *args) {
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
-	assert(args->binaryOutput == TextOutput || args->binaryOutput == TextOutput);
+	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
 	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {
@@ -425,10 +425,10 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->rgFileName!=0);
 	strcpy(args->rgFileName, DEFAULT_FILENAME);
 
-	args->matchesFileName =
+	args->matchFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->matchesFileName!=0);
-	strcpy(args->matchesFileName, DEFAULT_FILENAME);
+	assert(args->matchFileName!=0);
+	strcpy(args->matchFileName, DEFAULT_FILENAME);
 
 	args->scoringMatrixFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -480,7 +480,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
-	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
+	fprintf(fp, "matchFileName\t\t\t\t%s\n", args->matchFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
@@ -570,8 +570,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->usePairedEndLength=1;
 						arguments->pairedEndLength = atoi(OPTARG);break;
 					case 'm':
-						if(arguments->matchesFileName) free(arguments->matchesFileName);
-						arguments->matchesFileName = OPTARG;break;
+						if(arguments->matchFileName) free(arguments->matchFileName);
+						arguments->matchFileName = OPTARG;break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
