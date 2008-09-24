@@ -1,12 +1,12 @@
 #ifndef BMAFCONVERT_H_
 #define BMAFCONVERT_H_
 
-enum {MAFSortByChrPos};
+enum {MAFSortByContigPos};
 
 typedef struct {
 	int minPos;
 	int maxPos;
-	int chromosome;
+	int contig;
 	int numEntries;
 	FILE *FP;
 	char *FileName;
@@ -14,7 +14,7 @@ typedef struct {
 
 typedef struct {
 	double score;
-	uint32_t chromosome;
+	uint32_t contig;
 	uint32_t position;
 	int8_t strand;
 	int32_t alignmentLength;
@@ -36,7 +36,7 @@ void MAFCopy(MAF*, MAF*);
 void MAFInitialize(MAF*);
 void MAFPrintToBedAndWig(MAF*, int, int, int64_t, int64_t, FILE*, FILE*);
 
-int SplitIntoTmpFilesByChr(char*, TmpFile**, char*, int, int);
+int SplitIntoTmpFilesByContig(char*, TmpFile**, char*, int, int);
 void SplitMAFAndPrint(FILE*, FILE*, TmpFile*, char*, int);
 
 #endif

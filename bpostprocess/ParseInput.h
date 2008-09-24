@@ -3,7 +3,7 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *inputFileName;					/* -i */
+	char *alignedFileName;					/* -i */
 	int binaryInput;                        /* -b - not used */
 	int pairedEnd;							/* -2 */
 	int startContig;                        /* -s */

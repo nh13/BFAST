@@ -128,6 +128,8 @@ int AlignEntriesRead(AlignEntries *a,
 					Exit,
 					ReadFileError);
 		}
+		/* Add the null terminator */
+		a->readName[tempReadNameLength]='\0';
 	}
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);

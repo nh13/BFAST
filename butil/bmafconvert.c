@@ -24,11 +24,11 @@
 
 void TmpFileOpen(TmpFile *tmpFile,
 		char *tmpDir,
-		int chromosome) 
+		int contig) 
 {
 	TmpFileInitialize(tmpFile);
 	tmpFile->FP = OpenTmpFile(tmpDir, &tmpFile->FileName);
-	tmpFile->chromosome = chromosome;
+	tmpFile->contig = contig;
 }
 
 void TmpFileClose(TmpFile *tmpFile) 
@@ -40,7 +40,7 @@ void TmpFileClose(TmpFile *tmpFile)
 void TmpFileInitialize(TmpFile *tmpFile)
 {
 	tmpFile->FP = NULL;
-	tmpFile->chromosome = 0;
+	tmpFile->contig = 0;
 	tmpFile->minPos = INT_MAX;
 	tmpFile->maxPos = 0;
 	tmpFile->numEntries = 0;
@@ -52,8 +52,8 @@ void MAFPrint(FILE *fp,
 	char *FnName="MAFPrint";
 	if(0>fprintf(fp, "a score=%lf paired-end=0 read=1\n",
 				m->score) ||
-			0>fprintf(fp, "s\tchr%u\t%u\t%d\t%c\t%d\t%s\n",
-				m->chromosome,
+			0>fprintf(fp, "s\tcontig%u\t%u\t%d\t%c\t%d\t%s\n",
+				m->contig,
 				m->position,
 				m->alignmentLength,
 				m->strand,
@@ -121,8 +121,8 @@ int MAFRead(FILE *fp,
 				break;
 			case 's':
 				if(sCounter==0) {
-					if(6>sscanf(line, "s chr%u %u %d %c %d %s",
-								&m->chromosome,
+					if(6>sscanf(line, "s contig%u %u %d %c %d %s",
+								&m->contig,
 								&m->position,
 								&m->alignmentLength,
 								&m->strand,
@@ -262,8 +262,8 @@ int MAFCompare(MAF *m1, MAF *m2, int sortOrder)
 	assert(m2 != NULL);
 
 	switch(sortOrder) {
-		case MAFSortByChrPos:
-			cmp[0] = (m1->chromosome <= m2->chromosome)?( (m1->chromosome == m2->chromosome)?0:-1):1;
+		case MAFSortByContigPos:
+			cmp[0] = (m1->contig <= m2->contig)?( (m1->contig == m2->contig)?0:-1):1;
 			cmp[1] = (m1->position <= m2->position)?( (m1->position==m2->position)?0:-1):1;
 			/* We want longer reference lengths first */
 			top=2;
@@ -289,7 +289,7 @@ int MAFCompare(MAF *m1, MAF *m2, int sortOrder)
 void MAFCopy(MAF *src, MAF *dest)
 {
 	dest->score = src->score;
-	dest->chromosome = src->chromosome;
+	dest->contig = src->contig;
 	dest->position = src->position;
 	dest->strand = src->strand;
 	dest->alignmentLength = src->alignmentLength;
@@ -302,7 +302,7 @@ void MAFCopy(MAF *src, MAF *dest)
 void MAFInitialize(MAF *m) 
 {
 	m->score = 0.0;
-	m->chromosome = 0;
+	m->contig = 0;
 	m->position = 0;
 	m->strand = 0;
 	m->alignmentLength = 0;
@@ -314,7 +314,7 @@ void MAFInitialize(MAF *m)
 
 void MAFPrintToBedAndWig(MAF *m,
 		int numEntries,
-		int chromosome,
+		int contig,
 		int64_t startPos,
 		int64_t endPos,
 		FILE *bedFP,
@@ -349,12 +349,12 @@ void MAFPrintToBedAndWig(MAF *m,
 
 		/* HERE */
 		/*
-		fprintf(stderr, "Before\tcurPos=%lld\tm[%d].position=%d\tm[start].position + m[start].referenceLength - 1=%d\n",
-				(long long int)curPos,
-				start,
-				m[start].position,
-				m[start].position + m[start].referenceLength - 1);
-				*/
+		   fprintf(stderr, "Before\tcurPos=%lld\tm[%d].position=%d\tm[start].position + m[start].referenceLength - 1=%d\n",
+		   (long long int)curPos,
+		   start,
+		   m[start].position,
+		   m[start].position + m[start].referenceLength - 1);
+		   */
 
 		if(curPos < m[start].position) {
 			curPos = m[start].position;
@@ -370,7 +370,7 @@ void MAFPrintToBedAndWig(MAF *m,
 			/* Only use if it is within bounds */ 
 			if(m[cur].position <= curPos &&
 					curPos <= m[cur].position + m[cur].referenceLength - 1) {
-				assert(m[cur].chromosome == chromosome);
+				assert(m[cur].contig == contig);
 				/* Copy over reference and read.  Adjust if they are on the - strand */
 				switch(m[cur].strand) {
 					case FORWARD:
@@ -403,14 +403,14 @@ void MAFPrintToBedAndWig(MAF *m,
 				tempJ = j; /* Save this for bed */
 				/* HERE */
 				/*
-				fprintf(stderr, "HERE curPos=%lld m[%d].[start,end]=[%d,%d] i=%d j=%d\n",
-						(long long int)curPos,
-						cur,
-						m[cur].position,
-						m[cur].position + m[cur].referenceLength - 1,
-						i,
-						j);
-						*/
+				   fprintf(stderr, "HERE curPos=%lld m[%d].[start,end]=[%d,%d] i=%d j=%d\n",
+				   (long long int)curPos,
+				   cur,
+				   m[cur].position,
+				   m[cur].position + m[cur].referenceLength - 1,
+				   i,
+				   j);
+				   */
 				assert(m[cur].position + i == curPos);
 				/************/
 				/* WIG FILE */
@@ -540,8 +540,8 @@ void MAFPrintToBedAndWig(MAF *m,
 						case 'I':
 						case 'D':
 							assert(i>0);
-							if(0>fprintf(bedFP, "chr%d %lld %lld %c %c %s\n",
-										m[cur].chromosome,
+							if(0>fprintf(bedFP, "contig%d %lld %lld %c %c %s\n",
+										m[cur].contig,
 										(long long int)(curPos-SUBTRACT),
 										(long long int)(curPos+i-1-SUBTRACT),
 										m[cur].strand,
@@ -595,8 +595,8 @@ void MAFPrintToBedAndWig(MAF *m,
 							OutOfRange);
 			}
 			assert(fCounts[i] + rCounts[i] <= total);
-			if(0>fprintf(wigFP, "chr%d %lld %lld %d %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
-						chromosome,
+			if(0>fprintf(wigFP, "contig%d %lld %lld %d %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
+						contig,
 						(long long int)(curPos-SUBTRACT),
 						(long long int)(curPos+1-SUBTRACT),
 						total,
@@ -623,22 +623,22 @@ void MAFPrintToBedAndWig(MAF *m,
 		/* Update next start index */
 		while(start < numEntries && 
 				m[start].position + m[start].referenceLength - 1 < curPos + 1) {
-				start++;
+			start++;
 		}
 	}
 }
 
-int SplitIntoTmpFilesByChr(char *inputFileName,
+int SplitIntoTmpFilesByContig(char *inputFileName,
 		TmpFile **tmpFiles,
 		char *tmpDir,
-		int startChr,
-		int endChr)
+		int startContig,
+		int endContig)
 {
-	char *FnName="SplitIntoTmpFilesByChr";
+	char *FnName="SplitIntoTmpFilesByContig";
 	int i;
 	int64_t counter=0;
 	FILE *fpIn;
-	int numFiles = endChr - startChr + 1;
+	int numFiles = endContig - startContig + 1;
 	MAF m;
 
 	/* Open the input file */
@@ -666,7 +666,7 @@ int SplitIntoTmpFilesByChr(char *inputFileName,
 
 
 	/* Split into temporary files */
-	fprintf(stderr, "Splitting by chromosome.  Currently on read:\n0");
+	fprintf(stderr, "Splitting by contig.  Currently on read:\n0");
 	MAFInitialize(&m);
 	while(EOF != MAFRead(fpIn, &m)) {
 		if(counter%BMFCONVERT_ROTATE_NUM==0) {
@@ -675,18 +675,18 @@ int SplitIntoTmpFilesByChr(char *inputFileName,
 		}
 		counter++;
 		/* Print to the appropriate file */
-		if(!(m.chromosome > 0 && m.chromosome <= numFiles)) {
+		if(!(m.contig > 0 && m.contig <= numFiles)) {
 			MAFPrint(stderr, &m);
 		}
-		assert(m.chromosome > 0 && m.chromosome <= numFiles);
-		MAFPrint((*tmpFiles)[m.chromosome-1].FP, &m);
+		assert(m.contig > 0 && m.contig <= numFiles);
+		MAFPrint((*tmpFiles)[m.contig-1].FP, &m);
 		/* Update meta-data */
-		(*tmpFiles)[m.chromosome-1].numEntries++;
-		if(m.position < (*tmpFiles)[m.chromosome-1].minPos) {
-			(*tmpFiles)[m.chromosome-1].minPos = m.position; 
+		(*tmpFiles)[m.contig-1].numEntries++;
+		if(m.position < (*tmpFiles)[m.contig-1].minPos) {
+			(*tmpFiles)[m.contig-1].minPos = m.position; 
 		}
-		if(m.position + m.referenceLength - 1 > (*tmpFiles)[m.chromosome-1].maxPos) {
-			(*tmpFiles)[m.chromosome-1].maxPos = m.position + m.referenceLength - 1; 
+		if(m.position + m.referenceLength - 1 > (*tmpFiles)[m.contig-1].maxPos) {
+			(*tmpFiles)[m.contig-1].maxPos = m.position + m.referenceLength - 1; 
 		}
 		MAFInitialize(&m);
 	}
@@ -701,7 +701,7 @@ int SplitIntoTmpFilesByChr(char *inputFileName,
 
 void SplitMAFAndPrint(FILE *bedFP,
 		FILE *wigFP,
-		TmpFile *tmpFile, /* Should all be from the same chromosome */
+		TmpFile *tmpFile, /* Should all be from the same contig */
 		char *tmpDir,
 		int maxNumEntries)
 {
@@ -743,9 +743,9 @@ void SplitMAFAndPrint(FILE *bedFP,
 		}
 		assert(numEntries == tmpFile->numEntries);
 		/* Sort */
-		MAFMergeSort(entries, 0, numEntries-1, MAFSortByChrPos);
+		MAFMergeSort(entries, 0, numEntries-1, MAFSortByContigPos);
 		/* Print Out */
-		MAFPrintToBedAndWig(entries, numEntries, tmpFile->chromosome, tmpFile->minPos, tmpFile->maxPos, bedFP, wigFP);
+		MAFPrintToBedAndWig(entries, numEntries, tmpFile->contig, tmpFile->minPos, tmpFile->maxPos, bedFP, wigFP);
 		/* Free memory */
 		free(entries);
 		entries = NULL;
@@ -754,8 +754,8 @@ void SplitMAFAndPrint(FILE *bedFP,
 		/* Split and recurse */
 
 		/* Initialize */
-		TmpFileOpen(&belowTmpFile, tmpDir, tmpFile->chromosome);
-		TmpFileOpen(&aboveTmpFile, tmpDir, tmpFile->chromosome);
+		TmpFileOpen(&belowTmpFile, tmpDir, tmpFile->contig);
+		TmpFileOpen(&aboveTmpFile, tmpDir, tmpFile->contig);
 
 		/* Where will we split */
 		meanPos = (tmpFile->maxPos + tmpFile->minPos)/2;
@@ -764,7 +764,7 @@ void SplitMAFAndPrint(FILE *bedFP,
 		MAFInitialize(&m);
 		while(EOF != MAFRead(tmpFile->FP, &m)) {
 			/* Print to the appropriate file */
-			assert(m.chromosome == tmpFile->chromosome);
+			assert(m.contig == tmpFile->contig);
 
 			/* Update meta-data */
 			belowTmpFile.minPos = tmpFile->minPos; 
@@ -816,35 +816,35 @@ int main(int argc, char *argv[])
 	FILE *wigFP=NULL;
 	char wigFileName[MAX_FILENAME_LENGTH]="\0";
 	/* Hard coded */
-	int startChr = 1;
-	int endChr = 22;
+	int startContig = 1;
+	int endContig = 22;
 
 	if(argc == 4) {
 		strcpy(inputFileName, argv[1]);
 		maxNumEntries = atoi(argv[2]);
 		strcpy(tmpDir, argv[3]);
 
-		/* Split MAF by chromosome */
+		/* Split MAF by contig */
 		fprintf(stderr, "%s", BREAK_LINE);
-		numTmpFiles=SplitIntoTmpFilesByChr(inputFileName,
+		numTmpFiles=SplitIntoTmpFilesByContig(inputFileName,
 				&tmpFiles,
 				tmpDir,
-				startChr,
-				endChr);
+				startContig,
+				endContig);
 		fprintf(stderr, "%s", BREAK_LINE);
 
-		/* Output bed and wig files for each chromosome */
+		/* Output bed and wig files for each contig */
 		for(i=0;i<numTmpFiles;i++) {
-			assert(tmpFiles[i].chromosome == i+1);
+			assert(tmpFiles[i].contig == i+1);
 			if(tmpFiles[i].numEntries > 0) {
 				fprintf(stderr, "%s", BREAK_LINE);
 				/* Create output file names */
-				sprintf(bedFileName, "%s.chr%d.bed",
+				sprintf(bedFileName, "%s.contig%d.bed",
 						inputFileName,
-						tmpFiles[i].chromosome);
-				sprintf(wigFileName, "%s.chr%d.wig",
+						tmpFiles[i].contig);
+				sprintf(wigFileName, "%s.contig%d.wig",
 						inputFileName,
-						tmpFiles[i].chromosome);
+						tmpFiles[i].contig);
 				/* Open output files */
 				if(!(bedFP = fopen(bedFileName, "wb"))) {
 					PrintError(Name,
@@ -861,8 +861,8 @@ int main(int argc, char *argv[])
 							OpenFileError);
 				}
 				/* Print */
-				fprintf(stderr, "On chr%d:%d-%d.  Currently on position:\n0", 
-						tmpFiles[i].chromosome,
+				fprintf(stderr, "On contig%d:%d-%d.  Currently on position:\n0", 
+						tmpFiles[i].contig,
 						tmpFiles[i].minPos,
 						tmpFiles[i].maxPos
 					   );

@@ -568,19 +568,21 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 			}
 		}
 		assert(src->reference!= NULL);
-		strcpy(dest->reference, src->reference);
-		if(NULL == dest->colorError) {
-			dest->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(src->colorError != NULL) {
+			strcpy(dest->reference, src->reference);
 			if(NULL == dest->colorError) {
-				PrintError(FnName,
-						"dest->colorError",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				dest->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+				if(NULL == dest->colorError) {
+					PrintError(FnName,
+							"dest->colorError",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
 			}
+			assert(src->colorError!= NULL);
+			strcpy(dest->colorError, src->colorError);
 		}
-		assert(src->colorError!= NULL);
-		strcpy(dest->colorError, src->colorError);
 		dest->length = src->length;
 		dest->contig = src->contig;
 		dest->position = src->position;
