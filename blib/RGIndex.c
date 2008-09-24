@@ -467,6 +467,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 				data[i].high = pivots[2*i+1];
 				data[i].showPercentComplete = 0;
 				data[i].tmpDir = NULL;
+				data[i].mergeMemoryLimit = -1;
 				assert(data[i].low >= 0 && data[i].high < index->length);
 				if(data[i].high - data[i].low >= max) {
 					maxIndex = i;
@@ -541,6 +542,8 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 				data[i].high = (i+1)*(index->length/numThreads)-1;
 				data[i].showPercentComplete = 0;
 				data[i].tmpDir = tmpDir;
+				/* Divide the maximum overhead by the number of threads */
+				data[i].mergeMemoryLimit = MERGE_MEMORY_LIMIT/((int64_t)numThreads); 
 				assert(data[i].low >= 0 && data[i].high < index->length);
 			}
 			data[0].low = 0;
@@ -601,6 +604,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 							data[i].low,
 							data[i+j].low-1,
 							data[i+2*j-1].high,
+							MERGE_MEMORY_LIMIT,
 							tmpDir);
 				}
 			}
@@ -645,6 +649,7 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 					&curPercentComplete,
 					0,
 					index->length-1,
+					MERGE_MEMORY_LIMIT,
 					tmpDir);
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "\r100.00 percent complete\n");
@@ -942,6 +947,7 @@ void *RGIndexMergeSortNodes(void *arg)
 			&curPercentComplete,
 			data->low,
 			data->high - data->low,
+			data->mergeMemoryLimit,
 			data->tmpDir);
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r");
@@ -961,6 +967,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 		double *curPercentComplete,
 		int64_t startLow,
 		int64_t total,
+		int64_t mergeMemoryLimit,
 		char *tmpDir)
 {
 	/* Local Variables */
@@ -988,6 +995,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			curPercentComplete,
 			startLow,
 			total,
+			mergeMemoryLimit,
 			tmpDir);
 	RGIndexMergeSortNodesHelper(index,
 			rg,
@@ -997,6 +1005,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			curPercentComplete,
 			startLow,
 			total,
+			mergeMemoryLimit,
 			tmpDir);
 
 	/* Merge the two lists */
@@ -1005,6 +1014,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			low,
 			mid,
 			high,
+			mergeMemoryLimit,
 			tmpDir);
 }
 
@@ -1014,14 +1024,219 @@ void RGIndexMergeHelper(RGIndex *index,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
+		int64_t mergeMemoryLimit, /* In bytes */
 		char *tmpDir)
 {
+	/*
 	char *FnName = "RGIndexMergeHelper";
+	*/
+
+	/* Merge the two lists */
+	/* Since we want to keep space requirement small, use an upper bound on memory,
+	 * so that we use tmp files when memory requirements become to large */
+	if(index->contigType == Contig_8) {
+		if((high-low+1)*(sizeof(uint32_t) + sizeof(uint8_t)) <= mergeMemoryLimit) {
+			/* Use memory */
+			RGIndexMergeHelperInMemoryContig_8(index, rg, low, mid, high);
+		}
+		else {
+			/* Use tmp files */
+			RGIndexMergeHelperFromDiskContig_8(index, rg, low, mid, high, tmpDir);
+		}
+	}
+	else {
+		if((high-low+1)*(sizeof(uint32_t) + sizeof(uint32_t)) <= mergeMemoryLimit) {
+			RGIndexMergeHelperInMemoryContig_32(index, rg, low, mid, high);
+		}
+		else {
+			/* Use tmp files */
+			RGIndexMergeHelperFromDiskContig_32(index, rg, low, mid, high, tmpDir);
+		}
+	}
+	/* Test merge */
+	/*
+	   for(i=low+1;i<=high;i++) {
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
+}
+
+/* TODO */
+void RGIndexMergeHelperInMemoryContig_8(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t mid,
+		int64_t high)
+{
+	char *FnName = "RGIndexMergeHelperInMemoryContig_8";
 	int64_t i=0;
 	uint32_t *tmpPositions=NULL;
 	uint8_t *tmpContigs_8=NULL;
-	uint32_t *tmpContigs_32=NULL;
 	int64_t startUpper, startLower, endUpper, endLower;
+	int64_t ctr=0;
+
+	assert(index->contigType == Contig_8);
+	assert(index->contigs_8 != NULL);
+
+	/* Merge the two lists using memory */
+
+	/* Use memory */
+	tmpPositions = malloc(sizeof(uint32_t)*(high-low+1));
+	if(NULL == tmpPositions) {
+		PrintError(FnName,
+				"tmpPositions",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	tmpContigs_8 = malloc(sizeof(uint8_t)*(high-low+1));
+	if(NULL == tmpContigs_8) {
+		PrintError(FnName,
+				"tmpContigs_8",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Merge */
+	startLower = low;
+	endLower = mid;
+	startUpper = mid+1;
+	endUpper = high;
+	ctr=0;
+	while( (startLower <= endLower) && (startUpper <= endUpper) ) {
+		if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
+			tmpPositions[ctr] = index->positions[startLower];
+			tmpContigs_8[ctr] = index->contigs_8[startLower];
+			startLower++;
+		}
+		else {
+			tmpPositions[ctr] = index->positions[startUpper];
+			tmpContigs_8[ctr] = index->contigs_8[startUpper];
+			startUpper++;
+		}
+		ctr++;
+	}
+	while(startLower <= endLower) {
+		tmpPositions[ctr] = index->positions[startLower];
+		tmpContigs_8[ctr] = index->contigs_8[startLower];
+		startLower++;
+		ctr++;
+	}
+	while(startUpper <= endUpper) {
+		tmpPositions[ctr] = index->positions[startUpper];
+		tmpContigs_8[ctr] = index->contigs_8[startUpper];
+		startUpper++;
+		ctr++;
+	}
+	/* Copy back */
+	for(i=low, ctr=0;
+			i<=high;
+			i++, ctr++) {
+		index->positions[i] = tmpPositions[ctr];
+		index->contigs_8[i] = tmpContigs_8[ctr];
+	}
+
+	/* Free memory */
+	free(tmpPositions);
+	tmpPositions=NULL;
+	free(tmpContigs_8);
+	tmpContigs_8=NULL;
+}
+
+/* TODO */
+void RGIndexMergeHelperInMemoryContig_32(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t mid,
+		int64_t high)
+{
+	char *FnName = "RGIndexMergeHelperInMemoryContig_32";
+	int64_t i=0;
+	uint32_t *tmpPositions=NULL;
+	uint8_t *tmpContigs_32=NULL;
+	int64_t startUpper, startLower, endUpper, endLower;
+	int64_t ctr=0;
+
+	assert(index->contigType == Contig_32);
+	assert(index->contigs_32 != NULL);
+
+	/* Merge the two lists using memory */
+
+	/* Use memory */
+	tmpPositions = malloc(sizeof(uint32_t)*(high-low+1));
+	if(NULL == tmpPositions) {
+		PrintError(FnName,
+				"tmpPositions",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	tmpContigs_32 = malloc(sizeof(uint32_t)*(high-low+1));
+	if(NULL == tmpContigs_32) {
+		PrintError(FnName,
+				"tmpContigs_32",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Merge */
+	startLower = low;
+	endLower = mid;
+	startUpper = mid+1;
+	endUpper = high;
+	ctr=0;
+	while( (startLower <= endLower) && (startUpper <= endUpper) ) {
+		if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
+			tmpPositions[ctr] = index->positions[startLower];
+			tmpContigs_32[ctr] = index->contigs_32[startLower];
+			startLower++;
+		}
+		else {
+			tmpPositions[ctr] = index->positions[startUpper];
+			tmpContigs_32[ctr] = index->contigs_32[startUpper];
+			startUpper++;
+		}
+		ctr++;
+	}
+	while(startLower <= endLower) {
+		tmpPositions[ctr] = index->positions[startLower];
+		tmpContigs_32[ctr] = index->contigs_32[startLower];
+		startLower++;
+		ctr++;
+	}
+	while(startUpper <= endUpper) {
+		tmpPositions[ctr] = index->positions[startUpper];
+		tmpContigs_32[ctr] = index->contigs_32[startUpper];
+		startUpper++;
+		ctr++;
+	}
+	/* Copy back */
+	for(i=low, ctr=0;
+			i<=high;
+			i++, ctr++) {
+		index->positions[i] = tmpPositions[ctr];
+		index->contigs_32[i] = tmpContigs_32[ctr];
+	}
+
+	/* Free memory */
+	free(tmpPositions);
+	tmpPositions=NULL;
+	free(tmpContigs_32);
+	tmpContigs_32=NULL;
+}
+
+/* TODO */
+void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t mid,
+		int64_t high,
+		char *tmpDir)
+{
+	char *FnName = "RGIndexMergeHelperFromDiskContig_8";
+	int64_t i=0;
 	int64_t ctr=0;
 	FILE *tmpLowerFP=NULL;
 	FILE *tmpUpperFP=NULL;
@@ -1031,357 +1246,307 @@ void RGIndexMergeHelper(RGIndex *index,
 	uint32_t tmpUpperPosition=0;
 	uint8_t tmpLowerContig_8=0;
 	uint8_t tmpUpperContig_8=0;
-	uint32_t tmpLowerContig_32=0;
-	uint32_t tmpUpperContig_32=0;
+
+	assert(index->contigType == Contig_8);
+	assert(index->contigs_8 != NULL);
 
 	/* Merge the two lists */
 	/* Since we want to keep space requirement small, use an upper bound on memory,
 	 * so that we use tmp files when memory requirements become to large */
-	if( (index->contigType == Contig_8 && 
-				(high-low+1)*(sizeof(uint32_t) + sizeof(uint8_t)) <= ONE_GIGABYTE) ||
-			(index->contigType == Contig_32 &&
-			 (high-low+1)*(sizeof(uint32_t) + sizeof(uint32_t)) <= ONE_GIGABYTE)) {
+	/* Use tmp files */
 
-		/* Use memory */
-		tmpPositions = malloc(sizeof(uint32_t)*(high-low+1));
-		if(NULL == tmpPositions) {
+	/* Open tmp files */
+	tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
+	tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
+
+	/* Print to tmp files */
+	for(i=low;i<=mid;i++) {
+		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
 			PrintError(FnName,
-					"tmpPositions",
-					"Could not allocate memory",
+					"index->positions",
+					"Could not write positions to tmp lower file",
 					Exit,
-					MallocMemory);
+					WriteFileError);
 		}
-		if(index->contigType == Contig_8) {
-			tmpContigs_8 = malloc(sizeof(uint8_t)*(high-low+1));
-			if(NULL == tmpContigs_8) {
-				PrintError(FnName,
-						"tmpContigs_8",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		else {
-			tmpContigs_32 = malloc(sizeof(uint32_t)*(high-low+1));
-			if(NULL == tmpContigs_32) {
-				PrintError(FnName,
-						"tmpContigs_32",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-
-		/* Merge */
-		startLower = low;
-		endLower = mid;
-		startUpper = mid+1;
-		endUpper = high;
-		ctr=0;
-		while( (startLower <= endLower) && (startUpper <= endUpper) ) {
-			if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
-				tmpPositions[ctr] = index->positions[startLower];
-				if(index->contigType == Contig_8) {
-					tmpContigs_8[ctr] = index->contigs_8[startLower];
-				}
-				else {
-					tmpContigs_32[ctr] = index->contigs_32[startLower];
-				}
-				startLower++;
-			}
-			else {
-				tmpPositions[ctr] = index->positions[startUpper];
-				if(index->contigType == Contig_8) {
-					tmpContigs_8[ctr] = index->contigs_8[startUpper];
-				}
-				else {
-					tmpContigs_32[ctr] = index->contigs_32[startUpper];
-				}
-				startUpper++;
-			}
-			ctr++;
-		}
-		while(startLower <= endLower) {
-			tmpPositions[ctr] = index->positions[startLower];
-			if(index->contigType == Contig_8) {
-				tmpContigs_8[ctr] = index->contigs_8[startLower];
-			}
-			else {
-				tmpContigs_32[ctr] = index->contigs_32[startLower];
-			}
-			startLower++;
-			ctr++;
-		}
-		while(startUpper <= endUpper) {
-			tmpPositions[ctr] = index->positions[startUpper];
-			if(index->contigType == Contig_8) {
-				tmpContigs_8[ctr] = index->contigs_8[startUpper];
-			}
-			else {
-				tmpContigs_32[ctr] = index->contigs_32[startUpper];
-			}
-			startUpper++;
-			ctr++;
-		}
-		/* Copy back */
-		for(i=low, ctr=0;
-				i<=high;
-				i++, ctr++) {
-			index->positions[i] = tmpPositions[ctr];
-			if(index->contigType == Contig_8) {
-				index->contigs_8[i] = tmpContigs_8[ctr];
-			}
-			else {
-				index->contigs_32[i] = tmpContigs_32[ctr];
-			}
-		}
-
-		/* Free memory */
-		free(tmpPositions);
-		tmpPositions=NULL;
-		if(index->contigType == Contig_8) {
-			free(tmpContigs_8);
-			tmpContigs_8=NULL;
-		}
-		else {
-			free(tmpContigs_32);
-			tmpContigs_32=NULL;
+		if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpLowerFP)) {
+			PrintError(FnName,
+					"index->contigs_8",
+					"Could not write contigs_8 to tmp lower file",
+					Exit,
+					WriteFileError);
 		}
 	}
-	else {
-		/* Use tmp files */
-
-		/* Open tmp files */
-		tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
-		tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
-
-		/* Print to tmp files */
-		for(i=low;i<=mid;i++) {
-			if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-				PrintError(FnName,
-						"index->positions",
-						"Could not write positions to tmp lower file",
-						Exit,
-						WriteFileError);
-			}
-			if(index->contigType == Contig_8) {
-				if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpLowerFP)) {
-					PrintError(FnName,
-							"index->contigs_8",
-							"Could not write contigs_8 to tmp lower file",
-							Exit,
-							WriteFileError);
-				}
-			}
-			else {
-				if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-					PrintError(FnName,
-							"index->contigs_32",
-							"Could not write contigs_32 to tmp lower file",
-							Exit,
-							WriteFileError);
-				}
-			}
+	for(i=mid+1;i<=high;i++) {
+		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
+			PrintError(FnName,
+					"index->positions",
+					"Could not write positions to tmp upper file",
+					Exit,
+					WriteFileError);
 		}
-		for(i=mid+1;i<=high;i++) {
-			if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-				PrintError(FnName,
-						"index->positions",
-						"Could not write positions to tmp upper file",
-						Exit,
-						WriteFileError);
-			}
-			if(index->contigType == Contig_8) {
-				if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpUpperFP)) {
-					PrintError(FnName,
-							"index->contigs_8",
-							"Could not write contigs_8 to tmp upper file",
-							Exit,
-							WriteFileError);
-				}
-			}
-			else {
-				if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-					PrintError(FnName,
-							"index->contigs_32",
-							"Could not write contigs_32 to tmp upper file",
-							Exit,
-							WriteFileError);
-				}
-			}
+		if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpUpperFP)) {
+			PrintError(FnName,
+					"index->contigs_8",
+					"Could not write contigs_8 to tmp upper file",
+					Exit,
+					WriteFileError);
 		}
+	}
 
-		/* Move to beginning of the files */
-		fseek(tmpLowerFP, 0 , SEEK_SET);
-		fseek(tmpUpperFP, 0 , SEEK_SET);
+	/* Move to beginning of the files */
+	fseek(tmpLowerFP, 0 , SEEK_SET);
+	fseek(tmpUpperFP, 0 , SEEK_SET);
 
-		/* Merge tmp files back into index */
-		/* Get first contig/pos */
+	/* Merge tmp files back into index */
+	/* Get first contig/pos */
 
-		if(index->contigType == Contig_8) {
-			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-					1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in tmp lower",
-						Exit,
-						ReadFileError);
-			}
-			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-					1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in tmp upper",
-						Exit,
-						ReadFileError);
-			}
-		}
-		else {
-			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-					1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in tmp lower",
-						Exit,
-						ReadFileError);
-			}
-			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-					1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in tmp upper",
-						Exit,
-						ReadFileError);
-			}
-		}
+	if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+			1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in tmp lower",
+				Exit,
+				ReadFileError);
+	}
+	if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+			1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in tmp upper",
+				Exit,
+				ReadFileError);
+	}
 
-		if(index->contigType == Contig_8) {
-			for(i=low, ctr=0;
-					i<=high &&
-					tmpLowerPosition != 0 &&
-					tmpUpperPosition != 0;
-					i++, ctr++) {
-				if(RGIndexCompareContigPos(index,
-							rg,
-							tmpLowerContig_8,
-							tmpLowerPosition,
-							tmpUpperContig_8,
-							tmpUpperPosition,
-							0)<=0) {
-					/* Copy lower */
-					index->positions[i] = tmpLowerPosition;
-					index->contigs_8[i] = tmpLowerContig_8;
-					/* Get new tmpLower */
-					if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-							1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-						tmpLowerPosition = 0;
-						tmpLowerContig_8 = 0;
-					}
-				}
-				else {
-					/* Copy upper */
-					index->positions[i] = tmpUpperPosition;
-					index->contigs_8[i] = tmpUpperContig_8;
-					/* Get new tmpUpper */
-					if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-							1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-						tmpUpperPosition = 0;
-						tmpUpperContig_8 = 0;
-					}
-				}
-			}
-		}
-		else {
-			for(i=low, ctr=0;
-					i<=high &&
-					tmpLowerPosition != 0 &&
-					tmpUpperPosition != 0;
-					i++, ctr++) {
-				if(RGIndexCompareContigPos(index,
-							rg,
-							tmpLowerContig_32,
-							tmpLowerPosition,
-							tmpUpperContig_32,
-							tmpUpperPosition,
-							0)<=0) {
-					/* Copy lower */
-					index->positions[i] = tmpLowerPosition;
-					index->contigs_32[i] = tmpLowerContig_32;
-					/* Get new tmpLower */
-					if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-							1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-						tmpLowerPosition = 0;
-						tmpLowerContig_32 = 0;
-					}
-				}
-				else {
-					/* Copy upper */
-					index->positions[i] = tmpUpperPosition;
-					index->contigs_32[i] = tmpUpperContig_32;
-					/* Get new tmpUpper */
-					if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-							1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-						tmpUpperPosition = 0;
-						tmpUpperContig_32 = 0;
-					}
-				}
-			}
-		}
-		while(tmpLowerPosition != 0 && tmpUpperPosition == 0) {
+	for(i=low, ctr=0;
+			i<=high &&
+			tmpLowerPosition != 0 &&
+			tmpUpperPosition != 0;
+			i++, ctr++) {
+		if(RGIndexCompareContigPos(index,
+					rg,
+					tmpLowerContig_8,
+					tmpLowerPosition,
+					tmpUpperContig_8,
+					tmpUpperPosition,
+					0)<=0) {
 			/* Copy lower */
 			index->positions[i] = tmpLowerPosition;
-			if(index->contigType == Contig_8) {
-				index->contigs_8[i] = tmpLowerContig_8;
-				/* Get new tmpLower */
-				if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-						1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-					tmpLowerPosition = 0;
-					tmpLowerContig_8 = 0;
-				}
+			index->contigs_8[i] = tmpLowerContig_8;
+			/* Get new tmpLower */
+			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+					1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
+				tmpLowerPosition = 0;
+				tmpLowerContig_8 = 0;
 			}
-			else {
-				index->contigs_32[i] = tmpLowerContig_32;
-				/* Get new tmpLower */
-				if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-						1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-					tmpLowerPosition = 0;
-					tmpLowerContig_32 = 0;
-				}
-			}
-			i++;
-			ctr++;
 		}
-		while(tmpLowerPosition == 0 && tmpUpperPosition != 0) {
+		else {
 			/* Copy upper */
 			index->positions[i] = tmpUpperPosition;
-			if(index->contigType == Contig_8) {
-				index->contigs_8[i] = tmpUpperContig_8;
-				/* Get new tmpUpper */
-				if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-						1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-					tmpUpperPosition = 0;
-					tmpUpperContig_8 = 0;
-				}
+			index->contigs_8[i] = tmpUpperContig_8;
+			/* Get new tmpUpper */
+			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+					1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
+				tmpUpperPosition = 0;
+				tmpUpperContig_8 = 0;
 			}
-			else {
-				index->contigs_32[i] = tmpUpperContig_32;
-				/* Get new tmpUpper */
-				if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-						1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-					tmpUpperPosition = 0;
-					tmpUpperContig_32 = 0;
-				}
-			}
-			i++;
-			ctr++;
 		}
-		assert(ctr == (high - low + 1));
-		assert(i == high + 1);
-
-		/* Close tmp files */
-		CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
-		CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
 	}
+	while(tmpLowerPosition != 0 && tmpUpperPosition == 0) {
+		/* Copy lower */
+		index->positions[i] = tmpLowerPosition;
+		index->contigs_8[i] = tmpLowerContig_8;
+		/* Get new tmpLower */
+		if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+				1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
+			tmpLowerPosition = 0;
+			tmpLowerContig_8 = 0;
+		}
+		i++;
+		ctr++;
+	}
+	while(tmpLowerPosition == 0 && tmpUpperPosition != 0) {
+		/* Copy upper */
+		index->positions[i] = tmpUpperPosition;
+		index->contigs_8[i] = tmpUpperContig_8;
+		/* Get new tmpUpper */
+		if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+				1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
+			tmpUpperPosition = 0;
+			tmpUpperContig_8 = 0;
+		}
+		i++;
+		ctr++;
+	}
+	assert(ctr == (high - low + 1));
+	assert(i == high + 1);
+
+	/* Close tmp files */
+	CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
+	CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
+	/* Test merge */
+	/*
+	   for(i=low+1;i<=high;i++) {
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
+}
+
+/* TODO */
+void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t mid,
+		int64_t high,
+		char *tmpDir)
+{
+	char *FnName = "RGIndexMergeHelperFromDiskContig_32";
+	int64_t i=0;
+	int64_t ctr=0;
+	FILE *tmpLowerFP=NULL;
+	FILE *tmpUpperFP=NULL;
+	char *tmpLowerFileName=NULL;
+	char *tmpUpperFileName=NULL;
+	uint32_t tmpLowerPosition=0;
+	uint32_t tmpUpperPosition=0;
+	uint32_t tmpLowerContig_32=0;
+	uint32_t tmpUpperContig_32=0;
+
+	assert(index->contigType == Contig_32);
+	assert(index->contigs_32 != NULL);
+
+	/* Merge the two lists */
+	/* Since we want to keep space requirement small, use an upper bound on memory,
+	 * so that we use tmp files when memory requirements become to large */
+	/* Use tmp files */
+
+	/* Open tmp files */
+	tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
+	tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
+
+	/* Print to tmp files */
+	for(i=low;i<=mid;i++) {
+		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
+			PrintError(FnName,
+					"index->positions",
+					"Could not write positions to tmp lower file",
+					Exit,
+					WriteFileError);
+		}
+		if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpLowerFP)) {
+			PrintError(FnName,
+					"index->contigs_32",
+					"Could not write contigs_32 to tmp lower file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	for(i=mid+1;i<=high;i++) {
+		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
+			PrintError(FnName,
+					"index->positions",
+					"Could not write positions to tmp upper file",
+					Exit,
+					WriteFileError);
+		}
+		if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpUpperFP)) {
+			PrintError(FnName,
+					"index->contigs_32",
+					"Could not write contigs_32 to tmp upper file",
+					Exit,
+					WriteFileError);
+		}
+	}
+
+	/* Move to beginning of the files */
+	fseek(tmpLowerFP, 0 , SEEK_SET);
+	fseek(tmpUpperFP, 0 , SEEK_SET);
+
+	/* Merge tmp files back into index */
+	/* Get first contig/pos */
+
+	if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+			1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in tmp lower",
+				Exit,
+				ReadFileError);
+	}
+	if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+			1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in tmp upper",
+				Exit,
+				ReadFileError);
+	}
+
+	for(i=low, ctr=0;
+			i<=high &&
+			tmpLowerPosition != 0 &&
+			tmpUpperPosition != 0;
+			i++, ctr++) {
+		if(RGIndexCompareContigPos(index,
+					rg,
+					tmpLowerContig_32,
+					tmpLowerPosition,
+					tmpUpperContig_32,
+					tmpUpperPosition,
+					0)<=0) {
+			/* Copy lower */
+			index->positions[i] = tmpLowerPosition;
+			index->contigs_32[i] = tmpLowerContig_32;
+			/* Get new tmpLower */
+			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+					1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
+				tmpLowerPosition = 0;
+				tmpLowerContig_32 = 0;
+			}
+		}
+		else {
+			/* Copy upper */
+			index->positions[i] = tmpUpperPosition;
+			index->contigs_32[i] = tmpUpperContig_32;
+			/* Get new tmpUpper */
+			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+					1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
+				tmpUpperPosition = 0;
+				tmpUpperContig_32 = 0;
+			}
+		}
+	}
+	while(tmpLowerPosition != 0 && tmpUpperPosition == 0) {
+		/* Copy lower */
+		index->positions[i] = tmpLowerPosition;
+		index->contigs_32[i] = tmpLowerContig_32;
+		/* Get new tmpLower */
+		if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
+				1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
+			tmpLowerPosition = 0;
+			tmpLowerContig_32 = 0;
+		}
+		i++;
+		ctr++;
+	}
+	while(tmpLowerPosition == 0 && tmpUpperPosition != 0) {
+		/* Copy upper */
+		index->positions[i] = tmpUpperPosition;
+		index->contigs_32[i] = tmpUpperContig_32;
+		/* Get new tmpUpper */
+		if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
+				1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
+			tmpUpperPosition = 0;
+			tmpUpperContig_32 = 0;
+		}
+		i++;
+		ctr++;
+	}
+	assert(ctr == (high - low + 1));
+	assert(i == high + 1);
+
+	/* Close tmp files */
+	CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
+	CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
 	/* Test merge */
 	/*
 	   for(i=low+1;i<=high;i++) {
@@ -1447,7 +1612,7 @@ void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 	/* Print header */
 	RGIndexPrintHeader(fp, index, binaryOutput);
 
-	if(binaryOutput == 0) {
+	if(binaryOutput == TextOutput) {
 
 		/* Print the positions and contigs */
 		if(index->contigType == Contig_8) {
@@ -1568,7 +1733,7 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 				MallocMemory);
 	}
 
-	if(binaryInput == 0) {
+	if(binaryInput == TextInput) {
 		/* Read the positions and contigs */
 		for(i=0;i<index->length;i++) {
 			if(fscanf(fp, "%u\t%u\n",
@@ -1740,7 +1905,7 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 				fwrite(&index->colorSpace, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
 				fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
-				fwrite(&index->mask, sizeof(int32_t), index->width, fp) != index->width) {
+				fwrite(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
 			PrintError(FnName,
 					NULL,
 					"Could not write header",
@@ -1845,7 +2010,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 					MallocMemory);
 		}
 		/* Read the mask */
-		if(fread(&index->mask, sizeof(int32_t), index->width, fp) != index->width) {
+		if(fread(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
 			PrintError(FnName,
 					NULL,
 					"Could not read header",

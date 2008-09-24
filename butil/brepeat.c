@@ -53,30 +53,27 @@ int main(int argc, char *argv[])
 		RGBinaryReadBinary(&rg, rgFileName);
 
 		fprintf(stderr, "Currently on:\n%2d %9d", -1, -1);
-		/* For each chromosome */
-		int curChr, curChrIndex;
-		for(curChr=rg.startChr, curChrIndex=0;
-				curChr <= rg.endChr && curChrIndex < rg.numChrs;
-				curChr++, curChrIndex++) {
+		/* For each contig */
+		int curContig, curContigIndex;
+		for(curContig=1, curContigIndex=0;
+				curContig <= rg.numContigs && curContigIndex < rg.numContigs;
+				curContig++, curContigIndex++) {
 			/* For each starting position */
 			int curPos;
 			int prevBestUnitLength=-1;
 			int prevBestStart=-1;
 			int prevBestLength=-1;
 			int prevBestEnd=-1;
-			/*
-			for(curPos=rg.chromosomes[curChrIndex].startPos;
-			*/
-			for(curPos=44576;
-					curPos <= rg.chromosomes[curChrIndex].endPos;
+			for(curPos=1;
+					curPos <- rg.contigs[curContigIndex].sequenceLength;
 					curPos++) {
 				if(curPos%BREPEAT_ROTATE_NUM==0) {
 					fprintf(stderr, "\r%2d %9d",
-							curChr,
+							curContig,
 							curPos);
 				}
 
-				if(ToLower(RGBinaryGetBase(&rg, curChr, curPos)) != 'n') {
+				if(ToLower(RGBinaryGetBase(&rg, curContig, curPos)) != 'n') {
 
 					/* For each unit length */
 					int bestEnd=-1;
@@ -85,12 +82,12 @@ int main(int argc, char *argv[])
 					int curUnitLength;
 					for(curUnitLength=minUnitLength;curUnitLength<=maxUnitLength;curUnitLength++) { /* For each unit length */
 						/* Check bounds */
-						if(curPos + curUnitLength - 1 <= rg.chromosomes[curChrIndex].endPos) {
+						if(curPos + curUnitLength - 1 <= rg.contigs[curContigIndex].sequenceLength) {
 							/* Get the current unit */
 							int i;
 							for(i=0;i<curUnitLength;i++) {
 								unit[i] = ToLower(RGBinaryGetBase(&rg,
-											curChr,
+											curContig,
 											curPos+i));
 							}
 							unit[curUnitLength]='\0';
@@ -99,11 +96,11 @@ int main(int argc, char *argv[])
 							/* extend the unit */
 							int cont=1;
 							int curStart;
-							for(curStart=curPos + curUnitLength;cont==1 && curStart <= rg.chromosomes[curChrIndex].endPos-curUnitLength+1;curStart+=curUnitLength) {
+							for(curStart=curPos + curUnitLength;cont==1 && curStart <= rg.contigs[curContigIndex].sequenceLength-curUnitLength+1;curStart+=curUnitLength) {
 								/* Check that the bases match cur */
 								int j;
 								for(j=0;j<curUnitLength;j++) {
-									if(unit[j] != ToLower(RGBinaryGetBase(&rg, curChr, curStart+j))) {
+									if(unit[j] != ToLower(RGBinaryGetBase(&rg, curContig, curStart+j))) {
 										cont = 0;
 									}
 								}
@@ -135,8 +132,8 @@ int main(int argc, char *argv[])
 							/* Skip */
 						}
 						else {
-							fprintf(fp, "chr%d:%d-%d\t%d\t%d\t%s\n",
-									curChr,
+							fprintf(fp, "contig%d:%d-%d\t%d\t%d\t%s\n",
+									curContig,
 									curPos,
 									bestEnd,
 									bestEnd-curPos+1,

@@ -4,7 +4,7 @@
 typedef struct {
 	/* Meta data */
 	char strand;
-	int chr;
+	int contig;
 	int pos;
 	int space;
 	int pairedEnd;
@@ -18,7 +18,7 @@ typedef struct {
 	int deletionLength;
 	int insertionLength;
 	/* Actual data */
-	int aChr;
+	int aContig;
 	int aPos;
 	int aStrand;
 } ReadType;

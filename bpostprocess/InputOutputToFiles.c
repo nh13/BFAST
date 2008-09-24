@@ -13,9 +13,9 @@
 void ReadInputFilterAndOutput(char *inputFileName,
 		int binaryInput,
 		int pairedEnd,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos,
 		int algorithmReads,
 		int minScoreReads,
@@ -24,7 +24,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		int minDistancePaired,
 		int maxDistancePaired,
 		int meanDistancePaired,
-		int chrAbPaired,
+		int contigAbPaired,
 		int inversionsPaired,
 		char *outputID,
 		char *outputDir,
@@ -32,12 +32,12 @@ void ReadInputFilterAndOutput(char *inputFileName,
 {
 	char *FnName="ReadInputFilterAndOutput";
 	FILE *fp=NULL;
-	int64_t counter, foundType, numChrAb, numInversions, numNotReported, numReported;
+	int64_t counter, foundType, numContigAb, numInversions, numNotReported, numReported;
 	AlignEntries a;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpOut=NULL;
-	char chrAbFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *fpChrAb=NULL;
+	char contigAbFileName[MAX_FILENAME_LENGTH]="\0";
+	FILE *fpContigAb=NULL;
 	char inversionsFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpInversions=NULL;
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
@@ -69,7 +69,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 						OutOfRange);
 	}
 	/* Create output file names */
-	sprintf(chrAbFileName, "%s%s.chrab.%s.%s",
+	sprintf(contigAbFileName, "%s%s.contigab.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
@@ -91,16 +91,16 @@ void ReadInputFilterAndOutput(char *inputFileName,
 			fileExtension);
 
 	/* Open output files, if necessary */
-	if(chrAbPaired == 1) {
+	if(contigAbPaired == 1) {
 		assert(1==pairedEnd);
-		if(!(fpChrAb=fopen(chrAbFileName, "wb"))) {
+		if(!(fpContigAb=fopen(contigAbFileName, "wb"))) {
 			PrintError(FnName,
-					chrAbFileName,
-					"Could not open chrAbFileName for writing",
+					contigAbFileName,
+					"Could not open contigAbFileName for writing",
 					Exit,
 					OpenFileError);
 		}
-		PrintHeader(fpChrAb, outputFormat);
+		PrintHeader(fpContigAb, outputFormat);
 	}
 	if(inversionsPaired == 1) {
 		assert(1==pairedEnd);
@@ -137,8 +137,8 @@ void ReadInputFilterAndOutput(char *inputFileName,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
-	counter = numReported = numNotReported = numChrAb = numInversions = 0;
-	while(EOF != AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter)) {
+	counter = numReported = numNotReported = numContigAb = numInversions = 0;
+	while(EOF != AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter, binaryInput)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -147,9 +147,9 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		foundType=FilterAlignEntries(&a,
 				algorithmReads,
 				minScoreReads,
-				startChr,        
+				startContig,        
 				startPos,
-				endChr,        
+				endContig,        
 				endPos,
 				pairedEnd,        
 				algorithmReadsPaired,
@@ -162,25 +162,25 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		switch(foundType) {
 			case NoneFound:
 				/* Print to Not Reported file */
-				PrintAlignEntriesToOutputFormat(&a, fpNotReported, outputFormat);
+				PrintAlignEntriesToOutputFormat(&a, fpNotReported, outputFormat, binaryInput);
 				numNotReported++;
 				break;
 			case Found:
 				/* Print to Output file */
-				PrintAlignEntriesToOutputFormat(&a, fpOut, outputFormat);
+				PrintAlignEntriesToOutputFormat(&a, fpOut, outputFormat, binaryInput);
 				numReported++;
 				break;
-			case ChrAb:
+			case ContigAb:
 				assert(pairedEnd == 1);
-				/* Print to Chromosomal Abnormalities file */
-				PrintAlignEntriesToOutputFormat(&a, fpChrAb, outputFormat);
-				AlignEntriesPrint(&a, fpChrAb);
-				numChrAb++;
+				/* Print to Contigomosomal Abnormalities file */
+				PrintAlignEntriesToOutputFormat(&a, fpContigAb, outputFormat, binaryInput);
+				AlignEntriesPrint(&a, fpContigAb, binaryInput);
+				numContigAb++;
 				break;
 			case Inversion:
 				assert(pairedEnd == 1);
 				/* Print to Inversions file */
-				PrintAlignEntriesToOutputFormat(&a, fpInversions, outputFormat);
+				PrintAlignEntriesToOutputFormat(&a, fpInversions, outputFormat, binaryInput);
 				numInversions++;
 				break;
 			default:
@@ -203,8 +203,8 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		fprintf(stderr, "Out of %lld reads:\n", (long long int)counter);
 		fprintf(stderr, "Found alignments for %lld reads.\n", (long long int)numReported);
 		fprintf(stderr, "Could not unambiguously align %lld reads.\n", (long long int)numNotReported);
-		if(1==chrAbPaired) {
-			fprintf(stderr, "Found %lld paired end reads with chromosomal abnormalities.\n", (long long int)numChrAb);
+		if(1==contigAbPaired) {
+			fprintf(stderr, "Found %lld paired end reads with contigomosomal abnormalities.\n", (long long int)numContigAb);
 		}
 		if(1==inversionsPaired) {
 			fprintf(stderr, "Found %lld inverted paired end reads.\n", (long long int)numInversions); 
@@ -218,9 +218,9 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		assert(1==pairedEnd);
 		fclose(fpInversions);
 	}
-	if(chrAbPaired == 1) {
+	if(contigAbPaired == 1) {
 		assert(1==pairedEnd);
-		fclose(fpChrAb);
+		fclose(fpContigAb);
 	}
 
 	/* Close the input file */
@@ -259,12 +259,13 @@ void PrintHeader(FILE *fp,
 /* TODO */
 void PrintAlignEntriesToOutputFormat(AlignEntries *a, 
 		FILE *fp,
-		int outputFormat)
+		int outputFormat,
+		int binaryInput)
 {
 	char *FnName = "PrintAlignEntriesToOutputFormat";
 	switch(outputFormat) {
 		case BAF:
-			AlignEntriesPrint(a, fp);
+			AlignEntriesPrint(a, fp, binaryInput);
 			break;
 		case MAF:
 			PrintAlignEntriesToMAF(a, fp);
@@ -356,8 +357,8 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 
 	/* Print the reference */
-	if(0>fprintf(fp, "s chr%d %u %d %c %d %s\n",
-				a->chromosome,
+	if(0>fprintf(fp, "s chr%s %u %d %c %d %s\n",
+				a->contigName,
 				a->position-1, /* zero based */
 				a->length,
 				a->strand,

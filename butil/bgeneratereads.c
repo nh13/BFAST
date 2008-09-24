@@ -23,7 +23,7 @@ void ReadInitialize(Read *r)
 	int i;
 	r->readOne = NULL;
 	r->readTwo = NULL;
-	r->chr = 0;
+	r->contig = 0;
 	r->pos = 0;
 	r->strand = 0;
 	r->whichReadVariants = -1;
@@ -49,9 +49,9 @@ void ReadPrint(Read *r,
 	int i;
 
 	/* Read name */
-	fprintf(fp, ">strand=%c_chr=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
+	fprintf(fp, ">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
 			r->strand,
-			r->chr,
+			r->contig,
 			r->pos,
 			r->pairedEnd,
 			r->pairedEndLength,
@@ -192,8 +192,8 @@ void GenerateReads(RGBinary *rg,
 	srand(time(NULL));
 
 	/* Get the reference genome length */
-	for(i=0;i<rg->numChrs;i++) {
-		rgLength += rg->chromosomes[i].endPos - rg->chromosomes[i].startPos + 1;
+	for(i=0;i<rg->numContigs;i++) {
+		rgLength += rg->contigs[i].sequenceLength;
 	}
 
 	/* Create output file name */
@@ -300,24 +300,24 @@ void GetRandomRead(RGBinary *rg,
 			ReadDelete(r);
 		}
 
-		/* Get the random chromosome and position */
-		GetRandomChrPos(rg,
+		/* Get the random contig and position */
+		GetRandomContigPos(rg,
 				rgLength,
-				&r->chr,
+				&r->contig,
 				&r->pos,
 				&r->strand);
 
 		if(r->pairedEnd == 1) {
 			/* Get the sequence for the first read */
 			readOneSuccess = RGBinaryGetSequence(rg,
-					r->chr,
+					r->contig,
 					r->pos + r->readLength + r->pairedEndLength,
 					r->strand,
 					&r->readOne,
 					r->readLength);
 			/* Get the sequence for the second read */
 			readTwoSuccess = RGBinaryGetSequence(rg,
-					r->chr,
+					r->contig,
 					r->pos,
 					r->strand,
 					&r->readTwo,
@@ -326,7 +326,7 @@ void GetRandomRead(RGBinary *rg,
 		else {
 			/* Get the sequence for the first read */
 			readOneSuccess = RGBinaryGetSequence(rg,
-					r->chr,
+					r->contig,
 					r->pos,
 					r->strand,
 					&r->readOne,
@@ -357,14 +357,14 @@ void GetRandomRead(RGBinary *rg,
 		   );
 }
 
-/* Get the random chromosome and position */
-void GetRandomChrPos(RGBinary *rg,
+/* Get the random contig and position */
+void GetRandomContigPos(RGBinary *rg,
 		int64_t rgLength,
-		int *chr,
+		int *contig,
 		int *pos,
 		char *strand)
 {
-	char *FnName = "GetRandomChrPos";
+	char *FnName = "GetRandomContigPos";
 	int i;
 	int64_t curI;
 	int64_t low, mid, high;
@@ -403,7 +403,7 @@ void GetRandomChrPos(RGBinary *rg,
 		if(count > MAX_COUNT) {
 			PrintError(FnName,
 					"count",
-					"Could not get random chromosome and position",
+					"Could not get random contig and position",
 					Exit,
 					OutOfRange);
 		}
@@ -411,11 +411,11 @@ void GetRandomChrPos(RGBinary *rg,
 
 	/* Identify where it occurs */
 	curI=0;
-	for(i=0;i<rg->numChrs;i++) {
-		curI += rg->chromosomes[i].endPos - rg->chromosomes[i].startPos + 1;
+	for(i=0;i<rg->numContigs;i++) {
+		curI += rg->contigs[i].sequenceLength;
 		if(mid <= curI) {
-			(*chr) = rg->startChr + i;
-			(*pos) = rg->chromosomes[i].startPos + (curI - mid);
+			(*contig) = i+1;
+			(*pos) = (curI - mid);
 			return;
 		}
 	}
@@ -540,7 +540,7 @@ int InsertIndel(RGBinary *rg,
 			r->readOne = NULL;
 			/* Get new read */
 			success = RGBinaryGetSequence(rg,
-					r->chr,
+					r->contig,
 					r->pos,
 					r->strand,
 					&r->readOne,
@@ -571,7 +571,7 @@ int InsertIndel(RGBinary *rg,
 			r->readTwo = NULL;
 			/* Get new read */
 			success = RGBinaryGetSequence(rg,
-					r->chr,
+					r->contig,
 					r->pos,
 					r->strand,
 					&r->readTwo,

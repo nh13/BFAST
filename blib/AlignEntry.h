@@ -5,21 +5,8 @@
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-enum {AlignEntrySortByAll, AlignEntrySortByChrPos};
-
-typedef struct {
-	char *read; /* The read */
-	char *reference;
-	char *colorError;
-	unsigned int length; /* The length of the alignment */
-	int32_t chromosome;
-	uint32_t position;
-	char strand;
-	double score;
-} AlignEntry;
-
-int AlignEntryPrint(AlignEntry*, FILE*, int);
-int AlignEntryRead(AlignEntry*, FILE*, int);
+int AlignEntryPrint(AlignEntry*, FILE*, int, int);
+int AlignEntryRead(AlignEntry*, FILE*, int, int);
 int AlignEntryRemoveDuplicates(AlignEntry**, int, int);
 void AlignEntryQuickSort(AlignEntry**, int, int, int, int, double*, int);
 void AlignEntryMergeSort(AlignEntry**, int, int, int, int, double*, int);

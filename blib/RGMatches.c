@@ -22,7 +22,7 @@ int32_t RGMatchesRead(FILE *fp,
 	char *FnName = "RGMatchesRead";
 
 	/* Read the matches from the input file */
-	if(binaryInput == 0) {
+	if(binaryInput == TextInput) {
 		/* Read paired end */
 		if(fscanf(fp, "%d", &m->pairedEnd)==EOF) {
 			return EOF;
@@ -153,7 +153,7 @@ void RGMatchesPrint(FILE *fp,
 	}
 
 	/* Print the matches to the output file */
-	if(binaryOutput == 0) {
+	if(binaryOutput == TextInput) {
 		/* Print paired end, read name length, and read name */
 		if(0 > fprintf(fp, "%d %d %s\n",
 					m->pairedEnd,

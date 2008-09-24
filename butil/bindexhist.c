@@ -101,8 +101,8 @@ void GetPivots(RGIndex *index,
 		int64_t numThreads)
 {
 	/*
-	char *FnName="GetPivots";
-	*/
+	   char *FnName="GetPivots";
+	   */
 	int64_t i, ind;
 	int32_t returnLength, returnPosition;
 	RGReads reads;
@@ -118,14 +118,14 @@ void GetPivots(RGIndex *index,
 		/* Get the place in the index */
 		ind = (i+1)*((index->length)/numThreads);
 		/* Initialize */
-		reads.readLength[i] = index->totalLength;
+		reads.readLength[i] = index->width;
 		reads.strand[i] = FORWARD;
 		reads.offset[i] = 0;
 		/* Allocate memory */
 		reads.reads[i] = NULL;
 		/* Get read */
 		RGBinaryGetReference(rg,
-				index->chromosomes[ind],
+				(index->contigType == Contig_8)?(index->contigs_8[ind]):(index->contigs_32[ind]),
 				index->positions[ind],
 				FORWARD,
 				0,
@@ -316,7 +316,7 @@ void PrintHistogram(RGIndex *index,
 		/* Create file name */
 		sprintf(tmpFileName, "%s.%d.%lld",
 				histogramFileName,
-				index->totalLength,
+				index->width,
 				(long long int)i);
 		if(!(fp = fopen(tmpFileName, "w"))) {
 			PrintError(FnName,
@@ -457,10 +457,10 @@ void *PrintHistogramThread(void *arg)
 		/* Try each mismatch */
 		for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
 
-			/* Get the matches for the chr/pos */
-			GetMatchesFromChrPos(index,
+			/* Get the matches for the contig/pos */
+			GetMatchesFromContigPos(index,
 					rg,
-					index->chromosomes[curIndex],
+					(index->contigType == Contig_8)?(index->contigs_8[curIndex]):(index->contigs_32[curIndex]),
 					index->positions[curIndex],
 					i,
 					&numForward, 
@@ -534,19 +534,19 @@ void *PrintHistogramThread(void *arg)
 	return NULL;
 }
 
-/* Get the matches for the chr/pos */
-void GetMatchesFromChrPos(RGIndex *index,
+/* Get the matches for the contig/pos */
+void GetMatchesFromContigPos(RGIndex *index,
 		RGBinary *rg,
-		uint32_t curChr,
+		uint32_t curContig,
 		uint32_t curPos,
 		int numMismatches,
 		int64_t *numForward,
 		int64_t *numReverse)
 {
-	char *FnName = "GetMatchesFromChrPos";
+	char *FnName = "GetMatchesFromContigPos";
 	char *read=NULL;
 	char reverseRead[SEQUENCE_LENGTH]="\0";
-	int readLength = index->totalLength;
+	int readLength = index->width;
 	int returnLength, returnPosition;
 	int i;
 	RGReads reads;
@@ -558,7 +558,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
-			curChr,
+			curContig,
 			curPos,
 			FORWARD,
 			0,
@@ -578,19 +578,13 @@ void GetMatchesFromChrPos(RGIndex *index,
 			readLength,
 			FORWARD,
 			0,
-			index->numTiles,
-			index->tileLengths,
-			index->gaps,
-			index->totalLength,
+			index,
 			&reads);
 	RGReadsGeneratePerfectMatch(reverseRead,
 			readLength,
 			REVERSE,
 			0,
-			index->numTiles,
-			index->tileLengths,
-			index->gaps,
-			index->totalLength,
+			index,
 			&reads);
 
 	if(numMismatches > 0) {
@@ -600,21 +594,15 @@ void GetMatchesFromChrPos(RGIndex *index,
 				readLength,
 				FORWARD,
 				0,
-				index->numTiles,
-				index->tileLengths,
-				index->gaps,
-				index->totalLength,
 				numMismatches,
+				index,
 				&reads);
 		RGReadsGenerateMismatches(reverseRead,
 				readLength,
 				REVERSE,
 				0,
-				index->numTiles,
-				index->tileLengths,
-				index->gaps,
-				index->totalLength,
 				numMismatches,
+				index,
 				&reads);
 	}
 

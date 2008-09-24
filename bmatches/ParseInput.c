@@ -56,7 +56,9 @@ const char *argp_program_bug_address =
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
-	DescAlgoTitle, DescColorSpace, DescStartReadNum, DescEndReadNum, DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, DescPairedEnd, /*DescMaxMatches, */DescNumThreads, 
+	DescAlgoTitle, DescColorSpace, DescStartReadNum, DescEndReadNum, 
+	DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, 
+	DescMaxMatches, DescPairedEnd, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -282,7 +284,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "offsetsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	assert(args->binaryOutput == 0 || args->binaryOutput== 1);
 	assert(args->colorSpace == 0 || args->colorSpace == 1);
 
 	if(args->numMismatches < 0) {
@@ -340,7 +341,8 @@ int ValidateInputs(struct arguments *args) {
 
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
-	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
+	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
+	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 
 	return 1;
 }
@@ -406,7 +408,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->offsetsFileName!=0);
 	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 1;
+	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
 	args->colorSpace = 0;
 
 	args->startReadNum = -1;
@@ -435,7 +437,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->tmpDir!=0);
 	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
 
-	args->binaryOutput = 1;
+	args->binaryOutput = BMATCHES_DEFAULT_OUTPUT;
 
 	args->timing = 0;
 

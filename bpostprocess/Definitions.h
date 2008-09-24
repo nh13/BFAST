@@ -7,6 +7,6 @@ enum {BAF, MAF, LastFileType};
 #define MAX_FILTER_PE 5
 enum {NoFiltering, AllNotFiltered, Unique, BestScore, MeanUnique, MeanBestScore};
 enum {First, Second};
-enum {NoneFound, Found, ChrAb, Inversion, OutsideBounds};
+enum {NoneFound, Found, ContigAb, Inversion, OutsideBounds};
 
 #endif

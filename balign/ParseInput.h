@@ -7,11 +7,11 @@ struct arguments
 	char *rgFileName;                   	/* -r */
 	char *matchesFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
-	int binaryInput;                        /* -b */
+	int binaryInput;                        /* -b - not used */
 	int colorSpace;							/* -A */
-	int startChr;                           /* -s */
+	int startContig;                        /* -s */
 	int startPos;                           /* -S */
-	int endChr;                             /* -e */
+	int endContig;                          /* -e */
 	int endPos;                             /* -E */
 	int offsetLength;						/* -O */
 	int maxNumMatches;						/* -M */
@@ -23,6 +23,7 @@ struct arguments
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	char *tmpDir;							/* -T */
+	int binaryOutput;                       /* -B - not used */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

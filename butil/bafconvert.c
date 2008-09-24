@@ -2,13 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "../blib/RGMatches.h"
 #include "../blib/BLibDefinitions.h"
+#include "../blib/AlignEntries.h"
 #include "../blib/BError.h"
-#include "bmfconvert.h"
+#include "bafconvert.h"
 
-#define Name "bmfconvert"
-#define BMFCONVERT_ROTATE_NUM 100000
+#define Name "bafconvert"
+#define BAFCONVERT_ROTATE_NUM 100000
 
 /* Converts a bmatches file from binary to plaintext or vice versa.
  * */
@@ -18,19 +18,16 @@ int main(int argc, char *argv[])
 
 	FILE *fpIn, *fpOut;
 	int binaryInput, binaryOutput;
-	int pairedEnd;
 	long long int counter;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	RGMatches m;
+	AlignEntries a;
 
 	if(argc == 4) {
 		strcpy(inputFileName, argv[1]);
 		binaryInput = atoi(argv[2]);
-		pairedEnd = atoi(argv[3]);
 
 		assert(TextInput==binaryInput || BinaryInput==binaryInput);
-		assert(SingleEnd==pairedEnd || PairedEnd==pairedEnd);
 
 		/* Creat output file name */
 		sprintf(outputFileName, "%s.converted",
@@ -57,19 +54,19 @@ int main(int argc, char *argv[])
 					OpenFileError);
 		}
 		/* Initialize */
-		RGMatchesInitialize(&m);
+		AlignEntriesInitialize(&a);
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != RGMatchesRead(fpIn, &m, pairedEnd, binaryInput)) {
-			if(counter%BMFCONVERT_ROTATE_NUM==0) {
+		while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, binaryInput)) {
+			if(counter%BAFCONVERT_ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						counter);
 			}
 			counter++;
 			/* Print each match */
-			RGMatchesPrint(fpOut, &m, pairedEnd, binaryOutput);
-			RGMatchesFree(&m);
+			AlignEntriesPrint(&a, fpOut, binaryOutput);
+			AlignEntriesFree(&a);
 		}
 		fprintf(stderr, "\r%lld\n",
 				counter);
@@ -84,7 +81,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast matches file name>\n");
 		fprintf(stderr, "\t<input type: 0-text 1-binary>\n");
-		fprintf(stderr, "\t<0-single-end 1-paired end>\n");
 	}
 	return 0;
 }

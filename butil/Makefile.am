@@ -1,4 +1,5 @@
-bin_PROGRAMS = bevalsim \
+bin_PROGRAMS = bafconvert \
+			   bevalsim \
 			   bexonify \
 			   bfixhash \
 			   bgeneratereads \
@@ -9,8 +10,20 @@ bin_PROGRAMS = bevalsim \
 			   bmafconvert \
 			   bpairedenddist \
 			   brepeat \
-			   btestindexes \
-			   bupdateheader
+			   btestindexes 
+
+bafconvert_SOURCES = \
+				   ../blib/BError.c	../blib/BError.h \
+				   ../blib/RGIndex.c	../blib/RGIndex.h \
+				   ../blib/BLib.c	../blib/BLib.h \
+				   ../blib/RGBinary.c ../blib/RGBinary.h \
+				   ../blib/RGMatch.c ../blib/RGMatch.h \
+				   ../blib/RGRanges.c ../blib/RGRanges.h \
+					 ../blib/AlignEntries.c	../blib/AlignEntries.h \
+					 ../blib/AlignEntry.c	../blib/AlignEntry.h \
+					 bafconvert.c bafconvert.h
+
+bafconvert_LDADD =
 
 bevalsim_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
@@ -147,14 +160,3 @@ btestindexes_SOURCES = \
 					   btestindexes.c
 
 btestindexes_LDADD =
-
-bupdateheader_SOURCES = \
-						../blib/BError.c	../blib/BError.h \
-						../blib/RGIndex.c	../blib/RGIndex.h \
-						../blib/BLib.c	../blib/BLib.h \
-						../blib/RGBinary.c ../blib/RGBinary.h \
-						../blib/RGMatch.c ../blib/RGMatch.h \
-						../blib/RGRanges.c ../blib/RGRanges.h \
-						bupdateheader.c	bupdateheader.h 
-
-bupdateheader_LDADD =  

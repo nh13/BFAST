@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "../blib/BError.h"
+#include "../blib/AlignEntry.h"
 #include "../blib/AlignEntries.h"
 #include "Definitions.h"
 #include "Filter.h"
@@ -11,9 +12,9 @@
 int FilterAlignEntries(AlignEntries *a,
 		int algorithmReads,
 		int minScoreReads,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos,
 		int pairedEnd,
 		int algorithmReadsPaired,
@@ -42,9 +43,9 @@ int FilterAlignEntries(AlignEntries *a,
 				foundType=FilterReadInAlignEntries(a,
 						algorithmReads,
 						minScoreReads,
-						startChr,
+						startContig,
 						startPos,
-						endChr,
+						endContig,
 						endPos,
 						First);
 				/* If we filtered all, copy back */
@@ -57,9 +58,9 @@ int FilterAlignEntries(AlignEntries *a,
 				foundType=FilterReadInAlignEntries(a,
 						algorithmReads,
 						minScoreReads,
-						startChr,
+						startContig,
 						startPos,
-						endChr,
+						endContig,
 						endPos,
 						First);
 				break;
@@ -84,17 +85,17 @@ int FilterAlignEntries(AlignEntries *a,
 				if(Found==FilterReadInAlignEntries(a,
 							algorithmReads,
 							minScoreReads,
-							startChr,
+							startContig,
 							startPos,
-							endChr,
+							endContig,
 							endPos,
 							First) &&
 						Found==FilterReadInAlignEntries(a,
 							algorithmReads,
 							minScoreReads,
-							startChr,
+							startContig,
 							startPos,
-							endChr,
+							endContig,
 							endPos,
 							Second)) {
 					foundType=Found;
@@ -108,9 +109,9 @@ int FilterAlignEntries(AlignEntries *a,
 			case MeanUnique:
 			case MeanBestScore:
 				foundType=FilterOneAlignEntries(a,
-						startChr,
+						startContig,
 						startPos,
-						endChr,
+						endContig,
 						endPos,
 						algorithmReadsPaired,
 						minScoreReadsPaired,
@@ -135,9 +136,9 @@ int FilterAlignEntries(AlignEntries *a,
 int FilterReadInAlignEntries(AlignEntries *a,
 		int algorithmReads,
 		int minScoreReads,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos,
 		int which)
 {
@@ -175,9 +176,9 @@ int FilterReadInAlignEntries(AlignEntries *a,
 		/* Check if we should filter */
 		if(1!=FilterAlignEntry(&(*ptrEntries)[i],
 					minScoreReads,
-					startChr,
+					startContig,
 					startPos,
-					endChr,
+					endContig,
 					endPos)) {
 			uniqueIndex=i;
 			numNotFiltered++;
@@ -327,9 +328,9 @@ int FilterReadInAlignEntries(AlignEntries *a,
 /* TODO */
 int FilterAlignEntry(AlignEntry *a,
 		int minScoreReads,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos)
 {
 	/* Check if the alignment has at least the minimum score */
@@ -337,10 +338,10 @@ int FilterAlignEntry(AlignEntry *a,
 		return 1;
 	}
 	/* Check the genomic location */
-	if((startChr != 0 && a->chromosome < startChr) || 
-			(startChr != 0 && a->chromosome == startChr && startPos != 0 && a->position < startPos) ||
-			(endChr != 0 && a->chromosome == endChr && endPos != 0 && a->position > endPos) ||
-			(endChr != 0 && a->chromosome > endChr)) {
+	if((startContig != 0 && a->contig < startContig) || 
+			(startContig != 0 && a->contig == startContig && startPos != 0 && a->position < startPos) ||
+			(endContig != 0 && a->contig == endContig && endPos != 0 && a->position > endPos) ||
+			(endContig != 0 && a->contig > endContig)) {
 		return 1;
 	}
 	return 0;
@@ -348,9 +349,9 @@ int FilterAlignEntry(AlignEntry *a,
 
 /* TODO */
 int FilterOneAlignEntries(AlignEntries *a,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
@@ -380,7 +381,7 @@ int FilterOneAlignEntries(AlignEntries *a,
 	int uniqueOutsideOne=-1, uniqueOutsideTwo=-1;
 	int numUniqueOutside=0;
 	/* current distance to the mean */
-	int curChrDistance, curPositionDistance;
+	int curContigDistance, curPositionDistance;
 	int i, j;
 	int foundType=NoneFound;
 
@@ -388,28 +389,28 @@ int FilterOneAlignEntries(AlignEntries *a,
 
 	/* Go through all possible pairs of alignments */
 	for(i=0;i<a->numEntriesOne;i++) { /* First read */
-		/* Filter first entry for chromosome position */
+		/* Filter first entry for contig position */
 		if(0 == FilterAlignEntry(&a->entriesOne[i],
 					INT_MIN,
-					startChr,
+					startContig,
 					startPos,
-					endChr,
+					endContig,
 					endPos)) {
 			for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
-				/* Filter second entry for chromosome position.  Also filter based on score. */
+				/* Filter second entry for contig position.  Also filter based on score. */
 				if(0 == FilterAlignEntry(&a->entriesTwo[j],
 							INT_MIN,
-							startChr,
+							startContig,
 							startPos,
-							endChr,
+							endContig,
 							endPos) &&
 						(minScoreReadsPaired <= (a->entriesOne[i].score + a->entriesTwo[j].score))) {
 					/* Get the distance between the two */
-					curChrDistance = a->entriesTwo[j].chromosome - a->entriesOne[i].chromosome;
+					curContigDistance = a->entriesTwo[j].contig - a->entriesOne[i].contig;
 					curPositionDistance = a->entriesTwo[j].position - a->entriesOne[i].position;
 					/* Get the distance from the mean */
 					curDistanceToMean = abs(curPositionDistance - meanDistancePaired);
-					if(0==curChrDistance &&
+					if(0==curContigDistance &&
 							curPositionDistance <= maxDistancePaired &&
 							curPositionDistance >= minDistancePaired) {
 						/* Inside the bounds */
@@ -613,7 +614,7 @@ int FilterOneAlignEntries(AlignEntries *a,
 	if(OutsideBounds == foundType) {
 		if(a->entriesOne[0].strand == a->entriesTwo[0].strand) {
 			/* Same strand - chromosomal abnormality */
-			foundType = ChrAb;
+			foundType = ContigAb;
 		}
 		else {
 			/* Different strand - inversion */

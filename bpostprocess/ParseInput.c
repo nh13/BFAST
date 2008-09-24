@@ -55,9 +55,9 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescInputFileName, DescBinaryInput,
-	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescChrAbPaired, DescInversionsPaired,
-	DescGenFiltTitle, DescStartChr, DescStartPos, DescEndChr, DescEndPos, 
+	DescInputFilesTitle, DescInputFileName, 
+	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired,
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, 
 	DescSingleEndTitle, DescMinScoreReads, 
 	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
@@ -71,7 +71,9 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"inputFileName", 'i', "inputFileName", 0, "Specifies the input file from the balign program", 1},
+	/*
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
+	*/
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each single-end read after filtering:"
@@ -86,12 +88,12 @@ static struct argp_option options[] = {
 			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined"
 			"\n\t\t4: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and are the unique pair within that maximum and minimum distance (-X and -Y)"
 			"\n\t\t5: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and have the best score with that distance", 2},
-	{"chrAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
+	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 5},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
-	{"startChr", 's', "startChr", 0, "Specifies the start chromosome for filtering", 3},
+	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
-	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome for filtering", 3},
+	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
 	{0, 0, 0, 0, "=========== Single End Filter Options ===============================================", 4},
 	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads", 4},
@@ -129,7 +131,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:Z:2bhptCI";
+"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:Z:2hptCI";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -179,9 +181,9 @@ main (int argc, char **argv)
 						ReadInputFilterAndOutput(arguments.inputFileName,
 								arguments.binaryInput,
 								arguments.pairedEnd,
-								arguments.startChr,
+								arguments.startContig,
 								arguments.startPos,
-								arguments.endChr,
+								arguments.endContig,
 								arguments.endPos,
 								arguments.algorithmReads,
 								arguments.minScoreReads,
@@ -190,7 +192,7 @@ main (int argc, char **argv)
 								arguments.minDistancePaired,
 								arguments.maxDistancePaired,
 								arguments.meanDistancePaired,
-								arguments.chrAbPaired,
+								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.outputID,
 								arguments.outputDir,
@@ -257,28 +259,21 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "inputFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	/* binary input not currently supported */
-	if(args->binaryInput == 1) {
-		PrintError("ValidateInputs",
-				"binaryInput",
-				"Binary input not supported",
-				Exit,
-				InputArguments);
-	}
+	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
 
 	/* This should hold internally */
 	assert(args->pairedEnd == 0 || args->pairedEnd == 1);
 
-	if(args->startChr < 0) {
-		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
+	if(args->startContig < 0) {
+		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startPos < 0) {
 		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endChr < 0) {
-		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
+	if(args->endContig < 0) {
+		PrintError(FnName, "endContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->endPos < 0) {
@@ -312,11 +307,11 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* This must hold internally */
-	assert(args->chrAbPaired == 0 || args->chrAbPaired == 1);
+	assert(args->contigAbPaired == 0 || args->contigAbPaired == 1);
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
 
-	if(args->pairedEnd == 0 && args->chrAbPaired == 1) {
-		PrintError(FnName, "Cannot use chrAbPaired without paired end", "Command line argument", Exit, OutOfRange);
+	if(args->pairedEnd == 0 && args->contigAbPaired == 1) {
+		PrintError(FnName, "Cannot use contigAbPaired without paired end", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->pairedEnd == 0 && args->inversionsPaired == 1) {
@@ -387,13 +382,13 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->inputFileName!=0);
 	strcpy(args->inputFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 0;
+	args->binaryInput = BALIGN_DEFAULT_OUTPUT;
 
 	args->pairedEnd=0;
 
-	args->startChr=0;
+	args->startContig=0;
 	args->startPos=0;
-	args->endChr=0;
+	args->endContig=0;
 	args->endPos=0;
 
 	args->algorithmReads=0;
@@ -404,7 +399,7 @@ AssignDefaultValues(struct arguments *args)
 	args->minDistancePaired=INT_MIN;
 	args->maxDistancePaired=INT_MAX;
 	args->meanDistancePaired=0;
-	args->chrAbPaired=0;
+	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 
 	args->outputID = 
@@ -434,15 +429,17 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "inputFileName:\t\t%s\n", args->inputFileName);
+	/*
 	fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
+	*/
 	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
 	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
-	fprintf(fp, "chrAbPaired:\t\t%d\n", args->chrAbPaired);
+	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
 	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
-	fprintf(fp, "startChr:\t\t%d\n", args->startChr);
+	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
-	fprintf(fp, "endChr:\t\t\t%d\n", args->endChr);
+	fprintf(fp, "endContig:\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
 	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
 	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
@@ -499,14 +496,16 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->pairedEnd = 1;break;
 					case 'a':
 						arguments->algorithmReads = atoi(OPTARG);break;
+						/*
 					case 'b':
 						arguments->binaryInput = 1;break;
+						*/
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;
 						break;
 					case 'e':
-						arguments->endChr=atoi(OPTARG);break;
+						arguments->endContig=atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'i':
@@ -520,13 +519,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 's':
-						arguments->startChr=atoi(OPTARG);break;
+						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
 					case 'A':
 						arguments->algorithmReadsPaired = atoi(OPTARG);break;
 					case 'C':
-						arguments->chrAbPaired = 1;break;
+						arguments->contigAbPaired = 1;break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'I':

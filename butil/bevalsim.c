@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 void ReadTypeInitialize(ReadType *r)
 {
 	r->strand=0;
-	r->chr=0;
+	r->contig=0;
 	r->pos=0;
 	r->space=0;
 	r->pairedEnd=0;
@@ -57,7 +57,7 @@ void ReadTypeInitialize(ReadType *r)
 	r->numErrors=0;
 	r->deletionLength=0;
 	r->insertionLength=0;
-	r->aChr=0;
+	r->aContig=0;
 	r->aPos=0;
 	r->aStrand=0;
 }
@@ -67,7 +67,7 @@ void ReadTypeCopy(ReadType *dest,
 {
 	/* Only copy meta data */ 
 	dest->strand=src->strand;
-	dest->chr=src->chr;
+	dest->contig=src->contig;
 	dest->pos=src->pos;
 	dest->space=src->space;
 	dest->pairedEnd=src->pairedEnd;
@@ -138,7 +138,7 @@ int ReadTypeReadFromBAF(ReadType *r,
 	AlignEntriesInitialize(&a);
 
 	/* Read in align entries */
-	if(EOF==AlignEntriesRead(&a, fp, PairedEndDoesNotMatter, SpaceDoesNotMatter)) {
+	if(EOF==AlignEntriesRead(&a, fp, PairedEndDoesNotMatter, SpaceDoesNotMatter, BALIGN_DEFAULT_OUTPUT)) {
 		return EOF;
 	}
 	/* There should be only one */
@@ -151,7 +151,7 @@ int ReadTypeReadFromBAF(ReadType *r,
 				OutOfRange);
 	}
 
-	r->aChr = a.entriesOne->chromosome;
+	r->aContig = a.entriesOne->contig;
 	r->aPos = a.entriesOne->position;
 	r->aStrand = a.entriesOne->strand;
 	/* Convert into read type */
@@ -160,9 +160,9 @@ int ReadTypeReadFromBAF(ReadType *r,
 	/* Get the rest from read name */
 	if(tempPairedEnd == 0) {
 		if(EOF == sscanf(a.readName, 
-					">strand=%c_chr=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
+					">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
 					&r->strand,
-					&r->chr,
+					&r->contig,
 					&r->pos,
 					&r->pairedEnd,
 					&r->pairedEndLength,
@@ -180,9 +180,9 @@ int ReadTypeReadFromBAF(ReadType *r,
 	}
 	else {
 		if(EOF == sscanf(a.readName, 
-					">strand=%c_chr=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s_r2=%s",
+					">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s_r2=%s",
 					&r->strand,
-					&r->chr,
+					&r->contig,
 					&r->pos,
 					&r->pairedEnd,
 					&r->pairedEndLength,
@@ -374,7 +374,7 @@ void StatsAdd(Stats *s, ReadType *r)
 {
 	int diff;
 	if(r->strand == r->aStrand &&
-			r->chr == r->aChr) {
+			r->contig == r->aContig) {
 		diff = (r->pos > r->aPos)?(r->pos - r->aPos):(r->aPos - r->pos);
 
 		/* Update */

@@ -8,7 +8,7 @@ typedef struct {
 	int readOneType[SEQUENCE_LENGTH];
 	char *readTwo;
 	int readTwoType[SEQUENCE_LENGTH];
-	int chr;
+	int contig;
 	int pos;
 	char strand;
 	int whichReadVariants;
@@ -38,7 +38,7 @@ void ReadPrint(Read*,
 
 void GenerateReads(RGBinary*, int, int, int, int, int, int, int, int, int, int);
 void GetRandomRead(RGBinary*, int64_t, Read*);
-void GetRandomChrPos(RGBinary*, int64_t, int*, int*, char*);
+void GetRandomContigPos(RGBinary*, int64_t, int*, int*, char*);
 int ModifyRead(RGBinary*, Read*, int, int, int, int, int, int);
 int InsertIndel(RGBinary*, Read*, int, int);
 void InsertMismatches(Read*, int, int, int);

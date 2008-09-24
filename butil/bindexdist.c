@@ -142,10 +142,10 @@ void PrintDistribution(RGIndex *index,
 					(long long int)(curIndex-startIndex));
 			counter -= BINDEXDIST_ROTATE_NUM;
 		}
-		/* Get the matches for the chr/pos */
-		GetMatchesFromChrPos(index,
+		/* Get the matches for the contig/pos */
+		GetMatchesFromContigPos(index,
 				rg,
-				index->chromosomes[curIndex],
+				(index->contigType==Contig_8)?(index->contigs_8[curIndex]):(index->contigs_32[curIndex]),
 				index->positions[curIndex],
 				numMismatches,
 				&numForward, 
@@ -172,7 +172,7 @@ void PrintDistribution(RGIndex *index,
 					Exit,
 					MallocMemory);
 		}
-		reads[numReads-2] = malloc(sizeof(char)*(index->totalLength+1));
+		reads[numReads-2] = malloc(sizeof(char)*(index->width+1));
 		if(NULL==reads[numReads-2]) {
 			PrintError(FnName,
 					"reads[numReads-1]",
@@ -180,7 +180,7 @@ void PrintDistribution(RGIndex *index,
 					Exit,
 					MallocMemory);
 		}
-		reads[numReads-1] = malloc(sizeof(char)*(index->totalLength+1));
+		reads[numReads-1] = malloc(sizeof(char)*(index->width+1));
 		if(NULL==reads[numReads-1]) {
 			PrintError(FnName,
 					"reads[numReads-1]",
@@ -238,7 +238,7 @@ void PrintDistribution(RGIndex *index,
 		data[i].low = i*(numReads/numThreads);
 		data[i].high = (i+1)*(numReads/numThreads)-1;
 		data[i].tmpDir = tmpDir;
-		data[i].readLength = index->totalLength;
+		data[i].readLength = index->width;
 		data[i].showPercentComplete = 0;
 	}
 	data[0].low = 0;
@@ -285,7 +285,7 @@ void PrintDistribution(RGIndex *index,
 					data[i+j].low-1,
 					data[i+2*j-1].high,
 					tmpDir,
-					index->totalLength);
+					index->width);
 		}
 	}
 	fprintf(stderr, "Sorting complete.\n");
@@ -323,10 +323,10 @@ void PrintDistribution(RGIndex *index,
 	readCounts=NULL;
 }
 
-/* Get the matches for the chr/pos */
-void GetMatchesFromChrPos(RGIndex *index,
+/* Get the matches for the contig/pos */
+void GetMatchesFromContigPos(RGIndex *index,
 		RGBinary *rg,
-		uint32_t curChr,
+		uint32_t curContig,
 		uint32_t curPos,
 		int numMismatches,
 		int64_t *numForward,
@@ -334,10 +334,10 @@ void GetMatchesFromChrPos(RGIndex *index,
 		char **read,
 		char **reverseRead)
 {
-	char *FnName = "GetMatchesFromChrPos";
-	int readLength = index->totalLength;
+	char *FnName = "GetMatchesFromContigPos";
+	int readLength = index->width;
 	int returnLength, returnPosition;
-	int i, j, curPosRead;
+	int i;
 	RGReads reads;
 	RGRanges ranges;
 
@@ -347,7 +347,7 @@ void GetMatchesFromChrPos(RGIndex *index,
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
-			curChr,
+			curContig,
 			curPos,
 			FORWARD,
 			0,
@@ -377,19 +377,13 @@ void GetMatchesFromChrPos(RGIndex *index,
 			readLength,
 			FORWARD,
 			0,
-			index->numTiles,
-			index->tileLengths,
-			index->gaps,
-			index->totalLength,
+			index,
 			&reads);
 	RGReadsGeneratePerfectMatch((*reverseRead),
 			readLength,
 			REVERSE,
 			0,
-			index->numTiles,
-			index->tileLengths,
-			index->gaps,
-			index->totalLength,
+			index,
 			&reads);
 
 	if(numMismatches > 0) {
@@ -399,21 +393,15 @@ void GetMatchesFromChrPos(RGIndex *index,
 				readLength,
 				REVERSE,
 				0,
-				index->numTiles,
-				index->tileLengths,
-				index->gaps,
-				index->totalLength,
 				numMismatches,
+				index,
 				&reads);
 		RGReadsGenerateMismatches((*read),
 				readLength,
 				FORWARD,
 				0,
-				index->numTiles,
-				index->tileLengths,
-				index->gaps,
-				index->totalLength,
 				numMismatches,
+				index,
 				&reads);
 	}
 
@@ -461,18 +449,21 @@ void GetMatchesFromChrPos(RGIndex *index,
 	}
 
 	/* Null out the gaps */
-	curPosRead = 0;
-	for(i=0;i<index->numTiles;i++) {
-		curPosRead += index->tileLengths[i];
-		if(i<index->numTiles-1) {
-			for(j=0;j<index->gaps[i];j++) {
-				(*read)[curPosRead] = 'N';
-				(*reverseRead)[curPosRead] = 'N';
-				curPosRead++;
-			}
+	for(i=0;i<index->width;i++) {
+		switch(index->mask[i]) {
+			case 0:
+				(*read)[i] = 'N';
+				break;
+			case 1:
+				break;
+			default:
+				PrintError(FnName,
+						"index->masks[i]",
+						"Could not understand mask",
+						Exit,
+						OutOfRange);
 		}
 	}
-
 
 	/* Free memory */
 	RGReadsFree(&reads);
@@ -700,7 +691,7 @@ void MergeHelper(char **reads,
 		fseek(tmpUpperFP, 0 , SEEK_SET);
 
 		/* Merge tmp files back into index */
-		/* Get first chr/pos */
+		/* Get first contig/pos */
 		if(0 > fscanf(tmpLowerFP, "%s %lld\n",
 					tmpLowerRead,
 					&tmpLowerReadCount)) {

@@ -27,6 +27,6 @@ typedef struct {
 void PrintHistogram(RGIndex*, RGBinary*, int, int, int, char*);
 void *PrintHistogramThread(void *arg);
 void GetPivots(RGIndex*, RGBinary*, int64_t*, int64_t*, int64_t);
-void GetMatchesFromChrPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*);
+void GetMatchesFromContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*);
 
 #endif

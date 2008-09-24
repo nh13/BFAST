@@ -14,10 +14,19 @@
 #define SEQUENCE_LENGTH 2048
 #define SEQUENCE_NAME_LENGTH 4028
 #define MAX_MASK_LENGTH 1024
+#define MAX_CONTIG_NAME_LENGTH 2048
 /* 0 - quick sort in place
  * 1 - merge sort with tmp file I/O (not fully debugged) */
 #define SORT_TYPE 1
-#define ONE_GIGABYTE 1073741824
+#define ONE_GIGABYTE (int64_t)1073741824
+#define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
+
+/* Default output */
+enum {TextOutput, BinaryOutput};
+enum {TextInput, BinaryInput};
+#define BPREPROCESS_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
+#define BMATCHES_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
+#define BALIGN_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 
 /* File extensions */
 #define BFAST_RG_FILE_EXTENSION "brg"
@@ -54,7 +63,9 @@
 
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 enum {Contig_8, Contig_32};
-enum {NTSpace, ColorSpace};
+enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
+enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
+enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
 
 /************************************/
 /* 		Data structures 			*/
@@ -169,6 +180,33 @@ typedef struct {
 	int32_t threadID;
 	int32_t showPercentComplete;
 	char *tmpDir;
+	int64_t mergeMemoryLimit;
 } ThreadRGIndexSortData;
+
+/* TODO */
+typedef struct {
+	int32_t contigNameLength;
+	char *contigName;
+	int32_t contig;
+	uint32_t position;
+	char strand;
+	double score;
+	uint32_t length; /* The length of the alignment */
+	char *read; /* The read */
+	char *reference;
+	char *colorError;
+} AlignEntry;
+
+/* TODO */
+typedef struct {
+	char *readName;
+	int32_t pairedEnd;
+	int32_t colorSpace;
+	int32_t numEntriesOne;
+	int32_t numEntriesTwo;
+	AlignEntry *entriesOne;
+	AlignEntry *entriesTwo;
+} AlignEntries;
+
 
 #endif

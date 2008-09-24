@@ -82,10 +82,10 @@ void PrintDistribution(FILE *fpIn,
 				&m,
 				1,
 				binaryInput)) {
-		/* Only use unique sequences on the same chromosome and strand */
+		/* Only use unique sequences on the same contig and strand */
 			if(1 == m.matchOne.numEntries &&
 					1 == m.matchTwo.numEntries &&
-					m.matchOne.chromosomes[0] == m.matchTwo.chromosomes[0] &&
+					m.matchOne.contigs[0] == m.matchTwo.contigs[0] &&
 					m.matchOne.strand[0] == m.matchTwo.strand[0]) {
 				/* Simple way to avoid overflow */
 				posOne = m.matchOne.positions[0];

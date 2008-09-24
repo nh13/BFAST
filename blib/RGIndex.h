@@ -13,8 +13,13 @@ void *RGIndexQuickSortNodes(void*);
 void RGIndexQuickSortNodesHelper(RGIndex*, RGBinary*, int64_t, int64_t, int32_t);
 void RGIndexQuickSortNodesGetPivots(RGIndex*, RGBinary*, int64_t, int64_t, int64_t*, int32_t, int32_t);
 void *RGIndexMergeSortNodes(void*);
-void RGIndexMergeSortNodesHelper(RGIndex*, RGBinary*, int64_t, int64_t, int32_t, double*, int64_t, int64_t, char*);
-void RGIndexMergeHelper(RGIndex*, RGBinary*, int64_t, int64_t, int64_t, char*);
+void RGIndexMergeSortNodesHelper(RGIndex*, RGBinary*, int64_t, int64_t, int32_t, double*, int64_t, int64_t, int64_t, char*);
+void RGIndexMergeHelper(RGIndex*, RGBinary*, int64_t, int64_t, int64_t, int64_t, char*);
+void RGIndexMergeHelperInMemoryContig_8(RGIndex*, RGBinary*, int64_t, int64_t, int64_t);
+void RGIndexMergeHelperInMemoryContig_32(RGIndex*, RGBinary*, int64_t, int64_t, int64_t);
+void RGIndexMergeHelperFromDiskContig_8(RGIndex*, RGBinary*, int64_t, int64_t, int64_t, char*);
+void RGIndexMergeHelperFromDiskContig_32(RGIndex*, RGBinary*, int64_t, int64_t, int64_t, char*);
+
 void RGIndexDelete(RGIndex*);
 double RGIndexGetSize(RGIndex*, int32_t);
 void RGIndexPrint(FILE*, RGIndex*, int32_t);

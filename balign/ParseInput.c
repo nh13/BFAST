@@ -55,8 +55,9 @@ const char *argp_program_bug_address =
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, DescBinaryInput, 
-	DescAlgoTitle, DescAlgorithm, DescStartChr, DescStartPos, DescEndChr, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
+	DescInputFilesTitle, DescRGFileName, DescMatchesFileName, DescScoringMatrixFileName, 
+	DescAlgoTitle, DescAlgorithm, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffset, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
+	DescPairedEndOptionsTitle, DescPairedEndLength, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
 };
@@ -68,14 +69,16 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the file containing all of the chromosomes", 1},
-	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the file name holding the list of input files from the bmatches program", 1},
+	{"matchesFileName", 'm', "matchesFileName", 0, "Specifies the bfast matches file", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
-	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
+	/*
+	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
+	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"colorSpace", 'A', 0, OPTION_NO_USAGE, "Specifies that the reads are in color space", 2},
-	{"startChr", 's', "startChr", 0, "Specifies the start chromosome", 2},
+	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
-	{"endChr", 'e', "endChr", 0, "Specifies the end chromosome", 2},
+	{"endContig", 'e', "endContig", 0, "Specifies the end chromosome", 2},
 	{"endPos", 'E', "endPos", 0, "Specifies the end position", 2},
 	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
@@ -88,6 +91,9 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
 	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
+	/*
+	   {"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output aligned file will be in binary format", 4},
+	   */
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 5},
@@ -179,9 +185,9 @@ main (int argc, char **argv)
 								arguments.matchesFileName,
 								arguments.scoringMatrixFileName,
 								arguments.colorSpace,
-								arguments.startChr,
+								arguments.startContig,
 								arguments.startPos,
-								arguments.endChr,
+								arguments.endContig,
 								arguments.endPos,
 								arguments.offsetLength,
 								arguments.maxNumMatches,
@@ -194,6 +200,7 @@ main (int argc, char **argv)
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
+								arguments.binaryOutput,
 								&totalAlignTime,
 								&totalFileHandlingTime);
 						/* Free the Reference Genome */
@@ -309,16 +316,16 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->startChr < 0) {
-		PrintError(FnName, "startChr", "Command line argument", Exit, OutOfRange);
+	if(args->startContig < 0) {
+		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startPos < 0) {
 		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->endChr < 0) {
-		PrintError(FnName, "endChr", "Command line argument", Exit, OutOfRange);
+	if(args->endContig < 0) {
+		PrintError(FnName, "endContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->endPos < 0) {
@@ -365,7 +372,8 @@ int ValidateInputs(struct arguments *args) {
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->colorSpace == 0 || args->colorSpace == 1);
 	assert(args->timing == 0 || args->timing == 1);
-	assert(args->binaryInput == 0 || args->binaryInput == 1);
+	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
+	assert(args->binaryOutput == TextOutput || args->binaryOutput == TextOutput);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
 	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {
@@ -424,12 +432,13 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 0;
+	args->binaryInput = BMATCHES_DEFAULT_OUTPUT;
+	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
 
 	args->colorSpace = 0;
-	args->startChr=0;
+	args->startContig=0;
 	args->startPos=0;
-	args->endChr=INT_MAX;
+	args->endContig=INT_MAX;
 	args->endPos=INT_MAX;
 	args->offsetLength=0;
 	args->maxNumMatches=0;
@@ -470,11 +479,13 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "matchesFileName\t\t\t\t%s\n", args->matchesFileName);
 	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
-	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	/*
+	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	   */
 	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
-	fprintf(fp, "startChr:\t\t\t\t%d\n", args->startChr);
+	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endChr:\t\t\t\t\t%d\n", args->endChr);
+	fprintf(fp, "endContig:\t\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
@@ -485,6 +496,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
+	/*
+	   fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
+	   */
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -529,8 +543,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case '2':
 						arguments->pairedEnd = 1;break;
-					case 'b':
-						arguments->binaryInput = 1;break;
+						/*
+						   case 'b':
+						   arguments->binaryInput = 1;break;
+						   */
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;
@@ -542,7 +558,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						} 
 						break;
 					case 'e':
-						arguments->endChr=atoi(OPTARG);break;
+						arguments->endContig=atoi(OPTARG);break;
 					case 'f':
 						arguments->forceMirroring=1;break;
 					case 'h':
@@ -564,7 +580,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						if(arguments->rgFileName) free(arguments->rgFileName);
 						arguments->rgFileName = OPTARG;break;
 					case 's':
-						arguments->startChr=atoi(OPTARG);break;
+						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
 					case 'x':
@@ -572,6 +588,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->scoringMatrixFileName = OPTARG;break;
 					case 'A':
 						arguments->colorSpace=1;break;
+						/*
+						   case 'B':
+						   arguments->binaryOutput = 1;break;
+						   */
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'M':

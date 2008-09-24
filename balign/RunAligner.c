@@ -21,9 +21,9 @@ void RunAligner(RGBinary *rgBinary,
 		char *matchesFileName,
 		char *scoringMatrixFileName,
 		int colorSpace,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos,
 		int offsetLength,
 		int maxNumMatches,
@@ -36,6 +36,7 @@ void RunAligner(RGBinary *rgBinary,
 		char *outputID,
 		char *outputDir,
 		char *tmpDir,
+		int binaryOutput,
 		int *totalAlignTime,
 		int *totalFileHandlingTime)
 {
@@ -66,9 +67,9 @@ void RunAligner(RGBinary *rgBinary,
 
 	/* Adjust start and end based on reference genome */
 	AdjustBounds(rgBinary,
-			&startChr,
+			&startContig,
 			&startPos,
-			&endChr,
+			&endContig,
 			&endPos);
 
 	/* Open matches file */
@@ -128,7 +129,7 @@ void RunAligner(RGBinary *rgBinary,
 			BFAST_NOT_ALIGNED_FILE_EXTENSION);
 
 	/* Open output file */
-	if((outputFP=fopen(outputFileName, "w"))==0) {
+	if((outputFP=fopen(outputFileName, "wb"))==0) {
 		PrintError(FnName,
 				outputFileName,
 				"Could not open file for writing",
@@ -137,7 +138,7 @@ void RunAligner(RGBinary *rgBinary,
 	}
 
 	/* Open not aligned file */
-	if((notAlignedFP=fopen(notAlignedFileName, "w"))==0) {
+	if((notAlignedFP=fopen(notAlignedFileName, "wb"))==0) {
 		PrintError(FnName,
 				notAlignedFileName,
 				"Could not open file for writing",
@@ -173,9 +174,9 @@ void RunAligner(RGBinary *rgBinary,
 				rgBinary,
 				scoringMatrixFileName,
 				colorSpace,
-				startChr,
+				startContig,
 				startPos,
-				endChr,
+				endContig,
 				endPos,
 				offsetLength,
 				maxNumMatches,
@@ -188,6 +189,7 @@ void RunAligner(RGBinary *rgBinary,
 				tmpDir,
 				outputFP,
 				notAlignedFP,
+				binaryOutput,
 				totalAlignTime,
 				totalFileHandlingTime);
 
@@ -217,9 +219,9 @@ void RunDynamicProgramming(FILE *matchFP,
 		RGBinary *rgBinary,
 		char *scoringMatrixFileName,
 		int colorSpace,
-		int startChr,
+		int startContig,
 		int startPos,
-		int endChr,
+		int endContig,
 		int endPos,
 		int offsetLength,
 		int maxNumMatches,
@@ -232,6 +234,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		char *tmpDir,
 		FILE *outputFP,
 		FILE *notAlignedFP,
+		int binaryOutput,
 		int *totalAlignTime,
 		int *totalFileHandlingTime)
 {
@@ -312,9 +315,9 @@ void RunDynamicProgramming(FILE *matchFP,
 		/* Filter the matches that are not within the bounds */
 		/* Filter one if it has too many entries */
 		RGMatchesFilterOutOfRange(&m,
-				startChr,
+				startContig,
 				startPos,
-				endChr,
+				endContig,
 				endPos,
 				maxNumMatches);
 
@@ -329,7 +332,7 @@ void RunDynamicProgramming(FILE *matchFP,
 			RGMatchesPrint(notAlignedFP,
 					&m,
 					pairedEnd,
-					0); /* Do not print in binary */
+					binaryOutput);
 		}
 		else {
 			/* Print match to temp file */
@@ -367,6 +370,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].pairedEndLength = pairedEndLength;
 		data[i].forceMirroring = forceMirroring;
 		data[i].binaryInput=binaryInput;
+		data[i].binaryOutput=binaryOutput;
 		data[i].sm = &sm;
 		data[i].threadID = i;
 	}
@@ -449,7 +453,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		continueReading=0;
 		for(i=0;i<numThreads;i++) {
 			/* Read in the align entries */
-			if(EOF != AlignEntriesRead(&aEntries, data[i].outputFP, pairedEnd, colorSpace)) {
+			if(EOF != AlignEntriesRead(&aEntries, data[i].outputFP, pairedEnd, colorSpace, binaryOutput)) {
 				if(VERBOSE >=0 && numAligned%ALIGN_ROTATE_NUM == 0) {
 					fprintf(stderr, "\r[%d]", numAligned);
 				}
@@ -460,7 +464,8 @@ void RunDynamicProgramming(FILE *matchFP,
 				numAligned++;
 				/* Print it out */
 				AlignEntriesPrint(&aEntries,
-						outputFP);
+						outputFP,
+						binaryOutput);
 			}
 			AlignEntriesFree(&aEntries);
 		}
@@ -493,7 +498,7 @@ void RunDynamicProgramming(FILE *matchFP,
 				RGMatchesPrint(notAlignedFP,
 						&m,
 						pairedEnd,
-						0);
+						binaryOutput);
 
 				RGMatchesFree(&m);
 			}
@@ -546,6 +551,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int pairedEndLength=data->pairedEndLength;
 	int forceMirroring=data->forceMirroring;
 	int binaryInput=data->binaryInput;
+	int binaryOutput=data->binaryOutput;
 	int threadID=data->threadID;
 	ScoringMatrix *sm = data->sm;
 	/* Local variables */
@@ -614,7 +620,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
 		for(i=0;i<m.matchOne.numEntries;i++) { /* For each match */
 			RunDynamicProgrammingThreadHelper(rgBinary,
-					m.matchOne.chromosomes[i],
+					m.matchOne.contigs[i],
 					m.matchOne.positions[i],
 					m.matchOne.strand[i],
 					matchRead,
@@ -635,7 +641,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
 		for(i=0;i<m.matchTwo.numEntries;i++) { /* For each match */
 			RunDynamicProgrammingThreadHelper(rgBinary,
-					m.matchTwo.chromosomes[i],
+					m.matchTwo.contigs[i],
 					m.matchTwo.positions[i],
 					m.matchTwo.strand[i],
 					matchRead,
@@ -658,7 +664,8 @@ void *RunDynamicProgrammingThread(void *arg)
 
 		/* Output alignment */
 		AlignEntriesPrint(&aEntries,
-				outputFP);
+				outputFP,
+				binaryOutput);
 
 		/* Free memory */
 		AlignEntriesFree(&aEntries);
@@ -674,7 +681,7 @@ void *RunDynamicProgrammingThread(void *arg)
 
 /* TODO */
 void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
-		uint8_t chromosome,
+		uint8_t contig,
 		uint32_t position,
 		int8_t strand,
 		char *read,
@@ -694,7 +701,7 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 
 	/* Get the appropriate reference read */
 	RGBinaryGetReference(rgBinary,
-			chromosome,
+			contig,
 			position,
 			FORWARD, /* We have been just reversing the read instead of the reference */
 			offsetLength,
@@ -724,8 +731,8 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rgBinary,
 	/* Update adjustPosition based on offsetLength */
 	assert(adjustPosition >= 0 && adjustPosition <= referenceLength);
 
-	/* Update chromosome, position, strand and sequence name*/
-	aEntry->chromosome = chromosome;
+	/* Update contig, position, strand and sequence name*/
+	aEntry->contig = contig;
 	aEntry->position = referencePosition+adjustPosition; /* Adjust position */
 	aEntry->strand = strand;
 

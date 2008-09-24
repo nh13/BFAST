@@ -17,7 +17,7 @@ int32_t RGMatchRead(FILE *fp,
 	int32_t i;
 
 	/* Read the matches from the input file */
-	if(binaryInput == 0) {
+	if(binaryInput == TextInput) {
 		/* Read the read length */
 		if(fscanf(fp, "%d", &m->readLength)==EOF) {
 			return EOF;
@@ -177,7 +177,7 @@ void RGMatchPrint(FILE *fp,
 	assert(m->readLength > 0);
 
 	/* Print the matches to the output file */
-	if(binaryOutput == 0) {
+	if(binaryOutput == TextOutput) {
 		if(0 > fprintf(fp, "%d\t%s\t%d\t%d",
 					m->readLength,
 					m->read,

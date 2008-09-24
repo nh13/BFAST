@@ -8,42 +8,65 @@
 #include "AlignEntry.h"
 
 /* TODO */
-int AlignEntryPrint(AlignEntry *aEntry,
+int AlignEntryPrint(AlignEntry *a,
 		FILE *outputFP,
-		int colorSpace)
+		int colorSpace,
+		int binaryOutput)
 {
-	assert(NULL != aEntry->read);
-	assert(NULL != aEntry->reference);
-	assert(NULL != aEntry->colorError);
+	assert(NULL != a->read);
+	assert(NULL != a->reference);
+	assert(NULL != a->colorError);
 
 	/*
-	assert(((int)strlen(aEntry->read)) == aEntry->length);
-	assert(strlen(aEntry->reference) == aEntry->length);
-	assert((int)strlen(aEntry->colorError) == aEntry->length);
-	*/
+	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
+	   assert(((int)strlen(a->read)) == a->length);
+	   assert(strlen(a->reference) == a->length);
+	   assert((int)strlen(a->colorError) == a->length);
+	   */
 
-	/* Print the read name, alignment length, chromosome, position, strand, score */
-	if(fprintf(outputFP, "%d\t%d\t%d\t%c\t%lf\n",
-				aEntry->length,
-				aEntry->chromosome,
-				aEntry->position,
-				aEntry->strand,
-				aEntry->score) < 0) {
-		return EOF;
-	}
+	if(binaryOutput == TextOutput) {
 
-	/* Print the reference and read alignment */
-	if(fprintf(outputFP, "%s\n%s\n",
-				aEntry->reference,
-				aEntry->read) < 0) {
-		return EOF;
-	}
-
-	/* Print the color errors if necessary */
-	if(colorSpace == 1) {
-		if(fprintf(outputFP, "%s\n",
-					aEntry->colorError) < 0) {
+		if(fprintf(outputFP, "%s\t%d\t%u\t%c\t%lf\t%u\n",
+					a->contigName,
+					a->contig,
+					a->position,
+					a->strand,
+					a->score,
+					a->length) < 0) {
 			return EOF;
+		}
+
+		/* Print the reference and read alignment */
+		if(fprintf(outputFP, "%s\n%s\n",
+					a->reference,
+					a->read) < 0) {
+			return EOF;
+		}
+
+		/* Print the color errors if necessary */
+		if(colorSpace == 1) {
+			if(fprintf(outputFP, "%s\n",
+						a->colorError) < 0) {
+				return EOF;
+			}
+		}
+	}
+	else {
+		if(fwrite(&a->contigNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(a->contigName, sizeof(char), a->contigNameLength, outputFP) != a->contigNameLength ||
+				fwrite(&a->contig, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(&a->position, sizeof(uint32_t), 1, outputFP) != 1 ||
+				fwrite(&a->strand, sizeof(char), 1, outputFP) != 1 ||
+				fwrite(&a->score, sizeof(double), 1, outputFP) != 1 ||
+				fwrite(&a->length, sizeof(uint32_t), 1, outputFP) != 1 ||
+				fwrite(a->read, sizeof(char), a->length, outputFP) != a->length ||
+				fwrite(a->reference, sizeof(char), a->length, outputFP) != a->length) {
+			return EOF;
+		}
+		if(1==colorSpace) {
+			if(fwrite(a->colorError, sizeof(char), a->length, outputFP) != a->length) {
+				return EOF;
+			}
 		}
 	}
 
@@ -51,73 +74,127 @@ int AlignEntryPrint(AlignEntry *aEntry,
 }
 
 /* TODO */
-int AlignEntryRead(AlignEntry *aEntry,
+int AlignEntryRead(AlignEntry *a,
 		FILE *inputFP,
-		int colorSpace)
+		int colorSpace,
+		int binaryInput)
 {
 	char *FnName = "AlignEntryRead";
+	char tempContigName[MAX_CONTIG_NAME_LENGTH]="\0";
 
-	if(aEntry->read == NULL) {
-		aEntry->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == aEntry->read) {
+	/* Allocate memory for the alignment */
+	if(a->read == NULL) {
+		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == a->read) {
 			PrintError(FnName,
-					"aEntry->read",
+					"a->read",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
 	}
-	if(aEntry->reference == NULL) {
-		aEntry->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == aEntry->reference) {
+	if(a->reference == NULL) {
+		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == a->reference) {
 			PrintError(FnName,
-					"aEntry->reference",
+					"a->reference",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
 	}
-	if(aEntry->colorError == NULL) {
-		aEntry->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == aEntry->colorError) {
-			PrintError(FnName,
-					"aEntry->colorError",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-
-	/* Read the read name, alignment length, chromosome, position, strand, score */
-	if(fscanf(inputFP, "%d %d %d %c %lf\n",
-				&aEntry->length,
-				&aEntry->chromosome,
-				&aEntry->position,
-				&aEntry->strand,
-				&aEntry->score)==EOF) {
-		return EOF;
-	}
-
-	/* Read the reference and read alignment */
-	if(fscanf(inputFP, "%s %s", 
-				aEntry->reference,
-				aEntry->read)==EOF) {
-		return EOF;
-	}
-
-	/* Read hte color errors if necessary */
 	if(colorSpace == 1) {
-		if(fscanf(inputFP, "%s",
-					aEntry->colorError)==EOF) {
+		if(a->colorError == NULL) {
+			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+			if(NULL == a->colorError) {
+				PrintError(FnName,
+						"a->colorError",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+		}
+	}
+
+	if(binaryInput == TextOutput) {
+
+		if(fscanf(inputFP, "%s\t%d\t%u\t%c\t%lf\t%u\n",
+					tempContigName,
+					&a->contig,
+					&a->position,
+					&a->strand,
+					&a->score,
+					&a->length) < 0) {
 			return EOF;
+		}
+
+		/* Copy over contig name */
+		a->contigNameLength = (int)strlen(tempContigName);
+		a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
+		if(NULL==a->contigName) {
+			PrintError(FnName,
+					"a->contigName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Read the reference and read alignment */
+		if(fscanf(inputFP, "%s %s", 
+					a->reference,
+					a->read)==EOF) {
+			return EOF;
+		}
+
+		/* Read the color errors if necessary */
+		if(colorSpace == 1) {
+			if(fscanf(inputFP, "%s",
+						a->colorError)==EOF) {
+				return EOF;
+			}
+		}
+	}
+	else {
+		if(fread(&a->contigNameLength, sizeof(int32_t), 1, inputFP) != 1) {
+			return EOF;
+		}
+		/* Copy over contig name */
+		a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
+		if(NULL==a->contigName) {
+			PrintError(FnName,
+					"a->contigName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		if(fread(a->contigName, sizeof(char), a->contigNameLength, inputFP) != a->contigNameLength ||
+				fread(&a->contig, sizeof(int32_t), 1, inputFP) != 1 ||
+				fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
+				fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
+				fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
+				fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1 ||
+				fread(a->read, sizeof(char), a->length, inputFP) != a->length ||
+				fread(a->reference, sizeof(char), a->length, inputFP) != a->length) {
+			return EOF;
+		}
+		/* Add the null terminator to strings */
+		a->contigName[a->contigNameLength]='\0';
+		a->read[a->length]='\0';
+		a->reference[a->length]='\0';
+		if(1==colorSpace) {
+			if(fread(a->colorError, sizeof(char), a->length, inputFP) != a->length) {
+				return EOF;
+			}
+			a->colorError[a->length]='\0';
 		}
 	}
 
 	/*
-	assert(((int)strlen(aEntry->read)) == aEntry->length);
-	assert(strlen(aEntry->reference) == aEntry->length);
-	assert((int)strlen(aEntry->colorError) == aEntry->length);
-	*/
+	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
+	   assert(((int)strlen(a->read)) == a->length);
+	   assert(strlen(a->reference) == a->length);
+	   assert((int)strlen(a->colorError) == a->length);
+	   */
 
 	return 1;
 }
@@ -389,7 +466,7 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		/* Old 
 		   cmp[0] = strcmp(a[indexA].read, b[indexB].read);
 		   cmp[1] = strcmp(a[indexA].reference, b[indexB].reference);
-		   cmp[2] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		   cmp[2] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
 		   cmp[3] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
 		   cmp[4] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
 		   */
@@ -397,7 +474,7 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		/* If there are multiple alignments to the same starting chr/pos/strand with the same score,
 		 * this will pick ensure that we will only pick one of them.
 		 * */
-		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		cmp[0] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
 		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
 		cmp[2] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
 		cmp[3] = (a[indexA].score <= b[indexB].score)?((a[indexA].score<b[indexB].score)?-1:0):1;
@@ -405,21 +482,21 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 		top = 4;
 	}
 	else {
-		assert(sortOrder == AlignEntrySortByChrPos);
-		cmp[0] = (a[indexA].chromosome <= b[indexB].chromosome)?((a[indexA].chromosome<b[indexB].chromosome)?-1:0):1;
+		assert(sortOrder == AlignEntrySortByContigPos);
+		cmp[0] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
 		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
 
 		top = 2;
 
 		/*
-		   fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
+		   fprintf(stderr, "a[%d].contig=%d\ta[%d].position=%d\n",
 		   indexA,
-		   a[indexA].chromosome,
+		   a[indexA].contig,
 		   indexA,
 		   a[indexA].position);
-		   fprintf(stderr, "a[%d].chromosome=%d\ta[%d].position=%d\n",
+		   fprintf(stderr, "a[%d].contig=%d\ta[%d].position=%d\n",
 		   indexB,
-		   a[indexB].chromosome,
+		   a[indexB].contig,
 		   indexB,
 		   a[indexB].position);
 		   fprintf(stderr, "cmp[%d]=%d\ncmp[%d]=%d\n",
@@ -453,6 +530,20 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 {
 	char *FnName = "AlignEntryCopy";
 	if(src != dest) {
+		assert(src->contigNameLength > 0);
+		dest->contigNameLength = src->contigNameLength;
+		if(NULL == dest->contigName) {
+			dest->contigName = malloc(sizeof(char)*(dest->contigNameLength+1));
+			if(NULL == dest->contigName) {
+				PrintError(FnName,
+						"dest->contigName",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+		}
+		assert(src->contigName!= NULL);
+		strcpy(dest->contigName, src->contigName);
 		if(NULL == dest->read) {
 			dest->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == dest->read) {
@@ -490,36 +581,39 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		assert(src->colorError!= NULL);
 		strcpy(dest->colorError, src->colorError);
 		dest->length = src->length;
-		dest->chromosome = src->chromosome;
+		dest->contig = src->contig;
 		dest->position = src->position;
 		dest->strand = src->strand;
 		dest->score = src->score;
 	}
 }
 
-void AlignEntryFree(AlignEntry *aEntry)
+void AlignEntryFree(AlignEntry *a)
 {
-	free(aEntry->read);
-	free(aEntry->reference);
-	free(aEntry->colorError);
-	AlignEntryInitialize(aEntry);
+	free(a->contigName);
+	free(a->read);
+	free(a->reference);
+	free(a->colorError);
+	AlignEntryInitialize(a);
 }
 
-void AlignEntryInitialize(AlignEntry *aEntry) 
+void AlignEntryInitialize(AlignEntry *a) 
 {
-	aEntry->read=NULL;
-	aEntry->reference=NULL;
-	aEntry->colorError=NULL;
-	aEntry->length=0;
-	aEntry->chromosome=0;
-	aEntry->position=0;
-	aEntry->strand=0;
-	aEntry->score=0.0;
+	a->contigNameLength=0;
+	a->contigName=NULL;
+	a->contig=0;
+	a->position=0;
+	a->strand=0;
+	a->score=0.0;
+	a->length=0;
+	a->read=NULL;
+	a->reference=NULL;
+	a->colorError=NULL;
 }
 
 /* TODO */
 /* Debugging function */
-void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg, int colorSpace)
+void AlignEntryCheckReference(AlignEntry *a, RGBinary *rg, int colorSpace)
 {
 	char *FnName = "AlignEntryCheckReference";
 	int i;
@@ -527,16 +621,16 @@ void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg, int colorSpace)
 	char rgBase;
 	char reference[SEQUENCE_LENGTH]="\0";
 
-	if(aEntry->strand == REVERSE) {
-		GetReverseComplimentAnyCase(aEntry->reference, reference, aEntry->length);
+	if(a->strand == REVERSE) {
+		GetReverseComplimentAnyCase(a->reference, reference, a->length);
 	}
 	else {
-		strcpy(reference, aEntry->reference);
+		strcpy(reference, a->reference);
 	}
 
-	for(i=0, curPos = aEntry->position;i<aEntry->length;i++) {
+	for(i=0, curPos = a->position;i<a->length;i++) {
 		if(reference[i] != GAP) {
-			rgBase = RGBinaryGetBase(rg, aEntry->chromosome, curPos);	
+			rgBase = RGBinaryGetBase(rg, a->contig, curPos);	
 			if(rgBase != reference[i]) {
 				fprintf(stderr, "\n[%d]\t[%d]\n[%c]\t[%c]\n[%s]\n",
 						curPos,
@@ -544,7 +638,7 @@ void AlignEntryCheckReference(AlignEntry *aEntry, RGBinary *rg, int colorSpace)
 						reference[i],
 						rgBase,
 						reference);
-				AlignEntryPrint(aEntry, stderr, colorSpace);
+				AlignEntryPrint(a, stderr, colorSpace, 0);
 				PrintError(FnName,
 						NULL,
 						"Reference in the align entry does not match the reference genome",

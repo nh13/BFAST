@@ -10,31 +10,51 @@
 
 /* TODO */
 void AlignEntriesPrint(AlignEntries *a,
-		FILE *outputFP)
+		FILE *outputFP,
+		int binaryOutput)
 {
 	char *FnName = "AlignEntriesPrint";
 	int i;
+	int32_t tempReadNameLength;
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 
-	/* Print the read name and paired end flag */
-	if(fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\n",
-				a->readName,
-				a->pairedEnd,
-				a->colorSpace,
-				a->numEntriesOne,
-				a->numEntriesTwo) < 0) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+	if(binaryOutput == TextOutput) {
+		/* Print the read name and paired end flag */
+		if(fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\n",
+					a->readName,
+					a->pairedEnd,
+					a->colorSpace,
+					a->numEntriesOne,
+					a->numEntriesTwo) < 0) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		tempReadNameLength = (int)strlen(a->readName);
+		if(fwrite(&tempReadNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(a->readName, sizeof(char), tempReadNameLength, outputFP) != tempReadNameLength ||
+				fwrite(&a->pairedEnd, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(&a->colorSpace, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(&a->numEntriesOne, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(&a->numEntriesTwo, sizeof(int32_t), 1, outputFP) != 1) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
 	}
 
 	for(i=0;i<a->numEntriesOne;i++) {
 		if(EOF == AlignEntryPrint(&a->entriesOne[i],
 					outputFP,
-					a->colorSpace)) {
+					a->colorSpace,
+					binaryOutput)) {
 			PrintError(FnName,
 					"entriesOne",
 					"Could not write to file",
@@ -47,7 +67,8 @@ void AlignEntriesPrint(AlignEntries *a,
 		for(i=0;i<a->numEntriesTwo;i++) {
 			if(EOF == AlignEntryPrint(&a->entriesTwo[i],
 						outputFP,
-						a->colorSpace)) {
+						a->colorSpace,
+						binaryOutput)) {
 				PrintError(FnName,
 						"entriesTwo",
 						"Could not write to file",
@@ -62,10 +83,12 @@ void AlignEntriesPrint(AlignEntries *a,
 int AlignEntriesRead(AlignEntries *a,
 		FILE *inputFP,
 		int pairedEnd,
-		int colorSpace)
+		int colorSpace,
+		int binaryInput)
 {
 	char *FnName = "AlignEntriesRead";
 	int i;
+	int32_t tempReadNameLength;
 
 	/* Allocate memory for the read name */
 	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
@@ -80,13 +103,31 @@ int AlignEntriesRead(AlignEntries *a,
 	}
 
 	/* Read the read name, paired end flag, color space flag, and the number of entries for both entries */
-	if(fscanf(inputFP, "%s %d %d %d %d",
-				a->readName,
-				&a->pairedEnd,
-				&a->colorSpace,
-				&a->numEntriesOne,
-				&a->numEntriesTwo)==EOF) {
-		return EOF;
+	if(binaryInput == TextInput) {
+		if(fscanf(inputFP, "%s %d %d %d %d",
+					a->readName,
+					&a->pairedEnd,
+					&a->colorSpace,
+					&a->numEntriesOne,
+					&a->numEntriesTwo)==EOF) {
+			return EOF;
+		}
+	}
+	else {
+		if(fread(&tempReadNameLength, sizeof(int32_t), 1, inputFP) != 1) {
+			return EOF;
+		}
+		if(fread(a->readName, sizeof(char), tempReadNameLength, inputFP) != tempReadNameLength ||
+				fread(&a->pairedEnd, sizeof(int32_t), 1, inputFP) != 1 ||
+				fread(&a->colorSpace, sizeof(int32_t), 1, inputFP) != 1 ||
+				fread(&a->numEntriesOne, sizeof(int32_t), 1, inputFP) != 1 ||
+				fread(&a->numEntriesTwo, sizeof(int32_t), 1, inputFP) != 1) {
+			PrintError(FnName,
+					NULL,
+					"Could not read from file",
+					Exit,
+					ReadFileError);
+		}
 	}
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
@@ -140,7 +181,8 @@ int AlignEntriesRead(AlignEntries *a,
 		AlignEntryInitialize(&a->entriesOne[i]);
 		if(EOF==AlignEntryRead(&a->entriesOne[i],
 					inputFP,
-					a->colorSpace)) {
+					a->colorSpace,
+					binaryInput)) {
 			PrintError(FnName, 
 					NULL, 
 					"Could not read entriesOne",
@@ -153,7 +195,8 @@ int AlignEntriesRead(AlignEntries *a,
 			AlignEntryInitialize(&a->entriesTwo[i]);
 			if(EOF==AlignEntryRead(&a->entriesTwo[i],
 						inputFP,
-						a->colorSpace)) {
+						a->colorSpace,
+						binaryInput)) {
 				PrintError(FnName, 
 						NULL, 
 						"Could not read entriesTwo",

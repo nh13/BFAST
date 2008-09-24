@@ -24,7 +24,7 @@ void RGBinaryRead(char *rgFileName,
 	int32_t numCharsPerByte;
 	fpos_t curFilePos;
 
-	char header[MAX_FILENAME_LENGTH]="\0";
+	char header[MAX_CONTIG_NAME_LENGTH]="\0";
 	char prevBase = COLOR_SPACE_START_NT; /* For color space */
 
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
@@ -78,7 +78,7 @@ void RGBinaryRead(char *rgFileName,
 		}
 		/* Allocate memory for contig name */
 		rg->contigs[rg->numContigs-1].contigNameLength=strlen(header);
-		rg->contigs[rg->numContigs-1].contigName = malloc(sizeof(char)*rg->contigs[rg->numContigs-1].contigNameLength);
+		rg->contigs[rg->numContigs-1].contigName = malloc(sizeof(char)*(rg->contigs[rg->numContigs-1].contigNameLength+1));
 		if(NULL==rg->contigs[rg->numContigs-1].contigName) {
 			PrintError(FnName,
 					"rg->contigs[rg->numContigs-1].contigName",
@@ -312,8 +312,17 @@ void RGBinaryReadBinary(RGBinary *rg,
 					ReadFileError);
 		}
 		assert(rg->contigs[i].contigNameLength > 0);
+		/* Allocate memory */
+		rg->contigs[i].contigName = malloc(sizeof(char)*(rg->contigs[i].contigNameLength+1));
+		if(NULL==rg->contigs[i].contigName) {
+			PrintError(FnName,
+					"contigName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		/* Read RGContig information */
-		if(fread(&rg->contigs[i].contigName, sizeof(int8_t), rg->contigs[i].contigNameLength, fpRG) ||
+		if(fread(rg->contigs[i].contigName, sizeof(int8_t), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
 				fread(&rg->contigs[i].sequenceLength, sizeof(int32_t), 1, fpRG)!=1 ||
 				fread(&rg->contigs[i].numBytes, sizeof(uint32_t), 1, fpRG)!=1) {
 			PrintError(FnName,
@@ -322,6 +331,8 @@ void RGBinaryReadBinary(RGBinary *rg,
 					Exit,
 					ReadFileError);
 		}
+		/* Add null terminator */
+		rg->contigs[i].contigName[rg->contigs[i].contigNameLength]='\0';
 		/* Allocate memory for the sequence */
 		rg->contigs[i].sequence = malloc(sizeof(uint8_t)*rg->contigs[i].numBytes);
 		if(NULL==rg->contigs[i].sequence) {
@@ -391,7 +402,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	for(i=0;i<rg->numContigs;i++) {
 		/* Output RGContig information */
 		if(fwrite(&rg->contigs[i].contigNameLength, sizeof(int32_t), 1, fpRG) != 1 ||
-				fwrite(&rg->contigs[i].contigName, sizeof(int8_t), rg->contigs[i].contigNameLength, fpRG) != 1 ||
+				fwrite(rg->contigs[i].contigName, sizeof(int8_t), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
 				fwrite(&rg->contigs[i].sequenceLength, sizeof(int32_t), 1, fpRG) != 1 ||
 				fwrite(&rg->contigs[i].numBytes, sizeof(uint32_t), 1, fpRG) != 1 ||
 				/* Output sequence */

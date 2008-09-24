@@ -28,7 +28,8 @@ void PrintHeader(FILE *fp,
 
 void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 		FILE *fp,
-		int outputFormat);
+		int outputFormat,
+		int outputBinary);
 
 void PrintAlignEntriesToMAF(AlignEntries *a,
 		FILE *fp);

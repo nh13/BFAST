@@ -119,7 +119,7 @@ int ReadExons(char *exonsFileName,
 {
 	char *FnName = "ReadExons";
 	FILE *fp;
-	uint8_t chr, prevChr;
+	uint8_t contig, prevContig;
 	uint32_t start, end, tmpUint32_t, prevStart, prevEnd;
 	int numExons = 0;
 
@@ -135,18 +135,18 @@ int ReadExons(char *exonsFileName,
 	}
 
 	/* Read in the exons */ 
-	prevChr = 0;
+	prevContig = 0;
 	prevStart = prevEnd = 0;
 	while(EOF!=fscanf(fp, "%u %u %u", &tmpUint32_t, &start, &end)) {
-		chr = tmpUint32_t;
+		contig = tmpUint32_t;
 
 		/* Check that the exons in increasing order */
-		if(chr < prevChr || 
-				(chr == prevChr && start < prevStart) ||
-				(chr == prevChr && start == prevStart && end <= prevEnd)) {
+		if(contig < prevContig || 
+				(contig == prevContig && start < prevStart) ||
+				(contig == prevContig && start == prevStart && end <= prevEnd)) {
 			PrintError(FnName,
 					NULL,
-					"Entries must be in increasing order with the keys=(chr, start, end)",
+					"Entries must be in increasing order with the keys=(contig, start, end)",
 					Exit,
 					OutOfRange);
 		}
@@ -161,7 +161,7 @@ int ReadExons(char *exonsFileName,
 					MallocMemory);
 		}
 		assert(start <= end);
-		(*exons)[numExons-1].chr = chr;
+		(*exons)[numExons-1].contig = contig;
 		(*exons)[numExons-1].start = start;
 		(*exons)[numExons-1].end = end;
 	}
@@ -190,22 +190,42 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 		found = 0;
 		while(low <= high && found == 0) {
 			mid = (low + high/2);
-			if(index->chromosomes[i] < (*exons)[mid].chr ||
-					(index->chromosomes[i] == (*exons)[mid].chr && index->positions[i] < (*exons)[mid].start)) {
-				high = mid - 1;
-			}
-			else if(index->chromosomes[i] > (*exons)[mid].chr ||
-					(index->chromosomes[i] == (*exons)[mid].chr && index->positions[i] > (*exons)[mid].end)) {
-				low = mid + 1;
+			if(index->contigType == Contig_8) {
+				if(index->contigs_8[i] < (*exons)[mid].contig ||
+						(index->contigs_8[i] == (*exons)[mid].contig && index->positions[i] < (*exons)[mid].start)) {
+					high = mid - 1;
+				}
+				else if(index->contigs_8[i] > (*exons)[mid].contig ||
+						(index->contigs_8[i] == (*exons)[mid].contig && index->positions[i] > (*exons)[mid].end)) {
+					low = mid + 1;
+				}
+				else {
+					found = 1;
+				}
 			}
 			else {
-				found = 1;
+				if(index->contigs_32[i] < (*exons)[mid].contig ||
+						(index->contigs_32[i] == (*exons)[mid].contig && index->positions[i] < (*exons)[mid].start)) {
+					high = mid - 1;
+				}
+				else if(index->contigs_32[i] > (*exons)[mid].contig ||
+						(index->contigs_32[i] == (*exons)[mid].contig && index->positions[i] > (*exons)[mid].end)) {
+					low = mid + 1;
+				}
+				else {
+					found = 1;
+				}
 			}
 		}
 		/* If not found, remove and shift */
 		if(found == 0) {
 			for(j=i+1;j<index->length;j++) {
-				index->chromosomes[j-1] = index->chromosomes[j];
+				if(index->contigType == Contig_8) {
+					index->contigs_8[j-1] = index->contigs_8[j];
+				}
+				else {
+					index->contigs_32[j-1] = index->contigs_32[j];
+				}
 				index->positions[j-1] = index->positions[j];
 			}
 			/* Decrement index length, reallocate later */
@@ -214,13 +234,25 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 	}
 
 	/* Reallocate */
-	index->chromosomes = realloc(index->chromosomes, index->length*sizeof(uint8_t));
-	if(NULL==index->chromosomes) {
-		PrintError(FnName,
-				"index->chromosomes",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+	if(index->contigType == Contig_8) {
+		index->contigs_8 = realloc(index->contigs_8, index->length*sizeof(uint8_t));
+		if(NULL==index->contigs_8) {
+			PrintError(FnName,
+					"index->contigs_8",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+	}
+	else {
+		index->contigs_32 = realloc(index->contigs_32, index->length*sizeof(uint8_t));
+		if(NULL==index->contigs_32) {
+			PrintError(FnName,
+					"index->contigs_32",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 	}
 	index->positions = realloc(index->positions, index->length*sizeof(uint32_t));
 	if(NULL==index->positions) {
@@ -232,9 +264,9 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 	}
 
 	/* Update index range */
-	index->startChr = (*exons)[0].chr;
+	index->startContig = (*exons)[0].contig;
 	index->startPos = (*exons)[0].start;
-	index->endChr = (*exons)[numExons-1].chr;
+	index->endContig = (*exons)[numExons-1].contig;
 	index->endPos = (*exons)[numExons-1].end;
 
 }

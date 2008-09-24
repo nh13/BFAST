@@ -118,7 +118,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:n:o:r:s:E:S:T:bhptAR";
+"a:d:e:i:n:o:r:s:E:S:T:hptAR";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -181,6 +181,7 @@ main (int argc, char **argv)
 										rg.colorSpace,
 										BFAST_RG_FILE_EXTENSION);
 								/* Write binary */
+								assert(arguments.binaryOutput == BinaryOutput);
 								RGBinaryWriteBinary(&rg,
 										outputFileName);
 								break;
@@ -285,7 +286,7 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "indexLayoutFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	assert(args->binaryInput == 0 || args->binaryInput == 1);
+	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
 
 	if(args->algorithm < ALGORITHM_MIN || args->algorithm > ALGORITHM_MAX) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
@@ -336,7 +337,7 @@ int ValidateInputs(struct arguments *args) {
 
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
-	assert(args->binaryOutput == 0 || args->binaryOutput == 1);
+	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 	assert(args->repeatMasker == 0 || args->repeatMasker == 1);
 
 	/* Cross-check arguments */
@@ -396,7 +397,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->indexLayoutFileName!=0);
 	strcpy(args->indexLayoutFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = 1;
+	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
 
 	args->algorithm = 0;
 	args->colorSpace = 0;
@@ -423,7 +424,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->tmpDir!=0);
 	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
 
-	args->binaryOutput = 1;
+	args->binaryOutput = BPREPROCESS_DEFAULT_OUTPUT;
 	args->timing = 0;
 
 	return;
@@ -439,7 +440,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
+	/*
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "colorSpace:\t\t\t\t%d\n", args->colorSpace);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
@@ -499,8 +502,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
+						/*
 					case 'b':
 						arguments->binaryInput=1;break;
+						*/
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;
