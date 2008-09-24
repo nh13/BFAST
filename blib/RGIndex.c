@@ -666,13 +666,13 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 
 	/* Test that we sorted correctly */
 	/*
-	for(i=1;i<index->length;i++) {
-		if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
-			RGIndexCompareAt(index, rg, i-1, i, 1);
-		}
-		assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	}
-	*/
+	   for(i=1;i<index->length;i++) {
+	   if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
+	   RGIndexCompareAt(index, rg, i-1, i, 1);
+	   }
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   }
+	   */
 }
 
 /* TODO */
@@ -1559,8 +1559,12 @@ void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
 void RGIndexDelete(RGIndex *index)
 {
 	/* Free memory and initialize */
-	free(index->contigs_8);
-	free(index->contigs_32);
+	if(index->contigType == Contig_8) {
+		free(index->contigs_8);
+	}
+	else {
+		free(index->contigs_32);
+	}
 	free(index->positions);
 	free(index->mask);
 	free(index->starts);
@@ -1830,7 +1834,7 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 	RGIndexReadHeader(fp, &index, binaryInput);
 
 	/* Print the info */
-	fprintf(stderr, "start contig:\t%d\n",
+	fprintf(stderr, "start contig:\t\t%d\n",
 			index.startContig);
 	fprintf(stderr, "start position:\t\t%d\n",
 			index.startPos);
@@ -1850,7 +1854,7 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 			(long long int)index.hashLength);
 	fprintf(stderr, "width:\t\t\t%d\n",
 			index.width);
-	fprintf(stderr, "keysize:\t\t\t%d\n",
+	fprintf(stderr, "keysize:\t\t%d\n",
 			index.keysize);
 	fprintf(stderr, "mask:\t\t\t");
 	for(i=0;i<index.width;i++) {
@@ -2536,6 +2540,9 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 						hashIndex += 3;
 						break;
 					default:
+						fprintf(stderr, "\nreadBase=[%c,%d]\n",
+								readBase,
+								(int)readBase);
 						PrintError(FnName,
 								"readBase",
 								"Could not understand base",

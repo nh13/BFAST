@@ -12,6 +12,8 @@
 
 #define Name "bexonify"
 
+#define FILTER_ROTATE_NUM 100000
+
 /* Modifies an index to only include locations specified
  * by the user.  The main purpose is to allow for 
  * alignment to exons, multiple subregions or the like.
@@ -103,6 +105,10 @@ int main(int argc, char *argv[])
 		RGIndexDelete(&index);
 		/* Delete the rg */
 		RGBinaryDelete(&rg);
+
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Terminating successfully.\n");
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
 		fprintf(stderr, "%s [OPTIONS]\n", Name);
@@ -119,8 +125,8 @@ int ReadExons(char *exonsFileName,
 {
 	char *FnName = "ReadExons";
 	FILE *fp;
-	uint8_t contig, prevContig;
-	uint32_t start, end, tmpUint32_t, prevStart, prevEnd;
+	uint32_t contig, prevContig;
+	uint32_t start, end, prevStart, prevEnd;
 	int numExons = 0;
 
 	/* Open the file */
@@ -137,8 +143,7 @@ int ReadExons(char *exonsFileName,
 	/* Read in the exons */ 
 	prevContig = 0;
 	prevStart = prevEnd = 0;
-	while(EOF!=fscanf(fp, "%u %u %u", &tmpUint32_t, &start, &end)) {
-		contig = tmpUint32_t;
+	while(EOF!=fscanf(fp, "%u %u %u", &contig, &start, &end)) {
 
 		/* Check that the exons in increasing order */
 		if(contig < prevContig || 
@@ -180,16 +185,24 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 	char *FnName = "FilterIndexBasedOnExons";
 	int64_t i, j;
 	int64_t low, mid, high, found;
+	int64_t indexLength=index->length;
+
+	fprintf(stderr, "Out of %lld, currently on:\n0",
+			(long long int)index->length);
 
 	/* Go through each entry in the index */
 	for(i=index->length-1;i>=0;i--) {
+		if( (indexLength-i)%FILTER_ROTATE_NUM == 0) {
+			fprintf(stderr, "\r%lld",
+					(long long int)(indexLength-i));
+		}
 		/* Check if it falls within range */
 		/* Binary search */
 		low = 0;
 		high = numExons-1;
 		found = 0;
 		while(low <= high && found == 0) {
-			mid = (low + high/2);
+			mid = (low + high)/2;
 			if(index->contigType == Contig_8) {
 				if(index->contigs_8[i] < (*exons)[mid].contig ||
 						(index->contigs_8[i] == (*exons)[mid].contig && index->positions[i] < (*exons)[mid].start)) {
@@ -232,6 +245,11 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 			index->length--;
 		}
 	}
+			
+			fprintf(stderr, "\r%lld\n",
+					(long long int)(indexLength-i));
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Reallocating index.\n");
 
 	/* Reallocate */
 	if(index->contigType == Contig_8) {
@@ -245,7 +263,7 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 		}
 	}
 	else {
-		index->contigs_32 = realloc(index->contigs_32, index->length*sizeof(uint8_t));
+		index->contigs_32 = realloc(index->contigs_32, index->length*sizeof(uint32_t));
 		if(NULL==index->contigs_32) {
 			PrintError(FnName,
 					"index->contigs_32",
@@ -268,6 +286,9 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 	index->startPos = (*exons)[0].start;
 	index->endContig = (*exons)[numExons-1].contig;
 	index->endPos = (*exons)[numExons-1].end;
+	
+	fprintf(stderr, "Reallocating index complete.\n");
+	fprintf(stderr, "%s", BREAK_LINE);
 
 }
 

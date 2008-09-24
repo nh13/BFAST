@@ -15,7 +15,7 @@
 #include "bindexdist.h"
 
 #define Name "bindexdist"
-#define BINDEXDIST_ROTATE_NUM 10000
+#define BINDEXDIST_ROTATE_NUM 100000
 #define BINDEXDIST_SORT_ROTATE_INC 0.01
 
 /* Prints each unique read from the genome and the number 
@@ -361,8 +361,8 @@ void GetMatchesFromContigPos(RGIndex *index,
 	/* First generate the perfect match for the forward and
 	 * reverse strand */
 
-	reverseRead = malloc(sizeof(char)*(returnLength+1));
-	if(NULL==reverseRead) {
+	(*reverseRead) = malloc(sizeof(char)*(returnLength+1));
+	if(NULL==(*reverseRead)) {
 		PrintError(FnName,
 				"reverseRead",
 				"Could not allocate memory",
@@ -389,16 +389,16 @@ void GetMatchesFromContigPos(RGIndex *index,
 	if(numMismatches > 0) {
 		/* Generate reads with the necessary mismatches for 
 		 *          * both the forward and reverse strands */
-		RGReadsGenerateMismatches((*reverseRead),
+		RGReadsGenerateMismatches((*read),
 				readLength,
-				REVERSE,
+				FORWARD,
 				0,
 				numMismatches,
 				index,
 				&reads);
-		RGReadsGenerateMismatches((*read),
+		RGReadsGenerateMismatches((*reverseRead),
 				readLength,
-				FORWARD,
+				REVERSE,
 				0,
 				numMismatches,
 				index,

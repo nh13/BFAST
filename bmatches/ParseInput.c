@@ -57,7 +57,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
-	DescNumMismatches, DescNumInsertions, DescNumDeletions, DescNumGapInsertions, DescNumGapDeletions, 
+	DescNumMismatches, DescNumDeletions, DescNumInsertions, DescNumGapDeletions, DescNumGapInsertions, 
 	DescMaxMatches, DescPairedEnd, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -83,10 +83,10 @@ static struct argp_option options[] = {
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
 	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates\n\t\t\t"
 		"(SNPs in NT space and color errors in color space)", 2},
-	{"numInsertions", 'y', "numInsertions", 0, "Specifies the number of insertions to allow when searching for candidates", 2},
-	{"numDeletions", 'z', "numDeletions", 0, "Specifies the number of deletions to allow when searching for candidates", 2},
-	{"numGapInsertions", 'Y', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
-	{"numGapDeletions", 'Z', "numGapDeletions", 0, "Specifies the number of gap deletions allowd in the gap between paris", 2},
+	{"numDeletions", 'y', "numDeletions", 0, "Specifies the maximum contiguous deletion allowed when searching for candidates", 2},
+	{"numInsertions", 'z', "numInsertions", 0, "Specifies the maximum contigous deletion allowed when searcing for candidates", 2},
+	{"numGapDeletions", 'Y', "numGapDeletions", 0, "Specifies the number of gap deletions allowed in the gap between pairs", 2},
+	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of matches to consider", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
@@ -466,10 +466,10 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
-	fprintf(fp, "numInsertions:\t\t\t\t%d\n", args->numInsertions);
 	fprintf(fp, "numDeletions:\t\t\t\t%d\n", args->numDeletions);
-	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
+	fprintf(fp, "numInsertions:\t\t\t\t%d\n", args->numInsertions);
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
+	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
@@ -561,9 +561,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'x':
 						arguments->numMismatches=atoi(OPTARG);break;
 					case 'y':
-						arguments->numInsertions=atoi(OPTARG);break;
-					case 'z':
 						arguments->numDeletions = atoi(OPTARG);break;
+					case 'z':
+						arguments->numInsertions=atoi(OPTARG);break;
 						/*
 						   case 'B':
 						   arguments->binaryOutput = 1;break;
@@ -590,9 +590,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->tmpDir = OPTARG;
 						break;
 					case 'Y':
-						arguments->numGapInsertions = atoi(OPTARG);break;
-					case 'Z':
 						arguments->numGapDeletions = atoi(OPTARG);break;
+					case 'Z':
+						arguments->numGapInsertions = atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

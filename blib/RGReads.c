@@ -99,8 +99,6 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapInsertions,
 			numGapDeletions);
 
-	/* TODO HERE */
-
 	/* Merge all reads */
 	/* This may be necessary for a large number of generated reads, but omit for now */
 	/*
@@ -111,7 +109,7 @@ void RGReadsFindMatches(RGIndex *index,
 	   numGapDeletions > 0) {
 	   RGReadsRemoveDuplicates(reads);
 	   }
-	 */
+	   */
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
@@ -272,6 +270,7 @@ void RGReadsGenerateReads(char *read,
 					reads);
 		}
 	}
+
 }
 
 /* TODO */
@@ -446,6 +445,7 @@ void RGReadsGenerateDeletions(char *read,
 		RGReads *reads)
 {
 	char *curRead=NULL;
+	int i;
 
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
@@ -457,17 +457,19 @@ void RGReadsGenerateDeletions(char *read,
 				MallocMemory);
 	}
 
-	RGReadsGenerateDeletionsHelper(read,
-			readLength,
-			direction,
-			offset,
-			numDeletions,
-			numDeletions,
-			0,
-			curRead,
-			0,
-			index,
-			reads);
+	for(i=1;i<=numDeletions;i++) {
+		RGReadsGenerateDeletionsHelper(read,
+				readLength,
+				direction,
+				offset,
+				i,
+				i,
+				0,
+				curRead,
+				0,
+				index,
+				reads);
+	}
 
 	/* Free memory */
 	free(curRead);
@@ -579,6 +581,7 @@ void RGReadsGenerateInsertions(char *read,
 {
 	char *curRead=NULL;
 	int maxNumInsertions = 0;
+	int i;
 
 	/* Get the total number of insertions (delete bases) possible */
 	maxNumInsertions = readLength - index->width;
@@ -602,17 +605,20 @@ void RGReadsGenerateInsertions(char *read,
 				MallocMemory);
 	}
 
-	RGReadsGenerateInsertionsHelper(read,
-			readLength,
-			direction,
-			offset,
-			numInsertions,
-			numInsertions,
-			0,
-			curRead,
-			0,
-			index,
-			reads);
+	/* Try up to the number of insertions */
+	for(i=1;i<=numInsertions;i++) {
+		RGReadsGenerateInsertionsHelper(read,
+				readLength,
+				direction,
+				offset,
+				i,
+				i,
+				0,
+				curRead,
+				0,
+				index,
+				reads);
+	}
 
 	/* Free memory */
 	free(curRead);
@@ -620,6 +626,7 @@ void RGReadsGenerateInsertions(char *read,
 
 /* TODO */
 /* NOTE: no error checking yet! */
+/* Try deleting bases from the read */
 void RGReadsGenerateInsertionsHelper(char *read,
 		int readLength,
 		char direction,
@@ -647,8 +654,6 @@ void RGReadsGenerateInsertionsHelper(char *read,
 			return;
 		}
 		/* try deleting a base */
-		/* Don't delete if the previous base is the same as the one we
-		 * are proposing to delete since we have already tried those permutations */
 		if(curReadIndex == 0 || 
 				read[curReadIndex-1] != read[curReadIndex]) {
 			RGReadsGenerateInsertionsHelper(read,
@@ -719,26 +724,26 @@ void RGReadsGenerateGapDeletions(char *read,
 	if(numGapDeletions <= 0) {
 		return;
 	}
-		/* Allocate memory */
-		curRead = malloc(sizeof(char)*(readLength+1));
-		if(NULL == curRead) {
-			PrintError("RGReadsGenerateGapDeletions",
-					"curRead",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		RGReadsGenerateGapDeletionsHelper(read,
-				readLength,
-				direction,
-				offset,
-				numGapDeletions,
-				curRead,
-				index,
-				reads);
+	/* Allocate memory */
+	curRead = malloc(sizeof(char)*(readLength+1));
+	if(NULL == curRead) {
+		PrintError("RGReadsGenerateGapDeletions",
+				"curRead",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	RGReadsGenerateGapDeletionsHelper(read,
+			readLength,
+			direction,
+			offset,
+			numGapDeletions,
+			curRead,
+			index,
+			reads);
 
-		/* Free memory */
-		free(curRead);
+	/* Free memory */
+	free(curRead);
 }
 
 /* TODO */
@@ -825,27 +830,27 @@ void RGReadsGenerateGapInsertions(char *read,
 		return;
 	}
 
-		/* Allocate memory */
-		curRead = malloc(sizeof(char)*(readLength+1));
-		if(NULL == curRead) {
-			PrintError("RGReadsGenerateGapInsertions",
-					"curRead",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+	/* Allocate memory */
+	curRead = malloc(sizeof(char)*(readLength+1));
+	if(NULL == curRead) {
+		PrintError("RGReadsGenerateGapInsertions",
+				"curRead",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
-		RGReadsGenerateGapInsertionsHelper(read,
-				readLength,
-				direction,
-				offset,
-				numGapInsertions,
-				curRead,
-				index,
-				reads);
+	RGReadsGenerateGapInsertionsHelper(read,
+			readLength,
+			direction,
+			offset,
+			numGapInsertions,
+			curRead,
+			index,
+			reads);
 
-		/* Free memory */
-		free(curRead);
+	/* Free memory */
+	free(curRead);
 }
 
 /* TODO */
@@ -883,8 +888,8 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 			}
 
 			/* Delete min(gapLength, (readLength - readPos) - (index->width - curReadPos)).  We can only 
-			* remove as many bases as we can shift into the gap. 
-			*/
+			 * remove as many bases as we can shift into the gap. 
+			 */
 			numToDelete = (gapLength < (readLength - readPos) - (index->width - curReadPos))?gapLength:(readLength - readPos) - (index->width - curReadPos);
 			/* j is the current number of bases we are deleting */
 			for(j=1;j<=numToDelete;j++) {

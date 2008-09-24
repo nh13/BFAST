@@ -34,10 +34,14 @@ int GetFastaHeaderLine(FILE *fp,
 				OutOfRange);
 	}
 
-	/* Shift over to remove the ">" */
-	length=(int)strlen(header);
+	/* Shift over to remove the ">" and trailing EOL */
+	length=(int)strlen(header)-1;
 	for(i=1;i<length;i++) {
 		header[i-1] = header[i];
+		/* Remove whitespace characters and replace them with an '_' */
+		if(header[i-1] == ' ') {
+			header[i-1] = '_';
+		}
 	}
 	header[length-1] = '\0';
 

@@ -62,11 +62,6 @@ void RGBinaryRead(char *rgFileName,
 	while(EOF!=GetFastaHeaderLine(fpRG, header)) {
 		rg->numContigs++;
 
-		if(VERBOSE>=0) {
-			fprintf(stderr, "Reading in contig %d.\n",
-					rg->numContigs);
-		}
-
 		/* Reallocate memory to store one more contig. */
 		rg->contigs = realloc(rg->contigs, rg->numContigs*sizeof(RGBinaryContig));
 		if(NULL == rg->contigs) {
