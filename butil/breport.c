@@ -397,7 +397,7 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 		 * "AlignEntry"s not "AlignEntries" because we split 
 		 * the paired end */
 		/* Print read one */
-		if(a.numEntriesOne > 0) {
+		if(a.numEntriesOne > 1) {
 			PrintError(FnName,
 					a.readName,
 					"Read one was not uniquely aligned",
@@ -419,9 +419,12 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 				(*tmpFiles)[a.entriesOne[0].contig-1].maxPos = a.entriesOne[0].position + a.entriesOne[0].referenceLength - 1;
 			}
 		}
+		else {
+			/* Ignore */
+		}
 		/* Print read two */
 		if(a.pairedEnd == PairedEnd) {
-			if(a.numEntriesTwo > 0) {
+			if(a.numEntriesTwo > 1) {
 				PrintError(FnName,
 						a.readName,
 						"Read two was not uniquely aligned",
@@ -443,6 +446,9 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 					(*tmpFiles)[a.entriesTwo[0].contig-1].maxPos = a.entriesTwo[0].position + a.entriesTwo[0].referenceLength - 1;
 				}
 			}
+		else {
+			/* Ignore */
+		}
 		}
 		AlignEntriesFree(&a);
 	}
