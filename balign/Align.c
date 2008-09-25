@@ -408,7 +408,6 @@ int FillAlignEntryFromMatrix(AlignEntry *a,
 				case InsertionExt:
 					a->read[i] = read[curRow-1];
 					a->reference[i] = GAP;
-					a->referenceLength++;
 					break;
 				default:
 					fprintf(stderr, "curFrom=%d\n", curFrom);
