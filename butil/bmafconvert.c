@@ -873,7 +873,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
-		fprintf(stderr, "%s [OPTIONS]\n", Name);
+		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast maf file name>\n");
 		fprintf(stderr, "\t<maximum number of entries>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");

@@ -58,7 +58,7 @@ enum {
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescNumMismatches, DescNumDeletions, DescNumInsertions, DescNumGapDeletions, DescNumGapInsertions, 
-	DescMaxMatches, DescPairedEnd, DescNumThreads, 
+	DescMaxKeyMatches, DescMaxTotalMatches, DescPairedEnd, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -87,7 +87,8 @@ static struct argp_option options[] = {
 	{"numInsertions", 'z', "numInsertions", 0, "Specifies the maximum contigous deletion allowed when searcing for candidates", 2},
 	{"numGapDeletions", 'Y', "numGapDeletions", 0, "Specifies the number of gap deletions allowed in the gap between pairs", 2},
 	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
-	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of matches to consider", 2},
+	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
+	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
@@ -122,7 +123,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:x:y:z:A:I:M:O:R:T:Y:Z:2hpt";
+"d:e:i:m:n:o:r:s:x:y:z:A:I:K:M:O:R:T:Y:Z:2hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -190,6 +191,7 @@ main (int argc, char **argv)
 								arguments.numGapInsertions,
 								arguments.numGapDeletions,
 								arguments.pairedEnd,
+								arguments.maxKeyMatches,
 								arguments.maxNumMatches,
 								arguments.numThreads,
 								arguments.outputID,
@@ -312,6 +314,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEnd", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->maxKeyMatches < 0) {
+		PrintError(FnName, "maxKeyMatches", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->maxNumMatches < 0) {
 		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
@@ -421,6 +427,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numGapInsertions = 0;
 	args->numGapDeletions = 0;
 	args->pairedEnd = 0;
+	args->maxKeyMatches = INT_MAX;
 	args->maxNumMatches = INT_MAX;
 	args->numThreads = 1;
 
@@ -471,6 +478,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
+	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
@@ -573,6 +581,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'I':
 						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
 						arguments->bfastSecondaryIndexesFileName = OPTARG;break;
+					case 'K':
+						arguments->maxKeyMatches=atoi(OPTARG);break;
 					case 'M':
 						arguments->maxNumMatches=atoi(OPTARG);break;
 					case 'O':

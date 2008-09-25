@@ -22,7 +22,7 @@ bmatches
 	[\fB\-I\fR \fIFILENAME\fR] 	[\fB\-\-bfastSecondaryIndexesFileName=\fIFILENAME\fR]
 	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-readsFileName=\fIFILENAME\fR]
 	[\fB\-O\fR \fIFILENAME\fR] 	[\fB\-\-offsetsFileName=\fIFILENAME\fR]
-	[\fB\-A\fR]			[\fB\-\-colorSpace\fR]
+	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-space=\fIINTEGER\fR]
 	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startReadNum=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endReadNum=\fIINTEGER\fR]
 	[\fB\-x\fR \fIINTEGER\fR] 	[\fB\-\-numMismatches=\fIINTEGER\fR]
@@ -30,6 +30,7 @@ bmatches
 	[\fB\-z\fR \fIINTEGER\fR] 	[\fB\-\-numDeletions=\fIINTEGER\fR]
 	[\fB\-Y\fR \fIINTEGER\fR] 	[\fB\-\-numGapInsertions=\fIINTEGER\fR]
 	[\fB\-Z\fR \fIINTEGER\fR] 	[\fB\-\-numGapDeletions=\fIINTEGER\fR]
+	[\fB\-K\fR \fIINTEGER\fR]	[\fB\-\-maxKeyMatches=\fIINTEGER\fR]
 	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fIINTEGER\fR]
 	[\fB\-2\fR] 		[\fB\-\-pairedEnd\fR]
 	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fIINTEGER\fR]
@@ -131,8 +132,9 @@ Specifies the file containing the reads.
 Specifies the file containing the offsets.
 .
 .TP 4
-\fB\-A\fR, \fB\-\-colorSpace\fR
-Specifies that the reference genome, indexes, and reads are expected in color space.
+\fB\-A\fR, \fB\-\-space\fR
+Specifies the encoding space of the alphabet.
+\fB\-A 0\fR corresponds to NT (nucleotide) space and \fB\-A 1\fR corresponds to color space.
 .
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startReadNum=\fIINTEGER\fR
@@ -162,6 +164,11 @@ Specifies the maximum number of insertions to allow in the gaps between tiles.
 .TP 4
 \fB\-Z\fR \fIINTEGER\fR, \fB\-\-numGapDeletions=\fIINTEGER\fR
 Specifies the maximum number of deletions to allow in the gaps between tiles.
+.
+.TP 4
+\fB\-K\fR \fIINTEGER\fR, \fB\-\-maxKeyMatches=\fIINTEGER\fR
+Specifies the maximum number of matches to allow before a key is ignored.
+A key may return one or more CALs and therefore it may be desirable to ignore non-unique or over-represented keys. 
 .
 .TP 4
 \fB\-M\fR \fIINTEGER\fR, \fB\-\-maxNumMatches=\fIINTEGER\fR
@@ -220,7 +227,8 @@ Stanley F. Nelson <snelson@ucla.edu>
 .BR bfast "(1), "
 .BR bpreprocess "(1), "
 .BR balign "(1), "
-.BR bpostprocess "(1)."
+.BR bpostprocess "(1),"
+.BR butil "(1)."
 .
 .SH COPYRIGHT
 .P
@@ -231,7 +239,7 @@ use for academic and research purposes.  Without limiting the foregoing,
 you may not use the Software as part of, or in any way in connection
 with the production, marketing, sale or support of any commercial
 product or service.  For commercial use, please contact
-nhomer@cs.ucla.edu.org.  By installing this Software you are agreeing to
+snelson@ucla.edu.  By installing this Software you are agreeing to
 the terms of the LICENSE file distributed with this software.
 .
 .P

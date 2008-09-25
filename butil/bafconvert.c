@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Terminating successfully!\n");
 	}
 	else {
-		fprintf(stderr, "%s [OPTIONS]\n", Name);
+		fprintf(stderr, "Usage:%s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast matches file name>\n");
 		fprintf(stderr, "\t<input type: 0-text 1-binary>\n");
 	}

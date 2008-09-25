@@ -23,26 +23,23 @@ int main(int argc, char *argv[])
 		strcpy(inputFileName, argv[1]);
 
 		fprintf(stderr, "Getting info for %s.\n", inputFileName);
-		if(!(fp=fopen(inputFileName, "rb"))) {
-			PrintError("bheader",
-					inputFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
-		}
-
 		if(NULL!=strstr(inputFileName, BFAST_RG_FILE_EXTENSION)) {
-			fprintf(stdout, "Warning.  Not implemented.\n");
+			RGBinaryPrintInfo(inputFileName);
 		}
 		else if(NULL!=strstr(inputFileName, BFAST_INDEX_FILE_EXTENSION)) {
-			RGIndexPrintInfo(fp, 1);
+			RGIndexPrintInfo(inputFileName);
 		}
-
-		fclose(fp);
+		else {
+			PrintError(Name,
+					"input file",
+					"Could not recognize input file extension",
+					Exit,
+					OutOfRange);
+		}
 	}
 	else {
-		fprintf(stderr, "%s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast index file>\n");
+		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
+		fprintf(stderr, "\t<input file>\n");
 	}
 
 	return 0;

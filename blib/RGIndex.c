@@ -1823,16 +1823,24 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* Debugging function */
-void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
+void RGIndexPrintInfo(char *inputFileName)
 {
-	/*
-	   char *FnName = "RGIndexPrintInfo";
-	   */
+	char *FnName = "RGIndexPrintInfo";
+	FILE *fp;
 	int64_t i;
 	RGIndex index;
 
+	/* Open the file */
+	if(!(fp=fopen(inputFileName, "rb"))) {
+		PrintError(FnName,
+				inputFileName,
+				"Could not open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
 	/* Read in the header */
-	RGIndexReadHeader(fp, &index, binaryInput);
+	RGIndexReadHeader(fp, &index, BinaryInput);
 
 	/* Print the info */
 	fprintf(stderr, "start contig:\t\t%d\n",
@@ -1866,6 +1874,9 @@ void RGIndexPrintInfo(FILE *fp, int32_t binaryInput)
 	/* Free masks and initialize */
 	free(index.mask);
 	RGIndexInitialize(&index);
+
+	/* Close the file */
+	fclose(fp);
 }
 
 /* TODO */
@@ -2042,7 +2053,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, RGRanges *r)
+void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int32_t maxKeyMatches, RGRanges *r)
 {
 	int64_t startIndex=-1;
 	int64_t endIndex=-1;
@@ -2058,6 +2069,7 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 	if(index->starts[hashIndex] == UINT_MAX || 
 			index->ends[hashIndex] == UINT_MAX) {
 		/* Skip */
+		return;
 	}
 	else {
 		assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
@@ -2073,16 +2085,19 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 				&endIndex);
 
 		if(foundIndex>0) {
-			/* (Re)Allocate memory for the new range */
-			RGRangesReallocate(r, r->numEntries+1);
-			assert(endIndex >= startIndex);
-			assert(startIndex >= 0 && startIndex < index->length);
-			assert(endIndex >= 0 && endIndex < index->length);
-			/* Copy over to the range list */
-			r->startIndex[r->numEntries-1] = startIndex;
-			r->endIndex[r->numEntries-1] = endIndex;
-			r->strand[r->numEntries-1] = direction;
-			r->offset[r->numEntries-1] = offset;
+			/* Check if the key has too many matches */
+			if( (endIndex-startIndex+1) <= maxKeyMatches) {
+				/* (Re)Allocate memory for the new range */
+				RGRangesReallocate(r, r->numEntries+1);
+				assert(endIndex >= startIndex);
+				assert(startIndex >= 0 && startIndex < index->length);
+				assert(endIndex >= 0 && endIndex < index->length);
+				/* Copy over to the range list */
+				r->startIndex[r->numEntries-1] = startIndex;
+				r->endIndex[r->numEntries-1] = endIndex;
+				r->strand[r->numEntries-1] = direction;
+				r->offset[r->numEntries-1] = offset;
+			}
 		}
 	}
 }

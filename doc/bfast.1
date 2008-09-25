@@ -46,6 +46,7 @@ bpreprocess [\fBoptions\fR]
 bmatches [\fBoptions\fR]
 balign [\fBoptions\fR]
 bpostprocess [\fBoptions\fR]
+butil
 .fi
 .fam
 .
@@ -58,10 +59,13 @@ The bfast system consists of four executable programs:
 .BR bpalign "," 
 and
 .BR bpostprocess "."
+Additional unsupported utilities are provided in the 
+.BR butil 
+directory.
 .
 .P
 \fBbpreprocess\fR
-is used to pre-compute indexes needed to perform alignment and to convert the reference genome to a binary format for faster loading.
+to convert the reference sequence to a binary format for faster loading and to pre-compute indexes needed to perform alignment. 
 The indexes are stored in binary format and can then be re-used to align new reads using the previous settings.
 .
 .P
@@ -82,7 +86,7 @@ into a user-specified format.
 .
 .SH INSTALLATION
 .P
-\fBbfast\fR uses the GNU Build System.
+\fBbfast\fR uses the GNU Build System, or Autotools.
 To install from source, go to the main directory and type in 
 .br 
 \fBconfigure\fR
@@ -95,48 +99,46 @@ To generate \fBconfigure\fR, type in
 .br
 \fBautoconf\fR
 .br
+or
+.br
+\fBautoreconf\fR
 .
 .SH FILE FORMATS
 .
 .TP
-.B Reference Genome List
-This file contains the list of files specifying the sequence of the reference genome.
-Each line will correspond to one chromosome beginning with chromosome 1 and continuing in increasing order.
-The reference files for each chromosome should be in fasta format.
-For example, the file could be of the form:
-.br
-chr1.fa
-.br
-chr2.fa
-.br
-chr3.fa
-.br
-chr...
+.B Reference Genome FASTA File
+This file contains the sequence that composes a reference sequence and should be in FASTA format.
+There can be up to 2147483648 different contigs, for example chromosomes or exons.
+The first line of a contig begins with a ">" and the contig name, for example \fBchr1\fR.
+The subsequent lines contain the sequence for that contig.
 .
 .TP
 .B Index Layout
 The file specified will contain the layout for each index that you wish to generate.
-The first line in the file will be the number of indexes you wish to generate.
-This allows for serial generation of indexes.
-Each subsequent line will be a layout for the index.
-The output file names for the indexes will be labeled according to this order (i.e. *.$i.bif where $i is the index number in the layouts file).
+Each line corresponds to an index for one layout.
+Thus, if multiple layouts are given, each index will be created in batch-mode and in serial.
+The output file names for the indexes will be labeled according to this order (i.e. *.$i.bif with this index specified by the $ith layout).
 The entries in a line should be tab or space deliminated.
-The first entry is the size of the index hash.
-The second entry is the number of tiles to use.
-The subsequent entries correspond to a tile length, then a gap length, and so on until the last tile length is specified.
+The first entry is the index width.
+The second entry is the mask for the index.
+The mask is specified as zeros and ones with no spaces.
+A one specifies that a base is to be used, and a zero specifies that a base is to be ignored. 
+The keysize is the number of ones in the mask and the width is the total number of zeros and ones.
 An example would be:
 .br
-3
+12 11111111111111
 .br
-14 1 32
+12 111101111111111
 .br
-14 1 20
+12 11111010011010101111
 .br
-14 2 10 12 10
+12 11110111111110011
 .br
-Here we will generate three indexes.
-Each index will have a index hash size of fourteen.
-The first index will have one tile of length thirty-two, the second index will have one tile of length twenty, and the third index will have two tiles both with lengths ten and a gap of twelve between them.
+12 111101110010111111
+.br
+Here we will generate five indexes.
+Each index will have a index hash size of twelve.
+The first index is a contiguous fourteen bases (keysize 14 and width 14), the second index ignores the fifth base (keysize 14 and width 15), and so on... 
 .
 .TP
 .B Reads FASTA File
@@ -190,12 +192,12 @@ G0100011000020100132100022i
 .TP
 .B Offsets File
 The offsets file contains the list of offsets to use when searching with the indexes.
-The offsets are stored in one line and are separated by whitespaces.
+The offsets are separated by whitespaces.
 An example is:
 .br
-0	5	10
+0 1 2 3 4 5
 .br
-Three offsets are specified above.
+Six offsets are specified above.
 Offsets should be specified in increasing order.
 .
 .TP
@@ -276,7 +278,8 @@ Stanley F. Nelson <snelson@ucla.edu>
 .BR bpreprocess "(1), " 
 .BR bmatches "(1), "
 .BR balign "(1), "
-.BR bpostprocess "(1)."
+.BR bpostprocess "(1),"
+.BR butil "(1)."
 .
 .SH COPYRIGHT
 .P
@@ -287,13 +290,13 @@ use for academic and research purposes.  Without limiting the foregoing,
 you may not use the Software as part of, or in any way in connection
 with the production, marketing, sale or support of any commercial
 product or service.  For commercial use, please contact
-licensing@ucla.edu.  By installing this Software you are agreeing to
+snelson@ucla.edu.  By installing this Software you are agreeing to
 the terms of the LICENSE file distributed with this software.
 .
 .P
 In any work or product derived from the use of this Software, proper
 attribution of the authors as the source of the software or data must
-be made.  Please reference the original BFAST paper PMID<to be published>.  
+be made.  Please reference the original BFAST paper PMID <to be published>.  
 In addition, the following URL should be cited:
 .
 .P

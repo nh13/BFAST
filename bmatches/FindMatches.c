@@ -35,6 +35,7 @@ void FindMatches(
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int maxKeyMatches,
 		int maxNumMatches,
 		int numThreads,
 		char *outputID,
@@ -262,6 +263,7 @@ void FindMatches(
 			numGapInsertions,
 			numGapDeletions,
 			pairedEnd,
+			maxKeyMatches,
 			maxNumMatches,
 			numThreads,
 			&tempSeqFPs,
@@ -301,6 +303,7 @@ void FindMatches(
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
+				maxKeyMatches,
 				maxNumMatches,
 				numThreads,
 				&tempSeqFPs,
@@ -433,6 +436,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int maxKeyMatches,
 		int maxNumMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
@@ -524,6 +528,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numGapInsertions,
 				numGapDeletions,
 				pairedEnd,
+				maxKeyMatches,
 				maxNumMatches,
 				numThreads,
 				tempSeqFPs,
@@ -671,6 +676,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int numGapInsertions,
 		int numGapDeletions,
 		int pairedEnd,
+		int maxKeyMatches,
 		int maxNumMatches,
 		int numThreads,
 		FILE ***tempSeqFPs,
@@ -776,6 +782,7 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].numGapInsertions = numGapInsertions;
 		data[i].numGapDeletions = numGapDeletions;
 		data[i].pairedEnd = pairedEnd;
+		data[i].maxKeyMatches = maxKeyMatches;
 		data[i].maxNumMatches = maxNumMatches;
 		data[i].threadID = i;
 	}
@@ -903,6 +910,7 @@ void *FindMatchesInIndexThread(void *arg)
 	int numGapDeletions = data->numGapDeletions;
 	int binaryOutput = data->binaryOutput;
 	int pairedEnd = data->pairedEnd;
+	int maxKeyMatches = data->maxKeyMatches;
 	int maxNumMatches = data->maxNumMatches;
 	int threadID = data->threadID;
 	data->numMatches = 0;
@@ -939,6 +947,7 @@ void *FindMatchesInIndexThread(void *arg)
 				numDeletions,
 				numGapInsertions,
 				numGapDeletions,
+				maxKeyMatches,
 				maxNumMatches);
 		if(pairedEnd==1) {
 			RGReadsFindMatches(index,
@@ -952,6 +961,7 @@ void *FindMatchesInIndexThread(void *arg)
 					numDeletions,
 					numGapInsertions,
 					numGapDeletions,
+					maxKeyMatches,
 					maxNumMatches);
 		}
 

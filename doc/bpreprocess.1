@@ -19,16 +19,17 @@ bpreprocess \- pre-computes suitable indexes and genomes that can be re-used in 
 bpreprocess
 	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-rgFileName=\fIFILENAME\fR]
 	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-indexLayoutFileName=\fIFILENAME\fR]
-	[\fB\-a\fR] 		[\fB\-\-colorSpace\fR]
-	[\fB\-A\fR \fIINTEGER\fR] 	[\fB\-\-algorithm=\fIINTEGER\fR]
-	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startChr=\fIINTEGER\fR]
+	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm\=\fIINTEGER\fR]
+	[\fB\-A\fR \fIINTEGER\fR] 	[\fB\-\-space=\fIINTEGER\fR]
+	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startContig=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
-	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endChr=\fIINTEGER\fR]
+	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endContig=\fIINTEGER\fR]
 	[\fB\-E\fR \fIINTEGER\fR] 	[\fB\-\-endPos=\fIINTEGER\fR]
 	[\fB\-R\fR]			[\fB\-\-repeatMasker\fR]
 	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fIINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR] [\fB\-\-outputDir=\fIDIRECTORY\fR]
+	[\fB\-T\fR \fIDIRECTORY\fR]	[\fB\-\-tmpDir=\fIDIRECTORY\fR]
 	[\fB\-t\fR] 		[\fB\-\-timing\fR]
 	[\fB\-p\fR] 		[\fB\-\-Parameters\fR]
 	[\fB\-h\fR] 		[\fB\-\-Help\fR]
@@ -55,7 +56,7 @@ For more information on this file format please see
 .P
 To generate an index (\fB\-a 0\fR), the reference genome sequence must be given (see \fB\-r\fR).
 The number of indexes to be generated and their respective layouts must also be given (see \fB\-i\fR).
-The index does not have to range over the whole-genome, and can be narrowed to a range be using options \fB\-s\fR, \fB\-S\fR, \fB\-e\fR and \fB\-E\fR to specify start chromosome and position as well as end chromosome and position for the range.
+The index does not have to range over the whole-genome, and can be narrowed to a range be using options \fB\-s\fR, \fB\-S\fR, \fB\-e\fR and \fB\-E\fR to specify start contig and position as well as end contig and position for the range.
 If you are using a multi-core and/or a multi-processor machine, it is beneficial to specify the number of threads (see \fB\-n\fR) to match the number of independent processing units as to speed up the generating time.
 The indexes are stored in binary format to reduce disk space as well as speed up subsequent loading time.
 To ignore lower case bases, which correspond to RepeatMasker sequence, use the \fB\-R\fR option.
@@ -64,37 +65,39 @@ To ignore lower case bases, which correspond to RepeatMasker sequence, use the \
 .TP 4
 \fB\-r\fR \fIFILENAME\fR, \fB\-\-rgFileName=\fIFILENAME\fR
 The file specified contains the reference genome.
-If \fB\-a 0\fR is used, then the file name should contain the bfast binary reference genome file.
-If \fB\-a 1\fR is used, then the file name should contain the reference genome file list.  
-For more information on the format of the latter file, please see
+If \fB\-a 0\fR is used, then the file name should contain the reference genome FASTA file.
+If \fB\-a 1\fR is used, then the file name should contain the bfast binary reference genome file.
+For more information on the format of the former file, please see
 .BR bfast(1) "."
 .
 .TP 4
 \fB\-i\fR \fIFILENAME\fR, \fB\-\-indexLayoutFileName=\fIFILENAME\fR
 The file specified will contain the layout for each index that you wish to generate.
+For more information on the format of this file, please see
+.BR bfast(1) "."
 .
 .TP 4
 \fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR
 This specifies what should be pre-computed.
-If \fB\-a 0\fR is given, we will create an index according to the layouts (\fB\-i\fR) given.
-If \fB\-a 1\fR is given, we will create binary files for the reference genome.
-\fB\-a 1\fR is not yet implemented.
+If \fB\-a 0\fR is given, binary files for the reference genome will be created.
+If \fB\-a 1\fR is given, index(es) in binary format will be created according to the layouts (\fB\-i\fR) given.
 .
 .TP 4
-\fB\-A\fR, \fB\-\-colorSpace\fR
-Specifies that the index or reference genome should be created in color space.
+\fB\-A\fR, \fB\-\-space\fR
+Specifies the encoding space of the alphabet.
+\fB\-A 0\fR corresponds to NT (nucleotide) space and \fB\-A 1\fR corresponds to color space.
 .
 .TP 4
-\fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
-Specifies the beginning chromosome range to consider when building the indexes.
+\fB\-s\fR \fIINTEGER\fR, \fB\-\-startContig=\fIINTEGER\fR
+Specifies the beginning contig range to consider when building the indexes.
 .
 .TP 4
 \fB\-S\fR \fIINTEGER\fR, \fB\-\-startPos=\fIINTEGER\fR
 Specifies the beginning position range to consider when building the indexes.
 .
 .TP 4
-\fB\-e\fR \fIINTEGER\fR, \fB\-\-endChr=\fIINTEGER\fR
-Specifies the end chromosome range to consider when building the indexes.
+\fB\-e\fR \fIINTEGER\fR, \fB\-\-endContig=\fIINTEGER\fR
+Specifies the end contig range to consider when building the indexes.
 .
 .TP 4
 \fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
@@ -102,14 +105,13 @@ Specifies the end position range to consider when building the indexes.
 .
 .TP 4
 \fB\-R\fR, \fB\-\-RepeatMasker\fR
-Ignores lower case bases when creating the indexes (\fB-a 0\fR).
+Ignores lower case bases when creating the indexes (\fB\-a 0\fR).
 This typically corresponds to RepeatMasker sequence.
 .
 .TP 4
 \fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fIINTEGER\fR
-Specifies the number of threads to create.
-Sorting of the index is required for fast look-up.
-The speed of the sort will increase by a factor of \fB1/n\fR.
+Specifies the number of threads to create for use with \fB\-a 1\fB.
+The number of threads must be a power of two.
 .
 .TP 4
 \fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
@@ -118,6 +120,11 @@ Specifies a string to include when naming the output files.
 .TP 4
 \fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
 Specifies the directory in which to output.
+.
+.TP 4
+\fB\-T\fR \fIDIRECTORY\fR, \fB\-\-tmpDir=\fIDIRECTORY\fR
+Specifies the directory in which to store temporary files.
+If no option is given, this is defaulted to the output directory (\fB\-d\fR).
 .
 .TP 4
 \fB\-t\fR, \fB\-\-timing\fR
@@ -149,7 +156,8 @@ Stanley F. Nelson <snelson@ucla.edu>
 .BR bfast "(1), "
 .BR bmatches "(1), "
 .BR balign "(1), "
-.BR bpostprocess "(1)."
+.BR bpostprocess "(1),"
+.BR butil "(1)."
 .
 .SH COPYRIGHT
 .P
@@ -160,7 +168,7 @@ use for academic and research purposes.  Without limiting the foregoing,
 you may not use the Software as part of, or in any way in connection
 with the production, marketing, sale or support of any commercial
 product or service.  For commercial use, please contact
-nhomer@cs.ucla.edu.org.  By installing this Software you are agreeing to
+snelson@ucla.edu.  By installing this Software you are agreeing to
 the terms of the LICENSE file distributed with this software.
 .
 .P

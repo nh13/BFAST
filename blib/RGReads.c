@@ -32,6 +32,7 @@ void RGReadsFindMatches(RGIndex *index,
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
+		int maxKeyMatches,
 		int maxNumMatches)
 {
 	int64_t i;
@@ -119,6 +120,7 @@ void RGReadsFindMatches(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
+				maxKeyMatches,
 				&ranges);
 	}
 

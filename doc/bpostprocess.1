@@ -18,7 +18,6 @@ bpostprocess \- converts alignment files to the user-specified format.
 .nf
 bpostprocess
 	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-inputFileName=\fIFILENAME\fR]
-	[\fB\-b\fR] 		[\fB\-\-binaryInput\fR]
 	[\fB\-2\fR]			[\fB\-\-pairedEnd\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithmReads=\fIINTEGER\fR]
 	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-algorithmReadsPaired=\fIINTEGER\fR]
@@ -56,10 +55,6 @@ is not yet complete.
 .TP 4
 \fB\-i\fR \fIFILENAME\fR, \fB\-\-inputFileName=\fIFILENAME\fR
 Specifies the input file from the balign program.
-.
-.TP 4
-\fB\-b\fR, \fB\-\-binaryInput\fR
-Specifies that the input files will be in binary form.
 .
 .TP 4
 \fB\-r\fR, \fB\-\-runFiltering\fR
@@ -181,7 +176,8 @@ Stanley F. Nelson <snelson@ucla.edu>
 .BR bfast "(1), "
 .BR bpreprocess "(1), "
 .BR bmatches "(1), "
-.BR balign "(1)."
+.BR balign "(1),"
+.BR butil "(1)."
 .
 .SH COPYRIGHT
 .P
@@ -192,7 +188,7 @@ use for academic and research purposes.  Without limiting the foregoing,
 you may not use the Software as part of, or in any way in connection
 with the production, marketing, sale or support of any commercial
 product or service.  For commercial use, please contact
-nhomer@cs.ucla.edu.org.  By installing this Software you are agreeing to
+snelson@ucla.edu.  By installing this Software you are agreeing to
 the terms of the LICENSE file distributed with this software.
 .
 .P

@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
-		fprintf(stderr, "%s [OPTIONS]\n", Name);
+		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast reference genome file>\n");
 		fprintf(stderr, "\t<bfast index file>\n");
 		fprintf(stderr, "\t<exon list file>\n");

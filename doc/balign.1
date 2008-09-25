@@ -18,14 +18,13 @@ balign \- aligns candidate alignment locations to the reference genome.
 .nf
 balign
 	[\fB\-r\fR \fIFILENAME\fR]	[\fB\-\-rgFileName=\fIFILENAME\fR]
-	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchesFileName=\fIFILENAME\fR]
+	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchFileName=\fIFILENAME\fR]
 	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm=\fIINTEGER\fR]
-	[\fB\-b\fR \fIINTEGER\fR]	[\fB\-\-binaryInput\fR]
-	[\fB\-A\fR]			[\fB\-\-colorSpace\fR]
-	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startChr=\fIINTEGER\fR]
+	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-space=\fIINTEGER\fR]
+	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startContig=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
-	[\fB\-e\fR \fIINTEGER\fR]	[\fB\-\-endChr=\fIINTEGER\fR]
+	[\fB\-e\fR \fIINTEGER\fR]	[\fB\-\-endContig=\fIINTEGER\fR]
 	[\fB\-E\fR \fIINTEGER\fR]	[\fB\-\-endPos=\fIINTEGER\fR]
 	[\fB\-O\fR \fIINTEGER\fR]	[\fB\-\-offset=\fIINTEGER\fR]
 	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fIINTEGER\fR]
@@ -79,7 +78,7 @@ For more information regarding the creation of a reference genome, see
 .BR bpreprocess "(1)."
 .
 .TP 4
-\fB\-m\fR \fIFILENAME\fR, \fB\-\-matchesFileName=\fIFILENAME\fR
+\fB\-m\fR \fIFILENAME\fR, \fB\-\-matchFileName=\fIFILENAME\fR
 Specifies a file containing a list of matches files from the bmatches program.
 .
 .TP 4
@@ -87,28 +86,26 @@ Specifies a file containing a list of matches files from the bmatches program.
 Specifies the scoring matrix file.
 .
 .TP 4
-\fB\-b\fR, \fB\-\-binaryInput\fR
-Specifies the matches files will be in binary format.
-.
-.TP 4
 \fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR
 Specifies the algorithm to use when scoring alignments.
 Currently only the Dynamic Programming algorithm is available and is specified using the value \fB0\fR.
 .
 .TP 4
-\fB\-A\fR, \fB\-\-colorSpace\fR
-Specifies that the local alignment should occur support color space.
+\fB\-A\fR, \fB\-\-space\fR
+Specifies the encoding space of the alphabet.
+\fB\-A 0\fR corresponds to NT (nucleotide) space and \fB\-A 1\fR corresponds to color space.
+.
 .TP 4
-\fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
-Specifies the start chromosome of candidate alignment locations to consider.
+\fB\-s\fR \fIINTEGER\fR, \fB\-\-startContig=\fIINTEGER\fR
+Specifies the start contig of candidate alignment locations to consider.
 .
 .TP 4
 \fB\-S\fR \fIINTEGER\fR, \fB\-\-startPos=\fIINTEGER\fR
 Specifies the start position of candidate alignment locations to consider.
 .
 .TP 4
-\fB\-e\fR \fIINTEGER\fR, \fB\-\-endChr=\fIINTEGER\fR
-Specifies the end chromosome of candidate alignment locations to consider.
+\fB\-e\fR \fIINTEGER\fR, \fB\-\-endContig=\fIINTEGER\fR
+Specifies the end contig of candidate alignment locations to consider.
 .
 .TP 4
 \fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
@@ -184,7 +181,8 @@ Stanley F. Nelson <snelson@ucla.edu>
 .BR bfast "(1), "
 .BR bpreprocess "(1), "
 .BR bmatches "(1), "
-.BR bpostprocess "(1)."
+.BR bpostprocess "(1),"
+.BR butil "(1)."
 .
 .SH COPYRIGHT
 .P
@@ -195,7 +193,7 @@ use for academic and research purposes.  Without limiting the foregoing,
 you may not use the Software as part of, or in any way in connection
 with the production, marketing, sale or support of any commercial
 product or service.  For commercial use, please contact
-nhomer@cs.ucla.edu.org.  By installing this Software you are agreeing to
+snelson@ucla.edu.  By installing this Software you are agreeing to
 the terms of the LICENSE file distributed with this software.
 .
 .P

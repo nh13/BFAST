@@ -145,6 +145,7 @@ void GetPivots(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
+				INT_MAX,
 				&ranges);
 	}
 
@@ -614,6 +615,7 @@ void GetMatchesFromContigPos(RGIndex *index,
 				reads.readLength[i],
 				reads.strand[i],
 				reads.offset[i],
+				INT_MAX,
 				&ranges);
 	}
 

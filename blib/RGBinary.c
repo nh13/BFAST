@@ -747,6 +747,7 @@ void RGBinaryGetReference(RGBinary *rg,
 	}
 }
 
+/* TODO */
 int8_t RGBinaryGetBase(RGBinary *rg,
 		int32_t contig,
 		int32_t position) 
@@ -918,6 +919,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 	return curChar;
 }
 
+/* TODO */
 int32_t RGBinaryIsRepeat(RGBinary *rg,
 		int32_t contig,
 		int32_t position)
@@ -949,6 +951,7 @@ int32_t RGBinaryIsBaseRepeat(int8_t curBase)
 	}
 }
 
+/* TODO */
 int32_t RGBinaryIsN(RGBinary *rg,
 		int32_t contig, 
 		int32_t position) 
@@ -960,7 +963,29 @@ int32_t RGBinaryIsN(RGBinary *rg,
 	return RGBinaryIsBaseN(curBase);
 }
 
+/* TODO */
 int32_t RGBinaryIsBaseN(int8_t curBase)
 {
 	return ( (curBase == 'n' || curBase == 'N')?1:0);
 }
+
+/* TODO */
+void RGBinaryPrintInfo(char *rgFileName)
+{
+	int32_t i;
+	RGBinary rg;
+
+	/* Read in the reference genome */
+	RGBinaryReadBinary(&rg, rgFileName);
+
+	/* Print details */
+	fprintf(stderr, "number of contigs:\t\t%d\n", rg.numContigs);
+	fprintf(stderr, "space:\t\t\t\t%d\n", rg.space);
+	for(i=0;i<rg.numContigs;i++) {
+		fprintf(stderr, "contig %6d name:\t%s\n", i, rg.contigs[i].contigName);
+		fprintf(stderr, "contig %6d length:\t%d\n", i, rg.contigs[i].sequenceLength);
+	}
+
+	RGBinaryDelete(&rg);
+}
+

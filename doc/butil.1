@@ -17,20 +17,25 @@ butil \- utilities for bfast (not supported)
 .fam C
 .nf
 .
-bexonify
+bafconvert [OPTIONS]
+	<bfast matches file name>
+	<input type: 0-text 1-binary>
+
+bevalsim [OPTIONS]
+	<bfast aligned file>
+	<output id>
+
+bexonify [OPTIONS]
 	<bfast reference genome file>
 	<bfast index file>
 	<exon list file>
 
-bfixhash
+bfixhash [OPTIONS]
 	<bfast reference genome file>
 	<bfast index file>
 	<new hash width>
 
-bheader
-	<bfast index file>
-
-bgeneratereads 
+bgeneratereads [OPTIONS]
 	<bfast reference genome file name (must be in nt space)>
 	<space 0: nt space 1: color space>
 	<indel 0: none 1: deletion 2: insertion>
@@ -43,7 +48,10 @@ bgeneratereads
 	<paired end length>
 	<number of reads>
 
-bindexdist
+bheader [OPTIONS]
+	<input file>
+
+bindexdist [OPTIONS]
 	<bfast reference genome file>
 	<bfast index file name>
 	<number of mismatches>
@@ -52,33 +60,33 @@ bindexdist
 	<tmp file directory>
 	<number of threads>
 
-bindexhist
+bindexhist [OPTIONS]
 	<bfast reference genome file name>
 	<bfast index file name>
 	<number of mismatches for histogram>
 	<number of threads>
 
-bmafconvert
+bmafconvert [OPTIONS]
 	<bfast maf file name>
 	<maximum number of entries>
 	<tmp file directory
 
-bmfconvert
+bmfconvert [OPTIONS]
 	<bfast matches file name>
 	<input type: 0-text 1-binary>
 	<0-single-end 1-paired end>
 
-bpairedenddist
+bpairedenddist [OPTIONS]
 	<bfast matches file name>
 	<binary Input: 0-text 1-binary>
 
-brepeat
+brepeat [OPTIONS]
 	<bfast reference genome file>
 	<minimum unit length>
 	<maximum unit length>
 	<minimum total repeat length>
 
-btestindexes
+btestindexes [OPTIONS]
 	-a	INT	algorithm
 			0: read from file
 			1: brute-force search all indexes
@@ -97,11 +105,6 @@ btestindexes
 	-e	INT	number of errors
 	-p	NULL	prints the program parameters
 	-h	NULL	prints this message
-
-bupdateheader
-	<bfast index file>
-	<missing:
-			0: color space flag>
 .fi
 .fam
 .
@@ -129,7 +132,7 @@ genererates synthetic reads given a number of variants and errors from a referen
 .
 .P
 .B bheader
-prints the header of a bfast index file; the header completely defines the index.
+prints the header of a bfast reference genome file or a bfast index file. 
 .
 .P
 .B bindexdist
@@ -160,11 +163,6 @@ finds all contiguous repeats in the genome specified by the index that fall with
 .P
 .B btestindexes
 is a utility that tests, searches for, and compares layouts for indexes against certain events, such as errors, mismatches and insertions.
-.
-.P 
-.B bupdateheader
-is a utility that updates the header of a bfast index file. 
-This is useful for converting old index files, with obsolete headers, as to work with new bfast index files.
 .
 .
 .SH KNOWN ISSUES
@@ -197,7 +195,7 @@ use for academic and research purposes.  Without limiting the foregoing,
 you may not use the Software as part of, or in any way in connection
 with the production, marketing, sale or support of any commercial
 product or service.  For commercial use, please contact
-nhomer@cs.ucla.edu.org.  By installing this Software you are agreeing to
+snelson@ucla.edu.  By installing this Software you are agreeing to
 the terms of the LICENSE file distributed with this software.
 .
 .P

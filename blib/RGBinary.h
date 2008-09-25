@@ -16,5 +16,6 @@ int32_t RGBinaryIsRepeat(RGBinary*, int32_t, int32_t);
 int32_t RGBinaryIsBaseRepeat(int8_t);
 int32_t RGBinaryIsN(RGBinary*, int32_t, int32_t);
 int32_t RGBinaryIsBaseN(int8_t);
+void RGBinaryPrintInfo(char*);
 
 #endif
