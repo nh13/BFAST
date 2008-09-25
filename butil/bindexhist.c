@@ -328,7 +328,7 @@ void PrintHistogram(RGIndex *index,
 
 		fprintf(fp, "# Number of unique places was: %lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
 				(long long int)numDifferent,
-				(long long int)2*index->length, /* Times two for both strands */
+				(long long int)(2*index->length), /* Times two for both strands */
 				(long long int)numDifferent,
 				((double)index->length*2.0)/numDifferent); /* Times two for both strands */
 		fprintf(fp, "# Found counts for %lld mismatches:\n",
