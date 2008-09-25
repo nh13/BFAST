@@ -201,22 +201,27 @@ int AlignColorSpace(char *read,
 								/* 4 gap extension */
 								case 0:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionA;
 									break;
 								case 1:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionC;
 									break;
 								case 2:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionG;
 									break;
 								case 3:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionT;
 									break;
 								case 4:
 									curScore = matrix[i+1][j].score[l] + sm->gapExtensionPenalty;
+									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapExtensionPenalty;
 									curFrom = DeletionExt;
 									break;
 								case 5:
@@ -231,10 +236,11 @@ int AlignColorSpace(char *read,
 							}
 							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
+								curScore = NEGATIVE_INFINITY;
 							}
 							if(curScore > maxScore && l != 5) {
 								maxScore = curScore;
-								maxScoreNT = curScore;
+								maxScoreNT = curScoreNT;
 								maxFrom = curFrom;
 								maxColorError = '0';
 								maxLength = curLength;
@@ -248,21 +254,25 @@ int AlignColorSpace(char *read,
 								/* 5 gap extension */
 								case 0:
 									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = InsertionA;
 									curPrevInsertionBase = DNA[l];
 									break;
 								case 1:
 									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = InsertionC;
 									curPrevInsertionBase = DNA[l];
 									break;
 								case 2:
 									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = InsertionG;
 									curPrevInsertionBase = DNA[l];
 									break;
 								case 3:
 									curScore = matrix[i][j+1].score[l] + sm->gapOpenPenalty;
+									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = InsertionT;
 									curPrevInsertionBase = DNA[l];
 									break;
@@ -270,6 +280,7 @@ int AlignColorSpace(char *read,
 									break;
 								case 5:
 									curScore = matrix[i][j+1].score[l] + sm->gapExtensionPenalty;
+									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapExtensionPenalty;
 									curFrom = InsertionExt;
 									curPrevInsertionBase = ConvertBaseAndColor(matrix[i+1][j].prevInsertionBase, 
 											curColor);
@@ -284,10 +295,11 @@ int AlignColorSpace(char *read,
 							}
 							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
+								curScoreNT = NEGATIVE_INFINITY;
 							}
 							if(curScore > maxScore && l != 4) {
 								maxScore = curScore;
-								maxScoreNT = curScore;
+								maxScoreNT = curScoreNT;
 								maxFrom = curFrom;
 								maxColorError = '0';
 								maxLength = curLength;

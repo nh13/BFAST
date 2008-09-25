@@ -134,6 +134,29 @@ void WriteReadsToTempFile(FILE *seqFP,
 	int curSeqFPIndex=0;
 	int curReadNum = 1;
 	RGMatches m;
+	char curLine[MAX_HEADER_LENGTH]="\0";
+	fpos_t curFilePos;
+
+
+	/* Read in any lines that begin with # */
+	do {
+		/* Get current file position */
+		if(0!=fgetpos(seqFP, &curFilePos)) {
+			PrintError(FnName,
+					"fgetpos",
+					"Could not get position in file",
+					Exit,
+					OutOfRange);
+		}
+	} while(NULL!=fgets(curLine, MAX_HEADER_LENGTH, seqFP) && curLine[0]=='#');
+	/* Restore position */
+	if(0!=fsetpos(seqFP, &curFilePos)) {
+		PrintError(FnName,
+				"fsetpos",
+				"Could not set position in the file",
+				Exit,
+				OutOfRange);
+	}
 
 	(*numFiltered)=0;
 	(*numWritten)=0;

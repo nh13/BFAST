@@ -469,7 +469,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
-	fprintf(fp, "space:\t\t\t\t%d\n", args->space);
+	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
