@@ -66,11 +66,6 @@ bindexhist [OPTIONS]
 	<number of mismatches for histogram>
 	<number of threads>
 
-bmafconvert [OPTIONS]
-	<bfast maf file name>
-	<maximum number of entries>
-	<tmp file directory
-
 bmfconvert [OPTIONS]
 	<bfast matches file name>
 	<input type: 0-text 1-binary>
@@ -85,6 +80,11 @@ brepeat [OPTIONS]
 	<minimum unit length>
 	<maximum unit length>
 	<minimum total repeat length>
+
+breport [OPTIONS]
+	<bfast baf file name>
+	<maximum number of entries when sorting>
+	<tmp file directory
 
 btestindexes [OPTIONS]
 	-a	INT	algorithm
@@ -152,11 +152,6 @@ prints each unique read from the genome and the number of times it occurs, where
 prints a histogram that counts the number of k-mers in the genome that occur X number of times.  
 The k-mer chosen comes from the layout of the index.
 .
-.P 
-.B bmafconvert
-converts a bfast .maf file to bfast .bed and .wig files.  
-The generated files do not conform with USCS standards but are nonetheless more verbose.
-.
 .P
 .B bmfconvert
 converts a bmatches file from binary to plaintext or vice versa.
@@ -168,6 +163,13 @@ prints the distribution of the distance between paired-end reads using reads tha
 .P
 .B brepeat
 finds all contiguous repeats in the genome specified by the index that fall within the specified unit length range and minimum contiguous length.
+.
+.P
+.B breport
+converts a bfast .baf file to bfast .bed and .wig files.
+The .baf file must be generated from bpostprocess, with each read having a unique alignment.  
+The files generated files do not conform with UCSC standards but are nonetheless more verbose. 
+There will be two files per contig.
 .
 .P
 .B btestindexes

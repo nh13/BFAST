@@ -7,18 +7,18 @@ bin_PROGRAMS = bafconvert \
 			   bindexdist \
 			   bindexhist \
 			   bmfconvert \
-			   bmafconvert \
 			   bpairedenddist \
 			   brepeat \
+			   breport \
 			   btestindexes 
 
 bafconvert_SOURCES = \
-				   ../blib/BError.c	../blib/BError.h \
-				   ../blib/RGIndex.c	../blib/RGIndex.h \
-				   ../blib/BLib.c	../blib/BLib.h \
-				   ../blib/RGBinary.c ../blib/RGBinary.h \
-				   ../blib/RGMatch.c ../blib/RGMatch.h \
-				   ../blib/RGRanges.c ../blib/RGRanges.h \
+					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndex.c	../blib/RGIndex.h \
+					 ../blib/BLib.c	../blib/BLib.h \
+					 ../blib/RGBinary.c ../blib/RGBinary.h \
+					 ../blib/RGMatch.c ../blib/RGMatch.h \
+					 ../blib/RGRanges.c ../blib/RGRanges.h \
 					 ../blib/AlignEntries.c	../blib/AlignEntries.h \
 					 ../blib/AlignEntry.c	../blib/AlignEntry.h \
 					 bafconvert.c bafconvert.h
@@ -119,19 +119,6 @@ bpairedenddist_SOURCES = \
 
 bpairedenddist_LDADD =
 
-bmafconvert_SOURCES = \
-					  ../blib/BError.c	../blib/BError.h \
-					  ../blib/RGIndex.c	../blib/RGIndex.h \
-					  ../blib/BLib.c	../blib/BLib.h \
-					  ../blib/RGBinary.c ../blib/RGBinary.h \
-					  ../blib/RGMatch.c ../blib/RGMatch.h \
-					  ../blib/RGMatches.c ../blib/RGMatches.h \
-					  ../blib/RGRanges.c ../blib/RGRanges.h \
-					  ../blib/RGReads.c	../blib/RGReads.h \
-					  bmafconvert.c	bmafconvert.h
-
-bmafconvert_LDADD =
-
 bmfconvert_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
 					 ../blib/RGIndex.c	../blib/RGIndex.h \
@@ -155,6 +142,21 @@ brepeat_SOURCES = \
 				  brepeat.c	brepeat.h
 
 brepeat_LDADD = 
+
+breport_SOURCES = \
+				  ../blib/AlignEntry.c	../blib/AlignEntry.h \
+				  ../blib/AlignEntries.c	../blib/AlignEntries.h \
+				  ../blib/BError.c	../blib/BError.h \
+				  ../blib/RGIndex.c	../blib/RGIndex.h \
+				  ../blib/BLib.c	../blib/BLib.h \
+				  ../blib/RGBinary.c ../blib/RGBinary.h \
+				  ../blib/RGMatch.c ../blib/RGMatch.h \
+				  ../blib/RGMatches.c ../blib/RGMatches.h \
+				  ../blib/RGRanges.c ../blib/RGRanges.h \
+				  ../blib/RGReads.c	../blib/RGReads.h \
+				  breport.c	breport.h
+
+breport_LDADD =
 
 btestindexes_SOURCES = \
 					   btestindexes.c

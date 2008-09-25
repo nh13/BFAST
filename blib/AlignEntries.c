@@ -110,11 +110,17 @@ int AlignEntriesRead(AlignEntries *a,
 					&a->space,
 					&a->numEntriesOne,
 					&a->numEntriesTwo)==EOF) {
+			/* Free read name before leaving */
+			free(a->readName);
+			a->readName=NULL;
 			return EOF;
 		}
 	}
 	else {
 		if(fread(&tempReadNameLength, sizeof(int32_t), 1, inputFP) != 1) {
+			/* Free read name before leaving */
+			free(a->readName);
+			a->readName=NULL;
 			return EOF;
 		}
 		if(fread(a->readName, sizeof(char), tempReadNameLength, inputFP) != tempReadNameLength ||

@@ -328,6 +328,7 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 			originalReadLength++;
 		}
 	}
+	assert(originalReferenceLength == a->referenceLength);
 
 	/* Print the score */
 	if(space == ColorSpace) {

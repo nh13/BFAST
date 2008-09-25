@@ -20,7 +20,7 @@ int Align(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *aEntry,
+		AlignEntry *a,
 		char strand,
 		int space)
 {
@@ -42,7 +42,7 @@ int Align(char *read,
 							reference,
 							referenceLength,
 							sm,
-							aEntry);
+							a);
 					break;
 				case REVERSE:
 					/* Reverse the read to match the forward strand  */
@@ -53,12 +53,12 @@ int Align(char *read,
 							reference,
 							referenceLength,
 							sm,
-							aEntry);
+							a);
 					/* We must reverse the alignment to match the REVERSE stand */
-					GetReverseComplimentAnyCase(aEntry->read, tmpString, aEntry->length);
-					strcpy(aEntry->read, tmpString);
-					GetReverseComplimentAnyCase(aEntry->reference, tmpString, aEntry->length);
-					strcpy(aEntry->reference, tmpString);
+					GetReverseComplimentAnyCase(a->read, tmpString, a->length);
+					strcpy(a->read, tmpString);
+					GetReverseComplimentAnyCase(a->reference, tmpString, a->length);
+					strcpy(a->reference, tmpString);
 					break;
 				default:
 					PrintError(FnName,
@@ -81,7 +81,7 @@ int Align(char *read,
 							reference,
 							referenceLength,
 							sm,
-							aEntry,
+							a,
 							FORWARD);
 					break;
 				case REVERSE:
@@ -104,7 +104,7 @@ int Align(char *read,
 							reverseReference,
 							referenceLength,
 							sm,
-							aEntry,
+							a,
 							REVERSE);
 					/* No need to reverse alignment, since we reversed the reference
 					 * to be the reverse strand */
@@ -132,7 +132,7 @@ int Align(char *read,
 	return returnValue;
 }
 
-int FillAlignEntryFromMatrix(AlignEntry *aEntry,
+int FillAlignEntryFromMatrix(AlignEntry *a,
 		AlignMatrix **matrix,
 		char *read,
 		int readLength,
@@ -156,29 +156,29 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	nextRow = nextCol = nextCell = -1;
 
 	/* First allocate the maximum length of the alignment, we can update later if necessay */
-	assert(NULL==aEntry->read);
-	aEntry->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL==aEntry->read) {
+	assert(NULL==a->read);
+	a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==a->read) {
 		PrintError(FnName,
-				"aEntry->read",
+				"a->read",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
-	assert(NULL==aEntry->reference);
-	aEntry->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL==aEntry->reference) {
+	assert(NULL==a->reference);
+	a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==a->reference) {
 		PrintError(FnName,
-				"aEntry->reference",
+				"a->reference",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
-	assert(NULL==aEntry->colorError);
-	aEntry->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	if(NULL==aEntry->colorError) {
+	assert(NULL==a->colorError);
+	a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==a->colorError) {
 		PrintError(FnName,
-				"aEntry->colorError",
+				"a->colorError",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
@@ -253,9 +253,10 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 						OutOfRange);
 		}
 		assert(curReadBase != 'X');
+		a->referenceLength=0;
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
-		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
-		aEntry->score = maxScoreNT; /* Copy over score */
+		a->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
+		a->score = maxScoreNT; /* Copy over score */
 		/* Now trace back the alignment using the "from" member in the matrix */
 		while(curRow > 0 && curCol > 0) {
 			/* Where did the current cell come from */
@@ -264,7 +265,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			assert(i>=0);
 
 			/* Get if there was a color error */
-			aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
+			a->colorError[i] = matrix[curRow][curCol].colorError[curCell];
 
 			/* Update alignment and next row/col */
 			switch(curFrom) {
@@ -274,8 +275,9 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				case DiagT:
 				case DeletionEnd:
 				case InsertionEnd:
-					aEntry->read[i] = curReadBase;
-					aEntry->reference[i] = reference[curCol-1];
+					a->read[i] = curReadBase;
+					a->reference[i] = reference[curCol-1];
+					a->referenceLength++;
 					nextRow = curRow-1;
 					nextCol = curCol-1;
 					break;
@@ -284,8 +286,9 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				case DeletionG:
 				case DeletionT:
 				case DeletionExt:
-					aEntry->read[i] = GAP;
-					aEntry->reference[i] = reference[curCol-1];
+					a->read[i] = GAP;
+					a->reference[i] = reference[curCol-1];
+					a->referenceLength++;
 					nextRow = curRow;
 					nextCol = curCol-1;
 					break;
@@ -295,8 +298,8 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				case InsertionT:
 				case InsertionExt:
 					assert(curReadBase != GAP);
-					aEntry->read[i] = curReadBase;
-					aEntry->reference[i] = GAP;
+					a->read[i] = curReadBase;
+					a->reference[i] = GAP;
 					nextRow = curRow-1;
 					nextCol = curCol;
 					break;
@@ -359,7 +362,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 
 			/* Update next row and column */
 
-			assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
+			assert(a->read[i] != GAP || a->read[i] != a->reference[i]); 
 
 			/* Update for next loop iteration */
 			curReadBase = nextReadBase;
@@ -371,9 +374,10 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	}
 	else { /* NT space */
 		assert(space == NTSpace);
+		a->referenceLength=0;
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
-		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
-		aEntry->score = maxScore; /* Copy over score */
+		a->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
+		a->score = maxScore; /* Copy over score */
 		/* Now trace back the alignment using the "from" member in the matrix */
 		while(curRow > 0 && curCol > 0) {
 
@@ -384,24 +388,27 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 
 			/* Get if there was a color error (should not be possible
 			 * in nt space) */
-			aEntry->colorError[i] = matrix[curRow][curCol].colorError[curCell];
-			assert(aEntry->colorError[i] == '0');
+			a->colorError[i] = matrix[curRow][curCol].colorError[curCell];
+			assert(a->colorError[i] == '0');
 
 			/* Update alignment */
 			switch(curFrom) {
 				case DiagA:
-					aEntry->read[i] = read[curRow-1];
-					aEntry->reference[i] = reference[curCol-1];
+					a->read[i] = read[curRow-1];
+					a->reference[i] = reference[curCol-1];
+					a->referenceLength++;
 					break;
 				case DeletionA:
 				case DeletionExt:
-					aEntry->read[i] = GAP;
-					aEntry->reference[i] = reference[curCol-1];
+					a->read[i] = GAP;
+					a->reference[i] = reference[curCol-1];
+					a->referenceLength++;
 					break;
 				case InsertionA:
 				case InsertionExt:
-					aEntry->read[i] = read[curRow-1];
-					aEntry->reference[i] = GAP;
+					a->read[i] = read[curRow-1];
+					a->reference[i] = GAP;
+					a->referenceLength++;
 					break;
 				default:
 					fprintf(stderr, "curFrom=%d\n", curFrom);
@@ -458,7 +465,7 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							OutOfRange);
 			}
 
-			assert(aEntry->read[i] != GAP || aEntry->read[i] != aEntry->reference[i]); 
+			assert(a->read[i] != GAP || a->read[i] != a->reference[i]); 
 
 			/* Update for next loop iteration */
 			curRow = nextRow;
@@ -466,15 +473,16 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			curCell = nextCell;
 			i--;
 
-			assert(i!=-1 || aEntry->read[0] != GAP);
+			assert(i!=-1 || a->read[0] != GAP);
 		} /* End Loop */
 	}
 	assert(-1==i);
+	assert(a->length >= a->referenceLength);
 
 	offset = curCol;
-	aEntry->read[aEntry->length]='\0';
-	aEntry->reference[aEntry->length]='\0';
-	aEntry->colorError[aEntry->length]='\0';
+	a->read[a->length]='\0';
+	a->reference[a->length]='\0';
+	a->colorError[a->length]='\0';
 
 	return offset;
 }

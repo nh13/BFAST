@@ -27,12 +27,13 @@ int AlignEntryPrint(AlignEntry *a,
 
 	if(binaryOutput == TextOutput) {
 
-		if(fprintf(outputFP, "%s\t%d\t%u\t%c\t%lf\t%u\n",
+		if(fprintf(outputFP, "%s\t%d\t%u\t%c\t%lf\t%u\t%u\n",
 					a->contigName,
 					a->contig,
 					a->position,
 					a->strand,
 					a->score,
+					a->referenceLength,
 					a->length) < 0) {
 			return EOF;
 		}
@@ -59,6 +60,7 @@ int AlignEntryPrint(AlignEntry *a,
 				fwrite(&a->position, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->strand, sizeof(char), 1, outputFP) != 1 ||
 				fwrite(&a->score, sizeof(double), 1, outputFP) != 1 ||
+				fwrite(&a->referenceLength, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->length, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(a->read, sizeof(char), a->length, outputFP) != a->length ||
 				fwrite(a->reference, sizeof(char), a->length, outputFP) != a->length) {
@@ -119,12 +121,13 @@ int AlignEntryRead(AlignEntry *a,
 
 	if(binaryInput == TextOutput) {
 
-		if(fscanf(inputFP, "%s\t%d\t%u\t%c\t%lf\t%u\n",
+		if(fscanf(inputFP, "%s\t%d\t%u\t%c\t%lf\t%u\t%u\n",
 					tempContigName,
 					&a->contig,
 					&a->position,
 					&a->strand,
 					&a->score,
+					&a->referenceLength,
 					&a->length) < 0) {
 			return EOF;
 		}
@@ -173,6 +176,7 @@ int AlignEntryRead(AlignEntry *a,
 				fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
 				fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
+				fread(&a->referenceLength, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(a->read, sizeof(char), a->length, inputFP) != a->length ||
 				fread(a->reference, sizeof(char), a->length, inputFP) != a->length) {
@@ -590,6 +594,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 			strcpy(dest->colorError, src->colorError);
 		}
 		/* Metadata */
+		dest->referenceLength = src->referenceLength;
 		dest->length = src->length;
 		dest->contig = src->contig;
 		dest->position = src->position;
@@ -615,6 +620,7 @@ void AlignEntryInitialize(AlignEntry *a)
 	a->position=0;
 	a->strand=0;
 	a->score=0.0;
+	a->referenceLength=0;
 	a->length=0;
 	a->read=NULL;
 	a->reference=NULL;
