@@ -47,19 +47,25 @@ The second type is an index used in subsequent searches by
 \fBbmatches\fR.
 .
 .P
-The first step is to convert the reference genome to bfast binary format.
-This is essential for fast loading of the reference genome and is accomplished by using option \fB\-a 1\fR.
-The \fB\-r\fR option should specify a file that contains the reference genome list.
+The first step is to convert the reference sequence to bfast binary format.
+This is essential for fast loading of the reference genome and is accomplished by using option \fB\-a 0\fR.
+The \fB\-r\fR option should specify a file that is in FASTA format.
+The reference sequence can be one contigous sequence, a composition of chromosomes, exon sequence, or a large number of small contigs.
 For more information on this file format please see 
 .BR bfast(1) "."
 .
 .P
-To generate an index (\fB\-a 0\fR), the reference genome sequence must be given (see \fB\-r\fR).
-The number of indexes to be generated and their respective layouts must also be given (see \fB\-i\fR).
-The index does not have to range over the whole-genome, and can be narrowed to a range be using options \fB\-s\fR, \fB\-S\fR, \fB\-e\fR and \fB\-E\fR to specify start contig and position as well as end contig and position for the range.
+To generate an index (\fB\-a 1\fR), the reference sequence must be given (see \fB\-r\fR) in bfast binary format.
+Multiple indexes may generated in a batch-mode by specifying multiple layouts in the file \fB-i\fR (for the file format please see
+.BR bfast(1) "."
+The index does not have to range over the reference sequence and can be narrowed to a range be using options \fB\-s\fR, \fB\-S\fR, \fB\-e\fR and \fB\-E\fR to specify start contig and position as well as end contig and position for the range.
 If you are using a multi-core and/or a multi-processor machine, it is beneficial to specify the number of threads (see \fB\-n\fR) to match the number of independent processing units as to speed up the generating time.
+The number of threads must be a power of two only for 
+.BR bpreprocess "."
 The indexes are stored in binary format to reduce disk space as well as speed up subsequent loading time.
 To ignore lower case bases, which correspond to RepeatMasker sequence, use the \fB\-R\fR option.
+.
+Other relevant options are specified below.
 .
 .SH OPTIONS
 .TP 4

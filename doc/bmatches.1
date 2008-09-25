@@ -59,20 +59,15 @@ The fifth file (\fB\-O\fR) contains the offsets to be used when searching.
 .
 .P
 For each read, a list of candidate alignment locations (CALs) is compiled and outputted.
-The reads are first searched using the main indexes.
-If no CAL is found then the read is searched using the secondary indexes.
-The offsets are used to specify the number of bases to skip over at the beginning of the read.
-For example, if an index had a layout of one tile of length twenty, then one could specify offsets of zero, ten, and twenty as to perform three searches:
-.br
-	1. Search using the first twenty bases.
-.br
-	2. Search using bases 10-29.
-.br
-	3. Search using bases 30-49.
-.br
-In this manner, separate indexes do not need to be generated for a different offsets but similar layouts.
-The purpose of the main indexes is to find alignments for reads that match perfectly, or near perfectly to the reference genome.
-In this fashion, the layouts for the main indexes should have greater total length than the secondary indexes.
+The reads are first searched using the set of main indexes.
+If no CAL is found then the read is searched using the (possibly empty) set of secondary indexes.
+The offsets are used to specify the number of bases to skip over at the beginning of the read to generate keys used to lookup in the index.
+Specifying offsets from 0 to the read length will cause all possible keys to be used.
+In this manner, separate indexes do not need to be generated for a different offsets but similar layouts, promoting index re-use.
+For the file format of the offsets file please see
+.B bfast(1) "."
+Choice of the index layouts and partitioning into the main and secondary sets is a difficult and complex problem and is discussed in detail in the accompanying publication.
+It is worthwhile to mention that simply knowing the a few variables such as the layouts, read length and genome size, one is able to a priori compute the theoretical accuracy for mapping any read with errors and/or variants.
 .
 .P
 The options \fB\-s\fR and \fB\-e\fR can be used to divide up the read file for parallel processing across a cluster.
@@ -92,20 +87,24 @@ eight times, setting \fB\-n 4\fR as well as well as dividing the reads up into e
 In this manner, we are able to distribute the computation across the cluster by dividing up the reads, as well as across local cores/processors by utilizing multi-threading.
 .
 .P
-It is of utmost importance to design the layouts of the indexes as to be complimentary.
-One layout may be robust against events at the end of the read but not at the beginning of the read.
-Therefore we should also use an index that is robust against events at the beginning of the read.
-Typically, no events (mismatches, insertions or deletions) are allowed within the layout of an index.
+Typically, no events (mismatches, insertions or deletions) are allowed within the key used to lookup CALs from an index.
 Nevertheless, to increase accuracy we can also specify a maximum number allowable events within the tiles (\fB\-x\fR, \fB\-y\fR, and \fB\-z\fR) as well as within the gaps between the tiles (\fB\-Y\fR and \fB\-Z\fR).
 If specified, from a given read we will generate all possible combinations of potential reads with these events.
 This will significantly slow computation down (exponentially) and therefore it is recommended to instead create a robust layout and use less allowable events.
-For aligning billions of reads this is important but the added computation time may be acceptable for a smaller number reads.
+For aligning billions of reads this is important but the added computation time may be acceptable for a smaller number reads or shorter read lengths.
 .
 .P 
 Paired end reads are specified using the \fB\-2\fR option.
-Additionally, to reduce time spent on reads that have a large number of CALs, we can specify \fB-M $i\fR.
+The option \fB-K\fR specifies to ignore keys that return greater than the specified number of CALs.
+This is particularly useful when using the \fB-M\fR option.
+Additionally, to reduce time spent on reads that have a large number of CALs, we can specify \fB-M\fR.
 This signals \fBbmathces\fR to ignore reads when they return more than \fB$i\fR CALs. 
-This can be useful when searching for multiple indexes.
+This can be useful when searching through multiple indexes and should be scaled accordingly.
+.
+.P
+The \fB\-A 1\fR option allows alignment to proceed in color space.
+In this case, the bfast reference genome and bfast index file must have been created in color space.
+Other relevant options are specified below.
 .
 .
 .SH OPTIONS

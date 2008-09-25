@@ -10,7 +10,7 @@
 #define Name "bafconvert"
 #define BAFCONVERT_ROTATE_NUM 100000
 
-/* Converts a bmatches file from binary to plaintext or vice versa.
+/* Converts a balign file from binary to plaintext or vice versa.
  * */
 
 int main(int argc, char *argv[])
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage:%s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast matches file name>\n");
+		fprintf(stderr, "\t<bfast aligned file name>\n");
 		fprintf(stderr, "\t<input type: 0-text 1-binary>\n");
 	}
 	return 0;

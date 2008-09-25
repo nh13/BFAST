@@ -48,8 +48,9 @@ is the third of four programs in the bfast system.
 .P
 .B balign
 requires three input files.
-The first file (\fB-r\fR) contains the list of files specifying the sequence of the reference genome in bfast binary format.
-The second file (\fB\-m\fR) contains the list of files containing the output from 
+The first file (\fB-r\fR) contains the list of files specifying the sequence of the reference genome in bfast binary format .
+This file should always be created in nucleotide space.
+The second file (\fB\-m\fR) contains the output from 
 .B bmatches.
 The third file (\fB\-x\fR) contains the scoring matrix used with \fB\-a\fR.
 .
@@ -57,7 +58,7 @@ The third file (\fB\-x\fR) contains the scoring matrix used with \fB\-a\fR.
 The user can specify a range in the genome as to filter out candidate alignment locations (\fB\-s\fR, \fB\-S\fR, \fB\-e\fR, and \fB\-E\fR).
 .
 .P
-When aligning th read to the candidate alignment, location it is useful to include surrounding bases to obtain a more accurate alignment.
+When aligning the read to the candidate alignment, location it is useful to include surrounding bases to obtain a more accurate alignment.
 Therefore the user can also specify an offset (\fB\-O\fR).  
 .
 .P
@@ -66,6 +67,11 @@ Paired end is not yet supported.
 .
 .P
 If multiple cores or processors are available, one can use \fB\-n\fR to parallelize the computation by specifying the number of threads.
+.
+.P 
+When using \fB\-A 1\fR for color space, the reference genome file must still have be created in nucleotide space.
+Nevertheless, a specific local aligner is used in color space to correct for color errors independently.
+Other relevant options are specified below.
 .
 .
 .SH OPTIONS
@@ -91,9 +97,11 @@ Specifies the algorithm to use when scoring alignments.
 Currently only the Dynamic Programming algorithm is available and is specified using the value \fB0\fR.
 .
 .TP 4
-\fB\-A\fR, \fB\-\-space\fR
+\fB\-A\fR \fIINTEGER\fR, \fB\-\-space=\fIINTEGER\fR
 Specifies the encoding space of the alphabet.
 \fB\-A 0\fR corresponds to NT (nucleotide) space and \fB\-A 1\fR corresponds to color space.
+For \fB\-A 1\fR, the alignment is performed simultaneously in nucleotide space and color space as to correct for color errors.
+The alignment is found by using scoring in both spaces, however the resultant score is only given in nucleotide space.
 .
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startContig=\fIINTEGER\fR
@@ -117,6 +125,7 @@ Specifies the number of bases before and after the candidate alignment to consid
 .
 .TP 4
 \fB\-M\fR \fIINTEGER\fR, \fB\-\-maxNumMatches=\fIINTEGER\fR
+Specifies to ignore reads who have more than the specified CALs.
 .
 .TP 4
 \fB\-2\fR, \fB\-\-pairedEnd\fR
