@@ -15,7 +15,6 @@
 
 int main(int argc, char *argv[]) 
 {
-	FILE *fp=NULL;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 
 	if(argc == 2) {
