@@ -531,8 +531,10 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 {
 	char *FnName = "AlignEntryCopy";
 	if(src != dest) {
+		/* Contig name length */
 		assert(src->contigNameLength > 0);
 		dest->contigNameLength = src->contigNameLength;
+		/* Contig name */
 		if(NULL == dest->contigName) {
 			dest->contigName = malloc(sizeof(char)*(dest->contigNameLength+1));
 			if(NULL == dest->contigName) {
@@ -545,6 +547,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		}
 		assert(src->contigName!= NULL);
 		strcpy(dest->contigName, src->contigName);
+		/* Read */
 		if(NULL == dest->read) {
 			dest->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == dest->read) {
@@ -557,6 +560,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		}
 		assert(src->read != NULL);
 		strcpy(dest->read, src->read);
+		/* Reference */
 		if(NULL == dest->reference) {
 			dest->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == dest->reference) {
@@ -568,6 +572,8 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 			}
 		}
 		assert(src->reference!= NULL);
+		strcpy(dest->reference, src->reference);
+		/* Color error, if necessary */
 		if(src->colorError != NULL) {
 			strcpy(dest->reference, src->reference);
 			if(NULL == dest->colorError) {
@@ -583,6 +589,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 			assert(src->colorError!= NULL);
 			strcpy(dest->colorError, src->colorError);
 		}
+		/* Metadata */
 		dest->length = src->length;
 		dest->contig = src->contig;
 		dest->position = src->position;

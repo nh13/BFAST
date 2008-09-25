@@ -10,7 +10,7 @@ int AlignEntriesRead(AlignEntries*, FILE*, int, int, int);
 void AlignEntriesRemoveDuplicates(AlignEntries*, int);
 void AlignEntriesQuickSort(AlignEntries*, int, int);
 void AlignEntriesMergeSort(AlignEntries*, int, int);
-void AlignEntriesAllocate(AlignEntries*, int, int, int, int);
+void AlignEntriesAllocate(AlignEntries*, char*, int, int, int, int);
 void AlignEntriesReallocate(AlignEntries*, int, int, int, int);
 void AlignEntriesFree(AlignEntries*);
 void AlignEntriesInitialize(AlignEntries*);

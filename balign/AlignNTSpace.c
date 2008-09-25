@@ -139,25 +139,8 @@ int AlignNTSpace(char *read,
 				matrix[i+1][j+1].length[l] = -1;
 				matrix[i+1][j+1].from[l] = Start;
 			}
-			/* HERE */
-			/*
-			   for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) {
-			   fprintf(stderr, "(i,j,l,score)=(%d,%d,%d,%lf)\n",
-			   i+1,
-			   j+1,
-			   l,
-			   matrix[i+1][j+1].score[l]);
-			   }
-			   */
 		}
 	}
-
-	/* HERE */
-	/*
-	   fprintf(stderr, "read=%s\nreference=%s\n",
-	   read,
-	   reference);
-	   */
 
 	offset = FillAlignEntryFromMatrix(aEntry,
 			matrix,
@@ -168,15 +151,6 @@ int AlignNTSpace(char *read,
 			0,
 			0);
 
-	/* HERE */
-	/*
-	   fprintf(stderr, "(%d,%d)\n",
-	   aEntry->length,
-	   (int)strlen(aEntry->read));
-	   fprintf(stderr, "aEntry->reference=[%s]\naEntry->read=[%s]\n%lf\n%d\n\n", aEntry->reference, aEntry->read, aEntry->score, offset);
-	   exit(1);
-	   */
-
 	/* Free the matrix, free your mind */
 	for(i=0;i<readLength+1;i++) {
 		free(matrix[i]);
@@ -184,10 +158,6 @@ int AlignNTSpace(char *read,
 	}
 	free(matrix);
 	matrix=NULL;
-
-	/* Check alignment quickly HERE C1 */
-	assert(aEntry->read[0] != GAP);
-	assert(aEntry->read[aEntry->length-1] != GAP);
 
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;

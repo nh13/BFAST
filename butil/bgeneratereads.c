@@ -380,13 +380,6 @@ void GetRandomContigPos(RGBinary *rg,
 	/* Use coin flips to find position */
 	mid = (low + high)/2;
 	while(low < high) {
-		/* HERE */
-		/*
-		   fprintf(stderr, "low=%lld\tmid=%lld\thigh=%lld\n",
-		   (long long int)low,
-		   (long long int)mid,
-		   (long long int)high);
-		   */
 		mid = (low + high)/2;
 		value = rand() % 2;
 		if(value == 0) {

@@ -32,7 +32,7 @@ int FilterAlignEntries(AlignEntries *a,
 	/* We should only modify "a" if it is going to be reported */ 
 
 	/* Filter for reads that are not paired end */
-	if(pairedEnd == 0) {
+	if(pairedEnd == SingleEnd) {
 		switch(algorithmReads) {
 			case NoFiltering:
 				/* Do nothing */

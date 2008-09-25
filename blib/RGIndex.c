@@ -105,9 +105,9 @@ void RGIndexCreate(RGIndex *index,
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Currently on [contig,pos]:\n");
-		fprintf(stderr, "\r[%d,%d]",
-				-1,
-				-1);
+		PrintContigPos(stderr,
+				0,
+				0);
 	}
 	/* For each contig */
 	for(curContig=index->startContig;
@@ -127,7 +127,7 @@ void RGIndexCreate(RGIndex *index,
 		for(curPos=curStartPos;curPos<=curEndPos;curPos++) {
 			if(VERBOSE >= 0) {
 				if(curPos%RGINDEX_ROTATE_NUM==0) {
-					fprintf(stderr, "\r[%d,%d]",
+					PrintContigPos(stderr, 
 							curContig,
 							curPos);
 				}
@@ -211,9 +211,10 @@ void RGIndexCreate(RGIndex *index,
 		}
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r[%d,%d]\n",
-				curContig-1,
-				curPos-1);
+		PrintContigPos(stderr, 
+				curContig,
+				curPos);
+		fprintf(stderr, "\n");
 	}
 
 	assert(index->length > 0);

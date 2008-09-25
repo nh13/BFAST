@@ -966,15 +966,6 @@ void *FindMatchesInIndexThread(void *arg)
 				pairedEnd, 
 				binaryOutput); 
 
-		/* HERE 13 */
-		/*
-		   fprintf(stderr, "\nHERE 13\n");
-		   RGMatchesPrint(stderr,
-		   &m,
-		   pairedEnd,
-		   0);
-		   */
-
 		/* Free matches */
 		RGMatchesFree(&m);
 	}

@@ -30,13 +30,6 @@ int Align(char *read,
 	char tmpString[SEQUENCE_LENGTH]="\0";
 	char *reverseReference=NULL;
 
-	/* HERE 42 */
-	/*
-	   fprintf(stderr, "HERE 42\nread=%s\nreference=%s\n",
-	   read,
-	   reference);
-	   */
-
 	switch(space) {
 		case NTSpace:
 			/* NT Space */
@@ -83,13 +76,6 @@ int Align(char *read,
 				case FORWARD:
 					/* Matches the forward strand */
 					/* Align */
-					/* HERE 51 */
-					/*
-					   fprintf(stderr, "HERE 51\nreference=%s\nread=%s\nreverseRead=%s\n",
-					   reference,
-					   read,
-					   reverseRead);
-					   */
 					returnValue = AlignColorSpace(read,
 							readLength,
 							reference,
@@ -112,13 +98,6 @@ int Align(char *read,
 					GetReverseComplimentAnyCase(reference,
 							reverseReference,
 							referenceLength);
-					/* HERE 50 */
-					/*
-					   fprintf(stderr, "HERE 50\nreference=%s\nread=%s\nreverseRead=%s\n",
-					   reference,
-					   read,
-					   reverseRead);
-					   */
 					/* Align */
 					returnValue = AlignColorSpace(read,
 							readLength,
@@ -142,10 +121,6 @@ int Align(char *read,
 					break;
 
 			}
-			/* HERE 39 */
-			/*
-			   fprintf(stderr, "HERE 39\n");
-			   */
 			break;
 		default:
 			PrintError(FnName,
@@ -180,13 +155,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	curReadBase = nextReadBase = 'X';
 	nextRow = nextCol = nextCell = -1;
 
-	/* HERE */
-	if(debug == 1) {
-		fprintf(stderr, "\n%s\n", FnName);
-		fprintf(stderr, "read=%s\n", read);
-		fprintf(stderr, "reference=%s\n", reference);
-	}
-
 	/* First allocate the maximum length of the alignment, we can update later if necessay */
 	assert(NULL==aEntry->read);
 	aEntry->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
@@ -214,25 +182,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
-	}
-	/* HERE */
-	if(debug == 1) {
-		for(i=0;i<readLength+1;i++) {
-			for(j=0;j<referenceLength+1;j++) {
-				int k;
-				for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) {
-					fprintf(stderr, "(row,col,cell,score,length,from,colorError)=(%d,%d,%d,%lf,%d,%d,%c)\n",
-							i,
-							j,
-							k,
-							matrix[i][j].score[k],
-							matrix[i][j].length[k],
-							matrix[i][j].from[k],
-							matrix[i][j].colorError[k]
-						   );
-				}
-			}
-		}
 	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then
@@ -272,16 +221,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 	/* Cannot end with a deletion from the read */
 	assert(startCell != 4);
 
-	/* HERE */
-	if(debug == 1) {
-		fprintf(stderr, "(startRow,startCol,startCell,score,length)=(%d,%d,%d,%lf,%d)\n",
-				startRow,
-				startCol,
-				startCell,
-				matrix[startRow][startCol].score[startCell],
-				matrix[startRow][startCol].length[startCell]);
-	}
-
 	/* Initialize variables for the loop */
 	curRow=startRow;
 	curCol=startCol;
@@ -317,28 +256,11 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
 		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
 		aEntry->score = maxScoreNT; /* Copy over score */
-		/* HERE */
-		if(debug == 1) {
-			fprintf(stderr, "[%d,%lf]\n",
-					matrix[curRow][curCol].length[curCell],
-					maxScore);
-		}
 		/* Now trace back the alignment using the "from" member in the matrix */
 		while(curRow > 0 && curCol > 0) {
 			/* Where did the current cell come from */
 			curFrom = matrix[curRow][curCol].from[curCell];
 
-			/* HERE */
-			if(debug == 1) {
-				fprintf(stderr, "(curRow,curCol,i,curFrom,curCell)=(%d,%d,%d,%d,%d)\n",
-						curRow,
-						curCol,
-						i,
-						curFrom,
-						curCell);
-				fprintf(stderr, "cur.length=%d\n",
-						matrix[curRow][curCol].length[curCell]);
-			}
 			assert(i>=0);
 
 			/* Get if there was a color error */
@@ -386,14 +308,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							"Could not understand curFrom",
 							Exit,
 							OutOfRange);
-			}
-			/* HERE */
-			if(debug == 1) {
-				fprintf(stderr, "[%c][%c](%c,%c)\n",
-						aEntry->read[i],
-						aEntry->reference[i],
-						read[curRow-1],
-						reference[curCol-1]);
 			}
 
 			/* Update previous base (relevant for color errors) and the
@@ -453,16 +367,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			curCol = nextCol;
 			curCell = nextCell;
 			i--;
-
-			/* HERE */
-			if(debug == 1) {
-				fprintf(stderr, "next(row,col,curCell,curReadBase)=(%d,%d,%d,%c)\n",
-						nextRow,
-						nextCol,
-						nextCell,
-						curReadBase);
-				fprintf(stderr, "%s", BREAK_LINE);
-			}
 		} /* End loop */
 	}
 	else { /* NT space */
@@ -470,42 +374,12 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
 		aEntry->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
 		aEntry->score = maxScore; /* Copy over score */
-		/* HERE */
-		if(debug == 1) {
-			fprintf(stderr, "reference=%s\nread=%s\n",
-					reference,
-					read);
-			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "[%d,%lf]\n",
-					matrix[curRow][curCol].length[curCell],
-					maxScore);
-		}
-		/* HERE C2 */
-		/*
-		curFrom = matrix[curRow][curCol].from[curCell];
-		fprintf(stderr, "HERE C2 (curRow=%d,curCol=%d,curCell=%d,curFrom=%d)\n",
-				curRow,
-				curCol,
-				curCell,
-				curFrom);
-				*/
 		/* Now trace back the alignment using the "from" member in the matrix */
 		while(curRow > 0 && curCol > 0) {
 
 			/* Where did the current cell come from */
 			curFrom = matrix[curRow][curCol].from[curCell];
 
-			/* HERE */
-			if(debug == 1) {
-				fprintf(stderr, "(curRow,curCol,i,curFrom,curCell)=(%d,%d,%d,%d,%d)\n",
-						curRow,
-						curCol,
-						i,
-						curFrom,
-						curCell);
-				fprintf(stderr, "cur.length=%d\n",
-						matrix[curRow][curCol].length[curCell]);
-			}
 			assert(i>=0);
 
 			/* Get if there was a color error (should not be possible
@@ -537,15 +411,6 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 							"Could not understand curFrom",
 							Exit,
 							OutOfRange);
-			}
-
-			/* HERE */
-			if(debug == 1) {
-				fprintf(stderr, "aEntry:[%c][%c]\toriginal:(%c,%c)\n",
-						aEntry->read[i],
-						aEntry->reference[i],
-						read[curRow-1],
-						reference[curCol-1]);
 			}
 
 			/* Next row and column */
@@ -601,53 +466,11 @@ int FillAlignEntryFromMatrix(AlignEntry *aEntry,
 			curCell = nextCell;
 			i--;
 
-			/* HERE */
-			if(debug == 1) {
-				fprintf(stderr, "next(row,col,curCell)=(%d,%d,%d)\n",
-						nextRow,
-						nextCol,
-						nextCell);
-				fprintf(stderr, "%s", BREAK_LINE);
-			}
-			/* HERE C3 */
 			assert(i!=-1 || aEntry->read[0] != GAP);
 		} /* End Loop */
 	}
-	/* HERE */
-	if(debug == 1) {
-		int tempi=i;
-		for(i=0;i<readLength+1;i++) {
-			for(j=0;j<referenceLength+1;j++) {
-				/*
-				   fprintf(stderr, "(i,j,length)=(%d,%d,%d)\n",
-				   i,
-				   j,
-				   matrix[i][j].length[0]);
-				   */
-				fprintf(stderr, "%d ",
-						matrix[i][j].length[0]);
-			}
-			fprintf(stderr, "\n");
-		}
-		i=tempi;
-	}
-
-	/* HERE */
-	if(debug == 1) {
-		fprintf(stderr, "i=%d\n", i);
-	}
 	assert(-1==i);
 
-	/* HERE C1 */
-	/*
-	   fprintf(stderr, "%s\n%s\n%s\n",
-	   aEntry->reference,
-	   aEntry->read,
-	   aEntry->colorError);
-	   fprintf(stderr, "HERE C1\n");
-	   exit(1);
-	   */
-	/* This might be off by one */
 	offset = curCol;
 	aEntry->read[aEntry->length]='\0';
 	aEntry->reference[aEntry->length]='\0';

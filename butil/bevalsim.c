@@ -203,7 +203,6 @@ int ReadTypeReadFromBAF(ReadType *r,
 	assert(r->pairedEnd == tempPairedEnd);
 	assert(r->readLength == (int)strlen(r1));
 	assert(r->pairedEnd == 0 || r->readLength == (int)strlen(r2));
-	/* HERE */
 	r->numSNPs = 0;
 	r->numErrors = 0;
 	r->deletionLength = 0;

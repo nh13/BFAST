@@ -52,7 +52,7 @@ void MAFPrint(FILE *fp,
 	char *FnName="MAFPrint";
 	if(0>fprintf(fp, "a score=%lf paired-end=0 read=1\n",
 				m->score) ||
-			0>fprintf(fp, "s\tcontig%u\t%u\t%d\t%c\t%d\t%s\n",
+			0>fprintf(fp, "s\t%u\t%u\t%d\t%c\t%d\t%s\n",
 				m->contig,
 				m->position,
 				m->alignmentLength,
@@ -77,6 +77,12 @@ void MAFPrint(FILE *fp,
 				"Could not write MAF",
 				Exit,
 				WriteFileError);
+	}
+	if(strlen(m->reference) != m->alignmentLength) {
+		fprintf(stderr, "\n\nm->reference=%s\n[%d!=%d]\n",
+				m->reference,
+				(int)strlen(m->reference),
+				m->alignmentLength);
 	}
 	assert(strlen(m->read) == m->alignmentLength);
 	assert(strlen(m->reference) == m->alignmentLength);
@@ -348,15 +354,6 @@ void MAFPrintToBedAndWig(MAF *m,
 		total = totalF = totalR = 0;
 		referenceBase = 'n';
 
-		/* HERE */
-		/*
-		   fprintf(stderr, "Before\tcurPos=%lld\tm[%d].position=%d\tm[start].position + m[start].referenceLength - 1=%d\n",
-		   (long long int)curPos,
-		   start,
-		   m[start].position,
-		   m[start].position + m[start].referenceLength - 1);
-		   */
-
 		if(curPos < m[start].position) {
 			curPos = m[start].position;
 		}
@@ -402,16 +399,6 @@ void MAFPrintToBedAndWig(MAF *m,
 					j++;
 				}
 				tempJ = j; /* Save this for bed */
-				/* HERE */
-				/*
-				   fprintf(stderr, "HERE curPos=%lld m[%d].[start,end]=[%d,%d] i=%d j=%d\n",
-				   (long long int)curPos,
-				   cur,
-				   m[cur].position,
-				   m[cur].position + m[cur].referenceLength - 1,
-				   i,
-				   j);
-				   */
 				assert(m[cur].position + i == curPos);
 				/************/
 				/* WIG FILE */

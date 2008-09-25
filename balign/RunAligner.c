@@ -535,24 +535,17 @@ void *RunDynamicProgrammingThread(void *arg)
 
 		/* Allocate memory for the AlignEntries */
 		AlignEntriesAllocate(&aEntries,
+				(char*)m.readName,
 				m.matchOne.numEntries,
 				m.matchTwo.numEntries,
 				pairedEnd,
 				colorSpace);
-		/* Copy over read name */
-		strcpy(aEntries.readName, (char*)m.readName);
 
 		/* Run the aligner */
 		/* First entry */
 		if(m.matchOne.numEntries > 0) {
 			strcpy(matchRead, (char*)m.matchOne.read);
 			matchReadLength = m.matchOne.readLength;
-			/* HERE A1 */
-			/*
-			   fprintf(stderr, "HERE A1\nmatchRead=%s\nmatchReadLength=%d\n",
-			   matchRead,
-			   matchReadLength);
-			   */
 			if(colorSpace == 1) {
 				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
 			}
@@ -648,13 +641,6 @@ void RunDynamicProgrammingThreadHelper(RGBinary *rg,
 			&referenceLength,
 			&referencePosition);
 	assert(referenceLength > 0);
-
-	/* HERE 41 */
-	/*
-	   fprintf(stderr, "HERE 41\nread=%s\nreference=%s\n",
-	   read,
-	   reference);
-	   */
 
 	/* Get alignment */
 	adjustPosition=Align(read,

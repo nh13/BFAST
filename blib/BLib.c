@@ -20,7 +20,7 @@ int GetFastaHeaderLine(FILE *fp,
 
 	/* Read in the line */
 	ret = fgets(header,  MAX_CONTIG_NAME_LENGTH, fp);
-	
+
 	/* Check teturn value */
 	if(ret != header) {
 		return EOF;
@@ -516,7 +516,7 @@ void PrintContigPos(FILE *fp,
 	int i;
 	int contigLog10 = (int)floor(log10(contig));
 	int positionLog10 = (int)floor(log10(position));
-	
+
 	contigLog10 = (contig < 1)?0:((int)floor(log10(contig)));
 	positionLog10 = (position < 1)?0:((int)floor(log10(position)));
 
@@ -733,16 +733,6 @@ int ConvertReadFromColorSpace(char *read,
 {
 	int i, index;
 
-	/* HERE A2 */
-	/*
-	   fprintf(stderr, "HERE A2\nread=%s\n",
-	   read);
-	   fprintf(stderr, "readLength=%d\n",
-	   (int)strlen(read));
-	   fprintf(stderr, "act length=%d\n",
-	   readLength);
-	   */
-
 	/* Convert character numbers to 8-bit ints */
 	for(i=0;i<readLength;i++) {
 		switch(read[i]) {
@@ -833,12 +823,6 @@ void NormalizeRead(char **read,
 	char prevOldBase, prevNewBase;
 	uint8_t tempColor;
 
-	/* HERE 23 */
-	/*
-	   fprintf(stderr, "Before=%s\n",
-	   (*read));
-	   */
-
 	prevOldBase = startNT;
 	prevNewBase = COLOR_SPACE_START_NT;
 	for(i=0;i<(*readLength);i++) {
@@ -849,13 +833,6 @@ void NormalizeRead(char **read,
 		(*read)[i] = ConvertBaseAndColor(prevNewBase, tempColor);;
 		prevNewBase = (*read)[i];
 	}
-
-	/* HERE 24 */
-	/*
-	   fprintf(stderr, "\n");
-	   fprintf(stderr, "After=%s\n", 
-	   (*read));
-	   */
 }
 
 /* TODO */

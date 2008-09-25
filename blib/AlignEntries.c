@@ -135,10 +135,6 @@ int AlignEntriesRead(AlignEntries *a,
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 	if(pairedEnd != PairedEndDoesNotMatter &&
 			a->pairedEnd != pairedEnd) {
-		/* HERE */
-		fprintf(stderr, "(%d,%d)\n",
-				a->pairedEnd,
-				pairedEnd);
 		PrintError(FnName,
 				"a->pairedEnd != pairedEnd",
 				"Paired end does not match",
@@ -307,6 +303,8 @@ void AlignEntriesReallocate(AlignEntries *a,
 	a->pairedEnd = pairedEnd;
 	a->space = space;
 
+	/* Don't change read name */
+	/*
 	a->readName = realloc(a->readName, sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(a->readName == NULL) {
 		if(NULL == a->readName) {
@@ -317,8 +315,9 @@ void AlignEntriesReallocate(AlignEntries *a,
 					MallocMemory);
 		}
 	}
+	*/
 
-	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
+	assert(a->pairedEnd == SingleEnd || a->numEntriesTwo == PairedEnd);
 
 	/* Allocate memory for the entries */ 
 	a->entriesOne = realloc(a->entriesOne, sizeof(AlignEntry)*a->numEntriesOne);
@@ -346,6 +345,7 @@ void AlignEntriesReallocate(AlignEntries *a,
 
 /* TODO */
 void AlignEntriesAllocate(AlignEntries *a,
+		char *readName,
 		int numEntriesOne,
 		int numEntriesTwo,
 		int pairedEnd,
@@ -369,38 +369,50 @@ void AlignEntriesAllocate(AlignEntries *a,
 					MallocMemory);
 		}
 	}
+	/* Copy over */
+	strcpy(a->readName, readName);
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 
 	/* Allocate memory for the entries */ 
-	a->entriesOne = malloc(sizeof(AlignEntry)*a->numEntriesOne);
-	if(a->numEntriesOne > 0 && NULL==a->entriesOne) {
-		if(NULL == a->entriesOne) {
-			PrintError(FnName,
-					"a->entriesOne",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+	if(a->numEntriesOne > 0) {
+		a->entriesOne = malloc(sizeof(AlignEntry)*a->numEntriesOne);
+		if(NULL==a->entriesOne) {
+			if(NULL == a->entriesOne) {
+				PrintError(FnName,
+						"a->entriesOne",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+		}
+		/* Initialize */
+		for(i=0;i<a->numEntriesOne;i++) {
+			AlignEntryInitialize(&a->entriesOne[i]);
 		}
 	}
-	/* Initialize */
-	for(i=0;i<a->numEntriesOne;i++) {
-		AlignEntryInitialize(&a->entriesOne[i]);
+	else {
+		a->entriesOne = NULL;
 	}
-	a->entriesTwo = malloc(sizeof(AlignEntry)*a->numEntriesTwo);
-	if(a->numEntriesTwo > 0 && NULL==a->entriesTwo) {
-		assert(a->pairedEnd == 1);
-		if(NULL == a->entriesTwo) {
-			PrintError(FnName,
-					"a->entriesTwo",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+	if(a->numEntriesTwo > 0) {
+		a->entriesTwo = malloc(sizeof(AlignEntry)*a->numEntriesTwo);
+		if(NULL==a->entriesTwo) {
+			assert(a->pairedEnd == 1);
+			if(NULL == a->entriesTwo) {
+				PrintError(FnName,
+						"a->entriesTwo",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+		}
+		/* Initialize */
+		for(i=0;i<a->numEntriesTwo;i++) {
+			AlignEntryInitialize(&a->entriesTwo[i]);
 		}
 	}
-	/* Initialize */
-	for(i=0;i<a->numEntriesTwo;i++) {
-		AlignEntryInitialize(&a->entriesTwo[i]);
+	else {
+		a->entriesTwo = NULL;
 	}
 }
 
@@ -440,6 +452,7 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 		int space)
 {
 	assert(pairedEnd == a->pairedEnd);
+	
 	/* First read */
 	assert(0 <= indexOne && indexOne < a->numEntriesOne);
 	/* Copy to the front */
@@ -448,7 +461,8 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 	}
 
 	/* Only for paired end */
-	if(1==pairedEnd) {
+	if(PairedEnd==pairedEnd) {
+		/* Second read */
 		assert(0 <= indexTwo && indexTwo < a->numEntriesTwo);
 		if(indexTwo > 0) {
 			AlignEntryCopy(&a->entriesTwo[indexTwo], &a->entriesTwo[0]);
@@ -457,14 +471,14 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 		AlignEntriesReallocate(a,
 				1,
 				1,
-				1,
+				PairedEnd,
 				space);
 	}
 	else {
 		AlignEntriesReallocate(a,
 				1,
 				0,
-				0,
+				SingleEnd,
 				space);
 	}
 }
@@ -476,6 +490,7 @@ void AlignEntriesCopy(AlignEntries *src, AlignEntries *dst)
 	/* Free and Allocate destination */
 	AlignEntriesFree(dst);
 	AlignEntriesAllocate(dst,
+			src->readName,
 			src->numEntriesOne,
 			src->numEntriesTwo,
 			src->pairedEnd,
