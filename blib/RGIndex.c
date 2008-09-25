@@ -117,7 +117,7 @@ void RGIndexCreate(RGIndex *index,
 
 		/* Update start and end bounds for this contig */
 		curStartPos = (curContig==startContig)?startPos:1;
-		curEndPos = (curContig==endContig)?endPos:1;
+		curEndPos = (curContig==endContig)?endPos:(rg->contigs[curContig-1].sequenceLength);
 
 		/* Initialize variables */
 		basesLength = 0; /* Have not looked at any bases */
