@@ -516,6 +516,9 @@ void PrintContigPos(FILE *fp,
 	int i;
 	int contigLog10 = (int)floor(log10(contig));
 	int positionLog10 = (int)floor(log10(position));
+	
+	contigLog10 = (contig < 1)?0:((int)floor(log10(contig)));
+	positionLog10 = (position < 1)?0:((int)floor(log10(position)));
 
 	assert(contigLog10 <= MAX_CONTIG_LOG_10);
 	assert(positionLog10 <= MAX_POSITION_LOG_10);
