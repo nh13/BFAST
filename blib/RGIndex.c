@@ -212,8 +212,8 @@ void RGIndexCreate(RGIndex *index,
 	}
 	if(VERBOSE >= 0) {
 		PrintContigPos(stderr, 
-				curContig,
-				curPos);
+				index->endContig,
+				index->endPos);
 		fprintf(stderr, "\n");
 	}
 
