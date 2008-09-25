@@ -21,6 +21,7 @@ FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
+void PrintContigPos(FILE*, int32_t, int32_t);
 int UpdateRead(char*, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);

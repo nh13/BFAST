@@ -15,6 +15,8 @@
 #define SEQUENCE_NAME_LENGTH 4028
 #define MAX_MASK_LENGTH 1024
 #define MAX_CONTIG_NAME_LENGTH 2048
+#define MAX_CONTIG_LOG_10 6
+#define MAX_POSITION_LOG_10 10
 /* 0 - quick sort in place
  * 1 - merge sort with tmp file I/O (not fully debugged) */
 #define SORT_TYPE 1

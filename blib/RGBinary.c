@@ -56,7 +56,10 @@ void RGBinaryRead(char *rgFileName,
 	/* Read in the sequence for each contig. */
 	/*****/
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading in [contig,pos]:\n[-1,-1]");
+		fprintf(stderr, "Reading in [contig,pos]:\n0");
+		PrintContigPos(stderr,
+				1,
+				1);
 	}
 	rg->numContigs=0;
 	while(EOF!=GetFastaHeaderLine(fpRG, header)) {
@@ -149,7 +152,7 @@ void RGBinaryRead(char *rgFileName,
 
 				if(VERBOSE >= 0) {
 					if(0==rg->contigs[rg->numContigs-1].sequenceLength % READ_ROTATE_NUM) {
-						fprintf(stderr, "\r[%d,%d]",
+						PrintContigPos(stderr,
 								rg->numContigs,
 								rg->contigs[rg->numContigs-1].sequenceLength);
 					}
@@ -205,7 +208,7 @@ void RGBinaryRead(char *rgFileName,
 		}
 		/* Update our our output */
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r[%d,%d]", 
+			PrintContigPos(stderr,
 					rg->numContigs, 
 					rg->contigs[rg->numContigs-1].sequenceLength);
 		}
@@ -224,9 +227,10 @@ void RGBinaryRead(char *rgFileName,
 		/* End loop for the current contig */
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r[%d,%d]\n", 
+		PrintContigPos(stderr,
 				rg->numContigs, 
 				rg->contigs[rg->numContigs-1].sequenceLength);
+		fprintf(stderr, "\n");
 	}
 
 	/* Close file */

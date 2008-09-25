@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 #include "BLibDefinitions.h"
 #include "RGIndex.h"
 #include "BError.h"
@@ -506,6 +507,31 @@ void PrintPercentCompleteLong(double percent)
 		fprintf(stderr, "\b\b\b\b\b\b\b");
 	}
 	fprintf(stderr, "%3.3lf percent complete", percent);
+}
+
+void PrintContigPos(FILE *fp,
+		int32_t contig,
+		int32_t position)
+{
+	int i;
+	int contigLog10 = (int)floor(log10(contig));
+	int positionLog10 = (int)floor(log10(position));
+
+	assert(contigLog10 <= MAX_CONTIG_LOG_10);
+	assert(positionLog10 <= MAX_POSITION_LOG_10);
+
+	fprintf(fp, "\r[");
+	for(i=0;i<(MAX_CONTIG_LOG_10-contigLog10);i++) {
+		fprintf(fp, "-");
+	}
+	fprintf(fp, "%d,",
+			contig);
+	for(i=0;i<(MAX_POSITION_LOG_10-positionLog10);i++) {
+		fprintf(fp, "-");
+	}
+	fprintf(fp, "%d",
+			position);
+	fprintf(fp, "]");
 }
 
 /* TODO */
