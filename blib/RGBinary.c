@@ -974,17 +974,18 @@ void RGBinaryPrintInfo(char *rgFileName)
 {
 	int32_t i;
 	RGBinary rg;
+	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
 
 	/* Read in the reference genome */
 	RGBinaryReadBinary(&rg, rgFileName);
 
 	/* Print details */
-	fprintf(stderr, "number of contigs:\t\t%d\n", rg.numContigs);
-	fprintf(stderr, "space:\t\t\t\t%d\n", rg.space);
 	for(i=0;i<rg.numContigs;i++) {
-		fprintf(stderr, "contig %6d name:\t%s\n", i, rg.contigs[i].contigName);
-		fprintf(stderr, "contig %6d length:\t%d\n", i, rg.contigs[i].sequenceLength);
+		fprintf(stderr, "contig:%6d\tname:\t%s\n", i, rg.contigs[i].contigName);
+		fprintf(stderr, "contig:%6d\tlength:\t%d\n", i, rg.contigs[i].sequenceLength);
 	}
+	fprintf(stderr, "number of contigs:\t%d\n", rg.numContigs);
+	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
 
 	RGBinaryDelete(&rg);
 }

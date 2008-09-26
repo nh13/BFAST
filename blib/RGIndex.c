@@ -1155,7 +1155,7 @@ void RGIndexMergeHelperInMemoryContig_32(RGIndex *index,
 	char *FnName = "RGIndexMergeHelperInMemoryContig_32";
 	int64_t i=0;
 	uint32_t *tmpPositions=NULL;
-	uint8_t *tmpContigs_32=NULL;
+	uint32_t *tmpContigs_32=NULL;
 	int64_t startUpper, startLower, endUpper, endLower;
 	int64_t ctr=0;
 
@@ -1830,6 +1830,8 @@ void RGIndexPrintInfo(char *inputFileName)
 	int64_t i;
 	RGIndex index;
 	char contigType[2][256] = {"1 byte", "4 byte"};
+	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
+
 
 	/* Open the file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
@@ -1859,8 +1861,9 @@ void RGIndexPrintInfo(char *inputFileName)
 			contigType[index.contigType]);
 	fprintf(stderr, "repeat masker:\t\t%d\n",
 			index.repeatMasker);
-	fprintf(stderr, "space:\t\t\t%d\n",
-			index.space);
+	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n",
+			index.space,
+			Space[index.space]);
 	fprintf(stderr, "hash width:\t\t%u\n",
 			index.hashWidth);
 	fprintf(stderr, "hash length:\t\t%lld\n",
