@@ -33,7 +33,8 @@ typedef struct {
 	int from[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* previous arc */
 	int length[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* path length */
 	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* color error */
-	char prevInsertionBase; /* When we create a run of insertions, we must keep track of the bases in the read */
+	char prevDeletionBase; /* When we create a run of deletions, we must keep track of the base used right before the deletion */
+	char prevInsertionBase; /* When we create a run of insertions, we must keep track of the base used right before the insertion */
 } AlignMatrix;
 
 /* For the "from" in the struct "AlignMatrixCell" */

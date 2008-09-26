@@ -56,8 +56,9 @@ int AlignColorSpace(char *read,
 			matrix[i][0].from[k] = Start;
 			matrix[i][0].length[k] = 0;
 			matrix[i][0].colorError[k] = '0';
-			matrix[i][0].prevInsertionBase = COLOR_SPACE_START_NT;
 		}
+		matrix[i][0].prevDeletionBase = COLOR_SPACE_START_NT;
+		matrix[i][0].prevInsertionBase = COLOR_SPACE_START_NT;
 	}
 	/* Row 0 column j should be zero since we want to find the best
 	 * local alignment within the reference */
@@ -76,8 +77,9 @@ int AlignColorSpace(char *read,
 			matrix[0][j].from[k] = Start;
 			matrix[0][j].length[k] = 0;
 			matrix[0][j].colorError[k] = '0';
-			matrix[0][j].prevInsertionBase = COLOR_SPACE_START_NT;
 		}
+		matrix[0][j].prevDeletionBase = COLOR_SPACE_START_NT;
+		matrix[0][j].prevInsertionBase = COLOR_SPACE_START_NT;
 	}
 
 	/* Fill in the matrix according to the recursive rules */
@@ -86,8 +88,8 @@ int AlignColorSpace(char *read,
 		uint8_t curColor;
 		char curReadBase, prevReadBase;
 		/* In color space, the first color is determined by the adapter NT */
-		prevReadBase = (i<=0)?COLOR_SPACE_START_NT:read[i-1];
 		curReadBase = read[i];
+		prevReadBase = (i==0)?COLOR_SPACE_START_NT:read[i-1];
 
 		/* Get the current color for the read */
 		curColor = ConvertBaseToColorSpace(prevReadBase, curReadBase);
@@ -101,14 +103,16 @@ int AlignColorSpace(char *read,
 				int maxFrom = -1;
 				char maxColorError = '0';
 				int maxLength = 0;
-				char maxPrevInsertionBase='0';
+				char maxPrevDeletionBase='X';
+				char maxPrevInsertionBase='X';
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
 					double curScore=NEGATIVE_INFINITY;
 					double curScoreNT=NEGATIVE_INFINITY;
 					int curFrom=-1;
 					int curLength=-1;
-					char curPrevInsertionBase='0';
+					char curPrevDeletionBase='X';
+					char curPrevInsertionBase='X';
 					uint8_t convertedColor='X';
 					switch(k) {
 						case 0:
@@ -131,7 +135,7 @@ int AlignColorSpace(char *read,
 									break;
 								case 4:
 									/* Use previous base for deletions */
-									convertedColor=ConvertBaseToColorSpace(prevReadBase, DNA[k]);
+									convertedColor=ConvertBaseToColorSpace(matrix[i][j].prevDeletionBase, DNA[k]);
 									break;
 								case 5:
 									/* Use the previous base carried along by insertions */
@@ -203,26 +207,31 @@ int AlignColorSpace(char *read,
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionA;
+									curPrevDeletionBase = DNA[l]; 
 									break;
 								case 1:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionC;
+									curPrevDeletionBase = DNA[l]; 
 									break;
 								case 2:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionG;
+									curPrevDeletionBase = DNA[l]; 
 									break;
 								case 3:
 									curScore = matrix[i+1][j].score[l] + sm->gapOpenPenalty;
 									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapOpenPenalty;
 									curFrom = DeletionT;
+									curPrevDeletionBase = DNA[l]; 
 									break;
 								case 4:
 									curScore = matrix[i+1][j].score[l] + sm->gapExtensionPenalty;
 									curScoreNT = matrix[i+1][j].scoreNT[l] + sm->gapExtensionPenalty;
 									curFrom = DeletionExt;
+									curPrevDeletionBase = matrix[i+1][j].prevDeletionBase;
 									break;
 								case 5:
 									break;
@@ -236,7 +245,7 @@ int AlignColorSpace(char *read,
 							}
 							if(curScore < NEGATIVE_INFINITY/2) {
 								curScore = NEGATIVE_INFINITY;
-								curScore = NEGATIVE_INFINITY;
+								curScoreNT = NEGATIVE_INFINITY;
 							}
 							if(curScore > maxScore && l != 5) {
 								maxScore = curScore;
@@ -244,6 +253,7 @@ int AlignColorSpace(char *read,
 								maxFrom = curFrom;
 								maxColorError = '0';
 								maxLength = curLength;
+								maxPrevDeletionBase=curPrevDeletionBase;
 							}
 							break;
 						case 5:
@@ -328,15 +338,18 @@ int AlignColorSpace(char *read,
 				matrix[i+1][j+1].colorError[k] = maxColorError;
 				matrix[i+1][j+1].length[k] = maxLength;
 				/* Update the previous insertion base */
-				if(k==5) {
+				if(k==4) {
+					matrix[i+1][j+1].prevDeletionBase = maxPrevDeletionBase;
+				}
+				else if(k==5) {
 					matrix[i+1][j+1].prevInsertionBase = maxPrevInsertionBase;
 				}
 				/* Uncomment this to remove insertions */
 				/*
-				if(k>=5) {
-					matrix[i+1][j+1].score[k] = NEGATIVE_INFINITY; 
-				}
-				*/
+				   if(k>=5) {
+				   matrix[i+1][j+1].score[k] = NEGATIVE_INFINITY; 
+				   }
+				   */
 			}
 		}
 	}
