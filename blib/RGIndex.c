@@ -1829,6 +1829,7 @@ void RGIndexPrintInfo(char *inputFileName)
 	FILE *fp;
 	int64_t i;
 	RGIndex index;
+	char contigType[2][256] = {"1 byte", "4 byte"};
 
 	/* Open the file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
@@ -1853,6 +1854,9 @@ void RGIndexPrintInfo(char *inputFileName)
 			index.endPos);
 	fprintf(stderr, "index length:\t\t%lld\n",
 			(long long int)index.length);
+	fprintf(stderr, "contig type:\t\t%d\t\t[%s]\n",
+			index.contigType,
+			contigType[index.contigType]);
 	fprintf(stderr, "repeat masker:\t\t%d\n",
 			index.repeatMasker);
 	fprintf(stderr, "space:\t\t\t%d\n",
