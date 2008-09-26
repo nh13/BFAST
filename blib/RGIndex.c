@@ -209,6 +209,11 @@ void RGIndexCreate(RGIndex *index,
 				}
 			}
 		}
+		if(VERBOSE >= 0) {
+			PrintContigPos(stderr, 
+					curContig,
+					curPos);
+		}
 	}
 	if(VERBOSE >= 0) {
 		PrintContigPos(stderr, 

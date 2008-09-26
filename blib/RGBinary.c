@@ -981,8 +981,8 @@ void RGBinaryPrintInfo(char *rgFileName)
 
 	/* Print details */
 	for(i=0;i<rg.numContigs;i++) {
-		fprintf(stderr, "contig:%6d\tname:\t%s\n", i, rg.contigs[i].contigName);
-		fprintf(stderr, "contig:%6d\tlength:\t%d\n", i, rg.contigs[i].sequenceLength);
+		fprintf(stderr, "contig:%6d\tname:\t%s\n", i+1, rg.contigs[i].contigName);
+		fprintf(stderr, "contig:%6d\tlength:\t%d\n", i+1, rg.contigs[i].sequenceLength);
 	}
 	fprintf(stderr, "number of contigs:\t%d\n", rg.numContigs);
 	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
