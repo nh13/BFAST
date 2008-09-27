@@ -226,9 +226,6 @@ void RGIndexCreate(RGIndex *index,
 
 	/* Sort the nodes in the index */
 	RGIndexSort(index, rg, numThreads, tmpDir);
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Sorted.\n");
-	}
 
 	/* Create hash table from the index */
 	RGIndexCreateHash(index, rg);
@@ -355,6 +352,9 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 	   }
 	   }
 	   */
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rHash created.\n");
+	}
 }
 
 /* TODO */
@@ -594,7 +594,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 		}
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rHash created.\n");
+		fprintf(stderr, "Sorted.\n");
 	}
 }
 
