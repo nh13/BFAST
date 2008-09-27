@@ -1,15 +1,10 @@
 ===============================================================================
 General
-1. use the -O3 flag when compiling.
-2. Reference genome can be a cat of fasta files.  For example the sequence of
-say 2000 exons.
 ===============================================================================
 
 ===============================================================================
 bpreprocess
 ===============================================================================
-1. Indexes can be created specifying only regions (like exon boundaries).
-2. Create indexes using comparison in color space.
 
 ===============================================================================
 bmatches
@@ -17,27 +12,17 @@ bmatches
 1. 
 Flag perfect matches so that the alignment score is already known. 
 2.
-Only read in reference genome needed by the indexes.
-3.
-Enumeration procedures (-x, -y, -z, -Y, and -Z) need to be updated for color
-space.
+Enumeration procedure for enumerating color errors.
 
 ===============================================================================
 balign
 ===============================================================================
-1. 
-ABI support for permuting errors/mutations.
-2. 
-ABI color space local aligner.
-3. 
-Annotate where the color errors occur.  Keep the before (pre-color correction) 
-and after (post-color correction) sequences.
-4.
-Implement start and end (-s, -S, -e, -E).
 
 ===============================================================================
 bpostprocess
 ===============================================================================
+1. 
+Validate paired end support
 
 ===============================================================================
 butil
