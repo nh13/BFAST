@@ -614,7 +614,7 @@ void *RunDynamicProgrammingThread(void *arg)
 
 /* TODO */
 void RunDynamicProgrammingThreadHelper(RGBinary *rg,
-		uint8_t contig,
+		uint32_t contig,
 		uint32_t position,
 		int8_t strand,
 		char *read,

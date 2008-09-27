@@ -80,7 +80,7 @@ typedef struct {
 	int8_t *read;
 	int32_t maxReached;
 	int32_t numEntries;
-	int32_t *contigs;
+	uint32_t *contigs;
 	int32_t *positions;
 	int8_t *strand;
 } RGMatch;
@@ -177,7 +177,7 @@ typedef struct {
 typedef struct {
 	int32_t contigNameLength;
 	char *contigName;
-	int32_t contig;
+	uint32_t contig;
 	uint32_t position;
 	char strand;
 	double score;

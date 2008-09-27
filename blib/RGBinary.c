@@ -683,6 +683,12 @@ void RGBinaryGetReference(RGBinary *rg,
 
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
+	if(contig <= 0 || contig > rg->numContigs) {
+		fprintf(stderr, "\ncontig=%d\n(%d,%d)\n",
+				contig,
+				1,
+				rg->numContigs);
+	}
 	assert(contig > 0 && contig <= rg->numContigs);
 
 	/* Get bounds for the sequence to return */

@@ -191,6 +191,7 @@ void RGMatchPrint(FILE *fp,
 		}
 
 		for(i=0;i<m->numEntries;i++) {
+			assert(m->contigs[i] > 0);
 			if(0 > fprintf(fp, "\t%u\t%d\t%c", 
 						m->contigs[i],
 						m->positions[i],

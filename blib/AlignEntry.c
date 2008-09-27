@@ -27,7 +27,7 @@ int AlignEntryPrint(AlignEntry *a,
 
 	if(binaryOutput == TextOutput) {
 
-		if(fprintf(outputFP, "%s\t%d\t%u\t%c\t%lf\t%u\t%u\n",
+		if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
 					a->contigName,
 					a->contig,
 					a->position,
@@ -56,7 +56,7 @@ int AlignEntryPrint(AlignEntry *a,
 	else {
 		if(fwrite(&a->contigNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(a->contigName, sizeof(char), a->contigNameLength, outputFP) != a->contigNameLength ||
-				fwrite(&a->contig, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(&a->contig, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->position, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->strand, sizeof(char), 1, outputFP) != 1 ||
 				fwrite(&a->score, sizeof(double), 1, outputFP) != 1 ||
@@ -121,7 +121,7 @@ int AlignEntryRead(AlignEntry *a,
 
 	if(binaryInput == TextOutput) {
 
-		if(fscanf(inputFP, "%s\t%d\t%u\t%c\t%lf\t%u\t%u\n",
+		if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
 					tempContigName,
 					&a->contig,
 					&a->position,
@@ -172,7 +172,7 @@ int AlignEntryRead(AlignEntry *a,
 					MallocMemory);
 		}
 		if(fread(a->contigName, sizeof(char), a->contigNameLength, inputFP) != a->contigNameLength ||
-				fread(&a->contig, sizeof(int32_t), 1, inputFP) != 1 ||
+				fread(&a->contig, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
 				fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
