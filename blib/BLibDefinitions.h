@@ -18,11 +18,11 @@
 #define MAX_CONTIG_LOG_10 6
 #define MAX_POSITION_LOG_10 10
 #define MAX_HEADER_LENGTH 2048
-/* 0 - quick sort in place
- * 1 - merge sort with tmp file I/O (not fully debugged) */
-#define SORT_TYPE 1
 #define ONE_GIGABYTE (int64_t)1073741824
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
+
+/* Testing/Debug */
+#define TEST_RGINDEX_SORT 0
 
 /* Default output */
 enum {TextOutput, BinaryOutput};
@@ -175,19 +175,6 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	RGIndex *index;
-	RGBinary *rg;
-	int32_t space;
-	int64_t low;
-	int64_t high;
-	int32_t threadID;
-	int32_t showPercentComplete;
-	char *tmpDir;
-	int64_t mergeMemoryLimit;
-} ThreadRGIndexSortData;
-
-/* TODO */
-typedef struct {
 	int32_t contigNameLength;
 	char *contigName;
 	int32_t contig;
@@ -211,5 +198,30 @@ typedef struct {
 	AlignEntry *entriesOne;
 	AlignEntry *entriesTwo;
 } AlignEntries;
+
+/* TODO */
+typedef struct {
+	RGIndex *index;
+	RGBinary *rg;
+	int32_t space;
+	int64_t low;
+	int64_t high;
+	int32_t threadID;
+	int32_t showPercentComplete;
+	char *tmpDir;
+	int64_t mergeMemoryLimit;
+} ThreadRGIndexSortData;
+
+/* TODO */
+typedef struct {
+	RGIndex *index;
+	RGBinary *rg;
+	int32_t threadID;
+	int64_t low;
+	int64_t mid;
+	int64_t high;
+	int64_t mergeMemoryLimit;
+	char *tmpDir;
+} ThreadRGIndexMergeData;
 
 #endif

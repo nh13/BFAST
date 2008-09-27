@@ -215,6 +215,25 @@ int IsAPowerOfTwo(unsigned int a) {
 	return 1;
 }
 
+/* TODO */
+uint32_t Log2(uint32_t num) 
+{
+	char *FnName = "Log2";
+	int i;
+
+	if(IsAPowerOfTwo(num)==0) {
+			PrintError(FnName,
+					"num",
+					"Num is not a power of 2",
+					Exit,
+					OutOfRange);
+	}
+	/* Not the most efficient but we are not going to use this often */
+	for(i=0;num>1;i++,num/=2) {
+	}
+	return i;
+}
+
 char TransformFromIUPAC(char a) 
 {
 	switch(a) {

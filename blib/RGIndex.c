@@ -225,10 +225,7 @@ void RGIndexCreate(RGIndex *index,
 	assert(index->length > 0);
 
 	/* Sort the nodes in the index */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Sorting...\n");
-	}
-	RGIndexSortNodes(index, rg, numThreads, tmpDir);
+	RGIndexSort(index, rg, numThreads, tmpDir);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorted.\n");
 	}
@@ -340,9 +337,6 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 			startHash = curHash;
 		}
 	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rHash created.\n");
-	}
 	/* In the boundary case... */
 	/* Store start and end */
 	index->starts[startHash] = start;
@@ -364,30 +358,33 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 }
 
 /* TODO */
-void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
+void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 {
-	char *FnName = FnName;
+	char *FnName = "RGIndexSort";
 	int64_t i, j;
-	ThreadRGIndexSortData *data=NULL;
-	ThreadRGIndexSortData tempData;
+	ThreadRGIndexSortData *sortData=NULL;
+	ThreadRGIndexMergeData *mergeData=NULL;
 	pthread_t *threads=NULL;
 	int32_t errCode;
 	void *status=NULL;
-	int64_t *pivots=NULL;
-	int64_t max, maxIndex;
 	double curPercentComplete = 0.0;
+	int32_t curNumThreads = numThreads;
+	int32_t curMergeIteration, curThread;
 
 	/* Only use threads if we want to divide and conquer */
 	if(numThreads > 1) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Sorting by thread...\n");
+		}
 		/* Should check that the number of threads is a power of 4 since we split
 		 * in half in both sorts. */
 		assert(IsAPowerOfTwo(numThreads)==1);
 
 		/* Allocate memory for the thread arguments */
-		data = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
-		if(NULL==data) {
+		sortData = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
+		if(NULL==sortData) {
 			PrintError(FnName,
-					"data",
+					"sortData",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
@@ -402,111 +399,130 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 					MallocMemory);
 		}
 
-		if(SORT_TYPE == 0) {
-			/* Quick sort */
+		/* Merge sort with tmp file I/O */
 
-			/* Allocate memory for the pivots */
-			pivots = malloc(sizeof(int64_t)*(2*numThreads));
-			if(NULL == pivots) {
+		/* Initialize sortData */
+		for(i=0;i<numThreads;i++) {
+			sortData[i].index = index;
+			sortData[i].rg = rg;
+			sortData[i].threadID = i;
+			sortData[i].low = i*(index->length/numThreads);
+			sortData[i].high = (i+1)*(index->length/numThreads)-1;
+			sortData[i].showPercentComplete = 0;
+			sortData[i].tmpDir = tmpDir;
+			/* Divide the maximum overhead by the number of threads */
+			sortData[i].mergeMemoryLimit = MERGE_MEMORY_LIMIT/((int64_t)numThreads); 
+			assert(sortData[i].low >= 0 && sortData[i].high < index->length);
+		}
+		sortData[0].low = 0;
+		sortData[numThreads-1].high = index->length-1;
+		sortData[numThreads-1].showPercentComplete = 1;
+
+		/* Check that we split correctly */
+		for(i=1;i<numThreads;i++) {
+			assert(sortData[i-1].high < sortData[i].low);
+		}
+
+		/* Create threads */
+		for(i=0;i<numThreads;i++) {
+			/* Start thread */
+			errCode = pthread_create(&threads[i], /* thread struct */
+					NULL, /* default thread attributes */
+					RGIndexMergeSort, /* start routine */
+					(void*)(&sortData[i])); /* sortData to routine */
+			if(0!=errCode) {
 				PrintError(FnName,
-						"pivots",
+						"pthread_create: errCode",
+						"Could not start thread",
+						Exit,
+						ThreadError);
+			}
+		}
+
+		/* Wait for the threads to finish */
+		for(i=0;i<numThreads;i++) {
+			/* Wait for the given thread to return */
+			errCode = pthread_join(threads[i],
+					&status);
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError(FnName,
+						"pthread_join: errCode",
+						"Thread returned an error",
+						Exit,
+						ThreadError);
+			}
+			if(i==numThreads-1 && VERBOSE >= 0) {
+				fprintf(stderr, "\rWaiting for other threads to complete...");
+			}
+		}
+
+		/* Free memory for the threads */
+		free(threads);
+		threads=NULL;
+
+		/* Now we must merge the results from the threads */
+		/* Merge intelligently i.e. merge recursively so 
+		 * there are only nlogn merges where n is the 
+		 * number of threads. */
+		curNumThreads = numThreads;
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rMerging sorts from threads.\n");
+			fprintf(stderr, "Out of %d merges required, currently on:\n0", Log2(numThreads));
+		}
+		for(i=1, curMergeIteration=1;i<numThreads;i=i*2, curMergeIteration++) { /* The number of merge iterations */
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "\r%d", curMergeIteration);
+			}
+			curNumThreads /= 2; /* The number of threads to spawn */
+			/* Allocate memory for the thread arguments */
+			mergeData = malloc(sizeof(ThreadRGIndexMergeData)*curNumThreads);
+			if(NULL==mergeData) {
+				PrintError(FnName,
+						"mergeData",
 						"Could not allocate memory",
 						Exit,
 						MallocMemory);
 			}
-
-			for(i=0;i<2*numThreads;i++) {
-				pivots[i] = -1;
+			/* Allocate memory for the thread point32_ters */
+			threads = malloc(sizeof(pthread_t)*curNumThreads);
+			if(NULL==threads) {
+				PrintError(FnName,
+						"threads",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
 			}
-
-			/* Get the pivots and presort */
-			fprintf(stderr, "\rInitializing...");
-			RGIndexQuickSortNodesGetPivots(index,
-					rg,
-					0,
-					index->length-1,
-					pivots,
-					1,
-					numThreads);
-			/* The last one must be less than index->length */
-			pivots[2*numThreads-1]--;
-
-			/* Check pivots */
-			for(i=0;i<2*numThreads;i+=2) {
-				if(!(pivots[i] >= 0 && pivots[i] < index->length)) {
-					fprintf(stderr, "offender\ti:%d\tlength:%d\n",
-							(int)i,
-							(int)index->length);
-					for(i=0;i<2*numThreads;i+=2) {
-						fprintf(stderr, "i:%d\t%d\t%d\n",
-								(int)i,
-								(int)pivots[i],
-								(int)pivots[i+1]);
-					}
-					exit(1);
-				}
-				assert(pivots[i] >= 0 && pivots[i] < index->length);
-				assert(pivots[i+1] >= 0 && pivots[i+1] < index->length);
-				assert(pivots[i] <= pivots[i+1]);
-				if(i==0) {
-					assert(pivots[i] == 0);
-				}
-				if(i+1==2*numThreads-1) {
-					assert(pivots[i+1] == index->length-1);
-				}
-				if(i>1 && i%2==0) {
-					assert(pivots[i] == pivots[i-1] + 1);
-				}
-				if(i>1) {
-					assert(pivots[i] > pivots[i-1]);
-				}
+			/* Initialize data for threads */
+			for(j=0,curThread=0;j<numThreads;j+=2*i,curThread++) {
+				mergeData[curThread].index = index;
+				mergeData[curThread].rg = rg;
+				mergeData[curThread].threadID = curThread;
+				/* Use the same bounds as was used in the sort */
+				mergeData[curThread].low = sortData[j].low;
+				mergeData[curThread].mid = sortData[i+j].low-1;
+				mergeData[curThread].high = sortData[j+2*i-1].high;
+				mergeData[curThread].mergeMemoryLimit = MERGE_MEMORY_LIMIT/((int64_t)curNumThreads); 
+				mergeData[curThread].tmpDir = tmpDir;
 			}
-
-			/* Initialize data */
-			maxIndex=0;
-			max = data[0].high-data[0].low;
-			for(i=0;i<numThreads;i++) {
-				data[i].index = index;
-				data[i].rg = rg;
-				data[i].threadID = i;
-				data[i].low = pivots[2*i];
-				data[i].high = pivots[2*i+1];
-				data[i].showPercentComplete = 0;
-				data[i].tmpDir = NULL;
-				data[i].mergeMemoryLimit = -1;
-				assert(data[i].low >= 0 && data[i].high < index->length);
-				if(data[i].high - data[i].low >= max) {
-					maxIndex = i;
-				}
-			}
-			data[maxIndex].showPercentComplete = 1;
-
 			/* Check that we split correctly */
-			for(i=1;i<numThreads;i++) {
-				assert(data[i-1].high < data[i].low);
+			for(j=1;j<curNumThreads;j++) {
+				if(mergeData[j-1].high >= mergeData[j].low) {
+					PrintError(FnName,
+							NULL,
+							"mergeData[j-1].high >= mergeData[j].low",
+							Exit,
+							OutOfRange);
+				}
 			}
-
-			/* Copy maxIndex to the front so that it is the first that we wait for... */
-			tempData.low = data[0].low;
-			tempData.high = data[0].high;
-			tempData.threadID = data[0].threadID;
-			tempData.showPercentComplete = data[0].showPercentComplete;
-			data[0].low = data[maxIndex].low;
-			data[0].high = data[maxIndex].high;
-			data[0].threadID = data[maxIndex].threadID;
-			data[0].showPercentComplete = data[maxIndex].showPercentComplete;
-			data[maxIndex].low = tempData.low;
-			data[maxIndex].high = tempData.high;
-			data[maxIndex].threadID = tempData.threadID;
-			data[maxIndex].showPercentComplete = tempData.showPercentComplete;
 
 			/* Create threads */
-			for(i=0;i<numThreads;i++) {
+			for(j=0;j<curNumThreads;j++) {
 				/* Start thread */
-				errCode = pthread_create(&threads[i], /* thread struct */
+				errCode = pthread_create(&threads[j], /* thread struct */
 						NULL, /* default thread attributes */
-						RGIndexQuickSortNodes, /* start routine */
-						(void*)(&data[i])); /* data to routine */
+						RGIndexMerge, /* start routine */
+						(void*)(&mergeData[j])); /* sortData to routine */
 				if(0!=errCode) {
 					PrintError(FnName,
 							"pthread_create: errCode",
@@ -517,9 +533,9 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 			}
 
 			/* Wait for the threads to finish */
-			for(i=0;i<numThreads;i++) {
+			for(j=0;j<curNumThreads;j++) {
 				/* Wait for the given thread to return */
-				errCode = pthread_join(threads[i],
+				errCode = pthread_join(threads[j],
 						&status);
 				/* Check the return code of the thread */
 				if(0!=errCode) {
@@ -529,413 +545,61 @@ void RGIndexSortNodes(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tm
 							Exit,
 							ThreadError);
 				}
-				if(i==maxIndex && VERBOSE >= 0) {
-					fprintf(stderr, "\rWaiting for other threads to complete...");
-				}
 			}
-			/* Free memory */
-			free(pivots);
+
+			/* Free memory for the merge data */
+			free(mergeData);
+			mergeData=NULL;
+			/* Free memory for the threads */
+			free(threads);
+			threads=NULL;
 		}
-		else if(SORT_TYPE == 1) {
-			/* Merge sort with tmp file I/O */
-
-			/* Initialize data */
-			for(i=0;i<numThreads;i++) {
-				data[i].index = index;
-				data[i].rg = rg;
-				data[i].threadID = i;
-				data[i].low = i*(index->length/numThreads);
-				data[i].high = (i+1)*(index->length/numThreads)-1;
-				data[i].showPercentComplete = 0;
-				data[i].tmpDir = tmpDir;
-				/* Divide the maximum overhead by the number of threads */
-				data[i].mergeMemoryLimit = MERGE_MEMORY_LIMIT/((int64_t)numThreads); 
-				assert(data[i].low >= 0 && data[i].high < index->length);
-			}
-			data[0].low = 0;
-			data[numThreads-1].high = index->length-1;
-			data[numThreads-1].showPercentComplete = 1;
-
-			/* Check that we split correctly */
-			for(i=1;i<numThreads;i++) {
-				assert(data[i-1].high < data[i].low);
-			}
-
-			/* Create threads */
-			for(i=0;i<numThreads;i++) {
-				/* Start thread */
-				errCode = pthread_create(&threads[i], /* thread struct */
-						NULL, /* default thread attributes */
-						RGIndexMergeSortNodes, /* start routine */
-						(void*)(&data[i])); /* data to routine */
-				if(0!=errCode) {
-					PrintError(FnName,
-							"pthread_create: errCode",
-							"Could not start thread",
-							Exit,
-							ThreadError);
-				}
-			}
-
-			/* Wait for the threads to finish */
-			for(i=0;i<numThreads;i++) {
-				/* Wait for the given thread to return */
-				errCode = pthread_join(threads[i],
-						&status);
-				/* Check the return code of the thread */
-				if(0!=errCode) {
-					PrintError(FnName,
-							"pthread_join: errCode",
-							"Thread returned an error",
-							Exit,
-							ThreadError);
-				}
-				if(i==numThreads-1 && VERBOSE >= 0) {
-					fprintf(stderr, "\rWaiting for other threads to complete...");
-				}
-			}
-
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "\rMerging sorts from threads...                    ");
-			}
-
-			/* Now we must merge the results from the threads */
-			/* Merge intelligently i.e. merge recursively so 
-			 * there are only nlogn merges where n is the 
-			 * number of threads. */
-			for(j=1;j<numThreads;j=j*2) {
-				for(i=0;i<numThreads;i+=2*j) {
-					RGIndexMergeHelper(index,
-							rg,
-							data[i].low,
-							data[i+j].low-1,
-							data[i+2*j-1].high,
-							MERGE_MEMORY_LIMIT,
-							tmpDir);
-				}
-			}
-		}
-		else {
-			PrintError(FnName,
-					"SORT_TYPE",
-					"Could not understand sort type",
-					Exit,
-					OutOfRange);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\nMerge complete.\n");
 		}
 
-		/* Free memory */
-		free(threads);
-		threads=NULL;
-		free(data);
-		data=NULL;
+		/* Free memory for sort data */
+		free(sortData);
+		sortData=NULL;
 	}
 	else {
-		if(SORT_TYPE == 0) {
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "\r0 percent complete");
-			}
-			RGIndexQuickSortNodesHelper(index,
-					rg,
-					0,
-					index->length-1,
-					1);
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "\r100.00 percent complete\n");
-			}
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Sorting...\n");
 		}
-		else if(SORT_TYPE == 1) {
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "\r0 percent complete");
-			}
-			RGIndexMergeSortNodesHelper(index,
-					rg,
-					0,
-					index->length-1,
-					1,
-					&curPercentComplete,
-					0,
-					index->length-1,
-					MERGE_MEMORY_LIMIT,
-					tmpDir);
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "\r100.00 percent complete\n");
-			}
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\r0 percent complete");
 		}
-		else {
-			PrintError(FnName,
-					"SORT_TYPE",
-					"Could not understand sort type",
-					Exit,
-					OutOfRange);
+		RGIndexMergeSortHelper(index,
+				rg,
+				0,
+				index->length-1,
+				1,
+				&curPercentComplete,
+				0,
+				index->length-1,
+				MERGE_MEMORY_LIMIT,
+				tmpDir);
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\r100.00 percent complete\n");
 		}
 	}
 
-	/* Test that we sorted correctly */
-	/*
-	   for(i=1;i<index->length;i++) {
-	   if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
-	   RGIndexCompareAt(index, rg, i-1, i, 1);
-	   }
-	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	   }
-	   */
-}
-
-/* TODO */
-void *RGIndexQuickSortNodes(void *arg)
-{
-	/* thread arguments */
-	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
-
-	/* Call helper */
-	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
-		fprintf(stderr, "\r%3.3lf percent complete", 0.0);
-	}
-	RGIndexQuickSortNodesHelper(data->index,
-			data->rg,
-			data->low,
-			data->high,
-			data->showPercentComplete);
-	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
-		fprintf(stderr, "\r");
-		fprintf(stderr, "thread %3.3lf percent complete", 100.0);
-	}
-
-	return arg;
-}
-
-/* TODO */
-/* Call stack was getting too big, implement non-recursive sort */
-void RGIndexQuickSortNodesHelper(RGIndex *index,
-		RGBinary *rg,
-		int64_t low,
-		int64_t high,
-		int32_t showPercentComplete)
-{
-	/* Stack for log n space and non-recursive implementation */
-	int64_t *lowStack=NULL;
-	int64_t *highStack=NULL;
-	int64_t stackLength=0;
-
-	/* Local Variables */
-	int64_t i;
-	int64_t pivot = 0;
-	int64_t total = high-low+1;
-	int64_t curLow, curHigh;
-	double curPercent = 0.0;
-
-	/* Initialize stack */
-	stackLength=1;
-	lowStack = malloc(sizeof(int64_t));
-	if(NULL==lowStack) {
-		PrintError("RGIndexQuickSortNodesHelper",
-				"lowStack",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	highStack = malloc(sizeof(int64_t));
-	if(NULL==highStack) {
-		PrintError("RGIndexQuickSortNodesHelper",
-				"highStack",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	lowStack[0] = low;
-	highStack[0] = high;
-
-	/* Continue while the stack is not empty */
-	while(stackLength > 0) {
-		/* Pop off the stack */
-		curLow = lowStack[stackLength-1];
-		curHigh = highStack[stackLength-1];
-		stackLength--;
-
-		/* Reallocate memory */
-		lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
-		if(NULL==lowStack && stackLength > 0) {
-			PrintError("RGIndexQuickSortNodesHelper",
-					"lowStack",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+	if(1 == TEST_RGINDEX_SORT) {
+		/* Test that we sorted correctly */
+		for(i=1;i<index->length;i++) {
+			if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
+				RGIndexCompareAt(index, rg, i-1, i, 1);
+			}
+			assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 		}
-		highStack = realloc(highStack, sizeof(int64_t)*stackLength);
-		if(NULL==highStack && stackLength > 0) {
-			PrintError("RGIndexQuickSortNodesHelper",
-					"highStack",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-
-		/* Proceed if we are with range */
-		if(curLow < curHigh && curLow >= low && curHigh <= high) {
-			/* Choose a new pivot.  We could do this randomly (randomized quick sort)
-			 * but lets just choose the median of the front, middle and end 
-			 * */
-			pivot = RGIndexGetPivot(index, rg, curLow, curHigh);
-			assert(pivot >=0 && pivot<index->length);
-			assert(curLow >=0 && curLow<index->length);
-			assert(curHigh >=0 && curHigh<index->length);
-
-			if(showPercentComplete == 1 && VERBOSE >= 0) {
-				if(curPercent < 100.0*((double)(curLow - low))/total) {
-					while(curPercent < 100.0*((double)(curLow - low))/total) {
-						curPercent += RGINDEX_SORT_ROTATE_INC;
-					}
-					PrintPercentCompleteLong(curPercent);
-				}
-			}
-
-			/* Swap the node at pivot with the node at curHigh */
-			RGIndexSwapAt(index, pivot, curHigh);
-
-			/* Store where the pivot should be */
-			pivot = curLow;
-
-			for(i=curLow;i<curHigh;i++) {
-				assert(pivot >= 0 && pivot <= curHigh); 
-				assert(i>=0 && i <= curHigh);
-				if(RGIndexCompareAt(index, rg, i, curHigh, 0) <= 0) {
-					/* Swap node at i with node at the new pivot index */
-					if(i!=pivot) {
-						RGIndexSwapAt(index, pivot, i);
-					}
-					/* Increment the new pivot index */
-					pivot++;
-				}
-			}
-
-			/* Move pivot element to correct place */
-			if(pivot != curHigh) {
-				RGIndexSwapAt(index, pivot, curHigh);
-			}
-
-			/* Add to the stack */
-			stackLength+=2;
-			/* Reallocate memory */
-			lowStack = realloc(lowStack, sizeof(int64_t)*stackLength);
-			if(NULL==lowStack) {
-				PrintError("RGIndexQuickSortNodesHelper",
-						"lowStack",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
-			}
-			highStack = realloc(highStack, sizeof(int64_t)*stackLength);
-			if(NULL==highStack) {
-				PrintError("RGIndexQuickSortNodesHelper",
-						"highStack",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
-			}
-			/* Add sub array below */
-			lowStack[stackLength-1] = curLow;
-			highStack[stackLength-1] = pivot-1;
-			/* Add sub array above */
-			lowStack[stackLength-2] = pivot+1;
-			highStack[stackLength-2] = curHigh;
-		}
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rHash created.\n");
 	}
 }
 
 /* TODO */
-void RGIndexQuickSortNodesGetPivots(RGIndex *index,
-		RGBinary *rg,
-		int64_t low,
-		int64_t high,
-		int64_t *pivots,
-		int32_t lowPivot,
-		int32_t highPivot)
-{
-	/* local variables */
-	int64_t i;
-	int64_t pivot = 0;
-
-	if(low < high ) {
-		/* Choose a new pivot.  We could do this randomly (randomized quick sort)
-		 * but lets just choose the median of the front, middle and end 
-		 * */
-		pivot = RGIndexGetPivot(index, rg, low, high);
-		assert(pivot >=0 && pivot<index->length);
-		assert(low >=0 && low<index->length);
-		assert(high >=0 && high<index->length);
-
-		/* Partition the array.
-		 * Basically, arrange everything from low to high so that everything that
-		 * has value less than or equal to the pivot is on the low of the pivot, and
-		 * everthing else (greater than) is on the high side. 
-		 * */
-
-		/* Swap the node at pivot with the node at high */
-		RGIndexSwapAt(index, pivot, high);
-
-		/* Store where the pivot should be */
-		pivot = low;
-
-		for(i=low;i<high;i++) {
-			assert(pivot >= 0 && pivot <= high); 
-			assert(i>=0 && i <= high);
-			if(RGIndexCompareAt(index, rg, i, high, 0) <= 0) {
-				/* Swap node at i with node at the new pivot index */
-				if(i!=pivot) {
-					RGIndexSwapAt(index, pivot, i);
-				}
-				/* Increment the new pivot index */
-				pivot++;
-			}
-		}
-
-		/* Move pivot element to correct place */
-		if(pivot != high) {
-			RGIndexSwapAt(index, pivot, high);
-		}
-
-		if(lowPivot >= highPivot) {
-			assert(pivots!=NULL);
-			/* Save pivots if necessary */
-			pivots[2*lowPivot-2] = low;
-			pivots[2*lowPivot-1] = high+1;
-			return;
-		}
-		else {
-			/* Call recursively */
-
-			/* Sort below */
-			assert(pivot-1 < high);
-			RGIndexQuickSortNodesGetPivots(index, 
-					rg, 
-					low, 
-					pivot-1,
-					pivots, 
-					lowPivot, 
-					(lowPivot+highPivot)/2);
-			/* Sort above */
-			assert(pivot+1 > low);
-			RGIndexQuickSortNodesGetPivots(index, 
-					rg, 
-					pivot+1, 
-					high, 
-					pivots, 
-					(lowPivot+highPivot)/2 + 1, 
-					highPivot);
-		}
-	}
-	else {
-		/* Special case when saving pivots */
-		assert(pivots!=NULL);
-		/* Save pivots if necessary */
-		pivots[2*lowPivot-2] = low;
-		pivots[2*lowPivot-1] = low;
-		return;
-	}
-}
-
-/* TODO */
-void *RGIndexMergeSortNodes(void *arg)
+void *RGIndexMergeSort(void *arg)
 {
 	/* thread arguments */
 	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
@@ -945,7 +609,7 @@ void *RGIndexMergeSortNodes(void *arg)
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r%3.3lf percent complete", 0.0);
 	}
-	RGIndexMergeSortNodesHelper(data->index,
+	RGIndexMergeSortHelper(data->index,
 			data->rg,
 			data->low,
 			data->high,
@@ -965,7 +629,7 @@ void *RGIndexMergeSortNodes(void *arg)
 
 /* TODO */
 /* Call stack was getting too big, implement non-recursive sort */
-void RGIndexMergeSortNodesHelper(RGIndex *index,
+void RGIndexMergeSortHelper(RGIndex *index,
 		RGBinary *rg,
 		int64_t low,
 		int64_t high,
@@ -993,7 +657,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 		return;
 	}
 	/* Partition the list into two lists and sort them recursively */
-	RGIndexMergeSortNodesHelper(index,
+	RGIndexMergeSortHelper(index,
 			rg,
 			low,
 			mid,
@@ -1003,7 +667,7 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			total,
 			mergeMemoryLimit,
 			tmpDir);
-	RGIndexMergeSortNodesHelper(index,
+	RGIndexMergeSortHelper(index,
 			rg,
 			mid+1,
 			high,
@@ -1022,6 +686,23 @@ void RGIndexMergeSortNodesHelper(RGIndex *index,
 			high,
 			mergeMemoryLimit,
 			tmpDir);
+}
+
+/* TODO */
+void *RGIndexMerge(void *arg)
+{
+	ThreadRGIndexMergeData *data = (ThreadRGIndexMergeData*)arg;
+
+	/* Merge the data */
+	RGIndexMergeHelper(data->index,
+			data->rg,
+			data->low,
+			data->mid,
+			data->high,
+			data->mergeMemoryLimit,
+			data->tmpDir);
+
+	return arg;
 }
 
 /* TODO */
