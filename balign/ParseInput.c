@@ -485,7 +485,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
-	fprintf(fp, "space:\t\t\t\t%d\n", args->space);
+	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t\t%d\n", args->endContig);
