@@ -80,7 +80,6 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference contigs 1: create an index", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Index Specific Options: (Unless specified, default value = 0) ================", 3},
 	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig", 3},
@@ -88,6 +87,7 @@ static struct argp_option options[] = {
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 3},
 	{"exonsFileName", 'x', "exonsFileName", 0, "Specifies the file name that specifies the exon-like ranges to include in the index", 3},
+	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
@@ -426,7 +426,6 @@ AssignDefaultValues(struct arguments *args)
 
 	args->algorithm = 0;
 	args->space = NTSpace;
-	args->numThreads = 1;
 
 	args->repeatMasker=0;
 	args->startContig=0;
@@ -439,6 +438,8 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->exonsFileName!=0);
 	strcpy(args->exonsFileName, DEFAULT_FILENAME);
 	args->useExons=IgnoreExons;
+	
+	args->numThreads = 1;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -476,13 +477,13 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "exonsFileName:\t\t\t\t\%s\n", args->exonsFileName);
+	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
