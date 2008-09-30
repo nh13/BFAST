@@ -50,6 +50,14 @@ void RGIndexExonsRead(char *exonsFileName,
 		/* Check versus previous */
 		if(curStartContig < prevEndContig ||
 				(curStartContig == prevEndContig && curStartPos < prevEndPos)) {
+			fprintf(stderr, "%u %u %u %u\n",
+					curStartContig,
+					curStartPos,
+					curEndContig,
+					curEndPos);
+			fprintf(stderr, "previous was %u %u\n",
+					prevEndContig,
+					prevEndPos);
 			PrintError(FnName,
 					NULL,
 					"Exons must be in increasing order and non-overlapping",
