@@ -10,6 +10,7 @@ balign_SOURCES = \
 	../blib/RGRanges.c	../blib/RGRanges.h \
 	../blib/RGBinary.c	../blib/RGBinary.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
+    ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 	../blib/AlignEntry.c	../blib/AlignEntry.h \
 	../blib/AlignEntries.c	../blib/AlignEntries.h \
 	ScoringMatrix.c	ScoringMatrix.h \

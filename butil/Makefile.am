@@ -14,6 +14,7 @@ bin_PROGRAMS = bafconvert \
 
 bafconvert_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 					 ../blib/RGIndex.c	../blib/RGIndex.h \
 					 ../blib/BLib.c	../blib/BLib.h \
 					 ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -27,6 +28,7 @@ bafconvert_LDADD =
 
 bevalsim_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
+				   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 				   ../blib/RGIndex.c	../blib/RGIndex.h \
 				   ../blib/BLib.c	../blib/BLib.h \
 				   ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -40,6 +42,7 @@ bevalsim_LDADD =
 
 bexonify_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
+				   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 				   ../blib/RGIndex.c	../blib/RGIndex.h \
 				   ../blib/BLib.c	../blib/BLib.h \
 				   ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -51,6 +54,7 @@ bexonify_LDADD =
 
 bfixhash_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
+				   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 				   ../blib/RGIndex.c	../blib/RGIndex.h \
 				   ../blib/BLib.c	../blib/BLib.h \
 				   ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -62,6 +66,7 @@ bfixhash_LDADD =
 
 bgeneratereads_SOURCES = \
 						 ../blib/BError.c	../blib/BError.h \
+						 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 						 ../blib/RGIndex.c	../blib/RGIndex.h \
 						 ../blib/BLib.c	../blib/BLib.h \
 						 ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -73,6 +78,7 @@ bgeneratereads_LDADD =
 
 bheader_SOURCES = \
 				  ../blib/BError.c	../blib/BError.h \
+				  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 				  ../blib/RGIndex.c	../blib/RGIndex.h \
 				  ../blib/BLib.c	../blib/BLib.h \
 				  ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -84,6 +90,7 @@ bheader_LDADD =
 
 bindexdist_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 					 ../blib/RGIndex.c	../blib/RGIndex.h \
 					 ../blib/BLib.c	../blib/BLib.h \
 					 ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -96,6 +103,7 @@ bindexdist_LDADD =
 
 bindexhist_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 					 ../blib/RGIndex.c	../blib/RGIndex.h \
 					 ../blib/BLib.c	../blib/BLib.h \
 					 ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -108,6 +116,7 @@ bindexhist_LDADD =
 
 bpairedenddist_SOURCES = \
 						 ../blib/BError.c	../blib/BError.h \
+						 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 						 ../blib/RGIndex.c	../blib/RGIndex.h \
 						 ../blib/BLib.c	../blib/BLib.h \
 						 ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -121,6 +130,7 @@ bpairedenddist_LDADD =
 
 bmfconvert_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 					 ../blib/RGIndex.c	../blib/RGIndex.h \
 					 ../blib/BLib.c	../blib/BLib.h \
 					 ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -134,6 +144,7 @@ bmfconvert_LDADD =
 
 brepeat_SOURCES = \
 				  ../blib/BError.c	../blib/BError.h \
+				  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 				  ../blib/RGIndex.c	../blib/RGIndex.h \
 				  ../blib/BLib.c	../blib/BLib.h \
 				  ../blib/RGBinary.c ../blib/RGBinary.h \
@@ -147,6 +158,7 @@ breport_SOURCES = \
 				  ../blib/AlignEntry.c	../blib/AlignEntry.h \
 				  ../blib/AlignEntries.c	../blib/AlignEntries.h \
 				  ../blib/BError.c	../blib/BError.h \
+				  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 				  ../blib/RGIndex.c	../blib/RGIndex.h \
 				  ../blib/BLib.c	../blib/BLib.h \
 				  ../blib/RGBinary.c ../blib/RGBinary.h \
