@@ -18,9 +18,9 @@ bpreprocess \- pre-computes suitable indexes and genomes that can be re-used in 
 .nf
 bpreprocess
 	[\fB\-r\fR \fIFILENAME\fR] 	[\fB\-\-rgFileName=\fIFILENAME\fR]
-	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-indexLayoutFileName=\fIFILENAME\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm\=\fIINTEGER\fR]
 	[\fB\-A\fR \fIINTEGER\fR] 	[\fB\-\-space=\fIINTEGER\fR]
+	[\fB\-i\fR \fIFILENAME\fR] 	[\fB\-\-indexLayoutFileName=\fIFILENAME\fR]
 	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startContig=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endContig=\fIINTEGER\fR]
@@ -78,12 +78,6 @@ For more information on the format of the former file, please see
 .BR bfast(1) "."
 .
 .TP 4
-\fB\-i\fR \fIFILENAME\fR, \fB\-\-indexLayoutFileName=\fIFILENAME\fR
-The file specified will contain the layout for each index that you wish to generate.
-For more information on the format of this file, please see
-.BR bfast(1) "."
-.
-.TP 4
 \fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR
 This specifies what should be pre-computed.
 If \fB\-a 0\fR is given, binary files for the reference genome will be created.
@@ -93,6 +87,12 @@ If \fB\-a 1\fR is given, index(es) in binary format will be created according to
 \fB\-A\fR, \fB\-\-space\fR
 Specifies the encoding space of the alphabet.
 \fB\-A 0\fR corresponds to NT (nucleotide) space and \fB\-A 1\fR corresponds to color space.
+.
+.TP 4
+\fB\-i\fR \fIFILENAME\fR, \fB\-\-indexLayoutFileName=\fIFILENAME\fR
+The file specified will contain the layout for each index that you wish to generate.
+For more information on the format of this file, please see
+.BR bfast(1) "."
 .
 .TP 4
 \fB\-s\fR \fIINTEGER\fR, \fB\-\-startContig=\fIINTEGER\fR
