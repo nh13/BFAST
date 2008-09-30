@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.1.3
+* Improved speed for index creation while specifying an 
+exon-like structure.
+
 Version 0.1.2
 * Added support for index creation while specifying an 
 exon-like structure.

@@ -44,7 +44,7 @@
 #include "ParseInput.h"
 
 const char *argp_program_version =
-"bpostprocess version 0.1.2\n"
+"bpostprocess version 0.1.3\n"
 "Copyright 2008.";
 
 const char *argp_program_bug_address =
