@@ -86,6 +86,24 @@ void ReadTypeCopy(ReadType *dest,
 	dest->insertionLength=src->insertionLength;
 }
 
+void ReadTypePrint(ReadType *r, FILE *fp)
+{
+	fprintf(fp, "strand=%c\n", r->strand);
+	fprintf(fp, "contig=%d\n", r->contig);
+	fprintf(fp, "pos=%d\n", r->pos);
+	fprintf(fp, "space=%d\n", r->space);
+	fprintf(fp, "pairedEnd=%d\n", r->pairedEnd);
+	fprintf(fp, "pairedEndLength=%d\n", r->pairedEndLength);
+	fprintf(fp, "readLength=%d\n", r->readLength);
+	fprintf(fp, "whichReadVariants=%d\n", r->whichReadVariants);
+	fprintf(fp, "startIndel=%d\n", r->startIndel);
+	fprintf(fp, "indelLength=%d\n", r->indelLength);
+	fprintf(fp, "numSNPs=%d\n", r->numSNPs);
+	fprintf(fp, "numErrors=%d\n", r->numErrors);
+	fprintf(fp, "deletionLength=%d\n", r->deletionLength);
+	fprintf(fp, "insertionLength=%d\n", r->insertionLength);
+}
+
 int ReadTypeCompare(ReadType *a,
 		ReadType *b)
 {
@@ -105,9 +123,6 @@ int ReadTypeCompare(ReadType *a,
 	}
 	else if(a->whichReadVariants != b->whichReadVariants) {
 		return (a->whichReadVariants < b->whichReadVariants)?-1:1;
-	}
-	else if(a->startIndel != b->startIndel) {
-		return (a->startIndel < b->startIndel)?-1:1;
 	}
 	else if(a->indelLength != b->indelLength) {
 		return (a->indelLength < b->indelLength)?-1:1;
@@ -313,46 +328,19 @@ int ReadTypeReadFromBAF(ReadType *r,
 	return 1;
 }
 
-void StatsInitialize(Stats *s, ReadType *r)
+void StatInitialize(Stat *s, 
+		ReadType *r)
 {
-	s->numReads=0;
 	s->numCorrectlyAligned[0]=0;
 	s->numCorrectlyAligned[1]=0;
 	s->numCorrectlyAligned[2]=0;
 	s->numCorrectlyAligned[3]=0;
 	s->numCorrectlyAligned[4]=0;
-	s->space = r->space;
-	s->pairedEnd = r->pairedEnd;
-	s->pairedEndLength = r->pairedEndLength;
-	s->readLength = r->readLength;
-	s->indelLength = r->indelLength;
-	s->numSNPs = r->numSNPs;
-	s->numErrors = r->numErrors;
-	s->deletionLength = r->deletionLength;
-	s->insertionLength = r->insertionLength;
+	ReadTypeCopy(&s->r, r);
+	s->numReads=0;
 }
 
-void StatsPrintHeader(FILE *fp)
-{
-	fprintf(fp, "# COL | Description\n");
-	fprintf(fp, "# 0    | number of reads\n");
-	fprintf(fp, "# 1    | number of correctly aligned within 0 bases\n");
-	fprintf(fp, "# 2    | number of correctly aligned within 10 bases\n");
-	fprintf(fp, "# 3    | number of correctly aligned within 100 bases\n");
-	fprintf(fp, "# 4    | number of correctly aligned within 1000 bases\n");
-	fprintf(fp, "# 5    | number of correctly aligned within 10000 bases\n");
-	fprintf(fp, "# 6    | space\n");
-	fprintf(fp, "# 7    | paired end\n");
-	fprintf(fp, "# 8    | paired end length\n");
-	fprintf(fp, "# 9    | read length\n");
-	fprintf(fp, "# 10   | indel length\n");
-	fprintf(fp, "# 11   | number of snps\n");
-	fprintf(fp, "# 12   | number of errors\n");
-	fprintf(fp, "# 13   | deletion length\n");
-	fprintf(fp, "# 14   | insertion length\n");
-}
-
-void StatsPrint(Stats *s, FILE *fp)
+void StatPrint(Stat *s, FILE *fp)
 {
 	fprintf(fp, "%d %d %d %d %d %d ",
 			s->numReads,
@@ -362,18 +350,18 @@ void StatsPrint(Stats *s, FILE *fp)
 			s->numCorrectlyAligned[3],
 			s->numCorrectlyAligned[4]);
 	fprintf(fp, "%d %d %d %d %d %d %d %d %d\n",
-			s->space,
-			s->pairedEnd,
-			s->pairedEndLength,
-			s->readLength,
-			s->indelLength,
-			s->numSNPs,
-			s->numErrors,
-			s->deletionLength,
-			s->insertionLength);
+			s->r.space,
+			s->r.pairedEnd,
+			s->r.pairedEndLength,
+			s->r.readLength,
+			s->r.indelLength,
+			s->r.numSNPs,
+			s->r.numErrors,
+			s->r.deletionLength,
+			s->r.insertionLength);
 }
 
-void StatsAdd(Stats *s, ReadType *r)
+void StatAdd(Stat *s, ReadType *r)
 {
 	int diff;
 	if(r->strand == r->aStrand &&
@@ -400,13 +388,84 @@ void StatsAdd(Stats *s, ReadType *r)
 	s->numReads++;
 }
 
+void StatsInitialize(Stats *s) 
+{
+	s->stats=NULL;
+	s->numStats=0;
+}
+
+void StatsPrintHeader(FILE *fp)
+{
+	fprintf(fp, "# COL | Description\n");
+	fprintf(fp, "# 0    | number of reads\n");
+	fprintf(fp, "# 1    | number of correctly aligned within 0 bases\n");
+	fprintf(fp, "# 2    | number of correctly aligned within 10 bases\n");
+	fprintf(fp, "# 3    | number of correctly aligned within 100 bases\n");
+	fprintf(fp, "# 4    | number of correctly aligned within 1000 bases\n");
+	fprintf(fp, "# 5    | number of correctly aligned within 10000 bases\n");
+	fprintf(fp, "# 6    | space\n");
+	fprintf(fp, "# 7    | paired end\n");
+	fprintf(fp, "# 8    | paired end length\n");
+	fprintf(fp, "# 9    | read length\n");
+	fprintf(fp, "# 10   | indel length\n");
+	fprintf(fp, "# 11   | number of snps\n");
+	fprintf(fp, "# 12   | number of errors\n");
+	fprintf(fp, "# 13   | deletion length\n");
+	fprintf(fp, "# 14   | insertion length\n");
+}
+
+void StatsPrint(Stats *s, FILE *fp)
+{
+	int32_t i;
+	StatsPrintHeader(fp);
+	for(i=0;i<s->numStats;i++) {
+		StatPrint(&s->stats[i], fp);
+	}
+}
+
+void StatsAdd(Stats *s, ReadType *r)
+{
+	int32_t i;
+	char *FnName="StatsAdd";
+
+	/* Check if it fits somewhere */
+	for(i=0;i<s->numStats;i++) {
+		if(ReadTypeCompare(r, &s->stats[i].r)==0) {
+			/* Add to current */
+			StatAdd(&s->stats[i], r);
+			return; /* Get out of here */
+		}
+	}
+	/* Otherwise start a new start entry */
+	s->numStats++;
+	s->stats = realloc(s->stats, sizeof(Stat)*s->numStats);
+	if(NULL==s->stats) {
+		PrintError(FnName,
+				"s->stats",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Initialize */
+	StatInitialize(&s->stats[s->numStats-1], r);
+	/* Add */
+	StatAdd(&s->stats[s->numStats-1], r);
+}
+
+void StatsDelete(Stats *s)
+{
+	free(s->stats);
+	s->stats=NULL;
+	s->numStats=0;
+}
+
 void Evaluate(char *baf,
 		char *outputID)
 {
 	char *FnName="Evaluate";
 	FILE *fpIn;
 	FILE *fpOut;
-	ReadType r, prev;
+	ReadType r;
 	Stats s;
 	int32_t count;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
@@ -432,41 +491,33 @@ void Evaluate(char *baf,
 				WriteFileError);
 	}
 
-	ReadTypeInitialize(&prev);
 	ReadTypeInitialize(&r);
-	StatsInitialize(&s, &r);
-	StatsPrintHeader(fpOut);
+	StatsInitialize(&s);
 
 	count = 0;
 	fprintf(stderr, "Currently on:\n%d", 0);
 	while(EOF != ReadTypeReadFromBAF(&r, fpIn)) {
 		count++;
 		if(count % COUNT_ROTATE_NUM == 0) {
-			fprintf(stderr, "\r%d", count);
+			fprintf(stderr, "\r%d[%d]", 
+					count,
+					s.numStats
+					);
 		}
 
 		/* Process the read */
-		if(ReadTypeCompare(&r, &prev)!=0) {
-			/* Print statistics */
-			if(count > 1) { /* Don't print on the first go round */
-				StatsPrint(&s, fpOut);
-			}
-			/* Copy over from r to prev*/
-			ReadTypeCopy(&prev, &r);
-			assert(ReadTypeCompare(&r, &prev)==0);
-			/* Initialize statistics */
-			StatsInitialize(&s, &r);
-		}
-		/*Add to statistics */
 		StatsAdd(&s, &r);
 
 		/* Reinitialize */
 		ReadTypeInitialize(&r);
 	}
 	fprintf(stderr, "\r%d\n", count);
-	StatsPrint(&s, fpOut);
 
 	/* Print Stats */
+	StatsPrint(&s, fpOut);
+
+	/* Delete Stats */
+	StatsDelete(&s);
 
 	/* Close the files */
 	fclose(fpIn);

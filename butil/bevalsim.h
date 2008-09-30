@@ -27,27 +27,29 @@ typedef struct {
 	/* actual data */
 	int numReads;
 	int numCorrectlyAligned[5]; /* 0, 10, 100, 1000, 10000 */
-	/* meta data */
-	int space;
-	int pairedEnd;
-	int pairedEndLength;
-	int readLength;
-	int indelLength;
-	int numSNPs;
-	int numErrors;
-	int deletionLength;
-	int insertionLength;
+	ReadType r;
+} Stat;
+
+typedef struct {
+	Stat *stats;
+	int numStats;
 } Stats;
 
 void ReadTypeInitialize(ReadType*);
-void ReadTypeCopy(ReadType*,ReadType*);
+void ReadTypeCopy(ReadType*, ReadType*);
+void ReadTypePrint(ReadType*, FILE*);
 int ReadTypeCompare(ReadType*,ReadType*);
 void ReadTypeReadFromRAF(ReadType*, FILE*);
 
-void StatsInitialize(Stats*, ReadType*);
+void StatInitialize(Stat*, ReadType*);
+void StatPrint(Stat*, FILE*);
+void StatAdd(Stat*, ReadType*);
+
+void StatsInitialize(Stats*);
 void StatsPrintHeader(FILE*);
 void StatsPrint(Stats*, FILE*);
 void StatsAdd(Stats*, ReadType*);
+void StatsDelete(Stats*);
 
 void Evaluate(char*, char*);
 

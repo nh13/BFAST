@@ -438,6 +438,10 @@ int ModifyRead(RGBinary *rg,
 	 */
 	char *FnName="ModifyRead";
 	int tempReadLength=r->readLength;
+	int i;
+	int curNumSNPs=0;
+	int curNumErrors=0;
+	int curInsertionLength=0;
 
 	/* Which read should the variants be contained within */
 	r->whichReadVariants= (r->pairedEnd == 0)?0:(rand()%2); 
@@ -506,6 +510,91 @@ int ModifyRead(RGBinary *rg,
 			assert(strlen(r->readTwo) == r->readLength);
 		}
 	}
+
+	/* Validate read - SNPs and Errors currently */
+	curNumSNPs=curNumErrors=curInsertionLength=0;
+	for(i=0;i<r->readLength;i++) {
+		/* read one */
+		switch(r->readOneType[i]) {
+			case Default:
+				break;
+			case Insertion:
+				curInsertionLength++;
+				break;
+			case SNP:
+				curNumSNPs++;
+				break;
+			case Error:
+				curNumErrors++;
+				break;
+			case InsertionAndSNP:
+				curInsertionLength++;
+				curNumSNPs++;
+				break;
+			case InsertionAndError:
+				curInsertionLength++;
+				curNumErrors++;
+				break;
+			case SNPAndError:
+				curNumSNPs++;
+				curNumErrors++;
+				break;
+			case InsertionSNPAndError:
+				curInsertionLength++;
+				curNumSNPs++;
+				curNumErrors++;
+				break;
+			default:
+				PrintError(FnName,
+						"r->readOneType[i]",
+						"Could not understand type",
+						Exit,
+						OutOfRange);
+		}
+		/* read two */
+		if(PairedEnd == r->pairedEnd) {
+		switch(r->readTwoType[i]) {
+			case Default:
+				break;
+			case Insertion:
+				curInsertionLength++;
+				break;
+			case SNP:
+				curNumSNPs++;
+				break;
+			case Error:
+				curNumErrors++;
+				break;
+			case InsertionAndSNP:
+				curInsertionLength++;
+				curNumSNPs++;
+				break;
+			case InsertionAndError:
+				curInsertionLength++;
+				curNumErrors++;
+				break;
+			case SNPAndError:
+				curNumSNPs++;
+				curNumErrors++;
+				break;
+			case InsertionSNPAndError:
+				curInsertionLength++;
+				curNumSNPs++;
+				curNumErrors++;
+				break;
+			default:
+				PrintError(FnName,
+						"r->readTwoType[i]",
+						"Could not understand type",
+						Exit,
+						OutOfRange);
+		}
+		}
+	}
+	assert(curNumSNPs == numSNPs);
+	assert(curNumErrors == numErrors);
+	assert(curInsertionLength == indelLength || indel != 2);
+
 
 	return 1;
 }
