@@ -25,6 +25,7 @@ bpreprocess
 	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
 	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endContig=\fIINTEGER\fR]
 	[\fB\-E\fR \fIINTEGER\fR] 	[\fB\-\-endPos=\fIINTEGER\fR]
+	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-exonsFileName=\fIFILENAME\fR]
 	[\fB\-R\fR]			[\fB\-\-repeatMasker\fR]
 	[\fB\-n\fR \fIINTEGER\fR] 	[\fB\-\-numThreads=\fIINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR] 	[\fB\-\-outputID=\fISTRING\fR]
@@ -108,6 +109,12 @@ Specifies the end contig range to consider when building the indexes.
 .TP 4
 \fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
 Specifies the end position range to consider when building the indexes.
+.
+.TP 4
+\fB\-x\fR \fIFILENAME\fR, \fB\-\-exonsFileName=\fIFILENAME\fR
+Specifies the file name that specifies the exon-like ranges to include in the index.
+For more information on the format of the former file, please see
+.BR bfast(1) "."
 .
 .TP 4
 \fB\-R\fR, \fB\-\-RepeatMasker\fR

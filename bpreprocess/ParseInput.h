@@ -14,6 +14,8 @@ struct arguments
 	unsigned int startPos;					/* -S */
 	int endContig;							/* -e */
 	unsigned int endPos;					/* -E */
+	char *exonsFileName;					/* -x */
+	int useExons;							/* -x - avec */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	char *tmpDir;                           /* -T */

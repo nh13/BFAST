@@ -204,7 +204,7 @@ The third to the seventh line gives the substitution matrix for the four letters
 The rows labels on the rows and columns of the substitution matrix is A,C,G,T, and N, where N stands for "anything else".
 An example with a file without a color space substitution matrix is:
 .br
--2
+-3
 .br
 -1
 .br
@@ -225,7 +225,7 @@ If aligning in color space, the eighth to the twelfth line gives the substitutio
 There are four colors that can substitute for each other, plus a fifth color which stands for "anything else".
 An example of such a file with a color substitution matrix is:
 .br
--2
+-3
 .br
 -1
 .br
@@ -249,6 +249,20 @@ An example of such a file with a color substitution matrix is:
 .br
 -4  -4  -4  -4   0
 .br
+.
+.TP
+.B Exons File
+The file specifies ranges of contiguous sequence to be included in the index.
+Sequence outside the specified range will not be included.
+The format of this file is one entry per line.
+An entry consists of four numbers, separated by whitepsace: start contig, start position, end contig, and end position.
+An example would be:
+.br
+1	1	1	350000
+2	1	3	400000
+3	450000	3	455000
+4	1	4	100000
+5	100	5	250
 .
 .SH KNOWN ISSUES
 .TP

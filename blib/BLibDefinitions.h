@@ -69,6 +69,7 @@ enum {Contig_8, Contig_32};
 enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
 enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
 enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
+enum {IgnoreExons, UseExons};
 
 /************************************/
 /* 		Data structures 			*/
@@ -172,6 +173,15 @@ typedef struct {
 	int32_t *widths;
 	int32_t *keysizes;
 } RGIndexLayout;
+
+/* TODO */
+typedef struct {
+	int numExons;
+	uint32_t startContig;
+	uint32_t startPos;
+	uint32_t endContig;
+	uint32_t endPos;
+} RGIndexExons;
 
 /* TODO */
 typedef struct {

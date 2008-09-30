@@ -41,6 +41,7 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/RGBinary.h"
 #include "../blib/RGIndexLayout.h"
+#include "../blib/RGIndexExons.h"
 #include "../blib/BError.h"
 #include "Definitions.h"
 #include "GenerateIndex.h"
@@ -59,7 +60,7 @@ const char *argp_program_bug_address =
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
 	DescAlgoTitle, DescAlgorithm, DescSpace, DescNumThreads, 
-	DescIndexSpecificTitle, DescRepeatMasker, DescStartContig, DescStartPos, DescEndContig, DescEndPos, 
+	DescIndexSpecificTitle, DescRepeatMasker, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescExonFileName, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -85,6 +86,7 @@ static struct argp_option options[] = {
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 3},
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion", 3},
+	{"exonsFileName", 'x', "exonsFileName", 0, "Specifies the file name that specifies the exon-like ranges to include in the index", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
@@ -118,7 +120,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:n:o:r:s:A:E:S:T:hptR";
+"a:d:e:i:n:o:r:s:x:A:E:S:T:hptR";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -133,6 +135,8 @@ main (int argc, char **argv)
 	struct arguments arguments;
 	RGBinary rg;
 	RGIndexLayout rgLayout;
+	RGIndexExons *exons=NULL;
+	int32_t numExons=0;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	time_t startTime = time(NULL);
 	time_t endTime;
@@ -191,6 +195,11 @@ main (int argc, char **argv)
 										arguments.rgFileName);
 								/* Read in the RGIndex layout */
 								RGIndexLayoutRead(arguments.indexLayoutFileName, &rgLayout);
+								/* Read exons, if necessary */
+								if(arguments.useExons == UseExons) {
+									numExons = RGIndexExonsRead(arguments.exonsFileName,
+											&exons);
+								}
 
 								/* Generate the indexes */
 								GenerateIndex(&rg,
@@ -200,6 +209,9 @@ main (int argc, char **argv)
 										arguments.startPos,
 										arguments.endContig,
 										arguments.endPos,
+										arguments.useExons,
+										exons,
+										numExons,
 										arguments.repeatMasker,
 										arguments.numThreads,
 										arguments.outputID,
@@ -209,6 +221,12 @@ main (int argc, char **argv)
 
 								/* Free the RGIndex layout */
 								RGIndexLayoutDelete(&rgLayout);
+								/* Free exons, if necessary */
+								if(UseExons == UseExons) {
+									free(exons);
+									exons=NULL;
+									numExons=0;
+								}
 								break;
 							default:
 								break;
@@ -312,6 +330,13 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->exonsFileName!=0) {
+		fprintf(stderr, "Validating exonsFileName %s. \n",
+				args->exonsFileName);
+		if(ValidateFileName(args->exonsFileName)==0)
+			PrintError(FnName, "exonsFileName", "Command line argument", Exit, IllegalFileName);
+	}
+
 	if(args->numThreads<=0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	}
@@ -338,6 +363,7 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* If this does not hold, we have done something wrong internally */
+	assert(args->useExons == IgnoreExons || args->useExons == UseExons);
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 	assert(args->repeatMasker == 0 || args->repeatMasker == 1);
@@ -411,6 +437,12 @@ AssignDefaultValues(struct arguments *args)
 	args->endContig=INT_MAX;
 	args->endPos=INT_MAX;
 
+	args->exonsFileName = 
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->exonsFileName!=0);
+	strcpy(args->exonsFileName, DEFAULT_FILENAME);
+	args->useExons=IgnoreExons;
+
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
 	assert(args->outputID!=0);
@@ -453,6 +485,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
+	fprintf(fp, "exonsFileName:\t\t\t\t\%s\n", args->exonsFileName);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -542,6 +575,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   case 'B':
 						   arguments->binaryOutput=1;break;
 						   */
+					case 'x':
+						arguments->useExons=UseExons;
+						if(arguments->exonsFileName) free(arguments->exonsFileName);
+						arguments->exonsFileName = OPTARG;break;
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
 					case 'E':

@@ -11,6 +11,7 @@
 #include "BLib.h"
 #include "RGBinary.h"
 #include "RGRanges.h"
+#include "RGIndexExons.h"
 #include "RGIndex.h"
 
 /* TODO */
@@ -22,6 +23,9 @@ void RGIndexCreate(RGIndex *index,
 		int32_t startPos,
 		int32_t endContig,
 		int32_t endPos,
+		int32_t useExons,
+		RGIndexExons *exons,
+		int32_t numExons,
 		int32_t layoutIndex,
 		int32_t numThreads,
 		int32_t repeatMasker,
@@ -46,6 +50,7 @@ void RGIndexCreate(RGIndex *index,
 	int32_t curStartPos=-1;
 	int32_t curEndPos=-1;
 	int32_t curContig=-1;
+	int32_t keyStartPos, keyEndPos;
 	int64_t i;
 
 	/* Make sure we have the correct reference genome */
@@ -152,6 +157,18 @@ void RGIndexCreate(RGIndex *index,
 				curBasesPos = basesIndex;
 				toInsert = 1;
 
+				keyStartPos = curPos - index->width + 1;
+				keyEndPos = curPos;
+
+				/* Check exons, if necessary */
+				if(useExons == UseExons) {
+					toInsert = RGIndexExonsWithin(exons,
+							numExons,
+							curContig,
+							keyStartPos,
+							keyEndPos);
+				}
+
 				for(i=0;i<index->width && 1==toInsert;i++) { /* For each base in the mask */
 					if(1==index->mask[i]) {
 						if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(bases[curBasesPos])) {
@@ -182,7 +199,7 @@ void RGIndexCreate(RGIndex *index,
 								Exit,
 								ReallocMemory);
 					}
-					index->positions[index->length-1] = curPos - index->width + 1;
+					index->positions[index->length-1] = keyStartPos;
 					/* Reallocate memory for the contigs based on contig type and copy over. */
 					if(index->contigType == Contig_8) {
 						index->contigs_8 = realloc(index->contigs_8, sizeof(uint8_t)*index->length);
