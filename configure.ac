@@ -5,9 +5,9 @@
 #  Developers - the version number should *NEVER* be changed except by, 
 #  or with explicit permission from, Nils Homer.
 
-AC_INIT([bfast],[0.1.1],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
+AC_INIT([bfast],[0.1.2],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
-AC_REVISION($Id: configure.ac,v 0.1.1 2008-07-01 00:00:00 nhomer $)
+AC_REVISION($Id: configure.ac,v 0.1.2 2008-09-29 00:00:00 nhomer $)
 AC_COPYRIGHT(
 			 [bfast is copyright 2008 by The University of California - Los 
 			  Angeles.  All rights reserved.  This License is limited to, and you

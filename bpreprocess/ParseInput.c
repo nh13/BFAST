@@ -48,7 +48,8 @@
 #include "ParseInput.h"
 
 const char *argp_program_version =
-"bpreprocess version 0.1.1\nCopyright 2008.";
+"bpreprocess version 0.1.2\n"
+"Copyright 2008";
 
 const char *argp_program_bug_address =
 "Nils Homer <nhomer@cs.ucla.edu>";
