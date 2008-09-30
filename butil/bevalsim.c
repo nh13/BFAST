@@ -478,18 +478,6 @@ void Evaluate(char *baf,
 				Exit,
 				OpenFileError);
 	}
-	/* Create output file name */
-	sprintf(outputFileName, "%s.evalsim.%s.txt",
-			PROGRAM_NAME,
-			outputID);
-	/* Open the output file */
-	if(!(fpOut=fopen(outputFileName, "wb"))) {
-		PrintError(FnName,
-				outputFileName,
-				"Could not open file for writing",
-				Exit,
-				WriteFileError);
-	}
 
 	ReadTypeInitialize(&r);
 	StatsInitialize(&s);
@@ -512,6 +500,19 @@ void Evaluate(char *baf,
 		ReadTypeInitialize(&r);
 	}
 	fprintf(stderr, "\r%d\n", count);
+	
+	/* Create output file name */
+	sprintf(outputFileName, "%s.evalsim.%s.txt",
+			PROGRAM_NAME,
+			outputID);
+	/* Open the output file */
+	if(!(fpOut=fopen(outputFileName, "wb"))) {
+		PrintError(FnName,
+				outputFileName,
+				"Could not open file for writing",
+				Exit,
+				WriteFileError);
+	}
 
 	/* Print Stats */
 	StatsPrint(&s, fpOut);
