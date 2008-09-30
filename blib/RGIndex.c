@@ -24,7 +24,7 @@ void RGIndexCreate(RGIndex *index,
 		int32_t endContig,
 		int32_t endPos,
 		int32_t useExons,
-		RGIndexExons *exons,
+		RGIndexExons *e,
 		int32_t layoutIndex,
 		int32_t numThreads,
 		int32_t repeatMasker,
@@ -38,18 +38,6 @@ void RGIndexCreate(RGIndex *index,
 	 * */
 
 	char *FnName = "RGIndexCreate";
-
-	/* For storing the bases */
-	int8_t bases[SEQUENCE_LENGTH]="\0";
-	int32_t basesLength=0;
-	int32_t basesIndex=0;
-	int32_t curBasesPos=0; 
-	int32_t toInsert=1;
-	int32_t curPos=-1;
-	int32_t curStartPos=-1;
-	int32_t curEndPos=-1;
-	int32_t curContig=-1;
-	int32_t keyStartPos, keyEndPos;
 	int64_t i;
 
 	/* Make sure we have the correct reference genome */
@@ -107,16 +95,79 @@ void RGIndexCreate(RGIndex *index,
 	 * starting at one, not zero. */ 
 	index->contigType = (rg->numContigs < UCHAR_MAX)?Contig_8:Contig_32;
 
+	/* Add locations to the index */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Currently on [contig,pos]:\n");
 		PrintContigPos(stderr,
 				0,
 				0);
 	}
+	if(UseExons == useExons) { /* Use only bases within the exons */
+		for(i=0;i<e->numExons;i++) { /* For each exon */
+			RGIndexCreateHelper(index,
+					rg,
+					e->exons[i].startContig,
+					e->exons[i].startPos,
+					e->exons[i].endContig,
+					e->exons[i].endPos,
+					repeatMasker,
+					includeNs);
+		}
+	}
+	else {
+		RGIndexCreateHelper(index,
+				rg,
+				index->startContig,
+				index->startPos,
+				index->endContig,
+				index->endPos,
+				repeatMasker,
+				includeNs);
+	}
+
+	if(VERBOSE >= 0) {
+		PrintContigPos(stderr, 
+				index->endContig,
+				index->endPos);
+		fprintf(stderr, "\n");
+	}
+
+	assert(index->length > 0);
+
+	/* Sort the nodes in the index */
+	RGIndexSort(index, rg, numThreads, tmpDir);
+
+	/* Create hash table from the index */
+	RGIndexCreateHash(index, rg);
+
+}
+
+/* TODO */
+void RGIndexCreateHelper(RGIndex *index,
+		RGBinary *rg,
+		int32_t startContig,
+		int32_t startPos,
+		int32_t endContig,
+		int32_t endPos,
+		int32_t repeatMasker,
+		int32_t includeNs)
+{
+	/* For storing the bases */
+	int8_t bases[SEQUENCE_LENGTH]="\0";
+	int32_t basesLength=0;
+	int32_t basesIndex=0;
+	int32_t curBasesPos=0; 
+	int32_t toInsert=1;
+	int32_t curPos=-1;
+	int32_t curStartPos=-1;
+	int32_t curEndPos=-1;
+	int32_t curContig=-1;
+	int32_t keyStartPos, keyEndPos;
+	int64_t i;
 	/* For each contig */
-	for(curContig=index->startContig;
-			curContig <= index->endContig;
-			curContig++) { 
+	for(curContig=startContig;
+			curContig <= endContig;
+			curContig++) {
 		/* Update contig index */
 
 		/* Update start and end bounds for this contig */
@@ -158,15 +209,6 @@ void RGIndexCreate(RGIndex *index,
 
 				keyStartPos = curPos - index->width + 1;
 				keyEndPos = curPos;
-
-				/* Check exons, if necessary */
-				if(useExons == UseExons) {
-					toInsert = RGIndexExonsWithin(exons,
-							curContig,
-							keyStartPos,
-							curContig,
-							keyEndPos);
-				}
 
 				for(i=0;i<index->width && 1==toInsert;i++) { /* For each base in the mask */
 					if(1==index->mask[i]) {
@@ -231,21 +273,6 @@ void RGIndexCreate(RGIndex *index,
 					curPos);
 		}
 	}
-	if(VERBOSE >= 0) {
-		PrintContigPos(stderr, 
-				index->endContig,
-				index->endPos);
-		fprintf(stderr, "\n");
-	}
-
-	assert(index->length > 0);
-
-	/* Sort the nodes in the index */
-	RGIndexSort(index, rg, numThreads, tmpDir);
-
-	/* Create hash table from the index */
-	RGIndexCreateHash(index, rg);
-
 }
 
 /* TODO */

@@ -7,6 +7,7 @@
 #include "BLibDefinitions.h"
 
 void RGIndexCreate(RGIndex*, RGBinary*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, int32_t, char*);
+void RGIndexCreateHelper(RGIndex*, RGBinary*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 void RGIndexCreateHash(RGIndex*, RGBinary*);
 void RGIndexSort(RGIndex*, RGBinary*, int32_t, char*);
 void *RGIndexMergeSort(void*);
