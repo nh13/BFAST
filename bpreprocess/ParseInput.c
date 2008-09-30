@@ -136,8 +136,7 @@ main (int argc, char **argv)
 	struct arguments arguments;
 	RGBinary rg;
 	RGIndexLayout rgLayout;
-	RGIndexExons *exons=NULL;
-	int32_t numExons=0;
+	RGIndexExons exons;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	time_t startTime = time(NULL);
 	time_t endTime;
@@ -198,7 +197,7 @@ main (int argc, char **argv)
 								RGIndexLayoutRead(arguments.indexLayoutFileName, &rgLayout);
 								/* Read exons, if necessary */
 								if(arguments.useExons == UseExons) {
-									numExons = RGIndexExonsRead(arguments.exonsFileName,
+									RGIndexExonsRead(arguments.exonsFileName,
 											&exons);
 								}
 
@@ -211,8 +210,7 @@ main (int argc, char **argv)
 										arguments.endContig,
 										arguments.endPos,
 										arguments.useExons,
-										exons,
-										numExons,
+										&exons,
 										arguments.repeatMasker,
 										arguments.numThreads,
 										arguments.outputID,
@@ -224,9 +222,7 @@ main (int argc, char **argv)
 								RGIndexLayoutDelete(&rgLayout);
 								/* Free exons, if necessary */
 								if(UseExons == UseExons) {
-									free(exons);
-									exons=NULL;
-									numExons=0;
+									RGIndexExonsDelete(&exons);
 								}
 								break;
 							default:

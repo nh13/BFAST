@@ -176,11 +176,16 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	int numExons;
 	uint32_t startContig;
 	uint32_t startPos;
 	uint32_t endContig;
 	uint32_t endPos;
+} RGIndexExon;
+
+/* TODO */
+typedef struct {
+	int numExons;
+	RGIndexExon *exons;
 } RGIndexExons;
 
 /* TODO */

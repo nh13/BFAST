@@ -25,7 +25,6 @@ void RGIndexCreate(RGIndex *index,
 		int32_t endPos,
 		int32_t useExons,
 		RGIndexExons *exons,
-		int32_t numExons,
 		int32_t layoutIndex,
 		int32_t numThreads,
 		int32_t repeatMasker,
@@ -163,9 +162,9 @@ void RGIndexCreate(RGIndex *index,
 				/* Check exons, if necessary */
 				if(useExons == UseExons) {
 					toInsert = RGIndexExonsWithin(exons,
-							numExons,
 							curContig,
 							keyStartPos,
+							curContig,
 							keyEndPos);
 				}
 
