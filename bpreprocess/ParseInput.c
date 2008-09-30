@@ -73,7 +73,6 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file", 1},
-	{"indexLayoutFileName", 'i', "indexLayOutFileName", 0, "Specifies the file name of the file that contains tile sizes and gaps", 1},
 	/*
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the reference genome will be in binary format", 1},
 	   */
@@ -81,6 +80,7 @@ static struct argp_option options[] = {
 	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference contigs 1: create an index", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{0, 0, 0, 0, "=========== Index Specific Options: (Unless specified, default value = 0) ================", 3},
+	{"indexLayoutFileName", 'i', "indexLayOutFileName", 0, "Specifies the file name of the file that contains tile sizes and gaps", 1},
 	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 3},
@@ -294,13 +294,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->indexLayoutFileName!=0) {
-		fprintf(stderr, "Validating indexLayoutFileName %s. \n",
-				args->indexLayoutFileName);
-		if(ValidateFileName(args->indexLayoutFileName)==0)
-			PrintError(FnName, "indexLayoutFileName", "Command line argument", Exit, IllegalFileName);
-	}
-
 	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
 
 	if(args->algorithm < ALGORITHM_MIN || args->algorithm > ALGORITHM_MAX) {
@@ -309,6 +302,13 @@ int ValidateInputs(struct arguments *args) {
 
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
+	}
+	
+	if(args->indexLayoutFileName!=0) {
+		fprintf(stderr, "Validating indexLayoutFileName %s. \n",
+				args->indexLayoutFileName);
+		if(ValidateFileName(args->indexLayoutFileName)==0)
+			PrintError(FnName, "indexLayoutFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->startContig < 0) {
@@ -417,15 +417,15 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->rgFileName!=0);
 	strcpy(args->rgFileName, DEFAULT_FILENAME);
 
-	args->indexLayoutFileName = 
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->indexLayoutFileName!=0);
-	strcpy(args->indexLayoutFileName, DEFAULT_FILENAME);
-
 	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
 
 	args->algorithm = 0;
 	args->space = NTSpace;
+
+	args->indexLayoutFileName = 
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->indexLayoutFileName!=0);
+	strcpy(args->indexLayoutFileName, DEFAULT_FILENAME);
 
 	args->repeatMasker=0;
 	args->startContig=0;
@@ -471,12 +471,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
-	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
 	/*
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
+	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
 	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
