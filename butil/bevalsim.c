@@ -506,6 +506,9 @@ void Evaluate(char *baf,
 			PROGRAM_NAME,
 			outputID);
 	/* Open the output file */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Outputting to %s.\n",
+			outputFileName);
 	if(!(fpOut=fopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
@@ -516,6 +519,7 @@ void Evaluate(char *baf,
 
 	/* Print Stats */
 	StatsPrint(&s, fpOut);
+	fprintf(stderr, "%s", BREAK_LINE);
 
 	/* Delete Stats */
 	StatsDelete(&s);
