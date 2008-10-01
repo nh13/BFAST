@@ -21,11 +21,11 @@ bpostprocess
 	[\fB\-2\fR]			[\fB\-\-pairedEnd\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithmReads=\fIINTEGER\fR]
 	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-algorithmReadsPaired=\fIINTEGER\fR]
-	[\fB\-C\fR]			[\fB\-\-chrAbPaired\fR]
+	[\fB\-C\fR]			[\fB\-\-contigAbPaired\fR]
 	[\fB\-I\fR]			[\fB\-\-inversionsPaired\fR]
-	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startChr=\fIINTEGER\fR]
+	[\fB\-s\fR \fIINTEGER\fR] 	[\fB\-\-startContig=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR] 	[\fB\-\-startPos=\fIINTEGER\fR]
-	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endChr=\fIINTEGER\fR]
+	[\fB\-e\fR \fIINTEGER\fR] 	[\fB\-\-endContig=\fIINTEGER\fR]
 	[\fB\-E\fR \fIINTEGER\fR] 	[\fB\-\-endPos=\fIINTEGER\fR]
 	[\fB\-m\fR \fIINTEGER\fR] 	[\fB\-\-minScoreReads=\fIINTEGER\fR]
 	[\fB\-M\fR \fIINTEGER\fR] 	[\fB\-\-minScoreReadsPaired=\fIINTEGER\fR]
@@ -58,10 +58,6 @@ Other relevant options are specified below.
 Specifies the input file from the balign program.
 .
 .TP 4
-\fB\-r\fR, \fB\-\-runFiltering\fR
-Specifies that the reads will be filtered based on the options below.
-.
-.TP 4
 \fB\-2\fR, \fB\-\-pairedEnd\fR
 Specifies that paired end data is to be expected.
 .
@@ -77,17 +73,17 @@ If multiple alignments have the same best score, the read is not reported.
 .TP 4
 \fB\-A\fR \fIINTEGER\fR, \fB\-\-algorithmReadsPaired=\fIINTEGER\fR
 This specifies the algorithm to choose the alignment for each paired-end reads after filtering.
-The option \fB\-\-a 0\fR specifies that no filtering will occur.
-The option \fB\-\-a 1\fR specifies that all alignments for either end that pass the filters will be outputted.
-The option \fB\-\-a 2\fR outputs only paired reads where both ends have been aligned uniquely.
-The option \fB\-\-a 3\fR chooses the alignment with the best score when the alignment score from either end is combined.
+The option \fB\-\-A 0\fR specifies that no filtering will occur.
+The option \fB\-\-A 1\fR specifies that all alignments for either end that pass the filters will be outputted.
+The option \fB\-\-A 2\fR outputs only paired reads where both ends have been aligned uniquely.
+The option \fB\-\-A 3\fR chooses the alignment with the best score when the alignment score from either end is combined.
 If multiple alignments have the same best score, an alignment is not reported.
-The option \fB\-\-a 4\fR chooses pairs of reads that are closest to the mean distance (\fB\-Z\fR) and are the unique pair within that maximum and minimum distance (\fB\-X\fR and \fB\-Y\fR).
-The option \fB\-\-a 5\fR chooses pairs of reads that are closest to the mean distance (\fB-Z\fR) and have the best score.
+The option \fB\-\-A 4\fR chooses pairs of reads that are closest to the mean distance (\fB\-Z\fR) and are the unique pair within that maximum and minimum distance (\fB\-X\fR and \fB\-Y\fR).
+The option \fB\-\-A 5\fR chooses pairs of reads that are closest to the mean distance (\fB-Z\fR) and have the best score.
 If multiple alignments have the same best score, an alignment is not reported.
 .
 .TP 4
-\fB\-C\fR, \fB\-\-chrAbPaired\fR
+\fB\-C\fR, \fB\-\-contigAbPaired\fR
 Specifies to output separately those paired reads that do not fall within the specified distance (options \fB-X\fR and \fB-Y\fR) but are on the same strand.
 This only works with paired end specified (\fB-2\fR).
 .
@@ -97,16 +93,16 @@ Specifies to output separately those paired reads that do not fall within the sp
 This only works with paired end specified (\fB-2\fR).
 .
 .TP 4
-\fB\-s\fR \fIINTEGER\fR, \fB\-\-startChr=\fIINTEGER\fR
-Specifies the start chromosome for filtering.
+\fB\-s\fR \fIINTEGER\fR, \fB\-\-startContig=\fIINTEGER\fR
+Specifies the start contig for filtering.
 .
 .TP 4
 \fB\-S\fR \fIINTEGER\fR, \fB\-\-startPos=\fIINTEGER\fR
 Specifies the end position for filtering.
 .
 .TP 4
-\fB\-e\fR \fIINTEGER\fR, \fB\-\-endChr=\fIINTEGER\fR
-Specifies the end chromosome for filtering.
+\fB\-e\fR \fIINTEGER\fR, \fB\-\-endContig=\fIINTEGER\fR
+Specifies the end contig for filtering.
 .
 .TP 4
 \fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
