@@ -372,6 +372,18 @@ int ValidateInputs(struct arguments *args) {
 	if(args->startContig == args->endContig && args->startPos > args->endPos) {
 		PrintError(FnName, "endPos < startPos with startContig == endContig", "Command line argument", Exit, OutOfRange);
 	}
+	if(args->useExons == UseExons && args->startContig > 0) {
+		PrintError(FnName, "Cannot use -s with -x", "Command line argument", Exit, OutOfRange);
+	}
+	if(args->useExons == UseExons && args->startPos < INT_MAX) {
+		PrintError(FnName, "Cannot use -S with -x", "Command line argument", Exit, OutOfRange);
+	}
+	if(args->useExons == UseExons && args->endContig > 0) {
+		PrintError(FnName, "Cannot use -e with -x", "Command line argument", Exit, OutOfRange);
+	}
+	if(args->useExons == UseExons && args->endPos < INT_MAX) {
+		PrintError(FnName, "Cannot use -E with -x", "Command line argument", Exit, OutOfRange);
+	}
 
 	return 1;
 }

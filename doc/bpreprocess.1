@@ -84,7 +84,7 @@ If \fB\-a 0\fR is given, binary files for the reference genome will be created.
 If \fB\-a 1\fR is given, index(es) in binary format will be created according to the layouts (\fB\-i\fR) given.
 .
 .TP 4
-\fB\-A\fR, \fB\-\-space\fR
+\fB\-A\fR \fIINTEGER\fR, \fB\-\-space=\fIINTEGER\fR
 Specifies the encoding space of the alphabet.
 \fB\-A 0\fR corresponds to NT (nucleotide) space and \fB\-A 1\fR corresponds to color space.
 .
@@ -113,6 +113,7 @@ Specifies the end position range to consider when building the indexes.
 .TP 4
 \fB\-x\fR \fIFILENAME\fR, \fB\-\-exonsFileName=\fIFILENAME\fR
 Specifies the file name that specifies the exon-like ranges to include in the index.
+This option cannot be used with options \fB\-s\fR, \fB\-S\fR, \fB\-e\fR, or \fB\-E\fR.
 For more information on the format of the former file, please see
 .BR bfast(1) "."
 .
