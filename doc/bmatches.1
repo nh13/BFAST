@@ -88,7 +88,7 @@ In this manner, we are able to distribute the computation across the cluster by 
 .
 .P
 Typically, no events (mismatches, insertions or deletions) are allowed within the key used to lookup CALs from an index.
-Nevertheless, to increase accuracy we can also specify a maximum number allowable events within the tiles (\fB\-x\fR, \fB\-y\fR, and \fB\-z\fR) as well as within the gaps between the tiles (\fB\-Y\fR and \fB\-Z\fR).
+Nevertheless, to increase accuracy we can also specify a maximum number allowable events within the bases that compose the key (\fB\-x\fR, \fB\-y\fR, and \fB\-z\fR) as well as within the gaps between the tiles (\fB\-Y\fR and \fB\-Z\fR).
 If specified, from a given read we will generate all possible combinations of potential reads with these events.
 This will significantly slow computation down (exponentially) and therefore it is recommended to instead create a robust layout and use less allowable events.
 For aligning billions of reads this is important but the added computation time may be acceptable for a smaller number reads or shorter read lengths.
@@ -145,24 +145,24 @@ Specifies the last read to which to process.
 .
 .TP 4
 \fB\-x\fR \fIINTEGER\fR, \fB\-\-numMismatches=\fIINTEGER\fR
-Specifies the maximum number of mismatches to allow in the tiles.
+Specifies the maximum number of mismatches to allow in the bases that compose the key.
 For color space this corresponds to color errors.
 .
 .TP 4
 \fB\-y\fR \fIINTEGER\fR, \fB\-\-numInsertions=\fIINTEGER\fR
-Specifies the maximum number of insertions to allow in the tiles.
+Specifies the maximum length of a contiguous insertion to allow in the bases that compose the key.
 .
 .TP 4
 \fB\-z\fR \fIINTEGER\fR, \fB\-\-numDeletions=\fIINTEGER\fR
-Specifies the maximum number of deletions to allow in the tiles.
+Specifies the maximum length of a contiguous deletion to allow in the bases that compose the key.
 .
 .TP 4
 \fB\-Y\fR \fIINTEGER\fR, \fB\-\-numGapInsertions=\fIINTEGER\fR
-Specifies the maximum number of insertions to allow in the gaps between tiles.
+Specifies the maximum length of a contiguous insertion to allow in the bases that are not considered within the mask.
 .
 .TP 4
 \fB\-Z\fR \fIINTEGER\fR, \fB\-\-numGapDeletions=\fIINTEGER\fR
-Specifies the maximum number of deletions to allow in the gaps between tiles.
+Specifies the maximum length of a contiguous deletion to allow in the bases that are not considered within the mask.
 .
 .TP 4
 \fB\-K\fR \fIINTEGER\fR, \fB\-\-maxKeyMatches=\fIINTEGER\fR
