@@ -20,7 +20,6 @@ balign
 	[\fB\-r\fR \fIFILENAME\fR]	[\fB\-\-rgFileName=\fIFILENAME\fR]
 	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchFileName=\fIFILENAME\fR]
 	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
-	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-algorithm=\fIINTEGER\fR]
 	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-space=\fIINTEGER\fR]
 	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startContig=\fIINTEGER\fR]
 	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
@@ -48,7 +47,7 @@ is the third of four programs in the bfast system.
 .P
 .B balign
 requires three input files.
-The first file (\fB-r\fR) contains the list of files specifying the sequence of the reference genome in bfast binary format .
+The first file (\fB-r\fR) specifies tbe BFAST reference genome file.
 This file should always be created in nucleotide space.
 The second file (\fB\-m\fR) contains the output from 
 .B bmatches.
@@ -78,23 +77,20 @@ Other relevant options are specified below.
 .
 .TP 4
 \fB\-r\fR \fIFILENAME\fR, \fB\-\-rgFileName=\fIFILENAME\fR
-The file specified contains the list of files specifying the sequence of the reference genome in bfast binary format.
+This option specifies tbe BFAST reference genome file.
 In all cases (including the \fB-A\fR option) the reference genome should not be formatted in color space. 
 For more information regarding the creation of a reference genome, see 
 .BR bpreprocess "(1)."
 .
 .TP 4
 \fB\-m\fR \fIFILENAME\fR, \fB\-\-matchFileName=\fIFILENAME\fR
-Specifies a file containing a list of matches files from the bmatches program.
+Specifies a file containing the BFAST matches file outputted by the 
+.B bmatches 
+program.
 .
 .TP 4
 \fB\-x\fR \fIFILENAME\fR, \fB\-\-scoringMatrixFileName=\fIFILENAME\fR
 Specifies the scoring matrix file.
-.
-.TP 4
-\fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithm=\fIINTEGER\fR
-Specifies the algorithm to use when scoring alignments.
-Currently only the Dynamic Programming algorithm is available and is specified using the value \fB0\fR.
 .
 .TP 4
 \fB\-A\fR \fIINTEGER\fR, \fB\-\-space=\fIINTEGER\fR
@@ -130,7 +126,6 @@ Specifies to ignore reads who have more than the specified CALs.
 .TP 4
 \fB\-2\fR, \fB\-\-pairedEnd\fR
 Specifies that the reads are in paired end format.
-This option is not yet supported.
 .
 .TP 4
 \fB\-n\fR \fIINTEGER\fR, \fB\-\-numThreads=\fIINTEGER\fR
@@ -144,7 +139,7 @@ Specifies that if one read of the pair has CALs and the other does not, this dis
 .TP 4
 \fB\-f\fR, \fB\-\-forceMirroring\fR
 Specifies that we should always mirror CALs using the distance from \fB-l\fR for paired end reads.
-This will infer CALs for one read given the other paired read and the paire end distance (\fB-l\fR).
+This will infer CALs for one read given the other paired read and the pair end distance (\fB-l\fR).
 .
 .TP 4
 \fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR

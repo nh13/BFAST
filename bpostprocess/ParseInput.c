@@ -70,7 +70,7 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"alignedFileName", 'i', "alignedFileName", 0, "Specifies the input file from the balign program", 1},
+	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
 	/*
 	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	*/
@@ -178,7 +178,7 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
-						ReadInputFilterAndOutput(arguments.alignedFileName,
+						ReadInputFilterAndOutput(arguments.alignFileName,
 								arguments.binaryInput,
 								arguments.pairedEnd,
 								arguments.startContig,
@@ -252,11 +252,11 @@ int ValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->alignedFileName!=0) {
-		fprintf(stderr, "Validating alignedFileName %s. \n",
-				args->alignedFileName);
-		if(ValidateFileName(args->alignedFileName)==0)
-			PrintError(FnName, "alignedFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->alignFileName!=0) {
+		fprintf(stderr, "Validating alignFileName %s. \n",
+				args->alignFileName);
+		if(ValidateFileName(args->alignFileName)==0)
+			PrintError(FnName, "alignFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
@@ -377,10 +377,10 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->alignedFileName =
+	args->alignFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->alignedFileName!=0);
-	strcpy(args->alignedFileName, DEFAULT_FILENAME);
+	assert(args->alignFileName!=0);
+	strcpy(args->alignFileName, DEFAULT_FILENAME);
 
 	args->binaryInput = BALIGN_DEFAULT_OUTPUT;
 
@@ -428,7 +428,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "alignedFileName:\t%s\n", args->alignedFileName);
+	fprintf(fp, "alignFileName:\t%s\n", args->alignFileName);
 	/*
 	fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	*/
@@ -509,8 +509,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'i':
-						if(arguments->alignedFileName) free(arguments->alignedFileName);
-						arguments->alignedFileName = OPTARG;break;
+						if(arguments->alignFileName) free(arguments->alignFileName);
+						arguments->alignFileName = OPTARG;break;
 					case 'm':
 						arguments->minScoreReads = atoi(OPTARG);break;
 					case 'o':
