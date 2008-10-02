@@ -140,7 +140,7 @@ void FindMatches(
 	 * source read read file for each index. 
 	 * */
 	/* Create filtered reads file name */
-	sprintf(readsFilteredFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,

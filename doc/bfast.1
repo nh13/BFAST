@@ -112,7 +112,7 @@ Each line corresponds to an index for one layout.
 Thus, if multiple layouts are given, each index will be created in batch-mode and in serial.
 The output file names for the indexes will be labeled according to this order (i.e. *.$i.bif with this index specified by the $ith layout).
 The entries in a line should be tab or space deliminated.
-The first entry is the index width.
+The first entry is the hash width.
 The second entry is the mask for the index.
 The mask is specified as zeros and ones with no spaces.
 A one specifies that a base is to be used, and a zero specifies that a base is to be ignored. 
@@ -130,7 +130,7 @@ An example would be:
 12 111101110010111111
 .br
 Here we will generate five indexes.
-Each index will have a index hash size of twelve.
+Each index will have a index hash width of twelve.
 The first index is a contiguous fourteen bases (keysize 14 and width 14), the second index ignores the fifth base (keysize 14 and width 15), and so on... 
 .
 .TP
@@ -158,7 +158,8 @@ GAAGACCAGCCAGGCCTGCTGTGATATATGAC
 .br
 Three reads are specified above, with there names in this example corresponding to their known position in the genome.
 Typically, the read name will be dependent on the sequence technology used.
-For color space reads, the format has same requirements as above but the read itself is the first base of the primer, followed by the color sequence in numbers.
+For color space reads, the format has same requirements as above with the sequence a one base primer followed by the col
+or sequence represented by numbers.
 An example is:
 .br
 >920_23_612_R3
@@ -179,7 +180,7 @@ G0120031000021000000000010
 .br
 >920_24_757_R3
 .br
-G0100011000020100132100022i
+G0100011000020100132100022
 .br
 .
 .TP
@@ -197,7 +198,7 @@ Offsets should be specified in increasing order.
 .B Scoring Matrix File
 The scoring matrix file is used when aligning the reads to their respective candidate alignment locations.
 For nucleotide alignments or four letter alphabets there will be seven lines.
-An additional four lines will be included for color space alignment.
+An additional five lines will be included for color space alignment.
 The first line specifies the gap open penalty.
 The second line specifies the gap extension penalty.
 The third to the seventh line gives the substitution matrix for the four letters plus "anything else".
