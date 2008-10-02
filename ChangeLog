@@ -5,16 +5,16 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
-Version 0.1.3
-* Improved speed for index creation while specifying an 
-exon-like structure.
+Vertions 0.1.4 * Updated bmatches output name for the
+filtered reads.
 
-Version 0.1.2
-* Added support for index creation while specifying an 
-exon-like structure.
+Version 0.1.3 * Improved speed for index creation while
+specifying an exon-like structure.
 
-Version 0.1.1
-* First alpha public release.
+Version 0.1.2 * Added support for index creation while
+specifying an exon-like structure.
+
+Version 0.1.1 * First alpha public release.
 
 -------------------------------------------------------
 
