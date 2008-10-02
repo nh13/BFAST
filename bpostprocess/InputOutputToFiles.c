@@ -69,22 +69,22 @@ void ReadInputFilterAndOutput(char *inputFileName,
 						OutOfRange);
 	}
 	/* Create output file names */
-	sprintf(contigAbFileName, "%s%s.contigab.%s.%s",
+	sprintf(contigAbFileName, "%s%s.contigab.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			fileExtension);
-	sprintf(inversionsFileName, "%s%s.inversion.%s.%s",
+	sprintf(inversionsFileName, "%s%s.inversion..file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			fileExtension);
-	sprintf(notReportedFileName, "%s%s.not.reported.%s.%s",
+	sprintf(notReportedFileName, "%s%s.not.reported.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			fileExtension);
-	sprintf(outputFileName, "%s%s.report.%s.%s",
+	sprintf(outputFileName, "%s%s.reported.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
