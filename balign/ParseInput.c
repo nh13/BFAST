@@ -44,7 +44,7 @@
 #include "ParseInput.h"
 
 const char *argp_program_version =
-"balign version 0.1.3\n"
+"balign version 0.1.4\n"
 "Copyright 2008.";
 
 const char *argp_program_bug_address =
