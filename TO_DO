@@ -13,6 +13,9 @@ bmatches
 Flag perfect matches so that the alignment score is already known. 
 2.
 Enumeration procedure for enumerating color errors.
+3.
+Generalize reading in FASTA reads file.  Do not include the ">" beginning 
+character.
 
 ===============================================================================
 balign
