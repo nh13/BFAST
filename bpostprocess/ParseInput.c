@@ -72,8 +72,8 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
 	/*
-	{"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
-	*/
+	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
+	   */
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each single-end read after filtering:"
@@ -430,8 +430,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "alignFileName:\t%s\n", args->alignFileName);
 	/*
-	fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
-	*/
+	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
+	   */
 	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
 	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
@@ -466,7 +466,13 @@ GetOptHelp() {
 			case 0:
 				fprintf(stderr, "\n%s\n", (*a).doc); break;
 			default:
-				fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); break;
+				if((*a).arg != 0) {
+					fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); 
+				}
+				else {
+					fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, "", (*a).doc); 
+				}
+				break;
 		}
 		a++;
 	}
@@ -497,9 +503,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'a':
 						arguments->algorithmReads = atoi(OPTARG);break;
 						/*
-					case 'b':
-						arguments->binaryInput = 1;break;
-						*/
+						   case 'b':
+						   arguments->binaryInput = 1;break;
+						   */
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
 						arguments->outputDir = OPTARG;
