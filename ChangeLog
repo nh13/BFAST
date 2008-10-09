@@ -8,6 +8,7 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 Vertions 0.1.4 
 * Updated bmatches output file name for the filtered reads.
 * Updated bpostprocess output file names.
+* Recoded btestindexes to support finding indexes for color space.
 
 Version 0.1.3 
 * Improved speed for index creation while specifying an exon-like structure.
