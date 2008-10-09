@@ -4,7 +4,11 @@
 #include <assert.h>
 #include <time.h>
 
-#define BREAK_LINE "****************************************************************\n"
+#include "../blib/BError.h"
+#include "../blib/BLibDefinitions.h"
+#include "../blib/BLib.h"
+#include "btestindexes.h"
+
 #define GENERATE_HELPER_ROTATE_NUM 1000000
 #define RANDOM_ROTATE_NUM 100
 #define ROTATE_NUM 10000
@@ -20,1789 +24,1006 @@
  * such as errors, mismatches and insertions.
  * */
 
-enum {ReadFromFile, BruteForce, Sample, ProgramParameters}; 
-char Algorithm[4][2048] = {"Read From File", "Brute Force", "Sample", "Print Program Parameters"}; 
-enum {NO_EVENT, MISMATCH, INSERTION, DELETION};
+char Colors[5] = "01234";
 
-typedef struct {
-	int64_t numIndexes;
-	char **indexes;
-	int *indexLengths;
-} Indexes;
-
-typedef struct {
-	int algorithm;
-	char indexesFileName[2048];
-	int readLength;
-	int indexLength;
-	int numIndexes;
-	int numEventsToSample;
-	int numIndexesToSample;
-	int greedy;
-	int numMismatchesStart;
-	int numMismatchesEnd;
-	int insertionLengthStart;
-	int insertionLengthEnd;
-	int numErrors;
-} arguments;
-
-/*********************************************************************/
-/* 							Function Definitions 					  */
-/*********************************************************************/
-int64_t NChooseR(int64_t N, int64_t R);
-void PrintIndexes(Indexes *indexes, FILE *fp);
-void InitializeIndexes(Indexes *indexes); 
-void AllocateIndexes(Indexes *indexes,
-		int numIndexes,
-		int indexLength);
-void DeleteIndexes(Indexes *indexes);
-void GenerateRandomIndex(char *index,
-		int *length,
-		int readLength,
-		int indexLength);
-void GenerateRandomIndexes(Indexes *indexes, 
-		int readLength,
-		int indexLength,
-		int numMainIndexes,
-		int numIndexes);
-void GenerateIndexesHelper(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		char *curIndex,
-		int curIndexPos,
-		int numOnes);
-void GenerateIndexes(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int indexLength);
-int ReadIndexes(Indexes *indexes, FILE *fp, char *indexesFileName, int readLength);
-int CheckReadAgainstIndexes(Indexes *indexes,
-		int *read,
-		int readLength);
-void GenerateRandomInsertionRead(int *read,
-		int readLength,
-		int insertionLength,
-		int numErrors);
-void RunInsertion(Indexes *indexes,
-		int *read,
-		int readLength,
-		int insertionLength,
-		int numErrors,
-		int64_t *totalGenerated,
-		int64_t *totalMatched);
-void GenerateRandomMismatchRead(int *read,
-		int readLength,
-		int numMismatches);
-void RunMismatches(Indexes *indexes,
-		int *read,
-		int readLength,
-		int readPos,
-		int numMismatchesLeft,
-		int64_t *totalGenerated,
-		int64_t *totalMatched);
-void RunSamplingGreedy(Indexes *mainIndexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		int numIndexes,
-		int numIndexesToSample,
+/* TODO */
+void RunSearchForIndexes(int readLength,
 		int numEventsToSample,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors);
-void RunSampling(Indexes *mainIndexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		int numIndexes,
 		int numIndexesToSample,
-		int numEventsToSample,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors);
-void FindBestIndexes(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		int numIndexes,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors);
-void ComputeAccuracyForEachIndex(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors);
-void PrintUsage();
-void PrintProgramParmeters(arguments *args);
-void AssignDefaultValues(arguments *args); 
-void ValidateArguments(arguments *args);
-void ParseCommandLineArguments(int argc, char *argv[], arguments *args); 
-
-/*********************************************************************/
-/* 							Implementation 							 */
-/*********************************************************************/
-int64_t NChooseR(int64_t N, int64_t R) 
+		int keySize,
+		int maxKeyWidth,
+		int maxIndexSetSize,
+		int accuracyThreshold,
+		int space,
+		int maxNumMismatches,
+		int maxNumColorErrors)
 {
-	int64_t i, j, sum;
-	int64_t **table=NULL;
+	int i, j;
+	IndexSet set;
+	Index curBest, curIndex;
+	AccuracyProfile curBestP, curIndexP;
 
-	if(N-R < R) {
-		R = N - R;
-	}
+	/* Seed random number */
+	srand(time(NULL));
 
-	/* Allocate memory for the dynamic programming table */
-	table = malloc(sizeof(int64_t*)*(N+1));
-	if(NULL == table) {
-		fprintf(stderr, "Error.  Could not allocate memory for table.  Terminating!\n");
-		exit(1);
-	}
-	for(i=0;i<=N;i++) {
-		table[i]= malloc(sizeof(int64_t)*(R+1));
-		if(NULL == table[i]) {
-			fprintf(stderr, "Error.  Could not allocate memory for table[i].  Terminating!\n");
-			exit(1);
+	/* Initialize index set */
+	IndexSetInitialize(&set);
+
+	/* Will always seed with contiguous 1s mask */
+	IndexSetSeed(&set,
+			keySize);
+
+	for(i=2;i<=maxIndexSetSize;i++) { /* Add one index to the set */
+		/* Initialize */
+		IndexInitialize(&curBest); 
+		AccuracyProfileInitialize(&curBestP);
+		for(j=0;j<numIndexesToSample;j++) { /* Sample the space of possible indexes */
+			/* Initialze cur */
+			IndexInitialize(&curIndex);
+			AccuracyProfileInitialize(&curIndexP);
+
+			/* Get random index */
+			do {
+				IndexFree(&curIndex);
+				IndexGetRandom(&curIndex,
+						keySize,
+						maxKeyWidth);
+			}
+			while(1==IndexSetContains(&set, &curIndex));
+
+			/* Push random index */
+			IndexSetPush(&set,
+					&curIndex);
+
+			/* Get accuracy profile */
+			AccuracyProfileUpdate(&set,
+					&curIndexP,
+					readLength,
+					numEventsToSample,
+					space,
+					maxNumMismatches,
+					maxNumColorErrors);
+			assert(curIndexP.numReads == numEventsToSample);
+
+			/* Compare accuracy profile */
+			if(AccuracyProfileCompare(&curBestP, &curIndexP, accuracyThreshold) < 0) {
+				/* Copy index over to the current best */
+				IndexCopy(&curBest, &curIndex);
+				AccuracyProfileCopy(&curBestP, &curIndexP);
+			}
+			/* Pop random index */
+			IndexSetPop(&set);
+
+			/* Free cur index */
+			IndexFree(&curIndex);
+			AccuracyProfileFree(&curIndexP);
 		}
+		/* Add the best index to the set */
+		IndexSetPush(&set,
+				&curBest);
+		/* Save accuracy profile */
+		/* Free best index */
+		IndexFree(&curBest);
 	}
 
-	/* Initialize all to zero */
-	for(i=0;i<=N;i++) {
-		for(j=0;j<=R;j++) {
-			table[i][j] = 0;
-		}
-	}
+	/* Print */
+	IndexSetPrint(&set, stderr);
 
-	/* Initialize: N choose 0 is always 1 */
-	for(i=0;i<=N;i++) {
-		table[i][0] = 1;
-	}
-	/* Initialize: i choose i is always 1 */
-	for(i=0;i<=N && i<=R;i++) {
-		table[i][i] = 1;
-	}
-
-	for(j=1;j<=R;j++) {
-		for(i=j+1;i<=N;i++) {
-			table[i][j] = table[i-1][j-1] + table[i-1][j];
-		}
-	}
-
-	/*
-	   fprintf(stderr, "%lld\t%lld\n",
-	   (long long int)N,
-	   (long long int)R);
-	   for(i=0;i<=N;i++) {
-	   for(j=0;j<=R;j++) {
-	   fprintf(stderr, "%lld ",
-	   (long long int)table[i][j]);
-	   }
-	   fprintf(stderr, "\n");
-	   }
-	   fprintf(stderr, "\n");
-	   */
-
-	/* Get the binomial coefficient */
-	sum = table[N][R];
-
-	/* Free memory */
-	for(i=0;i<=N;i++) {
-		free(table[i]);
-		table[i] = NULL;
-	}
-	free(table);
-	table = NULL;
-
-	return sum;
+	/* Free */
+	IndexSetFree(&set);
 }
 
-void PrintIndexes(Indexes *indexes, FILE *fp)
+/* TODO */
+void RunEvaluateIndexes(char *inputFileName,
+		int readLength,
+		int numEventsToSample,
+		int space,
+		int maxNumMismatches,
+		int maxInsertionLength,
+		int maxNumColorErrors)
+{
+	char *FnName="RunEvaluateIndexes";
+	int setSize;
+	IndexSet set, curSet;
+
+	assert(space == 1 || maxNumColorErrors == 0);
+
+	/* Seed random number */
+	srand(time(NULL));
+
+	IndexSetInitialize(&curSet);
+
+	/* Read in */
+	IndexSetRead(&set, inputFileName);
+
+	for(setSize=1;setSize<=set.numIndexes;setSize++) { /* For increasing set size */
+
+		/* Add an index to the set */
+		IndexSetPush(&curSet, &set.indexes[setSize-1]); 
+
+		switch(space) {
+			case NTSpace:
+				RunEvaluateIndexesNTSpace(&curSet,
+						readLength,
+						numEventsToSample,
+						maxNumMismatches,
+						maxInsertionLength);
+				break;
+			case ColorSpace:
+				RunEvaluateIndexesColorSpace(&curSet,
+						readLength,
+						numEventsToSample,
+						maxNumMismatches,
+						maxInsertionLength,
+						maxNumColorErrors);
+				break;
+			default:
+				PrintError(FnName,
+						"space",
+						"Could not understand space",
+						Exit,
+						OutOfRange);
+		}
+	}
+
+	/* Free memory */
+	IndexSetFree(&set);
+	IndexSetFree(&curSet);
+}
+
+void RunEvaluateIndexesNTSpace(IndexSet *set,
+		int readLength,
+		int numEventsToSample,
+		int maxNumMismatches,
+		int maxInsertionLength)
 {
 	int i, j;
 
-	fprintf(fp, "%lld\n", (long long int)indexes->numIndexes);
-	for(i=0;i<indexes->numIndexes;i++) {
-		fprintf(fp, "%d ", indexes->indexLengths[i]);
-		for(j=0;j<indexes->indexLengths[i];j++) {
-			fprintf(fp, "%d ", indexes->indexes[i][j]);
+	/* Print the header */
+	fprintf(stderr, "%d\n", set->numIndexes);
+	fprintf(stderr, "%-5s\t", "MM"); /* # of Mismatches */
+	fprintf(stderr, "%-5s\t", "BP:0"); /* Mismatches accuracy */
+	fprintf(stderr, "%-5s\t", "1=del"); /* Deletions */
+	for(j=1;j<=maxInsertionLength;j++) {
+		fprintf(stderr, "%2s%-3d\t", "2i", j); /* Insertions */
+	}
+	fprintf(stderr, "\n");
+
+	/* SNPs - include no SNPs */
+	/* Mismatches including zero */
+	for(i=0;i<=maxNumMismatches;i++) {
+		fprintf(stderr, "%-5d\t", i);
+		fprintf(stderr, "%1.3lf\t",
+				GetNumCorrect(set,
+					readLength,
+					numEventsToSample,
+					i,
+					0,
+					NoIndelType,
+					0,
+					NTSpace)/((double)numEventsToSample));
+		/* Deletion with Mismatches */
+		fprintf(stderr, "%1.3lf\t",
+				GetNumCorrect(set,
+					readLength,
+					numEventsToSample,
+					i,
+					0,
+					DeletionType,
+					0,
+					NTSpace)/((double)numEventsToSample));
+		/* Insertions with Mismatches */
+		for(j=1;j<=maxInsertionLength;j++) {
+			fprintf(stderr, "%1.3lf\t",
+					GetNumCorrect(set,
+						readLength,
+						numEventsToSample,
+						i,
+						0,
+						InsertionType,
+						j,
+						NTSpace)/((double)numEventsToSample));
 		}
-		fprintf(fp, "\n");
-	}
-	fflush(fp);
-}
-
-void InitializeIndexes(Indexes *indexes) 
-{
-	indexes->numIndexes = 0;
-	indexes->indexes = NULL;
-	indexes->indexLengths = NULL;
-}
-
-void AllocateIndexes(Indexes *indexes,
-		int numIndexes,
-		int indexLength)
-{
-	int i;
-
-	indexes->numIndexes = numIndexes;
-	assert(indexes->numIndexes > 0);
-	indexes->indexes = malloc(sizeof(char*)*indexes->numIndexes);
-	if(NULL == indexes->indexes) {
-		fprintf(stderr, "Error.  Could not allocate memory for indexes->indexes.  Terminating!\n");
-		exit(1);
-	}
-	indexes->indexLengths = malloc(sizeof(int)*indexes->numIndexes);
-	if(NULL == indexes->indexLengths) {
-		fprintf(stderr, "Error.  Could not allocate memory for indexes->indexLengths.  Terminating!\n");
-		exit(1);
-	}
-	for(i=0;i<indexes->numIndexes;i++) {
-		indexes->indexLengths[i] = indexLength;
-		assert(indexes->indexLengths[i] > 0);
-		indexes->indexes[i] = malloc(sizeof(char)*indexes->indexLengths[i]);
-		if(NULL == indexes->indexes) {
-			fprintf(stderr, "Error.  Could not allocate memory for indexes->indexes.  Terminating!\n");
-			exit(1);
-		}
+		fprintf(stderr, "\n");
 	}
 }
 
-void DeleteIndexes(Indexes *indexes)
-{
-	int i;
-	for(i=0;i<indexes->numIndexes;i++) {
-		free(indexes->indexes[i]);
-		indexes->indexes[i] = NULL;
-	}
-	free(indexes->indexes);
-	indexes->indexes = NULL;
-	free(indexes->indexLengths);
-	indexes->indexLengths = NULL;
-	indexes->numIndexes = 0;
-}
-
-void GenerateRandomIndex(char *index,
-		int *length,
+void RunEvaluateIndexesColorSpace(IndexSet *set,
 		int readLength,
-		int indexLength)
+		int numEventsToSample,
+		int maxNumMismatches,
+		int maxInsertionLength,
+		int maxNumColorErrors)
 {
+	int i, j;
+	/* Print the header */
+	fprintf(stderr, "%d\n", set->numIndexes);
+	/* TODO */
+
+	/* Get accuracy and print out */
+	for(i=0;i<=maxNumColorErrors;i++) {
+		/* SNPs with color errors - include no SNPs */
+		for(j=0;j<=maxNumMismatches;j++) {
+			fprintf(stderr, "%1.3lf\t",
+					GetNumCorrect(set,
+						readLength,
+						numEventsToSample,
+						j,
+						i,
+						NoIndelType,
+						0,
+						ColorSpace)/((double)numEventsToSample));
+		}
+		/* Deletion with color errors */
+		fprintf(stderr, "%1.3lf\t",
+				GetNumCorrect(set,
+					readLength,
+					numEventsToSample,
+					0,
+					i,
+					DeletionType,
+					0,
+					ColorSpace)/((double)numEventsToSample));
+		/* Insertions with color errors */
+		for(j=1;j<=maxInsertionLength;j++) {
+			fprintf(stderr, "%1.3lf\t",
+					GetNumCorrect(set,
+						readLength,
+						numEventsToSample,
+						0,
+						i,
+						InsertionType,
+						j,
+						ColorSpace)/((double)numEventsToSample));
+		}
+		fprintf(stderr, "\n");
+	}
+}
+
+int32_t GetNumCorrect(IndexSet *set,
+		int readLength,
+		int numEventsToSample,
+		int numSNPs,
+		int numColorErrors,
+		int indelType,
+		int insertionLength,
+		int space)
+{
+	char *FnName="GetNumCorrect";
+	assert(space == 1 || numColorErrors == 0);
+	assert(insertionLength <= 0 || indelType == InsertionType);
+
+	int32_t i;
+	int32_t numCorrect = 0;
+	int32_t breakpoint;
+	Read curRead, r1, r2;
+
+	ReadInitialize(&curRead);
+
+	for(i=0;i<numEventsToSample;i++) {
+		/* Get random read with SNPs and ColorErrors */
+		ReadGetRandom(&curRead,
+				readLength,
+				numSNPs,
+				numColorErrors,
+				space);
+		/* Get the breakpoint:
+		 * SNPs - no breakpoint (0)
+		 * Deletion - breakpoint within the read 
+		 * Insertion - breakpoint within the read, including start
+		 * */
+		switch(indelType) {
+			case NoIndelType:
+				/* Only SNPs and color errors */
+				assert(insertionLength == 0);
+				/* Check read */
+				numCorrect += IndexSetCheckRead(set, &curRead);
+				break;
+			case DeletionType:
+				assert(insertionLength == 0);
+				/* Get where the break point occured for the deletion */
+				breakpoint = ( rand()%(readLength - 1) ) + 1;
+				assert(breakpoint > 0);
+				assert(readLength - breakpoint > 0);
+				/* Split read into two reads based on the breakpoint */
+				ReadSplit(&curRead, &r1, &r2, breakpoint, 0);
+				/* Check either end of the read after split */
+				if(1==IndexSetCheckRead(set, &r1) ||
+						1==IndexSetCheckRead(set, &r2)) {
+					numCorrect++;
+				}
+				/* Free read */
+				ReadFree(&r1);
+				ReadFree(&r2);
+				break;
+			case InsertionType:
+				assert(insertionLength > 0);
+				/* Get where the insertion occured relative to the start of hte read */
+				breakpoint = (rand()%(readLength-insertionLength));
+				/* Split read into two reads */
+				ReadSplit(&curRead, &r1, &r2, breakpoint, insertionLength);
+				/* Check either end of the read after split, substracting the insertion */
+				if(1==IndexSetCheckRead(set, &r1) ||
+						1==IndexSetCheckRead(set, &r2)) {
+					numCorrect++;
+				}
+				/* Free read */
+				ReadFree(&r1);
+				ReadFree(&r2);
+				break;
+			default:
+				PrintError(FnName,
+						"indelType",
+						"Could not understand indel type",
+						Exit,
+						OutOfRange);
+		}
+		/* Free read */
+		ReadFree(&curRead);
+	}
+	return numCorrect;
+}
+
+void IndexSetRead(IndexSet *set,
+		char *inputFileName)
+{
+	char *FnName="IndexSetRead";
+	FILE *fp;
+	Index index;
+
+	if(!(fp=fopen(inputFileName, "rb"))) {
+		PrintError(FnName,
+				inputFileName,
+				"Could not open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
+	IndexSetInitialize(set);
+	IndexInitialize(&index);
+
+	while(EOF!=IndexRead(&index, fp)) {
+		IndexSetPush(set, &index);
+		IndexFree(&index);
+	}
+
+	fclose(fp);
+}
+
+int IndexSetContains(IndexSet *set,
+		Index *index)
+{
+	int i;
+	for(i=0;i<set->numIndexes;i++) {
+		/* If they are the same, return 1 */
+		if(IndexCompare(index, &set->indexes[i])==0) {
+			return 1;
+		}
+	}
+	/* Return zero */
+	return 0;
+}
+
+int32_t IndexSetCheckRead(IndexSet *set,
+		Read *r)
+{
+	int i;
+	for(i=0;i<set->numIndexes;i++) {
+		if(IndexCheckRead(&set->indexes[i],
+					r) == 1) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void IndexSetPush(IndexSet *set, 
+		Index *index)
+{
+	char *FnName="IndexSetPush";
+	set->numIndexes++;
+	set->indexes = realloc(set->indexes, sizeof(Index)*set->numIndexes);
+	if(NULL == set->indexes) {
+		PrintError(FnName,
+				"set->indexes",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	IndexInitialize(&set->indexes[set->numIndexes-1]);
+	IndexCopy(&set->indexes[set->numIndexes-1], index);
+}
+
+void IndexSetPop(IndexSet *set)
+{
+	char *FnName="IndexSetPop";
+	IndexFree(&set->indexes[set->numIndexes-1]);
+	set->numIndexes--;
+	set->indexes = realloc(set->indexes, sizeof(Index)*set->numIndexes);
+	if(NULL == set->indexes) {
+		PrintError(FnName,
+				"set->indexes",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+}
+
+/* Seed index set with one index with a contiguous mask */
+void IndexSetSeed(IndexSet *set,
+		int keySize)
+{
+	char *FnName="IndexSetSeed";
+	int i;
+
+	/* Allocate for the index set */
+	set->numIndexes=1;
+	set->indexes = malloc(sizeof(Index)*set->numIndexes);
+	if(NULL == set->indexes) {
+		PrintError(FnName,
+				"set->indexes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Allocate index */
+	IndexAllocate(&set->indexes[set->numIndexes-1],
+			keySize,
+			keySize);
+	/* Initialize the mask to ones */
+	for(i=0;i<set->indexes[set->numIndexes-1].keySize;i++) {
+		set->indexes[set->numIndexes-1].mask[i] = 1;
+	}
+}
+
+void IndexSetInitialize(IndexSet *set) 
+{
+	set->indexes=NULL;
+	set->numIndexes=0;
+}
+
+void IndexSetFree(IndexSet *set) 
+{
+	int i;
+	for(i=0;i<set->numIndexes;i++) {
+		IndexFree(&set->indexes[i]);
+	}
+	free(set->indexes);
+	IndexSetInitialize(set);
+}
+
+void IndexSetPrint(IndexSet *set,
+		FILE *fp)
+{
+	int i;
+	for(i=0;i<set->numIndexes;i++) {
+		IndexPrint(&set->indexes[i],
+				fp);
+	}
+}
+
+int IndexRead(Index *index, 
+		FILE *fp)
+{
+	char *FnName = "IndexRead";
+	char tempMask[2056]="\0";
+	int32_t i;
+
+	/* Read */
+	if(EOF == fscanf(fp, "%s", tempMask)) {
+		return EOF;
+	}
+	IndexAllocate(index,
+			0,
+			(int)strlen(tempMask));
+	index->keySize = 0;
+	for(i=0;i<index->keyWidth;i++) {
+		switch(tempMask[i]) {
+			case '0':
+				index->mask[i] = 0;
+				break;
+			case '1':
+				index->mask[i] = 1;
+				index->keySize++;
+				break;
+			default:
+				PrintError(FnName,
+						"mask",
+						"Could not read mask",
+						Exit,
+						OutOfRange);
+		}
+	}
+
+	return 1;
+}
+
+int IndexCompare(Index *a, Index *b) 
+{
+	int i;
+	if(a->keySize == b->keySize &&
+			a->keyWidth == b->keyWidth) {
+		/* key size and key width are the same */
+
+		/* Compare masks */
+		for(i=0;i<a->keyWidth;i++) {
+			if(a->mask[i] != b->mask[i]) {
+				/* Different */
+				return 1;
+			}
+		}
+		/* They must be the same */
+		return 0;
+	}
+	else {
+		return 1;
+	}
+}
+
+int32_t IndexCheckRead(Index *index,
+		Read *r)
+{
+	int i, j;
+	int success;
+
+	if(index->keyWidth > r->length) {
+		return 0;
+	}
+
+	for(i=0;i<r->length - index->keyWidth + 1;i++) { /* For all possible offsets */
+		success = 1;
+		for(j=0;1==success && j<index->keyWidth;j++) { /* Go over the index mask */
+			if(index->mask[j] == 1 && r->profile[j+i] == 1) {
+				success = 0;
+			}
+		}
+		if(1==success) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+void IndexCopy(Index *dest, Index *src)
+{
+	int i;
+
+	if(NULL != dest->mask) {
+		IndexFree(dest);
+	}
+
+	IndexAllocate(dest,
+			src->keySize,
+			src->keyWidth);
+	for(i=0;i<src->keyWidth;i++) {
+		dest->mask[i] = src->mask[i];
+	}
+}
+
+void IndexGetRandom(Index *index,
+		int keySize,
+		int maxKeyWidth)
+{
+	char *FnName="IndexGetRandom";
 	int i, j, k;
 	int numLeft;
-	int *bins=NULL;
-	int numBins = indexLength;
+	int32_t *bins=NULL;
+	int numBins = keySize-1;
+
+	/* Generate random masks by having bins inbetween each "1".  We 
+	 * then randomly insert zeros into the bins */
 
 	/* Allocate memory for the bins */
-	bins = malloc(sizeof(int)*numBins);
+	bins = malloc(sizeof(int32_t)*numBins);
 	if(NULL == bins) {
-		fprintf(stderr, "Error.  Could not allocate memory for bins.  Terminating!\n");
-		exit(1);
+		PrintError(FnName,
+				"bins",
+				"Could not allocate memory",
+				Exit,
+				OutOfRange);
 	}
+	/* Initialize bins */
 	for(i=0;i<numBins;i++) {
 		bins[i] = 0;
 	}
 
 	/* Choose a number of zeros to insert into the bins */
-	numLeft = rand()%(readLength - indexLength);
-	assert(numLeft >=0 && numLeft <= readLength - indexLength);
+	numLeft = rand()%(maxKeyWidth - keySize + 1);
+	assert(numLeft >=0 && numLeft <= maxKeyWidth - keySize);
+
+	/* Allocate memory for the index */
+	IndexAllocate(index,
+			keySize,
+			keySize + numLeft);
 
 	/* Insert into bins */
 	while(numLeft > 0) {
-		/* choose a bin between 1 and indexLength-1 */
+		/* choose a bin between 1 and keySize-1 */
 		i = (rand()%numBins); /* Note: this is not truly inform, but a good approximation */
-		assert(i>=0 && i<=numBins-1);
+		assert(i>=0 && i<numBins);
 		bins[i]++;
 		numLeft--;
 	}
 
 	/* Generate index based off the bins */
 	/* First base is always a 1 */ 
-	for(i=0, j=1, index[0] = 1;i<indexLength-1;i++, j++) {
+	for(i=0, j=1, index->mask[0] = 1;
+			i<index->keySize-1;
+			i++, j++) {
 		/* Insert zero based on the bin size */
-		assert(i>=0 && i<=numBins-1);
-		for(k=0;k<bins[i];k++, j++) {
-			index[j] = 0;
+		for(k=0;
+				k<bins[i];
+				k++, j++) {
+			assert(j<index->keyWidth);
+			index->mask[j] = 0;
 		}
 		/* Add a one */
-		index[j] = 1;
+		assert(j<index->keyWidth);
+		index->mask[j] = 1;
 	}
-	(*length) = j;
+	assert(index->keyWidth == j);
 
 	/* Free memory */
 	free(bins);
 	bins=NULL;
 }
 
-void GenerateRandomIndexes(Indexes *indexes, 
-		int readLength,
-		int indexLength,
-		int numMainIndexes,
-		int numIndexes)
+void IndexAllocate(Index *index,
+		int keySize,
+		int keyWidth)
+{
+	char *FnName = "IndexAllocate";
+	index->keySize = keySize;
+	index->keyWidth = keyWidth;
+	index->mask = malloc(sizeof(int32_t)*index->keyWidth);
+	if(NULL == index->mask) {
+		PrintError(FnName,
+				"index->mask",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+}
+
+void IndexInitialize(Index *index)
+{
+	index->mask = NULL;
+	index->keySize = 0;
+	index->keyWidth = 0;
+}
+
+void IndexFree(Index *index)
+{
+	free(index->mask);
+	IndexInitialize(index);
+}
+
+void IndexPrint(Index *index,
+		FILE *fp)
 {
 	int i;
-
-	assert(numIndexes + numMainIndexes == indexes->numIndexes);
-
-	/* For each index */
-	for(i=numMainIndexes;
-			i < numMainIndexes + numIndexes;
-			i++) {
-		GenerateRandomIndex(indexes->indexes[i],
-				&indexes->indexLengths[i],
-				readLength,
-				indexLength);
+	fprintf(fp, "%d\t%d\t",
+			index->keyWidth,
+			index->keySize);
+	for(i=0;i<index->keyWidth;i++) {
+		fprintf(fp, "%1d", index->mask[i]);
 	}
+	fprintf(fp, "\n");
 }
 
-void GenerateIndexesHelper(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		char *curIndex,
-		int curIndexPos,
-		int numOnes)
+int AccuracyProfileCompare(AccuracyProfile *a, 
+		AccuracyProfile *b,
+		int accuracyThreshold)
 {
 	int i;
+	assert(a->length > 0 || b->length > 0);
 
-	if(indexes->numIndexes%GENERATE_HELPER_ROTATE_NUM == 0) {
-		fprintf(fp, "\r%lld",
-				(long long int)indexes->numIndexes);
+	if(a->numReads <= 0) {
+		return -1;
 	}
-	/*
-	   fprintf(stderr, "readLength:%d\tindexLength:%d\tcurIndexPos:%d\tnumOnes:%d\n",
-	   readLength,
-	   indexLength,
-	   curIndexPos,
-	   numOnes);
-	   */
-
-	if(curIndexPos > readLength) {
-		return;
+	if(b->numReads <= 0) {
+		return 1;
 	}
-	else if(numOnes == indexLength) {
-		/* Allocate memory */
-		indexes->numIndexes++;
-		indexes->indexes = realloc(indexes->indexes, sizeof(char*)*indexes->numIndexes);
-		if(NULL == indexes->indexes) {
-			fprintf(stderr, "Error.  Could not reallocate memory for indexes->indexes.  Terminating!\n");
-			exit(1);
-		}
-		indexes->indexLengths = realloc(indexes->indexLengths, sizeof(int)*indexes->numIndexes);
-		if(NULL == indexes->indexLengths) {
-			fprintf(stderr, "Error.  Could not reallocate memory for indexes->indexLengths.  Terminating!\n");
-			exit(1);
-		}
-		indexes->indexLengths[indexes->numIndexes-1] = curIndexPos;
-		assert(indexes->indexLengths[indexes->numIndexes-1] > 0);
-		indexes->indexes[indexes->numIndexes-1] = malloc(sizeof(char)*indexes->indexLengths[indexes->numIndexes-1]);
-		/* Copy over */
-		for(i=0;i<indexes->indexLengths[indexes->numIndexes-1];i++) {
-			indexes->indexes[indexes->numIndexes-1][i] = curIndex[i];
-		}
-	}
-	else {
-		/* Do not add a zero as the first entry for the index */
-		if(numOnes > 0 &&
-				readLength - (curIndexPos + 1) >= indexLength - numOnes) {
-			/* Try zero*/
-			curIndex[curIndexPos] = 0; 
-			GenerateIndexesHelper(indexes,
-					fp,
-					readLength,
-					indexLength,
-					curIndex,
-					curIndexPos+1,
-					numOnes);
-		}
-		/* Try one */
-		curIndex[curIndexPos] = 1; 
-		GenerateIndexesHelper(indexes,
-				fp,
-				readLength,
-				indexLength,
-				curIndex,
-				curIndexPos+1,
-				numOnes+1);
-		/* Print percentage complete */
-	}
-}
-
-void GenerateIndexes(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int indexLength)
-{
-	char *curIndex;
-
-	curIndex = malloc(sizeof(char)*readLength);
-	if(NULL == curIndex) {
-		fprintf(stderr, "Error.  Could not allocate memory for curIndex.  Terminating!\n");
-		exit(1);
-	}
-
-	fprintf(fp, "Generating %lld indexes...\n0",
-			(long long int)NChooseR(readLength-1, indexLength-1));
-	fflush(fp);
-	GenerateIndexesHelper(indexes,
-			fp,
-			readLength,
-			indexLength,
-			curIndex,
-			0,
-			0);
-	fprintf(fp, "\r%lld\nGenerated %lld indexes.\n",
-			(long long int)indexes->numIndexes,
-			(long long int)indexes->numIndexes);
-	fflush(fp);
-
-	free(curIndex);
-	curIndex=NULL;
-}
-
-int ReadIndexes(Indexes *indexes, FILE *fp, char *indexesFileName, int readLength)
-{
-	int i, j, tempInt;
-
-	if(0 > fscanf(fp, "%d", &tempInt)) {
-		return EOF;
-	}
-	indexes->numIndexes = tempInt;
-	assert(indexes->numIndexes > 0);
-	indexes->indexes = malloc(sizeof(char*)*indexes->numIndexes);
-	if(NULL == indexes->indexes) {
-		fprintf(stderr, "Error.  Could not allocate memory for indexes->indexes.  Terminating!\n");
-		exit(1);
-	}
-	indexes->indexLengths = malloc(sizeof(int)*indexes->numIndexes);
-	if(NULL == indexes->indexLengths) {
-		fprintf(stderr, "Error.  Could not allocate memory for indexes->indexLengths.  Terminating!\n");
-		exit(1);
-	}
-	for(i=0;i<indexes->numIndexes;i++) {
-		if(0 > fscanf(fp, "%d", &indexes->indexLengths[i])) {
-			fprintf(stderr, "Error.  Could not read in the number of indexes from %s.  Terminating!\n",
-					indexesFileName);
-			exit(1);
-		}
-		assert(indexes->indexLengths[i] > 0);
-		if(indexes->indexLengths[i] > readLength) {
-			fprintf(stderr, "Error.  Length for index %d was too big [%d>%d].  Terminating!\n",
-					i+1,
-					indexes->indexLengths[i],
-					readLength);
-			exit(1);
-		}
-		indexes->indexes[i] = malloc(sizeof(char)*indexes->indexLengths[i]);
-		if(NULL == indexes->indexes) {
-			fprintf(stderr, "Error.  Could not allocate memory for indexes->indexes.  Terminating!\n");
-			exit(1);
-		}
-		for(j=0;j<indexes->indexLengths[i];j++) {
-			if(0 > fscanf(fp, "%d", &tempInt)) {
-				fprintf(stderr, "Error.  Could not read in value for index %d and entry %d from %s.  Terminating!\n",
-						i,
-						j,
-						indexesFileName);
-				exit(1);
+	assert(a->numReads > 0);
+	assert(b->numReads > 0);
+	assert(a->length == b->length);
+	for(i=0;i<a->length;i++) {
+		if((a->correct[i]/a->numReads) < accuracyThreshold || (b->correct[i]/b->numReads) < accuracyThreshold) {
+			if(a->correct[i]/a->numReads < b->correct[i]/b->numReads) {
+				return -1;
 			}
-			indexes->indexes[i][j] = tempInt;
-		}
-	}
-	return 1;
-}
-
-int CheckReadAgainstIndexes(Indexes *indexes,
-		int *read,
-		int readLength)
-{
-	int i;
-	int offset;
-	int curIndexPos, curReadPos;
-	int pos;
-	int found = 0;
-
-	/*
-	   fprintf(stderr, "%s", BREAK_LINE);
-	   fprintf(stderr, "index:\n");
-	   PrintIndexes(indexes, stderr);
-	   fprintf(stderr, "read:\n");
-	   for(i=0;i<readLength;i++) {
-	   fprintf(stderr, "%d ", read[i]);
-	   }
-	   fprintf(stderr, "\n");
-	   */
-
-	for(i=0;i<indexes->numIndexes;i++) {
-		/* Check all offsets of the read */
-		for(offset=0;offset<=readLength-indexes->indexLengths[i];offset++) {
-			/* Check against index */
-			curReadPos = offset;
-			curIndexPos = 0;
-			pos = 0;
-			found = 1;
-
-			/*
-			   fprintf(stderr, "i:%d\toffset:%d\n", i, offset);
-			   */
-
-			while(found == 1 && 
-					curReadPos < readLength &&
-					curIndexPos < indexes->indexLengths[i]) {
-				/*
-				   fprintf(stderr, "1:\tcurIndexPos:%d\tpos:%d\tread[%d]:%d\n",
-				   curIndexPos,
-				   pos,
-				   curReadPos,
-				   read[curReadPos]);
-				   */
-				/* Update effective position */
-				while(curReadPos < readLength &&
-						(INSERTION == read[curReadPos] || DELETION == read[curReadPos])) {
-					switch(read[curReadPos]) {
-						case INSERTION:
-							pos++;
-							/* Do not update position */
-							break;
-						case DELETION:
-							/* Jump ahead one */
-							pos+=2;
-							break;
-						default:
-							fprintf(stderr, "Could not understand read [%d].  Terminating!\n", read[curReadPos]);
-							exit(1);
-							break;
-					}
-					curReadPos++;
-				}
-
-				/*
-				   fprintf(stderr, "2:\tcurIndexPos:%d\tpos:%d\tread[%d]:%d\n",
-				   curIndexPos,
-				   pos,
-				   curReadPos,
-				   read[curReadPos]);
-				   */
-				/* Check against index */
-				if((1 == indexes->indexes[i][curIndexPos]) &&
-						((curReadPos < readLength && read[curReadPos] == MISMATCH) ||
-						 (curReadPos < readLength && read[curReadPos] == INSERTION))){
-					found = 0;
-				}
-				else if(pos != curIndexPos) {
-					found = 0;
-				}
-				/* Update positions */
-				pos++;
-				curIndexPos++;
-				curReadPos++;
-			}
-			if(found == 1) {
+			else if(a->correct[i]/a->numReads > b->correct[i]/b->numReads) {
 				return 1;
 			}
-			assert(found == 0);
 		}
 	}
 
 	return 0;
 }
-void GenerateRandomInsertionRead(int *read,
-		int readLength,
-		int insertionLength,
-		int numErrors)
+
+void AccuracyProfileCopy(AccuracyProfile *dest, AccuracyProfile *src) 
 {
 	int i;
-	int startPos;
-
-	/* Initialize */
-	for(i=0;i<readLength;i++) {
-		read[i] = NO_EVENT;
+	if(dest->numReads > 0) {
+		AccuracyProfileFree(dest);
 	}
-	/* Insert errors anywhere (including the insertion).  Errors are modeled
-	 * as mismatches */
-	GenerateRandomMismatchRead(read,
-			readLength,
-			numErrors);
-	/* Choose a random starting position in the read */
-	startPos = rand()%(readLength - insertionLength + 1);
-	assert(startPos >= 0 && startPos <= readLength - insertionLength);
-	/* Insertion */
-	for(i=startPos;i<startPos + insertionLength;i++) {
-		read[i] = INSERTION;
+	AccuracyProfileAllocate(dest, src->numSNPs, src->numColorErrors);
+	for(i=0;i<dest->length;i++) {
+		dest->correct[i] = src->correct[i];
 	}
 }
 
-void RunInsertion(Indexes *indexes,
-		int *read,
+void AccuracyProfileUpdate(IndexSet *set, 
+		AccuracyProfile *p,
 		int readLength,
-		int insertionLength,
-		int numErrors,
-		int64_t *totalGenerated,
-		int64_t *totalMatched)
-{
-	int i, j;
-
-	/* Go through all possible starting positions for the insertion */ 
-	for(i=0;i<=readLength - insertionLength;i++) {
-		/* Initialize read */
-		for(j=0;j<readLength;j++) {
-			read[j] = NO_EVENT;
-		}
-		/* Insert at the position */
-		for(j=i;j<i+insertionLength;j++) {
-			read[j] = INSERTION;
-		}
-		/* Run errors as mismatches */
-		RunMismatches(indexes,
-				read,
-				readLength,
-				0,
-				numErrors,
-				totalGenerated,
-				totalMatched);
-	}
-}
-
-void GenerateRandomMismatchRead(int *read,
-		int readLength,
-		int numMismatches)
-{
-	int i;
-	int numMismatchesLeft;
-	int theDefault, theNew;
-
-	/* Optimization: you figure it out */
-	if(readLength - numMismatches < numMismatches) {
-		numMismatches = readLength - numMismatches;
-		theDefault = MISMATCH;
-		theNew = NO_EVENT;
-	}
-	else {
-		theDefault = NO_EVENT;
-		theNew = MISMATCH;
-	}
-
-	/* Initialize read */
-	for(i=0;i<readLength;i++) {
-		read[i] = theDefault;
-	}
-
-	/* Pick bases */
-	numMismatchesLeft=numMismatches;
-
-	while(numMismatchesLeft > 0) {
-		/* Get a number from 0 to readLength-1 */
-		i = rand()%readLength; 
-		/* Only modify if it was not previously modified */
-		if(read[i] == theDefault) {
-			read[i] = theNew;
-			numMismatchesLeft--;
-		}
-	}
-}
-
-void RunMismatches(Indexes *indexes,
-		int *read,
-		int readLength,
-		int readPos,
-		int numMismatchesLeft,
-		int64_t *totalGenerated,
-		int64_t *totalMatched)
-{
-	int prevType;
-
-	if(readPos > readLength) {
-		return;
-	}
-	assert(readPos >= 0 && readPos <= readLength);
-
-	if(0 < numMismatchesLeft) {
-		if(readPos < readLength) {
-			prevType = read[readPos];
-
-			/* Try adding a mismatch at the current base */
-			read[readPos] = MISMATCH;
-			RunMismatches(indexes,
-					read,
-					readLength,
-					readPos+1,
-					numMismatchesLeft-1,
-					totalGenerated,
-					totalMatched);
-
-			/* Try not adding a mismatch at the current base */
-			read[readPos] = prevType;
-			RunMismatches(indexes,
-					read,
-					readLength,
-					readPos+1,
-					numMismatchesLeft,
-					totalGenerated,
-					totalMatched);
-			assert(read[readPos] == prevType);
-		}
-	}
-	else {
-		assert(0 == numMismatchesLeft);
-		/* Increment the number of reads generated */
-		(*totalGenerated)++;
-		/* Check if the read is matched using the indexes */
-		if(1==CheckReadAgainstIndexes(indexes, 
-					read, 
-					readLength)) {
-			(*totalMatched)++;
-		}
-	}
-}
-
-void RunSamplingGreedy(Indexes *mainIndexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		int numIndexes,
-		int numIndexesToSample,
 		int numEventsToSample,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors)
+		int space,
+		int maxNumMismatches,
+		int maxNumColorErrors)
 {
-	int i, j, k, l, foundOptimal, curNumIndexes;
-	int *curRead=NULL;
-	Indexes curIndexes;
-	Indexes bestIndexes;
-	int64_t curMatched, numEvents, bestMatched=-1, totalMatched, totalGenerated;
-	int exact;
-	curRead = malloc(sizeof(int)*readLength);
-	if(NULL == curRead) {
-		fprintf(stderr, "Error.  Could not allocate memory for curRead.  Terminating!\n");
-		exit(1);
-	}
-	for(i=0;i<readLength;i++) {
-		curRead[i] = -1;
-	}
+	int i, j, ctr;
+	/* Get the estimated accuracy profile for the index set */
 
-	InitializeIndexes(&curIndexes);
-	AllocateIndexes(&curIndexes,
-			numIndexes+mainIndexes->numIndexes,
-			readLength);
-	InitializeIndexes(&bestIndexes);
-	AllocateIndexes(&bestIndexes,
-			numIndexes+mainIndexes->numIndexes,
-			readLength);
+	/* Allocate memory for the profile */
+	AccuracyProfileAllocate(p, maxNumMismatches, maxNumColorErrors);
+	p->numReads = numEventsToSample;
 
-	/* Copy over main indexes */
-	for(i=0;i<mainIndexes->numIndexes;i++) {
-		curIndexes.indexLengths[i] = mainIndexes->indexLengths[i];
-		for(j=0;j<mainIndexes->indexLengths[i];j++) {
-			curIndexes.indexes[i][j] =  mainIndexes->indexes[i][j];
-		}
-	}
-
-	for(i=numMismatchesStart; 0 < i &&  i<=numMismatchesEnd;i++) {
-		fprintf(fp, "%s", BREAK_LINE);
-		fprintf(fp, "Currently processing %d mismatches and %d errors.\nOut of %lld, currently on:\n0",
-				i,
-				numErrors,
-				(long long int)numIndexesToSample);
-		fflush(fp);
-
-		/* If the total number of mismatches possible is less than we wish
-		 * to sample then just brute-force */
-		exact = (NChooseR(readLength, i+numErrors) <= numEventsToSample)?1:0;
-
-		/* Do a greedy approach.  Start by adding one index.  Then keep iteratively adding indexes
-		 * based on the previous ones. */
-		for(curNumIndexes=mainIndexes->numIndexes;
-				curNumIndexes < mainIndexes->numIndexes + numIndexes;
-				curNumIndexes++) {
-
-			/* Initialize */
-			bestMatched = -1;
-			foundOptimal = 0;
-			curIndexes.numIndexes = curNumIndexes + 1; /* We only want to add one index */
-
-			/* Sample indexes */
-			numEvents = 0;
-			for(j=0;foundOptimal != 1 && j<numIndexesToSample;j++) {
-				if(j%RANDOM_ROTATE_NUM == 0) {
-					fprintf(fp, "\r%10d",
-							j);
-					fflush(fp);
-				}
-				/* Generate random indexes */
-				/* Update for one index */
-				GenerateRandomIndexes(&curIndexes,
-						readLength,
-						indexLength,
-						curNumIndexes,
-						1); /* Generate only one index */
-				curMatched = 0;
-				numEvents = 0;
-				/* Initialize read */
-				for(k=0;k<readLength;k++) {
-					curRead[k] = NO_EVENT;
-				}
-				/* Sample mismatches */
-				if(0==exact) {
-					for(k=0;k<numEventsToSample;k++) {
-						/* Generate random read with j mismatches */ 
-						GenerateRandomMismatchRead(curRead,
-								readLength,
-								i+numErrors);
-
-						/* Test the read against the indexes */
-						switch(CheckReadAgainstIndexes(&curIndexes, curRead, readLength)) {
-							case 0:
-								/* do nothing */
-								break;
-							case 1:
-								/* increment */
-								curMatched++;
-								break;
-							default:
-								/* do nothing */
-								break;
-						}
-						numEvents++;
-					}
-				}
-				else {
-					RunMismatches(&curIndexes,
-							curRead,
-							readLength,
-							0,
-							i+numErrors,
-							&numEvents,
-							&curMatched);
-				}
-
-				/* Check the results against the best so far */
-				if(curMatched > bestMatched) {
-					bestMatched = curMatched;
-					bestIndexes.numIndexes = curIndexes.numIndexes;
-
-					for(k=0;k<curIndexes.numIndexes;k++) {
-						bestIndexes.indexLengths[k] = curIndexes.indexLengths[k];
-						for(l=0;l<curIndexes.indexLengths[k];l++) {
-							bestIndexes.indexes[k][l] = curIndexes.indexes[k][l];
-						}
-					}
-					if(bestMatched == numEvents) {
-						foundOptimal = 1;
-					}
-				}
-			}
-			/* Copy over bestIndexes to curIndexes */
-			assert(curIndexes.numIndexes == bestIndexes.numIndexes);
-			bestIndexes.numIndexes = curIndexes.numIndexes;
-			for(k=0;k<bestIndexes.numIndexes;k++) {
-				curIndexes.indexLengths[k] = bestIndexes.indexLengths[k];
-				for(l=0;l<bestIndexes.indexLengths[k];l++) {
-					curIndexes.indexes[k][l] = bestIndexes.indexes[k][l];
-				}
-			}
-		}
-		fprintf(fp, "\r%10d\n",
-				(int)numIndexesToSample);
-		/* Print asymptotic */
-		fprintf(fp, "Best index found for %d mismatches and %d errors (%lld out of %lld [%3.3lf]):\n",
-				i,
-				numErrors,
-				(long long int)bestMatched,
-				(long long int)numEvents,
-				(bestMatched*100.0)/numEvents);
-		fflush(fp);
-		totalGenerated=0;
-		totalMatched=0;
-		/* Initialize read */
-		for(j=0;j<readLength;j++) {
-			curRead[j] = NO_EVENT;
-		}
-		RunMismatches(&bestIndexes,
-				curRead,
-				readLength,
-				0,
-				i+numErrors,
-				&totalGenerated,
-				&totalMatched);
-		/* Print truth for the best one */
-		fprintf(fp, "Mismatches[%d,%d]: %lld out of %lld [%3.3lf].\n",
-				i,
-				numErrors,
-				(long long int)totalMatched,
-				(long long int)totalGenerated,
-				(totalMatched*100.0)/totalGenerated);
-		fflush(fp);
-		PrintIndexes(&bestIndexes, fp);
-	}
-
-	for(i=insertionLengthStart; 0 < insertionLengthStart && i<=insertionLengthEnd;i++) {
-		fprintf(fp, "%s", BREAK_LINE);
-		fprintf(fp, "Currently processing an insertion of length %d and %d errors.\nOut of %lld, currently on:\n0",
-				i,
-				numErrors,
-				(long long int)numIndexesToSample);
-		fflush(fp);
-
-		/* If the total number of insertion locations possible is less than we wish
-		 * to sample then just brute-force.  Remember to factor in errors. */
-		if(numErrors > 0) {
-			exact = (NChooseR(readLength, numErrors)*(readLength - i + 1) <= numEventsToSample)?1:0;
-		}
-		else {
-			exact = ((readLength - i + 1) <= numEventsToSample)?1:0;
-		}
-
-		/* Do a greedy approach.  Start by adding one index.  Then keep iteratively adding indexes
-		 * based on the previous ones. */
-		for(curNumIndexes=mainIndexes->numIndexes;
-				curNumIndexes < mainIndexes->numIndexes + numIndexes;
-				curNumIndexes++) {
-
-			/* Initialize */
-			bestMatched = -1;
-			foundOptimal = 0;
-			curIndexes.numIndexes = curNumIndexes + 1; /* We only want to add one index */
-
-			/* Sample indexes */
-			numEvents = 0;
-			for(j=0;foundOptimal != 1 && j<numIndexesToSample;j++) {
-				if(j%RANDOM_ROTATE_NUM == 0) {
-					fprintf(fp, "\r%10d",
-							j);
-					fflush(fp);
-				}
-				/* Generate random indexes */
-				GenerateRandomIndexes(&curIndexes,
-						readLength,
-						indexLength,
-						curNumIndexes,
-						1); /* Generate only one index */
-
-				curMatched = 0;
-				numEvents = 0;
-				/* Initialize read */
-				for(k=0;k<readLength;k++) {
-					curRead[k] = NO_EVENT;
-				}
-				/* Sample insertions */
-				if(0==exact) {
-					for(k=0;k<numEventsToSample;k++) {
-						/* Generate random read with j mismatches */ 
-						GenerateRandomInsertionRead(curRead,
-								readLength,
-								i,
-								numErrors);
-
-						/* Test the read against the indexes */
-						switch(CheckReadAgainstIndexes(&curIndexes, curRead, readLength)) {
-							case 0:
-								/* do nothing */
-								break;
-							case 1:
-								/* increment */
-								curMatched++;
-								break;
-							default:
-								/* do nothing */
-								break;
-						}
-						numEvents++;
-					}
-				}
-				else {
-					RunInsertion(&curIndexes,
-							curRead,
-							readLength,
-							i,
-							numErrors,
-							&numEvents,
-							&curMatched);
-				}
-
-				/* Check the results against the best so far */
-				if(curMatched > bestMatched) {
-					bestMatched = curMatched;
-					bestIndexes.numIndexes = curIndexes.numIndexes;
-
-					for(k=0;k<curIndexes.numIndexes;k++) {
-						bestIndexes.indexLengths[k] = curIndexes.indexLengths[k];
-						for(l=0;l<curIndexes.indexLengths[k];l++) {
-							bestIndexes.indexes[k][l] = curIndexes.indexes[k][l];
-						}
-					}
-					if(bestMatched == numEvents) {
-						foundOptimal = 1;
-					}
-				}
-			}
-			/* Copy over bestIndexes to curIndexes */
-			assert(curIndexes.numIndexes == bestIndexes.numIndexes);
-			bestIndexes.numIndexes = curIndexes.numIndexes;
-			for(k=0;k<bestIndexes.numIndexes;k++) {
-				curIndexes.indexLengths[k] = bestIndexes.indexLengths[k];
-				for(l=0;l<bestIndexes.indexLengths[k];l++) {
-					curIndexes.indexes[k][l] = bestIndexes.indexes[k][l];
-				}
-			}
-		}
-		fprintf(fp, "\r%10d\n",
-				(int)numIndexesToSample);
-		/* Print asymptotic */
-		fprintf(fp, "Best index found insertion of length %d and %d errors (%lld out of %lld [%3.3lf]):\n",
-				i,
-				numErrors,
-				(long long int)bestMatched,
-				(long long int)numEvents,
-				(bestMatched*100.0)/numEvents);
-		fflush(fp);
-		totalGenerated=0;
-		totalMatched=0;
-		RunInsertion(&bestIndexes,
-				curRead,
-				readLength,
-				i,
-				numErrors,
-				&totalGenerated,
-				&totalMatched);
-		/* Print truth for the best one */
-		fprintf(fp, "Insertion[%d,%d]: %lld out of %lld [%3.3lf].\n",
-				i,
-				numErrors,
-				(long long int)totalMatched,
-				(long long int)totalGenerated,
-				(totalMatched*100.0)/totalGenerated);
-		fflush(fp);
-		PrintIndexes(&bestIndexes, fp);
-	}
-
-	/* Free memory */
-	free(curRead);
-	curRead=NULL;
-	DeleteIndexes(&curIndexes);
-	DeleteIndexes(&bestIndexes);
-
-}
-
-void RunSampling(Indexes *mainIndexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		int numIndexes,
-		int numIndexesToSample,
-		int numEventsToSample,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors)
-{
-	int i, j, k, l, foundOptimal;
-	int *curRead=NULL;
-	Indexes curIndexes;
-	Indexes bestIndexes;
-	int64_t curMatched, numEvents, bestMatched, totalMatched, totalGenerated;
-	int exact;
-	curRead = malloc(sizeof(int)*readLength);
-	if(NULL == curRead) {
-		fprintf(stderr, "Error.  Could not allocate memory for curRead.  Terminating!\n");
-		exit(1);
-	}
-	for(i=0;i<readLength;i++) {
-		curRead[i] = -1;
-	}
-
-	InitializeIndexes(&curIndexes);
-	AllocateIndexes(&curIndexes,
-			numIndexes+mainIndexes->numIndexes,
-			readLength);
-	InitializeIndexes(&bestIndexes);
-	AllocateIndexes(&bestIndexes,
-			numIndexes+mainIndexes->numIndexes,
-			readLength);
-
-	/* Copy over main indexes */
-	for(i=0;i<mainIndexes->numIndexes;i++) {
-		curIndexes.indexLengths[i] = mainIndexes->indexLengths[i];
-		for(j=0;j<mainIndexes->indexLengths[i];j++) {
-			curIndexes.indexes[i][j] =  mainIndexes->indexes[i][j];
-		}
-	}
-
-	for(i=numMismatchesStart; 0 < i &&  i<=numMismatchesEnd;i++) {
-		fprintf(fp, "%s", BREAK_LINE);
-		fprintf(fp, "Currently processing %d mismatches and %d errors.\nOut of %lld, currently on:\n0",
-				i,
-				numErrors,
-				(long long int)numIndexesToSample);
-		fflush(fp);
-
-		/* Initialize */
-		bestMatched = -1;
-		foundOptimal = 0;
-
-		/* If the total number of mismatches possible is less than we wish
-		 * to sample then just brute-force */
-		exact = (NChooseR(readLength, i+numErrors) <= numEventsToSample)?1:0;
-
-		/* Sample indexes */
-		numEvents = 0;
-		for(j=0;foundOptimal != 1 && j<numIndexesToSample;j++) {
-			if(j%RANDOM_ROTATE_NUM == 0) {
-				fprintf(fp, "\r%10d",
-						j);
-				fflush(fp);
-			}
-			/* Generate random indexes */
-			GenerateRandomIndexes(&curIndexes,
+	/* Go through */
+	for(i=0,ctr=0;i<p->numColorErrors;i++) { /* color errors are prioritized */
+		for(j=0;j<p->numSNPs;j++) { /* SNPs are secondary */
+			p->correct[ctr] = GetNumCorrect(set,
 					readLength,
-					indexLength,
-					mainIndexes->numIndexes,
-					numIndexes);
-			curMatched = 0;
-			numEvents = 0;
-			/* Initialize read */
-			for(k=0;k<readLength;k++) {
-				curRead[k] = NO_EVENT;
-			}
-			/* Sample mismatches */
-			if(0==exact) {
-				for(k=0;k<numEventsToSample;k++) {
-					/* Generate random read with j mismatches */ 
-					GenerateRandomMismatchRead(curRead,
-							readLength,
-							i+numErrors);
-
-					/* Test the read against the indexes */
-					switch(CheckReadAgainstIndexes(&curIndexes, curRead, readLength)) {
-						case 0:
-							/* do nothing */
-							break;
-						case 1:
-							/* increment */
-							curMatched++;
-							break;
-						default:
-							/* do nothing */
-							break;
-					}
-					numEvents++;
-				}
-			}
-			else {
-				RunMismatches(&curIndexes,
-						curRead,
-						readLength,
-						0,
-						i+numErrors,
-						&numEvents,
-						&curMatched);
-			}
-
-			/* Check the results against the best so far */
-			if(curMatched > bestMatched) {
-				bestMatched = curMatched;
-				bestIndexes.numIndexes = curIndexes.numIndexes;
-
-				for(k=0;k<curIndexes.numIndexes;k++) {
-					bestIndexes.indexLengths[k] = curIndexes.indexLengths[k];
-					for(l=0;l<curIndexes.indexLengths[k];l++) {
-						bestIndexes.indexes[k][l] = curIndexes.indexes[k][l];
-					}
-				}
-				if(bestMatched == numEvents) {
-					foundOptimal = 1;
-				}
-			}
-		}
-		fprintf(fp, "\r%10d\n",
-				(int)numIndexesToSample);
-		/* Print asymptotic */
-		fprintf(fp, "Best index found for %d mismatches and %d errors (%lld out of %lld [%3.3lf]):\n",
-				i,
-				numErrors,
-				(long long int)bestMatched,
-				(long long int)numEvents,
-				(bestMatched*100.0)/numEvents);
-		fflush(fp);
-		totalGenerated=0;
-		totalMatched=0;
-		/* Initialize read */
-		for(j=0;j<readLength;j++) {
-			curRead[j] = NO_EVENT;
-		}
-		RunMismatches(&bestIndexes,
-				curRead,
-				readLength,
-				0,
-				i+numErrors,
-				&totalGenerated,
-				&totalMatched);
-		/* Print truth for the best one */
-		fprintf(fp, "Mismatches[%d,%d]: %lld out of %lld [%3.3lf].\n",
-				i,
-				numErrors,
-				(long long int)totalMatched,
-				(long long int)totalGenerated,
-				(totalMatched*100.0)/totalGenerated);
-		fflush(fp);
-		PrintIndexes(&bestIndexes, fp);
-	}
-
-	for(i=insertionLengthStart; 0 < insertionLengthStart && i<=insertionLengthEnd;i++) {
-		fprintf(fp, "%s", BREAK_LINE);
-		fprintf(fp, "Currently processing an insertion of length %d and %d errors.\nOut of %lld, currently on:\n0",
-				i,
-				numErrors,
-				(long long int)numIndexesToSample);
-		fflush(fp);
-
-		/* Initialize */
-		bestMatched = -1;
-		foundOptimal = 0;
-
-		/* If the total number of insertion locations possible is less than we wish
-		 * to sample then just brute-force.  Remember to factor in errors. */
-		if(numErrors > 0) {
-			exact = (NChooseR(readLength, numErrors)*(readLength - i + 1) <= numEventsToSample)?1:0;
-		}
-		else {
-			exact = ((readLength - i + 1) <= numEventsToSample)?1:0;
-		}
-
-		/* Sample indexes */
-		numEvents = 0;
-		for(j=0;foundOptimal != 1 && j<numIndexesToSample;j++) {
-			if(j%RANDOM_ROTATE_NUM == 0) {
-				fprintf(fp, "\r%10d",
-						j);
-				fflush(fp);
-			}
-			/* Generate random indexes */
-			GenerateRandomIndexes(&curIndexes,
-					readLength,
-					indexLength,
-					mainIndexes->numIndexes,
-					numIndexes);
-			curMatched = 0;
-			numEvents = 0;
-			/* Initialize read */
-			for(k=0;k<readLength;k++) {
-				curRead[k] = NO_EVENT;
-			}
-			/* Sample insertions */
-			if(0==exact) {
-				for(k=0;k<numEventsToSample;k++) {
-					/* Generate random read with j mismatches */ 
-					GenerateRandomInsertionRead(curRead,
-							readLength,
-							i,
-							numErrors);
-
-					/* Test the read against the indexes */
-					switch(CheckReadAgainstIndexes(&curIndexes, curRead, readLength)) {
-						case 0:
-							/* do nothing */
-							break;
-						case 1:
-							/* increment */
-							curMatched++;
-							break;
-						default:
-							/* do nothing */
-							break;
-					}
-					numEvents++;
-				}
-			}
-			else {
-				RunInsertion(&curIndexes,
-						curRead,
-						readLength,
-						i,
-						numErrors,
-						&numEvents,
-						&curMatched);
-			}
-
-			/* Check the results against the best so far */
-			if(curMatched > bestMatched) {
-				bestMatched = curMatched;
-				bestIndexes.numIndexes = curIndexes.numIndexes;
-
-				for(k=0;k<curIndexes.numIndexes;k++) {
-					bestIndexes.indexLengths[k] = curIndexes.indexLengths[k];
-					for(l=0;l<curIndexes.indexLengths[k];l++) {
-						bestIndexes.indexes[k][l] = curIndexes.indexes[k][l];
-					}
-				}
-				if(bestMatched == numEvents) {
-					foundOptimal = 1;
-				}
-			}
-		}
-		fprintf(fp, "\r%10d\n",
-				(int)numIndexesToSample);
-		/* Print asymptotic */
-		fprintf(fp, "Best index found insertion of length %d and %d errors (%lld out of %lld [%3.3lf]):\n",
-				i,
-				numErrors,
-				(long long int)bestMatched,
-				(long long int)numEvents,
-				(bestMatched*100.0)/numEvents);
-		fflush(fp);
-		totalGenerated=0;
-		totalMatched=0;
-		RunInsertion(&bestIndexes,
-				curRead,
-				readLength,
-				i,
-				numErrors,
-				&totalGenerated,
-				&totalMatched);
-		/* Print truth for the best one */
-		fprintf(fp, "Insertion[%d,%d]: %lld out of %lld [%3.3lf].\n",
-				i,
-				numErrors,
-				(long long int)totalMatched,
-				(long long int)totalGenerated,
-				(totalMatched*100.0)/totalGenerated);
-		fflush(fp);
-		PrintIndexes(&bestIndexes, fp);
-	}
-
-	/* Free memory */
-	free(curRead);
-	curRead=NULL;
-	DeleteIndexes(&curIndexes);
-	DeleteIndexes(&bestIndexes);
-
-}
-
-void FindBestIndexes(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int indexLength,
-		int numIndexes,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors)
-{
-	int i, j, k, foundOptimal;
-	int64_t counter;
-	int *read=NULL;
-	int *curRead=NULL;
-	int64_t totalGenerated, curMatched, bestMatched;
-	Indexes curIndexes;
-	Indexes bestIndexes;
-	int *whichIndexes=NULL;
-
-	read = malloc(sizeof(int)*readLength);
-	if(NULL == read) {
-		fprintf(stderr, "Error.  Could not allocate memory for read.  Terminating!\n");
-		exit(1);
-	}
-	curRead = malloc(sizeof(int)*readLength);
-	if(NULL == curRead) {
-		fprintf(stderr, "Error.  Could not allocate memory for curRead.  Terminating!\n");
-		exit(1);
-	}
-	for(i=0;i<readLength;i++) {
-		read[i] = NO_EVENT;
-		curRead[i] = -1;
-	}
-	whichIndexes = malloc(sizeof(int)*numIndexes);
-	if(NULL == whichIndexes) {
-		fprintf(stderr, "Error.  Could not allocate memory for whichIndexes.  Terminating!\n");
-		exit(1);
-	}
-
-	InitializeIndexes(&curIndexes);
-	AllocateIndexes(&curIndexes,
-			numIndexes,
-			readLength);
-	InitializeIndexes(&bestIndexes);
-	AllocateIndexes(&bestIndexes,
-			numIndexes,
-			readLength);
-
-	/* For each mismatch */
-	for(i=numMismatchesStart;0 < numMismatchesStart && i<=numMismatchesEnd;i++) {
-		fprintf(fp, "%s", BREAK_LINE);
-		fprintf(fp, "Currently processing %d mismatches and %d errors.\nOut of %lld distinct combinations of %d indexes, currently on:\n0",
-				i,
-				numErrors,
-				(long long int)NChooseR(indexes->numIndexes, numIndexes),
-				numIndexes);
-		fflush(fp);
-		/*
-		 *
-		 fprintf(fp, "Currently processing %d mismatches.\nOut of %lld distinct combinations of %d indexes, currently on:\n0",
-		 i,
-		 (long long int)NChooseR(indexes->numIndexes, numIndexes),
-		 numIndexes);
-		 */
-		bestMatched = 0;
-		foundOptimal = 0;
-		counter = 0;
-		/* Initialize start indexes */
-		for(j=0;j<numIndexes;j++) {
-			whichIndexes[j] = j;
-		}
-		while(whichIndexes[0] <= indexes->numIndexes - numIndexes &&
-				foundOptimal == 0) {
-			counter++;
-			if(counter%ROTATE_NUM == 0) {
-				fprintf(fp, "\r%lld",
-						(long long int)counter);
-				fflush(fp);
-			}
-			/*
-			   fprintf(stderr, "\r");
-			   for(j=0;j<numIndexes;j++) {
-			   fprintf(stderr, "%lld ",
-			   (long long int)whichIndexes[j]);
-			   assert(whichIndexes[j] < indexes->numIndexes);
-			   }
-			   fprintf(stderr, "\n");
-			   */
-
-			/* Copy over index */
-			curIndexes.numIndexes = numIndexes;
-			for(j=0;j<numIndexes;j++) {
-				curIndexes.indexLengths[j] = indexes->indexLengths[whichIndexes[j]];
-				for(k=0;k<indexes->indexLengths[whichIndexes[j]];k++) {
-					curIndexes.indexes[j][k] = indexes->indexes[whichIndexes[j]][k];
-				}
-			}
-
-			/* Try all indexes */
-			totalGenerated = 0;
-			curMatched = 0;
-			/* Initialize read */
-			for(j=0;j<readLength;j++) {
-				read[j] = NO_EVENT;
-			}
-			RunMismatches(&curIndexes,
-					read,
-					readLength,
-					0,
-					i+numErrors,
-					&totalGenerated,
-					&curMatched);
-
-			/* Check the results against the best so far */
-			if(curMatched > bestMatched) {
-				bestMatched = curMatched;
-				bestIndexes.numIndexes = numIndexes;
-				for(j=0;j<numIndexes;j++) {
-					bestIndexes.indexLengths[j] = indexes->indexLengths[whichIndexes[j]];
-					for(k=0;k<indexes->indexLengths[whichIndexes[j]];k++) {
-						bestIndexes.indexes[j][k] = indexes->indexes[whichIndexes[j]][k];
-					}
-				}
-				if(bestMatched == totalGenerated) {
-					foundOptimal = 1;
-				}
-			}
-
-			/* Update */
-			whichIndexes[numIndexes-1]++;
-			j=numIndexes-1;
-			/*
-			   fprintf(stderr, "j:%d\t[%d,%d,%d]\n",
-			   j,
-			   (whichIndexes[j] == indexes->numIndexes),
-			   (whichIndexes[0] <= indexes->numIndexes - numIndexes),
-			   (0 < j));
-			   */
-			while(whichIndexes[j] == indexes->numIndexes &&
-					whichIndexes[0] <= indexes->numIndexes - numIndexes &&
-					0 < j) {
-				assert(whichIndexes[j] <= indexes->numIndexes);
-				whichIndexes[j-1]++;
-				whichIndexes[j] = whichIndexes[j-1] + 1;
-				if(whichIndexes[j] < numIndexes ||
-						whichIndexes[j-1] == indexes->numIndexes) {
-					j--;
-				}
-				/*
-				   fprintf(stderr, "which:\t");
-				   for(k=0;k<numIndexes;k++) {
-				   fprintf(stderr, "%d ", whichIndexes[k]);
-				   }
-				   fprintf(stderr, "\n");
-				   fprintf(stderr, "j:%d\t[%d,%d,%d]\n",
-				   j,
-				   (whichIndexes[j] == indexes->numIndexes),
-				   (whichIndexes[0] <= indexes->numIndexes - numIndexes),
-				   (0 < j));
-				   */
-			}
-			for(k=j+1;k<numIndexes;k++) {
-				whichIndexes[k] = whichIndexes[k-1]+1;
-			}
-		}
-		fprintf(fp, "\nBest index found for %d mismatches and %d errors (%lld out of %lld [%3.3lf]):\n",
-				i,
-				numErrors,
-				(long long int)bestMatched,
-				(long long int)totalGenerated,
-				(bestMatched*100.0)/totalGenerated);
-		fflush(fp);
-		PrintIndexes(&bestIndexes, fp);
-	}
-	if(insertionLengthStart > 0) {
-		fprintf(fp, "%s", BREAK_LINE);
-		fprintf(fp, "Currently processing insertions of length %d and %d errors.\nOut of %lld distinct combinations of %d indexes, currently on:\n0",
-				i,
-				numErrors,
-				(long long int)NChooseR(indexes->numIndexes, numIndexes),
-				numIndexes);
-		fflush(fp);
-		bestMatched = 0;
-		foundOptimal = 0;
-		counter = 0;
-		/* Initialize start indexes */
-		for(j=0;j<numIndexes;j++) {
-			whichIndexes[j] = j;
-		}
-		while(whichIndexes[0] <= indexes->numIndexes - numIndexes &&
-				foundOptimal == 0) {
-			counter++;
-			if(counter%ROTATE_NUM == 0) {
-				fprintf(fp, "\r%lld",
-						(long long int)counter);
-				fflush(fp);
-			}
-			/*
-			   fprintf(stderr, "\r");
-			   for(j=0;j<numIndexes;j++) {
-			   fprintf(stderr, "%lld ",
-			   (long long int)whichIndexes[j]);
-			   assert(whichIndexes[j] < indexes->numIndexes);
-			   }
-			   fprintf(stderr, "\n");
-			   */
-
-			/* Copy over index */
-			curIndexes.numIndexes = numIndexes;
-			for(j=0;j<numIndexes;j++) {
-				curIndexes.indexLengths[j] = indexes->indexLengths[whichIndexes[j]];
-				for(k=0;k<indexes->indexLengths[whichIndexes[j]];k++) {
-					curIndexes.indexes[j][k] = indexes->indexes[whichIndexes[j]][k];
-				}
-			}
-
-			/* Try all indexes */
-			totalGenerated = 0;
-			curMatched = 0;
-			RunInsertion(&curIndexes,
-					read,
-					readLength,
+					numEventsToSample,
+					j,
 					i,
-					numErrors,
-					&totalGenerated,
-					&curMatched);
-
-			/* Check the results against the best so far */
-			if(curMatched > bestMatched) {
-				bestMatched = curMatched;
-				bestIndexes.numIndexes = numIndexes;
-				for(j=0;j<numIndexes;j++) {
-					bestIndexes.indexLengths[j] = indexes->indexLengths[whichIndexes[j]];
-					for(k=0;k<indexes->indexLengths[whichIndexes[j]];k++) {
-						bestIndexes.indexes[j][k] = indexes->indexes[whichIndexes[j]][k];
-					}
-				}
-				if(bestMatched == totalGenerated) {
-					foundOptimal = 1;
-				}
-			}
-
-			/* Update */
-			whichIndexes[numIndexes-1]++;
-			j=numIndexes-1;
-			/*
-			   fprintf(stderr, "j:%d\t[%d,%d,%d]\n",
-			   j,
-			   (whichIndexes[j] == indexes->numIndexes),
-			   (whichIndexes[0] <= indexes->numIndexes - numIndexes),
-			   (0 < j));
-			   */
-			while(whichIndexes[j] == indexes->numIndexes &&
-					whichIndexes[0] <= indexes->numIndexes - numIndexes &&
-					0 < j) {
-				assert(whichIndexes[j] <= indexes->numIndexes);
-				whichIndexes[j-1]++;
-				whichIndexes[j] = whichIndexes[j-1] + 1;
-				if(whichIndexes[j] < numIndexes ||
-						whichIndexes[j-1] == indexes->numIndexes) {
-					j--;
-				}
-				/*
-				   fprintf(stderr, "which:\t");
-				   for(k=0;k<numIndexes;k++) {
-				   fprintf(stderr, "%d ", whichIndexes[k]);
-				   }
-				   fprintf(stderr, "\n");
-				   fprintf(stderr, "j:%d\t[%d,%d,%d]\n",
-				   j,
-				   (whichIndexes[j] == indexes->numIndexes),
-				   (whichIndexes[0] <= indexes->numIndexes - numIndexes),
-				   (0 < j));
-				   */
-			}
-			for(k=j+1;k<numIndexes;k++) {
-				whichIndexes[k] = whichIndexes[k-1]+1;
-			}
+					NoIndelType,
+					0,
+					space);
+			ctr++;
 		}
-		fprintf(fp, "\nBest index found for insertion of length %d and %d errors (%lld out of %lld [%3.3lf]):\n",
-				i,
-				numErrors,
-				(long long int)bestMatched,
-				(long long int)totalGenerated,
-				(bestMatched*100.0)/totalGenerated);
-		fflush(fp);
-		PrintIndexes(&bestIndexes, fp);
 	}
-	/*
-	   for(i=insertionLengthStart;i<=insertionLengthEnd;i++) {
-	   }
-	   for(i=numDeletionsStart;i<=numDeletionsEnd;i++) {
-	   }
-	   */
-
-	free(read);
-	read = NULL;
-	free(curRead);
-	read = NULL;
-	free(whichIndexes);
-	whichIndexes=NULL;
-	DeleteIndexes(&curIndexes);
-	DeleteIndexes(&bestIndexes);
 }
 
-void ComputeAccuracyForEachIndex(Indexes *indexes,
-		FILE *fp,
-		int readLength,
-		int numMismatchesStart,
-		int numMismatchesEnd,
-		int insertionLengthStart,
-		int insertionLengthEnd,
-		int numDeletionsStart,
-		int numDeletionsEnd,
-		int numErrors)
+void AccuracyProfileAllocate(AccuracyProfile *a,
+		int numSNPs,
+		int numColorErrors)
 {
-	int i, j;
-	int *read=NULL;
-	int64_t totalGenerated, totalMatched;
-
-	read = malloc(sizeof(int)*readLength);
-	if(NULL == read) {
-		fprintf(stderr, "Error.  Could not allocate memory for read.  Terminating!\n");
-		exit(1);
+	char *FnName="AccuracyProfileAllocate";
+	AccuracyProfileInitialize(a);
+	a->numSNPs = numSNPs;
+	a->numColorErrors = numColorErrors;
+	a->length = (a->numSNPs + 1)*(a->numColorErrors + 1);
+	a->correct = malloc(sizeof(int32_t)*a->length);
+	if(NULL == a->correct) {
+		PrintError(FnName,
+				"a->correct",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
-	for(i=0;i<readLength;i++) {
-		read[i] = NO_EVENT;
+}
+
+void AccuracyProfileInitialize(AccuracyProfile *a) 
+{
+	a->numReads = 0;
+	a->correct = NULL;
+	a->length = 0;
+	a->numSNPs = -1;
+	a->numColorErrors = -1;
+}
+
+void AccuracyProfileFree(AccuracyProfile *a)
+{
+	free(a->correct);
+	AccuracyProfileInitialize(a);
+}
+
+void ReadSplit(Read *curRead,
+		Read *r1,
+		Read *r2,
+		int breakpoint,
+		int insertionLength)
+{
+	int i, ctr;
+
+	/* Read 1 */
+	if(breakpoint > 0) {
+		ReadAllocate(r1, breakpoint);
+	}
+	for(i=0;i<breakpoint;i++) {
+		assert(i < r1->length);
+		r1->profile[i] = curRead->profile[i];
+	}
+	/* Read 2 */
+	if(curRead->length - breakpoint - insertionLength > 0) {
+		ReadAllocate(r2, curRead->length - breakpoint - insertionLength);
+	}
+	for(i=breakpoint+insertionLength, ctr=0;
+			i<curRead->length;
+			i++,ctr++) {
+		assert(ctr < r2->length);
+		r2->profile[ctr] = curRead->profile[i];
+	}
+}
+
+void ReadGetRandom(Read *r, 
+		int readLength,
+		int numSNPs,
+		int numColorErrors,
+		int space)
+{
+	char *FnName="ReadGetRandom";
+	int i;
+	int numSNPsLeft = numSNPs;
+	int numColorErrorsLeft = numColorErrors;
+	int index;
+	char original;
+	char *read=NULL;
+	char *originalColorSpace = NULL;
+	int tmpReadLength = 0;
+
+	assert(numSNPs <= readLength);
+	assert(numColorErrors <= readLength);
+
+	/* Allocate memory for a read */
+	ReadAllocate(r, readLength);
+
+	/* Initialize to no SNPs or color errors */
+	for(i=0;i<r->length;i++) {
+		r->profile[i] = 0;
 	}
 
-	fprintf(fp, "%s", BREAK_LINE);
-	fflush(fp);
-	PrintIndexes(indexes, fp);
-	for(i=numMismatchesStart;0 < numMismatchesStart && i<=numMismatchesEnd;i++) {
-		totalGenerated=0;
-		totalMatched=0;
-		/* Initialize read */
-		for(j=0;j<readLength;j++) {
-			read[j] = NO_EVENT;
+	assert(space == 1 || numColorErrors == 0);
+	if(space == 0) {
+		/* Insert random SNPS */
+		while(numSNPsLeft > 0) {
+			/* Pick a position to convert */
+			index = rand()%(r->length);
+
+			if(r->profile[index] == 0) {
+				r->profile[index] = 1;
+				numSNPsLeft--;
+			}
 		}
-		RunMismatches(indexes,
-				read,
-				readLength,
-				0,
-				i+numErrors,
-				&totalGenerated,
-				&totalMatched);
-		fprintf(fp, "Mismatches[%d,%d]: %lld out of %lld [%3.3lf].\n",
-				i,
-				numErrors,
-				(long long int)totalMatched,
-				(long long int)totalGenerated,
-				(totalMatched*100.0)/totalGenerated);
-		fflush(fp);
 	}
+	else {
 
-	for(i=insertionLengthStart;0 < insertionLengthStart && i<=insertionLengthEnd;i++) {
-		totalGenerated=0;
-		totalMatched=0;
-		RunInsertion(indexes,
-				read,
-				readLength,
-				i,
-				numErrors,
-				&totalGenerated,
-				&totalMatched);
-		fprintf(fp, "Insertion[%d,%d]: %lld out of %lld [%3.3lf].\n",
-				i,
-				numErrors,
-				(long long int)totalMatched,
-				(long long int)totalGenerated,
-				(totalMatched*100.0)/totalGenerated);
-		fflush(fp);
+		read = malloc(sizeof(char)*(readLength+1));
+		if(NULL == read) {
+			PrintError(FnName,
+					"read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		originalColorSpace = malloc(sizeof(char)*(readLength+1));
+		if(NULL == originalColorSpace) {
+			PrintError(FnName,
+					"originalColorSpace",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Get a random NT read */
+		for(i=0;i<readLength;i++) {
+			read[i] = DNA[rand()%4];
+		}
+		read[readLength]='\0';
+
+		/* Get the color space of the original read */
+		strcpy(originalColorSpace, read);
+		tmpReadLength = readLength;
+		ConvertReadToColorSpace(&originalColorSpace,
+				&tmpReadLength);
+
+		/* Insert random SNPs */
+		while(numSNPsLeft > 0) {
+			/* Pick a position to convert */
+			index = rand()%(r->length);
+
+			if(r->profile[index] == 0) {
+				r->profile[index] = 1;
+				numSNPsLeft--;
+				/* Modify base to a new base */
+				for(original = read[index];
+						original == read[index];
+						read[index] = DNA[rand()%4]) {
+				}
+			}
+		}
+		/* Convert to color space */
+		tmpReadLength = readLength;
+		ConvertReadToColorSpace(&read,
+				&tmpReadLength);
+		/* Insert color errors */
+		while(numColorErrorsLeft > 0) {
+			/* Pick a position to convert */
+			index = rand()%(r->length);
+
+			if(r->profile[index] != 2) {
+				r->profile[index] = 2;
+				numColorErrorsLeft--;
+				/* Modify base to a new color */
+				for(original = read[index];
+						original == read[index];
+						read[index] = Colors[rand()%4]) {
+				}
+			}
+		}
+		/* Compare the two profiles to get an end profile */
+		for(i=0;i<r->length;i++) {
+			if(originalColorSpace[i+1] == read[i+1]) {
+				r->profile[i] = 0;
+			}
+			else {
+				r->profile[i] = 1;
+			}
+		}
+
+		free(read);
+		read = NULL;
+		free(originalColorSpace);
+		originalColorSpace = NULL;
 	}
-	/*
-	   for(i=numDeletionsStart;i<=numDeletionsEnd;i++) {
-	   }
-	   */
+}
 
-	free(read);
-	read = NULL;
+void ReadInitialize(Read *r)
+{
+	r->length = 0;
+	r->profile = NULL;
+}
+
+void ReadAllocate(Read *r, 
+		int readLength)
+{
+	char *FnName = "ReadAllocate";
+	r->length = readLength;
+	r->profile = malloc(sizeof(int32_t)*r->length);
+	if(NULL == r->profile) {
+		PrintError(FnName,
+				"r->profile",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+}
+
+void ReadFree(Read *r)
+{
+	free(r->profile);
+	ReadInitialize(r);
+}
+
+void ReadPrint(Read *r, FILE *fp) 
+{
+	int i;
+	for(i=0;i<r->length;i++) {
+		fprintf(fp, "%1d", r->profile[i]);
+	}
+	fprintf(fp, "\n");
 }
 
 void PrintUsage()
 {
 	fprintf(stderr, "Usage: test.indexes [OPTIONS]...\n");
 	fprintf(stderr, "******************************* Algorithm Options (no defaults) *******************************\n");
-	fprintf(stderr, "\t-a\tINT\talgorithm\n\t\t\t\t0: read from file\n\t\t\t\t1: brute-force search all indexes\n\t\t\t\t2: sample indexes and events\n");
-	fprintf(stderr, "\t-f\tSTRING\tinput file name (for -a 0)\n");
+	fprintf(stderr, "\t-a\tINT\talgorithm\n\t\t\t\t0: search for indexes\n\t\t\t\t1: evaluate indexes\n");
 	fprintf(stderr, "\t-r\tINT\tread length (for all) \n");
-	fprintf(stderr, "\t-l\tINT\tindex length (for -a 1 and -a 2)\n");
-	fprintf(stderr, "\t-n\tINT\tnumber of indexes in a set of indexes (for -a 1 and -a 2)\n");
-	fprintf(stderr, "\t-s\tINT\tnumber of indexes to sample (for -a 2)\n");
-	fprintf(stderr, "\t-S\tINT\tnumber of events to sample (for -a 2)\n");
-	fprintf(stderr, "\t-G\tNULL\tuses a greedy approach (for -a 2)\n");
+	fprintf(stderr, "\t-S\tINT\tnumber of events to sample\n");
+	fprintf(stderr, "\t-A\tINT\tspace 0: nucleotide space 1: color space\n");
+	fprintf(stderr, "******************************* Search Options (for -a 0) *************************************\n");
+	fprintf(stderr, "\t-s\tINT\tnumber of indexes to sample\n");
+	fprintf(stderr, "\t-l\tINT\tkey size\n");
+	fprintf(stderr, "\t-w\tINT\tmaximum key width\n");
+	fprintf(stderr, "\t-n\tINT\tmaximum index set size\n");
+	fprintf(stderr, "\t-t\tINT\taccuracy percent threshold (0-100)\n");
+	fprintf(stderr, "******************************* Evaluate Options (for -a 1) ***********************************\n");
+	fprintf(stderr, "\t-f\tSTRING\tinput file name\n");
+	fprintf(stderr, "\t-I\tINT\tmaximum insertion length (-a 1)\n");
 	fprintf(stderr, "******************************* Event Options (default =0 ) ***********************************\n");
-	fprintf(stderr, "\t-m\tINT\tminimum number of mismatches\n");
 	fprintf(stderr, "\t-M\tINT\tmaximum number of mismatches\n");
-	fprintf(stderr, "\t-i\tINT\tminimum insertion length\n");
-	fprintf(stderr, "\t-I\tINT\tmaximum insertion length\n");
-	fprintf(stderr, "\t-e\tINT\tnumber of errors\n");
+	fprintf(stderr, "\t-e\tINT\tnumber of color errors (-A 1)\n");
 	fprintf(stderr, "******************************* Miscellaneous Options  ****************************************\n");
 	fprintf(stderr, "\t-p\tNULL\tprints the program parameters\n");
 	fprintf(stderr, "\t-h\tNULL\tprints this message\n");
@@ -1814,76 +1035,87 @@ void PrintProgramParameters(arguments *args)
 	fprintf(stdout, "%s", BREAK_LINE);
 	fprintf(stdout, "Printing program parameters:\n");
 	fprintf(stdout, "algorithm:\t\t\t%d\t[%s]\n", args->algorithm, Algorithm[args->algorithm]); 
-	fprintf(stdout, "input file name:\t\t%s\n", args->indexesFileName);
 	fprintf(stdout, "read length:\t\t\t%d\n", args->readLength);
-	fprintf(stdout, "index length:\t\t\t%d\n", args->indexLength);
-	fprintf(stdout, "number of indexes in a set:\t%d\n", args->numIndexes);
-	fprintf(stdout, "number of indexes to sample:\t%d\n", args->numIndexesToSample);
 	fprintf(stdout, "number of events to sample:\t%d\n", args->numEventsToSample);
-	fprintf(stdout, "use a greedy approach:\t\t%d\n", args->greedy);
-	fprintf(stdout, "number of mismatches:\t\tfrom %d to %d\n", args->numMismatchesStart, args->numMismatchesEnd);
-	fprintf(stdout, "insertion length:\t\tfrom %d to %d\n", args->insertionLengthStart, args->insertionLengthEnd);
-	fprintf(stdout, "number of errors:\t\t%d\n", args->numErrors);
+	fprintf(stdout, "space:\t\t\t\t%d\n", args->space);
+	fprintf(stdout, "number of indexes to sample:\t%d\n", args->numIndexesToSample);
+	fprintf(stdout, "key size:\t\t\t%d\n", args->keySize);
+	fprintf(stdout, "key width:\t\t\t%d\n", args->maxKeyWidth);
+	fprintf(stdout, "max index set size:\t\t%d\n", args->maxIndexSetSize);
+	fprintf(stdout, "accuracy percent threshold:\t%d\n", args->accuracyThreshold);
+	fprintf(stdout, "input file name:\t\t%s\n", args->inputFileName);
+	fprintf(stdout, "maximum insertion length:\t%d\n", args->maxInsertionLength);
+	fprintf(stdout, "maximum number of mismatches:\t%d\n", args->maxNumMismatches);
+	fprintf(stdout, "maximum number of color errors:\t%d\n", args->maxNumColorErrors);
 	fprintf(stdout, "%s", BREAK_LINE);
 }
 
 void AssignDefaultValues(arguments *args) 
 {
 	args->algorithm=0;
-	strcpy(args->indexesFileName, "\0");
+	strcpy(args->inputFileName, "\0");
 	args->readLength=0;
-	args->indexLength=0;
-	args->numIndexes=0;
 	args->numEventsToSample=0;
 	args->numIndexesToSample=0;
-	args->greedy=0;
-	args->numMismatchesStart=0;
-	args->numMismatchesEnd=0;
-	args->insertionLengthStart=0;
-	args->insertionLengthEnd=0;
-	args->numErrors=0;
+	args->keySize=0;
+	args->maxKeyWidth=0;
+	args->maxIndexSetSize=0;
+	args->accuracyThreshold=0;
+	args->space=0;
+	args->maxNumMismatches=0;
+	args->maxInsertionLength=0;
+	args->maxNumColorErrors=0;
 }
 
 void ValidateArguments(arguments *args)
 {
-	/* Check command line arguments */
-	if(args->readLength < 0 ||
-			args->numIndexes < 0 ||
-			args->numMismatchesStart < 0 ||
-			args->numMismatchesEnd < args->numMismatchesStart ||
-			args->insertionLengthStart < 0 ||
-			args->insertionLengthEnd < args->insertionLengthStart ||
-			args->numErrors < 0) {
-		fprintf(stderr, "*** Error.  Input parameters not valid (all must be positive with read length greater than index length).  Teriminating! ***\n");
-		exit(1);
+	char *FnName="ValidateArguments";
+
+	if(args->algorithm < 0 || args->algorithm > 1) {
+		PrintError(FnName, "Command line argument", "algorithm", Exit, OutOfRange);
 	}
-	switch(args->algorithm) {
-		case ReadFromFile:
-			if(strlen(args->indexesFileName) == 0) {
-				fprintf(stderr, "*** Error.  Please specify an input file name.  Terminating! ***\n");
-				exit(1);
-			}
-			break;
-		case BruteForce:
-			if(args->indexLength <= 0 ||
-					args->numIndexes <= 0) {
-				fprintf(stderr, "*** Error.  Input parameters not valid (all must be positive with read length greater than index length).  Teriminating! ***\n");
-				exit(1);
-			}
-			break;
-		case Sample:
-			if(args->indexLength <= 0 ||
-					args->numIndexes <= 0 ||
-					args->numIndexesToSample <= 0 ||
-					args->numEventsToSample <= 0) {
-				fprintf(stderr, "*** Error.  Input parameters not valid (all must be positive with read length greater than index length).  Teriminating! ***\n");
-				exit(1);
-			}
-			break;
-		default:
-			fprintf(stderr, "*** Error.  Algorithm option %d is out of range.  Terminating! ***\n",
-					args->algorithm);
-			exit(1);
+	if(args->readLength <= 0) {
+		PrintError(FnName, "Command line argument", "readLength", Exit, OutOfRange);
+	}
+	if(args->numEventsToSample <= 0) {
+		PrintError(FnName, "Command line argument", "numEventsToSample", Exit, OutOfRange);
+	}
+	if(args->numIndexesToSample < 0 ||
+			(args->algorithm == 0 && args->numIndexesToSample <= 0)) {
+		PrintError(FnName, "Command line argument", "numIndexesToSample", Exit, OutOfRange);
+	}
+	if(args->algorithm == 0) {
+		if(args->keySize <= 0) {
+			PrintError(FnName, "Command line argument", "keySize", Exit, OutOfRange);
+		}
+		if(args->maxKeyWidth <= 0) {
+			PrintError(FnName, "Command line argument", "maxKeyWidth", Exit, OutOfRange);
+		}
+		if(args->maxIndexSetSize <= 0) {
+			PrintError(FnName, "Command line argument", "maxIndexSetSize", Exit, OutOfRange);
+		}
+		if(args->accuracyThreshold < 0) {
+			PrintError(FnName, "Command line argument", "accuracyThreshold", Exit, OutOfRange);
+		}
+	}
+	if(args->space < 0 || 1 < args->space) {
+		PrintError(FnName, "Command line argument", "space", Exit, OutOfRange);
+	}
+	if(args->maxNumMismatches < 0) {
+		PrintError(FnName, "Command line argument", "maxNumMismatches", Exit, OutOfRange);
+	}
+	if(args->maxInsertionLength < 0) {
+		PrintError(FnName, "Command line argument", "maxInsertionLength", Exit, OutOfRange);
+	}
+	if(args->space == 1) {
+		if(args->maxNumColorErrors < 0) {
+			PrintError(FnName, "Command line argument", "maxNumColorErrors", Exit, OutOfRange);
+		}
+	}
+	else {
+		if(args->maxNumColorErrors > 0) {
+			PrintError(FnName, "Command line argument", "maxNumColorErrors", Exit, OutOfRange);
+		}
 	}
 }
 
@@ -1905,37 +1137,30 @@ void ParseCommandLineArguments(int argc, char *argv[], arguments *args)
 			case 'a':
 				args->algorithm = atoi(argv[i+1]);
 				break;
+			case 'A':
+				args->space = atoi(argv[i+1]);
+				break;
 			case 'e':
-				args->numErrors = atoi(argv[i+1]);
+				args->maxNumColorErrors = atoi(argv[i+1]);
 				break;
 			case 'f':
-				strcpy(args->indexesFileName, argv[i+1]);
-				break;
-			case 'i':
-				args->insertionLengthStart = atoi(argv[i+1]);
+				strcpy(args->inputFileName, argv[i+1]);
 				break;
 			case 'I':
-				args->insertionLengthEnd = atoi(argv[i+1]);
-				break;
-			case 'G':
-				args->greedy = 1;
-				i--; /* since there is not argument with G */
+				args->maxInsertionLength = atoi(argv[i+1]);
 				break;
 			case 'h':
 				PrintUsage();
 				exit(1);
 				break;
 			case 'l':
-				args->indexLength = atoi(argv[i+1]);
-				break;
-			case 'm':
-				args->numMismatchesStart = atoi(argv[i+1]);
+				args->keySize = atoi(argv[i+1]);
 				break;
 			case 'M':
-				args->numMismatchesEnd = atoi(argv[i+1]);
+				args->maxNumMismatches = atoi(argv[i+1]);
 				break;
 			case 'n':
-				args->numIndexes = atoi(argv[i+1]);
+				args->maxIndexSetSize = atoi(argv[i+1]);
 				break;
 			case 'p':
 				args->algorithm = ProgramParameters;
@@ -1948,6 +1173,12 @@ void ParseCommandLineArguments(int argc, char *argv[], arguments *args)
 				break;
 			case 'S':
 				args->numEventsToSample = atoi(argv[i+1]);
+				break;
+			case 't':
+				args->accuracyThreshold = atoi(argv[i+1]);
+				break;
+			case 'w':
+				args->maxKeyWidth = atoi(argv[i+1]);
 				break;
 			default:
 				fprintf(stderr, "*** Error.  Could not understand command line option %s.  Terminating! ***\n",
@@ -1963,9 +1194,6 @@ int main(int argc, char *argv[])
 {
 	/* Command line arguments */
 	arguments args;
-	/* Local variables */
-	FILE *fp=NULL;
-	Indexes indexes;
 
 	/* Assign default values */
 	AssignDefaultValues(&args);
@@ -1979,103 +1207,27 @@ int main(int argc, char *argv[])
 	/* Print program parameters */
 	PrintProgramParameters(&args);
 
-	/* Initialize indexes */
-	InitializeIndexes(&indexes);
 	switch(args.algorithm) {
-		case ReadFromFile:
-			/* Read in indexes */
-			if(!(fp = fopen(args.indexesFileName, "r"))) {
-				fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
-						args.indexesFileName);
-				exit(1);
-			}
-			while(EOF!=ReadIndexes(&indexes, fp, args.indexesFileName, args.readLength)) {
-
-				/* Compute results */
-				ComputeAccuracyForEachIndex(&indexes,
-						stdout,
-						args.readLength,
-						args.numMismatchesStart,
-						args.numMismatchesEnd,
-						args.insertionLengthStart,
-						args.insertionLengthEnd,
-						NUM_DELETIONS_START,
-						NUM_DELETIONS_END,
-						args.numErrors);
-				/* Delete indexes */
-				DeleteIndexes(&indexes);
-			}
-			fclose(fp);
+		case SearchForIndexes:
+			RunSearchForIndexes(args.readLength,
+					args.numEventsToSample,
+					args.numIndexesToSample,
+					args.keySize,
+					args.maxKeyWidth,
+					args.maxIndexSetSize,
+					args.accuracyThreshold,
+					args.space,
+					args.maxNumMismatches,
+					args.maxNumColorErrors);
 			break;
-		case BruteForce:
-			/* Generate Indexes */
-			GenerateIndexes(&indexes,
-					fp,
+		case EvaluateIndexes:
+			RunEvaluateIndexes(args.inputFileName,
 					args.readLength,
-					args.indexLength);
-			/* Find the best indexes */
-			FindBestIndexes(&indexes,
-					stdout,
-					args.readLength,
-					args.indexLength,
-					args.numIndexes,
-					args.numMismatchesStart,
-					args.numMismatchesEnd,
-					args.insertionLengthStart,
-					args.insertionLengthEnd,
-					NUM_DELETIONS_START,
-					NUM_DELETIONS_END,
-					args.numErrors);
-			/* Delete indexes */
-			DeleteIndexes(&indexes);
-			break;
-		case Sample:
-			if(strlen(args.indexesFileName) > 0) {
-				/* Read in indexes */
-				if(!(fp = fopen(args.indexesFileName, "r"))) {
-					fprintf(stderr, "Error.  Could not open %s for reading.  Terminating!\n",
-							args.indexesFileName);
-					exit(1);
-				}
-				assert(EOF!=ReadIndexes(&indexes, fp, args.indexesFileName, args.readLength));
-				fclose(fp);
-			}
-			/* Initialize seed */
-			srand(time(NULL));
-			/* Sample */
-			if(args.greedy == 0) {
-				RunSampling(&indexes,
-						stdout,
-						args.readLength,
-						args.indexLength,
-						args.numIndexes,
-						args.numIndexesToSample,
-						args.numEventsToSample,
-						args.numMismatchesStart,
-						args.numMismatchesEnd,
-						args.insertionLengthStart,
-						args.insertionLengthEnd,
-						NUM_DELETIONS_START,
-						NUM_DELETIONS_END,
-						args.numErrors);
-			}
-			else {
-				RunSamplingGreedy(&indexes,
-						stdout,
-						args.readLength,
-						args.indexLength,
-						args.numIndexes,
-						args.numIndexesToSample,
-						args.numEventsToSample,
-						args.numMismatchesStart,
-						args.numMismatchesEnd,
-						args.insertionLengthStart,
-						args.insertionLengthEnd,
-						NUM_DELETIONS_START,
-						NUM_DELETIONS_END,
-						args.numErrors);
-			}
-			DeleteIndexes(&indexes);
+					args.numEventsToSample,
+					args.space,
+					args.maxNumMismatches,
+					args.maxInsertionLength,
+					args.maxNumColorErrors);
 			break;
 		case ProgramParameters:
 			/* Do nothing */
