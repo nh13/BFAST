@@ -206,6 +206,8 @@ void RunEvaluateIndexesNTSpace(IndexSet *set,
 {
 	int i, j;
 
+	assert(numEventsToSample > 0);
+
 	/* Print the header */
 	fprintf(stdout, "N Masks = %d\n", set->numIndexes);
 	fprintf(stdout, "%-5s\t", "MM"); /* # of Mismatches */
@@ -264,6 +266,8 @@ void RunEvaluateIndexesColorSpace(IndexSet *set,
 		int maxNumColorErrors)
 {
 	int i, j;
+	assert(numEventsToSample > 0);
+
 	/* Print the header */
 	fprintf(stdout, "N Masks = %d\n", set->numIndexes);
 	fprintf(stdout, "%-5s\t", "CE"); /* # of Color Errors */
@@ -375,18 +379,20 @@ int32_t GetNumCorrect(IndexSet *set,
 				break;
 			case InsertionType:
 				assert(insertionLength > 0);
-				/* Get where the insertion occured relative to the start of hte read */
-				breakpoint = (rand()%(readLength-insertionLength));
-				/* Split read into two reads */
-				ReadSplit(&curRead, &r1, &r2, breakpoint, insertionLength);
-				/* Check either end of the read after split, substracting the insertion */
-				if(1==IndexSetCheckRead(set, &r1) ||
-						1==IndexSetCheckRead(set, &r2)) {
-					numCorrect++;
+				if(readLength > insertionLength) {
+					/* Get where the insertion occured relative to the start of hte read */
+					breakpoint = (rand()%(readLength-insertionLength));
+					/* Split read into two reads */
+					ReadSplit(&curRead, &r1, &r2, breakpoint, insertionLength);
+					/* Check either end of the read after split, substracting the insertion */
+					if(1==IndexSetCheckRead(set, &r1) ||
+							1==IndexSetCheckRead(set, &r2)) {
+						numCorrect++;
+					}
+					/* Free read */
+					ReadFree(&r1);
+					ReadFree(&r2);
 				}
-				/* Free read */
-				ReadFree(&r1);
-				ReadFree(&r2);
 				break;
 			default:
 				PrintError(FnName,
