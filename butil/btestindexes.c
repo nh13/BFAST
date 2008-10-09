@@ -339,9 +339,11 @@ int32_t GetNumCorrect(IndexSet *set,
 	int32_t breakpoint;
 	Read curRead, r1, r2;
 
-	ReadInitialize(&curRead);
 
 	for(i=0;i<numEventsToSample;i++) {
+		ReadInitialize(&curRead);
+		ReadInitialize(&r1);
+		ReadInitialize(&r2);
 		/* Get random read with SNPs and ColorErrors */
 		ReadGetRandom(&curRead,
 				readLength,
@@ -716,6 +718,9 @@ void IndexAllocate(Index *index,
 		int keyWidth)
 {
 	char *FnName = "IndexAllocate";
+	if(NULL != index->mask) {
+		IndexFree(index);
+	}
 	index->keySize = keySize;
 	index->keyWidth = keyWidth;
 	index->mask = malloc(sizeof(int32_t)*index->keyWidth);
@@ -784,7 +789,7 @@ int AccuracyProfileCompare(AccuracyProfile *a,
 void AccuracyProfileCopy(AccuracyProfile *dest, AccuracyProfile *src) 
 {
 	int i;
-	if(dest->numReads > 0) {
+	if(dest->correct != NULL) {
 		AccuracyProfileFree(dest);
 	}
 	AccuracyProfileAllocate(dest, src->numSNPs, src->numColorErrors);
@@ -829,6 +834,9 @@ void AccuracyProfileAllocate(AccuracyProfile *a,
 		int numColorErrors)
 {
 	char *FnName="AccuracyProfileAllocate";
+	if(a->correct != NULL) {
+		AccuracyProfileFree(a);
+	}
 	AccuracyProfileInitialize(a);
 	a->numSNPs = numSNPs;
 	a->numColorErrors = numColorErrors;
