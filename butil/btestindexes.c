@@ -3,27 +3,18 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <limits.h>
 
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "btestindexes.h"
 
-#define GENERATE_HELPER_ROTATE_NUM 1000000
-#define RANDOM_ROTATE_NUM 100
-#define ROTATE_NUM 10000
-
-#define NUM_MISMATCHES_START 1
-#define NUM_MISMATCHES_END 6 
-#define NUM_INSERTIONS_START 1
-#define NUM_INSERTIONS_END 1
-#define NUM_DELETIONS_START 1
-#define NUM_DELETIONS_END 1
-
 /* Is a utility that tests, searches for, and compares layouts for indexes against certain events,
  * such as errors, mismatches and insertions.
  * */
 
+#define SAMPLE_ROTATE_NUM 100000
 char Colors[5] = "01234";
 
 /* TODO */
@@ -53,11 +44,17 @@ void RunSearchForIndexes(int readLength,
 	IndexSetSeed(&set,
 			keySize);
 
+	fprintf(stderr, "Currently on [index set size, sample number]\n0");
 	for(i=2;i<=maxIndexSetSize;i++) { /* Add one index to the set */
 		/* Initialize */
 		IndexInitialize(&curBest); 
 		AccuracyProfileInitialize(&curBestP);
 		for(j=0;j<numIndexesToSample;j++) { /* Sample the space of possible indexes */
+			if(j%SAMPLE_ROTATE_NUM == 0) {
+				fprintf(stderr, "\r%-3d,%-9d",
+						i,
+						j);
+			}
 			/* Initialze cur */
 			IndexInitialize(&curIndex);
 			AccuracyProfileInitialize(&curIndexP);
@@ -105,9 +102,10 @@ void RunSearchForIndexes(int readLength,
 		/* Free best index */
 		IndexFree(&curBest);
 	}
+	fprintf(stderr, "\r--------------completed\n");
 
 	/* Print */
-	IndexSetPrint(&set, stderr);
+	IndexSetPrint(&set, stdout);
 
 	/* Free */
 	IndexSetFree(&set);
@@ -123,7 +121,8 @@ void RunEvaluateIndexes(char *inputFileName,
 		int maxNumColorErrors)
 {
 	char *FnName="RunEvaluateIndexes";
-	int setSize;
+	int setSize, i;
+	int minKeySize, maxKeySize, maxKeyWidth;
 	IndexSet set, curSet;
 
 	assert(space == 1 || maxNumColorErrors == 0);
@@ -135,6 +134,34 @@ void RunEvaluateIndexes(char *inputFileName,
 
 	/* Read in */
 	IndexSetRead(&set, inputFileName);
+
+	/* Get the min key size, max key size, and max key width */
+	minKeySize = INT_MAX;
+	maxKeySize = maxKeyWidth = 0;
+	for(i=0;i<set.numIndexes;i++) {
+		minKeySize = (set.indexes[i].keySize < minKeySize)?(set.indexes[i].keySize):minKeySize;
+		maxKeySize = (set.indexes[i].keySize > maxKeySize)?(set.indexes[i].keySize):maxKeySize;
+		maxKeyWidth = (set.indexes[i].keyWidth > maxKeyWidth)?(set.indexes[i].keyWidth):maxKeyWidth;
+	}
+
+	/* Print header of the file */
+	if(minKeySize == maxKeySize) {
+		fprintf(stdout, "BFAST MASK SET THEORETICAL ACCURACY\nREAD LENGTH = %d\nINDEX KEY SIZE = %d\nMAX WIDTH = %d\n",
+				readLength,
+				minKeySize,
+				maxKeyWidth);
+	}
+	else {
+		fprintf(stdout, "BFAST MASK SET THEORETICAL ACCURACY\nREAD LENGTH = %d\nMIN INDEX KEY SIZE = %d\nMAX INDEX KEY SIZE = %d\nMAX WIDTH = %d\n",
+				readLength,
+				minKeySize,
+				maxKeySize,
+				maxKeyWidth);
+	}
+
+	fprintf(stdout, "\n...MASKS IN BFAST FORMAT\n");
+	IndexSetPrint(&set, stdout);
+	fprintf(stdout, "\n");
 
 	for(setSize=1;setSize<=set.numIndexes;setSize++) { /* For increasing set size */
 
@@ -180,20 +207,20 @@ void RunEvaluateIndexesNTSpace(IndexSet *set,
 	int i, j;
 
 	/* Print the header */
-	fprintf(stderr, "%d\n", set->numIndexes);
-	fprintf(stderr, "%-5s\t", "MM"); /* # of Mismatches */
-	fprintf(stderr, "%-5s\t", "BP:0"); /* Mismatches accuracy */
-	fprintf(stderr, "%-5s\t", "1=del"); /* Deletions */
+	fprintf(stdout, "N Masks = %d\n", set->numIndexes);
+	fprintf(stdout, "%-5s\t", "MM"); /* # of Mismatches */
+	fprintf(stdout, "%-5s\t", "BP:0"); /* Mismatches accuracy */
+	fprintf(stdout, "%-5s\t", "1=del"); /* Deletions */
 	for(j=1;j<=maxInsertionLength;j++) {
-		fprintf(stderr, "%2s%-3d\t", "2i", j); /* Insertions */
+		fprintf(stdout, "%2s%-3d\t", "2i", j); /* Insertions */
 	}
-	fprintf(stderr, "\n");
+	fprintf(stdout, "\n");
 
 	/* SNPs - include no SNPs */
 	/* Mismatches including zero */
 	for(i=0;i<=maxNumMismatches;i++) {
-		fprintf(stderr, "%-5d\t", i);
-		fprintf(stderr, "%1.3lf\t",
+		fprintf(stdout, "%-5d\t", i);
+		fprintf(stdout, "%1.3lf\t",
 				GetNumCorrect(set,
 					readLength,
 					numEventsToSample,
@@ -203,7 +230,7 @@ void RunEvaluateIndexesNTSpace(IndexSet *set,
 					0,
 					NTSpace)/((double)numEventsToSample));
 		/* Deletion with Mismatches */
-		fprintf(stderr, "%1.3lf\t",
+		fprintf(stdout, "%1.3lf\t",
 				GetNumCorrect(set,
 					readLength,
 					numEventsToSample,
@@ -214,7 +241,7 @@ void RunEvaluateIndexesNTSpace(IndexSet *set,
 					NTSpace)/((double)numEventsToSample));
 		/* Insertions with Mismatches */
 		for(j=1;j<=maxInsertionLength;j++) {
-			fprintf(stderr, "%1.3lf\t",
+			fprintf(stdout, "%1.3lf\t",
 					GetNumCorrect(set,
 						readLength,
 						numEventsToSample,
@@ -224,8 +251,9 @@ void RunEvaluateIndexesNTSpace(IndexSet *set,
 						j,
 						NTSpace)/((double)numEventsToSample));
 		}
-		fprintf(stderr, "\n");
+		fprintf(stdout, "\n");
 	}
+	fflush(stdout);
 }
 
 void RunEvaluateIndexesColorSpace(IndexSet *set,
@@ -237,14 +265,23 @@ void RunEvaluateIndexesColorSpace(IndexSet *set,
 {
 	int i, j;
 	/* Print the header */
-	fprintf(stderr, "%d\n", set->numIndexes);
-	/* TODO */
+	fprintf(stdout, "N Masks = %d\n", set->numIndexes);
+	fprintf(stdout, "%-5s\t", "CE"); /* # of Color Errors */
+	for(j=0;j<=maxNumMismatches;j++) { /* # of SNPs */
+		fprintf(stdout, "%-3s%-2d\t", "MM=", j);
+	}
+	fprintf(stdout, "%-5s\t", "1=del"); /* Deletions */
+	for(j=1;j<=maxInsertionLength;j++) {
+		fprintf(stdout, "%2s%-3d\t", "2i", j); /* Insertions */
+	}
+	fprintf(stdout, "\n");
 
 	/* Get accuracy and print out */
 	for(i=0;i<=maxNumColorErrors;i++) {
+		fprintf(stdout, "%-5d\t", i);
 		/* SNPs with color errors - include no SNPs */
 		for(j=0;j<=maxNumMismatches;j++) {
-			fprintf(stderr, "%1.3lf\t",
+			fprintf(stdout, "%1.3lf\t",
 					GetNumCorrect(set,
 						readLength,
 						numEventsToSample,
@@ -255,7 +292,7 @@ void RunEvaluateIndexesColorSpace(IndexSet *set,
 						ColorSpace)/((double)numEventsToSample));
 		}
 		/* Deletion with color errors */
-		fprintf(stderr, "%1.3lf\t",
+		fprintf(stdout, "%1.3lf\t",
 				GetNumCorrect(set,
 					readLength,
 					numEventsToSample,
@@ -266,7 +303,7 @@ void RunEvaluateIndexesColorSpace(IndexSet *set,
 					ColorSpace)/((double)numEventsToSample));
 		/* Insertions with color errors */
 		for(j=1;j<=maxInsertionLength;j++) {
-			fprintf(stderr, "%1.3lf\t",
+			fprintf(stdout, "%1.3lf\t",
 					GetNumCorrect(set,
 						readLength,
 						numEventsToSample,
@@ -276,7 +313,7 @@ void RunEvaluateIndexesColorSpace(IndexSet *set,
 						j,
 						ColorSpace)/((double)numEventsToSample));
 		}
-		fprintf(stderr, "\n");
+		fprintf(stdout, "\n");
 	}
 }
 
@@ -702,9 +739,6 @@ void IndexPrint(Index *index,
 		FILE *fp)
 {
 	int i;
-	fprintf(fp, "%d\t%d\t",
-			index->keyWidth,
-			index->keySize);
 	for(i=0;i<index->keyWidth;i++) {
 		fprintf(fp, "%1d", index->mask[i]);
 	}
@@ -1006,7 +1040,7 @@ void ReadPrint(Read *r, FILE *fp)
 
 void PrintUsage()
 {
-	fprintf(stderr, "Usage: test.indexes [OPTIONS]...\n");
+	fprintf(stderr, "Usage: btestindexes [OPTIONS]\n");
 	fprintf(stderr, "******************************* Algorithm Options (no defaults) *******************************\n");
 	fprintf(stderr, "\t-a\tINT\talgorithm\n\t\t\t\t0: search for indexes\n\t\t\t\t1: evaluate indexes\n");
 	fprintf(stderr, "\t-r\tINT\tread length (for all) \n");
@@ -1023,7 +1057,7 @@ void PrintUsage()
 	fprintf(stderr, "\t-I\tINT\tmaximum insertion length (-a 1)\n");
 	fprintf(stderr, "******************************* Event Options (default =0 ) ***********************************\n");
 	fprintf(stderr, "\t-M\tINT\tmaximum number of mismatches\n");
-	fprintf(stderr, "\t-e\tINT\tnumber of color errors (-A 1)\n");
+	fprintf(stderr, "\t-e\tINT\tmaximum number of color errors (-A 1)\n");
 	fprintf(stderr, "******************************* Miscellaneous Options  ****************************************\n");
 	fprintf(stderr, "\t-p\tNULL\tprints the program parameters\n");
 	fprintf(stderr, "\t-h\tNULL\tprints this message\n");
@@ -1032,22 +1066,22 @@ void PrintUsage()
 void PrintProgramParameters(arguments *args)
 {
 	/* Print program parameters */
-	fprintf(stdout, "%s", BREAK_LINE);
-	fprintf(stdout, "Printing program parameters:\n");
-	fprintf(stdout, "algorithm:\t\t\t%d\t[%s]\n", args->algorithm, Algorithm[args->algorithm]); 
-	fprintf(stdout, "read length:\t\t\t%d\n", args->readLength);
-	fprintf(stdout, "number of events to sample:\t%d\n", args->numEventsToSample);
-	fprintf(stdout, "space:\t\t\t\t%d\n", args->space);
-	fprintf(stdout, "number of indexes to sample:\t%d\n", args->numIndexesToSample);
-	fprintf(stdout, "key size:\t\t\t%d\n", args->keySize);
-	fprintf(stdout, "key width:\t\t\t%d\n", args->maxKeyWidth);
-	fprintf(stdout, "max index set size:\t\t%d\n", args->maxIndexSetSize);
-	fprintf(stdout, "accuracy percent threshold:\t%d\n", args->accuracyThreshold);
-	fprintf(stdout, "input file name:\t\t%s\n", args->inputFileName);
-	fprintf(stdout, "maximum insertion length:\t%d\n", args->maxInsertionLength);
-	fprintf(stdout, "maximum number of mismatches:\t%d\n", args->maxNumMismatches);
-	fprintf(stdout, "maximum number of color errors:\t%d\n", args->maxNumColorErrors);
-	fprintf(stdout, "%s", BREAK_LINE);
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Printing program parameters:\n");
+	fprintf(stderr, "algorithm:\t\t\t%d\t[%s]\n", args->algorithm, Algorithm[args->algorithm]); 
+	fprintf(stderr, "read length:\t\t\t%d\n", args->readLength);
+	fprintf(stderr, "number of events to sample:\t%d\n", args->numEventsToSample);
+	fprintf(stderr, "space:\t\t\t\t%d\n", args->space);
+	fprintf(stderr, "number of indexes to sample:\t%d\n", args->numIndexesToSample);
+	fprintf(stderr, "key size:\t\t\t%d\n", args->keySize);
+	fprintf(stderr, "key width:\t\t\t%d\n", args->maxKeyWidth);
+	fprintf(stderr, "max index set size:\t\t%d\n", args->maxIndexSetSize);
+	fprintf(stderr, "accuracy percent threshold:\t%d\n", args->accuracyThreshold);
+	fprintf(stderr, "input file name:\t\t%s\n", args->inputFileName);
+	fprintf(stderr, "maximum insertion length:\t%d\n", args->maxInsertionLength);
+	fprintf(stderr, "maximum number of mismatches:\t%d\n", args->maxNumMismatches);
+	fprintf(stderr, "maximum number of color errors:\t%d\n", args->maxNumColorErrors);
+	fprintf(stderr, "%s", BREAK_LINE);
 }
 
 void AssignDefaultValues(arguments *args) 

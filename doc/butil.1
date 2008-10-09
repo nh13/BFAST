@@ -87,22 +87,26 @@ breport [OPTIONS]
 	<tmp file directory
 
 btestindexes [OPTIONS]
+******************************* Algorithm Options (no defaults) *******************************
 	-a	INT	algorithm
-			0: read from file
-			1: brute-force search all indexes
-			2: sample indexes and events
-	-f	STRING	input file name (for -a 0)
+	0: search for indexes
+	1: evaluate indexes
 	-r	INT	read length (for all) 
-	-l	INT	index length (for -a 1 and -a 2)
-	-n	INT	number of indexes in a set of indexes (for -a 1 and -a 2)
-	-s	INT	number of indexes to sample (for -a 2)
-	-S	INT	number of events to sample (for -a 2)
-	-G	NULL	uses a greedy approach (for -a 2)
-	-m	INT	minimum number of mismatches
+	-S	INT	number of events to sample
+	-A	INT	space 0: nucleotide space 1: color space
+******************************* Search Options (for -a 0) *************************************
+	-s	INT	number of indexes to sample
+	-l	INT	key size
+	-w	INT	maximum key width
+	-n	INT	maximum index set size
+	-t	INT	accuracy percent threshold (0-100)
+******************************* Evaluate Options (for -a 1) ***********************************
+	-f	STRING	input file name
+	-I	INT	maximum insertion length (-a 1)
+******************************* Event Options (default =0 ) ***********************************
 	-M	INT	maximum number of mismatches
-	-i	INT	minimum insertion length
-	-I	INT	maximum insertion length
-	-e	INT	number of errors
+	-e	INT	maximum number of color errors (-A 1)
+******************************* Miscellaneous Options  ****************************************
 	-p	NULL	prints the program parameters
 	-h	NULL	prints this message
 .fi
