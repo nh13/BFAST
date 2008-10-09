@@ -224,7 +224,7 @@ main (int argc, char **argv)
 								/* Free the RGIndex layout */
 								RGIndexLayoutDelete(&rgLayout);
 								/* Free exons, if necessary */
-								if(UseExons == UseExons) {
+								if(arguments.useExons == UseExons) {
 									RGIndexExonsDelete(&exons);
 								}
 								break;
