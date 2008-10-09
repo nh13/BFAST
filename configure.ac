@@ -78,6 +78,7 @@ AC_C_CONST
 # Checks for library functions.
 AC_FUNC_MALLOC 
 AC_FUNC_REALLOC
+AC_CHECK_LIB([m], [pow])
 AC_CHECK_FUNCS([floor pow strstr])
 
 
