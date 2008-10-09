@@ -1145,6 +1145,15 @@ void ValidateArguments(arguments *args)
 		if(args->accuracyThreshold < 0) {
 			PrintError(FnName, "Command line argument", "accuracyThreshold", Exit, OutOfRange);
 		}
+		if(args->keySize > args->maxKeyWidth) {
+			PrintError(FnName, "Command line argument", "keySize > maxKeyWidth", Exit, OutOfRange);
+		}
+		if(args->keySize > args->readLength) {
+			PrintError(FnName, "Command line argument", "keySize > readLength", Exit, OutOfRange);
+		}
+		if(args->maxKeyWidth > args->readLength) {
+			PrintError(FnName, "Command line argument", "maxKeyWidth > readLength", Exit, OutOfRange);
+		}
 	}
 	if(args->space < 0 || 1 < args->space) {
 		PrintError(FnName, "Command line argument", "space", Exit, OutOfRange);
