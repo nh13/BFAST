@@ -48,11 +48,13 @@
 #include "ParseInput.h"
 
 const char *argp_program_version =
-"bpreprocess version 0.1.4\n"
+"bpreprocess "
+PACKAGE_VERSION
+"\n"
 "Copyright 2008";
 
 const char *argp_program_bug_address =
-"Nils Homer <nhomer@cs.ucla.edu>";
+PACKAGE_BUGREPORT;
 
 /*
    OPTIONS.  Field 1 in ARGP.
@@ -140,6 +142,7 @@ main (int argc, char **argv)
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	time_t startTime = time(NULL);
 	time_t endTime;
+
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);

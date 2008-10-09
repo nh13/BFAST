@@ -42,13 +42,14 @@
 #include "Definitions.h"
 #include "InputOutputToFiles.h"
 #include "ParseInput.h"
-
 const char *argp_program_version =
-"bpostprocess version 0.1.4\n"
-"Copyright 2008.";
+"bpostprocess "
+PACKAGE_VERSION
+"\n"
+"Copyright 2008";
 
 const char *argp_program_bug_address =
-"Nils Homer <nhomer@cs.ucla.edu>";
+PACKAGE_BUGREPORT;
 
 /*
    OPTIONS.  Field 1 in ARGP.

@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 /* Program defaults */
-#define PROGRAM_NAME "bfast"
+#define PROGRAM_NAME "bfast" /* Could just use PACKAGE_NAME */
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
 #define DEFAULT_OUTPUT_ID "OutputID"

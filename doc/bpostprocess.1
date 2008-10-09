@@ -9,7 +9,7 @@
 \" Turn off justification and hyphenation
 .na
 .hy 0
-.TH bpostprocess 1 "Oct 3, 2008" "version 0.1.4" "UCLA bfast"
+.TH bpostprocess 1 "UCLA bfast"
 .SH NAME
 bpostprocess \- converts alignment files to the user-specified format.
 .SH SYNOPSIS
@@ -40,120 +40,6 @@ bpostprocess
 	[\fB\-h\fR] 		[\fB\-\-Help\fR]
 .fi
 .fam
-.
-.SH DESCRIPTION
-.B bpostprocess
-is the fourth of four programs in the bfast system.
-.
-.P 
-Documentation for 
-.B bpostprocess
-is not yet complete.
-Other relevant options are specified below.
-.
-.
-.SH OPTIONS
-.TP 4
-\fB\-i\fR \fIFILENAME\fR, \fB\-\-alignFileName=\fIFILENAME\fR
-Specifies the input file from the balign program.
-.
-.TP 4
-\fB\-2\fR, \fB\-\-pairedEnd\fR
-Specifies that paired end data is to be expected.
-.
-.TP 4
-\fB\-a\fR \fIINTEGER\fR, \fB\-\-algorithmReads=\fIINTEGER\fR
-This specifies the algorithm to choose the alignment for each single-end read after filtering.
-The option \fB\-\-a 0\fR specifies that no filtering will occur.
-The option \fB\-\-a 1\fR specifies that all alignments that pass the filters will be outputted.
-The option \fB\-\-a 2\fR outputs only reads that have been aligned uniquely. 
-The option \fB\-\-a 3\fR chooses the alignment with the best score for each read.
-If multiple alignments have the same best score, the read is not reported.
-.
-.TP 4
-\fB\-A\fR \fIINTEGER\fR, \fB\-\-algorithmReadsPaired=\fIINTEGER\fR
-This specifies the algorithm to choose the alignment for each paired-end reads after filtering.
-The option \fB\-\-A 0\fR specifies that no filtering will occur.
-The option \fB\-\-A 1\fR specifies that all alignments for either end that pass the filters will be outputted.
-The option \fB\-\-A 2\fR outputs only paired reads where both ends have been aligned uniquely.
-The option \fB\-\-A 3\fR chooses the alignment with the best score when the alignment score from either end is combined.
-If multiple alignments have the same best score, an alignment is not reported.
-The option \fB\-\-A 4\fR chooses pairs of reads that are closest to the mean distance (\fB\-Z\fR) and are the unique pair within that maximum and minimum distance (\fB\-X\fR and \fB\-Y\fR).
-The option \fB\-\-A 5\fR chooses pairs of reads that are closest to the mean distance (\fB-Z\fR) and have the best score.
-If multiple alignments have the same best score, an alignment is not reported.
-.
-.TP 4
-\fB\-C\fR, \fB\-\-contigAbPaired\fR
-Specifies to output separately those paired reads that do not fall within the specified distance (options \fB-X\fR and \fB-Y\fR) but are on the same strand.
-This only works with paired end specified (\fB-2\fR).
-.
-.TP 4
-\fB\-I\fR, \fB\-\-inversionsPaired\fR
-Specifies to output separately those paired reads that do not fall within the specified distance (options \fB-X\fR and \fB-Y\fR) but are on the opposite strand.
-This only works with paired end specified (\fB-2\fR).
-.
-.TP 4
-\fB\-s\fR \fIINTEGER\fR, \fB\-\-startContig=\fIINTEGER\fR
-Specifies the start contig for filtering.
-.
-.TP 4
-\fB\-S\fR \fIINTEGER\fR, \fB\-\-startPos=\fIINTEGER\fR
-Specifies the end position for filtering.
-.
-.TP 4
-\fB\-e\fR \fIINTEGER\fR, \fB\-\-endContig=\fIINTEGER\fR
-Specifies the end contig for filtering.
-.
-.TP 4
-\fB\-E\fR \fIINTEGER\fR, \fB\-\-endPos=\fIINTEGER\fR
-Specifies the end postion for filtering.
-.
-.TP 4
-\fB\-m\fR \fIINTEGER\fR, \fB\-\-minScoreReads=\fIINTEGER\fR
-Specifies the minimum score to consider for single-end reads.
-.
-.TP 4
-\fB\-M\fR \fIINTEGER\fR, \fB\-\-minScoreReadsPaired=\fIINTEGER\fR
-Specifies the minimum score to consider for the combination of the two paired reads.
-.
-.TP 4
-\fB\-X\fR \fIINTEGER\fR, \fB\-\-minDistancePaired=\fIINTEGER\fR
-Specifies the minimum allowable distance between the paired end for filtering.
-.
-.TP 4
-\fB\-Y\fR \fIINTEGER\fR, \fB\-\-maxDistancePaired=\fIINTEGER\fR
-Specifies the maximum allowable distance between the paired ends for filtering.
-.
-.TP 4
-\fB\-Z\fR \fIINTEGER\fR, \fB\-\-meanDistancePaired=\fIINTEGER\fR
-Specifies the mean distance between the paired ends (for use with \fB\-A 2\fR).
-.
-.TP 4
-\fB\-o\fR \fISTRING\fR, \fB\-\-outputID=\fISTRING\fR
-Specifies the ID tag to identify the output files.
-.
-.TP 4
-\fB\-d\fR \fIDIRECTORY\fR, \fB\-\-outputDir=\fIDIRECTORY\fR
-Specifies the output directory for the output files.
-.
-.TP 4
-\fB\-O\fR \fIINTEGER\fR, \fB\-\-outputFormat=\fIINTEGER\fR
-Specifies the output format 0: BAF 1: MAF.
-BAF is the bfast aligned file format and MAF is the multiple alignment format.
-.
-.TP 4
-\fB\-t\fR, \fB\-\-timing\fR
-Specifies to output timing information.
-.
-.TP 4
-\fB\-p\fR, \fB\-\-Parameters\fR
-Print program parameters.
-.
-.TP 4
-\fB\-h\fR, \fB\-\-Help\fR
-Prints the help message.
-Print out a help screen showing the short-form descriptions 
-of each command line option.
 .
 .SH KNOWN ISSUES
 Please see the
