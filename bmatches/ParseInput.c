@@ -504,7 +504,13 @@ GetOptHelp() {
 			case 0:
 				fprintf(stderr, "\n%s\n", (*a).doc); break;
 			default:
-				fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); break;
+				if((*a).arg != 0) {
+					fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, (*a).arg, (*a).doc); 
+				}
+				else {
+					fprintf(stderr, "-%c\t%12s\t%s\n", (*a).key, "", (*a).doc); 
+				}
+				break;
 		}
 		a++;
 	}
