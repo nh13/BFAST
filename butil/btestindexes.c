@@ -1057,7 +1057,7 @@ void PrintUsage()
 	fprintf(stderr, "\t-I\tINT\tmaximum insertion length (-a 1)\n");
 	fprintf(stderr, "******************************* Event Options (default =0 ) ***********************************\n");
 	fprintf(stderr, "\t-M\tINT\tmaximum number of mismatches\n");
-	fprintf(stderr, "\t-e\tINT\tmaximum number of color errors (-A 1)\n");
+	fprintf(stderr, "\t-E\tINT\tmaximum number of color errors (-A 1)\n");
 	fprintf(stderr, "******************************* Miscellaneous Options  ****************************************\n");
 	fprintf(stderr, "\t-p\tNULL\tprints the program parameters\n");
 	fprintf(stderr, "\t-h\tNULL\tprints this message\n");
@@ -1174,7 +1174,7 @@ void ParseCommandLineArguments(int argc, char *argv[], arguments *args)
 			case 'A':
 				args->space = atoi(argv[i+1]);
 				break;
-			case 'e':
+			case 'E':
 				args->maxNumColorErrors = atoi(argv[i+1]);
 				break;
 			case 'f':
