@@ -208,11 +208,13 @@ main (int argc, char **argv)
 						int minutes = seconds/60;
 						seconds -= minutes*60;
 
-						fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(arguments.timing == 1) {
+							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 						fprintf(stderr, "Terminating successfully!\n");
 						fprintf(stderr, "%s", BREAK_LINE);
 
