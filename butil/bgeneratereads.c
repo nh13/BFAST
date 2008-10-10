@@ -355,6 +355,13 @@ void GetRandomRead(RGBinary *rg,
 			(r->pairedEnd == 1 && readTwoSuccess == 0) || /* Read two was successfully read */
 			(hasNs == 1) /* Either read end has an "N" */
 		   );
+	/* Move to upper case */
+	for(i=0;i<r->readLength;i++) {
+		r->readOne[i] = ToUpper(r->readOne[i]);
+		if(r->pairedEnd == 1) {
+			r->readTwo[i] = ToUpper(r->readTwo[i]);
+		}
+	}
 }
 
 /* Get the random contig and position */
@@ -472,7 +479,7 @@ int ModifyRead(RGBinary *rg,
 			SNP,
 			0);
 
-	if(1 == space) {
+	if(ColorSpace == space) {
 		/* 3. Convert to color space if necessary */
 		tempReadLength = r->readLength;
 		ConvertReadToColorSpace(&r->readOne,
@@ -498,7 +505,7 @@ int ModifyRead(RGBinary *rg,
 				withinInsertion);
 	}
 
-	if(space == 1) {
+	if(space == ColorSpace) {
 		assert(strlen(r->readOne) == r->readLength + 1);
 		if(r->pairedEnd==1) {
 			assert(strlen(r->readTwo) == r->readLength + 1);
@@ -797,7 +804,7 @@ void InsertMismatchesHelper(char *read,
 
 		switch(readType[index]) {
 			case Default:
-				readType[index] = (type==SNP)?SNP:Error;
+				readType[index] = type;
 				toAdd = 1;
 				break;
 			case Insertion:
@@ -846,6 +853,7 @@ void InsertMismatchesHelper(char *read,
 					original == read[index];
 					read[index] = DNA[rand()%4]) {
 			}
+			assert(read[index] != original);
 			numMismatchesLeft--;
 		}
 	}
