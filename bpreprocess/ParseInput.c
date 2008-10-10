@@ -270,6 +270,11 @@ main (int argc, char **argv)
 						Exit,
 						InputArguments);
 			}
+		/* Free exons file name if we did not use it */
+		if(arguments.useExons != UseExons) {
+			free(arguments.exonsFileName);
+			arguments.exonsFileName=NULL;
+		}
 	}
 	else {
 		GetOptHelp();

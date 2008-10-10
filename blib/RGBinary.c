@@ -317,7 +317,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 		}
 		assert(rg->contigs[i].contigNameLength > 0);
 		/* Allocate memory */
-		rg->contigs[i].contigName = malloc(sizeof(char)*(rg->contigs[i].contigNameLength+1));
+		rg->contigs[i].contigName = malloc(sizeof(int8_t)*(rg->contigs[i].contigNameLength+1));
 		if(NULL==rg->contigs[i].contigName) {
 			PrintError(FnName,
 					"contigName",
@@ -433,6 +433,8 @@ void RGBinaryDelete(RGBinary *rg)
 	for(i=0;i<rg->numContigs;i++) {
 		free(rg->contigs[i].sequence);
 		rg->contigs[i].sequence=NULL;
+		free(rg->contigs[i].contigName);
+		rg->contigs[i].contigName=NULL;
 	}
 	/* Free the contigs */
 	free(rg->contigs);
