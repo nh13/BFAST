@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.1.6
+* bgeneratereads was not producing SNPs and errors properly.
+
 Version 0.1.5
 * Fixed bug in bpreprocess where the program crashed right before terminating.
 
