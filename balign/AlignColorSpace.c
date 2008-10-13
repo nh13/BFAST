@@ -188,7 +188,9 @@ int AlignColorSpace(char *read,
 										maxFrom = InsertionEnd;
 										break;
 									default:
+										/*
 										fprintf(stderr, "l=%d\n", l);
+										*/
 										PrintError(FnName,
 												"l",
 												"Could not understand character",
@@ -236,7 +238,9 @@ int AlignColorSpace(char *read,
 								case 5:
 									break;
 								default:
+									/*
 									fprintf(stderr, "l=%d\n", l);
+									*/
 									PrintError(FnName,
 											"l",
 											"Could not understand character",
@@ -296,7 +300,9 @@ int AlignColorSpace(char *read,
 											curColor);
 									break;
 								default:
+									/*
 									fprintf(stderr, "l=%d\n", l);
+									*/
 									PrintError(FnName,
 											"l",
 											"Could not understand character",
@@ -325,12 +331,14 @@ int AlignColorSpace(char *read,
 					}
 				}
 				/* Update */
+				/*
 				if(maxFrom < 0) {
 					fprintf(stderr, "(i,j,k)=(%d,%d,%d)\n",
 							i,
 							j,
 							k);
 				}
+				*/
 				assert(maxFrom >= 0);
 				matrix[i+1][j+1].score[k] = maxScore;
 				matrix[i+1][j+1].scoreNT[k] = maxScoreNT;

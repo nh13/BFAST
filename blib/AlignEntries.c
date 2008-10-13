@@ -138,7 +138,13 @@ int AlignEntriesRead(AlignEntries *a,
 		a->readName[tempReadNameLength]='\0';
 	}
 
-	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
+	if(a->pairedEnd == 0 && a->numEntriesTwo > 0) {
+		PrintError(FnName,
+				"a->pairedEnd == 0 && a->numEntriesTwo > 0",
+				"Expecting single end data",
+				Exit,
+				OutOfRange);
+	}
 	if(pairedEnd != PairedEndDoesNotMatter &&
 			a->pairedEnd != pairedEnd) {
 		PrintError(FnName,

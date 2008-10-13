@@ -452,7 +452,9 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 		m->numEntries = numEntries;
 		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
 		if(numEntries > 0 && NULL == m->positions) {
+			/*
 			fprintf(stderr, "numEntries:%d\n", numEntries);
+			*/
 			PrintError(FnName,
 					"m->positions",
 					"Could not reallocate memory",
