@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.1.7
+* Update bpostprocess for paired end support: now tested.
+
 Version 0.1.6
 * bgeneratereads was not producing SNPs and errors properly.
 * bmatches now supresses timing output when -t is not specified.

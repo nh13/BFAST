@@ -83,7 +83,7 @@ int FilterAlignEntries(AlignEntries *a,
 				/* Filter both ends separately */
 				AlignEntriesCopy(a, &tmpA);
 				if(Found==FilterReadInAlignEntries(a,
-							algorithmReads,
+							algorithmReadsPaired,
 							minScoreReads,
 							startContig,
 							startPos,
@@ -91,7 +91,7 @@ int FilterAlignEntries(AlignEntries *a,
 							endPos,
 							First) &&
 						Found==FilterReadInAlignEntries(a,
-							algorithmReads,
+							algorithmReadsPaired,
 							minScoreReads,
 							startContig,
 							startPos,
@@ -104,6 +104,7 @@ int FilterAlignEntries(AlignEntries *a,
 				/* If we filtered all, copy back */
 					AlignEntriesCopy(&tmpA, a);
 				}
+				break;
 			case Unique:
 			case BestScore:
 			case MeanUnique:
@@ -207,6 +208,9 @@ int FilterReadInAlignEntries(AlignEntries *a,
 					}
 					break;
 				default:
+					/* HERE */
+					fprintf(stderr, "algorithmReads:%d\n",
+							algorithmReads);
 					PrintError(FnName,
 							"algorithmReads",
 							"Could not understand algorithmReads",
@@ -246,6 +250,9 @@ int FilterReadInAlignEntries(AlignEntries *a,
 					/* Do nothing */
 					break;
 				default:
+					/* HERE */
+					fprintf(stderr, "algorithmReads:%d\n",
+							algorithmReads);
 					PrintError(FnName,
 							"algorithmReads",
 							"Could not understand algorithmReads",
