@@ -35,6 +35,7 @@ void AlignEntriesPrint(AlignEntries *a,
 		}
 	}
 	else {
+		assert(a!=NULL);
 		tempReadNameLength = (int)strlen(a->readName);
 		if(fwrite(&tempReadNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(a->readName, sizeof(char), tempReadNameLength, outputFP) != tempReadNameLength ||

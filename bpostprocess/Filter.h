@@ -14,8 +14,7 @@ int FilterAlignEntries(AlignEntries *a,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,
-		int maxDistancePaired,
-		int meanDistancePaired);
+		int maxDistancePaired);
 
 int FilterReadInAlignEntries(AlignEntries *a,
 		int algorithmReads,
@@ -41,7 +40,6 @@ int FilterOneAlignEntries(AlignEntries *a,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,
-		int maxDistancePaired,
-		int meanDistancePaired);
+		int maxDistancePaired);
 
 #endif

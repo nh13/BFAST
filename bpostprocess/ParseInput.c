@@ -60,7 +60,7 @@ enum {
 	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired,
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, 
 	DescSingleEndTitle, DescMinScoreReads, 
-	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMeanDistancePaired, 
+	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -86,9 +86,7 @@ static struct argp_option options[] = {
 		"\n\t\t0: Specifies no filtering will occur"
 			"\n\t\t1: Specifies that all alignments for either end that pass the filters will be outputted"
 			"\n\t\t2: Specifies to only consider paired reads where both reads have been aligned uniquely"
-			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined"
-			"\n\t\t4: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and are the unique pair within that maximum and minimum distance (-X and -Y)"
-			"\n\t\t5: Specifies to choose pairs of reads that are closest to the mean distance (-Z) and have the best score with that distance", 2},
+			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined", 2},
 	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 5},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
@@ -102,7 +100,6 @@ static struct argp_option options[] = {
 	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 5},
 	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends for filtering", 5},
 	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends for filtering", 5},
-	{"meanDistancePaired", 'Z', "meanDistancePaired", 0, "Specifies the mean distance between the paired ends (for use with -A 2)", 5},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
@@ -132,7 +129,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:Z:2hptCI";
+"a:d:e:i:m:o:s:A:E:I:M:O:P:S:T:X:Y:2hptCI";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -192,7 +189,6 @@ main (int argc, char **argv)
 								arguments.minScoreReadsPaired,
 								arguments.minDistancePaired,
 								arguments.maxDistancePaired,
-								arguments.meanDistancePaired,
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.outputID,
@@ -297,16 +293,6 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "minDistancePaired > maxDistancePaired", "Command line argument", Exit, OutOfRange);
 	}
 
-	/* Check that if we use the mean distance, it falls between min and max */
-	if(args->algorithmReadsPaired == 2 || args->algorithmReadsPaired == 3) {
-		if(args->meanDistancePaired < args->minDistancePaired) {
-			PrintError(FnName, "meanDistancePaired < minDistancePaired", "Command line argument", Exit, OutOfRange);
-		}
-		if(args->meanDistancePaired >  args->maxDistancePaired) {
-			PrintError(FnName, "meanDistancePaired > maxDistancePaired", "Command line argument", Exit, OutOfRange);
-		}
-	}
-
 	/* This must hold internally */
 	assert(args->contigAbPaired == 0 || args->contigAbPaired == 1);
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
@@ -399,7 +385,6 @@ AssignDefaultValues(struct arguments *args)
 	args->minScoreReadsPaired=INT_MIN;
 	args->minDistancePaired=INT_MIN;
 	args->maxDistancePaired=INT_MAX;
-	args->meanDistancePaired=0;
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 
@@ -425,7 +410,7 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char algorithm[6][64] = {"No Filtering", "Location Only", "Unique", "Best Score", "Mean Distance Unique", "Mean Distance Best Score"};
+	char algorithm[4][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
@@ -446,7 +431,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
 	fprintf(fp, "maxDistancePaired:\t%d\n", args->maxDistancePaired);
-	fprintf(fp, "meanDistancePaired:\t%d\n", args->meanDistancePaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -547,8 +531,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->minDistancePaired = atoi(OPTARG);break;
 					case 'Y':
 						arguments->maxDistancePaired = atoi(OPTARG);break;
-					case 'Z':
-						arguments->meanDistancePaired = atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

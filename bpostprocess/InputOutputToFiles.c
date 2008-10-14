@@ -23,7 +23,6 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		int minScoreReadsPaired,
 		int minDistancePaired,
 		int maxDistancePaired,
-		int meanDistancePaired,
 		int contigAbPaired,
 		int inversionsPaired,
 		char *outputID,
@@ -44,6 +43,9 @@ void ReadInputFilterAndOutput(char *inputFileName,
 	FILE *fpNotReported=NULL;
 	char fileExtension[256]="\0";
 
+	assert(binaryInput == BinaryInput ||
+			binaryInput == TextInput);
+
 	/* Open the input file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
 		PrintError(FnName,
@@ -62,11 +64,11 @@ void ReadInputFilterAndOutput(char *inputFileName,
 			strcpy(fileExtension, BFAST_MAF_FILE_EXTENSION);
 			break;
 		default:
-				PrintError(FnName,
-						"outputFormat",
-						"Could not understand output format",
-						Exit,
-						OutOfRange);
+			PrintError(FnName,
+					"outputFormat",
+					"Could not understand output format",
+					Exit,
+					OutOfRange);
 	}
 	/* Create output file names */
 	sprintf(contigAbFileName, "%s%s.contigab.file.%s.%s",
@@ -155,8 +157,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				algorithmReadsPaired,
 				minScoreReadsPaired,
 				minDistancePaired,          
-				maxDistancePaired,
-				meanDistancePaired);
+				maxDistancePaired);
 
 		/* Print the apporiate files based on the return type */
 		switch(foundType) {
@@ -172,16 +173,19 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				break;
 			case ContigAb:
 				assert(pairedEnd == 1);
-				/* Print to Contigomosomal Abnormalities file */
-				PrintAlignEntriesToOutputFormat(&a, fpContigAb, outputFormat, binaryInput);
-				AlignEntriesPrint(&a, fpContigAb, binaryInput);
-				numContigAb++;
+				if(contigAbPaired == 1) {
+					/* Print to Contig Abnormalities file */
+					PrintAlignEntriesToOutputFormat(&a, fpContigAb, outputFormat, binaryInput);
+					numContigAb++;
+				}
 				break;
 			case Inversion:
 				assert(pairedEnd == 1);
-				/* Print to Inversions file */
-				PrintAlignEntriesToOutputFormat(&a, fpInversions, outputFormat, binaryInput);
-				numInversions++;
+				if(inversionsPaired == 1) {
+					/* Print to Inversions file */
+					PrintAlignEntriesToOutputFormat(&a, fpInversions, outputFormat, binaryInput);
+					numInversions++;
+				}
 				break;
 			default:
 				PrintError(FnName,

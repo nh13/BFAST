@@ -16,7 +16,6 @@ struct arguments
 	int minScoreReadsPaired;				/* -M */
 	int minDistancePaired;					/* -X */
 	int maxDistancePaired;					/* -Y */
-	int meanDistancePaired;					/* -Z */
 	int contigAbPaired;						/* -C */
 	int inversionsPaired;					/* -I */
 	char *outputID;							/* -o */
