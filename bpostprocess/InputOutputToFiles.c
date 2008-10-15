@@ -76,7 +76,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 			PROGRAM_NAME,
 			outputID,
 			fileExtension);
-	sprintf(inversionsFileName, "%s%s.inversion..file.%s.%s",
+	sprintf(inversionsFileName, "%s%s.inversion.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
