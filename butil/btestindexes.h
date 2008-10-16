@@ -12,10 +12,12 @@ typedef struct {
 
 typedef struct {
 	int32_t numReads;
-	int32_t *correct;
+	double *accuracy;
 	int32_t length; /* lenght of correct */
 	int32_t numSNPs;
 	int32_t numColorErrors;
+	int32_t numAboveThreshold; /* where to start comparisons */
+	int32_t accuracyThreshold;
 } AccuracyProfile;
 
 typedef struct {
@@ -74,10 +76,9 @@ void IndexFree(Index*);
 void IndexPrint(Index*, FILE*);
 int IndexRead(Index*, FILE*);
 /* Accuracy Profile functions */
-int AccuracyProfileCompare(AccuracyProfile*, AccuracyProfile*, int);
+int AccuracyProfileCompare(IndexSet*, AccuracyProfile*, IndexSet*, AccuracyProfile*, int, int, int, int, int, int);
 void AccuracyProfileCopy(AccuracyProfile*, AccuracyProfile*);
-void AccuracyProfileUpdate(IndexSet*, AccuracyProfile*, int, int, int, int, int);
-void AccuracyProfileAllocate(AccuracyProfile*, int, int);
+void AccuracyProfileAllocate(AccuracyProfile*, int, int, int);
 void AccuracyProfileInitialize(AccuracyProfile*);
 void AccuracyProfileFree(AccuracyProfile*);
 /* Read functions */

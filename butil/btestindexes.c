@@ -30,26 +30,32 @@ void RunSearchForIndexes(int readLength,
 		int maxNumColorErrors)
 {
 	int i, j;
-	IndexSet set;
-	Index curBest, curIndex;
-	AccuracyProfile curBestP, curIndexP;
+	IndexSet curSet, bestSet;
+	Index curIndex;
+	AccuracyProfile curP, bestP;
 
 	/* Seed random number */
 	srand(time(NULL));
 
 	/* Initialize index set */
-	IndexSetInitialize(&set);
+	IndexSetInitialize(&curSet);
+	IndexSetInitialize(&bestSet);
 
 	/* Will always seed with contiguous 1s mask */
-	IndexSetSeed(&set,
+	IndexSetSeed(&curSet,
+			keySize);
+	IndexSetSeed(&bestSet,
 			keySize);
 
 	fprintf(stderr, "Currently on [index set size, sample number]\n0");
 	for(i=2;i<=maxIndexSetSize;i++) { /* Add one index to the set */
 		/* Initialize */
-		IndexInitialize(&curBest); 
-		AccuracyProfileInitialize(&curBestP);
-		for(j=0;j<numIndexesToSample;j++) { /* Sample the space of possible indexes */
+		IndexInitialize(&curIndex);
+		AccuracyProfileInitialize(&curP);
+		AccuracyProfileInitialize(&bestP);
+
+		/* Sample the space of possible indexes */
+		for(j=0;j<numIndexesToSample;j++) { 
 			if(j%SAMPLE_ROTATE_NUM == 0) {
 				fprintf(stderr, "\r%-3d,%-9d",
 						i,
@@ -57,7 +63,7 @@ void RunSearchForIndexes(int readLength,
 			}
 			/* Initialze cur */
 			IndexInitialize(&curIndex);
-			AccuracyProfileInitialize(&curIndexP);
+			AccuracyProfileInitialize(&curP);
 
 			/* Get random index */
 			do {
@@ -66,49 +72,55 @@ void RunSearchForIndexes(int readLength,
 						keySize,
 						maxKeyWidth);
 			}
-			while(1==IndexSetContains(&set, &curIndex));
+			while(1==IndexSetContains(&curSet, &curIndex));
 
-			/* Push random index */
-			IndexSetPush(&set,
+			/* Push random index onto the current set */
+			IndexSetPush(&curSet,
 					&curIndex);
-
-			/* Get accuracy profile */
-			AccuracyProfileUpdate(&set,
-					&curIndexP,
-					readLength,
-					numEventsToSample,
-					space,
-					maxNumMismatches,
-					maxNumColorErrors);
-			assert(curIndexP.numReads == numEventsToSample);
-
-			/* Compare accuracy profile */
-			if(AccuracyProfileCompare(&curBestP, &curIndexP, accuracyThreshold) < 0) {
-				/* Copy index over to the current best */
-				IndexCopy(&curBest, &curIndex);
-				AccuracyProfileCopy(&curBestP, &curIndexP);
+			/* Check if this is the first time */
+			if(bestSet.numIndexes < curSet.numIndexes) {
+				IndexSetPush(&bestSet, &curIndex);
 			}
-			/* Pop random index */
-			IndexSetPop(&set);
-
+			else {
+				assert(j>0);
+				assert(bestSet.numIndexes == curSet.numIndexes);
+				/* Compare accuracy profile */
+				if(AccuracyProfileCompare(&bestSet, 
+							&bestP,
+							&curSet, 
+							&curP,
+							readLength,
+							numEventsToSample,
+							space,
+							maxNumMismatches,
+							maxNumColorErrors,
+							accuracyThreshold) < 0) {
+					/* Copy index over to the current best set */
+					IndexSetPop(&bestSet);
+					IndexSetPush(&bestSet, &curIndex);
+					AccuracyProfileCopy(&bestP, &curP);
+				}
+			}
+			/* Pop the index off the current set */
+			IndexSetPop(&curSet);
 			/* Free cur index */
 			IndexFree(&curIndex);
-			AccuracyProfileFree(&curIndexP);
+			/* Free profile */
+			AccuracyProfileFree(&curP);
 		}
-		/* Add the best index to the set */
-		IndexSetPush(&set,
-				&curBest);
-		/* Save accuracy profile */
-		/* Free best index */
-		IndexFree(&curBest);
+		/* Free accuracy profile */
+		AccuracyProfileFree(&bestP);
+		/* Copy best index over to cur set */
+		IndexSetPush(&curSet, &bestSet.indexes[bestSet.numIndexes-1]);
 	}
 	fprintf(stderr, "\r--------------completed\n");
 
 	/* Print */
-	IndexSetPrint(&set, stdout);
+	IndexSetPrint(&bestSet, stdout);
 
 	/* Free */
-	IndexSetFree(&set);
+	IndexSetFree(&curSet);
+	IndexSetFree(&bestSet);
 }
 
 /* TODO */
@@ -339,7 +351,6 @@ int32_t GetNumCorrect(IndexSet *set,
 	int32_t breakpoint;
 	Read curRead, r1, r2;
 
-
 	for(i=0;i<numEventsToSample;i++) {
 		ReadInitialize(&curRead);
 		ReadInitialize(&r1);
@@ -370,6 +381,15 @@ int32_t GetNumCorrect(IndexSet *set,
 				assert(readLength - breakpoint > 0);
 				/* Split read into two reads based on the breakpoint */
 				ReadSplit(&curRead, &r1, &r2, breakpoint, 0);
+				/* In color space, unless we are deleting at the end of a run of ex. As,
+				 * the color at the break point represents the composition of the "deleted colors".
+				 * Thus we should flip the color at the breakpoint */
+				if(space==1) {
+					/* A color error at the break point */
+					if(r1.length > 0) {
+						r1.profile[r1.length-1] = 1;
+					}
+				}
 				/* Check either end of the read after split */
 				if(1==IndexSetCheckRead(set, &r1) ||
 						1==IndexSetCheckRead(set, &r2)) {
@@ -386,6 +406,19 @@ int32_t GetNumCorrect(IndexSet *set,
 					breakpoint = (rand()%(readLength-insertionLength));
 					/* Split read into two reads */
 					ReadSplit(&curRead, &r1, &r2, breakpoint, insertionLength);
+					/* In color space, unless we are inserting at the end of a run of ex. As,
+					 * an insertion of length "n" will cause "n+1" colors to be inserted.
+					 * Thus we should flip the color before and after the breakpoint */
+					if(space==1) {
+						/* A color error before the break point */
+						if(r1.length > 0) {
+							r1.profile[r1.length-1] = 1;
+						}
+						/* A color error after the break point */
+						if(r2.length > 0) {
+							r2.profile[0] = 1;
+						}
+					}
 					/* Check either end of the read after split, substracting the insertion */
 					if(1==IndexSetCheckRead(set, &r1) ||
 							1==IndexSetCheckRead(set, &r2)) {
@@ -756,113 +789,163 @@ void IndexPrint(Index *index,
 	fprintf(fp, "\n");
 }
 
-int AccuracyProfileCompare(AccuracyProfile *a, 
+int AccuracyProfileCompare(IndexSet *setA,
+		AccuracyProfile *a,
+		IndexSet *setB,
 		AccuracyProfile *b,
+		int readLength,
+		int numEventsToSample,
+		int space,
+		int maxNumMismatches,
+		int maxNumColorErrors,
 		int accuracyThreshold)
 {
-	int i;
-	assert(a->length > 0 || b->length > 0);
+	int i, j, ctr;
 
-	if(a->numReads <= 0) {
-		return -1;
+	/* Allocate memory for the profiles, if necessary */
+	if(a->length == 0) {
+		assert(a->accuracy == NULL);
+		AccuracyProfileAllocate(a, maxNumMismatches, maxNumColorErrors, accuracyThreshold);
+		a->numReads = numEventsToSample;
 	}
-	if(b->numReads <= 0) {
-		return 1;
+	if(b->length == 0) {
+		assert(b->accuracy == NULL);
+		AccuracyProfileAllocate(b, maxNumMismatches, maxNumColorErrors, accuracyThreshold);
+		b->numReads = numEventsToSample;
 	}
+
+	assert(a->accuracy != NULL);
+	assert(b->accuracy != NULL);
+	assert(a->length > 0);
+	assert(b->length > 0);
+	assert(a->length == b->length);
+	assert(a->numColorErrors == b->numColorErrors);
+	assert(a->numSNPs == b->numSNPs);
 	assert(a->numReads > 0);
 	assert(b->numReads > 0);
-	assert(a->length == b->length);
-	for(i=0;i<a->length;i++) {
-		if((a->correct[i]/a->numReads) < accuracyThreshold || (b->correct[i]/b->numReads) < accuracyThreshold) {
-			if(a->correct[i]/a->numReads < b->correct[i]/b->numReads) {
-				return -1;
-			}
-			else if(a->correct[i]/a->numReads > b->correct[i]/b->numReads) {
-				return 1;
+	assert(a->accuracyThreshold == accuracyThreshold);
+	assert(b->accuracyThreshold == accuracyThreshold);
+	assert(a->accuracyThreshold == b->accuracyThreshold);
+
+	/* Optimization - check num above threshold */
+	if(a->numAboveThreshold < b->numAboveThreshold) {
+		return -1;
+	}
+	else if(a->numAboveThreshold > b->numAboveThreshold) {
+		return 1;
+	}
+	else {
+		assert(a->numAboveThreshold == b->numAboveThreshold);
+		/* Must go through.  Start at those that are not above the accuracy threshold */
+		for(i=0,ctr=0;i<=a->numColorErrors;i++) { /* color errors are prioritized */
+			for(j=0;j<=a->numSNPs;j++) { /* SNPs are secondary */
+				if(ctr >= a->numAboveThreshold) {
+					/* Update accuracies if necessary */
+					if(a->accuracy[ctr] < 0.0) {
+						a->accuracy[ctr] = 100.0*GetNumCorrect(setA,
+								readLength,
+								numEventsToSample,
+								j,
+								i,
+								NoIndelType,
+								0,
+								space)/a->numReads;
+					}
+					if(b->accuracy[ctr] < 0.0) {
+						b->accuracy[ctr] = 100.0*GetNumCorrect(setB,
+								readLength,
+								numEventsToSample,
+								j,
+								i,
+								NoIndelType,
+								0,
+								space)/b->numReads;
+					}
+					/* Compare */
+					if(a->accuracy[ctr] < accuracyThreshold || b->accuracy[ctr] < accuracyThreshold) {
+						if(a->accuracy[ctr] < b->accuracy[ctr]) {
+							return -1;
+						}
+						else if(a->accuracy[ctr] > b->accuracy[ctr]) {
+							return 1;
+						}
+					}
+				}
+				else {
+					assert(!(a->accuracy[ctr] < 0.0));
+					assert(!(b->accuracy[ctr] < 0.0));
+				}
+				ctr++;
 			}
 		}
-	}
 
+	/* Equal */
 	return 0;
+	}
 }
 
 void AccuracyProfileCopy(AccuracyProfile *dest, AccuracyProfile *src) 
 {
 	int i;
-	if(dest->correct != NULL) {
+	if(dest->accuracy != NULL) {
 		AccuracyProfileFree(dest);
 	}
-	AccuracyProfileAllocate(dest, src->numSNPs, src->numColorErrors);
+	AccuracyProfileAllocate(dest, src->numSNPs, src->numColorErrors, src->accuracyThreshold);
+	assert(dest->length == src->length);
+	assert(dest->numSNPs == src->numSNPs);
+	assert(dest->numColorErrors == src->numColorErrors);
+	assert(dest->accuracyThreshold == src->accuracyThreshold);
+	dest->numAboveThreshold = src->numAboveThreshold;
+	dest->numReads = src->numReads;
 	for(i=0;i<dest->length;i++) {
-		dest->correct[i] = src->correct[i];
-	}
-}
-
-void AccuracyProfileUpdate(IndexSet *set, 
-		AccuracyProfile *p,
-		int readLength,
-		int numEventsToSample,
-		int space,
-		int maxNumMismatches,
-		int maxNumColorErrors)
-{
-	int i, j, ctr;
-	/* Get the estimated accuracy profile for the index set */
-
-	/* Allocate memory for the profile */
-	AccuracyProfileAllocate(p, maxNumMismatches, maxNumColorErrors);
-	p->numReads = numEventsToSample;
-
-	/* Go through */
-	for(i=0,ctr=0;i<p->numColorErrors;i++) { /* color errors are prioritized */
-		for(j=0;j<p->numSNPs;j++) { /* SNPs are secondary */
-			p->correct[ctr] = GetNumCorrect(set,
-					readLength,
-					numEventsToSample,
-					j,
-					i,
-					NoIndelType,
-					0,
-					space);
-			ctr++;
-		}
+		dest->accuracy[i] = src->accuracy[i];
 	}
 }
 
 void AccuracyProfileAllocate(AccuracyProfile *a,
 		int numSNPs,
-		int numColorErrors)
+		int numColorErrors,
+		int accuracyThreshold)
 {
 	char *FnName="AccuracyProfileAllocate";
-	if(a->correct != NULL) {
+	int i;
+	if(a->accuracy != NULL) {
 		AccuracyProfileFree(a);
 	}
 	AccuracyProfileInitialize(a);
 	a->numSNPs = numSNPs;
 	a->numColorErrors = numColorErrors;
 	a->length = (a->numSNPs + 1)*(a->numColorErrors + 1);
-	a->correct = malloc(sizeof(int32_t)*a->length);
-	if(NULL == a->correct) {
+	a->accuracy = malloc(sizeof(double)*a->length);
+	a->numAboveThreshold = 0;
+	a->accuracyThreshold = accuracyThreshold;
+	if(NULL == a->accuracy) {
 		PrintError(FnName,
-				"a->correct",
+				"a->accuracy",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
+	}
+	/* Initialize all to -1 */
+	for(i=0;i<a->length;i++) {
+		a->accuracy[i] = -1.0;
 	}
 }
 
 void AccuracyProfileInitialize(AccuracyProfile *a) 
 {
 	a->numReads = 0;
-	a->correct = NULL;
+	a->accuracy = NULL;
 	a->length = 0;
 	a->numSNPs = -1;
 	a->numColorErrors = -1;
+	a->numAboveThreshold = 0;
+	a->accuracyThreshold = 100;
 }
 
 void AccuracyProfileFree(AccuracyProfile *a)
 {
-	free(a->correct);
+	free(a->accuracy);
 	AccuracyProfileInitialize(a);
 }
 
@@ -894,6 +977,7 @@ void ReadSplit(Read *curRead,
 	}
 }
 
+/* Zeros are valid bases, Ones we can't index */
 void ReadGetRandom(Read *r, 
 		int readLength,
 		int numSNPs,
