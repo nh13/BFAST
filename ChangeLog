@@ -9,6 +9,7 @@ Version 0.1.7
 * Update bpostprocess for paired end support: now tested.
 * Removed extra "." in inversions file (bpostprocess).
 * Updated btestindexes against small bugs and added optimizations.
+* Added bgeneratedistribution to calculate error distributions.
 
 Version 0.1.6
 * bgeneratereads was not producing SNPs and errors properly.
