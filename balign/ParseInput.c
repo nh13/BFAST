@@ -490,7 +490,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endContig:\t\t\t\t\t%d\n", args->endContig);
+	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);

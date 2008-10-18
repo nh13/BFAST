@@ -12,6 +12,7 @@
 #include "bgeterrordistribution.h"
 
 #define Name "bgeterrordistribution"
+#define ROTATE_NUM 100000
 
 /* Counts the number of errors at each position in the read
  * for both nucleotide and color space, as well as the 
@@ -31,6 +32,11 @@ int main(int argc, char *argv[])
 		/* Run the program */
 		GetErrorDistribution(inputFileName,
 				outputID);
+
+		fprintf(stderr, "%s%s%s", 
+				BREAK_LINE, 
+				"Terminating successfully!\n",
+				BREAK_LINE);
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
@@ -44,12 +50,13 @@ void GetErrorDistribution(char *inputFileName,
 		char *outputID)
 {
 	char *FnName="GetErrorDistribution";
-	int i;
+	int i, count;
 	FILE *FPin=NULL;
 	FILE *FPsout[4]={NULL,NULL,NULL,NULL};
 	char outputFileNames[4][MAX_FILENAME_LENGTH]={"\0","\0","\0","\0"};
 	AlignEntries a;
 	Errors e;
+	int pairedEnd = SingleEnd;
 
 	/* Create output file names */
 	sprintf(outputFileNames[0], "%s.error.distribution.nt.by.position.%s.txt",
@@ -86,37 +93,51 @@ void GetErrorDistribution(char *inputFileName,
 	}
 
 	/* Go through the input file */
+	count=0;
 	AlignEntriesInitialize(&a);
 	ErrorsInitialize(&e);
+	fprintf(stderr, "Currently on:\n0");
 	while(EOF != AlignEntriesRead(&a, FPin, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+		pairedEnd = a.pairedEnd;
+		if(count % ROTATE_NUM == 0) {
+			fprintf(stderr, "\r%d", count);
+		}
 		/* Update */
 		ErrorsUpdate(&e, &a);
 		/* Free memory */
 		AlignEntriesFree(&a);
+		count++;
 	}
+	fprintf(stderr, "\r%d\n", count);
 
 	/* Print output */
-	ErrorsPrint(&e, FPsout);
+	ErrorsPrint(&e, FPsout, pairedEnd);
 
 	/* Close files */
 	fclose(FPin);
 	for(i=0;i<4;i++) {
 		fclose(FPsout[i]);
 	}
-	
+
 	/* Free memory */
 	ErrorsFree(&e);
 }
 
-void ErrorsPrint(Errors *e, FILE **fps)
+void ErrorsPrint(Errors *e, FILE **fps, int pairedEnd)
 {
 	/* Print each out to a separate file */
 	assert(fps!=NULL);
 	int i;
 
 	for(i=0;i<4;i++) {
-		CountPrint(&e->by[i%2], fps[i]);
+		fprintf(fps[i], "# The number of mapped reas was %d\n", e->numReads);
 	}
+
+	/* Print out */
+	CountPrint(&e->by[0], fps[0], pairedEnd);
+	CountPrint(&e->by[1], fps[1], pairedEnd);
+	CountPrint(&e->across[0], fps[2], pairedEnd);
+	CountPrint(&e->across[1], fps[3], pairedEnd);
 }
 
 void ErrorsUpdate(Errors *e, AlignEntries *a)
@@ -124,15 +145,17 @@ void ErrorsUpdate(Errors *e, AlignEntries *a)
 	assert(a->numEntriesOne == 1 &&
 			(a->pairedEnd == SingleEnd || a->numEntriesTwo == 1));
 
-	ErrorsUpdateHelper(e, &a->entriesOne[0], a->space, 0);
-	ErrorsUpdateHelper(e, &a->entriesTwo[0], a->space, 1);
+	ErrorsUpdateHelper(e, &a->entriesOne[0], a->space, a->pairedEnd, 0);
+	if(PairedEnd == a->pairedEnd) {
+		ErrorsUpdateHelper(e, &a->entriesTwo[0], a->space, a->pairedEnd, 1);
+	}
 
 	e->numReads++;
 }
 
-void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int which) 
+void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int pairedEnd, int which) 
 {
-	int i;
+	int i, ctr;
 	int numNT, numColor;
 	assert(which == 0 || which == 1);
 	assert(ColorSpace == space || NTSpace == space);
@@ -141,27 +164,30 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int which)
 	numNT = numColor = 0;
 
 	/* Go through each position in the alignment */
-	for(i=0;i<a->length;i++) {
-
+	for(i=0,ctr=0;i<a->length;i++) {
+		
 		/* Skip gaps in the read */
 		if(GAP != a->read[i]) {
-		
+
 			/* nt space */
 			if(ToLower(a->read[i]) !=  ToLower(a->reference[i])) {
 				CountUpdate(&e->by[0],
-						i,
+						ctr,
+						pairedEnd,
 						which);
 				numNT++;
 			}
-		
+
 			/* color space */
 			if(ColorSpace == space &&
-					1 == a->colorError[i]) {
+					'1' == a->colorError[i]) {
 				CountUpdate(&e->by[1],
-						i,
+						ctr,
+						pairedEnd,
 						which);
 				numColor++;
 			}
+			ctr++;
 		}
 	}
 
@@ -170,11 +196,13 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int which)
 	/* nt space */
 	CountUpdate(&e->across[0],
 			numNT,
+			pairedEnd,
 			which);
 	/* color space */
-	if(PairedEnd == space) {
+	if(ColorSpace == space) {
 		CountUpdate(&e->across[1],
 				numColor,
+				pairedEnd,
 				which);
 	}
 }
@@ -195,11 +223,11 @@ void ErrorsFree(Errors *e)
 	CountFree(&e->across[1]);
 }
 
-void CountPrint(Count *c, FILE *fp)
+void CountPrint(Count *c, FILE *fp, int pairedEnd)
 {
 	int i;
 
-	if(SingleEnd == c->pairedEnd) {
+	if(SingleEnd == pairedEnd) {
 		for(i=0;i<c->length;i++) {
 			fprintf(fp, "%d\t%d\n", i, c->countOne[i]);
 		}
@@ -216,6 +244,7 @@ void CountPrint(Count *c, FILE *fp)
 
 void CountUpdate(Count *c,
 		int index,
+		int pairedEnd,
 		int which)
 {
 	char *FnName="CountUpdate";
@@ -239,7 +268,7 @@ void CountUpdate(Count *c,
 			c->countOne[i] = 0;
 		}
 
-		if(PairedEnd == c->pairedEnd) {
+		if(PairedEnd == pairedEnd) {
 			c->countTwo = realloc(c->countTwo, sizeof(int)*(c->length));
 			if(NULL==c->countTwo) {
 				PrintError(FnName,
@@ -255,7 +284,7 @@ void CountUpdate(Count *c,
 	}
 
 	/* Increment */
-	if(SingleEnd == which) {
+	if(0 == which) {
 		c->countOne[index]++;
 	}
 	else {
@@ -265,7 +294,6 @@ void CountUpdate(Count *c,
 
 void CountInitialize(Count *c)
 {
-	c->pairedEnd=SingleEnd;
 	c->length=0;
 	c->countOne=c->countTwo=NULL;
 }
