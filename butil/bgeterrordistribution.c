@@ -15,7 +15,7 @@
 #define ROTATE_NUM 100000
 
 /* Counts the number of errors at each position in the read
- * for both nucleotide and color space, as well as the 
+ * for both nucleotide and color space, as well as counting the 
  * number of reads containing a given number of errors.
  */
 
