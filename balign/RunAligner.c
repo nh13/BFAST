@@ -316,6 +316,11 @@ void RunDynamicProgramming(FILE *matchFP,
 	}
 
 	if(VERBOSE >= 0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Processing %d reads.\n",
+				numMatches - numNotAligned
+				);
+		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Performing alignment...\n");
 		fprintf(stderr, "Currently on:\n0");
 	}
