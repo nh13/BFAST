@@ -10,7 +10,6 @@
 #include "Definitions.h"
 #include "ReadInputFiles.h"
 
-
 /* TODO */
 /* Read the next read from the stream */
 int GetNextRead(FILE *fp, 

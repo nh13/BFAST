@@ -89,6 +89,9 @@ char ToUpper(char a)
 		case 't':
 			return 'T';
 			break;
+		case 'n':
+			return 'N';
+			break;
 		default:
 			return a;
 	}
@@ -135,6 +138,9 @@ char GetReverseComplimentAnyCaseBase(char a)
 			break;
 		case 't':
 			return 'a';
+			break;
+		case 'n':
+			return 'n';
 			break;
 		case 'A':
 			return 'T';
@@ -577,10 +583,12 @@ int UpdateRead(char *read, int readLength)
 			case 'c':
 			case 'g':
 			case 't':
+			case 'n':
 			case '0':
 			case '1':
 			case '2':
 			case '3':
+			case '4':
 				break;
 			case 'A':
 				read[i] = 'a';
@@ -594,6 +602,9 @@ int UpdateRead(char *read, int readLength)
 			case 'T':
 				read[i] = 't';
 				break;
+			case 'N':
+				read[i] = 'n';
+				break;
 			default:
 				return 0;
 				break;
@@ -603,6 +614,7 @@ int UpdateRead(char *read, int readLength)
 }
 
 /* TODO */
+/* Debugging function */
 int CheckReadAgainstIndex(RGIndex *index,
 		char *read,
 		int readLength)
@@ -629,8 +641,10 @@ int CheckReadAgainstIndex(RGIndex *index,
 }
 
 /* TODO */
+/* Debugging function */
 int CheckReadBase(char base) 
 {
+	/* Do not include "n"s */
 	switch(base) {
 		case 'a':
 		case 'c':
@@ -964,4 +978,20 @@ void AdjustBounds(RGBinary *rg,
 				Exit,
 				OutOfRange);
 	}
+}
+
+/* TODO */
+int WillGenerateValidKey(RGIndex *index,
+		char *read,
+		int readLength)
+{
+	int i;
+
+	for(i=0;i<index->width;i++) {
+		if(i >= readLength ||
+				(1 == index->mask[i] && 1==RGBinaryIsBaseN(read[i]))) {
+			return 0;
+		}
+	}
+	return 1;
 }
