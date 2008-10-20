@@ -58,8 +58,7 @@ PACKAGE_BUGREPORT;
 enum { 
 	DescInputFilesTitle, DescInputFileName, 
 	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired,
-	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, 
-	DescSingleEndTitle, DescMinScoreReads, 
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, 
 	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -84,7 +83,7 @@ static struct argp_option options[] = {
 			"\n\t\t3: Specifies to choose the alignment with the best score", 2},
 	{"algorithmReadsPaired", 'A', "algorithmReadsPaired", 0, "Specifies the algorithm to choose the alignment for each paired-end read after filtering:"
 		"\n\t\t0: Specifies no filtering will occur"
-			"\n\t\t1: Specifies that all alignments for either end that pass the filters will be outputted"
+			"\n\t\t1: Specifies that all alignments for either end that pass the general filters will be outputted"
 			"\n\t\t2: Specifies to only consider paired reads where both reads have been aligned uniquely"
 			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined", 2},
 	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
@@ -94,20 +93,19 @@ static struct argp_option options[] = {
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
-	{0, 0, 0, 0, "=========== Single End Filter Options ===============================================", 4},
-	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads", 4},
-	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 5},
-	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 5},
-	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends for filtering", 5},
-	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends for filtering", 5},
-	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
-	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF", 6},
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 6},
-	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 7},
-	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 7},
-	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 7},
+	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads",34},
+	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
+	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 4},
+	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends for filtering", 4},
+	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends for filtering", 4},
+	{0, 0, 0, 0, "=========== Output Options ==========================================================", 5},
+	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 5},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 5},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF", 5},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 5},
+	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 6},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 6},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 6},
 	{0, 0, 0, 0, 0, 0}
 };
 /*
