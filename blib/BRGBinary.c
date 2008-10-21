@@ -6,15 +6,15 @@
 #include "BError.h"
 #include "BLib.h"
 #include "BLibDefinitions.h"
-#include "RGBinary.h"
+#include "BRGBinary.h"
 
 /* TODO */
 /* Read from fasta file */
-void RGBinaryRead(char *rgFileName, 
-		RGBinary *rg,
+void BRGBinaryRead(char *rgFileName, 
+		BRGBinary *rg,
 		int32_t space)
 {
-	char *FnName="RGBinaryRead";
+	char *FnName="BRGBinaryRead";
 	FILE *fpRG=NULL;
 	int8_t c;
 	int8_t original;
@@ -66,7 +66,7 @@ void RGBinaryRead(char *rgFileName,
 		rg->numContigs++;
 
 		/* Reallocate memory to store one more contig. */
-		rg->contigs = realloc(rg->contigs, rg->numContigs*sizeof(RGBinaryContig));
+		rg->contigs = realloc(rg->contigs, rg->numContigs*sizeof(BRGBinaryContig));
 		if(NULL == rg->contigs) {
 			PrintError(FnName,
 					"rg->contigs",
@@ -138,7 +138,7 @@ void RGBinaryRead(char *rgFileName,
 					/* For repeat sequence, if both the previous base and 
 					 * current base are non-repeat, the color is non-repeat.
 					 * Otherwise, it is repeat sequence */
-					if(RGBinaryIsBaseRepeat(prevBase) == 1 || RGBinaryIsBaseRepeat(original) == 1) {
+					if(BRGBinaryIsBaseRepeat(prevBase) == 1 || BRGBinaryIsBaseRepeat(original) == 1) {
 						/* Repeat */
 						prevBase = original; /* Update the previous base */
 						original = ToUpper(c);
@@ -186,7 +186,7 @@ void RGBinaryRead(char *rgFileName,
 					rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1] = 0;
 				}
 				/* Insert the sequence correctly (as opposed to incorrectly) */
-				RGBinaryInsertBase(&rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1], byteIndex, original);
+				BRGBinaryInsertBase(&rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1], byteIndex, original);
 				rg->contigs[rg->numContigs-1].sequenceLength++;
 				numPosRead++;
 				if(rg->contigs[rg->numContigs-1].sequenceLength >= UINT_MAX) {
@@ -246,10 +246,10 @@ void RGBinaryRead(char *rgFileName,
 
 /* TODO */
 /* Read from file */
-void RGBinaryReadBinary(RGBinary *rg,
+void BRGBinaryReadBinary(BRGBinary *rg,
 		char *rgFileName)
 {
-	char *FnName="RGBinaryReadBinary";
+	char *FnName="BRGBinaryReadBinary";
 	FILE *fpRG;
 	int i;
 	int32_t numCharsPerByte;
@@ -272,13 +272,13 @@ void RGBinaryReadBinary(RGBinary *rg,
 				OpenFileError);
 	}
 
-	/* Read RGBinary information */
+	/* Read BRGBinary information */
 	if( fread(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
 				NULL,
-				"Could not read RGBinary information",
+				"Could not read BRGBinary information",
 				Exit,
 				ReadFileError);
 	}
@@ -296,7 +296,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	assert(rg->space == NTSpace|| rg->space == ColorSpace);
 
 	/* Allocate memory for the contigs */
-	rg->contigs = malloc(sizeof(RGBinaryContig)*rg->numContigs);
+	rg->contigs = malloc(sizeof(BRGBinaryContig)*rg->numContigs);
 	if(NULL==rg->contigs) {
 		PrintError(FnName,
 				"rg->contigs",
@@ -368,10 +368,10 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 }
 
-void RGBinaryWriteBinary(RGBinary *rg,
+void BRGBinaryWriteBinary(BRGBinary *rg,
 		char *rgFileName) 
 {
-	char *FnName="RGBinaryWriteBinary";
+	char *FnName="BRGBinaryWriteBinary";
 	FILE *fpRG;
 	int i;
 	int32_t numCharsPerByte;
@@ -391,7 +391,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 				OpenFileError);
 	}
 
-	/* Output RGBinary information */
+	/* Output BRGBinary information */
 	if(fwrite(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
 			fwrite(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
 			fwrite(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
@@ -425,7 +425,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 }
 
 /* TODO */
-void RGBinaryDelete(RGBinary *rg)
+void BRGBinaryDelete(BRGBinary *rg)
 {
 	int32_t i;
 
@@ -447,7 +447,7 @@ void RGBinaryDelete(RGBinary *rg)
 }
 
 /* TODO */
-void RGBinaryInsertBase(uint8_t *dest,
+void BRGBinaryInsertBase(uint8_t *dest,
 		int32_t byteIndex,
 		int8_t base)
 {
@@ -497,7 +497,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 					(*dest) = (*dest) | 0x80;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
+					PrintError("BRGBinaryInsertSequenceLetterIntoByte",
 							NULL,
 							"Could not understand case 0 base",
 							Exit,
@@ -524,7 +524,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 					(*dest) = (*dest) | 0x30;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
+					PrintError("BRGBinaryInsertSequenceLetterIntoByte",
 							NULL,
 							"Could not understand case 0 base",
 							Exit,
@@ -555,7 +555,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 					(*dest) = (*dest) | 0x08;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
+					PrintError("BRGBinaryInsertSequenceLetterIntoByte",
 							NULL,
 							"Could not understand case 1 repeat",
 							Exit,
@@ -582,7 +582,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 					(*dest) = (*dest) | 0x03;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
+					PrintError("BRGBinaryInsertSequenceLetterIntoByte",
 							NULL,
 							"Could not understand case 1 base",
 							Exit,
@@ -590,7 +590,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 			}
 			break;
 		default:
-			PrintError("RGBinaryInsertSequenceLetterIntoByte",
+			PrintError("BRGBinaryInsertSequenceLetterIntoByte",
 					NULL,
 					"Could not understand byteIndex",
 					Exit,
@@ -599,14 +599,14 @@ void RGBinaryInsertBase(uint8_t *dest,
 }
 
 /* TODO */
-int32_t RGBinaryGetSequence(RGBinary *rg,
+int32_t BRGBinaryGetSequence(BRGBinary *rg,
 		int32_t contig,
 		int32_t position,
 		int8_t strand,
 		char **sequence,
 		int32_t sequenceLength)
 {
-	char *FnName="RGBinaryGetSequence";
+	char *FnName="BRGBinaryGetSequence";
 	char *reverseCompliment;
 	int32_t curPos;
 
@@ -627,7 +627,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 
 	/* Copy over bases */
 	for(curPos=position;curPos < position + sequenceLength;curPos++) {
-		(*sequence)[curPos-position] = RGBinaryGetBase(rg, contig, curPos);
+		(*sequence)[curPos-position] = BRGBinaryGetBase(rg, contig, curPos);
 		if(0==(*sequence)[curPos-position]) {
 			/* Free memory */
 			free((*sequence));
@@ -669,7 +669,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 }
 
 /* TODO */
-void RGBinaryGetReference(RGBinary *rg,
+void BRGBinaryGetReference(BRGBinary *rg,
 		int32_t contig,
 		int32_t position,
 		int8_t strand,
@@ -679,7 +679,7 @@ void RGBinaryGetReference(RGBinary *rg,
 		int32_t *returnReferenceLength,
 		int32_t *returnPosition)
 {
-	char *FnName="RGBinaryGetReference";
+	char *FnName="BRGBinaryGetReference";
 	int32_t startPos, endPos;
 	int success;
 
@@ -734,7 +734,7 @@ void RGBinaryGetReference(RGBinary *rg,
 	}
 	else {
 		/* Get reference */
-		success = RGBinaryGetSequence(rg,
+		success = BRGBinaryGetSequence(rg,
 				contig,
 				startPos,
 				strand,
@@ -756,11 +756,11 @@ void RGBinaryGetReference(RGBinary *rg,
 }
 
 /* TODO */
-int8_t RGBinaryGetBase(RGBinary *rg,
+int8_t BRGBinaryGetBase(BRGBinary *rg,
 		int32_t contig,
 		int32_t position) 
 {
-	char *FnName = "RGBinaryGetBase";
+	char *FnName = "BRGBinaryGetBase";
 	int32_t numCharsPerByte=ALPHABET_SIZE/2;
 	uint8_t curByte, curChar;
 	int32_t repeat;
@@ -928,18 +928,18 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 }
 
 /* TODO */
-int32_t RGBinaryIsRepeat(RGBinary *rg,
+int32_t BRGBinaryIsRepeat(BRGBinary *rg,
 		int32_t contig,
 		int32_t position)
 {
-	int8_t curBase = RGBinaryGetBase(rg,
+	int8_t curBase = BRGBinaryGetBase(rg,
 			contig,
 			position);
 
-	return RGBinaryIsBaseRepeat(curBase);
+	return BRGBinaryIsBaseRepeat(curBase);
 }
 
-int32_t RGBinaryIsBaseRepeat(int8_t curBase)
+int32_t BRGBinaryIsBaseRepeat(int8_t curBase)
 {
 	switch(curBase) {
 		/* Lower case is repat */
@@ -960,32 +960,32 @@ int32_t RGBinaryIsBaseRepeat(int8_t curBase)
 }
 
 /* TODO */
-int32_t RGBinaryIsN(RGBinary *rg,
+int32_t BRGBinaryIsN(BRGBinary *rg,
 		int32_t contig, 
 		int32_t position) 
 {
-	int8_t curBase = RGBinaryGetBase(rg,
+	int8_t curBase = BRGBinaryGetBase(rg,
 			contig,
 			position);
 
-	return RGBinaryIsBaseN(curBase);
+	return BRGBinaryIsBaseN(curBase);
 }
 
 /* TODO */
-int32_t RGBinaryIsBaseN(int8_t curBase)
+int32_t BRGBinaryIsBaseN(int8_t curBase)
 {
 	return ( (curBase == 'n' || curBase == 'N')?1:0);
 }
 
 /* TODO */
-void RGBinaryPrintInfo(char *rgFileName)
+void BRGBinaryPrintInfo(char *rgFileName)
 {
 	int32_t i;
-	RGBinary rg;
+	BRGBinary rg;
 	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
 
 	/* Read in the reference genome */
-	RGBinaryReadBinary(&rg, rgFileName);
+	BRGBinaryReadBinary(&rg, rgFileName);
 
 	/* Print details */
 	for(i=0;i<rg.numContigs;i++) {
@@ -995,6 +995,6 @@ void RGBinaryPrintInfo(char *rgFileName)
 	fprintf(stderr, "number of contigs:\t%d\n", rg.numContigs);
 	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
 
-	RGBinaryDelete(&rg);
+	BRGBinaryDelete(&rg);
 }
 

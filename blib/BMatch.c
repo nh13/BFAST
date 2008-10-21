@@ -6,14 +6,14 @@
 #include <string.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
-#include "RGMatch.h"
+#include "BMatch.h"
 
 /* TODO */
-int32_t RGMatchRead(FILE *fp,
-		RGMatch *m,
+int32_t BMatchRead(FILE *fp,
+		BMatch *m,
 		int32_t binaryInput)
 {
-	char *FnName = "RGMatchRead";
+	char *FnName = "BMatchRead";
 	int32_t i;
 
 	/* Read the matches from the input file */
@@ -63,7 +63,7 @@ int32_t RGMatchRead(FILE *fp,
 		assert(m->numEntries >= 0);
 
 		/* Allocate memory for the matches */
-		RGMatchReallocate(m, m->numEntries);
+		BMatchReallocate(m, m->numEntries);
 
 		/* Read first sequence matches */
 		for(i=0;i<m->numEntries;i++) {
@@ -137,7 +137,7 @@ int32_t RGMatchRead(FILE *fp,
 		assert(m->numEntries >= 0);
 
 		/* Allocate memory for the matches */
-		RGMatchReallocate(m, m->numEntries);
+		BMatchReallocate(m, m->numEntries);
 
 		/* Read first sequence matches */
 		if(fread(m->contigs, sizeof(uint32_t), m->numEntries, fp)!=m->numEntries) {
@@ -167,11 +167,11 @@ int32_t RGMatchRead(FILE *fp,
 }
 
 /* TODO */
-void RGMatchPrint(FILE *fp,
-		RGMatch *m,
+void BMatchPrint(FILE *fp,
+		BMatch *m,
 		int32_t binaryOutput)
 {
-	char *FnName = "RGMatchPrint";
+	char *FnName = "BMatchPrint";
 	int32_t i;
 	assert(fp!=NULL);
 	assert(m->readLength > 0);
@@ -238,7 +238,7 @@ void RGMatchPrint(FILE *fp,
 }
 
 /* TODO */
-void RGMatchRemoveDuplicates(RGMatch *m,
+void BMatchRemoveDuplicates(BMatch *m,
 		int32_t maxNumMatches)
 {
 	int32_t i;
@@ -248,36 +248,36 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 	 * We should remove duplicates before checking against maxNumMatches. */
 	if(m->maxReached == 1) {
 		/* Clear the matches but don't free the read name */
-		RGMatchClearMatches(m);
+		BMatchClearMatches(m);
 		m->maxReached=1;
 		return;
 	}
 
 	if(m->numEntries > 0) {
 		/* Quick sort the data structure */
-		RGMatchQuickSort(m, 0, m->numEntries-1);
+		BMatchQuickSort(m, 0, m->numEntries-1);
 
 		/* Remove duplicates */
 		prevIndex=0;
 		for(i=1;i<m->numEntries;i++) {
-			if(RGMatchCompareAtIndex(m, prevIndex, m, i)==0) {
+			if(BMatchCompareAtIndex(m, prevIndex, m, i)==0) {
 				/* ignore */
 			}
 			else {
 				prevIndex++;
 				/* Copy to prevIndex (incremented) */
-				RGMatchCopyAtIndex(m, i, m, prevIndex);
+				BMatchCopyAtIndex(m, i, m, prevIndex);
 			}
 		}
 
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
-		RGMatchReallocate(m, prevIndex+1);
+		BMatchReallocate(m, prevIndex+1);
 
 		/* Check to see if we have too many matches */
 		if(m->numEntries > maxNumMatches) {
 			/* Clear the entries but don't free the read */
-			RGMatchClearMatches(m);
+			BMatchClearMatches(m);
 			m->maxReached=1;
 		}
 		else { 
@@ -287,61 +287,61 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 }
 
 /* TODO */
-void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
+void BMatchQuickSort(BMatch *m, int32_t low, int32_t high)
 {
 	int32_t i;
 	int32_t pivot=-1;
-	RGMatch *temp=NULL;
+	BMatch *temp=NULL;
 
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
-		temp=malloc(sizeof(RGMatch));
-		RGMatchInitialize(temp);
+		temp=malloc(sizeof(BMatch));
+		BMatchInitialize(temp);
 		if(NULL == temp) {
-			PrintError("RGMatchQuickSort",
+			PrintError("BMatchQuickSort",
 					"temp",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		RGMatchAllocate(temp, 1);
+		BMatchAllocate(temp, 1);
 
 		pivot = (low+high)/2;
 
-		RGMatchCopyAtIndex(m, pivot, temp, 0);
-		RGMatchCopyAtIndex(m, high, m, pivot);
-		RGMatchCopyAtIndex(temp, 0, m, high);
+		BMatchCopyAtIndex(m, pivot, temp, 0);
+		BMatchCopyAtIndex(m, high, m, pivot);
+		BMatchCopyAtIndex(temp, 0, m, high);
 
 		pivot = low;
 
 		for(i=low;i<high;i++) {
-			if(RGMatchCompareAtIndex(m, i, m, high) <= 0) {
+			if(BMatchCompareAtIndex(m, i, m, high) <= 0) {
 				if(i!=pivot) {
-					RGMatchCopyAtIndex(m, i, temp, 0);
-					RGMatchCopyAtIndex(m, pivot, m, i);
-					RGMatchCopyAtIndex(temp, 0, m, pivot);
+					BMatchCopyAtIndex(m, i, temp, 0);
+					BMatchCopyAtIndex(m, pivot, m, i);
+					BMatchCopyAtIndex(temp, 0, m, pivot);
 				}
 				pivot++;
 			}
 		}
-		RGMatchCopyAtIndex(m, pivot, temp, 0);
-		RGMatchCopyAtIndex(m, high, m, pivot);
-		RGMatchCopyAtIndex(temp, 0, m, high);
+		BMatchCopyAtIndex(m, pivot, temp, 0);
+		BMatchCopyAtIndex(m, high, m, pivot);
+		BMatchCopyAtIndex(temp, 0, m, high);
 
 		/* Free temp before the recursive call, otherwise we have a worst
 		 * case of O(n) space (NOT IN PLACE) 
 		 * */
-		RGMatchFree(temp);
+		BMatchFree(temp);
 		free(temp);
 		temp=NULL;
 
-		RGMatchQuickSort(m, low, pivot-1);
-		RGMatchQuickSort(m, pivot+1, high);
+		BMatchQuickSort(m, low, pivot-1);
+		BMatchQuickSort(m, pivot+1, high);
 	}
 }
 
 /* TODO */
-int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, int32_t indexTwo) 
+int32_t BMatchCompareAtIndex(BMatch *mOne, int32_t indexOne, BMatch *mTwo, int32_t indexTwo) 
 {
 	assert(indexOne >= 0 && indexOne < mOne->numEntries);
 	assert(indexTwo >= 0 && indexTwo < mTwo->numEntries);
@@ -359,9 +359,9 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 }
 
 /* TODO */
-void RGMatchAppend(RGMatch *src, RGMatch *dest)
+void BMatchAppend(BMatch *src, BMatch *dest)
 {
-	char *FnName = "RGMatchAppend";
+	char *FnName = "BMatchAppend";
 	int32_t i, start;
 
 	/* Make sure we are not appending to ourselves */
@@ -385,19 +385,19 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest)
 
 	start = dest->numEntries;
 	/* Allocate memory for the entires */
-	RGMatchReallocate(dest, dest->numEntries + src->numEntries);
+	BMatchReallocate(dest, dest->numEntries + src->numEntries);
 
 	assert(dest->numEntries == start + src->numEntries);
 	assert(start <= dest->numEntries);
 
 	/* Copy over the entries */
 	for(i=start;i<dest->numEntries;i++) {
-		RGMatchCopyAtIndex(src, i-start, dest, i);
+		BMatchCopyAtIndex(src, i-start, dest, i);
 	}
 }
 
 /* TODO */
-void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t destIndex)
+void BMatchCopyAtIndex(BMatch *src, int32_t srcIndex, BMatch *dest, int32_t destIndex)
 {
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
@@ -410,9 +410,9 @@ void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t d
 }
 
 /* TODO */
-void RGMatchAllocate(RGMatch *m, int32_t numEntries)
+void BMatchAllocate(BMatch *m, int32_t numEntries)
 {
-	char *FnName = "RGMatchAllocate";
+	char *FnName = "BMatchAllocate";
 	assert(m->numEntries==0);
 	m->numEntries = numEntries;
 	assert(m->positions==NULL);
@@ -445,9 +445,9 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 }
 
 /* TODO */
-void RGMatchReallocate(RGMatch *m, int32_t numEntries)
+void BMatchReallocate(BMatch *m, int32_t numEntries)
 {
-	char *FnName = "RGMatchReallocate";
+	char *FnName = "BMatchReallocate";
 	if(numEntries > 0) {
 		m->numEntries = numEntries;
 		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
@@ -480,13 +480,13 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 	}
 	else {
 		/* Free just the matches part, not the meta-data */
-		RGMatchClearMatches(m);
+		BMatchClearMatches(m);
 	}
 }
 
 /* TODO */
 /* Does not free read */
-void RGMatchClearMatches(RGMatch *m) 
+void BMatchClearMatches(BMatch *m) 
 {
 	m->maxReached=0;
 	m->numEntries=0;
@@ -500,17 +500,17 @@ void RGMatchClearMatches(RGMatch *m)
 }
 
 /* TODO */
-void RGMatchFree(RGMatch *m) 
+void BMatchFree(BMatch *m) 
 {
 	free(m->read);
 	free(m->contigs);
 	free(m->positions);
 	free(m->strand);
-	RGMatchInitialize(m);
+	BMatchInitialize(m);
 }
 
 /* TODO */
-void RGMatchInitialize(RGMatch *m)
+void BMatchInitialize(BMatch *m)
 {
 	m->readLength=0;
 	m->read=NULL;
@@ -522,9 +522,9 @@ void RGMatchInitialize(RGMatch *m)
 }
 
 /* TODO */
-void RGMatchCheck(RGMatch *m)
+void BMatchCheck(BMatch *m)
 {
-	char *FnName="RGMatchCheck";
+	char *FnName="BMatchCheck";
 	/* Basic asserts */
 	assert(m->readLength >= 0);
 	assert(m->maxReached == 0 || m->maxReached == 1);
@@ -565,7 +565,7 @@ void RGMatchCheck(RGMatch *m)
 }
 
 /* TODO */
-void RGMatchFilterOutOfRange(RGMatch *m,
+void BMatchFilterOutOfRange(BMatch *m,
 		int32_t startContig,
 		int32_t startPos,
 		int32_t endContig,
@@ -590,17 +590,17 @@ void RGMatchFilterOutOfRange(RGMatch *m,
 			/* Do not filter */
 			prevIndex++;
 			/* Copy contig/pos at i to contig/pos at prevIndex */
-			RGMatchCopyAtIndex(m, i, m, prevIndex);
+			BMatchCopyAtIndex(m, i, m, prevIndex);
 		}
 	}
 
 	/* Reallocate pair */
-	RGMatchReallocate(m, prevIndex+1);
+	BMatchReallocate(m, prevIndex+1);
 
 	/* Filter based on the maximum number of matches */
 	if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
 		/* Do not align this one */
-		RGMatchClearMatches(m);
+		BMatchClearMatches(m);
 		assert(m->readLength > 0);
 	}
 }

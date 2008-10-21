@@ -18,17 +18,14 @@ int AlignEntryPrint(AlignEntry *a,
 	assert(space == NTSpace ||
 			(space == ColorSpace && NULL != a->colorError));
 
-	/*
-	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
-	   assert(((int)strlen(a->read)) == a->length);
-	   assert(strlen(a->reference) == a->length);
-	   assert((int)strlen(a->colorError) == a->length);
-	   */
+	/* Print contig name */
+	if(BStringPrint(&a->contigName, outputFP, binaryOutput) < 0) {
+		return EOF;
+	}
 
 	if(binaryOutput == TextOutput) {
 
-		if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
-					a->contigName,
+		if(fprintf(outputFP, "%u\t%u\t%c\t%lf\t%u\t%u\n",
 					a->contig,
 					a->position,
 					a->strand,
@@ -38,20 +35,6 @@ int AlignEntryPrint(AlignEntry *a,
 			return EOF;
 		}
 
-		/* Print the reference and read alignment */
-		if(fprintf(outputFP, "%s\n%s\n",
-					a->reference,
-					a->read) < 0) {
-			return EOF;
-		}
-
-		/* Print the color errors if necessary */
-		if(space == ColorSpace) {
-			if(fprintf(outputFP, "%s\n",
-						a->colorError) < 0) {
-				return EOF;
-			}
-		}
 	}
 	else {
 		if(fwrite(&a->contigNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
@@ -70,6 +53,18 @@ int AlignEntryPrint(AlignEntry *a,
 			if(fwrite(a->colorError, sizeof(char), a->length, outputFP) != a->length) {
 				return EOF;
 			}
+		}
+	}
+	/* Print the reference and read alignment */
+	if(BStringPrint(&a->reference, outputFP, binaryOutput) < 0 ||
+			BStringPrint(&a->read, outputFP, binaryOutput) < 0) {
+		return -1;
+	}
+
+	/* Print the color errors if necessary */
+	if(space == ColorSpace) {
+		if(BStringPrint(&a->colorError, outputFP, binaryOutput)<0) {
+			return -1;
 		}
 	}
 

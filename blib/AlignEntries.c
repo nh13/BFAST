@@ -19,10 +19,18 @@ void AlignEntriesPrint(AlignEntries *a,
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 
+	/* Print the read name */
+	if(BStringPrint(&a->readName, outputFP, binaryOutput)<0) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+	}
+
 	if(binaryOutput == TextOutput) {
 		/* Print the read name and paired end flag */
-		if(fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\n",
-					a->readName,
+		if(fprintf(outputFP, "%d\t%d\t%d\t%d\n",
 					a->pairedEnd,
 					a->space,
 					a->numEntriesOne,
@@ -35,11 +43,7 @@ void AlignEntriesPrint(AlignEntries *a,
 		}
 	}
 	else {
-		assert(a!=NULL);
-		tempReadNameLength = (int)strlen(a->readName);
-		if(fwrite(&tempReadNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(a->readName, sizeof(char), tempReadNameLength, outputFP) != tempReadNameLength ||
-				fwrite(&a->pairedEnd, sizeof(int32_t), 1, outputFP) != 1 ||
+		if(fwrite(&a->pairedEnd, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->space, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->numEntriesOne, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->numEntriesTwo, sizeof(int32_t), 1, outputFP) != 1) {
@@ -91,41 +95,27 @@ int AlignEntriesRead(AlignEntries *a,
 	int i;
 	int32_t tempReadNameLength;
 
-	/* Allocate memory for the read name */
-	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-	if(a->readName == NULL) {
-		if(NULL == a->readName) {
-			PrintError(FnName,
-					"a->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+	/* Read the read name */
+	if(BStringRead(&a->readName, inputFP, binaryInput)==EOF) {
+		return EOF;
 	}
 
-	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
+	/* Read the paired end flag, space flag, and the number of entries for both entries */
 	if(binaryInput == TextInput) {
-		if(fscanf(inputFP, "%s %d %d %d %d",
-					a->readName,
+		if(fscanf(inputFP, "%d %d %d %d",
 					&a->pairedEnd,
 					&a->space,
 					&a->numEntriesOne,
 					&a->numEntriesTwo)==EOF) {
-			/* Free read name before leaving */
-			free(a->readName);
-			a->readName=NULL;
-			return EOF;
+			PrintError(FnName,
+					NULL,
+					"Could not read from file",
+					Exit,
+					ReadFileError);
 		}
 	}
 	else {
-		if(fread(&tempReadNameLength, sizeof(int32_t), 1, inputFP) != 1) {
-			/* Free read name before leaving */
-			free(a->readName);
-			a->readName=NULL;
-			return EOF;
-		}
-		if(fread(a->readName, sizeof(char), tempReadNameLength, inputFP) != tempReadNameLength ||
-				fread(&a->pairedEnd, sizeof(int32_t), 1, inputFP) != 1 ||
+		if(fread(&a->pairedEnd, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->space, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->numEntriesOne, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->numEntriesTwo, sizeof(int32_t), 1, inputFP) != 1) {
@@ -135,8 +125,6 @@ int AlignEntriesRead(AlignEntries *a,
 					Exit,
 					ReadFileError);
 		}
-		/* Add the null terminator */
-		a->readName[tempReadNameLength]='\0';
 	}
 
 	if(a->pairedEnd == 0 && a->numEntriesTwo > 0) {
@@ -316,20 +304,6 @@ void AlignEntriesReallocate(AlignEntries *a,
 	a->pairedEnd = pairedEnd;
 	a->space = space;
 
-	/* Don't change read name */
-	/*
-	a->readName = realloc(a->readName, sizeof(char)*SEQUENCE_NAME_LENGTH);
-	if(a->readName == NULL) {
-		if(NULL == a->readName) {
-			PrintError(FnName,
-					"a->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	*/
-
 	assert(a->pairedEnd == SingleEnd || a->numEntriesTwo == PairedEnd);
 
 	/* Allocate memory for the entries */ 
@@ -358,7 +332,7 @@ void AlignEntriesReallocate(AlignEntries *a,
 
 /* TODO */
 void AlignEntriesAllocate(AlignEntries *a,
-		char *readName,
+		BString *readName,
 		int numEntriesOne,
 		int numEntriesTwo,
 		int pairedEnd,
@@ -372,18 +346,7 @@ void AlignEntriesAllocate(AlignEntries *a,
 	a->pairedEnd = pairedEnd;
 	a->space = space;
 
-	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
-	if(a->readName == NULL) {
-		if(NULL == a->readName) {
-			PrintError(FnName,
-					"a->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	/* Copy over */
-	strcpy(a->readName, readName);
+	BStringCopy(&a->readName, readName);
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 
@@ -439,7 +402,7 @@ void AlignEntriesFree(AlignEntries *a)
 	for(i=0;i<a->numEntriesTwo;i++) {
 		AlignEntryFree(&a->entriesTwo[i]);
 	}
-	free(a->readName);
+	BStringFree(&a->readName);
 	free(a->entriesOne);
 	free(a->entriesTwo);
 	AlignEntriesInitialize(a);
@@ -448,7 +411,7 @@ void AlignEntriesFree(AlignEntries *a)
 /* TODO */
 void AlignEntriesInitialize(AlignEntries *a) 
 {
-	a->readName=NULL;
+	BStringInitialize(&a->readName);
 	a->entriesOne=NULL;
 	a->numEntriesOne=0;
 	a->entriesTwo=NULL;

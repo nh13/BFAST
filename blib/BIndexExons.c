@@ -6,20 +6,18 @@
 
 #include "BLibDefinitions.h"
 #include "BError.h"
-#include "RGIndex.h"
-#include "RGBinary.h"
-#include "RGIndexExons.h"
+#include "BIndex.h"
+#include "BIndexExons.h"
 
-
-void RGIndexExonsRead(char *exonsFileName,
-		RGIndexExons *e)
+void BIndexExonsRead(char *exonsFileName,
+		BIndexExons *e)
 {
-	char *FnName = "RGIndexExonsRead";
+	char *FnName = "BIndexExonsRead";
 	FILE *fp;
 	uint32_t prevEndContig, prevEndPos;
 	uint32_t curStartContig, curStartPos, curEndContig, curEndPos;
 
-	RGIndexExonsInitialize(e);
+	BIndexExonsInitialize(e);
 
 	/* Open the file */
 	if(VERBOSE >= 0) {
@@ -66,7 +64,7 @@ void RGIndexExonsRead(char *exonsFileName,
 		}
 		/* Copy over */
 		e->numExons++;
-		e->exons = realloc(e->exons, sizeof(RGIndexExon)*e->numExons);
+		e->exons = realloc(e->exons, sizeof(BIndexExon)*e->numExons);
 		if(NULL == e->exons) {
 			PrintError(FnName,
 					"e->exons",
@@ -92,7 +90,7 @@ void RGIndexExonsRead(char *exonsFileName,
 	}
 }
 
-int RGIndexExonsWithin(RGIndexExons *e,
+int BIndexExonsWithin(BIndexExons *e,
 		uint32_t startContig,
 		uint32_t startPos,
 		uint32_t endContig,
@@ -143,14 +141,14 @@ int RGIndexExonsWithin(RGIndexExons *e,
 	return found;
 }
 
-void RGIndexExonsInitialize(RGIndexExons *e)
+void BIndexExonsInitialize(BIndexExons *e)
 {
 	e->numExons=0;
 	e->exons=NULL;
 }
 
-void RGIndexExonsDelete(RGIndexExons *e)
+void BIndexExonsDelete(BIndexExons *e)
 {
 	free(e->exons);
-	RGIndexExonsInitialize(e);
+	BIndexExonsInitialize(e);
 }

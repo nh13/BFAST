@@ -8,22 +8,22 @@
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
-#include "RGIndex.h"
-#include "RGMatch.h"
-#include "RGRanges.h"
-#include "RGReads.h"
+#include "BIndex.h"
+#include "BMatch.h"
+#include "BRanges.h"
+#include "BReads.h"
 
 /* TODO 
- * remove directionality in RGReads
+ * remove directionality in BReads
  * remove directionality in generating reads.
  * */
 
 char ALPHABET[ALPHABET_SIZE] = "acgt";
 
 /* TODO */
-void RGReadsFindMatches(RGIndex *index, 
-		RGBinary *rg,
-		RGMatch *match,
+void BReadsFindMatches(BIndex *index, 
+		BBinary *rg,
+		BMatch *match,
 		int *offsets,
 		int numOffsets,
 		int space,
@@ -40,12 +40,12 @@ void RGReadsFindMatches(RGIndex *index,
 	int readLength=0;
 	char read[SEQUENCE_LENGTH]="\0";
 	char reverseRead[SEQUENCE_LENGTH]="\0";
-	RGReads reads;
-	RGRanges ranges;
+	BReads reads;
+	BRanges ranges;
 
 	/* Initialize */
-	RGReadsInitialize(&reads);
-	RGRangesInitialize(&ranges);
+	BReadsInitialize(&reads);
+	BRangesInitialize(&ranges);
 
 	/* Remove adaptor and first color if we are in color space */
 	if(space==ColorSpace) {
@@ -71,7 +71,7 @@ void RGReadsFindMatches(RGIndex *index,
 	}
 
 	/* Generate reads */
-	RGReadsGenerateReads(read,
+	BReadsGenerateReads(read,
 			readLength,
 			index,
 			&reads,
@@ -86,7 +86,7 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapDeletions);
 
 	/* Generate reads */
-	RGReadsGenerateReads(reverseRead,
+	BReadsGenerateReads(reverseRead,
 			readLength,
 			index,
 			&reads,
@@ -108,14 +108,14 @@ void RGReadsFindMatches(RGIndex *index,
 	   numDeletions > 0 ||
 	   numGapInsertions > 0 ||
 	   numGapDeletions > 0) {
-	   RGReadsRemoveDuplicates(reads);
+	   BReadsRemoveDuplicates(reads);
 	   }
 	   */
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
 		if(1==WillGenerateValidKey(index, reads.reads[i], reads.readLength[i])) {
-			RGIndexGetRanges(index, 
+			BIndexGetRanges(index, 
 					rg,
 					reads.reads[i],
 					reads.readLength[i],
@@ -128,7 +128,7 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Remove duplicate ranges */
 	/* This exploits the fact that the ranges are non-overlapping */
-	RGRangesRemoveDuplicates(&ranges);
+	BRangesRemoveDuplicates(&ranges);
 
 	/* Get the total number of matches we wish to copy over */
 	for(i=0;i<ranges.numEntries;i++) {
@@ -142,16 +142,16 @@ void RGReadsFindMatches(RGIndex *index,
 	}
 	else if(0 < numEntries) {
 		/* Allocate memory for the matches */
-		RGMatchAllocate(match, numEntries);
+		BMatchAllocate(match, numEntries);
 
 		/* Transfer ranges to matches */
-		RGRangesCopyToRGMatch(&ranges,
+		BRangesCopyToBMatch(&ranges,
 				index,
 				match);
 	}
 
 	/* Remove duplicates */
-	RGMatchRemoveDuplicates(match,
+	BMatchRemoveDuplicates(match,
 			maxNumMatches);
 
 	/* In color space we removed the first base/color so we need to 
@@ -164,16 +164,16 @@ void RGReadsFindMatches(RGIndex *index,
 	}
 
 	/* Free memory */
-	RGRangesFree(&ranges);
-	RGReadsFree(&reads);
+	BRangesFree(&ranges);
+	BReadsFree(&reads);
 }
 
 /* TODO */
 /* We may want to include enumeration of SNPs in color space */
-void RGReadsGenerateReads(char *read,
+void BReadsGenerateReads(char *read,
 		int readLength,
-		RGIndex *index,
-		RGReads *reads,
+		BIndex *index,
+		BReads *reads,
 		char direction,
 		int *offsets,
 		int numOffsets,
@@ -190,7 +190,7 @@ void RGReadsGenerateReads(char *read,
 	for(i=0;i<numOffsets && (readLength - offsets[i]) >= index->width;i++) {
 
 		/* Insert the perfect match */
-		RGReadsGeneratePerfectMatch(read,
+		BReadsGeneratePerfectMatch(read,
 				readLength,
 				direction,
 				offsets[i],
@@ -202,7 +202,7 @@ void RGReadsGenerateReads(char *read,
 		 * numMismatches.  
 		 * */
 		if(numMismatches > 0) {
-			RGReadsGenerateMismatches(read,
+			BReadsGenerateMismatches(read,
 					readLength,
 					direction,
 					offsets[i],
@@ -218,7 +218,7 @@ void RGReadsGenerateReads(char *read,
 		 * over all possible deletions in the entire read.
 		 * */
 		if(numDeletions > 0) {
-			RGReadsGenerateDeletions(read,
+			BReadsGenerateDeletions(read,
 					readLength,
 					direction,
 					offsets[i],
@@ -236,7 +236,7 @@ void RGReadsGenerateReads(char *read,
 		 * */
 		if(numInsertions > 0) {
 			/* Forward */
-			RGReadsGenerateInsertions(read,
+			BReadsGenerateInsertions(read,
 					readLength,
 					direction,
 					offsets[i],
@@ -250,7 +250,7 @@ void RGReadsGenerateReads(char *read,
 		 * then we will delete bases in the gap.
 		 * */
 		if(numGapInsertions > 0) {
-			RGReadsGenerateGapInsertions(read,
+			BReadsGenerateGapInsertions(read,
 					readLength,
 					direction,
 					offsets[i],
@@ -265,7 +265,7 @@ void RGReadsGenerateReads(char *read,
 		 * */
 		if(numGapDeletions > 0) {
 			/* Forward */
-			RGReadsGenerateGapDeletions(read,
+			BReadsGenerateGapDeletions(read,
 					readLength,
 					direction,
 					offsets[i],
@@ -278,12 +278,12 @@ void RGReadsGenerateReads(char *read,
 }
 
 /* TODO */
-void RGReadsGeneratePerfectMatch(char *read,
+void BReadsGeneratePerfectMatch(char *read,
 		int readLength,
 		char direction,
 		int offset,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	int32_t i;
 	char *curRead;
@@ -295,7 +295,7 @@ void RGReadsGeneratePerfectMatch(char *read,
 
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsPerfectMatchesHelper",
+		PrintError("BReadsPerfectMatchesHelper",
 				"curRead",
 				"Could not allocate memory",
 				Exit,
@@ -308,20 +308,20 @@ void RGReadsGeneratePerfectMatch(char *read,
 	curRead[index->width]='\0';
 
 	/* Append */
-	RGReadsAppend(reads, curRead, index->width, direction, offset);
+	BReadsAppend(reads, curRead, index->width, direction, offset);
 
 	free(curRead);
 	curRead = NULL;
 }
 
 /* TODO */
-void RGReadsGenerateMismatches(char *read,
+void BReadsGenerateMismatches(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numMismatches,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	char *curRead=NULL;
 
@@ -333,14 +333,14 @@ void RGReadsGenerateMismatches(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateMismatches",
+		PrintError("BReadsGenerateMismatches",
 				"curRead",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
 
-	RGReadsGenerateMismatchesHelper(read,
+	BReadsGenerateMismatchesHelper(read,
 			readLength,
 			direction,
 			offset,
@@ -355,15 +355,15 @@ void RGReadsGenerateMismatches(char *read,
 }
 
 /* TODO */
-void RGReadsGenerateMismatchesHelper(char *read,
+void BReadsGenerateMismatchesHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numMismatchesLeft,
 		char *curRead,
 		int curReadIndex,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	int i;
 
@@ -376,7 +376,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		/* No more to print */
 		if(curReadIndex == index->width) {
 			curRead[index->width]='\0';
-			RGReadsAppend(reads, curRead, index->width, direction, offset);
+			BReadsAppend(reads, curRead, index->width, direction, offset);
 			return;
 		}
 		else {
@@ -397,7 +397,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 				if(read[offset+tempReadIndex] == ALPHABET[i]) {
 					/* No mismatch */
 					/* Keep going */
-					RGReadsGenerateMismatchesHelper(read,
+					BReadsGenerateMismatchesHelper(read,
 							readLength,
 							direction,
 							offset,
@@ -411,7 +411,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 					/* Mismatch */
 
 					/* Keep going */
-					RGReadsGenerateMismatchesHelper(read,
+					BReadsGenerateMismatchesHelper(read,
 							readLength,
 							direction,
 							offset,
@@ -434,19 +434,19 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		assert(curReadIndex == index->width);
 		curRead[index->width]='\0';
 		/* Append */
-		RGReadsAppend(reads, curRead, index->width, direction, offset);
+		BReadsAppend(reads, curRead, index->width, direction, offset);
 	}
 }
 
 /* TODO */
 /* Note: Deletions have occured, so insert bases */
-void RGReadsGenerateDeletions(char *read,
+void BReadsGenerateDeletions(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numDeletions,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	char *curRead=NULL;
 	int i;
@@ -454,7 +454,7 @@ void RGReadsGenerateDeletions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateDeletions",
+		PrintError("BReadsGenerateDeletions",
 				"curRead",
 				"Could not allocate memory",
 				Exit,
@@ -462,7 +462,7 @@ void RGReadsGenerateDeletions(char *read,
 	}
 
 	for(i=1;i<=numDeletions;i++) {
-		RGReadsGenerateDeletionsHelper(read,
+		BReadsGenerateDeletionsHelper(read,
 				readLength,
 				direction,
 				offset,
@@ -482,7 +482,7 @@ void RGReadsGenerateDeletions(char *read,
 /* TODO */
 /* NOTE: no error checking yet! */
 /* Deletion occured, so insert bases */
-void RGReadsGenerateDeletionsHelper(char *read,
+void BReadsGenerateDeletionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
@@ -491,8 +491,8 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		int deletionOffset,
 		char *curRead,
 		int curReadIndex,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	int i;
 
@@ -506,7 +506,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 			if(numDeletionsLeft != numDeletions) {
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				BReadsAppend(reads, curRead, index->width, direction, offset);
 			}
 			return;
 		}
@@ -527,7 +527,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 				for(i=0;i<ALPHABET_SIZE;i++) {
 					curRead[curReadIndex] = ALPHABET[i];
 					/* Use on first read */
-					RGReadsGenerateDeletionsHelper(read,
+					BReadsGenerateDeletionsHelper(read,
 							readLength,
 							direction,
 							offset,
@@ -544,7 +544,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 			if(numDeletionsLeft == numDeletions) {
 				/* Try not inserting a base */
 				curRead[curReadIndex] = read[offset+curReadIndex-deletionOffset];
-				RGReadsGenerateDeletionsHelper(read,
+				BReadsGenerateDeletionsHelper(read,
 						readLength,
 						direction,
 						offset,
@@ -567,7 +567,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		curRead[index->width]='\0';
 		assert(curReadIndex == index->width);
 		/* Append */
-		RGReadsAppend(reads, curRead, index->width, direction, offset);
+		BReadsAppend(reads, curRead, index->width, direction, offset);
 		return;
 
 	}
@@ -575,13 +575,13 @@ void RGReadsGenerateDeletionsHelper(char *read,
 
 /* TODO */
 /* Note: Insertions have occured, so delete bases */
-void RGReadsGenerateInsertions(char *read,
+void BReadsGenerateInsertions(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numInsertions,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	char *curRead=NULL;
 	int maxNumInsertions = 0;
@@ -602,7 +602,7 @@ void RGReadsGenerateInsertions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateInsertions",
+		PrintError("BReadsGenerateInsertions",
 				"curRead",
 				"Could not allocate memory",
 				Exit,
@@ -611,7 +611,7 @@ void RGReadsGenerateInsertions(char *read,
 
 	/* Try up to the number of insertions */
 	for(i=1;i<=numInsertions;i++) {
-		RGReadsGenerateInsertionsHelper(read,
+		BReadsGenerateInsertionsHelper(read,
 				readLength,
 				direction,
 				offset,
@@ -631,7 +631,7 @@ void RGReadsGenerateInsertions(char *read,
 /* TODO */
 /* NOTE: no error checking yet! */
 /* Try deleting bases from the read */
-void RGReadsGenerateInsertionsHelper(char *read,
+void BReadsGenerateInsertionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
@@ -640,8 +640,8 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		int insertionOffset,
 		char *curRead,
 		int curReadIndex,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	if(curReadIndex > index->width) {
 		return;
@@ -653,14 +653,14 @@ void RGReadsGenerateInsertionsHelper(char *read,
 			if(numInsertionsLeft != numInsertions) {
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				BReadsAppend(reads, curRead, index->width, direction, offset);
 			}
 			return;
 		}
 		/* try deleting a base */
 		if(curReadIndex == 0 || 
 				read[curReadIndex-1] != read[curReadIndex]) {
-			RGReadsGenerateInsertionsHelper(read,
+			BReadsGenerateInsertionsHelper(read,
 					readLength,
 					direction,
 					offset,
@@ -686,7 +686,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 				return;
 			}
 			curRead[tempReadIndex] = read[offset+tempReadIndex+insertionOffset];
-			RGReadsGenerateInsertionsHelper(read,
+			BReadsGenerateInsertionsHelper(read,
 					readLength,
 					direction,
 					offset,
@@ -708,20 +708,20 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		curRead[index->width]='\0';
 		assert(curReadIndex == index->width);
 		/* Append */
-		RGReadsAppend(reads, curRead, index->width, direction, offset);
+		BReadsAppend(reads, curRead, index->width, direction, offset);
 		return;
 	}
 }
 
 /* TODO */
 /* Note: Deletions have occured, so insert bases in the gaps */
-void RGReadsGenerateGapDeletions(char *read,
+void BReadsGenerateGapDeletions(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numGapDeletions,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	char *curRead = NULL;
 
@@ -731,13 +731,13 @@ void RGReadsGenerateGapDeletions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(readLength+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateGapDeletions",
+		PrintError("BReadsGenerateGapDeletions",
 				"curRead",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
-	RGReadsGenerateGapDeletionsHelper(read,
+	BReadsGenerateGapDeletionsHelper(read,
 			readLength,
 			direction,
 			offset,
@@ -753,14 +753,14 @@ void RGReadsGenerateGapDeletions(char *read,
 /* TODO */
 /* NOTE: no error checking yet! */
 /* We assume that all insertions in the gap are grouped together */
-void RGReadsGenerateGapDeletionsHelper(char *read,
+void BReadsGenerateGapDeletionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numGapDeletions,
 		char *curRead,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	int i, j, k;
 	int readPos;
@@ -806,7 +806,7 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 				assert(tempCurReadPos == index->width);
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				BReadsAppend(reads, curRead, index->width, direction, offset);
 			}
 		}
 		/* Copy base */
@@ -819,13 +819,13 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 
 /* TODO */
 /* Note: Insertions have occured, so delete bases */
-void RGReadsGenerateGapInsertions(char *read,
+void BReadsGenerateGapInsertions(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numGapInsertions,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	char *curRead=NULL;
 
@@ -837,14 +837,14 @@ void RGReadsGenerateGapInsertions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(readLength+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateGapInsertions",
+		PrintError("BReadsGenerateGapInsertions",
 				"curRead",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
 	}
 
-	RGReadsGenerateGapInsertionsHelper(read,
+	BReadsGenerateGapInsertionsHelper(read,
 			readLength,
 			direction,
 			offset,
@@ -860,14 +860,14 @@ void RGReadsGenerateGapInsertions(char *read,
 /* TODO */
 /* NOTE: no error checking yet! */
 /* Delete bases in the gaps */
-void RGReadsGenerateGapInsertionsHelper(char *read,
+void BReadsGenerateGapInsertionsHelper(char *read,
 		int readLength,
 		char direction,
 		int offset,
 		int numGapInsertions,
 		char *curRead,
-		RGIndex *index,
-		RGReads *reads)
+		BIndex *index,
+		BReads *reads)
 {
 	int i, j;
 	int readPos;
@@ -910,7 +910,7 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 				assert(tempCurReadPos == index->width);
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				BReadsAppend(reads, curRead, index->width, direction, offset);
 			}
 		}
 		/* Copy base */
@@ -922,7 +922,7 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 }
 
 /* TODO */
-void RGReadsRemoveDuplicates(RGReads *s)
+void BReadsRemoveDuplicates(BReads *s)
 {
 	int32_t i;
 	int32_t prevIndex=0;
@@ -932,48 +932,48 @@ void RGReadsRemoveDuplicates(RGReads *s)
 	}
 
 	/* Sort the data structure */
-	RGReadsQuickSort(s, 0, s->numReads-1);
+	BReadsQuickSort(s, 0, s->numReads-1);
 
 	/* Remove duplicates */
 	prevIndex=0;
 	for(i=1;i<s->numReads;i++) {
-		if(RGReadsCompareAtIndex(s, prevIndex, s, i)==0) { 
+		if(BReadsCompareAtIndex(s, prevIndex, s, i)==0) { 
 			/* Ignore */
 		}
 		else {
 			prevIndex++;
 			/* Copy over to temporary pair */
-			RGReadsCopyAtIndex(s, i, s, prevIndex);
+			BReadsCopyAtIndex(s, i, s, prevIndex);
 		}
 	}
 
 	/* Reallocate pair */
-	RGReadsReallocate(s, prevIndex+1);
+	BReadsReallocate(s, prevIndex+1);
 
 }
 
 /* TO DO */
-void RGReadsQuickSort(RGReads *s, int low, int high)
+void BReadsQuickSort(BReads *s, int low, int high)
 {
 	int32_t i;
 	int32_t pivot=-1;
-	RGReads *temp;
+	BReads *temp;
 
 	if(low < high) {
-		/* Allocate memory for the temp RGReads indexes */
-		temp = malloc(sizeof(RGReads));
+		/* Allocate memory for the temp BReads indexes */
+		temp = malloc(sizeof(BReads));
 		if(NULL == temp) {
-			PrintError("RGReadsQuickSort",
+			PrintError("BReadsQuickSort",
 					"temp",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		RGReadsInitialize(temp);
-		RGReadsAllocate(temp, 1);
+		BReadsInitialize(temp);
+		BReadsAllocate(temp, 1);
 		temp->reads[0] = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == temp->reads[0]) {
-			PrintError("RGReadsQuickSort",
+			PrintError("BReadsQuickSort",
 					"temp->reads[0]",
 					"Could not allocate memory",
 					Exit,
@@ -984,38 +984,38 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 
 		pivot = (low + high)/2;
 
-		RGReadsCopyAtIndex(s, pivot, temp, 0);
-		RGReadsCopyAtIndex(s, high, s, pivot);
-		RGReadsCopyAtIndex(temp, 0, s, high);
+		BReadsCopyAtIndex(s, pivot, temp, 0);
+		BReadsCopyAtIndex(s, high, s, pivot);
+		BReadsCopyAtIndex(temp, 0, s, high);
 
 		pivot = low;
 
 		for(i=low;i<high;i++) {
-			if(RGReadsCompareAtIndex(s, i, s, high) <= 0) {
+			if(BReadsCompareAtIndex(s, i, s, high) <= 0) {
 				if(i!=pivot) {
-					RGReadsCopyAtIndex(s, i, temp, 0);
-					RGReadsCopyAtIndex(s, pivot, s, i);
-					RGReadsCopyAtIndex(temp, 0, s, pivot);
+					BReadsCopyAtIndex(s, i, temp, 0);
+					BReadsCopyAtIndex(s, pivot, s, i);
+					BReadsCopyAtIndex(temp, 0, s, pivot);
 				}
 				pivot++;
 			}
 		}
-		RGReadsCopyAtIndex(s, pivot, temp, 0);
-		RGReadsCopyAtIndex(s, high, s, pivot);
-		RGReadsCopyAtIndex(temp, 0, s, high);
+		BReadsCopyAtIndex(s, pivot, temp, 0);
+		BReadsCopyAtIndex(s, high, s, pivot);
+		BReadsCopyAtIndex(temp, 0, s, high);
 
 		/* Free memory before recursive call */
 		assert(temp->numReads == 1);
-		RGReadsFree(temp);
+		BReadsFree(temp);
 		free(temp);
 		temp=NULL;
 
-		RGReadsQuickSort(s, low, pivot-1);
-		RGReadsQuickSort(s, pivot+1, high);
+		BReadsQuickSort(s, low, pivot-1);
+		BReadsQuickSort(s, pivot+1, high);
 	}
 }
 
-int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo) 
+int BReadsCompareAtIndex(BReads *pOne, int iOne, BReads *pTwo, int iTwo) 
 {
 	int cmp;
 
@@ -1033,7 +1033,7 @@ int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo)
 	}
 }
 
-void RGReadsCopyAtIndex(RGReads *src, int srcIndex, RGReads *dest, int destIndex)
+void BReadsCopyAtIndex(BReads *src, int srcIndex, BReads *dest, int destIndex)
 {
 	if(dest != src || srcIndex != destIndex) {
 		strcpy(dest->reads[destIndex], src->reads[srcIndex]);
@@ -1043,13 +1043,13 @@ void RGReadsCopyAtIndex(RGReads *src, int srcIndex, RGReads *dest, int destIndex
 	}
 }
 
-void RGReadsAllocate(RGReads *reads, int numReads)
+void BReadsAllocate(BReads *reads, int numReads)
 {
 	assert(reads->numReads == 0);
 	reads->numReads = numReads;
 	reads->reads = malloc(sizeof(char*)*reads->numReads);
 	if(NULL == reads->reads) {
-		PrintError("RGReadsAllocate",
+		PrintError("BReadsAllocate",
 				"reads->reads",
 				"Could not allocate memory",
 				Exit,
@@ -1057,7 +1057,7 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	}
 	reads->readLength= malloc(sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->readLength) {
-		PrintError("RGReadsAllocate",
+		PrintError("BReadsAllocate",
 				"reads->readLength",
 				"Could not allocate memory",
 				Exit,
@@ -1065,7 +1065,7 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	}
 	reads->offset = malloc(sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->offset) {
-		PrintError("RGReadsAllocate",
+		PrintError("BReadsAllocate",
 				"reads->offset",
 				"Could not allocate memory",
 				Exit,
@@ -1073,7 +1073,7 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	}
 	reads->strand = malloc(sizeof(int8_t)*(reads->numReads));
 	if(NULL == reads->strand) {
-		PrintError("RGReadsAllocate",
+		PrintError("BReadsAllocate",
 				"reads->strand",
 				"Could not allocate memory",
 				Exit,
@@ -1081,7 +1081,7 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	}
 }
 
-void RGReadsReallocate(RGReads *reads, int numReads) 
+void BReadsReallocate(BReads *reads, int numReads) 
 {
 	int i;
 	if(numReads > 0) {
@@ -1094,7 +1094,7 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 		reads->numReads = numReads;
 		reads->reads = realloc(reads->reads, sizeof(char*)*(reads->numReads));
 		if(NULL == reads->reads) {
-			PrintError("RGReadsReallocate",
+			PrintError("BReadsReallocate",
 					"reads->reads",
 					"Could not reallocate memory",
 					Exit,
@@ -1102,7 +1102,7 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 		}
 		reads->readLength = realloc(reads->readLength, sizeof(int32_t)*(reads->numReads));
 		if(NULL == reads->readLength) {
-			PrintError("RGReadsReallocate",
+			PrintError("BReadsReallocate",
 					"reads->readLength",
 					"Could not reallocate memory",
 					Exit,
@@ -1110,7 +1110,7 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 		}
 		reads->offset = realloc(reads->offset, sizeof(int32_t)*(reads->numReads));
 		if(NULL == reads->offset) {
-			PrintError("RGReadsReallocate",
+			PrintError("BReadsReallocate",
 					"reads->offset",
 					"Could not reallocate memory",
 					Exit,
@@ -1118,7 +1118,7 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 		}
 		reads->strand = realloc(reads->strand, sizeof(int8_t)*(reads->numReads));
 		if(NULL == reads->strand) {
-			PrintError("RGReadsReallocate",
+			PrintError("BReadsReallocate",
 					"reads->strand",
 					"Could not reallocate memory",
 					Exit,
@@ -1126,11 +1126,11 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 		}
 	}
 	else {
-		RGReadsFree(reads);
+		BReadsFree(reads);
 	}
 }
 
-void RGReadsFree(RGReads *reads) 
+void BReadsFree(BReads *reads) 
 {
 	int i;
 
@@ -1143,10 +1143,10 @@ void RGReadsFree(RGReads *reads)
 	free(reads->readLength);
 	free(reads->strand);
 	free(reads->offset);
-	RGReadsInitialize(reads);
+	BReadsInitialize(reads);
 }
 
-void RGReadsInitialize(RGReads *reads) 
+void BReadsInitialize(BReads *reads) 
 {
 	reads->reads=NULL;
 	reads->readLength=NULL;
@@ -1155,16 +1155,16 @@ void RGReadsInitialize(RGReads *reads)
 	reads->numReads=0;
 }
 
-void RGReadsAppend(RGReads *reads, 
+void BReadsAppend(BReads *reads, 
 		char *read,
 		int32_t readLength,
 		int8_t direction,
 		int32_t offset) 
 {
-	char *FnName = "RGReadsAppend";
+	char *FnName = "BReadsAppend";
 
 	/* Allocate memory */
-	RGReadsReallocate(reads, reads->numReads+1);
+	BReadsReallocate(reads, reads->numReads+1);
 	/* Allocate memory for read */
 	reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
 	if(NULL == reads->reads[reads->numReads-1]) {
@@ -1183,11 +1183,11 @@ void RGReadsAppend(RGReads *reads,
 
 /* TODO */
 /* Debugging procedure */
-void RGReadsPrint(RGReads *reads, RGIndex *index) 
+void BReadsPrint(BReads *reads, BIndex *index) 
 {
 	int i;
 	for(i=0;i<reads->numReads;i++) {
-		RGIndexPrintReadMasked(index, reads->reads[i], 0, stderr);
+		BIndexPrintReadMasked(index, reads->reads[i], 0, stderr);
 		fprintf(stderr, "%s\t%d\t%c\t%d\n",
 				reads->reads[i],
 				reads->readLength[i],

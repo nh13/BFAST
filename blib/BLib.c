@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <math.h>
 #include "BLibDefinitions.h"
-#include "RGIndex.h"
+#include "BIndex.h"
 #include "BError.h"
 #include "BLib.h"
 
@@ -279,7 +279,7 @@ char TransformFromIUPAC(char a)
 	}
 }
 
-void CheckRGIndexes(char **mainFileNames,
+void CheckBIndexes(char **mainFileNames,
 		int numMainFileNames,
 		char **secondaryFileNames,
 		int numSecondaryFileNames,
@@ -300,14 +300,14 @@ void CheckRGIndexes(char **mainFileNames,
 	mainStartContig = mainStartPos = mainEndContig = mainEndPos = 0;
 	secondaryStartContig = secondaryStartPos = secondaryEndContig = secondaryEndPos = 0;
 
-	RGIndex tempIndex;
+	BIndex tempIndex;
 	FILE *fp;
 
 	/* Read in main indexes */
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
 		if((fp=fopen(mainFileNames[i], "r"))==0) {
-			PrintError("CheckRGIndexes",
+			PrintError("CheckBIndexes",
 					mainFileNames[i],
 					"Could not open file for reading",
 					Exit,
@@ -315,7 +315,7 @@ void CheckRGIndexes(char **mainFileNames,
 		}
 
 		/* Get the header */
-		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
+		BIndexReadHeader(fp, &tempIndex, binaryInput); 
 
 		assert(tempIndex.startContig < tempIndex.endContig ||
 				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
@@ -355,7 +355,7 @@ void CheckRGIndexes(char **mainFileNames,
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
 		if((fp=fopen(secondaryFileNames[i], "r"))==0) {
-			PrintError("CheckRGIndexes",
+			PrintError("CheckBIndexes",
 					"secondaryFileNames[i]",
 					"Could not open file for reading",
 					Exit,
@@ -363,7 +363,7 @@ void CheckRGIndexes(char **mainFileNames,
 		}
 
 		/* Get the header */
-		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
+		BIndexReadHeader(fp, &tempIndex, binaryInput); 
 
 		assert(tempIndex.startContig < tempIndex.endContig ||
 				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
@@ -408,7 +408,7 @@ void CheckRGIndexes(char **mainFileNames,
 			mainEndContig != secondaryEndContig ||
 			mainEndPos != secondaryEndPos ||
 			mainColorSpace != secondaryColorSpace) {
-		PrintError("CheckRGIndexes",
+		PrintError("CheckBIndexes",
 				NULL,
 				"The ranges between main and secondary indexes differ",
 				Exit,
@@ -615,7 +615,7 @@ int UpdateRead(char *read, int readLength)
 
 /* TODO */
 /* Debugging function */
-int CheckReadAgainstIndex(RGIndex *index,
+int CheckReadAgainstIndex(BIndex *index,
 		char *read,
 		int readLength)
 {
@@ -984,7 +984,7 @@ void AdjustBounds(RGBinary *rg,
 }
 
 /* TODO */
-int WillGenerateValidKey(RGIndex *index,
+int WillGenerateValidKey(BIndex *index,
 		char *read,
 		int readLength)
 {
@@ -998,3 +998,4 @@ int WillGenerateValidKey(RGIndex *index,
 	}
 	return 1;
 }
+
