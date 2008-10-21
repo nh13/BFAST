@@ -9,27 +9,27 @@
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
-#include "BRGBinary.h"
-#include "BRanges.h"
-#include "BIndexExons.h"
-#include "BIndex.h"
+#include "RGBinary.h"
+#include "RGRanges.h"
+#include "RGIndexExons.h"
+#include "RGIndex.h"
 
 /* TODO */
-void BIndexCreate(BIndex *index, 
-		BRGBinary *rg, 
-		BIndexLayout *layout, 
+void RGIndexCreate(RGIndex *index, 
+		RGBinary *rg, 
+		RGIndexLayout *layout, 
 		int32_t space,
 		int32_t startContig,
 		int32_t startPos,
 		int32_t endContig,
 		int32_t endPos,
 		int32_t useExons,
-		BIndexExons *e,
+		RGIndexExons *e,
 		int32_t layoutIndex,
 		int32_t numThreads,
 		int32_t repeatMasker,
 		int32_t includeNs,
-		BString *tmpDir)
+		char *tmpDir) 
 {
 
 	/* The sort will take care of most of the work.  We just want 
@@ -37,14 +37,14 @@ void BIndexCreate(BIndex *index,
 	 * repeatMasker and includeNs
 	 * */
 
-	char *FnName = "BIndexCreate";
+	char *FnName = "RGIndexCreate";
 	int64_t i;
 
 	/* Make sure we have the correct reference genome */
 	assert(rg->space == space);
 
 	/* Initialize the index */
-	BIndexInitialize(index);
+	RGIndexInitialize(index);
 
 	/* Copy over index information from the rg */
 	assert(startContig <= endContig);
@@ -104,7 +104,7 @@ void BIndexCreate(BIndex *index,
 	}
 	if(UseExons == useExons) { /* Use only bases within the exons */
 		for(i=0;i<e->numExons;i++) { /* For each exon */
-			BIndexCreateHelper(index,
+			RGIndexCreateHelper(index,
 					rg,
 					e->exons[i].startContig,
 					e->exons[i].startPos,
@@ -115,7 +115,7 @@ void BIndexCreate(BIndex *index,
 		}
 	}
 	else {
-		BIndexCreateHelper(index,
+		RGIndexCreateHelper(index,
 				rg,
 				index->startContig,
 				index->startPos,
@@ -135,16 +135,16 @@ void BIndexCreate(BIndex *index,
 	assert(index->length > 0);
 
 	/* Sort the nodes in the index */
-	BIndexSort(index, rg, numThreads, tmpDir);
+	RGIndexSort(index, rg, numThreads, tmpDir);
 
 	/* Create hash table from the index */
-	BIndexCreateHash(index, rg);
+	RGIndexCreateHash(index, rg);
 
 }
 
 /* TODO */
-void BIndexCreateHelper(BIndex *index,
-		BRGBinary *rg,
+void RGIndexCreateHelper(RGIndex *index,
+		RGBinary *rg,
 		int32_t startContig,
 		int32_t startPos,
 		int32_t endContig,
@@ -181,7 +181,7 @@ void BIndexCreateHelper(BIndex *index,
 		/* For each position */
 		for(curPos=curStartPos;curPos<=curEndPos;curPos++) {
 			if(VERBOSE >= 0) {
-				if(curPos%BINDEX_ROTATE_NUM==0) {
+				if(curPos%RGINDEX_ROTATE_NUM==0) {
 					PrintContigPos(stderr, 
 							curContig,
 							curPos);
@@ -190,7 +190,7 @@ void BIndexCreateHelper(BIndex *index,
 
 			/* Get the current base and insert into bases */
 			basesLength++;
-			bases[basesIndex] = BRGBinaryGetBase(rg,
+			bases[basesIndex] = RGBinaryGetBase(rg,
 					curContig,
 					curPos);
 			/* Update where to put the next base */
@@ -212,11 +212,11 @@ void BIndexCreateHelper(BIndex *index,
 
 				for(i=0;i<index->width && 1==toInsert;i++) { /* For each base in the mask */
 					if(1==index->mask[i]) {
-						if(1==repeatMasker && 1==BRGBinaryIsBaseRepeat(bases[curBasesPos])) {
+						if(1==repeatMasker && 1==RGBinaryIsBaseRepeat(bases[curBasesPos])) {
 							/* Did not pass */
 							toInsert = 0;
 						}
-						else if(0==includeNs && 1==BRGBinaryIsBaseN(bases[curBasesPos])) {
+						else if(0==includeNs && 1==RGBinaryIsBaseN(bases[curBasesPos])) {
 							/* Did not pass */
 							toInsert = 0;
 						}
@@ -234,7 +234,7 @@ void BIndexCreateHelper(BIndex *index,
 					/* Copy over.  Remember that we are at the end of the read. */
 					index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
 					if(NULL == index->positions) {
-						PrintError("BRGBinaryCreate",
+						PrintError("RGBinaryCreate",
 								"index->positions",
 								"Could not reallocate memory",
 								Exit,
@@ -245,7 +245,7 @@ void BIndexCreateHelper(BIndex *index,
 					if(index->contigType == Contig_8) {
 						index->contigs_8 = realloc(index->contigs_8, sizeof(uint8_t)*index->length);
 						if(NULL == index->contigs_8) {
-							PrintError("BRGBinaryCreate",
+							PrintError("RGBinaryCreate",
 									"index->contigs_8",
 									"Could not reallocate memory",
 									Exit,
@@ -256,7 +256,7 @@ void BIndexCreateHelper(BIndex *index,
 					else {
 						index->contigs_32 = realloc(index->contigs_32, sizeof(uint32_t)*index->length);
 						if(NULL == index->contigs_32) {
-							PrintError("BRGBinaryCreate",
+							PrintError("RGBinaryCreate",
 									"index->contigs_32",
 									"Could not reallocate memory",
 									Exit,
@@ -276,9 +276,9 @@ void BIndexCreateHelper(BIndex *index,
 }
 
 /* TODO */
-void BIndexCreateHash(BIndex *index, BRGBinary *rg)
+void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 {
-	char *FnName = "BIndexCreateHash";
+	char *FnName = "RGIndexCreateHash";
 	uint32_t start, end;
 	uint32_t curHash, startHash;
 	int64_t i;
@@ -322,12 +322,12 @@ void BIndexCreateHash(BIndex *index, BRGBinary *rg)
 		fprintf(stderr, "Creating a hash. Out of %u, currently on:\n0",
 				(uint32_t)index->length);
 	}
-	startHash = BIndexGetHashIndex(index, rg, 0, 0);
+	startHash = RGIndexGetHashIndex(index, rg, 0, 0);
 	for(end=1, start=0;end < index->length;end++) {
-		if(VERBOSE >= 0 && end%BINDEX_ROTATE_NUM==0) {
+		if(VERBOSE >= 0 && end%RGINDEX_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%u", end);
 		}
-		curHash = BIndexGetHashIndex(index, rg, end, 0);
+		curHash = RGIndexGetHashIndex(index, rg, end, 0);
 		assert(curHash >= startHash);
 		if(curHash == startHash) {
 			/* Do nothing */
@@ -366,10 +366,10 @@ void BIndexCreateHash(BIndex *index, BRGBinary *rg)
 
 			/* Check correctness */
 			if(index->starts[startHash] > 0 && index->starts[startHash] != UINT_MAX) {
-				assert( BIndexCompareAt(index, rg, index->starts[startHash]-1, index->starts[startHash], 0) < 0);
+				assert( RGIndexCompareAt(index, rg, index->starts[startHash]-1, index->starts[startHash], 0) < 0);
 			}
 			if(index->ends[startHash] < index->length-1 && index->ends[startHash] != UINT_MAX) {
-				assert( BIndexCompareAt(index, rg, index->ends[startHash], index->ends[startHash]+1, 0) < 0);
+				assert( RGIndexCompareAt(index, rg, index->ends[startHash], index->ends[startHash]+1, 0) < 0);
 			}
 
 			/* Update start */
@@ -388,10 +388,10 @@ void BIndexCreateHash(BIndex *index, BRGBinary *rg)
 	   assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
 	   (index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
 	   if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
-	   assert( BIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], 0) < 0);
+	   assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], 0) < 0);
 	   }
 	   if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
-	   assert( BIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
+	   assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
 	   }
 	   }
 	   */
@@ -401,12 +401,12 @@ void BIndexCreateHash(BIndex *index, BRGBinary *rg)
 }
 
 /* TODO */
-void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDir)
+void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 {
-	char *FnName = "BIndexSort";
+	char *FnName = "RGIndexSort";
 	int64_t i, j;
-	ThreadBIndexSortData *sortData=NULL;
-	ThreadBIndexMergeData *mergeData=NULL;
+	ThreadRGIndexSortData *sortData=NULL;
+	ThreadRGIndexMergeData *mergeData=NULL;
 	pthread_t *threads=NULL;
 	int32_t errCode;
 	void *status=NULL;
@@ -424,7 +424,7 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 		assert(IsAPowerOfTwo(numThreads)==1);
 
 		/* Allocate memory for the thread arguments */
-		sortData = malloc(sizeof(ThreadBIndexSortData)*numThreads);
+		sortData = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
 		if(NULL==sortData) {
 			PrintError(FnName,
 					"sortData",
@@ -471,7 +471,7 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 			/* Start thread */
 			errCode = pthread_create(&threads[i], /* thread struct */
 					NULL, /* default thread attributes */
-					BIndexMergeSort, /* start routine */
+					RGIndexMergeSort, /* start routine */
 					(void*)(&sortData[i])); /* sortData to routine */
 			if(0!=errCode) {
 				PrintError(FnName,
@@ -519,7 +519,7 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 			}
 			curNumThreads /= 2; /* The number of threads to spawn */
 			/* Allocate memory for the thread arguments */
-			mergeData = malloc(sizeof(ThreadBIndexMergeData)*curNumThreads);
+			mergeData = malloc(sizeof(ThreadRGIndexMergeData)*curNumThreads);
 			if(NULL==mergeData) {
 				PrintError(FnName,
 						"mergeData",
@@ -564,7 +564,7 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 				/* Start thread */
 				errCode = pthread_create(&threads[j], /* thread struct */
 						NULL, /* default thread attributes */
-						BIndexMerge, /* start routine */
+						RGIndexMerge, /* start routine */
 						(void*)(&mergeData[j])); /* sortData to routine */
 				if(0!=errCode) {
 					PrintError(FnName,
@@ -612,7 +612,7 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\r0 percent complete");
 		}
-		BIndexMergeSortHelper(index,
+		RGIndexMergeSortHelper(index,
 				rg,
 				0,
 				index->length-1,
@@ -627,13 +627,13 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 		}
 	}
 
-	if(1 == TEST_BINDEX_SORT) {
+	if(1 == TEST_RGINDEX_SORT) {
 		/* Test that we sorted correctly */
 		for(i=1;i<index->length;i++) {
-			if(BIndexCompareAt(index, rg, i-1, i, 0) > 0) {
-				BIndexCompareAt(index, rg, i-1, i, 1);
+			if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
+				RGIndexCompareAt(index, rg, i-1, i, 1);
 			}
-			assert(BIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+			assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 		}
 	}
 	if(VERBOSE >= 0) {
@@ -642,17 +642,17 @@ void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDi
 }
 
 /* TODO */
-void *BIndexMergeSort(void *arg)
+void *RGIndexMergeSort(void *arg)
 {
 	/* thread arguments */
-	ThreadBIndexSortData *data = (ThreadBIndexSortData*)(arg);
+	ThreadRGIndexSortData *data = (ThreadRGIndexSortData*)(arg);
 	double curPercentComplete = 0.0;
 
 	/* Call helper */
 	if(data->showPercentComplete == 1 && VERBOSE >= 0) {
 		fprintf(stderr, "\r%3.3lf percent complete", 0.0);
 	}
-	BIndexMergeSortHelper(data->index,
+	RGIndexMergeSortHelper(data->index,
 			data->rg,
 			data->low,
 			data->high,
@@ -672,8 +672,8 @@ void *BIndexMergeSort(void *arg)
 
 /* TODO */
 /* Call stack was getting too big, implement non-recursive sort */
-void BIndexMergeSortHelper(BIndex *index,
-		BRGBinary *rg,
+void RGIndexMergeSortHelper(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t high,
 		int32_t showPercentComplete,
@@ -681,7 +681,7 @@ void BIndexMergeSortHelper(BIndex *index,
 		int64_t startLow,
 		int64_t total,
 		int64_t mergeMemoryLimit,
-		BString *tmpDir)
+		char *tmpDir)
 {
 	/* Local Variables */
 	int64_t mid = (low + high)/2;
@@ -692,7 +692,7 @@ void BIndexMergeSortHelper(BIndex *index,
 			assert(NULL!=curPercentComplete);
 			if((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
 				while((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
-					(*curPercentComplete) += BINDEX_SORT_ROTATE_INC;
+					(*curPercentComplete) += RGINDEX_SORT_ROTATE_INC;
 				}
 				PrintPercentCompleteLong((*curPercentComplete));
 			}
@@ -700,7 +700,7 @@ void BIndexMergeSortHelper(BIndex *index,
 		return;
 	}
 	/* Partition the list into two lists and sort them recursively */
-	BIndexMergeSortHelper(index,
+	RGIndexMergeSortHelper(index,
 			rg,
 			low,
 			mid,
@@ -710,7 +710,7 @@ void BIndexMergeSortHelper(BIndex *index,
 			total,
 			mergeMemoryLimit,
 			tmpDir);
-	BIndexMergeSortHelper(index,
+	RGIndexMergeSortHelper(index,
 			rg,
 			mid+1,
 			high,
@@ -722,7 +722,7 @@ void BIndexMergeSortHelper(BIndex *index,
 			tmpDir);
 
 	/* Merge the two lists */
-	BIndexMergeHelper(index,
+	RGIndexMergeHelper(index,
 			rg,
 			low,
 			mid,
@@ -732,12 +732,12 @@ void BIndexMergeSortHelper(BIndex *index,
 }
 
 /* TODO */
-void *BIndexMerge(void *arg)
+void *RGIndexMerge(void *arg)
 {
-	ThreadBIndexMergeData *data = (ThreadBIndexMergeData*)arg;
+	ThreadRGIndexMergeData *data = (ThreadRGIndexMergeData*)arg;
 
 	/* Merge the data */
-	BIndexMergeHelper(data->index,
+	RGIndexMergeHelper(data->index,
 			data->rg,
 			data->low,
 			data->mid,
@@ -749,16 +749,16 @@ void *BIndexMerge(void *arg)
 }
 
 /* TODO */
-void BIndexMergeHelper(BIndex *index,
-		BRGBinary *rg,
+void RGIndexMergeHelper(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
 		int64_t mergeMemoryLimit, /* In bytes */
-		BString* tmpDir)
+		char *tmpDir)
 {
 	/*
-	   char *FnName = "BIndexMergeHelper";
+	   char *FnName = "RGIndexMergeHelper";
 	   */
 
 	/* Merge the two lists */
@@ -767,38 +767,38 @@ void BIndexMergeHelper(BIndex *index,
 	if(index->contigType == Contig_8) {
 		if((high-low+1)*(sizeof(uint32_t) + sizeof(uint8_t)) <= mergeMemoryLimit) {
 			/* Use memory */
-			BIndexMergeHelperInMemoryContig_8(index, rg, low, mid, high);
+			RGIndexMergeHelperInMemoryContig_8(index, rg, low, mid, high);
 		}
 		else {
 			/* Use tmp files */
-			BIndexMergeHelperFromDiskContig_8(index, rg, low, mid, high, tmpDir);
+			RGIndexMergeHelperFromDiskContig_8(index, rg, low, mid, high, tmpDir);
 		}
 	}
 	else {
 		if((high-low+1)*(sizeof(uint32_t) + sizeof(uint32_t)) <= mergeMemoryLimit) {
-			BIndexMergeHelperInMemoryContig_32(index, rg, low, mid, high);
+			RGIndexMergeHelperInMemoryContig_32(index, rg, low, mid, high);
 		}
 		else {
 			/* Use tmp files */
-			BIndexMergeHelperFromDiskContig_32(index, rg, low, mid, high, tmpDir);
+			RGIndexMergeHelperFromDiskContig_32(index, rg, low, mid, high, tmpDir);
 		}
 	}
 	/* Test merge */
 	/*
 	   for(i=low+1;i<=high;i++) {
-	   assert(BIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 	   }
 	   */
 }
 
 /* TODO */
-void BIndexMergeHelperInMemoryContig_8(BIndex *index,
-		BRGBinary *rg,
+void RGIndexMergeHelperInMemoryContig_8(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t mid,
 		int64_t high)
 {
-	char *FnName = "BIndexMergeHelperInMemoryContig_8";
+	char *FnName = "RGIndexMergeHelperInMemoryContig_8";
 	int64_t i=0;
 	uint32_t *tmpPositions=NULL;
 	uint8_t *tmpContigs_8=NULL;
@@ -835,7 +835,7 @@ void BIndexMergeHelperInMemoryContig_8(BIndex *index,
 	endUpper = high;
 	ctr=0;
 	while( (startLower <= endLower) && (startUpper <= endUpper) ) {
-		if(BIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
+		if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
 			tmpPositions[ctr] = index->positions[startLower];
 			tmpContigs_8[ctr] = index->contigs_8[startLower];
 			startLower++;
@@ -875,13 +875,13 @@ void BIndexMergeHelperInMemoryContig_8(BIndex *index,
 }
 
 /* TODO */
-void BIndexMergeHelperInMemoryContig_32(BIndex *index,
-		BRGBinary *rg,
+void RGIndexMergeHelperInMemoryContig_32(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t mid,
 		int64_t high)
 {
-	char *FnName = "BIndexMergeHelperInMemoryContig_32";
+	char *FnName = "RGIndexMergeHelperInMemoryContig_32";
 	int64_t i=0;
 	uint32_t *tmpPositions=NULL;
 	uint32_t *tmpContigs_32=NULL;
@@ -918,7 +918,7 @@ void BIndexMergeHelperInMemoryContig_32(BIndex *index,
 	endUpper = high;
 	ctr=0;
 	while( (startLower <= endLower) && (startUpper <= endUpper) ) {
-		if(BIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
+		if(RGIndexCompareAt(index, rg, startLower, startUpper, 0) <= 0) {
 			tmpPositions[ctr] = index->positions[startLower];
 			tmpContigs_32[ctr] = index->contigs_32[startLower];
 			startLower++;
@@ -958,27 +958,24 @@ void BIndexMergeHelperInMemoryContig_32(BIndex *index,
 }
 
 /* TODO */
-void BIndexMergeHelperFromDiskContig_8(BIndex *index,
-		BRGBinary *rg,
+void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
-		BString *tmpDir)
+		char *tmpDir)
 {
-	char *FnName = "BIndexMergeHelperFromDiskContig_8";
+	char *FnName = "RGIndexMergeHelperFromDiskContig_8";
 	int64_t i=0;
 	int64_t ctr=0;
 	FILE *tmpLowerFP=NULL;
 	FILE *tmpUpperFP=NULL;
-	BString tmpLowerFileName;
-	BString tmpUpperFileName;
+	char *tmpLowerFileName=NULL;
+	char *tmpUpperFileName=NULL;
 	uint32_t tmpLowerPosition=0;
 	uint32_t tmpUpperPosition=0;
 	uint8_t tmpLowerContig_8=0;
 	uint8_t tmpUpperContig_8=0;
-
-	BStringInitialize(&tmpLowerFileName);
-	BStringInitialize(&tmpUpperFileName);
 
 	assert(index->contigType == Contig_8);
 	assert(index->contigs_8 != NULL);
@@ -1055,7 +1052,7 @@ void BIndexMergeHelperFromDiskContig_8(BIndex *index,
 			tmpLowerPosition != 0 &&
 			tmpUpperPosition != 0;
 			i++, ctr++) {
-		if(BIndexCompareContigPos(index,
+		if(RGIndexCompareContigPos(index,
 					rg,
 					tmpLowerContig_8,
 					tmpLowerPosition,
@@ -1119,33 +1116,30 @@ void BIndexMergeHelperFromDiskContig_8(BIndex *index,
 	/* Test merge */
 	/*
 	   for(i=low+1;i<=high;i++) {
-	   assert(BIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 	   }
 	   */
 }
 
 /* TODO */
-void BIndexMergeHelperFromDiskContig_32(BIndex *index,
-		BRGBinary *rg,
+void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
-		BString *tmpDir)
+		char *tmpDir)
 {
-	char *FnName = "BIndexMergeHelperFromDiskContig_32";
+	char *FnName = "RGIndexMergeHelperFromDiskContig_32";
 	int64_t i=0;
 	int64_t ctr=0;
 	FILE *tmpLowerFP=NULL;
 	FILE *tmpUpperFP=NULL;
-	BString tmpLowerFileName;
-	BString tmpUpperFileName;
+	char *tmpLowerFileName=NULL;
+	char *tmpUpperFileName=NULL;
 	uint32_t tmpLowerPosition=0;
 	uint32_t tmpUpperPosition=0;
 	uint32_t tmpLowerContig_32=0;
 	uint32_t tmpUpperContig_32=0;
-	
-	BStringInitialize(&tmpLowerFileName);
-	BStringInitialize(&tmpUpperFileName);
 
 	assert(index->contigType == Contig_32);
 	assert(index->contigs_32 != NULL);
@@ -1222,7 +1216,7 @@ void BIndexMergeHelperFromDiskContig_32(BIndex *index,
 			tmpLowerPosition != 0 &&
 			tmpUpperPosition != 0;
 			i++, ctr++) {
-		if(BIndexCompareContigPos(index,
+		if(RGIndexCompareContigPos(index,
 					rg,
 					tmpLowerContig_32,
 					tmpLowerPosition,
@@ -1286,13 +1280,13 @@ void BIndexMergeHelperFromDiskContig_32(BIndex *index,
 	/* Test merge */
 	/*
 	   for(i=low+1;i<=high;i++) {
-	   assert(BIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 	   }
 	   */
 }
 
 /* TODO */
-void BIndexDelete(BIndex *index)
+void RGIndexDelete(RGIndex *index)
 {
 	/* Free memory and initialize */
 	if(index->contigType == Contig_8) {
@@ -1306,11 +1300,11 @@ void BIndexDelete(BIndex *index)
 	free(index->starts);
 	free(index->ends);
 
-	BIndexInitialize(index);
+	RGIndexInitialize(index);
 }
 
 /* TODO */
-double BIndexGetSize(BIndex *index, int32_t outputSize) 
+double RGIndexGetSize(RGIndex *index, int32_t outputSize) 
 {
 	double total=0.0;
 
@@ -1325,7 +1319,7 @@ double BIndexGetSize(BIndex *index, int32_t outputSize)
 	/* memory used by ends */
 	total += sizeof(uint32_t)*index->hashLength;
 	/* memory used by the index base structure */
-	total += sizeof(BIndex); 
+	total += sizeof(RGIndex); 
 
 	switch(outputSize) {
 		case KILOBYTES:
@@ -1344,13 +1338,13 @@ double BIndexGetSize(BIndex *index, int32_t outputSize)
 }
 
 /* TODO */
-void BIndexPrint(FILE *fp, BIndex *index, int32_t binaryOutput)
+void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
-	char *FnName="BIndexPrint";
+	char *FnName="RGIndexPrint";
 	int64_t i;
 
 	/* Print header */
-	BIndexPrintHeader(fp, index, binaryOutput);
+	RGIndexPrintHeader(fp, index, binaryOutput);
 
 	if(binaryOutput == TextOutput) {
 
@@ -1413,14 +1407,14 @@ void BIndexPrint(FILE *fp, BIndex *index, int32_t binaryOutput)
 }
 
 /* TODO */
-void BIndexRead(FILE *fp, BIndex *index, int32_t binaryInput)
+void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
-	char *FnName="BIndexRead";
+	char *FnName="RGIndexRead";
 	int64_t i;
 	uint32_t tempInt;
 
 	/* Read in the header */
-	BIndexReadHeader(fp, index, binaryInput);
+	RGIndexReadHeader(fp, index, binaryInput);
 
 	assert(index->length > 0);
 
@@ -1558,12 +1552,12 @@ void BIndexRead(FILE *fp, BIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* Debugging function */
-void BIndexPrintInfo(BString *inputFileName)
+void RGIndexPrintInfo(char *inputFileName)
 {
-	char *FnName = "BIndexPrintInfo";
+	char *FnName = "RGIndexPrintInfo";
 	FILE *fp;
 	int64_t i;
-	BIndex index;
+	RGIndex index;
 	char contigType[2][256] = {"1 byte", "4 byte"};
 	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
 
@@ -1578,7 +1572,7 @@ void BIndexPrintInfo(BString *inputFileName)
 	}
 
 	/* Read in the header */
-	BIndexReadHeader(fp, &index, BinaryInput);
+	RGIndexReadHeader(fp, &index, BinaryInput);
 
 	/* Print the info */
 	fprintf(stderr, "start contig:\t\t%d\n",
@@ -1615,16 +1609,16 @@ void BIndexPrintInfo(BString *inputFileName)
 
 	/* Free masks and initialize */
 	free(index.mask);
-	BIndexInitialize(&index);
+	RGIndexInitialize(&index);
 
 	/* Close the file */
 	fclose(fp);
 }
 
 /* TODO */
-void BIndexPrintHeader(FILE *fp, BIndex *index, int32_t binaryOutput)
+void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
 {
-	char *FnName="BIndexPrintHeader";
+	char *FnName="RGIndexPrintHeader";
 	int i;
 	if(binaryOutput == 0) {
 		fprintf(fp, "%d\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%u\t%lld\t",
@@ -1674,9 +1668,9 @@ void BIndexPrintHeader(FILE *fp, BIndex *index, int32_t binaryOutput)
 }
 
 /* TODO */
-void BIndexReadHeader(FILE *fp, BIndex *index, int32_t binaryInput)
+void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 {
-	char *FnName = "BIndexReadHeader";
+	char *FnName = "RGIndexReadHeader";
 	int i;
 	char tempChar;
 	long long int tempLongLongInt[2];
@@ -1795,7 +1789,7 @@ void BIndexReadHeader(FILE *fp, BIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void BIndexGetRanges(BIndex *index, BRGBinary *rg, BString *read, int32_t readLength, int8_t direction, int32_t offset, int32_t maxKeyMatches, BRanges *r)
+void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int32_t maxKeyMatches, RGRanges *r)
 {
 	int64_t startIndex=-1;
 	int64_t endIndex=-1;
@@ -1805,7 +1799,7 @@ void BIndexGetRanges(BIndex *index, BRGBinary *rg, BString *read, int32_t readLe
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not
 	 * zero bounds for the binary search on the index */
-	hashIndex = BIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
+	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
 	assert(hashIndex >= 0 && hashIndex < index->hashLength);
 
 	if(index->starts[hashIndex] == UINT_MAX || 
@@ -1818,7 +1812,7 @@ void BIndexGetRanges(BIndex *index, BRGBinary *rg, BString *read, int32_t readLe
 		assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
 
 		/* Search the index using the bounds from the hash */
-		foundIndex=BIndexGetIndex(index, 
+		foundIndex=RGIndexGetIndex(index, 
 				rg, 
 				index->starts[hashIndex],  
 				index->ends[hashIndex],
@@ -1830,7 +1824,7 @@ void BIndexGetRanges(BIndex *index, BRGBinary *rg, BString *read, int32_t readLe
 			/* Check if the key has too many matches */
 			if( (endIndex-startIndex+1) <= maxKeyMatches) {
 				/* (Re)Allocate memory for the new range */
-				BRangesReallocate(r, r->numEntries+1);
+				RGRangesReallocate(r, r->numEntries+1);
 				assert(endIndex >= startIndex);
 				assert(startIndex >= 0 && startIndex < index->length);
 				assert(endIndex >= 0 && endIndex < index->length);
@@ -1845,11 +1839,11 @@ void BIndexGetRanges(BIndex *index, BRGBinary *rg, BString *read, int32_t readLe
 }
 
 /* TODO */
-int64_t BIndexGetIndex(BIndex *index,
-		BRGBinary *rg,
+int64_t RGIndexGetIndex(RGIndex *index,
+		RGBinary *rg,
 		int64_t low,
 		int64_t high,
-		BString *read,
+		char *read,
 		int64_t *startIndex,
 		int64_t *endIndex)
 {
@@ -1858,12 +1852,12 @@ int64_t BIndexGetIndex(BIndex *index,
 	int32_t cont = 1;
 	int64_t tmpLow, tmpMid, tmpHigh;
 
-	assert(low==0 || BIndexCompareRead(index, rg, read, low-1, 0) > 0);
-	assert(high==index->length-1 || BIndexCompareRead(index, rg, read, high+1, 0) < 0); 
+	assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0) > 0);
+	assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
 
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
-		cmp = BIndexCompareRead(index, rg, read, mid, 0);
+		cmp = RGIndexCompareRead(index, rg, read, mid, 0);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "low:%lld\tmid:%lld\thigh:%lld\tcmp:%d\n",
 					(long long int)low,
@@ -1883,9 +1877,9 @@ int64_t BIndexGetIndex(BIndex *index,
 	}
 	/* If we found an entry that matches, get the bounds (start and end indexes */
 	if(cont == 0) {
-		assert(low==0 || BIndexCompareRead(index, rg, read, low-1, 0) > 0);
-		assert(high==index->length-1 || BIndexCompareRead(index, rg, read, high+1, 0) < 0); 
-		assert(BIndexCompareRead(index, rg, read, mid, 0) == 0);
+		assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0) > 0);
+		assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
+		assert(RGIndexCompareRead(index, rg, read, mid, 0) == 0);
 		tmpLow = low;
 		tmpMid = mid;
 		tmpHigh = high;
@@ -1900,7 +1894,7 @@ int64_t BIndexGetIndex(BIndex *index,
 		high = tmpMid;
 		while(low < high) {
 			mid = (low+high)/2;
-			cmp = BIndexCompareRead(index, rg, read, mid, 0);
+			cmp = RGIndexCompareRead(index, rg, read, mid, 0);
 			assert(cmp >= 0);
 			/*
 			   fprintf(stderr, "start:%lld\t%lld\t%lld\t%d\n",
@@ -1919,14 +1913,14 @@ int64_t BIndexGetIndex(BIndex *index,
 		}
 		(*startIndex) = low;
 		assert(low == high);
-		assert(BIndexCompareRead(index, rg, read, (*startIndex), 0)==0);
-		assert((*startIndex) == 0 || BIndexCompareRead(index, rg, read, (*startIndex)-1, 0)>0);
+		assert(RGIndexCompareRead(index, rg, read, (*startIndex), 0)==0);
+		assert((*startIndex) == 0 || RGIndexCompareRead(index, rg, read, (*startIndex)-1, 0)>0);
 		/* Get upper start Index */
 		low = tmpMid;
 		high = tmpHigh;
 		while(low < high) {
 			mid = (low+high)/2+1;
-			cmp = BIndexCompareRead(index, rg, read, mid, 0);
+			cmp = RGIndexCompareRead(index, rg, read, mid, 0);
 			assert(cmp <= 0);
 			/*
 			   fprintf(stderr, "end:%lld\t%lld\t%lld\t%d\n",
@@ -1946,8 +1940,8 @@ int64_t BIndexGetIndex(BIndex *index,
 		assert(low == high);
 		/* adjust endIndex */
 		(*endIndex) = low;
-		assert(BIndexCompareRead(index, rg, read, (*endIndex), 0)==0);
-		assert((*endIndex) == index->length-1 || BIndexCompareRead(index, rg, read, (*endIndex)+1, 0)<0);
+		assert(RGIndexCompareRead(index, rg, read, (*endIndex), 0)==0);
+		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1, 0)<0);
 		return 1;
 	}
 	else {
@@ -1957,7 +1951,7 @@ int64_t BIndexGetIndex(BIndex *index,
 }
 
 /* TODO */
-void BIndexSwapAt(BIndex *index, int64_t a, int64_t b)
+void RGIndexSwapAt(RGIndex *index, int64_t a, int64_t b)
 {
 	uint32_t tempContig, tempPos;
 
@@ -1978,13 +1972,13 @@ void BIndexSwapAt(BIndex *index, int64_t a, int64_t b)
 }
 
 /* TODO */
-int64_t BIndexGetPivot(BIndex *index, BRGBinary *rg, int64_t low, int64_t high)
+int64_t RGIndexGetPivot(RGIndex *index, RGBinary *rg, int64_t low, int64_t high)
 {
 	int64_t pivot = (low+high)/2;
 	int32_t cmp[3];
-	cmp[0] = BIndexCompareAt(index, rg, low, pivot, 0);
-	cmp[1] = BIndexCompareAt(index, rg, low, high, 0);
-	cmp[2] = BIndexCompareAt(index, rg, pivot, high, 0);
+	cmp[0] = RGIndexCompareAt(index, rg, low, pivot, 0);
+	cmp[1] = RGIndexCompareAt(index, rg, low, high, 0);
+	cmp[2] = RGIndexCompareAt(index, rg, pivot, high, 0);
 
 	if(cmp[0] <= 0) {
 		/* low <= pivot */
@@ -2032,15 +2026,15 @@ int64_t BIndexGetPivot(BIndex *index, BRGBinary *rg, int64_t low, int64_t high)
 }
 
 /* TODO */
-int32_t BIndexCompareContigPos(BIndex *index,
-		BRGBinary *rg,
+int32_t RGIndexCompareContigPos(RGIndex *index,
+		RGBinary *rg,
 		uint32_t aContig,
 		uint32_t aPos,
 		uint32_t bContig,
 		uint32_t bPos,
 		int debug)
 {
-	char *FnName="BIndexCompareContigPos";
+	char *FnName="RGIndexCompareContigPos";
 	int64_t i;
 	uint8_t aBase;
 	uint8_t bBase;
@@ -2072,10 +2066,10 @@ int32_t BIndexCompareContigPos(BIndex *index,
 				break;
 			case 1:
 				/* Get bases */
-				aBase = ToLower(BRGBinaryGetBase(rg,
+				aBase = ToLower(RGBinaryGetBase(rg,
 							aContig,
 							aPos + i));
-				bBase = ToLower( BRGBinaryGetBase(rg,
+				bBase = ToLower( RGBinaryGetBase(rg,
 							bContig,
 							bPos + i));
 				/* Compare */
@@ -2101,8 +2095,8 @@ int32_t BIndexCompareContigPos(BIndex *index,
 }
 
 /* TODO */
-int32_t BIndexCompareAt(BIndex *index,
-		BRGBinary *rg,
+int32_t RGIndexCompareAt(RGIndex *index,
+		RGBinary *rg,
 		int64_t a,
 		int64_t b, 
 		int debug)
@@ -2111,7 +2105,7 @@ int32_t BIndexCompareAt(BIndex *index,
 	assert(b>=0 && b<index->length);
 
 	if(index->contigType == Contig_8) {
-		return BIndexCompareContigPos(index,
+		return RGIndexCompareContigPos(index,
 				rg,
 				index->contigs_8[a],
 				index->positions[a],
@@ -2120,7 +2114,7 @@ int32_t BIndexCompareAt(BIndex *index,
 				debug);
 	}
 	else {
-		return BIndexCompareContigPos(index,
+		return RGIndexCompareContigPos(index,
 				rg,
 				index->contigs_32[a],
 				index->positions[a],
@@ -2131,13 +2125,13 @@ int32_t BIndexCompareAt(BIndex *index,
 }
 
 /* TODO */
-int32_t BIndexCompareRead(BIndex *index,
-		BRGBinary *rg,
-		BString *read,
+int32_t RGIndexCompareRead(RGIndex *index,
+		RGBinary *rg,
+		char *read,
 		int64_t a,
 		int debug)
 {
-	char *FnName="BIndexCompareRead";
+	char *FnName="RGIndexCompareRead";
 	assert(a>=0 && a<index->length);
 
 	int32_t i;
@@ -2147,6 +2141,15 @@ int32_t BIndexCompareRead(BIndex *index,
 	uint8_t aBase;
 	uint8_t readBase;
 
+	if(debug > 0) {
+		fprintf(stderr, "%d\n%s", 
+				index->width,
+				BREAK_LINE);
+		fprintf(stderr, "read[%d]:%s\n", 
+				(int)strlen(read),
+				read);
+	}
+
 	/* Go across the mask */
 	for(i=0;i<index->width;i++) {
 		switch(index->mask[i]) {
@@ -2155,10 +2158,10 @@ int32_t BIndexCompareRead(BIndex *index,
 				break;
 			case 1:
 				/* Get bases */
-				aBase = ToLower(BRGBinaryGetBase(rg,
+				aBase = ToLower(RGBinaryGetBase(rg,
 							aContig,
 							aPos + i));
-				readBase = ToLower(read->string[i]);
+				readBase = ToLower(read[i]);
 				/* Compare */
 				if(readBase < aBase) {
 					return -1;
@@ -2181,14 +2184,14 @@ int32_t BIndexCompareRead(BIndex *index,
 }
 
 /* TODO */
-uint32_t BIndexGetHashIndex(BIndex *index,
-		BRGBinary *rg,
+uint32_t RGIndexGetHashIndex(RGIndex *index,
+		RGBinary *rg,
 		uint32_t a,
 		int debug)
 {
 	assert(a>=0 && a<index->length);
 
-	char *FnName = "BIndexGetHashIndex";
+	char *FnName = "RGIndexGetHashIndex";
 
 	int32_t i;
 	uint32_t aContig = (index->contigType==Contig_8)?index->contigs_8[a]:index->contigs_32[a];
@@ -2205,7 +2208,7 @@ uint32_t BIndexGetHashIndex(BIndex *index,
 				/* Ignore base */
 				break;
 			case 1:
-				aBase = ToLower(BRGBinaryGetBase(rg,
+				aBase = ToLower(RGBinaryGetBase(rg,
 							aContig,
 							aPos + i));
 				switch(aBase) {
@@ -2249,13 +2252,13 @@ uint32_t BIndexGetHashIndex(BIndex *index,
 }
 
 /* TODO */
-uint32_t BIndexGetHashIndexFromRead(BIndex *index,
-		BRGBinary *rg,
-		BString *read,
+uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
+		RGBinary *rg,
+		char *read,
 		int32_t readLength,
 		int debug)
 {
-	char *FnName = "BIndexGetHashIndexFromRead";
+	char *FnName = "RGIndexGetHashIndexFromRead";
 	int32_t i;
 
 	int32_t cur = index->hashWidth-1;
@@ -2269,7 +2272,7 @@ uint32_t BIndexGetHashIndexFromRead(BIndex *index,
 				/* Ignore base */
 				break;
 			case 1:
-				readBase = ToLower(read->string[i]);
+				readBase = ToLower(read[i]);
 				/* Only works with a four letter alphabet */
 				hashIndex = hashIndex << 2;
 				switch(readBase) {
@@ -2315,9 +2318,9 @@ uint32_t BIndexGetHashIndexFromRead(BIndex *index,
 
 /* TODO */
 /* Debug function */
-void BIndexPrintReadMasked(BIndex *index, BString *read, int offset, FILE *fp) 
+void RGIndexPrintReadMasked(RGIndex *index, char *read, int offset, FILE *fp) 
 {
-	char *FnName="BIndexPrintReadMasked";
+	char *FnName="RGIndexPrintReadMasked";
 	int i;
 	for(i=0;i<index->width;i++) {
 		switch(index->mask[i]) {
@@ -2325,7 +2328,7 @@ void BIndexPrintReadMasked(BIndex *index, BString *read, int offset, FILE *fp)
 				/* Ignore base */
 				break;
 			case 1:
-				fprintf(stderr, "%c", read->string[i]);
+				fprintf(stderr, "%c", read[i]);
 				break;
 			default:
 				PrintError(FnName,
@@ -2339,7 +2342,7 @@ void BIndexPrintReadMasked(BIndex *index, BString *read, int offset, FILE *fp)
 }
 
 /* TODO */
-void BIndexInitialize(BIndex *index)
+void RGIndexInitialize(RGIndex *index)
 {
 	index->id = 0;
 

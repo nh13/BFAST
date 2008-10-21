@@ -6,45 +6,45 @@
 #include <string.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
-#include "BMatch.h"
-#include "BRanges.h"
+#include "RGMatch.h"
+#include "RGRanges.h"
 
 /* TODO */
 /* Note: this exploits the fact that the ranges in the indexes are non-overlapping.
  * Thus does not take the union of all ranges otherwise.
  * */
-void BRangesRemoveDuplicates(BRanges *r)
+void RGRangesRemoveDuplicates(RGRanges *r)
 {
 	int32_t i;
 	int32_t prevIndex=0;
 
 	if(r->numEntries > 0) {
 		/* Quick sort the data structure */
-		BRangesQuickSort(r, 0, r->numEntries-1);
+		RGRangesQuickSort(r, 0, r->numEntries-1);
 
 		/* Remove duplicates */
 		prevIndex=0;
 		for(i=1;i<r->numEntries;i++) {
-			if(BRangesCompareAtIndex(r, prevIndex, r, i)==0) {
+			if(RGRangesCompareAtIndex(r, prevIndex, r, i)==0) {
 				/* ignore */
 			}
 			else {
 				prevIndex++;
 				/* Copy to prevIndex (incremented) */
-				BRangesCopyAtIndex(r, i, r, prevIndex);
+				RGRangesCopyAtIndex(r, i, r, prevIndex);
 			}
 		}
 
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
-		BRangesReallocate(r, prevIndex+1);
+		RGRangesReallocate(r, prevIndex+1);
 	}
 }
 
 /* TODO */
-void BRangesCopyToBMatch(BRanges *r,
-		BIndex *index,
-		BMatch *m)
+void RGRangesCopyToRGMatch(RGRanges *r,
+		RGIndex *index,
+		RGMatch *m)
 {
 	int64_t i;
 	int64_t j;
@@ -78,61 +78,61 @@ void BRangesCopyToBMatch(BRanges *r,
 }
 
 /* TODO */
-void BRangesQuickSort(BRanges *r, int32_t low, int32_t high)
+void RGRangesQuickSort(RGRanges *r, int32_t low, int32_t high)
 {
 	int32_t i;
 	int32_t pivot=-1;
-	BRanges *temp;
+	RGRanges *temp;
 
 	if(low < high) {
 		/* Allocate memory for the temp used for swapping */
-		temp=malloc(sizeof(BRanges));
-		BRangesInitialize(temp);
+		temp=malloc(sizeof(RGRanges));
+		RGRangesInitialize(temp);
 		if(NULL == temp) {
-			PrintError("BRangesQuickSort",
+			PrintError("RGRangesQuickSort",
 					"temp",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		BRangesAllocate(temp, 1);
+		RGRangesAllocate(temp, 1);
 
 		pivot = (low+high)/2;
 
-		BRangesCopyAtIndex(r, pivot, temp, 0);
-		BRangesCopyAtIndex(r, high, r, pivot);
-		BRangesCopyAtIndex(temp, 0, r, high);
+		RGRangesCopyAtIndex(r, pivot, temp, 0);
+		RGRangesCopyAtIndex(r, high, r, pivot);
+		RGRangesCopyAtIndex(temp, 0, r, high);
 
 		pivot = low;
 
 		for(i=low;i<high;i++) {
-			if(BRangesCompareAtIndex(r, i, r, high) <= 0) {
+			if(RGRangesCompareAtIndex(r, i, r, high) <= 0) {
 				if(i!=pivot) {
-					BRangesCopyAtIndex(r, i, temp, 0);
-					BRangesCopyAtIndex(r, pivot, r, i);
-					BRangesCopyAtIndex(temp, 0, r, pivot);
+					RGRangesCopyAtIndex(r, i, temp, 0);
+					RGRangesCopyAtIndex(r, pivot, r, i);
+					RGRangesCopyAtIndex(temp, 0, r, pivot);
 				}
 				pivot++;
 			}
 		}
-		BRangesCopyAtIndex(r, pivot, temp, 0);
-		BRangesCopyAtIndex(r, high, r, pivot);
-		BRangesCopyAtIndex(temp, 0, r, high);
+		RGRangesCopyAtIndex(r, pivot, temp, 0);
+		RGRangesCopyAtIndex(r, high, r, pivot);
+		RGRangesCopyAtIndex(temp, 0, r, high);
 
 		/* Free temp before the recursive call, otherwise we have a worst
 		 * case of O(n) space (NOT IN PLACE) 
 		 * */
-		BRangesFree(temp);
+		RGRangesFree(temp);
 		free(temp);
 		temp=NULL;
 
-		BRangesQuickSort(r, low, pivot-1);
-		BRangesQuickSort(r, pivot+1, high);
+		RGRangesQuickSort(r, low, pivot-1);
+		RGRangesQuickSort(r, pivot+1, high);
 	}
 }
 
 /* TODO */
-int32_t BRangesCompareAtIndex(BRanges *rOne, int32_t indexOne, BRanges *rTwo, int32_t indexTwo) 
+int32_t RGRangesCompareAtIndex(RGRanges *rOne, int32_t indexOne, RGRanges *rTwo, int32_t indexTwo) 
 {
 	int i;
 	int cmp[4] = {0,0,0,0};
@@ -159,22 +159,22 @@ int32_t BRangesCompareAtIndex(BRanges *rOne, int32_t indexOne, BRanges *rTwo, in
 }
 
 /* TODO */
-void BRangesAppend(BRanges *src, BRanges *dest)
+void RGRangesAppend(RGRanges *src, RGRanges *dest)
 {
 	int32_t i, start;
 
 	assert(src != dest);
 	start = dest->numEntries;
-	BRangesReallocate(dest, dest->numEntries + src->numEntries);
+	RGRangesReallocate(dest, dest->numEntries + src->numEntries);
 	assert(dest->numEntries == start + src->numEntries);
 	assert(start <= dest->numEntries);
 	for(i=start;i<dest->numEntries;i++) {
-		BRangesCopyAtIndex(src, i-start, dest, i);
+		RGRangesCopyAtIndex(src, i-start, dest, i);
 	}
 }
 
 /* TODO */
-void BRangesCopyAtIndex(BRanges *src, int32_t srcIndex, BRanges *dest, int32_t destIndex)
+void RGRangesCopyAtIndex(RGRanges *src, int32_t srcIndex, RGRanges *dest, int32_t destIndex)
 {
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
@@ -187,14 +187,14 @@ void BRangesCopyAtIndex(BRanges *src, int32_t srcIndex, BRanges *dest, int32_t d
 	}
 }
 
-void BRangesAllocate(BRanges *r, int32_t numEntries)
+void RGRangesAllocate(RGRanges *r, int32_t numEntries)
 {
 	assert(r->numEntries==0);
 	r->numEntries = numEntries;
 	assert(r->startIndex==NULL);
 	r->startIndex = malloc(sizeof(int64_t)*numEntries); 
 	if(NULL == r->startIndex) {
-		PrintError("BRangesAllocate",
+		PrintError("RGRangesAllocate",
 				"r->startIndex",
 				"Could not allocate memory",
 				Exit,
@@ -203,7 +203,7 @@ void BRangesAllocate(BRanges *r, int32_t numEntries)
 	assert(r->endIndex==NULL);
 	r->endIndex = malloc(sizeof(int64_t)*numEntries); 
 	if(NULL == r->endIndex) {
-		PrintError("BRangesAllocate",
+		PrintError("RGRangesAllocate",
 				"r->endIndex",
 				"Could not allocate memory",
 				Exit,
@@ -212,7 +212,7 @@ void BRangesAllocate(BRanges *r, int32_t numEntries)
 	assert(r->strand==NULL);
 	r->strand = malloc(sizeof(int8_t)*numEntries); 
 	if(NULL == r->strand) {
-		PrintError("BRangesAllocate",
+		PrintError("RGRangesAllocate",
 				"r->strand",
 				"Could not allocate memory",
 				Exit,
@@ -221,7 +221,7 @@ void BRangesAllocate(BRanges *r, int32_t numEntries)
 	assert(r->offset==NULL);
 	r->offset = malloc(sizeof(int32_t)*numEntries); 
 	if(NULL == r->offset) {
-		PrintError("BRangesAllocate",
+		PrintError("RGRangesAllocate",
 				"r->offset",
 				"Could not allocate memory",
 				Exit,
@@ -229,13 +229,13 @@ void BRangesAllocate(BRanges *r, int32_t numEntries)
 	}
 }
 
-void BRangesReallocate(BRanges *r, int32_t numEntries)
+void RGRangesReallocate(RGRanges *r, int32_t numEntries)
 {
 	if(numEntries > 0) {
 		r->numEntries = numEntries;
 		r->startIndex = realloc(r->startIndex, sizeof(int64_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->startIndex) {
-			PrintError("BRangesReallocate",
+			PrintError("RGRangesReallocate",
 					"r->startIndex",
 					"Could not reallocate memory",
 					Exit,
@@ -243,7 +243,7 @@ void BRangesReallocate(BRanges *r, int32_t numEntries)
 		}
 		r->endIndex = realloc(r->endIndex, sizeof(int64_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->endIndex) {
-			PrintError("BRangesReallocate",
+			PrintError("RGRangesReallocate",
 					"r->endIndex",
 					"Could not reallocate memory",
 					Exit,
@@ -251,7 +251,7 @@ void BRangesReallocate(BRanges *r, int32_t numEntries)
 		}
 		r->strand = realloc(r->strand, sizeof(int8_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->strand) {
-			PrintError("BRangesReallocate",
+			PrintError("RGRangesReallocate",
 					"r->strand",
 					"Could not reallocate memory",
 					Exit,
@@ -259,7 +259,7 @@ void BRangesReallocate(BRanges *r, int32_t numEntries)
 		}
 		r->offset = realloc(r->offset, sizeof(int32_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->offset) {
-			PrintError("BRangesReallocate",
+			PrintError("RGRangesReallocate",
 					"r->offset",
 					"Could not reallocate memory",
 					Exit,
@@ -267,11 +267,11 @@ void BRangesReallocate(BRanges *r, int32_t numEntries)
 		}
 	}
 	else {
-		BRangesFree(r);
+		RGRangesFree(r);
 	}
 }
 
-void BRangesFree(BRanges *r) 
+void RGRangesFree(RGRanges *r) 
 {
 	if(r->numEntries>0) {
 		free(r->startIndex);
@@ -279,10 +279,10 @@ void BRangesFree(BRanges *r)
 		free(r->strand);
 		free(r->offset);
 	}
-	BRangesInitialize(r);
+	RGRangesInitialize(r);
 }
 
-void BRangesInitialize(BRanges *r)
+void RGRangesInitialize(RGRanges *r)
 {
 	r->numEntries=0;
 	r->startIndex=NULL;

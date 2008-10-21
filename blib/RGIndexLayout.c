@@ -5,12 +5,12 @@
 
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
-#include "BIndexLayout.h"
+#include "RGIndexLayout.h"
 
 /* TODO */
-void BIndexLayoutRead(char *layoutFileName, BIndexLayout *layout)
+void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *layout)
 {
-	char *FnName="BIndexLayoutRead";
+	char *FnName="RGIndexLayoutRead";
 	int i;
 	char tempMask[MAX_MASK_LENGTH]="\0";
 	int32_t tempHashWidth;
@@ -121,7 +121,7 @@ void BIndexLayoutRead(char *layoutFileName, BIndexLayout *layout)
 	fclose(fp);
 }
 
-void BIndexLayoutDelete(BIndexLayout *layout)
+void RGIndexLayoutDelete(RGIndexLayout *layout)
 {
 	int i;
 

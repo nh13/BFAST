@@ -3,8 +3,8 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	BString rgFileName;						/* -r */
-	BString indexLayoutFileName;			/* -i */
+	char *rgFileName;						/* -r */
+	char *indexLayoutFileName;				/* -i */
 	int binaryInput;						/* -b - not used */
 	int algorithm;							/* -a */
 	int space;								/* -A */
@@ -14,11 +14,11 @@ struct arguments
 	unsigned int startPos;					/* -S */
 	int endContig;							/* -e */
 	unsigned int endPos;					/* -E */
-	BString exonsFileName;					/* -x */
+	char *exonsFileName;					/* -x */
 	int useExons;							/* -x - avec */
-	BString outputID;						/* -o */
-	BString outputDir;						/* -d */
-	BString tmpDir;                         /* -T */
+	char *outputID;							/* -o */
+	char *outputDir;						/* -d */
+	char *tmpDir;                           /* -T */
 	int binaryOutput;						/* -B - not used */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 

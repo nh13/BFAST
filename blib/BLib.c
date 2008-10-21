@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <math.h>
 #include "BLibDefinitions.h"
-#include "BIndex.h"
+#include "RGIndex.h"
 #include "BError.h"
 #include "BLib.h"
 
@@ -11,19 +11,23 @@ char DNA[5] = "ACGTN";
 char COLORS[5] = "01234";
 
 /* TODO */
-int32_t GetFastaHeaderLine(FILE *fp,
-		BString *header);
+int GetFastaHeaderLine(FILE *fp,
+		char *header)
 {
 	char *FnName="GetFastaHeaderLine";
+	char *ret;
 	int i, length;
 
 	/* Read in the line */
-	if(BStringGetLine(header, fp, MAX_CONTIG_NAME_LENGTH) == EOF) {
+	ret = fgets(header,  MAX_CONTIG_NAME_LENGTH, fp);
+
+	/* Check teturn value */
+	if(ret != header) {
 		return EOF;
 	}
 
 	/* Check that the first character is a ">" */
-	if(header->string[0] != '>') {
+	if(header[0] != '>') {
 		PrintError(FnName,
 				"header",
 				"Header of a contig must start with a '>'",
@@ -31,14 +35,22 @@ int32_t GetFastaHeaderLine(FILE *fp,
 				OutOfRange);
 	}
 
-	/* Shift over to remove the ">" and remove whitespaces */
-	BStringShiftLeftAndReplaceWhitespace(header, 1, '_');
+	/* Shift over to remove the ">" and trailing EOL */
+	length=(int)strlen(header)-1;
+	for(i=1;i<length;i++) {
+		header[i-1] = header[i];
+		/* Remove whitespace characters and replace them with an '_' */
+		if(header[i-1] == ' ') {
+			header[i-1] = '_';
+		}
+	}
+	header[length-1] = '\0';
 
 	return 1;
 }
 
 /* TODO */
-int8_t ToLower(int8_t a) 
+char ToLower(char a) 
 {
 	switch(a) {
 		case 'A':
@@ -62,7 +74,7 @@ int8_t ToLower(int8_t a)
 }
 
 /* TODO */
-int8_t ToUpper(int8_t a) 
+char ToUpper(char a)
 {
 	switch(a) {
 		case 'a':
@@ -85,7 +97,33 @@ int8_t ToUpper(int8_t a)
 	}
 }
 
-int8_t GetReverseComplimentAnyCaseBase(int8_t a) 
+/* TODO */
+void ReverseRead(char *s,
+		char *r,
+		int length)
+{       
+	int i;
+	/* Get reverse */
+	for(i=length-1;i>=0;i--) {
+		r[i] = s[length-1-i];
+	}
+	r[length]='\0';
+}
+
+/* TODO */
+void GetReverseComplimentAnyCase(char *s,
+		char *r,
+		int length)
+{       
+	int i;
+	/* Get reverse compliment sequence */
+	for(i=length-1;i>=0;i--) {
+		r[i] = GetReverseComplimentAnyCaseBase(s[length-1-i]);
+	}
+	r[length]='\0';
+}
+
+char GetReverseComplimentAnyCaseBase(char a) 
 {
 	char *FnName = "GetReverseComplimentAnyCaseBase";
 	switch(a) {
@@ -142,7 +180,7 @@ int8_t GetReverseComplimentAnyCaseBase(int8_t a)
 }
 
 /* TODO */
-int32_t ValidateBasePair(int8_t c) {
+int ValidateBasePair(char c) {
 	switch(c) {
 		case 'a':
 		case 'c':
@@ -162,7 +200,7 @@ int32_t ValidateBasePair(int8_t c) {
 	}
 }
 
-int32_t IsAPowerOfTwo(unsigned int a) {
+int IsAPowerOfTwo(unsigned int a) {
 	int i;
 
 	for(i=0;i<8*sizeof(unsigned int);i++) {
@@ -190,11 +228,11 @@ uint32_t Log2(uint32_t num)
 	int i;
 
 	if(IsAPowerOfTwo(num)==0) {
-		PrintError(FnName,
-				"num",
-				"Num is not a power of 2",
-				Exit,
-				OutOfRange);
+			PrintError(FnName,
+					"num",
+					"Num is not a power of 2",
+					Exit,
+					OutOfRange);
 	}
 	/* Not the most efficient but we are not going to use this often */
 	for(i=0;num>1;i++,num/=2) {
@@ -202,7 +240,7 @@ uint32_t Log2(uint32_t num)
 	return i;
 }
 
-int8_t TransformFromIUPAC(int8_t a) 
+char TransformFromIUPAC(char a) 
 {
 	switch(a) {
 		case 'U':
@@ -241,9 +279,9 @@ int8_t TransformFromIUPAC(int8_t a)
 	}
 }
 
-void CheckBIndexes(BString *mainFileNames,
+void CheckRGIndexes(char **mainFileNames,
 		int numMainFileNames,
-		BString *secondaryFileNames,
+		char **secondaryFileNames,
 		int numSecondaryFileNames,
 		int binaryInput,
 		int32_t *startContig,
@@ -262,14 +300,14 @@ void CheckBIndexes(BString *mainFileNames,
 	mainStartContig = mainStartPos = mainEndContig = mainEndPos = 0;
 	secondaryStartContig = secondaryStartPos = secondaryEndContig = secondaryEndPos = 0;
 
-	BIndex tempIndex;
+	RGIndex tempIndex;
 	FILE *fp;
 
 	/* Read in main indexes */
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
 		if((fp=fopen(mainFileNames[i], "r"))==0) {
-			PrintError("CheckBIndexes",
+			PrintError("CheckRGIndexes",
 					mainFileNames[i],
 					"Could not open file for reading",
 					Exit,
@@ -277,7 +315,7 @@ void CheckBIndexes(BString *mainFileNames,
 		}
 
 		/* Get the header */
-		BIndexReadHeader(fp, &tempIndex, binaryInput); 
+		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
 
 		assert(tempIndex.startContig < tempIndex.endContig ||
 				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
@@ -317,7 +355,7 @@ void CheckBIndexes(BString *mainFileNames,
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
 		if((fp=fopen(secondaryFileNames[i], "r"))==0) {
-			PrintError("CheckBIndexes",
+			PrintError("CheckRGIndexes",
 					"secondaryFileNames[i]",
 					"Could not open file for reading",
 					Exit,
@@ -325,7 +363,7 @@ void CheckBIndexes(BString *mainFileNames,
 		}
 
 		/* Get the header */
-		BIndexReadHeader(fp, &tempIndex, binaryInput); 
+		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
 
 		assert(tempIndex.startContig < tempIndex.endContig ||
 				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
@@ -370,7 +408,7 @@ void CheckBIndexes(BString *mainFileNames,
 			mainEndContig != secondaryEndContig ||
 			mainEndPos != secondaryEndPos ||
 			mainColorSpace != secondaryColorSpace) {
-		PrintError("CheckBIndexes",
+		PrintError("CheckRGIndexes",
 				NULL,
 				"The ranges between main and secondary indexes differ",
 				Exit,
@@ -387,36 +425,41 @@ void CheckBIndexes(BString *mainFileNames,
 }
 
 /* TODO */
-FILE *OpenTmpFile(BString *tmpDir,
-		BString *tmpFileName) 
+FILE *OpenTmpFile(char *tmpDir,
+		char **tmpFileName)
 {
 	char *FnName = "OpenTmpFile";
 	FILE *fp;
 
-
-	/* Create the templated file name */
 	/* Allocate memory */
-	BStringAllocate(tmpFileName, MAX_FILENAME_LENGTH);
+	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+	if(NULL == (*tmpFileName)) {
+		PrintError(FnName,
+				"tmpFileName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Create the templated */
 	/* Copy over tmp directory */
-	strcpy(tmpFileName->string, tmpDir->string);
+	strcpy((*tmpFileName), tmpDir);
 	/* Copy over the tmp name */
-	strcat(tmpFileName->string, BFAST_TMP_TEMPLATE);
-	/* Reallocate memory */
-	BStringReallocate(tmpFileName, strlen(tmpFileName->string));
+	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
 
 	/* Create a new tmp file name */
-	if(NULL == mktemp(tmpFileName->string)) {
+	if(NULL == mktemp((*tmpFileName))) {
 		PrintError(FnName,
-				tmpFileName->string,
+				(*tmpFileName),
 				"Could not create a tmp file name",
 				Exit,
 				IllegalFileName);
 	}
 
 	/* Open a new file */
-	if(!(fp = fopen(tmpFileName->string, "wb+"))) {
+	if(!(fp = fopen((*tmpFileName), "wb+"))) {
 		PrintError(FnName,
-				tmpFileName->string,
+				(*tmpFileName),
 				"Could not open temporary file",
 				Exit,
 				OpenFileError);
@@ -427,7 +470,7 @@ FILE *OpenTmpFile(BString *tmpDir,
 
 /* TODO */
 void CloseTmpFile(FILE **fp,
-		BString *tmpFileName)
+		char **tmpFileName)
 {
 	char *FnName="CloseTmpFile";
 
@@ -437,17 +480,18 @@ void CloseTmpFile(FILE **fp,
 	(*fp)=NULL;
 
 	/* Remove the file */
-	assert(tmpFileName->string!=NULL);
-	if(0!=remove(tmpFileName->string)) {
+	assert((*tmpFileName)!=NULL);
+	if(0!=remove((*tmpFileName))) {
 		PrintError(FnName,
-				tmpFileName->string,
+				(*tmpFileName),
 				"Could not delete temporary file",
 				Exit,
 				DeleteFileError);
 	}
 
 	/* Free file name */
-	BStringFree(tmpFileName);
+	free((*tmpFileName));
+	(*tmpFileName) = NULL;
 }
 
 /* TODO */
@@ -519,11 +563,11 @@ void PrintContigPos(FILE *fp,
 }
 
 /* TODO */
-int32_t UpdateRead(BString *read)
+int UpdateRead(char *read, int readLength) 
 {
 	int i;
 
-	if(read->length <= 0) {
+	if(readLength <= 0) {
 		/* Ignore zero length reads */
 		return 0;
 	}
@@ -532,8 +576,8 @@ int32_t UpdateRead(BString *read)
 	 * if we encounter a base we do not recognize, 
 	 * return 0 
 	 * */
-	for(i=0;i<read->length;i++) {
-		switch(read->string[i]) {
+	for(i=0;i<readLength;i++) {
+		switch(read[i]) {
 			/* Do nothing for a, c, g, and t */
 			case 'a':
 			case 'c':
@@ -547,19 +591,19 @@ int32_t UpdateRead(BString *read)
 			case '4':
 				break;
 			case 'A':
-				read->string[i] = 'a';
+				read[i] = 'a';
 				break;
 			case 'C':
-				read->string[i] = 'c';
+				read[i] = 'c';
 				break;
 			case 'G':
-				read->string[i] = 'g';
+				read[i] = 'g';
 				break;
 			case 'T':
-				read->string[i] = 't';
+				read[i] = 't';
 				break;
 			case 'N':
-				read->string[i] = 'n';
+				read[i] = 'n';
 				break;
 			default:
 				return 0;
@@ -571,14 +615,14 @@ int32_t UpdateRead(BString *read)
 
 /* TODO */
 /* Debugging function */
-int32_t CheckReadAgainstIndex(BIndex *index,
-		BString *read)
+int CheckReadAgainstIndex(RGIndex *index,
+		char *read,
+		int readLength)
 {
 	char *FnName = "CheckReadAgainstIndex";
 	int i;
 	for(i=0;i<index->width;i++) {
-		assert(i<read->length);
-		switch(CheckReadBase(read->string[i])) {
+		switch(CheckReadBase(read[i])) {
 			case 0:
 				return 0;
 				break;
@@ -598,7 +642,7 @@ int32_t CheckReadAgainstIndex(BIndex *index,
 
 /* TODO */
 /* Debugging function */
-int32_t CheckReadBase(int8_t base) 
+int CheckReadBase(char base) 
 {
 	/* Do not include "n"s */
 	switch(base) {
@@ -717,24 +761,25 @@ uint8_t ConvertBaseAndColor(uint8_t base, uint8_t color)
 /* TODO */
 /* Include the first letter adaptor */
 /* Does not reallocate memory */
-void ConvertReadFromColorSpace(BString *read) 
+int ConvertReadFromColorSpace(char *read,
+		int readLength)
 {
 	int i, index;
 
 	/* Convert character numbers to 8-bit ints */
-	for(i=0;i<read->length;i++) {
-		switch(read->string[i]) {
+	for(i=0;i<readLength;i++) {
+		switch(read[i]) {
 			case '0':
-				read->string[i] = 0;
+				read[i] = 0;
 				break;
 			case '1':
-				read->string[i] = 1;
+				read[i] = 1;
 				break;
 			case '2':
-				read->string[i] = 2;
+				read[i] = 2;
 				break;
 			case '3':
-				read->string[i] = 3;
+				read[i] = 3;
 				break;
 			default:
 				/* Ignore */
@@ -742,56 +787,69 @@ void ConvertReadFromColorSpace(BString *read)
 		}
 	}
 
-	for(i=0;i<read->length-1;i++) {
+	for(i=0;i<readLength-1;i++) { 
 		if(0==i) {
 			index = 0;
 		}
 		else {
 			index = i-1; 
 		}
-		read->string[i] = ConvertBaseAndColor(read->string[index], read->string[i+1]); 
+		read[i] = ConvertBaseAndColor(read[index], read[i+1]); 
 	}
-	read->string[readLength-1] = '\0';
-	BStringReallocate(read, read->length-1);
+	read[readLength-1] = '\0';
+	readLength--;
+
+	return readLength;
 }
 
 /* TODO */
+/* Must reallocate memory */
 /* NT read to color space */
-void ConvertReadToColorSpace(BString *read) 
+void ConvertReadToColorSpace(char **read,
+		int *readLength)
 {
 	char *FnName="ConvertReadToColorSpace";
 	int i;
-	BString tempRead;
+	char tempRead[SEQUENCE_LENGTH]="\0";
 
 	assert((*readLength) < SEQUENCE_LENGTH);
 
 	/* Initialize */
-	BStringInitialize(&tempRead);
-	BStringAllocate(&tempread, read->length+1);
-	tempRead->string[0] =  COLOR_SPACE_START_NT;
-	tempRead->string[1] = ConvertBaseToColorSpace(tempRead->string[0], read->string[0]);
+	tempRead[0] =  COLOR_SPACE_START_NT;
+	tempRead[1] = ConvertBaseToColorSpace(tempRead[0], (*read)[0]);
 
 	/* Convert to colors represented as integers */
 	for(i=1;i<(*readLength);i++) {
-		tempRead->string[i+1] = ConvertBaseToColorSpace(read->string[i-1], read->string[i]);
+		tempRead[i+1] = ConvertBaseToColorSpace((*read)[i-1], (*read)[i]); 
 	}
 
 	/* Convert integers to characters */
 	for(i=1;i<(*readLength)+1;i++) {
-		assert(0<=tempRead->string[i] && tempRead->string[i] <= 4);
-		tempRead->string[i] = COLORS[(int)(tempRead->string[i])];
+		assert(0<=tempRead[i] && tempRead[i] <= 4);
+		tempRead[i] = COLORS[(int)(tempRead[i])];
 	}
-	tempRead->string[(*readLength)+1]='\0';
+	tempRead[(*readLength)+1]='\0';
 
 	/* Reallocate read to make sure */
-	BStrinCopy(read, &tempRead);
+	(*read) = realloc((*read), sizeof(char)*SEQUENCE_LENGTH);
+	if((*read)==NULL) {
+		PrintError(FnName,
+				"(*read)",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	strcpy((*read), tempRead);
+	(*readLength)++;
 }
 
 /* TODO */
 /* Takes in a NT read, converts to color space,
  * and then converts back to NT space using the
  * start NT */
-void NormalizeRead(BString *read,
+void NormalizeRead(char **read,
+		int *readLength,
 		char startNT)
 {
 	int i;
@@ -800,27 +858,27 @@ void NormalizeRead(BString *read,
 
 	prevOldBase = startNT;
 	prevNewBase = COLOR_SPACE_START_NT;
-	for(i=0;i<read->length;i++) {
+	for(i=0;i<(*readLength);i++) {
 		/* Convert to color space using the old previous NT and current old NT */
-		tempColor = ConvertBaseToColorSpace(prevOldBase, read->string[i]);
-		prevOldBase = read->string[i];
+		tempColor = ConvertBaseToColorSpace(prevOldBase, (*read)[i]);
+		prevOldBase = (*read)[i];
 		/* Convert to NT space but using the new previous NT and current color */
-		read->string[i] = ConvertBaseAndColor(prevNewBase, tempColor);;
-		prevNewBase = read->string[i];
+		(*read)[i] = ConvertBaseAndColor(prevNewBase, tempColor);;
+		prevNewBase = (*read)[i];
 	}
 }
 
 /* TODO */
-void ConvertColorsToStorage(BString *colors)
+void ConvertColorsToStorage(char *colors, int length)
 {
 	int i;
-	for(i=0;i<colors->length;i++) {
-		colors->string[i] = ConvertColorToStorage(colors->string[i]);
+	for(i=0;i<length;i++) {
+		colors[i] = ConvertColorToStorage(colors[i]);
 	}
 }
 
 /* TODO */
-int8_t ConvertColorToStorage(int8_t c)
+char ConvertColorToStorage(char c)
 {
 	switch(c) {
 		case 0:
@@ -926,43 +984,17 @@ void AdjustBounds(RGBinary *rg,
 }
 
 /* TODO */
-int32_t WillGenerateValidKey(BIndex *index,
-		BString *read) 
+int WillGenerateValidKey(RGIndex *index,
+		char *read,
+		int readLength)
 {
 	int i;
 
 	for(i=0;i<index->width;i++) {
-		if(i >= read->length ||
-				(1 == index->mask[i] && 1==RGBinaryIsBaseN(read->string[i]))) {
+		if(i >= readLength ||
+				(1 == index->mask[i] && 1==RGBinaryIsBaseN(read[i]))) {
 			return 0;
 		}
-	}
-	return 1;
-}
-
-/* TODO */
-int ValidateFileName(BString *Name)
-{
-	/* 
-	 *        Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
-	 *               FileName can start with only [a-zA-Z_0-9]
-	 *                      */
-
-	char *ptr=Name->string;
-	int counter=0;
-	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
-
-	assert(ptr!=0);
-
-	while(*ptr) {
-		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') ||
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
-					((*ptr=='/')) || /* Make sure that we can navigate through folders */
-					((*ptr=='-') && (counter>0)))) {
-			ptr++;
-			counter++;
-		}
-		else return 0;
 	}
 	return 1;
 }

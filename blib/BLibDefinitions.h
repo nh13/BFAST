@@ -4,29 +4,25 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-/* Obsolete ? HERE */
-/*
-#define SEQUENCE_LENGTH 2048
-#define SEQUENCE_NAME_LENGTH 4028
-#define MAX_HEADER_LENGTH 2048
-*/
-
 /* Program defaults */
 #define PROGRAM_NAME "bfast" /* Could just use PACKAGE_NAME */
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
 #define DEFAULT_OUTPUT_ID "OutputID"
-#define DEFAULT_OUTPUT_DIR "\."
+#define DEFAULT_OUTPUT_DIR "\0"
 #define BREAK_LINE "************************************************************\n"
+#define SEQUENCE_LENGTH 2048
+#define SEQUENCE_NAME_LENGTH 4028
 #define MAX_MASK_LENGTH 1024
 #define MAX_CONTIG_NAME_LENGTH 2048
 #define MAX_CONTIG_LOG_10 6
 #define MAX_POSITION_LOG_10 10
+#define MAX_HEADER_LENGTH 2048
 #define ONE_GIGABYTE (int64_t)1073741824
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
 
 /* Testing/Debug */
-#define TEST_BINDEX_SORT 0
+#define TEST_RGINDEX_SORT 0
 
 /* Default output */
 enum {TextOutput, BinaryOutput};
@@ -44,11 +40,11 @@ enum {TextInput, BinaryInput};
 #define BFAST_NOT_ALIGNED_FILE_EXTENSION "bnaf"
 #define BFAST_MAF_FILE_EXTENSION "maf"
 
-#define BMATCH_MERGE_ROTATE_NUM 100000
+#define RGMATCH_MERGE_ROTATE_NUM 100000
 #define READ_ROTATE_NUM 1000000
-#define BINDEX_ROTATE_NUM 1000000
+#define RGINDEX_ROTATE_NUM 1000000
 #define SORT_ROTATE_INC 0.01
-#define BINDEX_SORT_ROTATE_INC 0.001
+#define RGINDEX_SORT_ROTATE_INC 0.001
 #define ALIGN_ROTATE_NUM 10000
 #define PARTITION_MATCHES_ROTATE_NUM 100000
 #define ALIGNENTRIES_READ_ROTATE_NUM 10000
@@ -81,21 +77,23 @@ enum {IgnoreExons, UseExons};
 
 /* TODO */
 typedef struct {
-	BString read;
+	int32_t readLength;
+	int8_t *read;
 	int32_t maxReached;
 	int32_t numEntries;
 	uint32_t *contigs;
 	int32_t *positions;
 	int8_t *strand;
-} BMatch;
+} RGMatch;
 
 /* TODO */
 typedef struct {
 	int32_t pairedEnd;
-	BString readName;
+	int32_t readNameLength;
+	int8_t *readName;
 	RGMatch matchOne;
 	RGMatch matchTwo;
-} BMatches;
+} RGMatches;
 
 /* TODO */
 typedef struct { 
@@ -104,36 +102,38 @@ typedef struct {
 	int8_t *strand;
 	int32_t *offset;
 	int32_t numEntries;
-} BRanges;
+} RGRanges;
 
 /* TODO */
 typedef struct {
 	int32_t numReads;
-	BString *reads;
+	char **reads;
+	int32_t *readLength;
 	int8_t *strand;
 	int32_t *offset;
-} BReads;
+} RGReads;
 
 /* TODO */
 typedef struct {
 	/* Storage */
-	BString contigName;
+	int32_t contigNameLength;
+	char *contigName;
 	/* Metadata */
 	uint8_t *sequence; 
 	int32_t sequenceLength;
 	uint32_t numBytes;
-} BReferenceGenomeContig;
+} RGBinaryContig;
 
 /* TODO */
 typedef struct {
 	/* Storage type */
 	int32_t id;
-	/* B storage */
-	BReferenceGenomeContig *contigs;
+	/* RG storage */
+	RGBinaryContig *contigs;
 	int32_t numContigs;
 	/* Metadata */
 	int32_t space;
-} BReferenceGenome;
+} RGBinary;
 
 /* TODO */
 typedef struct {
@@ -163,7 +163,7 @@ typedef struct {
 	uint32_t *starts;
 	uint32_t *ends;
 
-} BIndex;
+} RGIndex;
 
 /* TODO */
 typedef struct {
@@ -172,7 +172,7 @@ typedef struct {
 	int32_t **masks;
 	int32_t *widths;
 	int32_t *keysizes;
-} BIndexLayout;
+} RGIndexLayout;
 
 /* TODO */
 typedef struct {
@@ -180,31 +180,32 @@ typedef struct {
 	uint32_t startPos;
 	uint32_t endContig;
 	uint32_t endPos;
-} BIndexExon;
+} RGIndexExon;
 
 /* TODO */
 typedef struct {
 	int numExons;
-	BIndexExon *exons;
-} BIndexExons;
+	RGIndexExon *exons;
+} RGIndexExons;
 
 /* TODO */
 typedef struct {
-	BString contigName;
+	int32_t contigNameLength;
+	char *contigName;
 	uint32_t contig;
 	uint32_t position;
 	char strand;
 	double score;
 	uint32_t referenceLength; /* The length of the reference alignment substracting gaps */
 	uint32_t length; /* The length of the alignment */
-	BString read;
-	BString reference;
-	BString colorError;
+	char *read; /* The read */
+	char *reference;
+	char *colorError;
 } AlignEntry;
 
 /* TODO */
 typedef struct {
-	BString readName;
+	char *readName;
 	int32_t pairedEnd;
 	int32_t space;
 	int32_t numEntriesOne;
@@ -215,8 +216,8 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	BIndex *index;
-	BReferenceGenome *rg;
+	RGIndex *index;
+	RGBinary *rg;
 	int32_t space;
 	int64_t low;
 	int64_t high;
@@ -224,18 +225,18 @@ typedef struct {
 	int32_t showPercentComplete;
 	char *tmpDir;
 	int64_t mergeMemoryLimit;
-} ThreadBIndexSortData;
+} ThreadRGIndexSortData;
 
 /* TODO */
 typedef struct {
-	BIndex *index;
-	BReferenceGenome *rg;
+	RGIndex *index;
+	RGBinary *rg;
 	int32_t threadID;
 	int64_t low;
 	int64_t mid;
 	int64_t high;
 	int64_t mergeMemoryLimit;
 	char *tmpDir;
-} ThreadBIndexMergeData;
+} ThreadRGIndexMergeData;
 
 #endif

@@ -8,18 +8,18 @@
 #include <limits.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
-#include "BMatch.h"
-#include "BMatches.h"
+#include "RGMatch.h"
+#include "RGMatches.h"
 
-#define BMATCHES_CHECK 0
+#define RGMATCHES_CHECK 0
 
 /* TODO */
-int32_t BMatchesRead(FILE *fp,
-		BMatches *m,
+int32_t RGMatchesRead(FILE *fp,
+		RGMatches *m,
 		int32_t pairedEnd,
 		int32_t binaryInput)
 {
-	char *FnName = "BMatchesRead";
+	char *FnName = "RGMatchesRead";
 
 	/* Read the matches from the input file */
 	if(binaryInput == TextInput) {
@@ -34,6 +34,34 @@ int32_t BMatchesRead(FILE *fp,
 					"Error.  Paired end did not match",
 					Exit,
 					OutOfRange);
+		}
+		/* Read read name length */
+		if(fscanf(fp, "%d", &m->readNameLength)==EOF) {
+			PrintError(FnName,
+					"m->readNameLength",
+					"Could not read name length",
+					Exit,
+					ReadFileError);
+		}
+		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
+		assert(m->readNameLength > 0);
+		/* Allocate memory for the read name */
+		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
+		if(NULL == m->readName) {
+			PrintError(FnName,
+					"m->readName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Read read name */
+		if(EOF==fscanf(fp, "%s", m->readName)) {
+			PrintError(FnName,
+					"m->readName",
+					"Could not read in read name",
+					Exit,
+					ReadFileError);
 		}
 	}
 	else {
@@ -58,130 +86,148 @@ int32_t BMatchesRead(FILE *fp,
 					Exit,
 					OutOfRange);
 		}
-	}
-	/* Read read name */
-	if(BStringRead(&m->readName, fp, binaryInput)==EOF) {
-		PrintError(FnName,
-				"m->readName",
-				"Could not read name",
-				Exit,
-				ReadFileError);
+
+		/* Read read name length */
+		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp)!=1) {
+			PrintError(FnName,
+					"m->readNameLength",
+					"Could not read in read name length",
+					Exit,
+					ReadFileError);
+		}
+		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
+		assert(m->readNameLength > 0);
+
+		/* Allocate memory for the read name */
+		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
+		if(NULL == m->readName) {
+			PrintError(FnName,
+					"m->readName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+
+		/* Read in read name */
+		if(fread(m->readName, sizeof(int8_t), m->readNameLength, fp)!=m->readNameLength) {
+			PrintError(FnName,
+					"m->readName",
+					"Could not read in read name",
+					Exit,
+					ReadFileError);
+		}
+		m->readName[m->readNameLength]='\0';
 	}
 
 	/* Read match one */
-	BMatchRead(fp,
+	RGMatchRead(fp,
 			&m->matchOne,
 			binaryInput);
 	if(1==pairedEnd) {
 		/* Read match two if necessary */
-		BMatchRead(fp,
+		RGMatchRead(fp,
 				&m->matchTwo,
 				binaryInput);
 	}
 
 	/* Check m */
-	if(1==BMATCHES_CHECK) {
-		BMatchesCheck(m);
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
 	}
 
 	return 1;
 }
 
 /* TODO */
-void BMatchesPrint(FILE *fp,
-		BMatches *m,
+void RGMatchesPrint(FILE *fp,
+		RGMatches *m,
 		int32_t pairedEnd,
 		int32_t binaryOutput)
 {
-	char *FnName = "BMatchesPrint";
+	char *FnName = "RGMatchesPrint";
 	assert(fp!=NULL);
 
 	/* Check m */
-	if(1==BMATCHES_CHECK) {
-		BMatchesCheck(m);
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
 	}
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextInput) {
-		/* Print paired end */
+		/* Print paired end, read name length, and read name */
 		if(0 > fprintf(fp, "%d %d %s\n",
-					m->pairedEnd)) {
+					m->pairedEnd,
+					m->readNameLength,
+					m->readName)) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->pairedEnd",
+					"Could not write m->pairedEnd, m->readNameLength, and m->readName",
 					Exit,
 					WriteFileError);
 		}
 	}
 	else {
 		/* Print paired end, read name length, and read name */
-		if(fwrite(&m->pairedEnd, sizeof(int32_t), 1, fp) != 1) {
+		if(fwrite(&m->pairedEnd, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(&m->readNameLength, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(m->readName, sizeof(int8_t), m->readNameLength, fp) != m->readNameLength) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->pairedEnd",
+					"Could not write m->pairedEnd, m->readNameLength, and m->readName",
 					Exit,
 					WriteFileError);
 		}
 	}
 
-	/* Print read name */
-	if(BStringPrint(&m->readName, fp, binaryOutput)<0) {
-		PrintError(FnName,
-				"m->readName",
-				"Could not write read name",
-				Exit,
-				WriteFileError);
-	}
-
 	/* Print match one */
-	BMatchPrint(fp,
+	RGMatchPrint(fp,
 			&m->matchOne,
 			binaryOutput);
 	/* Print match two if necessary */
 	if(pairedEnd == 1) {
-		BMatchPrint(fp,
+		RGMatchPrint(fp,
 				&m->matchTwo,
 				binaryOutput);
 	}
 }
 
 /* TODO */
-void BMatchesRemoveDuplicates(BMatches *m,
+void RGMatchesRemoveDuplicates(RGMatches *m,
 		int32_t maxNumMatches)
 {
-	BMatchRemoveDuplicates(&m->matchOne, maxNumMatches);
+	RGMatchRemoveDuplicates(&m->matchOne, maxNumMatches);
 	if(1==m->pairedEnd) {
-		BMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
+		RGMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
 		assert(m->matchTwo.numEntries <= maxNumMatches);
 	}
 	assert(m->matchOne.numEntries <= maxNumMatches);
 
 	/* Check m */
-	if(1==BMATCHES_CHECK) {
-		BMatchesCheck(m);
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
 	}
 }
 
 /* TODO */
 /* Merges matches from the same read */
-int32_t BMatchesMergeFilesAndOutput(FILE **tempFPs,
+int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 		int32_t numFiles,
 		FILE *outputFP,
 		int32_t pairedEnd,
 		int32_t binaryOutput,
 		int32_t maxNumMatches)
 {
-	char *FnName="BMatchesMergeFilesAndOutput";
+	char *FnName="RGMatchesMergeFilesAndOutput";
 	int32_t i;
 	int32_t counter;
-	BMatches matches;
-	BMatches tempMatches;
+	RGMatches matches;
+	RGMatches tempMatches;
 	int32_t numMatches=0;
 	int32_t numFinished = 0;
 
 	/* Initialize matches */
-	BMatchesInitialize(&matches);
-	BMatchesInitialize(&tempMatches);
+	RGMatchesInitialize(&matches);
+	RGMatchesInitialize(&tempMatches);
 
 	/* Seek to the beginning of the files */
 	for(i=0;i<numFiles;i++) {
@@ -194,22 +240,22 @@ int32_t BMatchesMergeFilesAndOutput(FILE **tempFPs,
 		fprintf(stderr, "\r[%d]", 0);
 	}
 	while(numFinished == 0) {
-		if(VERBOSE >=0 && counter%BMATCH_MEBE_ROTATE_NUM == 0) {
+		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
 			fprintf(stderr, "\r[%d]", counter);
 		}
 		counter++;
 
 		/* Read matches for one read from each file */ 
 		for(i=0;i<numFiles;i++) {
-			if(BMatchesRead(tempFPs[i],
+			if(RGMatchesRead(tempFPs[i],
 						&tempMatches,
 						pairedEnd,
 						binaryOutput)==EOF) {
 				numFinished++;
 			}
 			else {
-				if(matches.readName.string != NULL &&
-						BStringCompare(&matches.readName, &tempMatches.readName)!=0) {
+				if(matches.readName != NULL &&
+						strcmp((char*)matches.readName, (char*)tempMatches.readName)!=0) {
 					PrintError(FnName,
 							NULL,
 							"Read names do not match",
@@ -217,31 +263,31 @@ int32_t BMatchesMergeFilesAndOutput(FILE **tempFPs,
 							OutOfRange);
 				}
 				/* Append temp matches to matches */
-				BMatchesAppend(&tempMatches, &matches);
+				RGMatchesAppend(&tempMatches, &matches);
 			}
 
 			/* Free temp matches */
-			BMatchesFree(&tempMatches);
+			RGMatchesFree(&tempMatches);
 		}
 		/* We must finish all at the same time */
 		assert(numFinished == 0 || numFinished == numFiles);
 
 		if(numFinished == 0) {
 			/* Remove duplicates */
-			BMatchesRemoveDuplicates(&matches, maxNumMatches);
+			RGMatchesRemoveDuplicates(&matches, maxNumMatches);
 
 			/* Print to output file */
 			if(matches.matchOne.numEntries > 0 ||
 					(1==pairedEnd && matches.matchTwo.numEntries > 0)) {
 				numMatches++;
 			}
-			BMatchesPrint(outputFP,
+			RGMatchesPrint(outputFP,
 					&matches,
 					pairedEnd,
 					binaryOutput);
 		}
 		/* Free memory */
-		BMatchesFree(&matches);
+		RGMatchesFree(&matches);
 	}
 
 	if(VERBOSE >=0) {
@@ -253,21 +299,21 @@ int32_t BMatchesMergeFilesAndOutput(FILE **tempFPs,
 
 /* TODO */
 /* Merges matches from different reads */
-int32_t BMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
+int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 		int32_t numThreads,
 		FILE *outputFP,
 		int32_t pairedEnd,
 		int32_t binaryOutput)
 {
-	char *FnName = "BMatchesMergeThreadTempFilesIntoOutputTempFile";
+	char *FnName = "RGMatchesMergeThreadTempFilesIntoOutputTempFile";
 	int32_t counter;
 	int32_t i;
-	BMatches matches;
+	RGMatches matches;
 	int32_t numFinished;
 	int *finished=NULL;
 
 	/* Initialize matches */
-	BMatchesInitialize(&matches);
+	RGMatchesInitialize(&matches);
 
 	/* Initialize thread file pointers */
 	for(i=0;i<numThreads;i++) {
@@ -298,7 +344,7 @@ int32_t BMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 		for(i=0;i<numThreads;i++) {
 			/* Only try reading from those that are not finished */
 			if(0 == finished[i]) {
-				if(BMatchesRead(threadFPs[i],
+				if(RGMatchesRead(threadFPs[i],
 							&matches,
 							pairedEnd,
 							binaryOutput)==EOF) {
@@ -313,19 +359,19 @@ int32_t BMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 					   counter++;
 					   }
 					   */
-					if(VERBOSE >=0 && counter%BMATCH_MEBE_ROTATE_NUM == 0) {
+					if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
 						fprintf(stderr, "\r[%d]", counter);
 					}
 					counter++;
 
-					BMatchesPrint(outputFP,
+					RGMatchesPrint(outputFP,
 							&matches,
 							pairedEnd,
 							binaryOutput);
 
 				}
 				/* Free memory */
-				BMatchesFree(&matches);
+				RGMatchesFree(&matches);
 			}
 		}
 	}
@@ -344,46 +390,58 @@ int32_t BMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 }
 
 /* TODO */
-void BMatchesAppend(BMatches *src, BMatches *dest)
+void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 {
-	char *FnName = "BMatchesAppend";
+	char *FnName = "RGMatchesAppend";
 	/* Check that we are not appending to ourselves */
 	assert(src != dest);
 
 	/* Check to see if we need to add in the read name */
-	if(dest->readName.length <= 0) {
-		BStringCopy(&dest->readName, &src->readName);
+	if(dest->readNameLength <= 0) {
+		assert(dest->readName == NULL);
+		dest->readNameLength = src->readNameLength;
+		/* Allocate memory for the read name */
+		dest->readName = malloc(sizeof(int8_t)*(dest->readNameLength+1));
+		if(NULL==dest->readName) {
+			PrintError(FnName,
+					"dest->readName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		strcpy((char*)dest->readName, (char*)src->readName);
 		dest->pairedEnd = src->pairedEnd;
 	}
 	assert(src->pairedEnd == dest->pairedEnd);
 
 	/* Append the matches */
-	BMatchAppend(&src->matchOne, &dest->matchOne);
+	RGMatchAppend(&src->matchOne, &dest->matchOne);
 	if(1==dest->pairedEnd) {
-		BMatchAppend(&src->matchTwo, &dest->matchTwo);
+		RGMatchAppend(&src->matchTwo, &dest->matchTwo);
 	}
 }
 
 /* TODO */
-void BMatchesFree(BMatches *m) 
+void RGMatchesFree(RGMatches *m) 
 {
-	BStringFree(&m->readName);
-	BMatchFree(&m->matchOne);
-	BMatchFree(&m->matchTwo);
-	BMatchesInitialize(m);
+	free(m->readName);
+	RGMatchFree(&m->matchOne);
+	RGMatchFree(&m->matchTwo);
+	RGMatchesInitialize(m);
 }
 
 /* TODO */
-void BMatchesInitialize(BMatches *m)
+void RGMatchesInitialize(RGMatches *m)
 {
 	m->pairedEnd = 0;
-	BStringInitialize(&m->readName);
-	BMatchInitialize(&m->matchOne);
-	BMatchInitialize(&m->matchTwo);
+	m->readNameLength = 0;
+	m->readName = NULL;
+	RGMatchInitialize(&m->matchOne);
+	RGMatchInitialize(&m->matchTwo);
 }
 
 /* TODO */
-void BMatchesMirrorPairedEnd(BMatches *m,
+void RGMatchesMirrorPairedEnd(RGMatches *m,
 		int32_t pairedEndLength,
 		int32_t forceMirroring)
 {
@@ -396,7 +454,7 @@ void BMatchesMirrorPairedEnd(BMatches *m,
 		/* Copy matches from first to second */
 		if(forceMirroring == 1 || 
 				(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0)) {
-			BMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
+			RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
 			for(i=0;i<numEntriesOne;i++) {
 				m->matchTwo.contigs[i+numEntriesTwo] = m->matchOne.contigs[i];
 				m->matchTwo.strand[i+numEntriesTwo] = m->matchOne.strand[i];
@@ -407,7 +465,7 @@ void BMatchesMirrorPairedEnd(BMatches *m,
 		/* Copy matches from second to first */
 		if(forceMirroring == 1 || 
 				(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0)) {
-			BMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
+			RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
 			for(i=0;i<numEntriesTwo;i++) {
 				m->matchOne.contigs[i+numEntriesOne] = m->matchTwo.contigs[i];
 				m->matchOne.strand[i+numEntriesOne] = m->matchTwo.strand[i];
@@ -416,21 +474,21 @@ void BMatchesMirrorPairedEnd(BMatches *m,
 			}
 		}
 		/* Check m */
-		if(1==BMATCHES_CHECK) {
-			BMatchesCheck(m);
+		if(1==RGMATCHES_CHECK) {
+			RGMatchesCheck(m);
 		}
-		BMatchesRemoveDuplicates(m, INT_MAX);
+		RGMatchesRemoveDuplicates(m, INT_MAX);
 	}
 }
 
 /* TODO */
-void BMatchesCheck(BMatches *m) 
+void RGMatchesCheck(RGMatches *m) 
 {
-	char *FnName="BMatchesCheck";
+	char *FnName="RGMatchesCheck";
 	/* Basic asserts */
 	assert(m->pairedEnd == 0 || m->pairedEnd == 1);
 	/* Check that the read name length is the same as the length of the read name */
-	if(m->readName.length != (int)strlen(m->readName.string)) {
+	if(((int)strlen((char*)m->readName)) != m->readNameLength) {
 		PrintError(FnName,
 				NULL,
 				"strlen(m->readName)) != m->readNameLength",
@@ -439,7 +497,7 @@ void BMatchesCheck(BMatches *m)
 	}
 	if(0 == m->pairedEnd) {
 		/* Check the first match */
-		BMatchCheck(&m->matchOne);
+		RGMatchCheck(&m->matchOne);
 		/* Make sure the second match is nulled */
 		assert(m->matchTwo.readLength == 0);
 		assert(m->matchTwo.read == NULL);
@@ -451,27 +509,27 @@ void BMatchesCheck(BMatches *m)
 	}
 	else {
 		/* Check both matches */
-		BMatchCheck(&m->matchOne);
-		BMatchCheck(&m->matchTwo);
+		RGMatchCheck(&m->matchOne);
+		RGMatchCheck(&m->matchTwo);
 	}
 }
 
 /* TODO */
-void BMatchesFilterOutOfRange(BMatches *m,
+void RGMatchesFilterOutOfRange(RGMatches *m,
 		int32_t startChr,
 		int32_t startPos,
 		int32_t endChr,
 		int32_t endPos,
 		int32_t maxNumMatches)
 {
-	BMatchFilterOutOfRange(&m->matchOne,
+	RGMatchFilterOutOfRange(&m->matchOne,
 			startChr,
 			startPos,
 			endChr,
 			endPos,
 			maxNumMatches);
 	if(m->pairedEnd == 1) {
-		BMatchFilterOutOfRange(&m->matchTwo,
+		RGMatchFilterOutOfRange(&m->matchTwo,
 				startChr,
 				startPos,
 				endChr,
