@@ -937,6 +937,7 @@ void AdjustBounds(RGBinary *rg,
 		}
 		(*startPos) = 1;
 	}
+
 	/* Adjust end */
 	if((*endContig) > rg->numContigs) {
 		if(VERBOSE >= 0) {
@@ -950,16 +951,17 @@ void AdjustBounds(RGBinary *rg,
 		(*endContig) = rg->numContigs;
 		(*endPos) = rg->contigs[rg->numContigs-1].sequenceLength;
 	}
-	else if((*endContig) == rg->numContigs && 
-			(*endPos) > rg->contigs[rg->numContigs-1].sequenceLength) {
+	else if((*endContig) <= rg->numContigs && 
+			(*endPos) > rg->contigs[(*endContig)-1].sequenceLength) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Warning: endPos was greater than reference genome's end position.\n");
-			fprintf(stderr, "Defaulting to reference genome's end position: %d.\n",
-					rg->contigs[rg->numContigs-1].sequenceLength);
+			fprintf(stderr, "Defaulting to reference genome's contig %d end position: %d.\n",
+					(*endContig),
+					rg->contigs[(*endContig)-1].sequenceLength);
 			fprintf(stderr, "%s", BREAK_LINE);
 		}
-		(*endPos) = rg->contigs[rg->numContigs-1].sequenceLength;
+		(*endPos) = rg->contigs[(*endContig)-1].sequenceLength;
 	}
 
 	/* Check that the start and end bounds are ok */
