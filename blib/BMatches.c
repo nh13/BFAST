@@ -35,34 +35,6 @@ int32_t BMatchesRead(FILE *fp,
 					Exit,
 					OutOfRange);
 		}
-		/* Read read name length */
-		if(fscanf(fp, "%d", &m->readNameLength)==EOF) {
-			PrintError(FnName,
-					"m->readNameLength",
-					"Could not read name length",
-					Exit,
-					ReadFileError);
-		}
-		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
-		assert(m->readNameLength > 0);
-		/* Allocate memory for the read name */
-		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
-		if(NULL == m->readName) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-
-		/* Read read name */
-		if(EOF==fscanf(fp, "%s", m->readName)) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not read in read name",
-					Exit,
-					ReadFileError);
-		}
 	}
 	else {
 		/* Read paired end */
@@ -86,37 +58,14 @@ int32_t BMatchesRead(FILE *fp,
 					Exit,
 					OutOfRange);
 		}
-
-		/* Read read name length */
-		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp)!=1) {
-			PrintError(FnName,
-					"m->readNameLength",
-					"Could not read in read name length",
-					Exit,
-					ReadFileError);
-		}
-		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
-		assert(m->readNameLength > 0);
-
-		/* Allocate memory for the read name */
-		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
-		if(NULL == m->readName) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-
-		/* Read in read name */
-		if(fread(m->readName, sizeof(int8_t), m->readNameLength, fp)!=m->readNameLength) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not read in read name",
-					Exit,
-					ReadFileError);
-		}
-		m->readName[m->readNameLength]='\0';
+	}
+	/* Read read name */
+	if(BStringRead(&m->readName, fp, binaryInput)==EOF) {
+		PrintError(FnName,
+				"m->readName",
+				"Could not read name",
+				Exit,
+				ReadFileError);
 	}
 
 	/* Read match one */
@@ -154,29 +103,34 @@ void BMatchesPrint(FILE *fp,
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextInput) {
-		/* Print paired end, read name length, and read name */
+		/* Print paired end */
 		if(0 > fprintf(fp, "%d %d %s\n",
-					m->pairedEnd,
-					m->readNameLength,
-					m->readName)) {
+					m->pairedEnd)) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->pairedEnd, m->readNameLength, and m->readName",
+					"Could not write m->pairedEnd",
 					Exit,
 					WriteFileError);
 		}
 	}
 	else {
 		/* Print paired end, read name length, and read name */
-		if(fwrite(&m->pairedEnd, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&m->readNameLength, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(m->readName, sizeof(int8_t), m->readNameLength, fp) != m->readNameLength) {
+		if(fwrite(&m->pairedEnd, sizeof(int32_t), 1, fp) != 1) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->pairedEnd, m->readNameLength, and m->readName",
+					"Could not write m->pairedEnd",
 					Exit,
 					WriteFileError);
 		}
+	}
+
+	/* Print read name */
+	if(BStringPrint(&m->readName, fp, binaryOutput)<0) {
+		PrintError(FnName,
+				"m->readName",
+				"Could not write read name",
+				Exit,
+				WriteFileError);
 	}
 
 	/* Print match one */
@@ -254,8 +208,8 @@ int32_t BMatchesMergeFilesAndOutput(FILE **tempFPs,
 				numFinished++;
 			}
 			else {
-				if(matches.readName != NULL &&
-						strcmp((char*)matches.readName, (char*)tempMatches.readName)!=0) {
+				if(matches.readName.string != NULL &&
+						BStringCompare(&matches.readName, &tempMatches.readName)!=0) {
 					PrintError(FnName,
 							NULL,
 							"Read names do not match",
@@ -397,19 +351,8 @@ void BMatchesAppend(BMatches *src, BMatches *dest)
 	assert(src != dest);
 
 	/* Check to see if we need to add in the read name */
-	if(dest->readNameLength <= 0) {
-		assert(dest->readName == NULL);
-		dest->readNameLength = src->readNameLength;
-		/* Allocate memory for the read name */
-		dest->readName = malloc(sizeof(int8_t)*(dest->readNameLength+1));
-		if(NULL==dest->readName) {
-			PrintError(FnName,
-					"dest->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		strcpy((char*)dest->readName, (char*)src->readName);
+	if(dest->readName.length <= 0) {
+		BStringCopy(&dest->readName, &src->readName);
 		dest->pairedEnd = src->pairedEnd;
 	}
 	assert(src->pairedEnd == dest->pairedEnd);
@@ -424,7 +367,7 @@ void BMatchesAppend(BMatches *src, BMatches *dest)
 /* TODO */
 void BMatchesFree(BMatches *m) 
 {
-	free(m->readName);
+	BStringFree(&m->readName);
 	BMatchFree(&m->matchOne);
 	BMatchFree(&m->matchTwo);
 	BMatchesInitialize(m);
@@ -434,8 +377,7 @@ void BMatchesFree(BMatches *m)
 void BMatchesInitialize(BMatches *m)
 {
 	m->pairedEnd = 0;
-	m->readNameLength = 0;
-	m->readName = NULL;
+	BStringInitialize(&m->readName);
 	BMatchInitialize(&m->matchOne);
 	BMatchInitialize(&m->matchTwo);
 }
@@ -488,7 +430,7 @@ void BMatchesCheck(BMatches *m)
 	/* Basic asserts */
 	assert(m->pairedEnd == 0 || m->pairedEnd == 1);
 	/* Check that the read name length is the same as the length of the read name */
-	if(((int)strlen((char*)m->readName)) != m->readNameLength) {
+	if(m->readName.length != (int)strlen(m->readName.string)) {
 		PrintError(FnName,
 				NULL,
 				"strlen(m->readName)) != m->readNameLength",

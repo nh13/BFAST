@@ -13,15 +13,15 @@
    Based on GNU/Linux and glibc or not, argp.h may or may not be available.
    If it is not, fall back to getopt. Also see #ifdefs in the ParseInput.h file. 
    */
-#ifdef HAVE_ARGP_H
+#ifdef HAVE_ABP_H
 #include <argp.h>
-#define OPTARG arg
+#define OPTAB arg
 #elif defined HAVE_UNISTD_H
 #include <unistd.h>
-#define OPTARG optarg
+#define OPTAB optarg
 #else
 #include "GetOpt.h"
-#define OPTARG optarg
+#define OPTAB optarg
 #endif
 
 #ifdef HAVE_SYS_TYPES_H
@@ -39,9 +39,9 @@
 #include <time.h>
 
 #include "../blib/BLibDefinitions.h"
-#include "../blib/RGBinary.h"
-#include "../blib/RGIndexLayout.h"
-#include "../blib/RGIndexExons.h"
+#include "../blib/BReferenceGenome.h"
+#include "../blib/BIndexLayout.h"
+#include "../blib/BIndexExons.h"
 #include "../blib/BError.h"
 #include "Definitions.h"
 #include "GenerateIndex.h"
@@ -57,11 +57,11 @@ const char *argp_program_bug_address =
 PACKAGE_BUGREPORT;
 
 /*
-   OPTIONS.  Field 1 in ARGP.
-   Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
+   OPTIONS.  Field 1 in ABP.
+   Order of fields: {NAME, KEY, AB, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
+	DescInputFilesTitle, DescBFileName, DescIndexLayoutFileName,  
 	DescAlgoTitle, DescAlgorithm, DescSpace, DescNumThreads, 
 	DescIndexSpecificTitle, DescRepeatMasker, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescExonFileName, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
@@ -104,20 +104,20 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, 0, 0}
 };
 /*
-   ARGS_DOC. Field 3 in ARGP.
+   ABS_DOC. Field 3 in ABP.
    A description of the non-option command-line arguments that we accept.
    Not complete yet. So empty string
    */
 static char args_doc[] = "";
 
 /*
-   DOC.  Field 4 in ARGP.  Program documentation.
+   DOC.  Field 4 in ABP.  Program documentation.
    */
 static char doc[] = "";
 
-#ifdef HAVE_ARGP_H
+#ifdef HAVE_ABP_H
 /*
-   The ARGP structure itself.
+   The ABP structure itself.
    */
 static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
@@ -136,19 +136,22 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 main (int argc, char **argv)
 {
 	struct arguments arguments;
-	RGBinary rg;
-	RGIndexLayout rgLayout;
-	RGIndexExons exons;
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
+	BReferenceGenome rg;
+	BIndexLayout rgLayout;
+	BIndexExons exons;
+	char tmpFileName[MAX_FILENAME_LENGTH];
+	BString outputFileName;
 	time_t startTime = time(NULL);
 	time_t endTime;
+
+	BStringInitialize(&outputFileName);
 
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
 
 		/* Parse command line args */
-#ifdef HAVE_ARGP_H
+#ifdef HAVE_ABP_H
 		if(argp_parse(&argp, argc, argv, 0, 0, &arguments)==0)
 #else
 			if(getopt_parse(argc, argv, OptionString, &arguments)==0)
@@ -178,29 +181,34 @@ main (int argc, char **argv)
 						switch(arguments.algorithm) {
 							case 0:
 								/* Read fasta files */
-								RGBinaryRead(arguments.rgFileName, 
+								BReferenceGenomeRead(&arguments.rgFileName, 
 										&rg,
 										arguments.space);
-								sprintf(outputFileName, "%s%s.rg.file.%s.%d.%s",
+
+								/* Create file name */
+								sprintf(tempFileName, "%s%s.rg.file.%s.%d.%s",
 										arguments.outputDir,
 										PROGRAM_NAME,
 										arguments.outputID,
 										rg.space,
 										BFAST_RG_FILE_EXTENSION);
+								BStringAllocate(&outputFileName, (int32_t)strlen(tmpFileName));
+								strcpy(outputFileName.string, tmpFileName);
+
 								/* Write binary */
 								assert(arguments.binaryOutput == BinaryOutput);
-								RGBinaryWriteBinary(&rg,
-										outputFileName);
+								BReferenceGenomeWriteBinary(&rg,
+										&outputFileName);
 								break;
 							case 1:
 								/* Read binary */
-								RGBinaryReadBinary(&rg,
-										arguments.rgFileName);
-								/* Read in the RGIndex layout */
-								RGIndexLayoutRead(arguments.indexLayoutFileName, &rgLayout);
+								BReferenceGenomeReadBinary(&rg,
+										&arguments.rgFileName);
+								/* Read in the BIndex layout */
+								BIndexLayoutRead(&arguments.indexLayoutFileName, &rgLayout);
 								/* Read exons, if necessary */
 								if(arguments.useExons == UseExons) {
-									RGIndexExonsRead(arguments.exonsFileName,
+									BIndexExonsRead(&arguments.exonsFileName,
 											&exons);
 								}
 
@@ -216,16 +224,16 @@ main (int argc, char **argv)
 										&exons,
 										arguments.repeatMasker,
 										arguments.numThreads,
-										arguments.outputID,
-										arguments.outputDir,
-										arguments.tmpDir,
+										&arguments.outputID,
+										&arguments.outputDir,
+										&arguments.tmpDir,
 										arguments.binaryOutput);
 
-								/* Free the RGIndex layout */
-								RGIndexLayoutDelete(&rgLayout);
+								/* Free the BIndex layout */
+								BIndexLayoutDelete(&rgLayout);
 								/* Free exons, if necessary */
 								if(arguments.useExons == UseExons) {
-									RGIndexExonsDelete(&exons);
+									BIndexExonsDelete(&exons);
 								}
 								break;
 							default:
@@ -233,7 +241,7 @@ main (int argc, char **argv)
 						}
 
 						/* Free the Reference Genome */
-						RGBinaryDelete(&rg);
+						BReferenceGenomeDelete(&rg);
 
 						if(arguments.timing == 1) {
 							/* Get the time information */
@@ -270,20 +278,19 @@ main (int argc, char **argv)
 						Exit,
 						InputArguments);
 			}
-		/* Free exons file name if we did not use it */
-		if(arguments.useExons != UseExons) {
-			free(arguments.exonsFileName);
-			arguments.exonsFileName=NULL;
-		}
 	}
 	else {
 		GetOptHelp();
-#ifdef HAVE_ARGP_H
+#ifdef HAVE_ABP_H
 		/* fprintf(stderr, "Type \"%s --help\" to see usage\n", argv[0]); */
 #else
 		/*     fprintf(stderr, "Type \"%s -h\" to see usage\n", argv[0]); */
 #endif
 	}
+
+	/* Free program parameters */
+	FreeProgramParameters(&arguments);
+	
 	return 0;
 }
 
@@ -298,7 +305,7 @@ int ValidateInputs(struct arguments *args) {
 	if(args->rgFileName!=0) {
 		fprintf(stderr, "Validating rgFileName %s. \n",
 				args->rgFileName);
-		if(ValidateFileName(args->rgFileName)==0)
+		if(ValidateFileName(&args->rgFileName)==0)
 			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
@@ -315,7 +322,7 @@ int ValidateInputs(struct arguments *args) {
 	if(args->indexLayoutFileName!=0) {
 		fprintf(stderr, "Validating indexLayoutFileName %s. \n",
 				args->indexLayoutFileName);
-		if(ValidateFileName(args->indexLayoutFileName)==0)
+		if(ValidateFileName(&args->indexLayoutFileName)==0)
 			PrintError(FnName, "indexLayoutFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
@@ -338,7 +345,7 @@ int ValidateInputs(struct arguments *args) {
 	if(args->exonsFileName!=0) {
 		fprintf(stderr, "Validating exonsFileName %s. \n",
 				args->exonsFileName);
-		if(ValidateFileName(args->exonsFileName)==0)
+		if(ValidateFileName(&args->exonsFileName)==0)
 			PrintError(FnName, "exonsFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
@@ -349,21 +356,21 @@ int ValidateInputs(struct arguments *args) {
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
-		if(ValidateFileName(args->outputID)==0)
+		if(ValidateFileName(&args->outputID)==0)
 			PrintError(FnName, "outputID", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->outputDir!=0) {
 		fprintf(stderr, "Validating outputDir %s. \n", 
 				args->outputDir);
-		if(ValidateFileName(args->outputDir)==0) 
+		if(ValidateFileName(&args->outputDir)==0) 
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->tmpDir!=0) {
 		fprintf(stderr, "Validating tmpDir path %s. \n",
 				args->tmpDir);
-		if(ValidateFileName(args->tmpDir)==0)
+		if(ValidateFileName(&args->tmpDir)==0)
 			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
 	}
 
@@ -397,34 +404,6 @@ int ValidateInputs(struct arguments *args) {
 }
 
 /* TODO */
-	int 
-ValidateFileName(char *Name) 
-{
-	/* 
-	   Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
-	   FileName can start with only [a-zA-Z_0-9]
-	   */
-
-	char *ptr=Name;
-	int counter=0;
-	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
-
-	assert(ptr!=0);
-
-	while(*ptr) {
-		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') || 
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
-					((*ptr=='/')) || /* Make sure that we can navigate through folders */
-					((*ptr=='-') && (counter>0)))) {
-			ptr++;
-			counter++;
-		}
-		else return 0;
-	}
-	return 1;
-}
-
-/* TODO */
 	void 
 AssignDefaultValues(struct arguments *args)
 {
@@ -432,20 +411,16 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->rgFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->rgFileName!=0);
-	strcpy(args->rgFileName, DEFAULT_FILENAME);
+	BStringInitialize(&args->rgFileName);
+	BStringCopyCString(&args->rgFileName, DEFAULT_FILENAME);
 
 	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
 
 	args->algorithm = 0;
 	args->space = NTSpace;
 
-	args->indexLayoutFileName = 
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->indexLayoutFileName!=0);
-	strcpy(args->indexLayoutFileName, DEFAULT_FILENAME);
+	BStringInitialize(&args->indexLayoutFileName); 
+	BStringCopyCString(&args->indexLayoutFileName, DEFAULT_FILENAME);
 
 	args->repeatMasker=0;
 	args->startContig=0;
@@ -453,28 +428,18 @@ AssignDefaultValues(struct arguments *args)
 	args->endContig=INT_MAX;
 	args->endPos=INT_MAX;
 
-	args->exonsFileName = 
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->exonsFileName!=0);
-	strcpy(args->exonsFileName, DEFAULT_FILENAME);
+	BStringInitialize(&args->exonsFileName); 
+	BStringCopyCString(&args->exonsFileName, DEFAULT_FILENAME);
 	args->useExons=IgnoreExons;
 	
 	args->numThreads = 1;
 
-	args->outputID =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
-	assert(args->outputID!=0);
-	strcpy(args->outputID, DEFAULT_OUTPUT_ID);
-
-	args->outputDir = 
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
-	assert(args->outputDir!=0);
-	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
-
-	args->tmpDir =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
-	assert(args->tmpDir!=0);
-	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
+	BStringInitialize(args->outputID);
+	BStringCopyCString(&args->outputID, DEFAULT_OUTPUT_ID);
+	BStringInitialize(args->outputDir);
+	BStringCopyCString(&args->outputDir, DEFAULT_OUTPUT_DIR); 
+	BStringInitialize(args->tmpDir);
+	BStringCopyCString(&args->tmpDir, DEFAULT_OUTPUT_DIR);
 
 	args->binaryOutput = BPREPROCESS_DEFAULT_OUTPUT;
 	args->timing = 0;
@@ -490,28 +455,42 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
+	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName.string);
 	/*
 	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	*/
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
+	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName.string);
 	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "exonsFileName:\t\t\t\t\%s\n", args->exonsFileName);
+	fprintf(fp, "exonsFileName:\t\t\t\t\%s\n", args->exonsFileName.string);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
-	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
-	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
-	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
+	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID.string);
+	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir.string);
+	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir.string);
 	/*
 	   fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
 	   */
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
+	return;
+}
+
+/* TODO */
+FreeProgramParameters(struct arguments *args)
+{
+	/* Free */
+	BStringFree(&args->rgFileName);
+	BStringFree(&args->indexLayoutFileName);
+	BStringFree(&args->exonsFileName);
+	BStringFree(&args->outputID);
+	BStringFree(&args->outputDir);
+	BStringFree(&args->tmpDir);
+
 	return;
 }
 
@@ -542,7 +521,7 @@ GetOptHelp() {
 }
 
 /* TODO */
-#ifdef HAVE_ARGP_H
+#ifdef HAVE_ABP_H
 	static error_t
 parse_opt (int key, char *arg, struct argp_state *state) 
 {
@@ -560,39 +539,39 @@ parse_opt (int key, char *arg, struct argp_state *state)
 #endif
 				switch (key) {
 					case 'a':
-						arguments->algorithm=atoi(OPTARG);break;
+						arguments->algorithm=atoi(OPTAB);break;
 						/*
 					case 'b':
 						arguments->binaryInput=1;break;
 						*/
 					case 'd':
 						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;
+						arguments->outputDir = OPTAB;
 						/* set the tmp directory to the output director */
 						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
 							free(arguments->tmpDir);
-							arguments->tmpDir = OPTARG;
+							arguments->tmpDir = OPTAB;
 						}
 						break;
 					case 'e':
-						arguments->endContig=atoi(OPTARG);break;
+						arguments->endContig=atoi(OPTAB);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'i':
 						if(arguments->indexLayoutFileName) free(arguments->indexLayoutFileName);
-						arguments->indexLayoutFileName = OPTARG;break;
+						arguments->indexLayoutFileName = OPTAB;break;
 					case 'n':
-						arguments->numThreads=atoi(OPTARG); break;
+						arguments->numThreads=atoi(OPTAB); break;
 					case 'o':
 						if(arguments->outputID) free(arguments->outputID);
-						arguments->outputID = OPTARG;break;
+						arguments->outputID = OPTAB;break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 'r':
 						if(arguments->rgFileName) free(arguments->rgFileName);
-						arguments->rgFileName = OPTARG;break;
+						arguments->rgFileName = OPTAB;break;
 					case 's':
-						arguments->startContig=atoi(OPTARG);break;
+						arguments->startContig=atoi(OPTAB);break;
 					case 't':
 						arguments->timing = 1;break;
 						/*
@@ -602,26 +581,26 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'x':
 						arguments->useExons=UseExons;
 						if(arguments->exonsFileName) free(arguments->exonsFileName);
-						arguments->exonsFileName = OPTARG;break;
+						arguments->exonsFileName = OPTAB;break;
 					case 'A':
-						arguments->space=atoi(OPTARG);break;
+						arguments->space=atoi(OPTAB);break;
 					case 'E':
-						arguments->endPos=atoi(OPTARG);break;
+						arguments->endPos=atoi(OPTAB);break;
 					case 'R':
 						arguments->repeatMasker=1;break;
 					case 'S':
-						arguments->startPos=atoi(OPTARG);break;
+						arguments->startPos=atoi(OPTAB);break;
 					case 'T':
 						if(arguments->tmpDir == arguments->outputDir) {
 						}
 						if(arguments->tmpDir) {
 							free(arguments->tmpDir);
 						}
-						arguments->tmpDir = OPTARG;
+						arguments->tmpDir = OPTAB;
 						break;
 					default:
-#ifdef HAVE_ARGP_H
-						return ARGP_ERR_UNKNOWN;
+#ifdef HAVE_ABP_H
+						return ABP_ERR_UNKNOWN;
 				} /* switch */
 				return 0;
 #else

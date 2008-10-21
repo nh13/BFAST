@@ -4,20 +4,24 @@
 #include <sys/types.h>
 #include <stdint.h>
 
+/* Obsolete ? HERE */
+/*
+#define SEQUENCE_LENGTH 2048
+#define SEQUENCE_NAME_LENGTH 4028
+#define MAX_HEADER_LENGTH 2048
+*/
+
 /* Program defaults */
 #define PROGRAM_NAME "bfast" /* Could just use PACKAGE_NAME */
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
 #define DEFAULT_OUTPUT_ID "OutputID"
-#define DEFAULT_OUTPUT_DIR "\0"
+#define DEFAULT_OUTPUT_DIR "\."
 #define BREAK_LINE "************************************************************\n"
-#define SEQUENCE_LENGTH 2048
-#define SEQUENCE_NAME_LENGTH 4028
 #define MAX_MASK_LENGTH 1024
 #define MAX_CONTIG_NAME_LENGTH 2048
 #define MAX_CONTIG_LOG_10 6
 #define MAX_POSITION_LOG_10 10
-#define MAX_HEADER_LENGTH 2048
 #define ONE_GIGABYTE (int64_t)1073741824
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
 
@@ -78,7 +82,6 @@ enum {IgnoreExons, UseExons};
 /* TODO */
 typedef struct {
 	BString read;
-	int8_t *read;
 	int32_t maxReached;
 	int32_t numEntries;
 	uint32_t *contigs;
@@ -119,18 +122,18 @@ typedef struct {
 	uint8_t *sequence; 
 	int32_t sequenceLength;
 	uint32_t numBytes;
-} BRGBinaryContig;
+} BReferenceGenomeContig;
 
 /* TODO */
 typedef struct {
 	/* Storage type */
 	int32_t id;
 	/* B storage */
-	BRGBinaryContig *contigs;
+	BReferenceGenomeContig *contigs;
 	int32_t numContigs;
 	/* Metadata */
 	int32_t space;
-} BRGBinary;
+} BReferenceGenome;
 
 /* TODO */
 typedef struct {
@@ -213,7 +216,7 @@ typedef struct {
 /* TODO */
 typedef struct {
 	BIndex *index;
-	BRGBinary *rg;
+	BReferenceGenome *rg;
 	int32_t space;
 	int64_t low;
 	int64_t high;
@@ -226,7 +229,7 @@ typedef struct {
 /* TODO */
 typedef struct {
 	BIndex *index;
-	BRGBinary *rg;
+	BReferenceGenome *rg;
 	int32_t threadID;
 	int64_t low;
 	int64_t mid;

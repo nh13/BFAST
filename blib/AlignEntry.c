@@ -24,7 +24,6 @@ int AlignEntryPrint(AlignEntry *a,
 	}
 
 	if(binaryOutput == TextOutput) {
-
 		if(fprintf(outputFP, "%u\t%u\t%c\t%lf\t%u\t%u\n",
 					a->contig,
 					a->position,
@@ -32,29 +31,20 @@ int AlignEntryPrint(AlignEntry *a,
 					a->score,
 					a->referenceLength,
 					a->length) < 0) {
-			return EOF;
+			return -1;
 		}
-
 	}
 	else {
-		if(fwrite(&a->contigNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(a->contigName, sizeof(char), a->contigNameLength, outputFP) != a->contigNameLength ||
-				fwrite(&a->contig, sizeof(uint32_t), 1, outputFP) != 1 ||
+		if(fwrite(&a->contig, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->position, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->strand, sizeof(char), 1, outputFP) != 1 ||
 				fwrite(&a->score, sizeof(double), 1, outputFP) != 1 ||
 				fwrite(&a->referenceLength, sizeof(uint32_t), 1, outputFP) != 1 ||
-				fwrite(&a->length, sizeof(uint32_t), 1, outputFP) != 1 ||
-				fwrite(a->read, sizeof(char), a->length, outputFP) != a->length ||
-				fwrite(a->reference, sizeof(char), a->length, outputFP) != a->length) {
-			return EOF;
-		}
-		if(ColorSpace==space) {
-			if(fwrite(a->colorError, sizeof(char), a->length, outputFP) != a->length) {
-				return EOF;
-			}
+				fwrite(&a->length, sizeof(uint32_t), 1, outputFP) != 1) {
+			return -1;
 		}
 	}
+
 	/* Print the reference and read alignment */
 	if(BStringPrint(&a->reference, outputFP, binaryOutput) < 0 ||
 			BStringPrint(&a->read, outputFP, binaryOutput) < 0) {
@@ -78,46 +68,15 @@ int AlignEntryRead(AlignEntry *a,
 		int binaryInput)
 {
 	char *FnName = "AlignEntryRead";
-	char tempContigName[MAX_CONTIG_NAME_LENGTH]="\0";
 
-	/* Allocate memory for the alignment */
-	if(a->read == NULL) {
-		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	if(a->reference == NULL) {
-		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == a->reference) {
-			PrintError(FnName,
-					"a->reference",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	if(space == ColorSpace) {
-		if(a->colorError == NULL) {
-			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == a->colorError) {
-				PrintError(FnName,
-						"a->colorError",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
+	/* Read in contig name */
+	if(BStringRead(&a->contigName, inputFP, binaryInput)==EOF) {
+		return EOF;
 	}
 
 	if(binaryInput == TextOutput) {
 
-		if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
-					tempContigName,
+		if(fscanf(inputFP, "%u\t%u\t%c\t%lf\t%u\t%u\n",
 					&a->contig,
 					&a->position,
 					&a->strand,
@@ -127,74 +86,30 @@ int AlignEntryRead(AlignEntry *a,
 			return EOF;
 		}
 
-		/* Copy over contig name */
-		a->contigNameLength = (int)strlen(tempContigName);
-		a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
-		if(NULL==a->contigName) {
-			PrintError(FnName,
-					"a->contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-
-		/* Read the reference and read alignment */
-		if(fscanf(inputFP, "%s %s", 
-					a->reference,
-					a->read)==EOF) {
-			return EOF;
-		}
-
-		/* Read the color errors if necessary */
-		if(space == ColorSpace) {
-			if(fscanf(inputFP, "%s",
-						a->colorError)==EOF) {
-				return EOF;
-			}
-		}
 	}
 	else {
-		if(fread(&a->contigNameLength, sizeof(int32_t), 1, inputFP) != 1) {
-			return EOF;
-		}
-		/* Copy over contig name */
-		a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
-		if(NULL==a->contigName) {
-			PrintError(FnName,
-					"a->contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		if(fread(a->contigName, sizeof(char), a->contigNameLength, inputFP) != a->contigNameLength ||
-				fread(&a->contig, sizeof(uint32_t), 1, inputFP) != 1 ||
+		if(fread(&a->contig, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
 				fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
 				fread(&a->referenceLength, sizeof(uint32_t), 1, inputFP) != 1 ||
-				fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1 ||
-				fread(a->read, sizeof(char), a->length, inputFP) != a->length ||
-				fread(a->reference, sizeof(char), a->length, inputFP) != a->length) {
+				fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1) {
 			return EOF;
 		}
-		/* Add the null terminator to strings */
-		a->contigName[a->contigNameLength]='\0';
-		a->read[a->length]='\0';
-		a->reference[a->length]='\0';
-		if(ColorSpace==space) {
-			if(fread(a->colorError, sizeof(char), a->length, inputFP) != a->length) {
-				return EOF;
-			}
-			a->colorError[a->length]='\0';
-		}
+	}
+	
+	/* Read the reference and read alignment */
+	if(BStringRead(&a->reference, inputFP, binaryInput) < 0 ||
+			BStringRead(&a->read, inputFP, binaryInput) < 0) {
+		return EOF;
 	}
 
-	/*
-	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
-	   assert(((int)strlen(a->read)) == a->length);
-	   assert(strlen(a->reference) == a->length);
-	   assert((int)strlen(a->colorError) == a->length);
-	   */
+		/* Read the color errors if necessary */
+	if(space == ColorSpace) {
+		if(BStringRead(&a->colorError, inputFP, binaryInput)<0) {
+			return EOF;
+		}
+	}
 
 	return 1;
 }
@@ -463,14 +378,6 @@ int AlignEntryCompareAtIndex(AlignEntry *a, int indexA, AlignEntry *b, int index
 
 	if(sortOrder == AlignEntrySortByAll) {
 
-		/* Old 
-		   cmp[0] = strcmp(a[indexA].read, b[indexB].read);
-		   cmp[1] = strcmp(a[indexA].reference, b[indexB].reference);
-		   cmp[2] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
-		   cmp[3] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		   cmp[4] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
-		   */
-
 		/* If there are multiple alignments to the same starting chr/pos/strand with the same score,
 		 * this will pick ensure that we will only pick one of them.
 		 * */
@@ -531,62 +438,12 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 	char *FnName = "AlignEntryCopy";
 	if(src != dest) {
 		/* Contig name length */
-		assert(src->contigNameLength > 0);
-		dest->contigNameLength = src->contigNameLength;
-		/* Contig name */
-		if(NULL == dest->contigName) {
-			dest->contigName = malloc(sizeof(char)*(dest->contigNameLength+1));
-			if(NULL == dest->contigName) {
-				PrintError(FnName,
-						"dest->contigName",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		assert(src->contigName!= NULL);
-		strcpy(dest->contigName, src->contigName);
-		/* Read */
-		if(NULL == dest->read) {
-			dest->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == dest->read) {
-				PrintError(FnName,
-						"dest->read",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		assert(src->read != NULL);
-		strcpy(dest->read, src->read);
-		/* Reference */
-		if(NULL == dest->reference) {
-			dest->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == dest->reference) {
-				PrintError(FnName,
-						"dest->reference",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		assert(src->reference!= NULL);
-		strcpy(dest->reference, src->reference);
+		BStringCopy(&dest->contigName, &src->contigName);
+		BStringCopy(&dest->read, &src->read);
+		BStringCopy(&dest->reference, &src->reference);
 		/* Color error, if necessary */
 		if(src->colorError != NULL) {
-			strcpy(dest->reference, src->reference);
-			if(NULL == dest->colorError) {
-				dest->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-				if(NULL == dest->colorError) {
-					PrintError(FnName,
-							"dest->colorError",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
-				}
-			}
-			assert(src->colorError!= NULL);
-			strcpy(dest->colorError, src->colorError);
+			BStringCopy(&dest->colorError, &src->colorError);
 		}
 		/* Metadata */
 		dest->referenceLength = src->referenceLength;
@@ -600,26 +457,25 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 
 void AlignEntryFree(AlignEntry *a)
 {
-	free(a->contigName);
-	free(a->read);
-	free(a->reference);
-	free(a->colorError);
+	BStringFree(a->contigName);
+	BStringFree(a->read);
+	BStringFree(a->reference);
+	BStringFree(a->colorError);
 	AlignEntryInitialize(a);
 }
 
 void AlignEntryInitialize(AlignEntry *a) 
 {
-	a->contigNameLength=0;
-	a->contigName=NULL;
+	BStringInitialize(&a->contigName);
 	a->contig=0;
 	a->position=0;
 	a->strand=0;
 	a->score=0.0;
 	a->referenceLength=0;
 	a->length=0;
-	a->read=NULL;
-	a->reference=NULL;
-	a->colorError=NULL;
+	BStringInitialize(&a->read);
+	BStringInitialize(&a->reference);
+	BStringInitialize(&a->colorError);
 }
 
 /* TODO */
@@ -630,25 +486,21 @@ void AlignEntryCheckReference(AlignEntry *a, RGBinary *rg, int space)
 	int i;
 	int curPos;
 	char rgBase;
-	char reference[SEQUENCE_LENGTH]="\0";
 
 	if(a->strand == REVERSE) {
-		GetReverseComplimentAnyCase(a->reference, reference, a->length);
-	}
-	else {
-		strcpy(reference, a->reference);
+		GetReverseComplimentAnyCase(&a->reference);
 	}
 
 	for(i=0, curPos = a->position;i<a->length;i++) {
-		if(reference[i] != GAP) {
+		if(a->reference.string[i] != GAP) {
 			rgBase = RGBinaryGetBase(rg, a->contig, curPos);	
-			if(rgBase != reference[i]) {
+			if(rgBase != a->reference.string[i]) {
 				fprintf(stderr, "\n[%d]\t[%d]\n[%c]\t[%c]\n[%s]\n",
 						curPos,
 						i,
-						reference[i],
+						a->reference.string[i],
 						rgBase,
-						reference);
+						a->reference.string);
 				AlignEntryPrint(a, stderr, space, 0);
 				PrintError(FnName,
 						NULL,

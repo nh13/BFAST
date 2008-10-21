@@ -16,32 +16,13 @@ int32_t BMatchRead(FILE *fp,
 	char *FnName = "BMatchRead";
 	int32_t i;
 
+	/* Read the read */
+	if(BStringRead(&m->read, fp, binaryInput)==EOF) {
+		return EOF;
+	}
+
 	/* Read the matches from the input file */
 	if(binaryInput == TextInput) {
-		/* Read the read length */
-		if(fscanf(fp, "%d", &m->readLength)==EOF) {
-			return EOF;
-		}
-		assert(m->readLength > 0);
-		assert(m->readLength < SEQUENCE_LENGTH);
-
-		/* Allocate memory for the read */
-		m->read = malloc(sizeof(int8_t)*(m->readLength+1));
-		if(NULL==m->read) {
-			PrintError(FnName,
-					"read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		/* Read in the read */
-		if(fscanf(fp, "%s", m->read) ==EOF) {
-			PrintError(FnName,
-					"m->read",
-					"Could not read in the read",
-					Exit,
-					EndOfFile);
-		}
 
 		/* Read in if we have reached the maximum number of matches */
 		if(fscanf(fp, "%d", &m->maxReached)==EOF) {
@@ -80,41 +61,6 @@ int32_t BMatchRead(FILE *fp,
 		}
 	}
 	else {
-		/* Read in the read length */
-		if(fread(&m->readLength, sizeof(int32_t), 1, fp)!=1) {
-			if(feof(fp) != 0) {
-				return EOF;
-			}
-			else {
-				PrintError(FnName,
-						"m->readLength",
-						"Could not read in read length",
-						Exit,
-						ReadFileError);
-			}
-		}
-		assert(m->readLength < SEQUENCE_LENGTH);
-		assert(m->readLength > 0);
-
-		/* Allocate memory for the read */
-		m->read = malloc(sizeof(int8_t)*(m->readLength+1));
-		if(NULL==m->read) {
-			PrintError(FnName,
-					"read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-
-		/* Read in the read */
-		if(fread(m->read, sizeof(int8_t), m->readLength, fp)!=m->readLength) {
-			PrintError(FnName,
-					"m->read",
-					"Could not read in the read",
-					Exit,
-					ReadFileError);
-		}
-		m->read[m->readLength]='\0';
 
 		/* Read in if we have reached the maximum number of matches */
 		if(fread(&m->maxReached, sizeof(int32_t), 1, fp)!=1) {
@@ -174,18 +120,25 @@ void BMatchPrint(FILE *fp,
 	char *FnName = "BMatchPrint";
 	int32_t i;
 	assert(fp!=NULL);
-	assert(m->readLength > 0);
+	assert(m->read.length > 0);
+
+	/* Print the read */
+	if(BStringPrint(&m->read, fp, binaryOutput)<0) {
+		PrintError(FnName,
+				NULL,
+				"Could not write m->read",
+				Exit,
+				WriteFileError);
+	}
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextOutput) {
-		if(0 > fprintf(fp, "%d\t%s\t%d\t%d",
-					m->readLength,
-					m->read,
+		if(0 > fprintf(fp, "%d\t%d",
 					m->maxReached,
 					m->numEntries)) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->readLength, m->read, m->maxReached, and m->numEntries",
+					"Could not write m->maxReached, and m->numEntries",
 					Exit,
 					WriteFileError);
 		}
@@ -212,14 +165,11 @@ void BMatchPrint(FILE *fp,
 		}
 	}
 	else {
-		/* Print read length, read, maximum reached, and number of entries. */
-		if(fwrite(&m->readLength, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(m->read, sizeof(int8_t), m->readLength, fp) != m->readLength ||
-				fwrite(&m->maxReached, sizeof(int32_t), 1, fp) != 1 ||
+		if(fwrite(&m->maxReached, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&m->numEntries, sizeof(int32_t), 1, fp) != 1) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->readLength, m->read, m->maxReached, and m->numEntries",
+					"Could not write m->maxReached, and m->numEntries",
 					Exit,
 					WriteFileError);
 		}
@@ -368,19 +318,8 @@ void BMatchAppend(BMatch *src, BMatch *dest)
 	assert(src != dest);
 
 	/* Check to see if we need to copy over the read as well */
-	if(dest->readLength <= 0) {
-		assert(dest->read == NULL);
-		dest->readLength = src->readLength;
-		/* Allocate memory */
-		dest->read = malloc(sizeof(int8_t)*(dest->readLength+1));
-		if(NULL==dest->read) {
-			PrintError(FnName,
-					"dest->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}   
-		strcpy((char*)dest->read, (char*)src->read);
+	if(dest->length <= 0) {
+		BStringCopy(&dest->read, &src->read);
 	}
 
 	start = dest->numEntries;
@@ -453,8 +392,8 @@ void BMatchReallocate(BMatch *m, int32_t numEntries)
 		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
 		if(numEntries > 0 && NULL == m->positions) {
 			/*
-			fprintf(stderr, "numEntries:%d\n", numEntries);
-			*/
+			   fprintf(stderr, "numEntries:%d\n", numEntries);
+			   */
 			PrintError(FnName,
 					"m->positions",
 					"Could not reallocate memory",
@@ -502,7 +441,7 @@ void BMatchClearMatches(BMatch *m)
 /* TODO */
 void BMatchFree(BMatch *m) 
 {
-	free(m->read);
+	BStringFree(&m->read);
 	free(m->contigs);
 	free(m->positions);
 	free(m->strand);
@@ -512,8 +451,7 @@ void BMatchFree(BMatch *m)
 /* TODO */
 void BMatchInitialize(BMatch *m)
 {
-	m->readLength=0;
-	m->read=NULL;
+	BStringInitialize(&read);
 	m->maxReached=0;
 	m->numEntries=0;
 	m->contigs=NULL;
@@ -526,23 +464,23 @@ void BMatchCheck(BMatch *m)
 {
 	char *FnName="BMatchCheck";
 	/* Basic asserts */
-	assert(m->readLength >= 0);
+	assert(m->read.length >= 0);
 	assert(m->maxReached == 0 || m->maxReached == 1);
 	assert(m->maxReached == 0 || m->numEntries == 0);
 	assert(m->numEntries >= 0);
 	/* Check that if the read length is greater than zero the read is not null */
-	if(m->readLength > 0 && m->read == NULL) {
+	if(m->read.length > 0 && m->read.string == NULL) {
 		PrintError(FnName,
 				NULL,
-				"m->readLength > 0 && m->read == NULL",
+				"m->read.length > 0 && m->read.string == NULL",
 				Exit,
 				OutOfRange);
 	}
 	/* Check that the read length matches the read */
-	if(((int)strlen((char*)m->read)) != m->readLength) {
+	if(((int)strlen((char*)m->read.string)) != m->read.length) {
 		PrintError(FnName,
 				NULL,
-				"m->readLength and strlen(m->read) do not match",
+				"m->read.length and strlen(m->read.string) do not match",
 				Exit,
 				OutOfRange);
 	}
@@ -581,7 +519,7 @@ void BMatchFilterOutOfRange(BMatch *m,
 	for(i=0;i<m->numEntries;i++) {
 		filter = 0;
 		if(m->contigs[i] < startContig || 
-				(m->contigs[i] == startContig && (m->positions[i] + m->readLength - 1) < startPos) ||
+				(m->contigs[i] == startContig && (m->positions[i] + m->read.length - 1) < startPos) ||
 				(m->contigs[i] == endContig && m->positions[i] > endPos) ||
 				(m->contigs[i] > endContig)) {
 			/* ignore */
@@ -601,6 +539,6 @@ void BMatchFilterOutOfRange(BMatch *m,
 	if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
 		/* Do not align this one */
 		BMatchClearMatches(m);
-		assert(m->readLength > 0);
+		assert(m->read.length > 0);
 	}
 }

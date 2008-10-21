@@ -29,7 +29,7 @@ void BIndexCreate(BIndex *index,
 		int32_t numThreads,
 		int32_t repeatMasker,
 		int32_t includeNs,
-		char *tmpDir) 
+		BString *tmpDir)
 {
 
 	/* The sort will take care of most of the work.  We just want 
@@ -401,7 +401,7 @@ void BIndexCreateHash(BIndex *index, BRGBinary *rg)
 }
 
 /* TODO */
-void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, char* tmpDir)
+void BIndexSort(BIndex *index, BRGBinary *rg, int32_t numThreads, BString* tmpDir)
 {
 	char *FnName = "BIndexSort";
 	int64_t i, j;
@@ -681,7 +681,7 @@ void BIndexMergeSortHelper(BIndex *index,
 		int64_t startLow,
 		int64_t total,
 		int64_t mergeMemoryLimit,
-		char *tmpDir)
+		BString *tmpDir)
 {
 	/* Local Variables */
 	int64_t mid = (low + high)/2;
@@ -755,7 +755,7 @@ void BIndexMergeHelper(BIndex *index,
 		int64_t mid,
 		int64_t high,
 		int64_t mergeMemoryLimit, /* In bytes */
-		char *tmpDir)
+		BString* tmpDir)
 {
 	/*
 	   char *FnName = "BIndexMergeHelper";
@@ -963,19 +963,22 @@ void BIndexMergeHelperFromDiskContig_8(BIndex *index,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
-		char *tmpDir)
+		BString *tmpDir)
 {
 	char *FnName = "BIndexMergeHelperFromDiskContig_8";
 	int64_t i=0;
 	int64_t ctr=0;
 	FILE *tmpLowerFP=NULL;
 	FILE *tmpUpperFP=NULL;
-	char *tmpLowerFileName=NULL;
-	char *tmpUpperFileName=NULL;
+	BString tmpLowerFileName;
+	BString tmpUpperFileName;
 	uint32_t tmpLowerPosition=0;
 	uint32_t tmpUpperPosition=0;
 	uint8_t tmpLowerContig_8=0;
 	uint8_t tmpUpperContig_8=0;
+
+	BStringInitialize(&tmpLowerFileName);
+	BStringInitialize(&tmpUpperFileName);
 
 	assert(index->contigType == Contig_8);
 	assert(index->contigs_8 != NULL);
@@ -1127,19 +1130,22 @@ void BIndexMergeHelperFromDiskContig_32(BIndex *index,
 		int64_t low,
 		int64_t mid,
 		int64_t high,
-		char *tmpDir)
+		BString *tmpDir)
 {
 	char *FnName = "BIndexMergeHelperFromDiskContig_32";
 	int64_t i=0;
 	int64_t ctr=0;
 	FILE *tmpLowerFP=NULL;
 	FILE *tmpUpperFP=NULL;
-	char *tmpLowerFileName=NULL;
-	char *tmpUpperFileName=NULL;
+	BString tmpLowerFileName;
+	BString tmpUpperFileName;
 	uint32_t tmpLowerPosition=0;
 	uint32_t tmpUpperPosition=0;
 	uint32_t tmpLowerContig_32=0;
 	uint32_t tmpUpperContig_32=0;
+	
+	BStringInitialize(&tmpLowerFileName);
+	BStringInitialize(&tmpUpperFileName);
 
 	assert(index->contigType == Contig_32);
 	assert(index->contigs_32 != NULL);
@@ -1552,7 +1558,7 @@ void BIndexRead(FILE *fp, BIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* Debugging function */
-void BIndexPrintInfo(char *inputFileName)
+void BIndexPrintInfo(BString *inputFileName)
 {
 	char *FnName = "BIndexPrintInfo";
 	FILE *fp;
@@ -1789,7 +1795,7 @@ void BIndexReadHeader(FILE *fp, BIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void BIndexGetRanges(BIndex *index, BRGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int32_t maxKeyMatches, BRanges *r)
+void BIndexGetRanges(BIndex *index, BRGBinary *rg, BString *read, int32_t readLength, int8_t direction, int32_t offset, int32_t maxKeyMatches, BRanges *r)
 {
 	int64_t startIndex=-1;
 	int64_t endIndex=-1;
@@ -1843,7 +1849,7 @@ int64_t BIndexGetIndex(BIndex *index,
 		BRGBinary *rg,
 		int64_t low,
 		int64_t high,
-		char *read,
+		BString *read,
 		int64_t *startIndex,
 		int64_t *endIndex)
 {
@@ -2127,7 +2133,7 @@ int32_t BIndexCompareAt(BIndex *index,
 /* TODO */
 int32_t BIndexCompareRead(BIndex *index,
 		BRGBinary *rg,
-		char *read,
+		BString *read,
 		int64_t a,
 		int debug)
 {
@@ -2141,15 +2147,6 @@ int32_t BIndexCompareRead(BIndex *index,
 	uint8_t aBase;
 	uint8_t readBase;
 
-	if(debug > 0) {
-		fprintf(stderr, "%d\n%s", 
-				index->width,
-				BREAK_LINE);
-		fprintf(stderr, "read[%d]:%s\n", 
-				(int)strlen(read),
-				read);
-	}
-
 	/* Go across the mask */
 	for(i=0;i<index->width;i++) {
 		switch(index->mask[i]) {
@@ -2161,7 +2158,7 @@ int32_t BIndexCompareRead(BIndex *index,
 				aBase = ToLower(BRGBinaryGetBase(rg,
 							aContig,
 							aPos + i));
-				readBase = ToLower(read[i]);
+				readBase = ToLower(read->string[i]);
 				/* Compare */
 				if(readBase < aBase) {
 					return -1;
@@ -2254,7 +2251,7 @@ uint32_t BIndexGetHashIndex(BIndex *index,
 /* TODO */
 uint32_t BIndexGetHashIndexFromRead(BIndex *index,
 		BRGBinary *rg,
-		char *read,
+		BString *read,
 		int32_t readLength,
 		int debug)
 {
@@ -2272,7 +2269,7 @@ uint32_t BIndexGetHashIndexFromRead(BIndex *index,
 				/* Ignore base */
 				break;
 			case 1:
-				readBase = ToLower(read[i]);
+				readBase = ToLower(read->string[i]);
 				/* Only works with a four letter alphabet */
 				hashIndex = hashIndex << 2;
 				switch(readBase) {
@@ -2318,7 +2315,7 @@ uint32_t BIndexGetHashIndexFromRead(BIndex *index,
 
 /* TODO */
 /* Debug function */
-void BIndexPrintReadMasked(BIndex *index, char *read, int offset, FILE *fp) 
+void BIndexPrintReadMasked(BIndex *index, BString *read, int offset, FILE *fp) 
 {
 	char *FnName="BIndexPrintReadMasked";
 	int i;
@@ -2328,7 +2325,7 @@ void BIndexPrintReadMasked(BIndex *index, char *read, int offset, FILE *fp)
 				/* Ignore base */
 				break;
 			case 1:
-				fprintf(stderr, "%c", read[i]);
+				fprintf(stderr, "%c", read->string[i]);
 				break;
 			default:
 				PrintError(FnName,

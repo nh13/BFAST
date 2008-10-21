@@ -3,39 +3,36 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "RGIndex.h"
+#include "BIndex.h"
 
-extern char DNA[5];
+extern int8_t DNA[5];
 
-int GetFastaHeaderLine(FILE*, char*);
-char ToLower(char);
-char ToUpper(char);
-void ReverseRead(char*, char*, int);
-void GetReverseComplimentAnyCase(char*, char*, int);
-char GetReverseComplimentAnyCaseBase(char);
-int ValidateBasePair(char);
-int IsAPowerOfTwo(unsigned int);
+int32_t GetFastaHeaderLine(FILE*, BString*);
+int8_t ToLower(int8_t);
+int8_t ToUpper(int8_t);
+int8_t GetReverseComplimentAnyCaseBase(int8_t);
+int32_t ValidateBasePair(int8_t);
+int32_t IsAPowerOfTwo(unsigned int);
 uint32_t Log2(uint32_t);
-char TransformFromIUPAC(char);
-void CheckRGIndexes(char**, int, char**, int, int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t);
-FILE *OpenTmpFile(char*, char**);
-void CloseTmpFile(FILE **, char**);
+int8_t TransformFromIUPAC(int8_t);
+void CheckBIndexes(char**, int, char**, int, int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t);
+FILE *OpenTmpFile(BString *, BString*);
+void CloseTmpFile(FILE **, BString*);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
 void PrintContigPos(FILE*, int32_t, int32_t);
-int UpdateRead(char*, int);
-int CheckReadAgainstIndex(RGIndex*, char*, int);
-int CheckReadBase(char);
+int32_t UpdateRead(BString*, int);
+int32_t CheckReadAgainstIndex(BIndex*, BString*);
+int32_t CheckReadBase(int8_t);
 uint8_t ConvertBaseToColorSpace(uint8_t, uint8_t);
 uint8_t ConvertBaseAndColor(uint8_t, uint8_t);
-int ConvertReadFromColorSpace(char*, int);
-void ConvertReadToColorSpace(char**, int*);
-void NormalizeRead(char**, int*, char);
-void ConvertColorsToStorage(char*, int);
-char ConvertColorToStorage(char);
-void AdjustBounds(RGBinary*, int32_t*, int32_t*, int32_t*, int32_t*);
-int WillGenerateValidKey(RGIndex*, char*, int);
-void StrCpyAllocate(char **, const char*);
+void ConvertReadFromColorSpace(BString*, int);
+void ConvertReadToColorSpace(BString*, int*);
+void NormalizeRead(BString*, int*, int8_t);
+void ConvertColorsToStorage(BString*, int);
+int8_t ConvertColorToStorage(int8_t);
+void AdjustBounds(BReferenceGenome*, int32_t*, int32_t*, int32_t*, int32_t*);
+int32_t WillGenerateValidKey(BIndex*, BString*, int);
+int ValidateFileNames(BString*);
 
 #endif
-

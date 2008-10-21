@@ -7,24 +7,24 @@
 #include "RGIndex.h"
 
 void BReadsFindMatches(RGIndex*, BRGBinary*, BMatch*, int*, int, int, int, int, int, int, int, int, int);
-void BReadsGenerateReads(char*, int, BIndex*, BReads*, char, int*, int, int, int, int, int, int, int);
+void BReadsGenerateReads(Bstring*, BIndex*, BReads*, char, int*, int, int, int, int, int, int, int);
 
-void BReadsGeneratePerfectMatch(char*, int, char, int, BIndex*, BReads*);
+void BReadsGeneratePerfectMatch(Bstring*, char, int, BIndex*, BReads*);
 
-void BReadsGenerateMismatches(char*, int, char, int, int, BIndex*, BReads*);
-void BReadsGenerateMismatchesHelper(char*, int, char, int, int, char*, int, BIndex*, BReads*);
+void BReadsGenerateMismatches(Bstring*, char, int, int, BIndex*, BReads*);
+void BReadsGenerateMismatchesHelper(Bstring*, char, int, int, BString*, int, BIndex*, BReads*);
 
-void BReadsGenerateDeletions(char*, int, char, int, int, BIndex*, BReads*);
-void BReadsGenerateDeletionsHelper(char*, int, char, int, int, int, int, char*, int, BIndex*, BReads*);
+void BReadsGenerateDeletions(Bstring*, char, int, int, BIndex*, BReads*);
+void BReadsGenerateDeletionsHelper(Bstring*, char, int, int, int, int, BString*, int, BIndex*, BReads*);
 
-void BReadsGenerateInsertions(char*, int, char, int, int, BIndex*, BReads*);
-void BReadsGenerateInsertionsHelper(char*, int, char, int, int, int, int, char*, int, BIndex*, BReads*);
+void BReadsGenerateInsertions(Bstring*, char, int, int, BIndex*, BReads*);
+void BReadsGenerateInsertionsHelper(Bstring*, char, int, int, int, int, BString*, int, BIndex*, BReads*);
 
-void BReadsGenerateGapDeletions(char*, int, char, int, int, BIndex*, BReads*);
-void BReadsGenerateGapDeletionsHelper(char*, int, char, int, int, char*, BIndex*, BReads*);
+void BReadsGenerateGapDeletions(Bstring*, char, int, int, BIndex*, BReads*);
+void BReadsGenerateGapDeletionsHelper(Bstring*, char, int, int, BString*, BIndex*, BReads*);
 
-void BReadsGenerateGapInsertions(char*, int, char, int, int, BIndex*, BReads*);
-void BReadsGenerateGapInsertionsHelper(char*, int, char, int, int, char*, BIndex*, BReads*);
+void BReadsGenerateGapInsertions(Bstring*, char, int, int, BIndex*, BReads*);
+void BReadsGenerateGapInsertionsHelper(Bstring*, char, int, int, BString*, BIndex*, BReads*);
 
 void BReadsRemoveDuplicates(RGReads*);
 void BReadsQuickSort(RGReads*, int, int);
@@ -36,7 +36,7 @@ void BReadsAllocate(RGReads*, int);
 void BReadsReallocate(RGReads*, int);
 void BReadsFree(RGReads*);
 void BReadsInitialize(RGReads*);
-void BReadsAppend(RGReads*, char*, int32_t, int8_t, int32_t);
+void BReadsAppend(RGReads*, BString*, int32_t, int8_t, int32_t);
 void BReadsPrint(RGReads*, BIndex*);
 
 #endif

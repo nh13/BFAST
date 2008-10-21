@@ -3,13 +3,13 @@ bin_PROGRAMS = bpreprocess
 bpreprocess_SOURCES = \
 	GenerateIndex.c	GenerateIndex.h \
 	../blib/BLib.c	../blib/BLib.h \
-	../blib/RGBinary.c	../blib/RGBinary.h \
-	../blib/RGIndexExons.c	../blib/RGIndexExons.h \
-	../blib/RGIndexLayout.c	../blib/RGIndexLayout.h \
-	../blib/RGIndex.c	../blib/RGIndex.h \
-	../blib/RGMatch.c	../blib/RGMatch.h \
-	../blib/RGMatches.c	../blib/RGMatches.h \
-	../blib/RGRanges.c	../blib/RGRanges.h \
+	../blib/BReferenceGenome.c	../blib/BReferenceGenome.h \
+	../blib/BIndexExons.c	../blib/BIndexExons.h \
+	../blib/BIndexLayout.c	../blib/BIndexLayout.h \
+	../blib/BIndex.c	../blib/BIndex.h \
+	../blib/BMatch.c	../blib/BMatch.h \
+	../blib/BMatches.c	../blib/BMatches.h \
+	../blib/BRanges.c	../blib/BRanges.h \
 	../blib/BError.c	../blib/BError.h \
 	ParseInput.c	ParseInput.h \
 	Definitions.h
