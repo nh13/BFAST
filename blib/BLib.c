@@ -955,7 +955,8 @@ void AdjustBounds(RGBinary *rg,
 			(*endPos) > rg->contigs[(*endContig)-1].sequenceLength) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Warning: endPos was greater than reference genome's end position.\n");
+			fprintf(stderr, "Warning: endPos was greater than reference genome's contig %d end position.\n",
+					(*endContig));
 			fprintf(stderr, "Defaulting to reference genome's contig %d end position: %d.\n",
 					(*endContig),
 					rg->contigs[(*endContig)-1].sequenceLength);
