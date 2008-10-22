@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ctype.h>
 #include <limits.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -40,6 +39,7 @@
 
 #include "Definitions.h"
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
 #include "FindMatches.h"
 #include "ParseInput.h"
 
@@ -234,6 +234,8 @@ main (int argc, char **argv)
 						Exit,
 						InputArguments);
 			}
+		/* Free program parameters */
+		FreeProgramParameters(&arguments);
 	}
 	else {
 		GetOptHelp();
@@ -360,34 +362,6 @@ int ValidateInputs(struct arguments *args) {
 }
 
 /* TODO */
-	int 
-ValidateFileName(char *Name) 
-{
-	/* 
-	   Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
-	   FileName can start with only [a-zA-Z_0-9]
-	   */
-
-	char *ptr=Name;
-	int counter=0;
-	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
-
-	assert(ptr!=0);
-
-	while(*ptr) {
-		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') || 
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
-					((*ptr=='/')) || /* Make sure that we can navigate through folders */
-					((*ptr=='-') && (counter>0)))) {
-			ptr++;
-			counter++;
-		}
-		else return 0;
-	}
-	return 1;
-}
-
-/* TODO */
 	void 
 AssignDefaultValues(struct arguments *args)
 {
@@ -497,6 +471,27 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 }
 
 /* TODO */
+void FreeProgramParameters(struct arguments *args)
+{
+	free(args->rgFileName);
+	args->rgFileName=NULL;
+	free(args->bfastMainIndexesFileName);
+	args->bfastMainIndexesFileName=NULL;
+	free(args->bfastSecondaryIndexesFileName);
+	args->bfastSecondaryIndexesFileName=NULL;
+	free(args->readsFileName);
+	args->readsFileName=NULL;
+	free(args->offsetsFileName);
+	args->offsetsFileName=NULL;
+	free(args->outputID);
+	args->outputID=NULL;
+	free(args->outputDir);
+	args->outputDir=NULL;
+	free(args->tmpDir);
+	args->tmpDir=NULL;
+}
+
+/* TODO */
 void
 GetOptHelp() {
 
@@ -547,31 +542,29 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   arguments->binaryInput = 1;break;
 						   */
 					case 'd':
-						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;
+						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */
 						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
-							free(arguments->tmpDir);
-							arguments->tmpDir = OPTARG;
-						} 
+							StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
+						}
 						break;
 					case 'e':
 						arguments->endReadNum = atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
 					case 'i':
-						if(arguments->bfastMainIndexesFileName) free(arguments->bfastMainIndexesFileName);
-						arguments->bfastMainIndexesFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->bfastMainIndexesFileName, OPTARG);
+						break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG);break;
 					case 'o':
-						if(arguments->outputID) free(arguments->outputID);
-						arguments->outputID = OPTARG;break;
+						StringCopyAndReallocate(&arguments->outputID, OPTARG);
+						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 'r':
-						if(arguments->rgFileName) free(arguments->rgFileName);
-						arguments->rgFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);
+						break;
 					case 's':
 						arguments->startReadNum = atoi(OPTARG);break;
 					case 't':
@@ -589,25 +582,20 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
 					case 'I':
-						if(arguments->bfastSecondaryIndexesFileName) free(arguments->bfastSecondaryIndexesFileName);
-						arguments->bfastSecondaryIndexesFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->bfastSecondaryIndexesFileName, OPTARG);
+						break;
 					case 'K':
 						arguments->maxKeyMatches=atoi(OPTARG);break;
 					case 'M':
 						arguments->maxNumMatches=atoi(OPTARG);break;
 					case 'O':
-						if(arguments->offsetsFileName) free(arguments->offsetsFileName);
-						arguments->offsetsFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->offsetsFileName, OPTARG);
+						break;
 					case 'R':
-						if(arguments->readsFileName) free(arguments->readsFileName);
-						arguments->readsFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->readsFileName, OPTARG);
+						break;
 					case 'T':
-						if(arguments->tmpDir == arguments->outputDir) {
-						}
-						if(arguments->tmpDir) { 
-							free(arguments->tmpDir);
-						}
-						arguments->tmpDir = OPTARG;
+						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						break;
 					case 'Y':
 						arguments->numGapDeletions = atoi(OPTARG);break;

@@ -9,6 +9,7 @@ Version 0.1.8
 * Updated to support Ns in the reads; will still ignore "."s.
 * Adjusting bounds bug with -e option fixed.  Would not default to 
 the correct end position.
+* Updated command line parsing to avoid memory leaks.
 
 Version 0.1.7
 * Update bpostprocess for paired end support: now tested.

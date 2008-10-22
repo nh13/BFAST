@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ctype.h>
 #include <limits.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -39,6 +38,7 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGBinary.h"
+#include "../blib/BLib.h"
 #include "Definitions.h"
 #include "RunAligner.h"
 #include "ParseInput.h"
@@ -278,6 +278,8 @@ main (int argc, char **argv)
 						Exit,
 						InputArguments);
 			}
+		/* Free program parameters */
+		FreeProgramParameters(&arguments);
 	}
 	else {
 		GetOptHelp();
@@ -388,33 +390,6 @@ int ValidateInputs(struct arguments *args) {
 	return 1;
 }
 
-	int 
-ValidateFileName(char *Name) 
-{
-	/* 
-	   Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
-	   FileName can start with only [a-zA-Z_0-9]
-	   */
-
-	char *ptr=Name;
-	int counter=0;
-	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
-
-	assert(ptr!=0);
-
-	while(*ptr) {
-		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') || 
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
-					((*ptr=='/')) || /* Make sure that we can navigate through folders */
-					((*ptr=='-') && (counter>0)))) {
-			ptr++;
-			counter++;
-		}
-		else return 0;
-	}
-	return 1;
-}
-
 	void 
 AssignDefaultValues(struct arguments *args)
 {
@@ -454,9 +429,9 @@ AssignDefaultValues(struct arguments *args)
 	args->forceMirroring = 0;
 
 	args->outputID =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
+		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
 	assert(args->outputID!=0);
-	strcpy(args->outputID, DEFAULT_FILENAME);
+	strcpy(args->outputID, DEFAULT_OUTPUT_ID);
 
 	args->outputDir =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
@@ -510,6 +485,23 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 
 }
 
+/* TODO */
+void FreeProgramParameters(struct arguments *args)
+{
+	free(args->rgFileName);
+	args->rgFileName=NULL;
+	free(args->matchFileName);
+	args->matchFileName=NULL;
+	free(args->scoringMatrixFileName);
+	args->scoringMatrixFileName=NULL;
+	free(args->outputID);
+	args->outputID=NULL;
+	free(args->outputDir);
+	args->outputDir=NULL;
+	free(args->tmpDir);
+	args->tmpDir=NULL;
+}
+
 void
 GetOptHelp() {
 
@@ -559,14 +551,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   arguments->binaryInput = 1;break;
 						   */
 					case 'd':
-						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;
+						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */
 						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
-							free(arguments->tmpDir);
-							arguments->tmpDir = malloc(sizeof(char)*(strlen(arguments->outputDir)+1));
-							strcpy(arguments->tmpDir, arguments->outputDir);
-						} 
+							StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
+						}
 						break;
 					case 'e':
 						arguments->endContig=atoi(OPTARG);break;
@@ -578,25 +567,25 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->usePairedEndLength=1;
 						arguments->pairedEndLength = atoi(OPTARG);break;
 					case 'm':
-						if(arguments->matchFileName) free(arguments->matchFileName);
-						arguments->matchFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->matchFileName, OPTARG);
+						break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
-						if(arguments->outputID) free(arguments->outputID);
-						arguments->outputID = OPTARG;break;
+						StringCopyAndReallocate(&arguments->outputID, OPTARG);
+						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters; break;
 					case 'r':
-						if(arguments->rgFileName) free(arguments->rgFileName);
-						arguments->rgFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);
+						break;
 					case 's':
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
 					case 'x':
-						if(arguments->scoringMatrixFileName) free(arguments->scoringMatrixFileName);
-						arguments->scoringMatrixFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->scoringMatrixFileName, OPTARG);
+						break;
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
 						/*
@@ -612,8 +601,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
 					case 'T':
-						if(arguments->tmpDir) free(arguments->tmpDir);
-						arguments->tmpDir = OPTARG;break;
+						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
+						break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

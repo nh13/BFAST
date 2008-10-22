@@ -9,7 +9,7 @@
 #define DEFAULT_FILENAME "Default.txt"
 #define MAX_FILENAME_LENGTH 2048
 #define DEFAULT_OUTPUT_ID "OutputID"
-#define DEFAULT_OUTPUT_DIR "\0"
+#define DEFAULT_OUTPUT_DIR "./"
 #define BREAK_LINE "************************************************************\n"
 #define SEQUENCE_LENGTH 2048
 #define SEQUENCE_NAME_LENGTH 4028

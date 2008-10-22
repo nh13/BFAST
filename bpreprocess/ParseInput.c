@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ctype.h>
 #include <limits.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -43,6 +42,7 @@
 #include "../blib/RGIndexLayout.h"
 #include "../blib/RGIndexExons.h"
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
 #include "Definitions.h"
 #include "GenerateIndex.h"
 #include "ParseInput.h"
@@ -227,6 +227,11 @@ main (int argc, char **argv)
 								if(arguments.useExons == UseExons) {
 									RGIndexExonsDelete(&exons);
 								}
+								else {
+									/* Free exons file name if we did not use it */
+									free(arguments.exonsFileName);
+									arguments.exonsFileName=NULL;
+								}
 								break;
 							default:
 								break;
@@ -270,11 +275,8 @@ main (int argc, char **argv)
 						Exit,
 						InputArguments);
 			}
-		/* Free exons file name if we did not use it */
-		if(arguments.useExons != UseExons) {
-			free(arguments.exonsFileName);
-			arguments.exonsFileName=NULL;
-		}
+		/* Free program parameters */
+		FreeProgramParameters(&arguments);
 	}
 	else {
 		GetOptHelp();
@@ -311,7 +313,7 @@ int ValidateInputs(struct arguments *args) {
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
 	}
-	
+
 	if(args->indexLayoutFileName!=0) {
 		fprintf(stderr, "Validating indexLayoutFileName %s. \n",
 				args->indexLayoutFileName);
@@ -397,35 +399,7 @@ int ValidateInputs(struct arguments *args) {
 }
 
 /* TODO */
-	int 
-ValidateFileName(char *Name) 
-{
-	/* 
-	   Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
-	   FileName can start with only [a-zA-Z_0-9]
-	   */
-
-	char *ptr=Name;
-	int counter=0;
-	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
-
-	assert(ptr!=0);
-
-	while(*ptr) {
-		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') || 
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
-					((*ptr=='/')) || /* Make sure that we can navigate through folders */
-					((*ptr=='-') && (counter>0)))) {
-			ptr++;
-			counter++;
-		}
-		else return 0;
-	}
-	return 1;
-}
-
-/* TODO */
-	void 
+	void
 AssignDefaultValues(struct arguments *args)
 {
 	/* Assign default values */
@@ -442,7 +416,7 @@ AssignDefaultValues(struct arguments *args)
 	args->algorithm = 0;
 	args->space = NTSpace;
 
-	args->indexLayoutFileName = 
+	args->indexLayoutFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->indexLayoutFileName!=0);
 	strcpy(args->indexLayoutFileName, DEFAULT_FILENAME);
@@ -453,12 +427,12 @@ AssignDefaultValues(struct arguments *args)
 	args->endContig=INT_MAX;
 	args->endPos=INT_MAX;
 
-	args->exonsFileName = 
+	args->exonsFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->exonsFileName!=0);
 	strcpy(args->exonsFileName, DEFAULT_FILENAME);
 	args->useExons=IgnoreExons;
-	
+
 	args->numThreads = 1;
 
 	args->outputID =
@@ -466,7 +440,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputID!=0);
 	strcpy(args->outputID, DEFAULT_OUTPUT_ID);
 
-	args->outputDir = 
+	args->outputDir =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
@@ -482,6 +456,7 @@ AssignDefaultValues(struct arguments *args)
 	return;
 }
 
+
 /* TODO */
 	void 
 PrintProgramParameters(FILE* fp, struct arguments *args)
@@ -492,8 +467,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	/*
-	fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	*/
+	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
+	   */
 	fprintf(fp, "algorithm:\t\t\t\t%d\n", args->algorithm);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "indexLayoutFileName:\t\t\t%s\n", args->indexLayoutFileName);
@@ -513,6 +488,23 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
+}
+
+/* TODO */
+void FreeProgramParameters(struct arguments *args) 
+{
+	free(args->rgFileName);
+	args->rgFileName=NULL;
+	free(args->indexLayoutFileName);
+	args->indexLayoutFileName=NULL;
+	free(args->exonsFileName);
+	args->exonsFileName=NULL;
+	free(args->outputID);
+	args->outputID=NULL;
+	free(args->outputDir);
+	args->outputDir=NULL;
+	free(args->tmpDir);
+	args->tmpDir=NULL;
 }
 
 /* TODO */
@@ -562,16 +554,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'a':
 						arguments->algorithm=atoi(OPTARG);break;
 						/*
-					case 'b':
-						arguments->binaryInput=1;break;
-						*/
+						   case 'b':
+						   arguments->binaryInput=1;break;
+						   */
 					case 'd':
-						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;
+						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */
 						if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
-							free(arguments->tmpDir);
-							arguments->tmpDir = OPTARG;
+							StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						}
 						break;
 					case 'e':
@@ -579,18 +569,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'i':
-						if(arguments->indexLayoutFileName) free(arguments->indexLayoutFileName);
-						arguments->indexLayoutFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->indexLayoutFileName, OPTARG);
+						break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
-						if(arguments->outputID) free(arguments->outputID);
-						arguments->outputID = OPTARG;break;
+						StringCopyAndReallocate(&arguments->outputID, OPTARG);
+						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 'r':
-						if(arguments->rgFileName) free(arguments->rgFileName);
-						arguments->rgFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);
+						break;
 					case 's':
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
@@ -601,8 +591,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   */
 					case 'x':
 						arguments->useExons=UseExons;
-						if(arguments->exonsFileName) free(arguments->exonsFileName);
-						arguments->exonsFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->exonsFileName, OPTARG);
+						break;
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
 					case 'E':
@@ -612,12 +602,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
 					case 'T':
-						if(arguments->tmpDir == arguments->outputDir) {
-						}
-						if(arguments->tmpDir) {
-							free(arguments->tmpDir);
-						}
-						arguments->tmpDir = OPTARG;
+						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						break;
 					default:
 #ifdef HAVE_ARGP_H

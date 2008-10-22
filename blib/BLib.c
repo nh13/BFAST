@@ -2,6 +2,7 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <ctype.h>
 #include "BLibDefinitions.h"
 #include "RGIndex.h"
 #include "BError.h"
@@ -228,11 +229,11 @@ uint32_t Log2(uint32_t num)
 	int i;
 
 	if(IsAPowerOfTwo(num)==0) {
-			PrintError(FnName,
-					"num",
-					"Num is not a power of 2",
-					Exit,
-					OutOfRange);
+		PrintError(FnName,
+				"num",
+				"Num is not a power of 2",
+				Exit,
+				OutOfRange);
 	}
 	/* Not the most efficient but we are not going to use this often */
 	for(i=0;num>1;i++,num/=2) {
@@ -997,4 +998,48 @@ int WillGenerateValidKey(RGIndex *index,
 		}
 	}
 	return 1;
+}
+
+/* TODO */
+int ValidateFileName(char *Name)
+{
+	/* 
+	 *        Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
+	 *               FileName can start with only [a-zA-Z_0-9]
+	 *                      */
+
+	char *ptr=Name;
+	int counter=0;
+	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
+
+	assert(ptr!=0);
+
+	while(*ptr) {
+		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') ||
+					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
+					((*ptr=='/')) || /* Make sure that we can navigate through folders */
+					((*ptr=='-') && (counter>0)))) {
+			ptr++;
+			counter++;
+		}
+		else return 0;
+	}
+	return 1;
+}
+
+/* TODO */
+void StringCopyAndReallocate(char **dest, const char *src)
+{
+	char *FnName="StringCopyAndReallocate";
+	/* Reallocate dest */
+	(*dest) = realloc((*dest), sizeof(char*)*((int)strlen(src)));
+	if(NULL==(*dest)) {
+		PrintError(FnName,
+				"(*dest)",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	/* Copy */
+	strcpy((*dest), src);
 }

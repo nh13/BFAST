@@ -25,10 +25,10 @@ struct arguments
 };
 
 /* Local functions */
-static int ValidateInputs(struct arguments*);
-int ValidateFileName(char*);
+int ValidateInputs(struct arguments *args);
 void AssignDefaultValues(struct arguments*);
 void PrintProgramParameters(FILE*, struct arguments*);
+void FreeProgramParameters(struct arguments *args);
 void PrintGetOptHelp();
 void GetOptHelp();
 void PrintGetOptHelp();

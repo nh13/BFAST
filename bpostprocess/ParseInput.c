@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ctype.h>
 #include <limits.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -39,6 +38,7 @@
 #include <time.h>
 #include "../blib/BError.h"
 #include "../blib/BLibDefinitions.h"
+#include "../blib/BLib.h"
 #include "Definitions.h"
 #include "InputOutputToFiles.h"
 #include "ParseInput.h"
@@ -227,6 +227,8 @@ main (int argc, char **argv)
 						Exit,
 						InputArguments);
 			}
+		/* Free program parameters */
+		FreeProgramParameters(&arguments);
 	}
 	else {
 		GetOptHelp();
@@ -327,34 +329,6 @@ int ValidateInputs(struct arguments *args) {
 }
 
 /* TODO */
-	int 
-ValidateFileName(char *Name) 
-{
-	/* 
-	   Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
-	   FileName can start with only [a-zA-Z_0-9]
-	   */
-
-	char *ptr=Name;
-	int counter=0;
-	/*   fprintf(stderr, "Validating FileName %s with length %d\n", ptr, strlen(Name));  */
-
-	assert(ptr!=0);
-
-	while(*ptr) {
-		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') || 
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
-					((*ptr=='/')) || /* Make sure that we can navigate through folders */
-					((*ptr=='-') && (counter>0)))) {
-			ptr++;
-			counter++;
-		}
-		else return 0;
-	}
-	return 1;
-}
-
-/* TODO */
 	void 
 AssignDefaultValues(struct arguments *args)
 {
@@ -387,9 +361,9 @@ AssignDefaultValues(struct arguments *args)
 	args->inversionsPaired=0;
 
 	args->outputID = 
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
+		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
 	assert(args->outputID!=0);
-	strcpy(args->outputID, DEFAULT_FILENAME);
+	strcpy(args->outputID, DEFAULT_OUTPUT_ID);
 
 	args->outputDir =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
@@ -435,6 +409,17 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "timing:\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
+}
+
+/* TODO */
+void FreeProgramParameters(struct arguments *args)
+{
+	free(args->alignFileName);
+	args->alignFileName=NULL;
+	free(args->outputID);
+	args->outputID=NULL;
+	free(args->outputDir);
+	args->outputDir=NULL;
 }
 
 /* TODO */
@@ -490,21 +475,20 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   arguments->binaryInput = 1;break;
 						   */
 					case 'd':
-						if(arguments->outputDir) free(arguments->outputDir);
-						arguments->outputDir = OPTARG;
+						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						break;
 					case 'e':
 						arguments->endContig=atoi(OPTARG);break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp;break;
 					case 'i':
-						if(arguments->alignFileName) free(arguments->alignFileName);
-						arguments->alignFileName = OPTARG;break;
+						StringCopyAndReallocate(&arguments->alignFileName, OPTARG);
+						break;
 					case 'm':
 						arguments->minScoreReads = atoi(OPTARG);break;
 					case 'o':
-						if(arguments->outputID) free(arguments->outputID);
-						arguments->outputID = OPTARG;break;
+						StringCopyAndReallocate(&arguments->outputID, OPTARG);
+						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 's':
