@@ -505,6 +505,7 @@ int ModifyRead(RGBinary *rg,
 				withinInsertion);
 	}
 
+	/* Check reads */
 	if(space == ColorSpace) {
 		assert(strlen(r->readOne) == r->readLength + 1);
 		if(r->pairedEnd==1) {
@@ -690,7 +691,7 @@ int InsertIndel(RGBinary *rg,
 		/* Insertion */
 		if(r->whichReadVariants == 0) {
 			/* shift over all above */
-			for(i = r->readLength;i >= start + indelLength;i--) {
+			for(i = r->readLength-1;i >= start + indelLength;i--) {
 				r->readOne[i] = r->readOne[i-indelLength];
 			}
 			/* insert random bases */
@@ -701,7 +702,7 @@ int InsertIndel(RGBinary *rg,
 		}
 		else {
 			/* shift over all above */
-			for(i = r->readLength;i >= start + indelLength;i--) {
+			for(i = r->readLength-1;i >= start + indelLength;i--) {
 				r->readTwo[i] = r->readTwo[i-indelLength];
 			}
 			/* insert random bases */
@@ -721,6 +722,7 @@ int InsertIndel(RGBinary *rg,
 
 	/* Update the start of the indel */
 	r->startIndel = start;
+
 
 	return success;
 }
