@@ -169,6 +169,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 							case 'T':
 								fCounts[3]++;
 								break;
+							case 'N':
+							case 'n':
 							case GAP:
 								fCounts[4]++;
 								break;
@@ -200,6 +202,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 							case 'T':
 								rCounts[3]++;
 								break;
+							case 'N':
+							case 'n':
 							case GAP:
 								rCounts[4]++;
 								break;
