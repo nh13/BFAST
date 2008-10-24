@@ -64,8 +64,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 	char referenceBase='n';
 	char indel[SEQUENCE_LENGTH]="\0";
 	char type='N';
-	int fCounts[5] = {0,0,0,0,0};
-	int rCounts[5] = {0,0,0,0,0};
+	int fCounts[6] = {0,0,0,0,0,0};
+	int rCounts[6] = {0,0,0,0,0,0};
 	int total, totalF, totalR;
 	int32_t start, cur, i, j, tempJ;
 	int numEntries = a->numEntriesOne;
@@ -80,8 +80,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 			curPos <= endPos;
 			curPos++) { /* For each position */
 		/* Initialize */
-		fCounts[0] = fCounts[1] = fCounts[2] = fCounts[3] = fCounts[4] = 0;
-		rCounts[0] = rCounts[1] = rCounts[2] = rCounts[3] = rCounts[4] = 0;
+		fCounts[0] = fCounts[1] = fCounts[2] = fCounts[3] = fCounts[4] = fCounts[5] = 0;
+		rCounts[0] = rCounts[1] = rCounts[2] = rCounts[3] = rCounts[4] = fCounts[5] = 0;
 		total = totalF = totalR = 0;
 		referenceBase = 'n';
 
@@ -143,9 +143,12 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 				assert(j < a->entriesOne[cur].length);
 				assert(reference[j] != GAP);
 				/* Update based on the current base */
-				if(referenceBase == 'n') {
+				if((referenceBase == 'n' || referenceBase == 'N') && 
+						reference[j] != 'n' && reference[j] != 'N') {
 					referenceBase = reference[j];
 					assert(referenceBase != GAP);
+					assert(referenceBase != 'N');
+					assert(referenceBase != 'n');
 				}
 				/* Update counts */
 				switch(a->entriesOne[cur].strand) {
@@ -171,6 +174,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 								break;
 							case 'N':
 							case 'n':
+								fCounts[5]++;
+								break;
 							case GAP:
 								fCounts[4]++;
 								break;
@@ -204,6 +209,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 								break;
 							case 'N':
 							case 'n':
+								rCounts[5]++;
+								break;
 							case GAP:
 								rCounts[4]++;
 								break;
@@ -307,10 +314,15 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 				case 'T':
 					i=3;
 					break;
-				case GAP:
+				case 'n':
+				case 'N':
 					i=4;
 					break;
+				case GAP:
+					i=5;
+					break;
 				default:
+					fprintf(stderr, "\nreferenceBase=%c.\n", referenceBase);
 					PrintError(FnName,
 							"referenceBase",
 							"Could not understand base",
@@ -318,7 +330,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 							OutOfRange);
 			}
 			assert(fCounts[i] + rCounts[i] <= total);
-			if(0>fprintf(wigFP, "contig%d %lld %lld %d %d %d %d %d %d %d %d %d %d %d %3.2lf %3.2lf %3.2lf\n",
+			if(0>fprintf(wigFP, "contig%d %lld %lld %d f[%d %d %d %d %d %d %3.2lf] r[%d %d %d %d %d %d %lf] t[%3.2lf]\n",
 						contig,
 						(long long int)(curPos-SUBTRACT),
 						(long long int)(curPos+1-SUBTRACT),
@@ -328,12 +340,14 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						fCounts[2],
 						fCounts[3],
 						fCounts[4],
+						fCounts[5],
+						(100.0*fCounts[i])/((double)totalF),
 						rCounts[0],
 						rCounts[1],
 						rCounts[2],
 						rCounts[3],
 						rCounts[4],
-						(100.0*fCounts[i])/((double)totalF),
+						rCounts[5],
 						(100.0*rCounts[i])/((double)totalR),
 						(100.0*(fCounts[i] + rCounts[i]))/((double)total))) {
 				PrintError(FnName,
