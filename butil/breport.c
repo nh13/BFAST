@@ -667,7 +667,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast aligned file name>\n");
+		fprintf(stderr, "\t<bfast report file name>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");
 	}
