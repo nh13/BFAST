@@ -71,11 +71,12 @@ void ReadPrint(Read *r,
 	}
 	fprintf(fp,"\n");
 
-	/* Read one */
+	assert(r->readLength == StringTrimWhiteSpace(r->readOne));
 	fprintf(fp, "%s\n", r->readOne);
 
 	/* Read two */
 	if(r->pairedEnd==1) {
+		assert(r->readLength == StringTrimWhiteSpace(r->readTwo));
 		fprintf(fp, "%s\n", r->readTwo);
 	}
 }
