@@ -342,14 +342,14 @@ void StatInitialize(Stat *s,
 
 void StatPrint(Stat *s, FILE *fp)
 {
-	fprintf(fp, "%d %d %d %d %d %d ",
+	fprintf(fp, "%10d %10d %10d %10d %10d %10d ",
 			s->numReads,
 			s->numCorrectlyAligned[0],
 			s->numCorrectlyAligned[1],
 			s->numCorrectlyAligned[2],
 			s->numCorrectlyAligned[3],
 			s->numCorrectlyAligned[4]);
-	fprintf(fp, "%d %d %d %d %d %d %d %d %d\n",
+	fprintf(fp, "%10d %10d %10d %10d %10d %10d %10d %10d %10d\n",
 			s->r.space,
 			s->r.pairedEnd,
 			s->r.pairedEndLength,
