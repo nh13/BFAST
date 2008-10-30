@@ -35,12 +35,9 @@ int GetNextRead(FILE *fp,
 				ReadFileError);
 	}
 
-	/* Copy read name length and read length as well as updating null character (to 
-	 * reduce the string by one letter, namely the "\n" character). */
-	m->readNameLength = strlen(readName)-1;
-	readName[m->readNameLength]='\0';
-	m->matchOne.readLength = strlen(readOne)-1;
-	readOne[m->matchOne.readLength]='\0';
+	/* Trim leading and following whitespaces */
+	m->readNameLength = StringTrimWhiteSpace(readName);
+	m->matchOne.readLength = StringTrimWhiteSpace(readOne);
 
 	/* Allocate memory */
 	m->readName = malloc(sizeof(int8_t)*(m->readNameLength+1));
@@ -171,7 +168,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 			EOF != GetNextRead(seqFP, &m, pairedEnd)) {
 		/* Get which tmp file to put the read in */
 		curSeqFPIndex = (curReadNum-1)%numThreads;
-
+			
 		/* Print only if we are within the desired limit and the read checks out */
 		if( (startReadNum<=0 || curReadNum >= startReadNum)  /* Only if we are within the bounds for the reads */
 				&& (1 == UpdateRead((char*)m.matchOne.read, m.matchOne.readLength)) /* The first read is valid */

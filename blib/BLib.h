@@ -37,6 +37,8 @@ void AdjustBounds(RGBinary*, int32_t*, int32_t*, int32_t*, int32_t*);
 int WillGenerateValidKey(RGIndex*, char*, int);
 int ValidateFileName(char*);
 void StringCopyAndReallocate(char**, const char*);
+int StringTrimWhiteSpace(char*);
+int IsWhiteSpace(char);
 
 #endif
 

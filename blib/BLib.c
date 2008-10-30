@@ -1043,3 +1043,36 @@ void StringCopyAndReallocate(char **dest, const char *src)
 	/* Copy */
 	strcpy((*dest), src);
 }
+
+/* TODO */
+int StringTrimWhiteSpace(char *s)
+{
+	int i;
+	int length = strlen(s);
+
+	/* Leading whitespace ignored */
+
+	/* Ending whitespace */
+	for(i=length-1;
+			1==IsWhiteSpace(s[i]);
+			i--) {
+		length--;
+	}
+
+	s[length]='\0';
+	return length;
+}
+
+/* TODO */
+int IsWhiteSpace(char c) 
+{
+	switch(c) {
+		case ' ':
+		case '\t':
+		case '\n':
+			return 1;
+		default:
+			return 0;
+	}
+	return 0;
+}

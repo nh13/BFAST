@@ -167,6 +167,9 @@ int AlignEntriesRead(AlignEntries *a,
 	a->entriesOne = malloc(sizeof(AlignEntry)*a->numEntriesOne);
 	if(a->numEntriesOne > 0 && NULL==a->entriesOne) {
 		if(NULL == a->entriesOne) {
+			/* HERE */
+			fprintf(stderr, "a->numEntriesOne=%d\n",
+					a->numEntriesOne);
 			PrintError(FnName,
 					"a->entriesOne",
 					"Could not allocate memory",
