@@ -128,13 +128,8 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Remove duplicate ranges */
 	/* This exploits the fact that the ranges are non-overlapping */
-	RGRangesRemoveDuplicates(&ranges);
+	numEntries = RGRangesRemoveDuplicates(&ranges);
 			
-	/* Get the total number of matches we wish to copy over */
-	for(i=0,numEntries=0;i<ranges.numEntries;i++) {
-		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-	}
-
 	/* Copy over ranges over if necessary */
 	if(0 < numEntries) {
 		/* Allocate memory for the matches */

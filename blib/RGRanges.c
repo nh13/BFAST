@@ -13,10 +13,12 @@
 /* Note: this exploits the fact that the ranges in the indexes are non-overlapping.
  * Thus does not take the union of all ranges otherwise.
  * */
-void RGRangesRemoveDuplicates(RGRanges *r)
+int RGRangesRemoveDuplicates(RGRanges *r)
 {
 	int32_t i;
 	int32_t prevIndex=0;
+
+	int32_t numEntries = 0;
 
 	if(r->numEntries > 0) {
 		/* Quick sort the data structure */
@@ -24,6 +26,7 @@ void RGRangesRemoveDuplicates(RGRanges *r)
 
 		/* Remove duplicates */
 		prevIndex=0;
+		numEntries = r->endIndex[0] - r->startIndex[0] + 1;
 		for(i=1;i<r->numEntries;i++) {
 			if(RGRangesCompareAtIndex(r, prevIndex, r, i)==0) {
 				/* ignore */
@@ -32,6 +35,7 @@ void RGRangesRemoveDuplicates(RGRanges *r)
 				prevIndex++;
 				/* Copy to prevIndex (incremented) */
 				RGRangesCopyAtIndex(r, i, r, prevIndex);
+				numEntries += r->endIndex[i] - r->startIndex[i] + 1; 
 			}
 		}
 
@@ -39,6 +43,7 @@ void RGRangesRemoveDuplicates(RGRanges *r)
 		/* does not make sense if there are no entries */
 		RGRangesReallocate(r, prevIndex+1);
 	}
+	return numEntries;
 }
 
 /* TODO */

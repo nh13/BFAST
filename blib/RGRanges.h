@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "BLibDefinitions.h"
 
-void RGRangesRemoveDuplicates(RGRanges*);
+int RGRangesRemoveDuplicates(RGRanges*);
 void RGRangesCopyToRGMatch(RGRanges*, RGIndex*, RGMatch*);
 void RGRangesQuickSort(RGRanges*, int32_t, int32_t);
 int32_t RGRangesCompareAtIndex(RGRanges*, int32_t, RGRanges*, int32_t);
