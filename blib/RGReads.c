@@ -129,18 +129,14 @@ void RGReadsFindMatches(RGIndex *index,
 	/* Remove duplicate ranges */
 	/* This exploits the fact that the ranges are non-overlapping */
 	RGRangesRemoveDuplicates(&ranges);
-
+			
 	/* Get the total number of matches we wish to copy over */
-	for(i=0;i<ranges.numEntries;i++) {
+	for(i=0,numEntries=0;i<ranges.numEntries;i++) {
 		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
 	}
 
-	/* Only copy to rgmatches if there are matches and fewer matches than
-	 * max Matches */
-	if(numEntries > maxNumMatches) {
-		match->maxReached = 1;
-	}
-	else if(0 < numEntries) {
+	/* Copy over ranges over if necessary */
+	if(0 < numEntries) {
 		/* Allocate memory for the matches */
 		RGMatchAllocate(match, numEntries);
 
@@ -153,7 +149,7 @@ void RGReadsFindMatches(RGIndex *index,
 	/* Remove duplicates */
 	RGMatchRemoveDuplicates(match,
 			maxNumMatches);
-
+	
 	/* In color space we removed the first base/color so we need to 
 	 * decrement the positions by one.
 	 * */

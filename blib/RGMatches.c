@@ -148,9 +148,11 @@ void RGMatchesPrint(FILE *fp,
 	assert(fp!=NULL);
 
 	/* Check m */
-	if(1==RGMATCHES_CHECK) {
-		RGMatchesCheck(m);
-	}
+	/*
+	   if(1==RGMATCHES_CHECK) {
+	   RGMatchesCheck(m);
+	   }
+	   */
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextInput) {
@@ -196,16 +198,18 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 		int32_t maxNumMatches)
 {
 	RGMatchRemoveDuplicates(&m->matchOne, maxNumMatches);
-	if(1==m->pairedEnd) {
+	assert(m->matchOne.numEntries <= maxNumMatches);
+	if(1 == m->pairedEnd) {
 		RGMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
 		assert(m->matchTwo.numEntries <= maxNumMatches);
 	}
-	assert(m->matchOne.numEntries <= maxNumMatches);
 
 	/* Check m */
-	if(1==RGMATCHES_CHECK) {
-		RGMatchesCheck(m);
-	}
+	/*
+	   if(1==RGMATCHES_CHECK) {
+	   RGMatchesCheck(m);
+	   }
+	   */
 }
 
 /* TODO */
@@ -400,6 +404,7 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 	if(dest->readNameLength <= 0) {
 		assert(dest->readName == NULL);
 		dest->readNameLength = src->readNameLength;
+
 		/* Allocate memory for the read name */
 		dest->readName = malloc(sizeof(int8_t)*(dest->readNameLength+1));
 		if(NULL==dest->readName) {
@@ -474,9 +479,11 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 			}
 		}
 		/* Check m */
-		if(1==RGMATCHES_CHECK) {
-			RGMatchesCheck(m);
-		}
+		/*
+		   if(1==RGMATCHES_CHECK) {
+		   RGMatchesCheck(m);
+		   }
+		   */
 		RGMatchesRemoveDuplicates(m, INT_MAX);
 	}
 }

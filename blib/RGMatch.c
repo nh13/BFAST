@@ -51,6 +51,7 @@ int32_t RGMatchRead(FILE *fp,
 					Exit,
 					EndOfFile);
 		}
+		assert(1==m->maxReached || 0 == m->maxReached);
 
 		/* Read in the number of matches */
 		if(fscanf(fp, "%d", &m->numEntries)==EOF) {
@@ -124,7 +125,7 @@ int32_t RGMatchRead(FILE *fp,
 					Exit,
 					ReadFileError);
 		}
-		assert(m->maxReached == 0 || m->maxReached == 1);
+		assert(0 == m->maxReached || 1 == m->maxReached);
 
 		/* Read in the number of matches */
 		if(fread(&m->numEntries, sizeof(int32_t), 1, fp)!=1) {
@@ -246,10 +247,9 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 
 	/* Check to see if the max has been reached.  If so free all matches and return.
 	 * We should remove duplicates before checking against maxNumMatches. */
-	if(m->maxReached == 1) {
+	if(1 == m->maxReached) {
 		/* Clear the matches but don't free the read name */
 		RGMatchClearMatches(m);
-		m->maxReached=1;
 		return;
 	}
 
@@ -275,10 +275,9 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		RGMatchReallocate(m, prevIndex+1);
 
 		/* Check to see if we have too many matches */
-		if(m->numEntries > maxNumMatches) {
+		if(maxNumMatches < m->numEntries) {
 			/* Clear the entries but don't free the read */
 			RGMatchClearMatches(m);
-			m->maxReached=1;
 		}
 		else { 
 			m->maxReached = 0;
@@ -383,16 +382,23 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest)
 		strcpy((char*)dest->read, (char*)src->read);
 	}
 
-	start = dest->numEntries;
-	/* Allocate memory for the entires */
-	RGMatchReallocate(dest, dest->numEntries + src->numEntries);
+	/* if the max has been reached by the start or dest, then ignore */
+	if(1 != dest->maxReached && 1 != src->maxReached) { 
+		/* Allocate memory for the entries */
+		start = dest->numEntries;
+		RGMatchReallocate(dest, dest->numEntries + src->numEntries);
 
-	assert(dest->numEntries == start + src->numEntries);
-	assert(start <= dest->numEntries);
+		assert(dest->numEntries == start + src->numEntries);
+		assert(start <= dest->numEntries);
 
-	/* Copy over the entries */
-	for(i=start;i<dest->numEntries;i++) {
-		RGMatchCopyAtIndex(src, i-start, dest, i);
+		/* Copy over the entries */
+		for(i=start;i<dest->numEntries;i++) {
+			RGMatchCopyAtIndex(src, i-start, dest, i);
+		}
+	}
+	else {
+		/* Clear matches and set max reached flag */
+		RGMatchClearMatches(dest);
 	}
 }
 
@@ -453,8 +459,8 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
 		if(numEntries > 0 && NULL == m->positions) {
 			/*
-			fprintf(stderr, "numEntries:%d\n", numEntries);
-			*/
+			   fprintf(stderr, "numEntries:%d\n", numEntries);
+			   */
 			PrintError(FnName,
 					"m->positions",
 					"Could not reallocate memory",
@@ -488,7 +494,6 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 /* Does not free read */
 void RGMatchClearMatches(RGMatch *m) 
 {
-	m->maxReached=0;
 	m->numEntries=0;
 	/* Free */
 	free(m->contigs);
@@ -601,6 +606,7 @@ void RGMatchFilterOutOfRange(RGMatch *m,
 	if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
 		/* Do not align this one */
 		RGMatchClearMatches(m);
+		m->maxReached=1;
 		assert(m->readLength > 0);
 	}
 }

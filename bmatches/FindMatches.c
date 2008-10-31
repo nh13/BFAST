@@ -66,15 +66,15 @@ void FindMatches(
 	int numMatches;
 	int numReads;
 	int numReadsFiltered;
-	RGMatches tempMatches;
 
 	time_t startTime, endTime;
 	int seconds, minutes, hours;
 	int totalReadRGTime = 0;
-	int totalDataStructureTime = 0; /* This will only give the to load and deleted the indexes and trees (excludes searching and other things) */
+	int totalDataStructureTime = 0; /* This will only give the to load and deleted the indexes (excludes searching and other things) */
 	int totalSearchTime = 0; /* This will only give the time searching (excludes load times and other things) */
 	int totalOutputTime = 0; /* This wll only give the total time to merge and output */
 
+	RGMatches tempMatches;
 	RGBinary rg;
 	int startChr, startPos, endChr, endPos;
 
@@ -219,15 +219,6 @@ void FindMatches(
 	}
 	assert(numReads >= numThreads);
 
-	/* IDEA 
-	 * 		Use temp files to store the results for each index.  Once we have one
-	 * 		through each index, merge the results and output to file.  Store all
-	 * 		reads that had no match in a temp file to use when searching the
-	 * 		trees.
-	 *
-	 * 		Use temp files to store the results for each tree.  Once we have gone
-	 * 		through each tree, merge the results and append to the output file.
-	 * 		*/
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "w"))==0) {
@@ -270,7 +261,8 @@ void FindMatches(
 			&tempSeqFileNames,
 			outputFP,
 			binaryOutput,
-			1,
+			(0 < numSecondaryIndexes)?CopyForNextSearch:EndSearch,
+			MainIndexes,
 			tmpDir,
 			timing,
 			&totalDataStructureTime,
@@ -278,74 +270,78 @@ void FindMatches(
 			&totalOutputTime
 				);
 
-	if(numReads - numMatches > 0
-			&& numSecondaryIndexes > 0) {
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Processing remaining %d reads using %d secondary indexes.\n",
-					numReads - numMatches,
-					numSecondaryIndexes);
-			fprintf(stderr, "%s", BREAK_LINE);
-		}
+	/* Do secondary index search */
 
-		/* Do step 2: search the indexes for all reads */
-		numMatches+=FindMatchesInIndexes(secondaryIndexFileNames,
-				binaryInput,
-				&rg,
-				numSecondaryIndexes,
-				offsets,
-				numOffsets,
-				space,
-				numMismatches,
-				numInsertions,
-				numDeletions,
-				numGapInsertions,
-				numGapDeletions,
-				pairedEnd,
-				maxKeyMatches,
-				maxNumMatches,
-				numThreads,
-				&tempSeqFPs,
-				&tempSeqFileNames,
-				outputFP,
-				binaryOutput,
-				0,
-				tmpDir,
-				timing,
-				&totalDataStructureTime,
-				&totalSearchTime,
-				&totalOutputTime
-					);
-	}
-	else {
-		/* Output the reads not aligned and close the temporary read files */
-		for(i=0;i<numThreads;i++) {
-			/* Go to the beginning of the temp file */
-			fseek(tempSeqFPs[i], 0, SEEK_SET);
-
-			/* Initialize */
-			RGMatchesInitialize(&tempMatches);
-
-			/* Read in the reads */
-			while(EOF!=GetNextRead(tempSeqFPs[i], 
-						&tempMatches,
-						pairedEnd)) {
-				/* Print the match to the output file */
-				RGMatchesPrint(outputFP, 
-						&tempMatches,
-						pairedEnd,
-						binaryOutput);
-				/* Free the matches data structure */
-				RGMatchesFree(&tempMatches);
+	if(0 < numSecondaryIndexes) { /* Only if there are secondary indexes */
+		if(0 < numReads - numMatches) { /* Only if enough reads are left */
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "%s", BREAK_LINE);
+				fprintf(stderr, "%s", BREAK_LINE);
+				fprintf(stderr, "Processing remaining %d reads using %d secondary indexes.\n",
+						numReads - numMatches,
+						numSecondaryIndexes);
+				fprintf(stderr, "%s", BREAK_LINE);
 			}
 
-			/* Close the temp file */
-			CloseTmpFile(&tempSeqFPs[i],
-					&tempSeqFileNames[i]);
+			/* Do step 2: search the indexes for all reads */
+			numMatches+=FindMatchesInIndexes(secondaryIndexFileNames,
+					binaryInput,
+					&rg,
+					numSecondaryIndexes,
+					offsets,
+					numOffsets,
+					space,
+					numMismatches,
+					numInsertions,
+					numDeletions,
+					numGapInsertions,
+					numGapDeletions,
+					pairedEnd,
+					maxKeyMatches,
+					maxNumMatches,
+					numThreads,
+					&tempSeqFPs,
+					&tempSeqFileNames,
+					outputFP,
+					binaryOutput,
+					EndSearch,
+					SecondaryIndexes,
+					tmpDir,
+					timing,
+					&totalDataStructureTime,
+					&totalSearchTime,
+					&totalOutputTime
+						);
 		}
-		/* Close the output file */
-		fclose(outputFP);
+		else {
+			/* Output the reads not aligned and close the temporary read files */
+			for(i=0;i<numThreads;i++) {
+				/* Go to the beginning of the temp file */
+				fseek(tempSeqFPs[i], 0, SEEK_SET);
+
+				/* Initialize */
+				RGMatchesInitialize(&tempMatches);
+
+				/* Read in the reads */
+				while(EOF!=GetNextRead(tempSeqFPs[i],
+							&tempMatches,
+							pairedEnd)) {
+					/* Print the match to the output file */
+					RGMatchesPrint(outputFP,
+							&tempMatches,
+							pairedEnd,
+							binaryOutput);
+					/* Free the matches data structure */
+					RGMatchesFree(&tempMatches);
+				}
+
+				/* Close the temp file */
+				CloseTmpFile(&tempSeqFPs[i],
+						&tempSeqFileNames[i]);
+			}
+			/* Close the output file */
+			fclose(outputFP);
+		}
 	}
 
 	if(VERBOSE>=0) {
@@ -443,7 +439,8 @@ int FindMatchesInIndexes(char **indexFileNames,
 		char ***tempSeqFileNames,
 		FILE *outputFP,
 		int binaryOutput,
-		int MainIndexes,
+		int copyForNextSearch,
+		int indexesType,
 		char *tmpDir,
 		int timing,
 		int *totalDataStructureTime,
@@ -488,17 +485,19 @@ int FindMatchesInIndexes(char **indexFileNames,
 				Exit,
 				MallocMemory);
 	}
-	/* If we not on the main indexes, output to the final output file.  Otherwise,
+	/* If we are ending the search, output to the final output file.  Otherwise,
 	 * output to a temporary file.
 	 * */
-	if(MainIndexes == 1) {
+	if(CopyForNextSearch == copyForNextSearch) {
 		/* Open temporary file for the entire index search */
 		tempOutputFP=OpenTmpFile(tmpDir, &tempOutputFileName);
 	}
 	else {
-		/* Otherwise we are in the secondary index search so output to the final output file */
+		assert(EndSearch == copyForNextSearch);
+		/* Write directly to the output file */
 		tempOutputFP=outputFP;
 	}
+
 	/* If we have only one index, output the temp output file */
 	if(numIndexes > 1) {
 		/* Open tmp files for each index */
@@ -534,7 +533,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 				tempSeqFPs,
 				tempOutputIndexFPs[i],
 				binaryOutput,
-				MainIndexes,
 				tmpDir,
 				timing,
 				totalDataStructureTime,
@@ -546,7 +544,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		}
 	}
 
-	/* Merge temporary output from each tree and output to the final output file. */
+	/* Merge temporary output from each index and output to the output file. */
 	if(numIndexes > 1) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging the output from each index...\n");
@@ -594,7 +592,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		CloseTmpFile(&(*tempSeqFPs)[i], &(*tempSeqFileNames)[i]);
 	}
 
-	if(MainIndexes == 1) {
+	if(CopyForNextSearch == indexesType) {
 		/* Go through the temporary output file and output those reads that have 
 		 * at least one match to the final output file.  For those reads that have
 		 * zero matches, output them to the temporary read file */
@@ -607,6 +605,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		tempSeqFP = OpenTmpFile(tmpDir, &tempSeqFileName);
 
 		startTime=time(NULL);
+		assert(tempOutputFP != outputFP);
 		numWritten=ReadTempReadsAndOutput(tempOutputFP,
 				outputFP,
 				tempSeqFP,
@@ -653,7 +652,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 	free(tempOutputIndexFileNames);
 
 	if(VERBOSE >= 0) {
-		if(MainIndexes == 1) {
+		if(MainIndexes == indexesType) {
 			fprintf(stderr, "Searching main indexes complete.\n");
 		}
 		else {
@@ -682,7 +681,6 @@ int FindMatchesInIndex(char *indexFileName,
 		FILE ***tempSeqFPs,
 		FILE *indexFP,
 		int binaryOutput,
-		int MainIndexes,
 		char *tmpDir,
 		int timing,
 		int *totalDataStructureTime,
@@ -769,7 +767,7 @@ int FindMatchesInIndex(char *indexFileName,
 	startTime = time(NULL);
 	/* Initialize arguments to threads */
 	for(i=0;i<numThreads;i++) {
-		data[i].tempOutputFP= tempOutputThreadFPs[i];
+		data[i].tempOutputFP = tempOutputThreadFPs[i];
 		data[i].binaryOutput = binaryOutput;
 		data[i].index = &index;
 		data[i].rg = rg;
@@ -965,8 +963,8 @@ void *FindMatchesInIndexThread(void *arg)
 					maxNumMatches);
 		}
 
-		if((m.matchOne.numEntries > 0 && m.matchOne.maxReached != 1) ||
-				(m.matchTwo.numEntries > 0 && m.matchTwo.maxReached != 1)) {
+		if((0 < m.matchOne.numEntries && 1 != m.matchOne.maxReached ) ||
+				(0 < m.matchTwo.numEntries && 1 != m.matchTwo.maxReached)) {
 			data->numMatches++;
 		}
 
