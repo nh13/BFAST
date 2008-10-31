@@ -13,6 +13,7 @@ int32_t RGMatchRead(FILE *fp,
 		RGMatch *m,
 		int32_t binaryInput)
 {
+
 	char *FnName = "RGMatchRead";
 	int32_t i;
 
@@ -278,6 +279,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		if(maxNumMatches < m->numEntries) {
 			/* Clear the entries but don't free the read */
 			RGMatchClearMatches(m);
+			m->maxReached = 1;
 		}
 		else { 
 			m->maxReached = 0;
