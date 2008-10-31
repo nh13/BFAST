@@ -349,7 +349,7 @@ void StatPrint(Stat *s, FILE *fp)
 			s->numCorrectlyAligned[2],
 			s->numCorrectlyAligned[3],
 			s->numCorrectlyAligned[4]);
-	fprintf(fp, "%10d %10d %10d %10d %10d %10d %10d %10d %10d\n",
+	fprintf(fp, "%1d %1d %6d %6d %6d %3d %3d %3d %3d\n",
 			s->r.space,
 			s->r.pairedEnd,
 			s->r.pairedEndLength,
