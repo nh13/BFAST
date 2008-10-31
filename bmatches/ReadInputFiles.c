@@ -240,7 +240,6 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 			/* Output to final output file */
 			RGMatchesPrint(outputFP,
 					&m,
-					pairedEnd,
 					binaryOutput);
 			numOutputted++;
 		}

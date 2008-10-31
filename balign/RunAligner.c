@@ -271,14 +271,12 @@ void RunDynamicProgramming(FILE *matchFP,
 			numNotAligned++;
 			RGMatchesPrint(notAlignedFP,
 					&m,
-					pairedEnd,
 					binaryOutput);
 		}
 		else {
 			/* Print match to temp file */
 			RGMatchesPrint(data[i].inputFP,
 					&m,
-					pairedEnd,
 					binaryInput);
 			/* Increment */
 			i = (i+1)%numThreads;
@@ -442,7 +440,6 @@ void RunDynamicProgramming(FILE *matchFP,
 				numNotAligned++;
 				RGMatchesPrint(notAlignedFP,
 						&m,
-						pairedEnd,
 						binaryOutput);
 
 				RGMatchesFree(&m);

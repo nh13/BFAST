@@ -28,7 +28,8 @@ int32_t RGMatchesRead(FILE *fp,
 			return EOF;
 		}
 		/* Check paired end */
-		if(m->pairedEnd != pairedEnd) {
+		if(pairedEnd != PairedEndDoesNotMatter && 
+				m->pairedEnd != pairedEnd) {
 			PrintError(FnName,
 					"pairedEnd",
 					"Error.  Paired end did not match",
@@ -79,7 +80,8 @@ int32_t RGMatchesRead(FILE *fp,
 			}
 		}
 		/* Check paired end */
-		if(m->pairedEnd != pairedEnd) {
+		if(pairedEnd != PairedEndDoesNotMatter && 
+		m->pairedEnd != pairedEnd) {
 			PrintError(FnName,
 					"pairedEnd",
 					"Error.  Paired end did not match",
@@ -123,7 +125,7 @@ int32_t RGMatchesRead(FILE *fp,
 	RGMatchRead(fp,
 			&m->matchOne,
 			binaryInput);
-	if(1==pairedEnd) {
+	if(1==m->pairedEnd) {
 		/* Read match two if necessary */
 		RGMatchRead(fp,
 				&m->matchTwo,
@@ -141,7 +143,6 @@ int32_t RGMatchesRead(FILE *fp,
 /* TODO */
 void RGMatchesPrint(FILE *fp,
 		RGMatches *m,
-		int32_t pairedEnd,
 		int32_t binaryOutput)
 {
 	char *FnName = "RGMatchesPrint";
@@ -186,7 +187,7 @@ void RGMatchesPrint(FILE *fp,
 			&m->matchOne,
 			binaryOutput);
 	/* Print match two if necessary */
-	if(pairedEnd == 1) {
+	if(m->pairedEnd == 1) {
 		RGMatchPrint(fp,
 				&m->matchTwo,
 				binaryOutput);
@@ -287,7 +288,6 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 			}
 			RGMatchesPrint(outputFP,
 					&matches,
-					pairedEnd,
 					binaryOutput);
 		}
 		/* Free memory */
@@ -370,7 +370,6 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 
 					RGMatchesPrint(outputFP,
 							&matches,
-							pairedEnd,
 							binaryOutput);
 
 				}

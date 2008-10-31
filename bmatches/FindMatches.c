@@ -329,7 +329,6 @@ void FindMatches(
 					/* Print the match to the output file */
 					RGMatchesPrint(outputFP,
 							&tempMatches,
-							pairedEnd,
 							binaryOutput);
 					/* Free the matches data structure */
 					RGMatchesFree(&tempMatches);
@@ -973,7 +972,6 @@ void *FindMatchesInIndexThread(void *arg)
 		/* Output to file */
 		RGMatchesPrint(tempOutputFP, 
 				&m,
-				pairedEnd, 
 				binaryOutput); 
 
 		/* Free matches */

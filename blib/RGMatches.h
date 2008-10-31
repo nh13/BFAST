@@ -5,7 +5,7 @@
 #include "BLibDefinitions.h"
 
 int32_t RGMatchesRead(FILE*, RGMatches*, int32_t, int32_t);
-void RGMatchesPrint(FILE*, RGMatches*, int32_t, int32_t);
+void RGMatchesPrint(FILE*, RGMatches*, int32_t);
 void RGMatchesRemoveDuplicates(RGMatches*, int32_t);
 int32_t RGMatchesMergeFilesAndOutput(FILE**, int32_t, FILE*, int32_t, int32_t, int32_t);
 int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE**, int32_t, FILE*, int32_t, int32_t);
