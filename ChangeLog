@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.1.9
+* Updated bmf output to properly display when the maximum number
+of matches has been reached.
+
 Version 0.1.8
 * Updated to support Ns in the reads; will still ignore "."s.
 * Adjusting bounds bug with -e option fixed.  Would not default to 
