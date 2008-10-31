@@ -592,7 +592,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		CloseTmpFile(&(*tempSeqFPs)[i], &(*tempSeqFileNames)[i]);
 	}
 
-	if(CopyForNextSearch == indexesType) {
+	if(CopyForNextSearch == copyForNextSearch) {
 		/* Go through the temporary output file and output those reads that have 
 		 * at least one match to the final output file.  For those reads that have
 		 * zero matches, output them to the temporary read file */
@@ -759,7 +759,9 @@ int FindMatchesInIndex(char *indexFileName,
 	(*totalDataStructureTime)+=endTime - startTime;	
 
 	/* Set position to read from the beginning of the file */
+	assert((*tempSeqFPs)!=NULL);
 	for(i=0;i<numThreads;i++) {
+		assert((*tempSeqFPs)!=NULL);
 		fseek((*tempSeqFPs)[i], 0, SEEK_SET);
 	}
 

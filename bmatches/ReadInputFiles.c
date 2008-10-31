@@ -162,6 +162,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 	for(i=0;i<numThreads;i++) {
 		assert((*tempSeqFPs)[i] == NULL);
 		(*tempSeqFPs)[i] = OpenTmpFile(tmpDir, &(*tempSeqFileNames)[i]);
+		assert((*tempSeqFPs)[i] != NULL);
 	}
 
 	while((endReadNum<=0 || endReadNum >= curReadNum) && 
