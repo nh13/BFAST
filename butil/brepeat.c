@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
 			int prevBestLength=-1;
 			int prevBestEnd=-1;
 			for(curPos=1;
-					curPos <- rg.contigs[curContigIndex].sequenceLength;
+					curPos <= rg.contigs[curContigIndex].sequenceLength;
 					curPos++) {
 				if(curPos%BREPEAT_ROTATE_NUM==0) {
 					fprintf(stderr, "\r%2d %9d",
@@ -150,11 +150,13 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "\n%s", BREAK_LINE);
 		fprintf(stderr, "Cleaning up.\n");
 		/* Delete the rg */
 		RGBinaryDelete(&rg);
 		fclose(fp);
+		fprintf(stderr, "Terminating successfully.\n");
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 	else {
 		fprintf(stderr, "%s [OPTIONS]\n", Name);
@@ -162,6 +164,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<minimum unit length>\n");
 		fprintf(stderr, "\t<maximum unit length>\n");
 		fprintf(stderr, "\t<minimum total repeat length>\n");
+		fprintf(stderr, "\t<output file>\n");
 	}
 
 	return 0;
