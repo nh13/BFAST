@@ -697,7 +697,8 @@ int ConvertBaseToColorSpace(uint8_t A,
 			break;
 		case 'N':
 		case 'n':
-			return 4;
+			(*C) = 4;
+			return 1;
 			break;
 		default:
 			return 0;
@@ -723,7 +724,8 @@ int ConvertBaseToColorSpace(uint8_t A,
 			break;
 		case 'N':
 		case 'n':
-			return 4;
+			(*C) = 4;
+			return 1;
 			break;
 		default:
 			return 0;
