@@ -8,8 +8,8 @@
 #include "BError.h"
 #include "BLib.h"
 
-char DNA[5] = "ACGTNNNN";
-char COLORS[5] = "01234444";
+char DNA[5] = "ACGTN";
+char COLORS[5] = "01234";
 
 /* TODO */
 int GetFastaHeaderLine(FILE *fp,
