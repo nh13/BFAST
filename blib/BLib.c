@@ -8,8 +8,8 @@
 #include "BError.h"
 #include "BLib.h"
 
-char DNA[5] = "ACGTN";
-char COLORS[5] = "01234";
+char DNA[5] = "ACGTNNNN";
+char COLORS[5] = "01234444";
 
 /* TODO */
 int GetFastaHeaderLine(FILE *fp,
@@ -780,6 +780,9 @@ int ConvertReadFromColorSpace(char *read,
 				break;
 			case '3':
 				read[i] = 3;
+				break;
+			case '4':
+				read[i] = 4;
 				break;
 			default:
 				/* Ignore */
