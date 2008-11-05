@@ -130,7 +130,16 @@ void RGBinaryRead(char *rgFileName,
 				if(ColorSpace==space) {
 					/* Convert to color space */
 					/* Convert color space to A,C,G,T */
-					c = ConvertBaseToColorSpace(prevBase, original);
+					if(0 == ConvertBaseToColorSpace(prevBase, original, &c)) {
+						fprintf(stderr, "prevBase=%c\toriginal=%c\n",
+								prevBase,
+								original);
+						PrintError(FnName,
+								"c",
+								"Could not convert base to color space",
+								Exit,
+								OutOfRange);
+					}
 					/* Convert to nucleotide equivalent for storage */
 					/* Store 0=A, 1=C, 2=G, 3=T, else N */
 					c = ConvertColorToStorage(c);

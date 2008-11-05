@@ -92,7 +92,16 @@ int AlignColorSpace(char *read,
 		prevReadBase = (i==0)?COLOR_SPACE_START_NT:read[i-1];
 
 		/* Get the current color for the read */
-		curColor = ConvertBaseToColorSpace(prevReadBase, curReadBase);
+		if(0 == ConvertBaseToColorSpace(prevReadBase, curReadBase, &curColor)) {
+			fprintf(stderr, "prevReadBase=%c\tcurReadBase=%c\n",
+					prevReadBase,
+					curReadBase);
+			PrintError(FnName,
+					"curColor",
+					"Could not convert base to color space",
+					Exit,
+					OutOfRange);
+		}
 
 		for(j=0;j<referenceLength;j++) { /* reference/columns */
 
@@ -131,15 +140,50 @@ int AlignColorSpace(char *read,
 								case 2:
 								case 3:
 									/* Diagonals */
-									convertedColor=ConvertBaseToColorSpace(DNA[l], DNA[k]);
+									if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
+										fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
+												l,
+												DNA[l],
+												k,
+												DNA[k]);
+										PrintError(FnName,
+												"convertedColor",
+												"Could not convert base to color space",
+												Exit,
+												OutOfRange);
+									}
 									break;
 								case 4:
 									/* Use previous base for deletions */
-									convertedColor=ConvertBaseToColorSpace(matrix[i][j].prevDeletionBase, DNA[k]);
+									if(0 == ConvertBaseToColorSpace(matrix[i][j].prevDeletionBase, DNA[k], &convertedColor)) {
+										fprintf(stderr, "matrix[i=%d][j=%d].prevDeletionBase=%c\tDNA[k=%d]=%c\n",
+												i,
+												j,
+												matrix[i][j].prevDeletionBase,
+												k,
+												DNA[k]);
+										PrintError(FnName,
+												"convertedColor",
+												"Could not convert base to color space",
+												Exit,
+												OutOfRange);
+									}
 									break;
 								case 5:
 									/* Use the previous base carried along by insertions */
-									convertedColor=ConvertBaseToColorSpace(matrix[i][j].prevInsertionBase, DNA[k]);
+									if(0 == ConvertBaseToColorSpace(matrix[i][j].prevInsertionBase, DNA[k], &convertedColor)) {
+										fprintf(stderr, "matrix[i=%d][j=%d].prevInsertionBase=%c\tDNA[k=%d]=%c\n",
+												i,
+												j,
+												matrix[i][j].prevInsertionBase,
+												k,
+												DNA[k]);
+										PrintError(FnName,
+												"convertedColor",
+												"Could not convert base to color space",
+												Exit,
+												OutOfRange);
+									}
 									break;
 								default:
 									PrintError(FnName,
@@ -189,8 +233,8 @@ int AlignColorSpace(char *read,
 										break;
 									default:
 										/*
-										fprintf(stderr, "l=%d\n", l);
-										*/
+										   fprintf(stderr, "l=%d\n", l);
+										   */
 										PrintError(FnName,
 												"l",
 												"Could not understand character",
@@ -239,8 +283,8 @@ int AlignColorSpace(char *read,
 									break;
 								default:
 									/*
-									fprintf(stderr, "l=%d\n", l);
-									*/
+									   fprintf(stderr, "l=%d\n", l);
+									   */
 									PrintError(FnName,
 											"l",
 											"Could not understand character",
@@ -296,13 +340,23 @@ int AlignColorSpace(char *read,
 									curScore = matrix[i][j+1].score[l] + sm->gapExtensionPenalty;
 									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapExtensionPenalty;
 									curFrom = InsertionExt;
-									curPrevInsertionBase = ConvertBaseAndColor(matrix[i+1][j].prevInsertionBase, 
-											curColor);
+									if(0 == ConvertBaseAndColor(matrix[i+1][j].prevInsertionBase, curColor, &curPrevInsertionBase)) {
+										fprintf(stderr, "matrix[i+1=%d][j=%d].prevInsertionBase=%c\tcurColor=%c\n",
+												i,
+												j,
+												matrix[i+1][j].prevInsertionBase, 
+												curColor);
+										PrintError(FnName,
+												"curPrevInsertionBase",
+												"Could not convert base and color",
+												Exit,
+												OutOfRange);
+									}
 									break;
 								default:
 									/*
-									fprintf(stderr, "l=%d\n", l);
-									*/
+									   fprintf(stderr, "l=%d\n", l);
+									   */
 									PrintError(FnName,
 											"l",
 											"Could not understand character",
@@ -332,13 +386,13 @@ int AlignColorSpace(char *read,
 				}
 				/* Update */
 				/*
-				if(maxFrom < 0) {
-					fprintf(stderr, "(i,j,k)=(%d,%d,%d)\n",
-							i,
-							j,
-							k);
-				}
-				*/
+				   if(maxFrom < 0) {
+				   fprintf(stderr, "(i,j,k)=(%d,%d,%d)\n",
+				   i,
+				   j,
+				   k);
+				   }
+				   */
 				assert(maxFrom >= 0);
 				matrix[i+1][j+1].score[k] = maxScore;
 				matrix[i+1][j+1].scoreNT[k] = maxScoreNT;

@@ -663,10 +663,13 @@ int CheckReadBase(char base)
 /* Two bases */
 /* If either of the two bases is an "N" or an "n", then
  * we return the color code 4 */
-uint8_t ConvertBaseToColorSpace(uint8_t A, 
-		uint8_t B)
+int ConvertBaseToColorSpace(uint8_t A, 
+		uint8_t B,
+		uint8_t *C)
 {
-	char *FnName = "ConvertBaseToColorSpace";
+	/* 
+	   char *FnName = "ConvertBaseToColorSpace";
+	   */
 	int start=0;
 	int by=0;
 	int result=0;
@@ -697,14 +700,7 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 			return 4;
 			break;
 		default:
-			fprintf(stderr, "\nA=(%c,%d)\n",
-					A,
-					(int)A);
-			PrintError(FnName,
-					"A",
-					"Could not understand base",
-					Exit,
-					OutOfRange);
+			return 0;
 			break;
 	}
 
@@ -730,33 +726,33 @@ uint8_t ConvertBaseToColorSpace(uint8_t A,
 			return 4;
 			break;
 		default:
-			fprintf(stderr, "\nB=(%c,%d)\n",
-					B,
-					(int)B);
-			PrintError(FnName,
-					"B",
-					"Could not understand base",
-					Exit,
-					OutOfRange);
+			return 0;
 			break;
 	}
 
 	if(result < 0) {
-		result =  ALPHABET_SIZE - ( (-1*result)% ALPHABET_SIZE);
+		(*C) =  ALPHABET_SIZE - ( (-1*result)% ALPHABET_SIZE);
 	}
 	else {
-		result = (result%ALPHABET_SIZE);
+		(*C) = (result%ALPHABET_SIZE);
 	}
-
-	return result;
+	return 1;
 }
 
 /* TODO */
 /* color must be an integer, and a base a character */
-uint8_t ConvertBaseAndColor(uint8_t base, uint8_t color) 
+int ConvertBaseAndColor(uint8_t base, uint8_t color, uint8_t *B)
 {
 	/* sneaky */
-	return (uint8_t)DNA[(int)ConvertBaseToColorSpace(base, DNA[(int)color])];
+	uint8_t C;
+
+	if(0==ConvertBaseToColorSpace(base, DNA[(int)color], &C)) {
+		return 0;
+	}
+	else {
+		(*B) = DNA[(int)C];
+	}
+	return 1;
 }
 
 /* TODO */
@@ -765,6 +761,7 @@ uint8_t ConvertBaseAndColor(uint8_t base, uint8_t color)
 int ConvertReadFromColorSpace(char *read,
 		int readLength)
 {
+	char *FnName="ConvertReadFromColorSpace";
 	int i, index;
 
 	/* Convert character numbers to 8-bit ints */
@@ -795,7 +792,18 @@ int ConvertReadFromColorSpace(char *read,
 		else {
 			index = i-1; 
 		}
-		read[i] = ConvertBaseAndColor(read[index], read[i+1]); 
+		if(0 == ConvertBaseAndColor(read[index], read[i+1], &read[i])) {
+			fprintf(stderr, "read[index]=%c\tread[i+1]=%c\tread[i]=%c\nread=%s",
+					read[index],
+					read[i+1],
+					read[i],
+					read);
+			PrintError(FnName,
+					"read",
+					"Could not convert base and color",
+					Exit,
+					OutOfRange);
+		}
 	}
 	read[readLength-1] = '\0';
 	readLength--;
@@ -817,11 +825,30 @@ void ConvertReadToColorSpace(char **read,
 
 	/* Initialize */
 	tempRead[0] =  COLOR_SPACE_START_NT;
-	tempRead[1] = ConvertBaseToColorSpace(tempRead[0], (*read)[0]);
+	if(0==ConvertBaseToColorSpace(tempRead[0], (*read)[0], &tempRead[1])) {
+		fprintf(stderr, "tempRead[0]=%c\t(*read)[0]=%c\n", 
+				tempRead[0],
+				(*read)[0]);
+		PrintError(FnName, 
+				NULL,
+				"Could not initialize color",
+				Exit,
+				OutOfRange);
+	}
 
 	/* Convert to colors represented as integers */
 	for(i=1;i<(*readLength);i++) {
-		tempRead[i+1] = ConvertBaseToColorSpace((*read)[i-1], (*read)[i]); 
+		if(0==ConvertBaseToColorSpace((*read)[i-1], (*read)[i], &tempRead[i+1])) {
+			fprintf(stderr, "(*read)[i-1]=%c\t(*read)[i]=%c\n(*read)=%s\n",
+					(*read)[i-1],
+					(*read)[i],
+					(*read));
+			PrintError(FnName, 
+					NULL,
+					"Could not convert base to color space",
+					Exit,
+					OutOfRange);
+		}
 	}
 
 	/* Convert integers to characters */
@@ -856,15 +883,36 @@ void NormalizeRead(char **read,
 	int i;
 	char prevOldBase, prevNewBase;
 	uint8_t tempColor;
+	char *FnName = "NormalizeRead";
 
 	prevOldBase = startNT;
 	prevNewBase = COLOR_SPACE_START_NT;
 	for(i=0;i<(*readLength);i++) {
 		/* Convert to color space using the old previous NT and current old NT */
-		tempColor = ConvertBaseToColorSpace(prevOldBase, (*read)[i]);
+		if(0 == ConvertBaseToColorSpace(prevOldBase, (*read)[i], &tempColor)) {
+			fprintf(stderr, "prevOldBase=%c\t(*read)[i]=%c\n(*read)=%s\n",
+					prevOldBase,
+					(*read)[i],
+					(*read));
+			PrintError(FnName,
+					NULL,
+					"Could not convert base to color space",
+					Exit,
+					OutOfRange);
+		}
 		prevOldBase = (*read)[i];
 		/* Convert to NT space but using the new previous NT and current color */
-		(*read)[i] = ConvertBaseAndColor(prevNewBase, tempColor);;
+		if(0 == ConvertBaseAndColor(prevNewBase, tempColor, &(*read)[i])) {
+			fprintf(stderr, "prevNewBase=%c\t(*read)[i]=%c\n(*read)=%s\n",
+					prevNewBase,
+					(*read)[i],
+					(*read));
+			PrintError(FnName,
+					NULL,
+					"Could not convert base and color",
+					Exit,
+					OutOfRange);
+		}
 		prevNewBase = (*read)[i];
 	}
 }
