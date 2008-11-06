@@ -60,7 +60,7 @@ enum {
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescNumMismatches, DescNumDeletions, DescNumInsertions, DescNumGapDeletions, DescNumGapInsertions, 
-	DescMaxKeyMatches, DescMaxTotalMatches, DescPairedEnd, DescNumThreads, 
+	DescMaxKeyMatches, DescMaxTotalMatches, DescForwardStrandOnly, DescPairedEnd, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -91,6 +91,7 @@ static struct argp_option options[] = {
 	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
+	{"forwardStrandOnly", 'f', "forwardStrandOnly", 0, "Specifies that only matches to the forward strand should be considered", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
@@ -125,7 +126,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:x:y:z:A:I:K:M:O:R:T:Y:Z:2hpt";
+"d:e:i:m:n:o:r:s:x:y:z:A:I:K:M:O:R:T:Y:Z:2fhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -195,6 +196,7 @@ main (int argc, char **argv)
 								arguments.pairedEnd,
 								arguments.maxKeyMatches,
 								arguments.maxNumMatches,
+								arguments.forwardStrandOnly,
 								arguments.numThreads,
 								arguments.outputID,
 								arguments.outputDir,
@@ -354,6 +356,7 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* If this does not hold, we have done something wrong internally */
+	assert(args->forwardStrandOnly == BothStrands || args->forwardStrandOnly == ForwardStrandOnly);
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
 	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
@@ -407,6 +410,7 @@ AssignDefaultValues(struct arguments *args)
 	args->pairedEnd = 0;
 	args->maxKeyMatches = INT_MAX;
 	args->maxNumMatches = INT_MAX;
+	args->forwardStrandOnly = BothStrands;
 	args->numThreads = 1;
 
 	args->outputID =
@@ -436,6 +440,7 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
+	char whichStrand[2][64] = {"Both strands", "Forward strand only"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
@@ -458,6 +463,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
+	fprintf(fp, "forwardStrandOnly:\t\t\t\t%d\t[%s]\n", args->forwardStrandOnly, whichStrand[args->forwardStrandOnly]);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -550,6 +556,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'e':
 						arguments->endReadNum = atoi(OPTARG);break;
+					case 'f':
+						arguments->forwardStrandOnly = ForwardStrandOnly;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
 					case 'i':

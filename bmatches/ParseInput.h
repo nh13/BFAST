@@ -18,9 +18,10 @@ struct arguments
 	int numDeletions;						/* -z */
 	int numGapInsertions;					/* -Y */
 	int numGapDeletions;					/* -Z */
-	int pairedEnd;							/* -2 */
 	int maxKeyMatches;						/* -K */
 	int maxNumMatches;						/* -M */
+	int forwardStrandOnly;					/* -f */
+	int pairedEnd;							/* -2 */
 	int numThreads;							/* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */

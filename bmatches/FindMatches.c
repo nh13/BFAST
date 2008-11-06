@@ -37,6 +37,7 @@ void FindMatches(
 		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
+		int forwardStrandOnly,
 		int numThreads,
 		char *outputID,
 		char *outputDir,
@@ -256,6 +257,7 @@ void FindMatches(
 			pairedEnd,
 			maxKeyMatches,
 			maxNumMatches,
+			forwardStrandOnly,
 			numThreads,
 			&tempSeqFPs,
 			&tempSeqFileNames,
@@ -299,6 +301,7 @@ void FindMatches(
 					pairedEnd,
 					maxKeyMatches,
 					maxNumMatches,
+					forwardStrandOnly,
 					numThreads,
 					&tempSeqFPs,
 					&tempSeqFileNames,
@@ -433,6 +436,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
+		int forwardStrandOnly,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
@@ -528,6 +532,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				pairedEnd,
 				maxKeyMatches,
 				maxNumMatches,
+				forwardStrandOnly,
 				numThreads,
 				tempSeqFPs,
 				tempOutputIndexFPs[i],
@@ -676,6 +681,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
+		int forwardStrandOnly,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *indexFP,
@@ -783,6 +789,7 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].pairedEnd = pairedEnd;
 		data[i].maxKeyMatches = maxKeyMatches;
 		data[i].maxNumMatches = maxNumMatches;
+		data[i].forwardStrandOnly = forwardStrandOnly;
 		data[i].threadID = i;
 	}
 
@@ -911,6 +918,7 @@ void *FindMatchesInIndexThread(void *arg)
 	int pairedEnd = data->pairedEnd;
 	int maxKeyMatches = data->maxKeyMatches;
 	int maxNumMatches = data->maxNumMatches;
+	int forwardStrandOnly = data->forwardStrandOnly;
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
@@ -947,7 +955,8 @@ void *FindMatchesInIndexThread(void *arg)
 				numGapInsertions,
 				numGapDeletions,
 				maxKeyMatches,
-				maxNumMatches);
+				maxNumMatches,
+				forwardStrandOnly);
 		if(pairedEnd==1) {
 			RGReadsFindMatches(index,
 					rg,
@@ -961,7 +970,8 @@ void *FindMatchesInIndexThread(void *arg)
 					numGapInsertions,
 					numGapDeletions,
 					maxKeyMatches,
-					maxNumMatches);
+					maxNumMatches,
+				forwardStrandOnly);
 		}
 
 		if((0 < m.matchOne.numEntries && 1 != m.matchOne.maxReached ) ||

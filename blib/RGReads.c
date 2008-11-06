@@ -33,7 +33,8 @@ void RGReadsFindMatches(RGIndex *index,
 		int numGapInsertions,
 		int numGapDeletions,
 		int maxKeyMatches,
-		int maxNumMatches)
+		int maxNumMatches,
+		int forwardStrandOnly)
 {
 	int64_t i;
 	int64_t numEntries = 0;
@@ -55,11 +56,14 @@ void RGReadsFindMatches(RGIndex *index,
 		}
 		readLength = match->readLength-2;
 		read[readLength] = '\0';
-		/* In color space, the reverse compliment is just the reverse of the colors */
-		ReverseRead(read, reverseRead, readLength);
 		/* Update the colors in the read */
 		ConvertColorsToStorage(read, readLength);
-		ConvertColorsToStorage(reverseRead, readLength);
+		if(ForwardStrandOnly == forwardStrandOnly) {
+			/* In color space, the reverse compliment is just the reverse of the colors */
+			ReverseRead(read, reverseRead, readLength);
+			/* Update the colors in the read */
+			ConvertColorsToStorage(reverseRead, readLength);
+		}
 	}
 	else {
 		assert(space==NTSpace);
@@ -67,7 +71,9 @@ void RGReadsFindMatches(RGIndex *index,
 		strcpy(read, (char*)match->read);
 		readLength = match->readLength;
 		/* Get the reverse compliment */
-		GetReverseComplimentAnyCase(read, reverseRead, readLength);
+		if(ForwardStrandOnly == forwardStrandOnly) {
+			GetReverseComplimentAnyCase(read, reverseRead, readLength);
+		}
 	}
 
 	/* Generate reads */
@@ -86,19 +92,21 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapDeletions);
 
 	/* Generate reads */
-	RGReadsGenerateReads(reverseRead,
-			readLength,
-			index,
-			&reads,
-			REVERSE,
-			offsets,
-			numOffsets,
-			space,
-			numMismatches,
-			numInsertions,
-			numDeletions,
-			numGapInsertions,
-			numGapDeletions);
+	if(ForwardStrandOnly == forwardStrandOnly) {
+		RGReadsGenerateReads(reverseRead,
+				readLength,
+				index,
+				&reads,
+				REVERSE,
+				offsets,
+				numOffsets,
+				space,
+				numMismatches,
+				numInsertions,
+				numDeletions,
+				numGapInsertions,
+				numGapDeletions);
+	}
 
 	/* Merge all reads */
 	/* This may be necessary for a large number of generated reads, but omit for now */
@@ -129,7 +137,7 @@ void RGReadsFindMatches(RGIndex *index,
 	/* Remove duplicate ranges */
 	/* This exploits the fact that the ranges are non-overlapping */
 	numEntries = RGRangesRemoveDuplicates(&ranges);
-			
+
 	/* Copy over ranges over if necessary */
 	if(0 < numEntries) {
 		/* Allocate memory for the matches */
@@ -144,7 +152,7 @@ void RGReadsFindMatches(RGIndex *index,
 	/* Remove duplicates */
 	RGMatchRemoveDuplicates(match,
 			maxNumMatches);
-	
+
 	/* In color space we removed the first base/color so we need to 
 	 * decrement the positions by one.
 	 * */
