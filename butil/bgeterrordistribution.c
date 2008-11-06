@@ -130,7 +130,7 @@ void ErrorsPrint(Errors *e, FILE **fps, int pairedEnd)
 	int i;
 
 	for(i=0;i<4;i++) {
-		fprintf(fps[i], "# The number of mapped reas was %d\n", e->numReads);
+		fprintf(fps[i], "# The number of mapped reads was %d\n", e->numReads);
 	}
 
 	/* Print out */
