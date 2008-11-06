@@ -130,7 +130,7 @@ void RGBinaryRead(char *rgFileName,
 				if(ColorSpace==space) {
 					/* Convert to color space */
 					/* Convert color space to A,C,G,T */
-					if(0 == ConvertBaseToColorSpace(prevBase, original, &c)) {
+					if(0 == ConvertBaseToColorSpace(prevBase, original, (uint8_t*)&c)) {
 						fprintf(stderr, "prevBase=%c\toriginal=%c\n",
 								prevBase,
 								original);

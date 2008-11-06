@@ -797,7 +797,7 @@ int ConvertReadFromColorSpace(char *read,
 		else {
 			index = i-1; 
 		}
-		if(0 == ConvertBaseAndColor(read[index], read[i+1], &read[i])) {
+		if(0 == ConvertBaseAndColor(read[index], read[i+1], (uint8_t*)(&read[i]))) {
 			fprintf(stderr, "read[index]=%c\tread[i+1]=%c\tread[i]=%c\nread=%s",
 					read[index],
 					read[i+1],
@@ -824,7 +824,7 @@ void ConvertReadToColorSpace(char **read,
 {
 	char *FnName="ConvertReadToColorSpace";
 	int i;
-	char tempRead[SEQUENCE_LENGTH]="\0";
+	uint8_t tempRead[SEQUENCE_LENGTH]="\0";
 
 	assert((*readLength) < SEQUENCE_LENGTH);
 
@@ -858,7 +858,7 @@ void ConvertReadToColorSpace(char **read,
 
 	/* Convert integers to characters */
 	for(i=1;i<(*readLength)+1;i++) {
-		assert(0<=tempRead[i] && tempRead[i] <= 4);
+		assert(tempRead[i] <= 4);
 		tempRead[i] = COLORS[(int)(tempRead[i])];
 	}
 	tempRead[(*readLength)+1]='\0';
@@ -873,7 +873,7 @@ void ConvertReadToColorSpace(char **read,
 				MallocMemory);
 	}
 
-	strcpy((*read), tempRead);
+	strcpy((*read), (char*)tempRead);
 	(*readLength)++;
 }
 
@@ -887,7 +887,7 @@ void NormalizeRead(char **read,
 {
 	int i;
 	char prevOldBase, prevNewBase;
-	uint8_t tempColor;
+	uint8_t tempColor=0;
 	char *FnName = "NormalizeRead";
 
 	prevOldBase = startNT;
@@ -907,7 +907,7 @@ void NormalizeRead(char **read,
 		}
 		prevOldBase = (*read)[i];
 		/* Convert to NT space but using the new previous NT and current color */
-		if(0 == ConvertBaseAndColor(prevNewBase, tempColor, &(*read)[i])) {
+		if(0 == ConvertBaseAndColor(prevNewBase, tempColor, (uint8_t*)&((read)[i]))) {
 			fprintf(stderr, "prevNewBase=%c\t(*read)[i]=%c\n(*read)=%s\n",
 					prevNewBase,
 					(*read)[i],
