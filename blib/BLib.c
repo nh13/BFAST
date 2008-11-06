@@ -566,6 +566,7 @@ void PrintContigPos(FILE *fp,
 /* TODO */
 int UpdateRead(char *read, int readLength) 
 {
+	char *FnName="UpdateRead";
 	int i;
 
 	if(readLength <= 0) {
@@ -605,6 +606,14 @@ int UpdateRead(char *read, int readLength)
 				break;
 			case 'N':
 				read[i] = 'n';
+				break;
+			case '\r':
+			case '\n':
+				PrintError(FnName,
+						"read[i]",
+						"Read was improperly trimmed",
+						Exit,
+						OutOfRange);
 				break;
 			default:
 				return 0;
@@ -1123,6 +1132,7 @@ int IsWhiteSpace(char c)
 		case ' ':
 		case '\t':
 		case '\n':
+		case '\r':
 			return 1;
 		default:
 			return 0;
