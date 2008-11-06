@@ -9,6 +9,9 @@ Version 0.1.9
 * Updated bmf output to properly display when the maximum number
 of matches has been reached.
 * bmfconvert does not require paired end argument.
+* Now supports trimming whitespace including carriage return on the
+ends of the reads, mainly to support reads made on Windows machines.
+* Updated butil binaries.
 
 Version 0.1.8
 * Updated to support Ns in the reads; will still ignore "."s.
