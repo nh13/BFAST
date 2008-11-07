@@ -58,7 +58,7 @@ void RGReadsFindMatches(RGIndex *index,
 		read[readLength] = '\0';
 		/* Update the colors in the read */
 		ConvertColorsToStorage(read, readLength);
-		if(ForwardStrandOnly == forwardStrandOnly) {
+		if(BothStrands == forwardStrandOnly) {
 			/* In color space, the reverse compliment is just the reverse of the colors */
 			ReverseRead(read, reverseRead, readLength);
 			/* Update the colors in the read */
@@ -71,7 +71,7 @@ void RGReadsFindMatches(RGIndex *index,
 		strcpy(read, (char*)match->read);
 		readLength = match->readLength;
 		/* Get the reverse compliment */
-		if(ForwardStrandOnly == forwardStrandOnly) {
+		if(BothStrands == forwardStrandOnly) {
 			GetReverseComplimentAnyCase(read, reverseRead, readLength);
 		}
 	}
@@ -92,7 +92,7 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapDeletions);
 
 	/* Generate reads */
-	if(ForwardStrandOnly == forwardStrandOnly) {
+	if(BothStrands == forwardStrandOnly) {
 		RGReadsGenerateReads(reverseRead,
 				readLength,
 				index,

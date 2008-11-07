@@ -463,7 +463,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
-	fprintf(fp, "forwardStrandOnly:\t\t\t\t%d\t[%s]\n", args->forwardStrandOnly, whichStrand[args->forwardStrandOnly]);
+	fprintf(fp, "forwardStrandOnly:\t\t\t%d\t[%s]\n", args->forwardStrandOnly, whichStrand[args->forwardStrandOnly]);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
