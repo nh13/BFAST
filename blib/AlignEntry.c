@@ -119,7 +119,7 @@ int AlignEntryRead(AlignEntry *a,
 		}
 	}
 
-	if(binaryInput == TextOutput) {
+	if(binaryInput == TextInput) {
 
 		if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
 					tempContigName,
@@ -142,6 +142,7 @@ int AlignEntryRead(AlignEntry *a,
 					Exit,
 					MallocMemory);
 		}
+		strcpy(a->contigName, tempContigName);
 
 		/* Read the reference and read alignment */
 		if(fscanf(inputFP, "%s %s", 
