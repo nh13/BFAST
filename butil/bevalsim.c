@@ -128,9 +128,6 @@ int ReadTypeCompare(ReadType *a,
 	else if(a->readLength != b->readLength) {
 		return (a->readLength < b->readLength)?-1:1;
 	}
-	else if(a->whichReadVariants != b->whichReadVariants) {
-		return (a->whichReadVariants < b->whichReadVariants)?-1:1;
-	}
 	else if(a->indelLength != b->indelLength) {
 		return (a->indelLength < b->indelLength)?-1:1;
 	}
