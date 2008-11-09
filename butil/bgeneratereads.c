@@ -308,18 +308,18 @@ void GetRandomRead(RGBinary *rg,
 				&r->pos,
 				&r->strand);
 
-		if(r->pairedEnd == 1) {
+		if(r->pairedEnd == PairedEnd) {
 			/* Get the sequence for the first read */
 			readOneSuccess = RGBinaryGetSequence(rg,
 					r->contig,
-					r->pos + r->readLength + r->pairedEndLength,
+					r->pos,
 					r->strand,
 					&r->readOne,
 					r->readLength);
 			/* Get the sequence for the second read */
 			readTwoSuccess = RGBinaryGetSequence(rg,
 					r->contig,
-					r->pos,
+					r->pos + r->pairedEndLength + r->readLength,
 					r->strand,
 					&r->readTwo,
 					r->readLength);

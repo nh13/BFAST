@@ -70,9 +70,12 @@ void ReadTypeInitialize(ReadType *r)
 	r->numErrors=0;
 	r->deletionLength=0;
 	r->insertionLength=0;
-	r->aContig=0;
-	r->aPos=0;
-	r->aStrand=0;
+	r->aContig[0]=0;
+	r->aContig[1]=0;
+	r->aPos[0]=0;
+	r->aPos[1]=0;
+	r->aStrand[0]=0;
+	r->aStrand[1]=0;
 }
 
 void ReadTypeCopy(ReadType *dest,
@@ -171,12 +174,16 @@ int ReadTypeReadFromBAF(ReadType *r,
 				Exit,
 				OutOfRange);
 	}
-
-	r->aContig = a.entriesOne->contig;
-	r->aPos = a.entriesOne->position;
-	r->aStrand = a.entriesOne->strand;
-
 	assert(a.pairedEnd == pairedEnd);
+
+	r->aContig[0] = a.entriesOne->contig;
+	r->aPos[0] = a.entriesOne->position;
+	r->aStrand[0] = a.entriesOne->strand;
+	if(PairedEnd == pairedEnd) {
+		r->aContig[1] = a.entriesTwo->contig;
+		r->aPos[1] = a.entriesTwo->position;
+		r->aStrand[1] = a.entriesTwo->strand;
+	}
 
 	/* Convert into read type */
 	ReadTypeParseReadName(r, a.pairedEnd, a.readName);
@@ -235,8 +242,8 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 				case '8':
 				case '9':
 					/*
-					fprintf(stderr, "0-9=%c\n", tempChar);
-					*/
+					   fprintf(stderr, "0-9=%c\n", tempChar);
+					   */
 					if(0 == state) {
 						r1[j] = tempChar;
 						j++;
@@ -248,16 +255,16 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 					break;
 				case '=':
 					/*
-					fprintf(stderr, "==%c\n", tempChar);
-					*/
+					   fprintf(stderr, "==%c\n", tempChar);
+					   */
 					state = 2;
 					r1[j] = '\0';
 					j=0;
 					break;
 				default:
 					/*
-					fprintf(stderr, "tempChar=%c\n", tempChar);
-					*/
+					   fprintf(stderr, "tempChar=%c\n", tempChar);
+					   */
 					assert(0 <= state && state <= 1);
 					state = 1;
 					break;
@@ -266,16 +273,16 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 		}
 		r2[j] = '\0';
 		/*
-		fprintf(stderr, "j=%d\n", j);
-		fprintf(stderr, "r->readLength=%d\nr1=%s\nr1(length)=%d\n",
-				r->readLength,
-				r1,
-				(int)strlen(r1));
-		fprintf(stderr, "r->readLength=%d\nr2=%s\nr2(length)=%d\n",
-				r->readLength,
-				r2,
-				(int)strlen(r2));
-				*/
+		   fprintf(stderr, "j=%d\n", j);
+		   fprintf(stderr, "r->readLength=%d\nr1=%s\nr1(length)=%d\n",
+		   r->readLength,
+		   r1,
+		   (int)strlen(r1));
+		   fprintf(stderr, "r->readLength=%d\nr2=%s\nr2(length)=%d\n",
+		   r->readLength,
+		   r2,
+		   (int)strlen(r2));
+		   */
 		assert(state == 2);
 	}
 
@@ -421,7 +428,7 @@ void StatPrint(Stat *s, FILE *fp)
 
 void StatAdd(Stat *s, ReadType *r, int readType)
 {
-	int diff;
+	int diffOne, diffTwo;
 
 	assert(OriginalRead == readType || AlignedRead == readType);
 
@@ -429,20 +436,25 @@ void StatAdd(Stat *s, ReadType *r, int readType)
 		s->numReads++;
 	}
 	else {
-		if(r->strand == r->aStrand &&
-				r->contig == r->aContig) {
-			diff = (r->pos > r->aPos)?(r->pos - r->aPos):(r->aPos - r->pos);
+		/* Must be on the same strand and contig */
+		if(r->strand == r->aStrand[0] && r->contig == r->aContig[0] &&
+				(SingleEnd == r->pairedEnd || (r->strand == r->aStrand[1] && r->contig == r->aContig[1]))) {
+			diffOne = (r->pos > r->aPos[0])?(r->pos - r->aPos[0]):(r->aPos[0] - r->pos);
+			diffTwo = 0;
+			if(PairedEnd == r->pairedEnd) {
+				diffTwo = (r->pos + r->readLength + r->pairedEndLength > r->aPos[1])?(r->pos + r->readLength + r->pairedEndLength - r->aPos[1]):(r->aPos[1] - (r->pos + r->readLength + r->pairedEndLength)); 
+			}
 
 			/* Update */
-			if(diff <= 10000) {
+			if(diffOne <= 10000 && diffTwo <= 10000) {
 				s->numCorrectlyAligned[4]++;
-				if(diff <= 1000) {
+				if(diffOne <= 1000 && diffTwo <= 1000) {
 					s->numCorrectlyAligned[3]++;
-					if(diff <= 100) {
+					if(diffOne <= 100 && diffTwo <= 100) {
 						s->numCorrectlyAligned[2]++;
-						if(diff <= 10) {
+						if(diffOne <= 10 && diffTwo <= 10) {
 							s->numCorrectlyAligned[1]++;
-							if(diff <= 0) {
+							if(diffOne <= 0 && diffTwo <= 0) {
 								s->numCorrectlyAligned[0]++;
 							}
 						}

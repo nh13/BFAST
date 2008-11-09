@@ -17,9 +17,9 @@ typedef struct {
 	int deletionLength;
 	int insertionLength;
 	/* Actual data */
-	int aContig;
-	int aPos;
-	int aStrand;
+	int aContig[2];
+	int aPos[2];
+	int aStrand[2];
 } ReadType;
 
 typedef struct {
