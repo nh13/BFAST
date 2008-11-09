@@ -6,7 +6,6 @@ typedef struct {
 	char strand;
 	int contig;
 	int pos;
-	int space;
 	int pairedEnd;
 	int pairedEndLength;
 	int readLength;
@@ -26,6 +25,7 @@ typedef struct {
 typedef struct {
 	/* actual data */
 	int numReads;
+	int numAligned;
 	int numCorrectlyAligned[5]; /* 0, 10, 100, 1000, 10000 */
 	ReadType r;
 } Stat;
@@ -35,22 +35,26 @@ typedef struct {
 	int numStats;
 } Stats;
 
+enum {OriginalRead, AlignedRead};
+
 void ReadTypeInitialize(ReadType*);
 void ReadTypeCopy(ReadType*, ReadType*);
 void ReadTypePrint(ReadType*, FILE*);
 int ReadTypeCompare(ReadType*,ReadType*);
-void ReadTypeReadFromRAF(ReadType*, FILE*);
+int ReadTypeReadFromBAF(ReadType*, int, FILE*);
+void ReadTypeParseReadName(ReadType*, int, char*);
 
 void StatInitialize(Stat*, ReadType*);
 void StatPrint(Stat*, FILE*);
-void StatAdd(Stat*, ReadType*);
+void StatAdd(Stat*, ReadType*, int);
 
 void StatsInitialize(Stats*);
 void StatsPrintHeader(FILE*);
 void StatsPrint(Stats*, FILE*);
-void StatsAdd(Stats*, ReadType*);
+void StatsAdd(Stats*, ReadType*, int);
 void StatsDelete(Stats*);
 
-void Evaluate(char*, char*);
+void Evaluate(char*, char*, int, char*);
+void ReadInReads(char*, int, Stats*);
 
 #endif
