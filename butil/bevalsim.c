@@ -192,48 +192,91 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 	char *FnName="ReadTypeParseR1R2";
 	char r1[SEQUENCE_LENGTH]="\0";
 	char r2[SEQUENCE_LENGTH]="\0";
-	int i;
+	char tempString[SEQUENCE_LENGTH]="\0";
+	int i, j;
+	char tempChar;
+	int state;
 
+	if(EOF == sscanf(readName, 
+				">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
+				&r->strand,
+				&r->contig,
+				&r->pos,
+				&r->pairedEnd,
+				&r->pairedEndLength,
+				&r->readLength,
+				&r->whichReadVariants,
+				&r->startIndel,
+				&r->indelLength,
+				tempString)) {
+		PrintError(FnName,
+				readName,
+				"Could not parse read name (0)",
+				Exit,
+				OutOfRange);
+	}
 	if(SingleEnd == pairedEnd) {
-		if(EOF == sscanf(readName, 
-					">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
-					&r->strand,
-					&r->contig,
-					&r->pos,
-					&r->pairedEnd,
-					&r->pairedEndLength,
-					&r->readLength,
-					&r->whichReadVariants,
-					&r->startIndel,
-					&r->indelLength,
-					r1)) {
-			PrintError(FnName,
-					readName,
-					"Could not parse read name (0)",
-					Exit,
-					OutOfRange);
-		}
+		strcpy(r1, tempString);
 	}
 	else {
-		if(EOF == sscanf(readName, 
-					">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s_r2=%s",
-					&r->strand,
-					&r->contig,
-					&r->pos,
-					&r->pairedEnd,
-					&r->pairedEndLength,
-					&r->readLength,
-					&r->whichReadVariants,
-					&r->startIndel,
-					&r->indelLength,
-					r1,
-					r2)) {
-			PrintError(FnName,
-					readName,
-					"Could not parse read name (1)",
-					Exit,
-					OutOfRange);
+		/* Parse tempString */
+		i=j=0;
+		state = 0;
+		while(EOF != sscanf(tempString+i, "%c", &tempChar)) {
+			switch(tempChar) {
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					/*
+					fprintf(stderr, "0-9=%c\n", tempChar);
+					*/
+					if(0 == state) {
+						r1[j] = tempChar;
+						j++;
+					}
+					else if(2 == state) {
+						r2[j] = tempChar;
+						j++;
+					}
+					break;
+				case '=':
+					/*
+					fprintf(stderr, "==%c\n", tempChar);
+					*/
+					state = 2;
+					r1[j] = '\0';
+					j=0;
+					break;
+				default:
+					/*
+					fprintf(stderr, "tempChar=%c\n", tempChar);
+					*/
+					assert(0 <= state && state <= 1);
+					state = 1;
+					break;
+			}
+			i++;
 		}
+		r2[j] = '\0';
+		/*
+		fprintf(stderr, "j=%d\n", j);
+		fprintf(stderr, "r->readLength=%d\nr1=%s\nr1(length)=%d\n",
+				r->readLength,
+				r1,
+				(int)strlen(r1));
+		fprintf(stderr, "r->readLength=%d\nr2=%s\nr2(length)=%d\n",
+				r->readLength,
+				r2,
+				(int)strlen(r2));
+				*/
+		assert(state == 2);
 	}
 
 	assert(r->pairedEnd == pairedEnd);
