@@ -35,7 +35,10 @@ int main(int argc, char *argv[])
 		assert(SingleEnd == pairedEnd || PairedEnd == pairedEnd);
 
 		/* Run program */
-		Evaluate(baf, readsFile, pairedEnd, outputID);
+		Evaluate(baf, 
+				readsFile, 
+				pairedEnd, 
+				outputID);
 
 		/* Terminate */
 		fprintf(stderr, "%s", BREAK_LINE);
