@@ -4,6 +4,7 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *alignFileName;					/* -i */
+	char *rgFileName;						/* -r */
 	int binaryInput;                        /* -b - not used */
 	int pairedEnd;							/* -2 */
 	int startContig;                        /* -s */

@@ -3,7 +3,8 @@
 
 #include "../blib/AlignEntries.h"
 
-void ReadInputFilterAndOutput(char *inputFileName,
+void ReadInputFilterAndOutput(RGBinary *rg,
+		char *inputFileName,
 		int binaryInput,
 		int pairedEnd,
 		int startChr,
@@ -26,14 +27,17 @@ void PrintHeader(FILE *fp,
 		int outputFormat);
 
 void PrintAlignEntriesToOutputFormat(AlignEntries *a,
+		RGBinary *rg,
 		FILE *fp,
 		int outputFormat,
 		int outputBinary);
 
 void PrintAlignEntriesToMAF(AlignEntries *a,
+		RGBinary *rg,
 		FILE *fp);
 
 void PrintAlignEntryToMAF(AlignEntry *a,
+		RGBinary *rg,
 		char *readName,
 		int pairedEnd,
 		int colorSpace,

@@ -56,7 +56,7 @@ PACKAGE_BUGREPORT;
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescInputFileName, 
+	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
 	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired,
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, 
 	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, 
@@ -70,6 +70,7 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
+	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file (required for MAF output)", 1},
 	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
 	/*
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
@@ -142,6 +143,8 @@ main (int argc, char **argv)
 	struct arguments arguments;
 	time_t startTime = time(NULL);
 	time_t endTime;
+	RGBinary rg;
+
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
 		AssignDefaultValues(&arguments);
@@ -174,7 +177,13 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
-						ReadInputFilterAndOutput(arguments.alignFileName,
+						if(MAF == arguments.outputFormat) {
+							/* Read binary */
+							RGBinaryReadBinary(&rg,
+									arguments.rgFileName);
+						}
+						ReadInputFilterAndOutput(&rg,
+								arguments.alignFileName,
 								arguments.binaryInput,
 								arguments.pairedEnd,
 								arguments.startContig,
@@ -248,6 +257,13 @@ int ValidateInputs(struct arguments *args) {
 
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+
+	if(args->rgFileName!=0) {
+		fprintf(stderr, "Validating rgFileName %s. \n",
+				args->rgFileName);
+		if(ValidateFileName(args->rgFileName)==0)
+			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
+	}
 
 	if(args->alignFileName!=0) {
 		fprintf(stderr, "Validating alignFileName %s. \n",
@@ -336,6 +352,11 @@ AssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
+	args->rgFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->rgFileName!=0);
+	strcpy(args->rgFileName, DEFAULT_FILENAME);
+
 	args->alignFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->alignFileName!=0);
@@ -386,7 +407,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "alignFileName:\t%s\n", args->alignFileName);
+	fprintf(fp, "rgFileName:\t\t%s\n", args->rgFileName);
+	fprintf(fp, "alignFileName:\t\t%s\n", args->alignFileName);
 	/*
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
@@ -414,6 +436,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 /* TODO */
 void FreeProgramParameters(struct arguments *args)
 {
+	free(args->rgFileName);
+	args->rgFileName=NULL;
 	free(args->alignFileName);
 	args->alignFileName=NULL;
 	free(args->outputID);
@@ -491,6 +515,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'r':
+						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);break;
 					case 's':
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':

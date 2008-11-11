@@ -10,7 +10,8 @@
 #include "InputOutputToFiles.h"
 
 /* TODO */
-void ReadInputFilterAndOutput(char *inputFileName,
+void ReadInputFilterAndOutput(RGBinary *rg,
+		char *inputFileName,
 		int binaryInput,
 		int pairedEnd,
 		int startContig,
@@ -163,19 +164,19 @@ void ReadInputFilterAndOutput(char *inputFileName,
 		switch(foundType) {
 			case NoneFound:
 				/* Print to Not Reported file */
-				PrintAlignEntriesToOutputFormat(&a, fpNotReported, outputFormat, binaryInput);
+				PrintAlignEntriesToOutputFormat(&a, rg, fpNotReported, outputFormat, binaryInput);
 				numNotReported++;
 				break;
 			case Found:
 				/* Print to Output file */
-				PrintAlignEntriesToOutputFormat(&a, fpOut, outputFormat, binaryInput);
+				PrintAlignEntriesToOutputFormat(&a, rg, fpOut, outputFormat, binaryInput);
 				numReported++;
 				break;
 			case ContigAb:
 				assert(pairedEnd == 1);
 				if(contigAbPaired == 1) {
 					/* Print to Contig Abnormalities file */
-					PrintAlignEntriesToOutputFormat(&a, fpContigAb, outputFormat, binaryInput);
+					PrintAlignEntriesToOutputFormat(&a, rg, fpContigAb, outputFormat, binaryInput);
 					numContigAb++;
 				}
 				break;
@@ -183,7 +184,7 @@ void ReadInputFilterAndOutput(char *inputFileName,
 				assert(pairedEnd == 1);
 				if(inversionsPaired == 1) {
 					/* Print to Inversions file */
-					PrintAlignEntriesToOutputFormat(&a, fpInversions, outputFormat, binaryInput);
+					PrintAlignEntriesToOutputFormat(&a, rg, fpInversions, outputFormat, binaryInput);
 					numInversions++;
 				}
 				break;
@@ -262,6 +263,7 @@ void PrintHeader(FILE *fp,
 
 /* TODO */
 void PrintAlignEntriesToOutputFormat(AlignEntries *a, 
+		RGBinary *rg,
 		FILE *fp,
 		int outputFormat,
 		int binaryInput)
@@ -272,7 +274,7 @@ void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 			AlignEntriesPrint(a, fp, binaryInput);
 			break;
 		case MAF:
-			PrintAlignEntriesToMAF(a, fp);
+			PrintAlignEntriesToMAF(a, rg, fp);
 			break;
 		default:
 			PrintError(FnName,
@@ -286,6 +288,7 @@ void PrintAlignEntriesToOutputFormat(AlignEntries *a,
 
 /* TODO */
 void PrintAlignEntriesToMAF(AlignEntries *a,
+		RGBinary *rg,
 		FILE *fp)
 {
 	/*
@@ -296,15 +299,15 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 	/* Get Data */
 	if(0==a->pairedEnd) {
 		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->space, 1, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], rg, a->readName, a->pairedEnd, a->space, 1, fp); 
 		}
 	}
 	else {
 		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], a->readName, a->pairedEnd, a->space, 1, fp); 
+			PrintAlignEntryToMAF(&a->entriesOne[i], rg, a->readName, a->pairedEnd, a->space, 1, fp); 
 		}
 		for(i=0;i<a->numEntriesTwo;i++) {
-			PrintAlignEntryToMAF(&a->entriesTwo[i], a->readName, a->pairedEnd, a->space, 2, fp); 
+			PrintAlignEntryToMAF(&a->entriesTwo[i], rg, a->readName, a->pairedEnd, a->space, 2, fp); 
 		}
 	}
 
@@ -312,6 +315,7 @@ void PrintAlignEntriesToMAF(AlignEntries *a,
 
 /* TODO */
 void PrintAlignEntryToMAF(AlignEntry *a,
+		RGBinary *rg,
 		char *readName,
 		int pairedEnd,
 		int space,
@@ -336,12 +340,12 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 
 	/* Print the score */
 	if(space == ColorSpace) {
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-name=%s color-errors=%s\n",
+		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d color-errors=%s contig-index=%d\n",
 					a->score,
 					pairedEnd,
 					readNum,
-					a->contigName,
-					a->colorError)) {
+					a->colorError,
+					a->contig)) {
 			PrintError(FnName,
 					NULL,
 					"Could not write to file",
@@ -351,11 +355,11 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	}
 	else {
 		assert(space == NTSpace);
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-name=%s\n",
+		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-index=%d\n",
 					a->score,
 					pairedEnd,
 					readNum,
-					a->contigName)) {
+					a->contig)) {
 			PrintError(FnName,
 					NULL,
 					"Could not write to file",
@@ -364,13 +368,16 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 		}
 	}
 
+	/* Make sure the contig reported is within bounds of the reference genome */
+	assert(1 <= a->contig && a->contig <= rg->numContigs);
+
 	/* Print the reference */
-	if(0>fprintf(fp, "s %d %u %d %c %d %s\n",
-				a->contig,
+	if(0>fprintf(fp, "s %s %u %d %c %d %s\n",
+				a->contigName,
 				a->position-1, /* zero based */
-				a->length,
-				a->strand,
 				originalReferenceLength,
+				a->strand,
+				rg->contigs[a->contig-1].sequenceLength, /* original contig length */
 				a->reference)) {
 		PrintError(FnName,
 				NULL,
@@ -382,9 +389,9 @@ void PrintAlignEntryToMAF(AlignEntry *a,
 	if(0>fprintf(fp, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
 				readName,
 				0,
-				a->length,
+				originalReadLength, /* We align the full read */
 				a->strand,
-				originalReadLength,
+				originalReadLength, /* original read length */
 				a->read)) {
 		PrintError(FnName,
 				NULL,
