@@ -14,7 +14,7 @@
  * such as errors, mismatches and insertions.
  * */
 
-#define SAMPLE_ROTATE_NUM 100000
+#define SAMPLE_ROTATE_NUM 1000
 char Colors[5] = "01234";
 
 /* TODO */
