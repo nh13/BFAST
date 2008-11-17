@@ -276,7 +276,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	if((fpRG=fopen(rgFileName, "rb"))==0) {
 		PrintError(FnName,
 				rgFileName,
-				"Could not open rgFileName for writing",
+				"Could not open rgFileName for reading",
 				Exit,
 				OpenFileError);
 	}
