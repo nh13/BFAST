@@ -91,7 +91,7 @@ static struct argp_option options[] = {
 	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
-	{"forwardStrandOnly", 'f', "forwardStrandOnly", 0, "Specifies that only matches to the forward strand should be considered", 2},
+	{"forwardStrandOnly", 'f', 0, OPTION_NO_USAGE, "Specifies that only matches to the forward strand should be considered", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},

@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.1.11
+* bpostprocess now prints out MAF that complies with UCSC standards.
+
 Version 0.1.10
 * bmatches supports only matching to the forward strand.  This 
 facilitates aligning methylated sequences.
