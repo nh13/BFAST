@@ -423,6 +423,15 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 					OutOfRange);
 		}
 		else if(a.numEntriesOne == 1) {
+			if(!(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= numFiles)) {
+				fprintf(stderr, "\n");
+				fprintf(stderr, "%d:%d\n",
+						startContig,
+						endContig);
+				fprintf(stderr, "0 < %d < %d\n",
+						a.entriesOne[0].contig,
+						numFiles);
+			} 
 			assert(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= numFiles);
 			AlignEntryPrint(&a.entriesOne[0], 
 					(*tmpFiles)[a.entriesOne[0].contig-1].FP,
@@ -464,9 +473,9 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 					(*tmpFiles)[a.entriesTwo[0].contig-1].maxPos = a.entriesTwo[0].position + a.entriesTwo[0].referenceLength - 1;
 				}
 			}
-		else {
-			/* Ignore */
-		}
+			else {
+				/* Ignore */
+			}
 		}
 		AlignEntriesFree(&a);
 	}
@@ -486,8 +495,8 @@ void SplitEntriesAndPrint(FILE *bedFP,
 		int maxNumEntries)
 {
 	/*
-	char *FnName="SplitEntriesAndPrint";
-	*/
+	   char *FnName="SplitEntriesAndPrint";
+	   */
 	int meanPos;
 	AlignEntry a;;
 	AlignEntries entries;
@@ -517,8 +526,8 @@ void SplitEntriesAndPrint(FILE *bedFP,
 				SingleEnd,
 				SpaceDoesNotMatter);
 
-			/* Read in, sort, and print */
-			numEntries = 0;
+		/* Read in, sort, and print */
+		numEntries = 0;
 		while(EOF != AlignEntryRead(&entries.entriesOne[numEntries], 
 					tmpFile->FP, 
 					NTSpace,
@@ -614,14 +623,15 @@ int main(int argc, char *argv[])
 	char bedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *wigFP=NULL;
 	char wigFileName[MAX_FILENAME_LENGTH]="\0";
-	/* Hard coded */
-	int startContig = 1;
-	int endContig = 22;
+	int startContig;
+	int endContig;
 
-	if(argc == 4) {
+	if(argc == 6) {
 		strcpy(inputFileName, argv[1]);
 		maxNumEntries = atoi(argv[2]);
 		strcpy(tmpDir, argv[3]);
+		startContig = atoi(argv[4]);
+		endContig = atoi(argv[5]);
 
 		/* Split AlignEntries by contig */
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -688,6 +698,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<bfast report file name>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");
+		fprintf(stderr, "\t<startContig>\n");
+		fprintf(stderr, "\t<endContig>\n");
 	}
 	return 0;
 }
