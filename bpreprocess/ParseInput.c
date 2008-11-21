@@ -79,7 +79,7 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the reference genome will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a 4-bit file from the reference contigs 1: create an index", 2},
+	{"algorithm", 'a', "algorithm", 0, "Specifies the program mode 0: create a reference genome 1: create an index", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{0, 0, 0, 0, "=========== Index Specific Options: (Unless specified, default value = 0) ================", 3},
 	{"indexLayoutFileName", 'i', "indexLayOutFileName", 0, "Specifies the file name of the file that contains tile sizes and gaps", 1},
