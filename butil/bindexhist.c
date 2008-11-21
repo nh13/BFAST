@@ -353,9 +353,11 @@ void PrintHistogram(RGIndex *index,
 			}
 			assert(sum >= 0);
 			/* Print */
-			fprintf(fp, "%lld\t%lld\n",
-					(long long int)cur,
-					(long long int)sum);
+			if(cur>0) {
+				fprintf(fp, "%lld\t%lld\n",
+						(long long int)cur,
+						(long long int)sum);
+			}
 			cur++;
 		}
 		fclose(fp);
