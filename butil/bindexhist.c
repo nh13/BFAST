@@ -332,7 +332,7 @@ void PrintHistogram(RGIndex *index,
 					OpenFileError);
 		}
 
-		fprintf(fp, "# Number of unique places was: %lld\n# Total forward was:%lld\n# Total reverse was:%lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
+		fprintf(fp, "# Number of unique reads was: %lld\n# Total forward was:%lld\n# Total reverse was:%lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
 				(long long int)numDifferent,
 				(long long int)totalForward,
 				(long long int)totalReverse,
