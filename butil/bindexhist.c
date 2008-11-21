@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
 		RGIndexRead(fp, &index, 1);
 		fclose(fp);
 
+		assert(index.space == rg.space);
+
 		fprintf(stderr, "%s", BREAK_LINE);
 		PrintHistogram(&index, 
 				&rg, 
@@ -94,6 +96,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+/* TODO */
 void GetPivots(RGIndex *index,
 		RGBinary *rg,
 		int64_t *starts,
@@ -182,6 +185,8 @@ void GetPivots(RGIndex *index,
 	}
 
 }
+
+/* TODO */
 void PrintHistogram(RGIndex *index, 
 		RGBinary *rg,
 		int numMismatchesStart,
@@ -327,11 +332,13 @@ void PrintHistogram(RGIndex *index,
 					OpenFileError);
 		}
 
-		fprintf(fp, "# Number of unique places was: %lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
+		fprintf(fp, "# Number of unique places was: %lld\n# Total forward was:%lld\n# Total reverse was:%lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
 				(long long int)numDifferent,
-				(long long int)(2*index->length), /* Times two for both strands */
+				(long long int)totalForward,
+				(long long int)totalReverse,
+				(long long int)(totalForward + totalReverse),
 				(long long int)numDifferent,
-				((double)index->length*2.0)/numDifferent); /* Times two for both strands */
+				((double)(totalForward + totalReverse))/numDifferent);
 		fprintf(fp, "# Found counts for %lld mismatches:\n",
 				(long long int)i);
 
@@ -472,7 +479,7 @@ void *PrintHistogramThread(void *arg)
 			assert(numMatches > 0);
 
 			/* Update the value of numReadsNoMismatches and numDifferent
-			 * if we have the rsults for no mismatches */
+			 * if we have the results for no mismatches */
 			if(i==0) {
 				totalForward += numForward;
 				totalReverse += numReverse;
@@ -526,9 +533,8 @@ void *PrintHistogramThread(void *arg)
 	}
 	fprintf(stderr, "\rthreadID:%2d\t%10lld", 
 			threadID,
-			(long long int)(endIndex-startIndex+1));
+			(long long int)(curIndex-startIndex));
 
-	assert(totalForward <= endIndex - startIndex + 1);
 	/* Copy over numDifferent */
 	data->numDifferent = numDifferent;
 	data->totalForward = totalForward;
@@ -547,17 +553,25 @@ void GetMatchesFromContigPos(RGIndex *index,
 		int64_t *numReverse)
 {
 	char *FnName = "GetMatchesFromContigPos";
-	char *read=NULL;
-	char reverseRead[SEQUENCE_LENGTH]="\0";
-	int readLength = index->width;
 	int returnLength, returnPosition;
+	int offsets[1] = {0};
+	RGMatch matchF, matchR;
+	char *read=NULL;
+	char *reverseRead=NULL;
 	int i;
-	RGReads reads;
-	RGRanges ranges;
 
-	/* Initialiez reads */
-	RGReadsInitialize(&reads);
-	RGRangesInitialize(&ranges);
+	/* Initialize */
+	RGMatchInitialize(&matchF);
+	RGMatchInitialize(&matchR);
+
+	if(NTSpace == rg->space) {
+		matchF.readLength = index->width;
+		matchR.readLength = index->width;
+	}
+	else {
+		matchF.readLength = index->width+1;
+		matchR.readLength = index->width+1;
+	}
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -566,118 +580,126 @@ void GetMatchesFromContigPos(RGIndex *index,
 			FORWARD,
 			0,
 			&read,
-			readLength,
+			matchF.readLength,
 			&returnLength,
 			&returnPosition);
-	assert(returnLength == readLength);
+	assert(returnLength == matchF.readLength);
 	assert(returnPosition == curPos);
-
-	/* First generate the perfect match for the forward and
-	 * reverse strand */
-	GetReverseComplimentAnyCase(read,
-			reverseRead,
-			readLength);
-	RGReadsGeneratePerfectMatch(read,
-			readLength,
-			FORWARD,
-			0,
-			index,
-			&reads);
-	RGReadsGeneratePerfectMatch(reverseRead,
-			readLength,
+	/* Get the read */
+	RGBinaryGetReference(rg,
+			curContig,
+			curPos,
 			REVERSE,
 			0,
-			index,
-			&reads);
+			&reverseRead,
+			matchR.readLength,
+			&returnLength,
+			&returnPosition);
+	assert(returnLength == matchR.readLength);
+	assert(returnPosition == curPos);
 
-	if(numMismatches > 0) {
-		/* Generate reads with the necessary mismatches for 
-		 * both the forward and reverse strands */
-		RGReadsGenerateMismatches(read,
-				readLength,
-				FORWARD,
-				0,
-				numMismatches,
-				index,
-				&reads);
-		RGReadsGenerateMismatches(reverseRead,
-				readLength,
-				REVERSE,
-				0,
-				numMismatches,
-				index,
-				&reads);
-	}
-
-	for(i=0;i<reads.numReads;i++) {
-		/* Get the matches for the read */
-		RGIndexGetRanges(index,
-				rg,
-				reads.reads[i],
-				reads.readLength[i],
-				reads.strand[i],
-				reads.offset[i],
-				INT_MAX,
-				&ranges);
-	}
-
-	/* Remove duplicates */
-	RGRangesRemoveDuplicates(&ranges);
-
-	/* Error check */
-	if(ranges.numEntries <= 0) {
-		PrintError(FnName,
-				"ranges",
-				"Returned zero ranges",
-				Exit,
-				OutOfRange);
-	}
-
-	/* Return the number of FORWARD strand matches so that we can skip over */
-	(*numForward) = (*numReverse) = 0;
-	for(i=0;i<ranges.numEntries;i++) {
-		assert(ranges.startIndex[i] != UINT_MAX);
-		assert(ranges.endIndex[i] != UINT_MAX);
-		assert(ranges.endIndex[i] - ranges.startIndex[i] >= 0);
-		switch(ranges.strand[i]) {
-			case FORWARD:
-				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-				break;
-			case REVERSE:
-				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-				break;
-			default:
-				PrintError(FnName,
-						"m->strand[i]",
-						"Could not understand strand",
-						Exit,
-						OutOfRange);
-				break;
+	/* Copy over */
+	if(rg->space == NTSpace) {
+		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+1));
+		if(NULL == matchF.read) {
+			PrintError(FnName,
+					"matchF.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<matchF.readLength;i++) {
+			matchF.read[i] = read[i];
+		}
+		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+1));
+		if(NULL == matchR.read) {
+			PrintError(FnName,
+					"matchR.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<matchR.readLength;i++) {
+			matchR.read[i] = reverseRead[i];
 		}
 	}
-	if((*numForward) + (*numReverse) <= 0) {
-		fprintf(stderr, "numForward=%lld\nnumReverse=%lld\n",
-				(long long int)(*numForward),
-				(long long int)(*numReverse));
-		fprintf(stderr, "read=%s\nreverseRead=%s\n",
-				read,
-				reverseRead);
-		fprintf(stderr, "ranges.numEntries=%lld\n",
-				(long long int)ranges.numEntries);
-		for(i=0;i<ranges.numEntries;i++) {
-			fprintf(stderr, "i=%d\t%lld\t%lld\t%c\t[%lld]\n",
-					i,
-					(long long int)ranges.startIndex[i],
-					(long long int)ranges.endIndex[i],
-					ranges.strand[i],
-					(long long int)(ranges.endIndex[i] - ranges.startIndex[i] + 1));
-		}
-	}
-	assert((*numForward) + (*numReverse)>0);
+	else {
+		ConvertColorsFromStorage(read, matchF.readLength);
+		ConvertColorsFromStorage(reverseRead, matchR.readLength);
 
-	/* Free memory */
-	RGReadsFree(&reads);
-	RGRangesFree(&ranges);
+		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+2));
+		if(NULL == matchF.read) {
+			PrintError(FnName,
+					"matchF.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		matchF.read[0] = COLOR_SPACE_START_NT;
+		for(i=0;i<matchF.readLength;i++) {
+			matchF.read[i+1] = read[i];
+		}
+		matchF.readLength++;
+
+		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+2));
+		if(NULL == matchR.read) {
+			PrintError(FnName,
+					"matchR.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		matchR.read[0] = COLOR_SPACE_START_NT;
+		for(i=0;i<matchR.readLength;i++) {
+			matchR.read[i+1] = reverseRead[i];
+		}
+		matchR.readLength++;
+	}
+	matchF.read[matchF.readLength]='\0';
+	matchR.read[matchR.readLength]='\0';
+
+	/* Forward strand */
+	RGReadsFindMatches(index,
+			rg,
+			&matchF,
+			offsets,
+			1,
+			rg->space,
+			numMismatches,
+			0,
+			0,
+			0,
+			0,
+			INT_MAX,
+			INT_MAX,
+			ForwardStrandOnly);
+	(*numForward) = matchF.numEntries;
+
+	/* Reverse strand */
+	RGReadsFindMatches(index,
+			rg,
+			&matchR,
+			offsets,
+			1,
+			rg->space,
+			numMismatches,
+			0,
+			0,
+			0,
+			0,
+			INT_MAX,
+			INT_MAX,
+			ForwardStrandOnly);
+	(*numReverse) = matchR.numEntries;
+
+	assert((*numForward)>0);
+	assert((*numReverse) >= 0);
+
+	RGMatchFree(&matchF);
+	RGMatchFree(&matchR);
 	free(read);
 	read=NULL;
+	free(reverseRead);
+	reverseRead=NULL;
+
 }

@@ -323,154 +323,6 @@ void PrintDistribution(RGIndex *index,
 	readCounts=NULL;
 }
 
-/* Get the matches for the contig/pos */
-void GetMatchesFromContigPos(RGIndex *index,
-		RGBinary *rg,
-		uint32_t curContig,
-		uint32_t curPos,
-		int numMismatches,
-		int64_t *numForward,
-		int64_t *numReverse, 
-		char **read,
-		char **reverseRead)
-{
-	char *FnName = "GetMatchesFromContigPos";
-	int readLength = index->width;
-	int returnLength, returnPosition;
-	int i;
-	RGReads reads;
-	RGRanges ranges;
-
-	/* Initialiez reads */
-	RGReadsInitialize(&reads);
-	RGRangesInitialize(&ranges);
-
-	/* Get the read */
-	RGBinaryGetReference(rg,
-			curContig,
-			curPos,
-			FORWARD,
-			0,
-			read,
-			readLength,
-			&returnLength,
-			&returnPosition);
-	assert(returnLength == readLength);
-	assert(returnPosition == curPos);
-
-	/* First generate the perfect match for the forward and
-	 * reverse strand */
-
-	(*reverseRead) = malloc(sizeof(char)*(returnLength+1));
-	if(NULL==(*reverseRead)) {
-		PrintError(FnName,
-				"reverseRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	GetReverseComplimentAnyCase((*read),
-			(*reverseRead),
-			readLength);
-
-	RGReadsGeneratePerfectMatch((*read),
-			readLength,
-			FORWARD,
-			0,
-			index,
-			&reads);
-	RGReadsGeneratePerfectMatch((*reverseRead),
-			readLength,
-			REVERSE,
-			0,
-			index,
-			&reads);
-
-	if(numMismatches > 0) {
-		/* Generate reads with the necessary mismatches for 
-		 *          * both the forward and reverse strands */
-		RGReadsGenerateMismatches((*read),
-				readLength,
-				FORWARD,
-				0,
-				numMismatches,
-				index,
-				&reads);
-		RGReadsGenerateMismatches((*reverseRead),
-				readLength,
-				REVERSE,
-				0,
-				numMismatches,
-				index,
-				&reads);
-	}
-
-	for(i=0;i<reads.numReads;i++) {
-		/* Get the matches for the read */
-		RGIndexGetRanges(index,
-				rg,
-				reads.reads[i],
-				reads.readLength[i],
-				reads.strand[i],
-				reads.offset[i],
-				INT_MAX,
-				&ranges);
-	}
-
-	/* Remove duplicates */
-	RGRangesRemoveDuplicates(&ranges);
-
-	/* Error check */
-	if(ranges.numEntries <= 0) {
-		PrintError(FnName,
-				"ranges",
-				"Returned zero ranges",
-				Exit,
-				OutOfRange);
-	}
-
-	/* Return the number of FORWARD strand matches so that we can skip over */
-	(*numForward) = (*numReverse) = 0;
-	for(i=0;i<ranges.numEntries;i++) {
-		switch(ranges.strand[i]) {
-			case FORWARD:
-				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-				break;
-			case REVERSE:
-				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-				break;
-			default:
-				PrintError(FnName,
-						"m->strand[i]",
-						"Could not understand strand",
-						Exit,
-						OutOfRange);
-				break;
-		}
-	}
-
-	/* Null out the gaps */
-	for(i=0;i<index->width;i++) {
-		switch(index->mask[i]) {
-			case 0:
-				(*read)[i] = 'N';
-				break;
-			case 1:
-				break;
-			default:
-				PrintError(FnName,
-						"index->masks[i]",
-						"Could not understand mask",
-						Exit,
-						OutOfRange);
-		}
-	}
-
-	/* Free memory */
-	RGReadsFree(&reads);
-	RGRangesFree(&ranges);
-}
-
 void *MergeSortReads(void *arg)
 {
 	ThreadData *data = (ThreadData*)arg;
@@ -772,4 +624,159 @@ void MergeHelper(char **reads,
 		CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
 		CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
 	}
+}
+
+/* Get the matches for the contig/pos */
+void GetMatchesFromContigPos(RGIndex *index,
+		RGBinary *rg,
+		uint32_t curContig,
+		uint32_t curPos,
+		int numMismatches,
+		int64_t *numForward,
+		int64_t *numReverse, 
+		char **read,
+		char **reverseRead)
+{
+	char *FnName = "GetMatchesFromContigPos";
+	int returnLength, returnPosition;
+	int offsets[1] = {0};
+	RGMatch matchF, matchR;
+	int i;
+
+	/* Initialize */
+	RGMatchInitialize(&matchF);
+	RGMatchInitialize(&matchR);
+
+	if(NTSpace == rg->space) {
+		matchF.readLength = index->width;
+		matchR.readLength = index->width;
+	}
+	else {
+		matchF.readLength = index->width+1;
+		matchR.readLength = index->width+1;
+	}
+
+	/* Get the read */
+	RGBinaryGetReference(rg,
+			curContig,
+			curPos,
+			FORWARD,
+			0,
+			read,
+			matchF.readLength,
+			&returnLength,
+			&returnPosition);
+	assert(returnLength == matchF.readLength);
+	assert(returnPosition == curPos);
+	/* Get the read */
+	RGBinaryGetReference(rg,
+			curContig,
+			curPos,
+			REVERSE,
+			0,
+			reverseRead,
+			matchR.readLength,
+			&returnLength,
+			&returnPosition);
+	assert(returnLength == matchR.readLength);
+	assert(returnPosition == curPos);
+
+	/* Copy over */
+	if(rg->space == NTSpace) {
+		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+1));
+		if(NULL == matchF.read) {
+			PrintError(FnName,
+					"matchF.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<matchF.readLength;i++) {
+			matchF.read[i] = (*read)[i];
+		}
+		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+1));
+		if(NULL == matchR.read) {
+			PrintError(FnName,
+					"matchR.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<matchR.readLength;i++) {
+			matchR.read[i] = (*reverseRead)[i];
+		}
+	}
+	else {
+		ConvertColorsFromStorage((*read), matchF.readLength);
+		ConvertColorsFromStorage((*reverseRead), matchR.readLength);
+
+		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+2));
+		if(NULL == matchF.read) {
+			PrintError(FnName,
+					"matchF.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		matchF.read[0] = COLOR_SPACE_START_NT;
+		for(i=0;i<matchF.readLength;i++) {
+			matchF.read[i+1] = (*read)[i];
+		}
+		matchF.readLength++;
+
+		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+2));
+		if(NULL == matchR.read) {
+			PrintError(FnName,
+					"matchR.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		matchR.read[0] = COLOR_SPACE_START_NT;
+		for(i=0;i<matchR.readLength;i++) {
+			matchR.read[i+1] = (*reverseRead)[i];
+		}
+		matchR.readLength++;
+	}
+	matchF.read[matchF.readLength]='\0';
+	matchR.read[matchR.readLength]='\0';
+	/* Forward strand */
+	RGReadsFindMatches(index,
+			rg,
+			&matchF,
+			offsets,
+			1,
+			rg->space,
+			numMismatches,
+			0,
+			0,
+			0,
+			0,
+			INT_MAX,
+			INT_MAX,
+			ForwardStrandOnly);
+	(*numForward) = matchF.numEntries;
+
+	RGReadsFindMatches(index,
+			rg,
+			&matchR,
+			offsets,
+			1,
+			rg->space,
+			numMismatches,
+			0,
+			0,
+			0,
+			0,
+			INT_MAX,
+			INT_MAX,
+			ForwardStrandOnly);
+	(*numReverse) = matchR.numEntries;
+
+	assert((*numForward)>0);
+	assert((*numReverse) >= 0);
+
+	RGMatchFree(&matchF);
+	RGMatchFree(&matchR);
+
 }

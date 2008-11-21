@@ -968,6 +968,42 @@ char ConvertColorToStorage(char c)
 }
 
 /* TODO */
+void ConvertColorsFromStorage(char *colors, int length)
+{
+	int i;
+	for(i=0;i<length;i++) {
+		colors[i] = ConvertColorFromStorage(colors[i]);
+	}
+}
+
+/* TODO */
+char ConvertColorFromStorage(char c)
+{
+	switch(c) {
+		case 'a':
+		case 'A':
+			c = '0';
+			break;
+		case 'c':
+		case 'C':
+			c = '1';
+			break;
+		case 'g':
+		case 'G':
+			c = '2';
+			break;
+		case 't':
+		case 'T':
+			c = '3';
+			break;
+		default:
+			c = '4';
+			break;
+	}
+	return c;
+}
+
+/* TODO */
 void AdjustBounds(RGBinary *rg,
 		int32_t *startContig,
 		int32_t *startPos,

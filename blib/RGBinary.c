@@ -651,7 +651,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 		/* ignore */
 	}
 	else if(strand == REVERSE) {
-		/* Get the reverse compliment */
+		/* Allocate memory for the reverse compliment */
 		reverseCompliment = malloc(sizeof(char)*(sequenceLength+1));
 		if(NULL == reverseCompliment) {
 			PrintError(FnName,
@@ -660,9 +660,13 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 					Exit,
 					MallocMemory);
 		}
-		GetReverseComplimentAnyCase((*sequence), reverseCompliment, sequenceLength);
-		/* Copy reverse compliment to the sequence.  We could just strcpy or we 
-		 * could just use the wonderful world of pointers */
+		if(NTSpace == rg->space) {
+			/* Get the reverse compliment */
+			GetReverseComplimentAnyCase((*sequence), reverseCompliment, sequenceLength);
+		}
+		else {
+			ReverseRead((*sequence), reverseCompliment, sequenceLength);
+		}
 		free((*sequence)); /* Free memory pointed to by sequence */
 		(*sequence) = reverseCompliment; /* Point sequence to reverse compliment's memory */
 		reverseCompliment=NULL; /* Destroy the pointer for reverse compliment */

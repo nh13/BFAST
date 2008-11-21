@@ -33,6 +33,8 @@ void ConvertReadToColorSpace(char**, int*);
 void NormalizeRead(char**, int*, char);
 void ConvertColorsToStorage(char*, int);
 char ConvertColorToStorage(char);
+void ConvertColorsFromStorage(char*, int);
+char ConvertColorFromStorage(char);
 void AdjustBounds(RGBinary*, int32_t*, int32_t*, int32_t*, int32_t*);
 int WillGenerateValidKey(RGIndex*, char*, int);
 int ValidateFileName(char*);
