@@ -120,6 +120,7 @@ void PrintDistribution(RGIndex *index,
 	int64_t counter=0;
 	int64_t numDifferent = 0;
 	int64_t numForward, numReverse;
+	int64_t prevIndex=0;
 	char *read=NULL;
 	char *reverseRead=NULL;
 	int64_t i, j;
@@ -163,7 +164,13 @@ void PrintDistribution(RGIndex *index,
 		}
 
 		/* Reallocate memory */
-		numReads+=2; /* One for both strands */
+		prevIndex = numReads;
+		if(numReverse == 0) {
+			numReads+=2; /* One for both strands */
+		}
+		else {
+			numReads++; /* Only for + strand */
+		}
 		reads = realloc(reads, sizeof(char*)*numReads);
 		if(NULL==reads) {
 			PrintError(FnName,
@@ -172,21 +179,16 @@ void PrintDistribution(RGIndex *index,
 					Exit,
 					MallocMemory);
 		}
-		reads[numReads-2] = malloc(sizeof(char)*(index->width+1));
-		if(NULL==reads[numReads-2]) {
-			PrintError(FnName,
-					"reads[numReads-1]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		reads[numReads-1] = malloc(sizeof(char)*(index->width+1));
-		if(NULL==reads[numReads-1]) {
-			PrintError(FnName,
-					"reads[numReads-1]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+		while(prevIndex < numReads) {
+			reads[prevIndex] = malloc(sizeof(char)*(index->width+1));
+			if(NULL==reads[prevIndex]) {
+				PrintError(FnName,
+						"reads[prevIndex]",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+			prevIndex++;
 		}
 		readCounts = realloc(readCounts, sizeof(int64_t)*numReads);
 		if(NULL==readCounts) {
@@ -199,10 +201,20 @@ void PrintDistribution(RGIndex *index,
 		/* Copy over */
 		assert(strlen(read) < SEQUENCE_LENGTH);
 		assert(strlen(reverseRead) < SEQUENCE_LENGTH);
-		strcpy(reads[numReads-2], read);
-		strcpy(reads[numReads-1], reverseRead);
+		ToLowerRead(read, index->width+1); 
+		strcpy(reads[numReads-1], read);
 		readCounts[numReads-1] = numForward+numReverse;
-		readCounts[numReads-2] = numForward+numReverse;
+		if(numReverse == 0) {
+			if(0 == strcmp(reverseRead, read)) {
+				fprintf(stderr, "read=%s\nreverseRead=%s\n",
+						read,
+						reverseRead);
+			}
+			assert(0 != strcmp(reverseRead, read));
+			ToLowerRead(reverseRead, index->width+1); 
+			strcpy(reads[numReads-2], reverseRead);
+			readCounts[numReads-2] = numForward+numReverse;
+		}
 
 		/* Free memory */
 		free(read);
@@ -291,6 +303,49 @@ void PrintDistribution(RGIndex *index,
 	fprintf(stderr, "Sorting complete.\n");
 	fprintf(stderr, "%s", BREAK_LINE);
 
+	/* Remove duplicates */
+	/*
+	   fprintf(stderr, "%s", BREAK_LINE);
+	   fprintf(stderr, "Removing duplicates.\n");
+	   prevIndex = 0;
+	   for(i=1;i<numReads;i++) {
+	   if(strcmp(reads[prevIndex], reads[i]) == 0) {
+	   free(reads[i]);
+	   reads[i] = NULL;
+	   readCounts[i] = 0;
+	   }
+	   else {
+	   prevIndex++;
+	   if(i != prevIndex) {
+	   assert(reads[prevIndex]==NULL);
+	   assert(reads[i]!=NULL);
+	   reads[prevIndex]=reads[i];
+	   reads[i]=NULL;
+	   }
+	   readCounts[prevIndex]=readCounts[i];
+	   }
+	   }
+	   numReads = prevIndex+1;
+	   reads = realloc(reads, sizeof(char*)*numReads);
+	   if(NULL==reads) {
+	   PrintError(FnName,
+	   "reads",
+	   "Could not reallocate memory",
+	   Exit,
+	   ReallocMemory);
+	   }
+	   readCounts = realloc(readCounts, sizeof(int64_t)*numReads);
+	   if(NULL==readCounts) {
+	   PrintError(FnName,
+	   "readCounts",
+	   "Could not reallocate memory",
+	   Exit,
+	   ReallocMemory);
+	   }
+	   fprintf(stderr, "Removing duplicates complete.\n");
+	   fprintf(stderr, "%s", BREAK_LINE);
+	   */
+
 	/* Open the output file */
 	fprintf(stderr, "Outputting to %s.\n",
 			distributionFileName);
@@ -304,6 +359,7 @@ void PrintDistribution(RGIndex *index,
 
 	/* Print */
 	for(i=0;i<numReads;i++) {
+		/* Duplicates */
 		fprintf(fp, "%s\t%lld\n",
 				reads[i],
 				(long long int)readCounts[i]);
@@ -647,14 +703,8 @@ void GetMatchesFromContigPos(RGIndex *index,
 	RGMatchInitialize(&matchF);
 	RGMatchInitialize(&matchR);
 
-	if(NTSpace == rg->space) {
-		matchF.readLength = index->width;
-		matchR.readLength = index->width;
-	}
-	else {
-		matchF.readLength = index->width+1;
-		matchR.readLength = index->width+1;
-	}
+	matchF.readLength = index->width;
+	matchR.readLength = index->width;
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -710,7 +760,9 @@ void GetMatchesFromContigPos(RGIndex *index,
 		ConvertColorsFromStorage((*read), matchF.readLength);
 		ConvertColorsFromStorage((*reverseRead), matchR.readLength);
 
-		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+2));
+		/* Allocate two extra characters: one for the start nt and one
+		 * for the color we will ignore */
+		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+3));
 		if(NULL == matchF.read) {
 			PrintError(FnName,
 					"matchF.read",
@@ -719,12 +771,13 @@ void GetMatchesFromContigPos(RGIndex *index,
 					MallocMemory);
 		}
 		matchF.read[0] = COLOR_SPACE_START_NT;
+		matchF.read[1] = '0';
 		for(i=0;i<matchF.readLength;i++) {
-			matchF.read[i+1] = (*read)[i];
+			matchF.read[i+2] = (*read)[i];
 		}
-		matchF.readLength++;
+		matchF.readLength+=2;
 
-		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+2));
+		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+3));
 		if(NULL == matchR.read) {
 			PrintError(FnName,
 					"matchR.read",
@@ -733,10 +786,11 @@ void GetMatchesFromContigPos(RGIndex *index,
 					MallocMemory);
 		}
 		matchR.read[0] = COLOR_SPACE_START_NT;
+		matchR.read[1] = '0';
 		for(i=0;i<matchR.readLength;i++) {
-			matchR.read[i+1] = (*reverseRead)[i];
+			matchR.read[i+2] = (*reverseRead)[i];
 		}
-		matchR.readLength++;
+		matchR.readLength+=2;
 	}
 	matchF.read[matchF.readLength]='\0';
 	matchR.read[matchR.readLength]='\0';
@@ -772,6 +826,16 @@ void GetMatchesFromContigPos(RGIndex *index,
 			INT_MAX,
 			ForwardStrandOnly);
 	(*numReverse) = matchR.numEntries;
+
+	/*
+	fprintf(stderr, "f=%s[l=%d][%d]\tr=%s[l=%d][%d]\n",
+			matchF.read,
+			matchF.readLength,
+			matchF.numEntries,
+			matchR.read,
+			matchR.readLength,
+			matchR.numEntries);
+	*/
 
 	assert((*numForward)>0);
 	assert((*numReverse) >= 0);

@@ -268,7 +268,7 @@ void PrintHistogram(RGIndex *index,
 		data[i].numDifferent = 0;
 		data[i].threadID = i+1;
 	}
-	assert(numTotal == index->length);
+	assert(numTotal == index->length || (ColorSpace == rg->space && numTotal == index->length - 1));
 
 	fprintf(stderr, "In total, will examine %lld reads.\n",
 			(long long int)(index->length));
@@ -405,6 +405,7 @@ void *PrintHistogramThread(void *arg)
 	int threadID = data->threadID;
 
 	/* Local variables */
+	int skip;
 	int64_t i=0;
 	int64_t j=0;
 	int64_t curIndex=0, nextIndex=0;
@@ -465,70 +466,85 @@ void *PrintHistogramThread(void *arg)
 			counter -= BINDEXHIST_ROTATE_NUM;
 		}
 		/* Try each mismatch */
-		for(i=numMismatchesStart;i<=numMismatchesEnd;i++) {
+		skip=0;
+		for(i=numMismatchesStart;i<=numMismatchesEnd && skip == 0;i++) {
 
 			/* Get the matches for the contig/pos */
-			GetMatchesFromContigPos(index,
-					rg,
-					(index->contigType == Contig_8)?(index->contigs_8[curIndex]):(index->contigs_32[curIndex]),
-					index->positions[curIndex],
-					i,
-					&numForward, 
-					&numReverse);
-			numMatches = numForward + numReverse;
-			assert(numMatches > 0);
-
-			/* Update the value of numReadsNoMismatches and numDifferent
-			 * if we have the results for no mismatches */
-			if(i==0) {
-				totalForward += numForward;
-				totalReverse += numReverse;
-				/* This will be the basis for update c->counts */
-				numReadsNoMismatches = numForward + numReverse;
-				numReadsNoMismatchesTotal += numReadsNoMismatches;
-				numDifferent++;
-				/* If the reverse compliment does not match the + strand then 
-				 * count it as unique. */
-				if(numReverse == 0) {
-					numDifferent++;
-				}
-				/* Add the range since we will be skipping over them */
-				if(numForward <= 0) {
-					nextIndex++;
-					counter++;
-				}
-				else {
-					nextIndex += numForward;
-					counter += numForward;
-				}
+			if(0==GetMatchesFromContigPos(index,
+						rg,
+						(index->contigType == Contig_8)?(index->contigs_8[curIndex]):(index->contigs_32[curIndex]),
+						index->positions[curIndex],
+						i,
+						&numForward, 
+						&numReverse) && 0 == i) {
+				/* Skip over the rest */
+				skip =1 ;
+				nextIndex++;
 			}
+			else {
+				numMatches = numForward + numReverse;
+				assert(numMatches > 0);
 
-			/* Add to our list.  We may have to reallocate this array */
-			if(numMatches > c->maxCount[i]) {
-				j = c->maxCount[i]+1; /* This will determine where we begin initialization after reallocation */
-				/* Reallocate */
-				c->maxCount[i] = numMatches;
-				assert(c->maxCount[i] > 0);
-				c->counts[i] = realloc(c->counts[i], sizeof(int64_t)*(c->maxCount[i]+1));
-				if(NULL == c->counts[i]) {
-					PrintError(FnName,
-							"counts",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
+				/* Update the value of numReadsNoMismatches and numDifferent
+				 * if we have the results for no mismatches */
+				if(i==0) {
+					assert(numForward > 0);
+					totalForward += numForward;
+					assert(numReverse >= 0);
+					totalReverse += numReverse;
+					/* If the reverse compliment does not match the + strand then it will only match the - strand.
+					 * Count it as unique as well as the + strand read.
+					 * */
+					if(numReverse == 0) {
+						numDifferent+=2;
+						numReadsNoMismatches = 2;
+					}
+					else {
+						/* Count only the + strand as a unique read. */
+						numReadsNoMismatches = 1;
+						numDifferent++;
+					}	
+					/* This will be the basis for update c->counts */
+					numReadsNoMismatchesTotal += numReadsNoMismatches;
+
+					/* Add the range since we will be skipping over them */
+					if(numForward <= 0) {
+						nextIndex++;
+						counter++;
+					}
+					else {
+						nextIndex += numForward;
+						counter += numForward;
+					}
 				}
-				/* Initialize from j to maxCount */
-				while(j<=c->maxCount[i]) {
-					c->counts[i][j] = 0;
-					j++;
+
+				/* Add to our list.  We may have to reallocate this array */
+				if(numMatches > c->maxCount[i]) {
+					j = c->maxCount[i]+1; /* This will determine where we begin initialization after reallocation */
+					/* Reallocate */
+					c->maxCount[i] = numMatches;
+					assert(c->maxCount[i] > 0);
+					c->counts[i] = realloc(c->counts[i], sizeof(int64_t)*(c->maxCount[i]+1));
+					if(NULL == c->counts[i]) {
+						PrintError(FnName,
+								"counts",
+								"Could not allocate memory",
+								Exit,
+								MallocMemory);
+					}
+					/* Initialize from j to maxCount */
+					while(j<=c->maxCount[i]) {
+						c->counts[i][j] = 0;
+						j++;
+					}
 				}
+				assert(numReadsNoMismatches > 0);
+				assert(numMatches <= c->maxCount[i]);
+				assert(c->counts[i][numMatches] >= 0);
+				/* Add the number of reads that were found with no mismatches */
+				c->counts[i][numMatches] += numReadsNoMismatches;
+				assert(c->counts[i][numMatches] > 0);
 			}
-			assert(numReadsNoMismatches > 0);
-			assert(numMatches <= c->maxCount[i]);
-			assert(c->counts[i][numMatches] >= 0);
-			/* Add the number of reads that were found with no mismatches */
-			c->counts[i][numMatches] += numReadsNoMismatches;
-			assert(c->counts[i][numMatches] > 0);
 		}
 	}
 	fprintf(stderr, "\rthreadID:%2d\t%10lld", 
@@ -544,7 +560,7 @@ void *PrintHistogramThread(void *arg)
 }
 
 /* Get the matches for the contig/pos */
-void GetMatchesFromContigPos(RGIndex *index,
+int GetMatchesFromContigPos(RGIndex *index,
 		RGBinary *rg,
 		uint32_t curContig,
 		uint32_t curPos,
@@ -564,14 +580,8 @@ void GetMatchesFromContigPos(RGIndex *index,
 	RGMatchInitialize(&matchF);
 	RGMatchInitialize(&matchR);
 
-	if(NTSpace == rg->space) {
-		matchF.readLength = index->width;
-		matchR.readLength = index->width;
-	}
-	else {
-		matchF.readLength = index->width+1;
-		matchR.readLength = index->width+1;
-	}
+	matchF.readLength = index->width;
+	matchR.readLength = index->width;
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -583,8 +593,10 @@ void GetMatchesFromContigPos(RGIndex *index,
 			matchF.readLength,
 			&returnLength,
 			&returnPosition);
-	assert(returnLength == matchF.readLength);
-	assert(returnPosition == curPos);
+	if(returnLength != matchF.readLength ||
+			returnPosition != curPos) {
+		return 0;
+	}
 	/* Get the read */
 	RGBinaryGetReference(rg,
 			curContig,
@@ -595,8 +607,10 @@ void GetMatchesFromContigPos(RGIndex *index,
 			matchR.readLength,
 			&returnLength,
 			&returnPosition);
-	assert(returnLength == matchR.readLength);
-	assert(returnPosition == curPos);
+	if(returnLength != matchF.readLength ||
+			returnPosition != curPos) {
+		return 0;
+	}
 
 	/* Copy over */
 	if(rg->space == NTSpace) {
@@ -627,7 +641,9 @@ void GetMatchesFromContigPos(RGIndex *index,
 		ConvertColorsFromStorage(read, matchF.readLength);
 		ConvertColorsFromStorage(reverseRead, matchR.readLength);
 
-		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+2));
+		/* Allocate two extra characters: one for the start nt and one
+		 *          * for the color we will ignore */
+		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+3));
 		if(NULL == matchF.read) {
 			PrintError(FnName,
 					"matchF.read",
@@ -636,12 +652,13 @@ void GetMatchesFromContigPos(RGIndex *index,
 					MallocMemory);
 		}
 		matchF.read[0] = COLOR_SPACE_START_NT;
+		matchF.read[1] = '0';
 		for(i=0;i<matchF.readLength;i++) {
-			matchF.read[i+1] = read[i];
+			matchF.read[i+2] = read[i];
 		}
-		matchF.readLength++;
+		matchF.readLength+=2;
 
-		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+2));
+		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+3));
 		if(NULL == matchR.read) {
 			PrintError(FnName,
 					"matchR.read",
@@ -650,10 +667,12 @@ void GetMatchesFromContigPos(RGIndex *index,
 					MallocMemory);
 		}
 		matchR.read[0] = COLOR_SPACE_START_NT;
+		matchR.read[1] = '0';
 		for(i=0;i<matchR.readLength;i++) {
-			matchR.read[i+1] = reverseRead[i];
+			matchR.read[i+2] = reverseRead[i];
 		}
-		matchR.readLength++;
+		matchR.readLength+=2;
+
 	}
 	matchF.read[matchF.readLength]='\0';
 	matchR.read[matchR.readLength]='\0';
@@ -695,6 +714,14 @@ void GetMatchesFromContigPos(RGIndex *index,
 	assert((*numForward)>0);
 	assert((*numReverse) >= 0);
 
+	/*
+	   fprintf(stderr, "f=%s[%d]\tr=%s[%d]\n",
+	   matchF.read,
+	   matchF.numEntries,
+	   matchR.read,
+	   matchR.numEntries);
+	   */
+
 	RGMatchFree(&matchF);
 	RGMatchFree(&matchR);
 	free(read);
@@ -702,4 +729,5 @@ void GetMatchesFromContigPos(RGIndex *index,
 	free(reverseRead);
 	reverseRead=NULL;
 
+	return 1;
 }

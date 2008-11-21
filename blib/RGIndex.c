@@ -511,7 +511,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 		curNumThreads = numThreads;
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\rMerging sorts from threads...                          \n");
-			fprintf(stderr, "Out of %d merges required, currently on:\n0", Log2(numThreads));
+			fprintf(stderr, "Out of %d required merges, currently on:\n0", Log2(numThreads));
 		}
 		for(i=1, curMergeIteration=1;i<numThreads;i=i*2, curMergeIteration++) { /* The number of merge iterations */
 			if(VERBOSE >= 0) {

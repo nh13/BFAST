@@ -75,6 +75,15 @@ char ToLower(char a)
 }
 
 /* TODO */
+void ToLowerRead(char *r, int readLength) 
+{
+	int i;
+	for(i=0;i<readLength;i++) {
+		r[i] = ToLower(r[i]);
+	}
+}
+
+/* TODO */
 char ToUpper(char a)
 {
 	switch(a) {
