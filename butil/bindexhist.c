@@ -19,7 +19,7 @@
 #define NUM_MISMATCHES_START 0
 #define NUM_MISMATCHES_END 4
 
-/* Prints a histogram that counts the number of k-mers in the genome
+/* Prints a histogram that counts the number of unique k-mers in the genome
  * that occur X number of times.  The k-mer chosen comes from the 
  * layout of the index.
  * */
@@ -332,13 +332,8 @@ void PrintHistogram(RGIndex *index,
 					OpenFileError);
 		}
 
-		fprintf(fp, "# Number of unique reads was: %lld\n# Total forward was:%lld\n# Total reverse was:%lld\n# The mean number of CALs was: %lld/%lld=%lf\n",
-				(long long int)numDifferent,
-				(long long int)totalForward,
-				(long long int)totalReverse,
-				(long long int)(totalForward + totalReverse),
-				(long long int)numDifferent,
-				((double)(totalForward + totalReverse))/numDifferent);
+		fprintf(fp, "# Number of unique reads was: %lld\n",
+				(long long int)numDifferent);
 		fprintf(fp, "# Found counts for %lld mismatches:\n",
 				(long long int)i);
 
