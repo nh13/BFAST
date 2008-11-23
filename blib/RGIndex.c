@@ -1877,8 +1877,10 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 	numMatches += (0 < foundIndexReverse)?(endIndexReverse - startIndexReverse + 1):0;
 
 	/* Check if the key has too many matches */
-	if(numMatches <= maxKeyMatches) {
-		toAdd = (0 < foundIndexForward)?1:0 + (0 < foundIndexReverse)?1:0;
+	if(0 < numMatches &&
+			numMatches <= maxKeyMatches) {
+		toAdd = (0 < foundIndexForward)?1:0;
+		toAdd += (0 < foundIndexReverse)?1:0;
 		assert(0 < toAdd);
 		/* (Re)Allocate memory for the new range */
 		RGRangesReallocate(r, r->numEntries + toAdd);
