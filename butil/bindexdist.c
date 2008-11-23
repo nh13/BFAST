@@ -765,8 +765,10 @@ void GetMatchesFromContigPos(RGIndex *index,
 	assert((*numForward)>0);
 	assert((*numReverse) >= 0);
 
-	ConvertColorsFromStorage((*read), readLength);
-	ConvertColorsFromStorage((*reverseRead), readLength);
+	if(ColorSpace == rg->space) {
+		ConvertColorsFromStorage((*read), readLength);
+		ConvertColorsFromStorage((*reverseRead), readLength);
+	}
 
 	RGRangesFree(&r);
 }
