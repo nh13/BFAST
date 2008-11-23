@@ -16,24 +16,28 @@
 int main(int argc, char *argv[]) 
 {
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
+	int i;
 
-	if(argc == 2) {
+	if(2 <= argc) {
+		for(i=1;i<argc;i++) {
+			strcpy(inputFileName, argv[i]);
 
-		strcpy(inputFileName, argv[1]);
-
-		fprintf(stderr, "Getting info for %s.\n", inputFileName);
-		if(NULL!=strstr(inputFileName, BFAST_RG_FILE_EXTENSION)) {
-			RGBinaryPrintInfo(inputFileName);
-		}
-		else if(NULL!=strstr(inputFileName, BFAST_INDEX_FILE_EXTENSION)) {
-			RGIndexPrintInfo(inputFileName);
-		}
-		else {
-			PrintError(Name,
-					"input file",
-					"Could not recognize input file extension",
-					Exit,
-					OutOfRange);
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Getting info for %s.\n", inputFileName);
+			if(NULL!=strstr(inputFileName, BFAST_RG_FILE_EXTENSION)) {
+				RGBinaryPrintInfo(inputFileName);
+			}
+			else if(NULL!=strstr(inputFileName, BFAST_INDEX_FILE_EXTENSION)) {
+				RGIndexPrintInfo(inputFileName);
+			}
+			else {
+				PrintError(Name,
+						"input file",
+						"Could not recognize input file extension",
+						Warn,
+						OutOfRange);
+			}
+			fprintf(stderr, "%s", BREAK_LINE);
 		}
 	}
 	else {
