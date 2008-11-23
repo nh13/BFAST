@@ -565,18 +565,12 @@ int GetMatchesFromContigPos(RGIndex *index,
 {
 	char *FnName = "GetMatchesFromContigPos";
 	int returnLength, returnPosition;
-	int offsets[1] = {0};
-	RGMatch matchF, matchR;
 	char *read=NULL;
-	char *reverseRead=NULL;
-	int i;
+	RGRanges r;
+	int readLength = index->width;
 
 	/* Initialize */
-	RGMatchInitialize(&matchF);
-	RGMatchInitialize(&matchR);
-
-	matchF.readLength = index->width;
-	matchR.readLength = index->width;
+	RGRangesInitialize(&r);
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -585,144 +579,55 @@ int GetMatchesFromContigPos(RGIndex *index,
 			FORWARD,
 			0,
 			&read,
-			matchF.readLength,
+			readLength,
 			&returnLength,
 			&returnPosition);
-	if(returnLength != matchF.readLength ||
-			returnPosition != curPos) {
-		return 0;
-	}
-	/* Get the read */
-	RGBinaryGetReference(rg,
-			curContig,
-			curPos,
-			REVERSE,
-			0,
-			&reverseRead,
-			matchR.readLength,
-			&returnLength,
-			&returnPosition);
-	if(returnLength != matchF.readLength ||
-			returnPosition != curPos) {
-		return 0;
-	}
+	assert(returnLength == readLength);
+	assert(returnPosition == curPos);
 
-	/* Copy over */
-	if(rg->space == NTSpace) {
-		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+1));
-		if(NULL == matchF.read) {
-			PrintError(FnName,
-					"matchF.read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		for(i=0;i<matchF.readLength;i++) {
-			matchF.read[i] = read[i];
-		}
-		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+1));
-		if(NULL == matchR.read) {
-			PrintError(FnName,
-					"matchR.read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		for(i=0;i<matchR.readLength;i++) {
-			matchR.read[i] = reverseRead[i];
-		}
-	}
-	else {
-		ConvertColorsFromStorage(read, matchF.readLength);
-		ConvertColorsFromStorage(reverseRead, matchR.readLength);
-
-		/* Allocate two extra characters: one for the start nt and one
-		 *          * for the color we will ignore */
-		matchF.read = malloc(sizeof(int8_t)*(matchF.readLength+3));
-		if(NULL == matchF.read) {
-			PrintError(FnName,
-					"matchF.read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		matchF.read[0] = COLOR_SPACE_START_NT;
-		matchF.read[1] = '0';
-		for(i=0;i<matchF.readLength;i++) {
-			matchF.read[i+2] = read[i];
-		}
-		matchF.readLength+=2;
-
-		matchR.read = malloc(sizeof(int8_t)*(matchR.readLength+3));
-		if(NULL == matchR.read) {
-			PrintError(FnName,
-					"matchR.read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		matchR.read[0] = COLOR_SPACE_START_NT;
-		matchR.read[1] = '0';
-		for(i=0;i<matchR.readLength;i++) {
-			matchR.read[i+2] = reverseRead[i];
-		}
-		matchR.readLength+=2;
-
-	}
-	matchF.read[matchF.readLength]='\0';
-	matchR.read[matchR.readLength]='\0';
-
-	/* Forward strand */
-	RGReadsFindMatches(index,
+	RGIndexGetRangesBothStrands(index,
 			rg,
-			&matchF,
-			offsets,
-			1,
+			read,
+			readLength,
+			0,
+			INT_MAX,
 			rg->space,
-			numMismatches,
-			0,
-			0,
-			0,
-			0,
-			INT_MAX,
-			INT_MAX,
-			ForwardStrandOnly);
-	(*numForward) = matchF.numEntries;
+			BothStrands,
+			&r);
 
-	/* Reverse strand */
-	RGReadsFindMatches(index,
-			rg,
-			&matchR,
-			offsets,
-			1,
-			rg->space,
-			numMismatches,
-			0,
-			0,
-			0,
-			0,
-			INT_MAX,
-			INT_MAX,
-			ForwardStrandOnly);
-	(*numReverse) = matchR.numEntries;
+	switch(r.numEntries) {
+		case 0:
+			PrintError(FnName,
+					"r.numEntries",
+					"There were no matches",
+					Exit,
+					OutOfRange);
+			break;
+		case 1:
+			assert(FORWARD == r.strand[0]);
+			(*numForward) = r.endIndex[0] - r.startIndex[0] + 1;
+			(*numReverse) = 0;
+			break;
+		case 2:
+			assert(FORWARD == r.strand[0]);
+			(*numForward) = r.endIndex[0] - r.startIndex[0] + 1;
+			(*numReverse) = r.endIndex[1] - r.startIndex[1] + 1;
+			break;
+		default:
+			PrintError(FnName,
+					"r.numEntries",
+					"There were more than two ranges",
+					Exit,
+					OutOfRange);
+			break;
+	}
 
 	assert((*numForward)>0);
 	assert((*numReverse) >= 0);
 
-	/*
-	   fprintf(stderr, "f=%s[%d]\tr=%s[%d]\n",
-	   matchF.read,
-	   matchF.numEntries,
-	   matchR.read,
-	   matchR.numEntries);
-	   */
-
-	RGMatchFree(&matchF);
-	RGMatchFree(&matchR);
+	RGRangesFree(&r);
 	free(read);
 	read=NULL;
-	free(reverseRead);
-	reverseRead=NULL;
 
 	return 1;
 }
