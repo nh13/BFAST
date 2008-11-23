@@ -600,23 +600,6 @@ void StatAdd(Stat *s, ReadType *r, int readType)
 		}
 		if(r->numOne > 0 || (PairedEnd == r->pairedEnd && r->numTwo > 0)) {
 			s->numAligned++;
-			/* HERE Debugging */
-			if(1!=foundAll) {
-				fprintf(stderr, "\nHERE\n[%c]chr%d:%d-%d\n",
-						r->strand,
-						r->contig,
-						r->pos,
-						r->pos+r->readLength-1);
-				for(i=0;i<r->numOne && 0==foundAll;i++) {
-					fprintf(stderr, "i=%3d [%c]chr%d:%d-%d\n",
-							i,
-							r->aStrandOne[i],
-							r->aContigOne[i],
-							r->aPosOne[i],
-							r->aPosOne[i]+r->readLength-1);
-				}
-				exit(1);
-			}
 		}
 	}
 	if(s->numReads < s->numAligned) {
