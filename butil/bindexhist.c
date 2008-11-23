@@ -122,7 +122,6 @@ void GetPivots(RGIndex *index,
 		ind = (i+1)*((index->length)/numThreads);
 		/* Initialize */
 		reads.readLength[i] = index->width;
-		reads.strand[i] = FORWARD;
 		reads.offset[i] = 0;
 		/* Allocate memory */
 		reads.reads[i] = NULL;
@@ -142,13 +141,14 @@ void GetPivots(RGIndex *index,
 	/* Search reads in the index */
 	/* Get the matches */
 	for(i=0;i<reads.numReads;i++) {
-		RGIndexGetRanges(index,
+		RGIndexGetRangesBothStrands(index,
 				rg,
 				reads.reads[i],
 				reads.readLength[i],
-				reads.strand[i],
 				reads.offset[i],
 				INT_MAX,
+				SpaceDoesNotMatter,
+				ForwardStrandOnly,
 				&ranges);
 	}
 

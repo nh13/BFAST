@@ -34,13 +34,12 @@ void RGReadsFindMatches(RGIndex *index,
 		int numGapDeletions,
 		int maxKeyMatches,
 		int maxNumMatches,
-		int forwardStrandOnly)
+		int strands)
 {
 	int64_t i;
 	int64_t numEntries = 0;
 	int readLength=0;
 	char read[SEQUENCE_LENGTH]="\0";
-	char reverseRead[SEQUENCE_LENGTH]="\0";
 	RGReads reads;
 	RGRanges ranges;
 
@@ -58,22 +57,12 @@ void RGReadsFindMatches(RGIndex *index,
 		read[readLength] = '\0';
 		/* Update the colors in the read */
 		ConvertColorsToStorage(read, readLength);
-		if(BothStrands == forwardStrandOnly) {
-			/* In color space, the reverse compliment is just the reverse of the colors */
-			ReverseRead(read, reverseRead, readLength);
-			/* Update the colors in the read */
-			ConvertColorsToStorage(reverseRead, readLength);
-		}
 	}
 	else {
 		assert(space==NTSpace);
 		/* Copy over */
 		strcpy(read, (char*)match->read);
 		readLength = match->readLength;
-		/* Get the reverse compliment */
-		if(BothStrands == forwardStrandOnly) {
-			GetReverseComplimentAnyCase(read, reverseRead, readLength);
-		}
 	}
 
 	/* Generate reads */
@@ -91,23 +80,6 @@ void RGReadsFindMatches(RGIndex *index,
 			numGapInsertions,
 			numGapDeletions);
 
-	/* Generate reads */
-	if(BothStrands == forwardStrandOnly) {
-		RGReadsGenerateReads(reverseRead,
-				readLength,
-				index,
-				&reads,
-				REVERSE,
-				offsets,
-				numOffsets,
-				space,
-				numMismatches,
-				numInsertions,
-				numDeletions,
-				numGapInsertions,
-				numGapDeletions);
-	}
-
 	/* Merge all reads */
 	/* This may be necessary for a large number of generated reads, but omit for now */
 	/*
@@ -123,13 +95,14 @@ void RGReadsFindMatches(RGIndex *index,
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
 		if(1==WillGenerateValidKey(index, reads.reads[i], reads.readLength[i])) {
-			RGIndexGetRanges(index, 
+			RGIndexGetRangesBothStrands(index, 
 					rg,
 					reads.reads[i],
 					reads.readLength[i],
-					reads.strand[i],
 					reads.offset[i],
 					maxKeyMatches,
+					space,
+					strands,
 					&ranges);
 		}
 	}
@@ -1020,11 +993,10 @@ int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo)
 
 	cmp = strcmp(pOne->reads[iOne], pTwo->reads[iTwo]);
 	if(cmp < 0 ||
-			(cmp == 0 && pOne->offset[iOne] < pTwo->offset[iTwo]) || 
-			(cmp == 0 && pOne->offset[iOne] < pTwo->offset[iTwo] && pOne->strand[iOne] < pTwo->strand[iTwo])) {
+			(cmp == 0 && pOne->offset[iOne] < pTwo->offset[iTwo])) { 
 		return -1;
 	}
-	else if(cmp == 0 && pOne->offset[iOne] == pTwo->offset[iTwo] && pOne->strand[iOne] == pTwo->strand[iTwo]) {
+	else if(cmp == 0 && pOne->offset[iOne] == pTwo->offset[iTwo]) {
 		return 0;
 	}
 	else {
@@ -1038,7 +1010,6 @@ void RGReadsCopyAtIndex(RGReads *src, int srcIndex, RGReads *dest, int destIndex
 		strcpy(dest->reads[destIndex], src->reads[srcIndex]);
 		dest->readLength[destIndex] = src->readLength[srcIndex];
 		dest->offset[destIndex] = src->offset[srcIndex];
-		dest->strand[destIndex] = src->strand[srcIndex];
 	}
 }
 
@@ -1066,14 +1037,6 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	if(NULL == reads->offset) {
 		PrintError("RGReadsAllocate",
 				"reads->offset",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	reads->strand = malloc(sizeof(int8_t)*(reads->numReads));
-	if(NULL == reads->strand) {
-		PrintError("RGReadsAllocate",
-				"reads->strand",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
@@ -1115,14 +1078,6 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 					Exit,
 					MallocMemory);
 		}
-		reads->strand = realloc(reads->strand, sizeof(int8_t)*(reads->numReads));
-		if(NULL == reads->strand) {
-			PrintError("RGReadsReallocate",
-					"reads->strand",
-					"Could not reallocate memory",
-					Exit,
-					MallocMemory);
-		}
 	}
 	else {
 		RGReadsFree(reads);
@@ -1140,7 +1095,6 @@ void RGReadsFree(RGReads *reads)
 	}
 	free(reads->reads);
 	free(reads->readLength);
-	free(reads->strand);
 	free(reads->offset);
 	RGReadsInitialize(reads);
 }
@@ -1149,7 +1103,6 @@ void RGReadsInitialize(RGReads *reads)
 {
 	reads->reads=NULL;
 	reads->readLength=NULL;
-	reads->strand=NULL;
 	reads->offset=NULL;
 	reads->numReads=0;
 }
@@ -1177,7 +1130,6 @@ void RGReadsAppend(RGReads *reads,
 	strcpy(reads->reads[reads->numReads-1], read);
 	reads->readLength[reads->numReads-1] = readLength;
 	reads->offset[reads->numReads-1] = offset;
-	reads->strand[reads->numReads-1] = direction;
 }
 
 /* TODO */
@@ -1187,10 +1139,9 @@ void RGReadsPrint(RGReads *reads, RGIndex *index)
 	int i;
 	for(i=0;i<reads->numReads;i++) {
 		RGIndexPrintReadMasked(index, reads->reads[i], 0, stderr);
-		fprintf(stderr, "%s\t%d\t%c\t%d\n",
+		fprintf(stderr, "%s\t%d\t%d\n",
 				reads->reads[i],
 				reads->readLength[i],
-				reads->strand[i],
 				reads->offset[i]);
 	}
 }

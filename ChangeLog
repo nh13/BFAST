@@ -6,6 +6,7 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.1.12
+* Optimized part of bmatches procedure.
 * Updated bpreprocess help message.
 * Updated bindexhist and bindexdist for color space.
 

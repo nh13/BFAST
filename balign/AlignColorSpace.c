@@ -340,7 +340,7 @@ int AlignColorSpace(char *read,
 									curScore = matrix[i][j+1].score[l] + sm->gapExtensionPenalty;
 									curScoreNT = matrix[i][j+1].scoreNT[l] + sm->gapExtensionPenalty;
 									curFrom = InsertionExt;
-									if(0 == ConvertBaseAndColor(matrix[i+1][j].prevInsertionBase, curColor, &curPrevInsertionBase)) {
+									if(0 == ConvertBaseAndColor(matrix[i+1][j].prevInsertionBase, curColor, (uint8_t*)&curPrevInsertionBase)) {
 										fprintf(stderr, "matrix[i+1=%d][j=%d].prevInsertionBase=%c\tcurColor=%c\n",
 												i,
 												j,

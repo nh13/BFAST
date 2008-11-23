@@ -1789,10 +1789,8 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int32_t maxKeyMatches, RGRanges *r)
+int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int64_t *startIndex, int64_t *endIndex) 
 {
-	int64_t startIndex=-1;
-	int64_t endIndex=-1;
 	int64_t foundIndex=0;
 	uint32_t hashIndex=0;
 
@@ -1805,35 +1803,97 @@ void RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLeng
 	if(index->starts[hashIndex] == UINT_MAX || 
 			index->ends[hashIndex] == UINT_MAX) {
 		/* Skip */
-		return;
+		return 0;
 	}
 	else {
 		assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
 		assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
 
 		/* Search the index using the bounds from the hash */
-		foundIndex=RGIndexGetIndex(index, 
+		foundIndex = RGIndexGetIndex(index, 
 				rg, 
 				index->starts[hashIndex],  
 				index->ends[hashIndex],
 				read,
-				&startIndex,
-				&endIndex);
+				startIndex,
+				endIndex);
+		if(foundIndex > 0) {
+			assert((*endIndex) >= (*startIndex));
+			assert((*startIndex) >= 0 && (*startIndex) < index->length);
+			assert((*endIndex) >= 0 && (*endIndex) < index->length);
+		}
+		return foundIndex;
+	}
+}
 
-		if(foundIndex>0) {
-			/* Check if the key has too many matches */
-			if( (endIndex-startIndex+1) <= maxKeyMatches) {
-				/* (Re)Allocate memory for the new range */
-				RGRangesReallocate(r, r->numEntries+1);
-				assert(endIndex >= startIndex);
-				assert(startIndex >= 0 && startIndex < index->length);
-				assert(endIndex >= 0 && endIndex < index->length);
-				/* Copy over to the range list */
-				r->startIndex[r->numEntries-1] = startIndex;
-				r->endIndex[r->numEntries-1] = endIndex;
-				r->strand[r->numEntries-1] = direction;
-				r->offset[r->numEntries-1] = offset;
-			}
+/* TODO */
+/* We will append the matches if matches have already been found */
+void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t space, int32_t strands, RGRanges *r)
+{
+	int64_t startIndexForward=0;
+	int64_t startIndexReverse=0;
+	int64_t endIndexForward=-1;
+	int64_t endIndexReverse=-1;
+	int64_t foundIndexForward=0;
+	int64_t foundIndexReverse=0;
+	int64_t numMatches=0;
+	int toAdd=0;
+	char reverseRead[SEQUENCE_LENGTH]="\0";
+
+	/* Forward */
+	foundIndexForward = RGIndexGetRanges(index,
+			rg,
+			read,
+			readLength,
+			FORWARD,
+			offset,
+			&startIndexForward,
+			&endIndexForward);
+	/* Reverse */
+	if(BothStrands == strands) {
+		if(space==ColorSpace) {
+			/* In color space, the reverse compliment is just the reverse of the colors */
+			ReverseRead(read, reverseRead, readLength);
+
+		}
+		else {
+			assert(space==NTSpace);
+			/* Get the reverse compliment */
+			GetReverseComplimentAnyCase(read, reverseRead, readLength);
+		}
+
+		foundIndexReverse = RGIndexGetRanges(index,
+				rg,
+				reverseRead,
+				readLength,
+				REVERSE,
+				offset,
+				&startIndexReverse,
+				&endIndexReverse);
+	}
+
+	/* Update the number of matches */
+	numMatches = (0 < foundIndexForward)?(endIndexForward - startIndexForward + 1):0;
+	numMatches += (0 < foundIndexReverse)?(endIndexReverse - startIndexReverse + 1):0;
+
+	/* Check if the key has too many matches */
+	if(numMatches <= maxKeyMatches) {
+		toAdd = (0 < foundIndexForward)?1:0 + (0 < foundIndexReverse)?1:0;
+		assert(0 < toAdd);
+		/* (Re)Allocate memory for the new range */
+		RGRangesReallocate(r, r->numEntries + toAdd);
+		/* Copy over to the range list */
+		if(0 < foundIndexForward) {
+			r->startIndex[r->numEntries-toAdd] = startIndexForward;
+			r->endIndex[r->numEntries-toAdd] = endIndexForward;
+			r->strand[r->numEntries-toAdd] = FORWARD;
+			r->offset[r->numEntries-toAdd] = offset;
+		}
+		if(0 < foundIndexReverse) {
+			r->startIndex[r->numEntries-1] = startIndexReverse;
+			r->endIndex[r->numEntries-1] = endIndexReverse;
+			r->strand[r->numEntries-1] = REVERSE;
+			r->offset[r->numEntries-1] = offset;
 		}
 	}
 }

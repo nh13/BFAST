@@ -7,6 +7,8 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntries.h"
+#include "../blib/RGMatches.h"
+#include "../blib/RGMatch.h"
 #include "bevalsim.h"
 
 #define Name "bevalsim"
@@ -18,27 +20,45 @@
 
 int main(int argc, char *argv[]) 
 {
-	char baf[MAX_FILENAME_LENGTH]="\0";
+	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char readsFile[MAX_FILENAME_LENGTH]="\0";
 	int pairedEnd = -1;
 	char outputID[MAX_FILENAME_LENGTH]="\0";
+	int type;
 
 	if(argc == 5) {
 
 		/* Get cmd line options */
-		strcpy(baf, argv[1]);
+		strcpy(inputFileName, argv[1]);
 		strcpy(readsFile, argv[2]);
 		pairedEnd = atoi(argv[3]);
 		strcpy(outputID, argv[4]);
 
 		/* Check cmd line options */
 		assert(SingleEnd == pairedEnd || PairedEnd == pairedEnd);
+		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
+			type=BMF;
+		}
+		else if(NULL!=strstr(inputFileName, BFAST_ALIGN_FILE_EXTENSION)) {
+			type=BAF;
+		}
+		else {
+			type=-1;
+			PrintError(Name,
+					"input file name",
+					"Could not recognize file extension",
+					Exit,
+					OutOfRange);
+		}
+
 
 		/* Run program */
-		Evaluate(baf, 
+		Evaluate(inputFileName, 
 				readsFile, 
 				pairedEnd, 
-				outputID);
+				outputID,
+				type
+				);
 
 		/* Terminate */
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -47,7 +67,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast aligned file>\n");
+		fprintf(stderr, "\t<bfast matches file or bfast aligned file>\n");
 		fprintf(stderr, "\t<reads file>\n");
 		fprintf(stderr, "\t<paired end 0: false 1: true>\n");
 		fprintf(stderr, "\t<output id>\n");
@@ -70,12 +90,14 @@ void ReadTypeInitialize(ReadType *r)
 	r->numErrors=0;
 	r->deletionLength=0;
 	r->insertionLength=0;
-	r->aContig[0]=0;
-	r->aContig[1]=0;
-	r->aPos[0]=0;
-	r->aPos[1]=0;
-	r->aStrand[0]=0;
-	r->aStrand[1]=0;
+	r->aContigOne=NULL;
+	r->aPosOne=NULL;
+	r->aStrandOne=NULL;
+	r->numOne=0;
+	r->aContigTwo=NULL;
+	r->aPosTwo=NULL;
+	r->aStrandTwo=NULL;
+	r->numTwo=0;
 }
 
 void ReadTypeCopy(ReadType *dest,
@@ -148,42 +170,139 @@ int ReadTypeCompare(ReadType *a,
 	}
 }
 
-int ReadTypeReadFromBAF(ReadType *r, 
+int ReadTypeRead(ReadType *r, 
 		int pairedEnd,
-		FILE *fp)
+		FILE *fp,
+		int type)
 {
-	char *FnName = "ReadTypeReadFromBAF";
+	char *FnName = "ReadTypeRead";
 	AlignEntries a;
+	RGMatches m;
+	int i;
+	char *readName=NULL;
 
 	/* Initialize */
 	AlignEntriesInitialize(&a);
+	RGMatchesInitialize(&m);
 
 	/* Read in align entries */
-	if(EOF==AlignEntriesRead(&a, fp, PairedEndDoesNotMatter, SpaceDoesNotMatter, BALIGN_DEFAULT_OUTPUT)) {
-		return EOF;
+	if(BMF==type) {
+		if(EOF==RGMatchesRead(fp, &m, PairedEndDoesNotMatter, BMATCHES_DEFAULT_OUTPUT)) {
+			return EOF;
+		}
+		assert(a.pairedEnd == pairedEnd);
+		readName = (char*)m.readName;
+		/* Update the number of entries */
+		r->numOne = m.matchOne.numEntries;
+		r->numTwo = m.matchTwo.numEntries;
 	}
-	/* There should be only one */
-	if(a.numEntriesOne > 1 ||
-			(a.pairedEnd == 1 && a.numEntriesOne > 1)) {
+	else if(BAF==type) {
+		if(EOF==AlignEntriesRead(&a, fp, PairedEndDoesNotMatter, SpaceDoesNotMatter, BALIGN_DEFAULT_OUTPUT)) {
+			return EOF;
+		}
+		assert(a.pairedEnd == pairedEnd);
+		readName = a.readName;
+		/* Update the number of entries */
+		r->numOne = a.numEntriesOne;
+		r->numTwo = a.numEntriesTwo;
+	}
+	else {
 		PrintError(FnName,
-				NULL,
-				"There was more than one alignment for a given read",
+				"type",
+				"Could not recongize file type",
 				Exit,
 				OutOfRange);
 	}
-	assert(a.pairedEnd == pairedEnd);
 
-	r->aContig[0] = a.entriesOne->contig;
-	r->aPos[0] = a.entriesOne->position;
-	r->aStrand[0] = a.entriesOne->strand;
-	if(PairedEnd == pairedEnd) {
-		r->aContig[1] = a.entriesTwo->contig;
-		r->aPos[1] = a.entriesTwo->position;
-		r->aStrand[1] = a.entriesTwo->strand;
+	/* Allocate memory */
+	if(r->numOne > 0) {
+		r->aContigOne = malloc(sizeof(int)*r->numOne);
+		if(NULL==r->aContigOne) {
+			PrintError(FnName,
+					"r->aContigOne",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		r->aPosOne = malloc(sizeof(int)*r->numOne);
+		if(NULL==r->aPosOne) {
+			PrintError(FnName,
+					"r->aPosOne",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		r->aStrandOne= malloc(sizeof(char)*r->numOne);
+		if(NULL==r->aStrandOne) {
+			PrintError(FnName,
+					"r->aStrandOne",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+	if(r->numTwo > 0) {
+		r->aContigTwo = malloc(sizeof(int)*r->numTwo);
+		if(NULL==r->aContigTwo) {
+			PrintError(FnName,
+					"r->aContigTwo",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		r->aPosTwo = malloc(sizeof(int)*r->numTwo);
+		if(NULL==r->aPosTwo) {
+			PrintError(FnName,
+					"r->aPosTwo",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		r->aStrandTwo= malloc(sizeof(char)*r->numTwo);
+		if(NULL==r->aStrandTwo) {
+			PrintError(FnName,
+					"r->aStrandTwo",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+	/* Copy over */
+	if(BMF==type) {
+		for(i=0;i<r->numOne;i++) {
+			r->aContigOne[i] = m.matchOne.contigs[i];
+			r->aPosOne[i] = m.matchOne.positions[i];
+			r->aStrandOne[i] = m.matchOne.strand[i];
+		}
+		for(i=0;i<r->numTwo;i++) {
+			r->aContigTwo[i] = m.matchTwo.contigs[i];
+			r->aPosTwo[i] = m.matchTwo.positions[i];
+			r->aStrandTwo[i] = m.matchTwo.strand[i];
+		}
+	}
+	else if(BAF==type) {
+		for(i=0;i<r->numOne;i++) {
+			r->aContigOne[i] = a.entriesOne[i].contig;
+			r->aPosOne[i] = a.entriesOne[i].position;
+			r->aStrandOne[i] = a.entriesOne[i].strand;
+		}
+		for(i=0;i<r->numTwo;i++) {
+			r->aContigTwo[i] = a.entriesTwo[i].contig;
+			r->aPosTwo[i] = a.entriesTwo[i].position;
+			r->aStrandTwo[i] = a.entriesTwo[i].strand;
+		}
+	}
+	else {
+		PrintError(FnName,
+				"type",
+				"Could not recongize file type",
+				Exit,
+				OutOfRange);
 	}
 
 	/* Convert into read type */
-	ReadTypeParseReadName(r, a.pairedEnd, a.readName);
+	ReadTypeParseReadName(r, pairedEnd, readName);
+	readName=NULL;
 
 	/* Delete align entries */
 	AlignEntriesFree(&a);
@@ -389,6 +508,17 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 	}
 }
 
+void ReadTypeDelete(ReadType *r)
+{
+	free(r->aContigOne);
+	free(r->aPosOne);
+	free(r->aStrandOne);
+	free(r->aContigTwo);
+	free(r->aPosTwo);
+	free(r->aStrandTwo);
+	ReadTypeInitialize(r);
+}
+
 void StatInitialize(Stat *s, 
 		ReadType *r)
 {
@@ -425,7 +555,9 @@ void StatPrint(Stat *s, FILE *fp)
 
 void StatAdd(Stat *s, ReadType *r, int readType)
 {
-	int diffOne, diffTwo;
+	int i, j;
+	int found[5]={0,0,0,0,0};
+	int foundAll=0;
 
 	assert(OriginalRead == readType || AlignedRead == readType);
 
@@ -433,35 +565,108 @@ void StatAdd(Stat *s, ReadType *r, int readType)
 		s->numReads++;
 	}
 	else {
-		/* Must be on the same strand and contig */
-		if(r->strand == r->aStrand[0] && r->contig == r->aContig[0] &&
-				(SingleEnd == r->pairedEnd || (r->strand == r->aStrand[1] && r->contig == r->aContig[1]))) {
-			diffOne = (r->pos > r->aPos[0])?(r->pos - r->aPos[0]):(r->aPos[0] - r->pos);
-			diffTwo = 0;
-			if(PairedEnd == r->pairedEnd) {
-				diffTwo = (r->pos + r->readLength + r->pairedEndLength > r->aPos[1])?(r->pos + r->readLength + r->pairedEndLength - r->aPos[1]):(r->aPos[1] - (r->pos + r->readLength + r->pairedEndLength)); 
+		if(PairedEnd == r->pairedEnd) {
+			for(i=0;i<r->numOne && 0==foundAll;i++) {
+				for(j=0;j<r->numTwo && 0==foundAll;j++) {
+					foundAll = StatCompare(s, 
+							r, 
+							r->aContigOne[i],
+							r->aPosOne[i],
+							r->aStrandOne[i],
+							r->aContigTwo[i],
+							r->aPosTwo[i],
+							r->aStrandTwo[i],
+							found);
+				}
 			}
+		}
+		else {
+			for(i=0;i<r->numOne && 0==foundAll;i++) {
+				foundAll = StatCompare(s, 
+						r, 
+						r->aContigOne[i],
+						r->aPosOne[i],
+						r->aStrandOne[i],
+						0,
+						0,
+						0,
+						found);
+			}
+		}
+		for(i=0;i<5;i++) {
+			if(1==found[i]) {
+				s->numCorrectlyAligned[i]++;
+			}
+		}
+		if(r->numOne > 0 || (PairedEnd == r->pairedEnd && r->numTwo > 0)) {
+			s->numAligned++;
+			/* HERE Debugging */
+			if(1!=foundAll) {
+				fprintf(stderr, "\nHERE\n[%c]chr%d:%d-%d\n",
+						r->strand,
+						r->contig,
+						r->pos,
+						r->pos+r->readLength-1);
+				for(i=0;i<r->numOne && 0==foundAll;i++) {
+					fprintf(stderr, "i=%3d [%c]chr%d:%d-%d\n",
+							i,
+							r->aStrandOne[i],
+							r->aContigOne[i],
+							r->aPosOne[i],
+							r->aPosOne[i]+r->readLength-1);
+				}
+				exit(1);
+			}
+		}
+	}
+	if(s->numReads < s->numAligned) {
+		fprintf(stderr, "\ns->numReads=%d\ns->numAligned=%d\n",
+				s->numReads,
+				s->numAligned);
+	}
+	assert(s->numAligned <= s->numReads);
+}
 
-			/* Update */
-			if(diffOne <= 10000 && diffTwo <= 10000) {
-				s->numCorrectlyAligned[4]++;
-				if(diffOne <= 1000 && diffTwo <= 1000) {
-					s->numCorrectlyAligned[3]++;
-					if(diffOne <= 100 && diffTwo <= 100) {
-						s->numCorrectlyAligned[2]++;
-						if(diffOne <= 10 && diffTwo <= 10) {
-							s->numCorrectlyAligned[1]++;
-							if(diffOne <= 0 && diffTwo <= 0) {
-								s->numCorrectlyAligned[0]++;
-							}
+int StatCompare(Stat *s, 
+		ReadType *r,
+		int contigOne,
+		int posOne,
+		char strandOne,
+		int contigTwo,
+		int posTwo,
+		char strandTwo,
+		int *found)
+{
+	int diffOne, diffTwo;
+
+	/* Must be on the same strand and contig */
+	if(r->strand == strandOne && r->contig == contigOne &&
+			(SingleEnd == r->pairedEnd || (r->strand == strandTwo && r->contig == contigTwo))) {
+		diffOne = (r->pos > posOne)?(r->pos - posOne):(posOne - r->pos);
+		diffTwo = 0;
+		if(PairedEnd == r->pairedEnd) {
+			diffTwo = (r->pos + r->readLength + r->pairedEndLength > posTwo)?(r->pos + r->readLength + r->pairedEndLength - posTwo):(posTwo - (r->pos + r->readLength + r->pairedEndLength)); 
+		}
+
+		/* Update */
+		if(diffOne <= 10000 && diffTwo <= 10000) {
+			found[4]=1;
+			if(diffOne <= 1000 && diffTwo <= 1000) {
+				found[3]=1;
+				if(diffOne <= 100 && diffTwo <= 100) {
+					found[2]=1;
+					if(diffOne <= 10 && diffTwo <= 10) {
+						found[1]=1;
+						if(diffOne <= 0 && diffTwo <= 0) {
+							found[0]=1;
+							return 1;
 						}
 					}
 				}
 			}
 		}
-		s->numAligned++;
-		assert(s->numAligned <= s->numReads);
 	}
+	return 0;
 }
 
 void StatsInitialize(Stats *s) 
@@ -555,10 +760,11 @@ void StatsDelete(Stats *s)
 	s->numStats=0;
 }
 
-void Evaluate(char *baf,
+void Evaluate(char *inputFileName,
 		char *readsFile,
 		int pairedEnd,
-		char *outputID)
+		char *outputID,
+		int type)
 {
 	char *FnName="Evaluate";
 	FILE *fpIn;
@@ -575,18 +781,18 @@ void Evaluate(char *baf,
 
 	ReadTypeInitialize(&r);
 
-	/* Open the baf file */
-	if(!(fpIn=fopen(baf, "rb"))) {
+	/* Open the inputFileName file */
+	if(!(fpIn=fopen(inputFileName, "rb"))) {
 		PrintError(FnName,
-				baf,
+				inputFileName,
 				"Could not open file for reading",
 				Exit,
 				OpenFileError);
 	}
 
 	count = 0;
-	fprintf(stderr, "Reading in aligned reads from %s.\nCurrently on:\n%d", baf, 0);
-	while(EOF != ReadTypeReadFromBAF(&r, pairedEnd, fpIn)) {
+	fprintf(stderr, "Reading in aligned reads from %s.\nCurrently on:\n%d", inputFileName, 0);
+	while(EOF != ReadTypeRead(&r, pairedEnd, fpIn, type)) {
 		count++;
 		if(count % COUNT_ROTATE_NUM == 0) {
 			fprintf(stderr, "\r%d", 

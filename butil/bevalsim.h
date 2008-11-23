@@ -17,9 +17,14 @@ typedef struct {
 	int deletionLength;
 	int insertionLength;
 	/* Actual data */
-	int aContig[2];
-	int aPos[2];
-	int aStrand[2];
+	int *aContigOne;
+	int *aPosOne;
+	char *aStrandOne;
+	int numOne;
+	int *aContigTwo;
+	int *aPosTwo;
+	char *aStrandTwo;
+	int numTwo;
 } ReadType;
 
 typedef struct {
@@ -36,25 +41,24 @@ typedef struct {
 } Stats;
 
 enum {OriginalRead, AlignedRead};
+enum {BMF, BAF};
 
 void ReadTypeInitialize(ReadType*);
 void ReadTypeCopy(ReadType*, ReadType*);
 void ReadTypePrint(ReadType*, FILE*);
-int ReadTypeCompare(ReadType*,ReadType*);
-int ReadTypeReadFromBAF(ReadType*, int, FILE*);
+int ReadTypeCompare(ReadType*, ReadType*);
+int ReadTypeRead(ReadType*, int, FILE*, int);
 void ReadTypeParseReadName(ReadType*, int, char*);
-
-void StatInitialize(Stat*, ReadType*);
-void StatPrint(Stat*, FILE*);
-void StatAdd(Stat*, ReadType*, int);
+void ReadTypeDelete(ReadType*);
 
 void StatsInitialize(Stats*);
 void StatsPrintHeader(FILE*);
 void StatsPrint(Stats*, FILE*);
 void StatsAdd(Stats*, ReadType*, int);
+int StatCompare(Stat*, ReadType*, int, int, char, int, int, char, int*);
 void StatsDelete(Stats*);
 
-void Evaluate(char*, char*, int, char*);
+void Evaluate(char*, char*, int, char*, int);
 void ReadInReads(char*, int, Stats*);
 
 #endif

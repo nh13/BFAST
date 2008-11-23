@@ -91,7 +91,7 @@ AC_CHECK_SIZEOF([long int])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h float.h])
 AC_CHECK_HEADER([argp.h], [AC_DEFINE([HAVE_ARGP_H],1,[Define to 1 if you have the <argp.h> header file])],
 [AC_MSG_WARN([argp.h header file not found.
 OS X is known to have this problem.

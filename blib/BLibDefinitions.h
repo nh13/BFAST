@@ -110,7 +110,6 @@ typedef struct {
 	int32_t numReads;
 	char **reads;
 	int32_t *readLength;
-	int8_t *strand;
 	int32_t *offset;
 } RGReads;
 
