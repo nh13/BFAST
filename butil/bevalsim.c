@@ -697,14 +697,6 @@ void StatsAdd(Stats *s, ReadType *r, int readType)
 	/* Check if it fits somewhere */
 	for(i=0;i<s->numStats;i++) {
 		if(ReadTypeCompare(r, &s->stats[i].r)==0) {
-			/*
-			   fprintf(stderr, "%s", BREAK_LINE);
-			   ReadTypePrint(r, stderr);
-			   ReadTypePrint(&s->stats[i].r, stderr);
-			   fprintf(stderr, "HERE fits exiting!\n");
-			   fprintf(stderr, "%s", BREAK_LINE);
-			   exit(1);
-			   */
 			/* Add to current */
 			StatAdd(&s->stats[i], r, readType);
 			return; /* Get out of here */
