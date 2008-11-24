@@ -11,6 +11,7 @@ Version 0.1.12
 matches wil count towards maxKeyMatches (-K).
 * Updated bpreprocess help message.
 * Updated bindexhist and bindexdist for color space.
+* Fixed bug in bgeneratereads for color space.
 
 Version 0.1.11
 * bpostprocess now prints out MAF that complies with UCSC standards.
