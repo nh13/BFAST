@@ -6,6 +6,7 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.1.12
+* bmatches: now option -w can specify which strand to match.
 * bevalsim now takes in any bmf or baf file.
 * Optimized part of bmatches procedure.  Both forward and reverse
 matches wil count towards maxKeyMatches (-K).

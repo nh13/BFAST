@@ -32,7 +32,7 @@ typedef struct {
 	int pairedEnd;
 	int maxKeyMatches;
 	int maxNumMatches;
-	int forwardStrandOnly;
+	int whichStrand;
 	int numMatches;
 	int threadID;
 } ThreadIndexData;
@@ -53,7 +53,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
-		int forwardStrandOnly,
+		int whichStrand,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
@@ -80,7 +80,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
-		int forwardStrandOnly,
+		int whichStrand,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		FILE *indexFP,

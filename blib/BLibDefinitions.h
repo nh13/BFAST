@@ -70,7 +70,7 @@ enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
 enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
 enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
 enum {IgnoreExons, UseExons};
-enum {BothStrands, ForwardStrandOnly};
+enum {BothStrands, ForwardStrand, ReverseStrand};
 
 /************************************/
 /* 		Data structures 			*/

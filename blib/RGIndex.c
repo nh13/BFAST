@@ -1841,20 +1841,21 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 	char reverseRead[SEQUENCE_LENGTH]="\0";
 
 	/* Forward */
-	foundIndexForward = RGIndexGetRanges(index,
-			rg,
-			read,
-			readLength,
-			FORWARD,
-			offset,
-			&startIndexForward,
-			&endIndexForward);
+	if(BothStrands == strands || ForwardStrand == strands) {
+		foundIndexForward = RGIndexGetRanges(index,
+				rg,
+				read,
+				readLength,
+				FORWARD,
+				offset,
+				&startIndexForward,
+				&endIndexForward);
+	}
 	/* Reverse */
-	if(BothStrands == strands) {
+	if(BothStrands == strands || ReverseStrand == strands) {
 		if(space==ColorSpace) {
 			/* In color space, the reverse compliment is just the reverse of the colors */
 			ReverseRead(read, reverseRead, readLength);
-
 		}
 		else {
 			assert(space==NTSpace);
@@ -1881,7 +1882,7 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 			numMatches <= maxKeyMatches) {
 		toAdd = (0 < foundIndexForward)?1:0;
 		toAdd += (0 < foundIndexReverse)?1:0;
-		assert(0 < toAdd);
+		assert(1 <= toAdd && toAdd <= 2);
 		/* (Re)Allocate memory for the new range */
 		RGRangesReallocate(r, r->numEntries + toAdd);
 		/* Copy over to the range list */
