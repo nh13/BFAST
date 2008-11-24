@@ -71,12 +71,12 @@ void ReadPrint(Read *r,
 	}
 	fprintf(fp,"\n");
 
-	assert(r->readLength == StringTrimWhiteSpace(r->readOne));
+	StringTrimWhiteSpace(r->readOne);
 	fprintf(fp, "%s\n", r->readOne);
 
 	/* Read two */
 	if(r->pairedEnd==1) {
-		assert(r->readLength == StringTrimWhiteSpace(r->readTwo));
+		StringTrimWhiteSpace(r->readTwo);
 		fprintf(fp, "%s\n", r->readTwo);
 	}
 }
@@ -562,42 +562,42 @@ int ModifyRead(RGBinary *rg,
 		}
 		/* read two */
 		if(PairedEnd == r->pairedEnd) {
-		switch(r->readTwoType[i]) {
-			case Default:
-				break;
-			case Insertion:
-				curInsertionLength++;
-				break;
-			case SNP:
-				curNumSNPs++;
-				break;
-			case Error:
-				curNumErrors++;
-				break;
-			case InsertionAndSNP:
-				curInsertionLength++;
-				curNumSNPs++;
-				break;
-			case InsertionAndError:
-				curInsertionLength++;
-				curNumErrors++;
-				break;
-			case SNPAndError:
-				curNumSNPs++;
-				curNumErrors++;
-				break;
-			case InsertionSNPAndError:
-				curInsertionLength++;
-				curNumSNPs++;
-				curNumErrors++;
-				break;
-			default:
-				PrintError(FnName,
-						"r->readTwoType[i]",
-						"Could not understand type",
-						Exit,
-						OutOfRange);
-		}
+			switch(r->readTwoType[i]) {
+				case Default:
+					break;
+				case Insertion:
+					curInsertionLength++;
+					break;
+				case SNP:
+					curNumSNPs++;
+					break;
+				case Error:
+					curNumErrors++;
+					break;
+				case InsertionAndSNP:
+					curInsertionLength++;
+					curNumSNPs++;
+					break;
+				case InsertionAndError:
+					curInsertionLength++;
+					curNumErrors++;
+					break;
+				case SNPAndError:
+					curNumSNPs++;
+					curNumErrors++;
+					break;
+				case InsertionSNPAndError:
+					curInsertionLength++;
+					curNumSNPs++;
+					curNumErrors++;
+					break;
+				default:
+					PrintError(FnName,
+							"r->readTwoType[i]",
+							"Could not understand type",
+							Exit,
+							OutOfRange);
+			}
 		}
 	}
 	assert(curNumSNPs == numSNPs);
