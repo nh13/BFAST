@@ -148,7 +148,7 @@ void GetPivots(RGIndex *index,
 				reads.offset[i],
 				INT_MAX,
 				SpaceDoesNotMatter,
-				ForwardStrandOnly,
+				ForwardStrand,
 				&ranges);
 	}
 
