@@ -698,8 +698,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<bfast report file name>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");
-		fprintf(stderr, "\t<startContig>\n");
-		fprintf(stderr, "\t<endContig>\n");
+		fprintf(stderr, "\t<start contig>\n");
+		fprintf(stderr, "\t<end contig>\n");
 	}
 	return 0;
 }
