@@ -18,13 +18,14 @@ typedef struct {
 	Counts c;
 	int numMismatchesStart;
 	int numMismatchesEnd;
+	int whichStrand;
 	int numDifferent;
 	int64_t totalForward;
 	int64_t totalReverse;
 	int threadID;
 } ThreadData;
 
-void PrintHistogram(RGIndex*, RGBinary*, int, int, int, char*);
+void PrintHistogram(RGIndex*, RGBinary*, int, int, int, int, char*);
 void *PrintHistogramThread(void *arg);
 void GetPivots(RGIndex*, RGBinary*, int64_t*, int64_t*, int64_t);
 int GetMatchesFromContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*);

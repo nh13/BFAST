@@ -34,18 +34,21 @@ int main(int argc, char *argv[])
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
 	int numMismatches = 0;
 	int numThreads = 0;
+	int whichStrand;
 
-	if(argc == 8) {
+	if(argc == 9) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		numMismatches = atoi(argv[3]);
-		strcpy(outputDir, argv[4]);
-		strcpy(outputID, argv[5]);
-		strcpy(tmpDir, argv[6]);
-		numThreads = atoi(argv[7]);
+		whichStrand = atoi(argv[4]);
+		strcpy(outputDir, argv[5]);
+		strcpy(outputID, argv[6]);
+		strcpy(tmpDir, argv[7]);
+		numThreads = atoi(argv[8]);
+		assert(whichStrand == BothStrands || whichStrand == ForwardStrand || whichStrand == ReverseStrand);
 
 		/* Create the distribution file name */
 		sprintf(distributionFileName, "%s%s.dist.%d",
@@ -77,6 +80,7 @@ int main(int argc, char *argv[])
 				&rg, 
 				distributionFileName,
 				numMismatches,
+				whichStrand,
 				tmpDir,
 				numThreads); 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -96,6 +100,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t\t<bfast reference genome file name>\n");
 		fprintf(stderr, "\t\t<bfast index file name>\n");
 		fprintf(stderr, "\t\t<number of mismatches>\n");
+		fprintf(stderr, "\t<0: consider both strands 1: forward strand only 2: reverse strand only>\n");
 		fprintf(stderr, "\t\t<output directory>\n");
 		fprintf(stderr, "\t\t<output id>\n");
 		fprintf(stderr, "\t\t<tmp file directory>\n");
@@ -109,6 +114,7 @@ void PrintDistribution(RGIndex *index,
 		RGBinary *rg,
 		char *distributionFileName,
 		int numMismatches,
+		int whichStrand,
 		char *tmpDir,
 		int numThreads)
 {
@@ -165,7 +171,8 @@ void PrintDistribution(RGIndex *index,
 
 		/* Reallocate memory */
 		prevIndex = numReads;
-		if(numReverse == 0) {
+		if((BothStrands == whichStrand || ReverseStrand == whichStrand) &&
+				numReverse == 0) {
 			numReads+=2; /* One for both strands */
 		}
 		else {
@@ -204,7 +211,8 @@ void PrintDistribution(RGIndex *index,
 		ToLowerRead(read, index->width+1); 
 		strcpy(reads[numReads-1], read);
 		readCounts[numReads-1] = numForward+numReverse;
-		if(numReverse == 0) {
+		if((BothStrands == whichStrand || ReverseStrand == whichStrand) &&
+				numReverse == 0) {
 			if(0 == strcmp(reverseRead, read)) {
 				fprintf(stderr, "read=%s\nreverseRead=%s\n",
 						read,

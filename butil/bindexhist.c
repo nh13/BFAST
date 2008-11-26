@@ -33,16 +33,19 @@ int main(int argc, char *argv[])
 	int numMismatchesStart = NUM_MISMATCHES_START;
 	int numMismatchesEnd = NUM_MISMATCHES_END;
 	int numThreads;
+	int whichStrand;
 
-	if(argc == 5) {
+	if(argc == 6) {
 		RGBinary rg;
 		RGIndex index;
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		numMismatchesEnd = atoi(argv[3]);
-		numThreads = atoi(argv[4]);
+		whichStrand = atoi(argv[4]);
+		numThreads = atoi(argv[5]);
 		assert(numMismatchesEnd >= numMismatchesStart);
+		assert(whichStrand == BothStrands || whichStrand == ForwardStrand || whichStrand == ReverseStrand);
 
 		/* Create the histogram file name */
 		strcpy(histogramFileName, indexFileName);
@@ -71,6 +74,7 @@ int main(int argc, char *argv[])
 				&rg, 
 				numMismatchesStart,
 				numMismatchesEnd,
+				whichStrand,
 				numThreads,
 				histogramFileName);
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -90,6 +94,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t<bfast reference genome file name>\n");
 		fprintf(stderr, "\t<bfast index file name>\n");
 		fprintf(stderr, "\t<number of mismatches for histogram>\n");
+		fprintf(stderr, "\t<0: consider both strands 1: forward strand only 2: reverse strand only>\n");
 		fprintf(stderr, "\t<number of threads>\n");
 	}
 
@@ -191,6 +196,7 @@ void PrintHistogram(RGIndex *index,
 		RGBinary *rg,
 		int numMismatchesStart,
 		int numMismatchesEnd,
+		int whichStrand,
 		int numThreads,
 		char *histogramFileName)
 {
@@ -265,6 +271,7 @@ void PrintHistogram(RGIndex *index,
 		data[i].c.maxCount = NULL;
 		data[i].numMismatchesStart = numMismatchesStart;
 		data[i].numMismatchesEnd = numMismatchesEnd;
+		data[i].whichStrand = whichStrand;
 		data[i].numDifferent = 0;
 		data[i].threadID = i+1;
 	}
@@ -397,6 +404,7 @@ void *PrintHistogramThread(void *arg)
 	Counts *c = &data->c;
 	int numMismatchesStart = data->numMismatchesStart;
 	int numMismatchesEnd = data->numMismatchesEnd;
+	int whichStrand = data->whichStrand;
 	int threadID = data->threadID;
 
 	/* Local variables */
@@ -490,7 +498,8 @@ void *PrintHistogramThread(void *arg)
 					/* If the reverse compliment does not match the + strand then it will only match the - strand.
 					 * Count it as unique as well as the + strand read.
 					 * */
-					if(numReverse == 0) {
+					        if((BothStrands == whichStrand || ReverseStrand == whichStrand) &&
+									                numReverse == 0) {
 						numDifferent+=2;
 						numReadsNoMismatches = 2;
 					}
