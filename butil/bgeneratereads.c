@@ -189,6 +189,14 @@ void GenerateReads(RGBinary *rg,
 	int i;
 	int64_t rgLength = 0;
 
+	if(NTSpace != rg->space) {
+		PrintError(FnName,
+				"rg->space",
+				"The reference genome must be given in nucleotide space",
+				Exit,
+				OutOfRange);
+	}
+
 	/* Seed random number */
 	srand(time(NULL));
 
