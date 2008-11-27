@@ -22,7 +22,9 @@ bafconvert [OPTIONS]
 	<input type: 0-text 1-binary>
 
 bevalsim [OPTIONS]
-	<bfast aligned file>
+	<bfast matches file or bfast aligned file>
+	<reads file>
+	<paired end 0: false 1: true>
 	<output id>
 
 bexonify [OPTIONS]
@@ -59,6 +61,7 @@ bindexdist [OPTIONS]
 	<bfast reference genome file>
 	<bfast index file name>
 	<number of mismatches>
+	<0: consider both strands 1: forward strand only 2: reverse strand only>
 	<output directory>
 	<output id>
 	<tmp file directory>
@@ -68,6 +71,7 @@ bindexhist [OPTIONS]
 	<bfast reference genome file name>
 	<bfast index file name>
 	<number of mismatches for histogram>
+	<0: consider both strands 1: forward strand only 2: reverse strand only>
 	<number of threads>
 
 bmfconvert [OPTIONS]
@@ -83,9 +87,10 @@ brepeat [OPTIONS]
 	<minimum unit length>
 	<maximum unit length>
 	<minimum total repeat length>
+	<output file>
 
 breport [OPTIONS]
-	<bfast baf file name>
+	<bfast report file name>
 	<maximum number of entries when sorting>
 	<tmp file directory
 	<start contig>

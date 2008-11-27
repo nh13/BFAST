@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t\t<bfast reference genome file name>\n");
 		fprintf(stderr, "\t\t<bfast index file name>\n");
 		fprintf(stderr, "\t\t<number of mismatches>\n");
-		fprintf(stderr, "\t<0: consider both strands 1: forward strand only 2: reverse strand only>\n");
+		fprintf(stderr, "\t\t<0: consider both strands 1: forward strand only 2: reverse strand only>\n");
 		fprintf(stderr, "\t\t<output directory>\n");
 		fprintf(stderr, "\t\t<output id>\n");
 		fprintf(stderr, "\t\t<tmp file directory>\n");
