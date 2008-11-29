@@ -94,17 +94,15 @@ void RGReadsFindMatches(RGIndex *index,
 
 	/* Get the matches */
 	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
-		if(1==WillGenerateValidKey(index, reads.reads[i], reads.readLength[i])) {
-			RGIndexGetRangesBothStrands(index, 
-					rg,
-					reads.reads[i],
-					reads.readLength[i],
-					reads.offset[i],
-					maxKeyMatches,
-					space,
-					strands,
-					&ranges);
-		}
+		RGIndexGetRangesBothStrands(index, 
+				rg,
+				reads.reads[i],
+				reads.readLength[i],
+				reads.offset[i],
+				maxKeyMatches,
+				space,
+				strands,
+				&ranges);
 	}
 
 	/* Remove duplicate ranges */
