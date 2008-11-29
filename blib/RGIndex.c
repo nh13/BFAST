@@ -1793,6 +1793,10 @@ int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readL
 {
 	int64_t foundIndex=0;
 	uint32_t hashIndex=0;
+	
+	if(1!=WillGenerateValidKey(index, read, readLength)) {
+		return 0;
+	}
 
 	/* Get the hash index */
 	/* The hope is that the hash will give better smaller bounds (if not

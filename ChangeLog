@@ -6,6 +6,7 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.1.13
+* Updated bug in RGIndex where reverse read could have n's.
 
 Version 0.1.12
 * bmatches: now option -w can specify which strand to match.
