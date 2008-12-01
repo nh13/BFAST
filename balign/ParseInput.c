@@ -421,7 +421,7 @@ AssignDefaultValues(struct arguments *args)
 	args->endContig=INT_MAX;
 	args->endPos=INT_MAX;
 	args->offsetLength=0;
-	args->maxNumMatches=0;
+	args->maxNumMatches=INT_MAX;
 	args->pairedEnd = 0;
 	args->numThreads = 1;
 	args->usePairedEndLength = 0;
