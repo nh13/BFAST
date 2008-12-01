@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59)
-AC_INIT([bfast],[0.1.13],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
+AC_INIT([bfast],[0.1.14],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
 svnrev="`svn info | grep Revision:`"
 
