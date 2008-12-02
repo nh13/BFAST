@@ -526,6 +526,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				binaryInput)) {
 		numMatches++;
 		numAlignEntries = 0;
+		ctrOne=ctrTwo=0;
 
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
@@ -536,7 +537,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		 *
 		 * This assumes that the the first read is 5'->3' before the second read.
 		 * */
-		if(pairedEnd == 1 && usePairedEndLength == 1) {
+		if(PairedEnd == pairedEnd && usePairedEndLength == 1) {
 			RGMatchesMirrorPairedEnd(&m, 
 					pairedEndLength,
 					forceMirroring);
@@ -552,50 +553,50 @@ void *RunDynamicProgrammingThread(void *arg)
 
 		/* Run the aligner */
 		/* First entry */
-		if(m.matchOne.numEntries > 0) {
+		if(0 < m.matchOne.numEntries) {
 			strcpy(matchRead, (char*)m.matchOne.read);
 			matchReadLength = m.matchOne.readLength;
-			if(space == 1) {
+			if(space == ColorSpace) {
 				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
 			}
 		}
 		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
 		for(i=0,ctrOne=0;i<m.matchOne.numEntries;i++) { /* For each match */
 			if(1==RunDynamicProgrammingThreadHelper(rg,
-					m.matchOne.contigs[i],
-					m.matchOne.positions[i],
-					m.matchOne.strand[i],
-					matchRead,
-					matchReadLength,
-					space,
-					offsetLength,
-					sm,
-					&aEntries.entriesOne[ctrOne],
-					alignmentType)) {
+						m.matchOne.contigs[i],
+						m.matchOne.positions[i],
+						m.matchOne.strand[i],
+						matchRead,
+						matchReadLength,
+						space,
+						offsetLength,
+						sm,
+						&aEntries.entriesOne[ctrOne],
+						alignmentType)) {
 				ctrOne++;
 			}
 		}
 		/* Second entry */
-		if(m.matchTwo.numEntries > 0) {
+		if(0 < m.matchTwo.numEntries) {
 			strcpy(matchRead, (char*)m.matchTwo.read);
 			matchReadLength = m.matchTwo.readLength;
-			if(space == 1) {
+			if(space == ColorSpace) {
 				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
 			}
 		}
 		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
 		for(i=0,ctrTwo=0;i<m.matchTwo.numEntries;i++) { /* For each match */
 			if(1==RunDynamicProgrammingThreadHelper(rg,
-					m.matchTwo.contigs[i],
-					m.matchTwo.positions[i],
-					m.matchTwo.strand[i],
-					matchRead,
-					matchReadLength,
-					space,
-					offsetLength,
-					sm,
-					&aEntries.entriesTwo[ctrTwo],
-					alignmentType)) {
+						m.matchTwo.contigs[i],
+						m.matchTwo.positions[i],
+						m.matchTwo.strand[i],
+						matchRead,
+						matchReadLength,
+						space,
+						offsetLength,
+						sm,
+						&aEntries.entriesTwo[ctrTwo],
+						alignmentType)) {
 				ctrTwo++;
 			}
 		}
@@ -610,8 +611,8 @@ void *RunDynamicProgrammingThread(void *arg)
 					space);
 		}
 
-		if(aEntries.numEntriesOne > 0 ||
-				(pairedEnd == 1 && aEntries.numEntriesTwo > 0)) {
+		if(0 < aEntries.numEntriesOne ||
+				(pairedEnd == 1 && 0 < aEntries.numEntriesTwo)) {
 
 			/* Remove duplicates */
 			AlignEntriesRemoveDuplicates(&aEntries,

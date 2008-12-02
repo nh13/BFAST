@@ -195,6 +195,37 @@ int AlignEntryRead(AlignEntry *a,
 		}
 	}
 
+	/* Reallocate to conserve memory */
+	assert(a->length > 0);
+	a->read = realloc(a->read, sizeof(char)*(a->length+1));
+	if(NULL == a->read) {
+		PrintError(FnName,
+				"a->read",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	/* Reference */
+	a->reference = realloc(a->reference, sizeof(char)*(a->length+1));
+	if(NULL == a->reference) {
+		PrintError(FnName,
+				"a->reference",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	/* Color error, if necessary */
+	if(space == ColorSpace) {
+		a->colorError = realloc(a->colorError, sizeof(char)*(a->length+1));
+		if(NULL == a->colorError) {
+			PrintError(FnName,
+					"a->colorError",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+	}
+
 	/*
 	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
 	   assert(((int)strlen(a->read)) == a->length);
@@ -540,56 +571,48 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		assert(src->contigNameLength > 0);
 		dest->contigNameLength = src->contigNameLength;
 		/* Contig name */
+		dest->contigName = realloc(dest->contigName, sizeof(char)*(dest->contigNameLength+1));
 		if(NULL == dest->contigName) {
-			dest->contigName = malloc(sizeof(char)*(dest->contigNameLength+1));
-			if(NULL == dest->contigName) {
-				PrintError(FnName,
-						"dest->contigName",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
+			PrintError(FnName,
+					"dest->contigName",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
 		}
 		assert(src->contigName!= NULL);
 		strcpy(dest->contigName, src->contigName);
 		/* Read */
+		assert(src->length > 0);
+		dest->read = realloc(dest->read, sizeof(char)*(src->length+1));
 		if(NULL == dest->read) {
-			dest->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == dest->read) {
-				PrintError(FnName,
-						"dest->read",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
+			PrintError(FnName,
+					"dest->read",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
 		}
 		assert(src->read != NULL);
 		strcpy(dest->read, src->read);
 		/* Reference */
+		dest->reference = realloc(dest->reference, sizeof(char)*(src->length+1));
 		if(NULL == dest->reference) {
-			dest->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == dest->reference) {
-				PrintError(FnName,
-						"dest->reference",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
+			PrintError(FnName,
+					"dest->reference",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
 		}
 		assert(src->reference!= NULL);
 		strcpy(dest->reference, src->reference);
 		/* Color error, if necessary */
 		if(src->colorError != NULL) {
-			strcpy(dest->reference, src->reference);
+			dest->colorError = realloc(dest->colorError, sizeof(char)*(src->length+1));
 			if(NULL == dest->colorError) {
-				dest->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-				if(NULL == dest->colorError) {
-					PrintError(FnName,
-							"dest->colorError",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
-				}
+				PrintError(FnName,
+						"dest->colorError",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
 			}
 			assert(src->colorError!= NULL);
 			strcpy(dest->colorError, src->colorError);
