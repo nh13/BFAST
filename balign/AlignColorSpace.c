@@ -17,11 +17,51 @@ int AlignColorSpace(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *aEntry,
+		AlignEntry *a,
+		char strand,
+		int type)
+{
+	char *FnName="AlignColorSpace"; 
+	switch(type) {
+		case MismatchesOnly:
+			return AlignColorSpaceMismatchesOnly(read,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					strand);
+			break;
+		case FullAlignment:
+			return AlignColorSpaceFull(read,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					strand);
+			break;
+		default:
+			PrintError(FnName,
+					"type",
+					"Could not understand alignment type",
+					Exit,
+					OutOfRange);
+	}
+	return -1;
+}
+
+/* TODO */
+int AlignColorSpaceFull(char *read,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		ScoringMatrix *sm,
+		AlignEntry *a,
 		char strand)
 {
 	/* read goes on the rows, reference on the columns */
-	char *FnName = "AlignColorSpace";
+	char *FnName = "AlignColorSpaceFull";
 	AlignMatrix **matrix=NULL;
 	int offset = 0;
 	int i, j, k, l;
@@ -416,7 +456,7 @@ int AlignColorSpace(char *read,
 		}
 	}
 
-	offset = FillAlignEntryFromMatrix(aEntry,
+	offset = FillAlignEntryFromMatrix(a,
 			matrix,
 			read,
 			readLength,
@@ -434,6 +474,204 @@ int AlignColorSpace(char *read,
 	matrix=NULL;
 
 
+	/* The return is the number of gaps at the beginning of the reference */
+	return offset;
+}
+
+/* TODO */
+int AlignColorSpaceMismatchesOnly(char *read,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		ScoringMatrix *sm,
+		AlignEntry *a,
+		char strand)
+{
+	/* read goes on the rows, reference on the columns */
+	char *FnName = "AlignColorSpaceMismatchesOnly";
+	int i, j, k, l;
+
+	int offset=-1;
+	double prevScore[4];
+	double prevScoreNT[4];
+	int prevNT[4][SEQUENCE_LENGTH];
+	double maxScore = NEGATIVE_INFINITY;
+	double maxScoreNT = NEGATIVE_INFINITY;
+	int maxNT[SEQUENCE_LENGTH];
+	char DNA[ALPHABET_SIZE] = "ACGT";
+
+	if(readLength > referenceLength) {
+		fprintf(stderr, "%s[%d]\n%s[%d]\n",
+				read,
+				readLength,
+				reference,
+				referenceLength);
+	}
+	assert(readLength <= referenceLength);
+
+	for(i=0;i<referenceLength-readLength+1;i++) { /* Starting position */
+		/* Initialize */
+		for(j=0;j<4;j++) {
+			if(DNA[j] == COLOR_SPACE_START_NT) { 
+				prevScore[j] = prevScoreNT[j] = 0.0;
+			}
+			else {
+				prevScore[j] = prevScoreNT[j] = NEGATIVE_INFINITY;
+			}
+		}
+		for(j=0;j<readLength;j++) { /* Position in the alignment */
+			uint8_t curColor;
+			uint8_t curReadBase = read[j];
+			uint8_t prevReadBase = (j==0)?COLOR_SPACE_START_NT:read[j-1];
+
+			/* Get the current color for the read */
+			if(0 == ConvertBaseToColorSpace(prevReadBase, curReadBase, &curColor)) {
+				fprintf(stderr, "prevReadBase=%c\tcurReadBase=%c\n",
+						prevReadBase,
+						curReadBase);
+				PrintError(FnName,
+						"curColor",
+						"Could not convert base to color space",
+						Exit,
+						OutOfRange);
+			}
+			double nextScore[4];
+			double nextScoreNT[4];
+			uint8_t nextNT[4];
+			for(k=0;k<ALPHABET_SIZE;k++) { /* To NT */
+
+				/* Get the best score to this NT */
+				double bestScore = NEGATIVE_INFINITY;
+				double bestScoreNT = NEGATIVE_INFINITY;
+				int bestNT=-1;
+				uint8_t bestColor = 'X';
+
+				for(l=0;l<ALPHABET_SIZE;l++) { /* From NT */
+					uint8_t convertedColor='X';
+					double curScore = prevScore[l];
+					double curScoreNT = prevScoreNT[l]; 
+					/* Get color */
+					if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
+						fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
+								l,
+								DNA[l],
+								k,
+								DNA[k]);
+						PrintError(FnName,
+								"convertedColor",
+								"Could not convert base to color space",
+								Exit,
+								OutOfRange);
+					}
+					/* Add score for color error, if any */
+					curScore += ScoringMatrixGetColorScore(curColor,
+							convertedColor,
+							sm);
+					/* Add score for NT */
+					curScore += ScoringMatrixGetNTScore(reference[i+j], DNA[k], sm);
+					curScoreNT += ScoringMatrixGetNTScore(reference[i+j], DNA[k], sm);
+
+					if(curScore < NEGATIVE_INFINITY/2) {
+						curScore = NEGATIVE_INFINITY;
+						curScoreNT = NEGATIVE_INFINITY;
+					}
+
+					if(bestScore < curScore) {
+						bestScore = curScore;
+						bestScoreNT = curScoreNT;
+						bestNT = l;
+						bestColor = convertedColor;
+					}
+				}
+				nextScore[k] = bestScore;
+				nextScoreNT[k] = bestScoreNT;
+				nextNT[k] = bestNT;
+			}
+			for(k=0;k<ALPHABET_SIZE;k++) { /* To NT */
+				prevScore[k] = nextScore[k];
+				prevScoreNT[k] = nextScoreNT[k];
+				prevNT[k][j] = nextNT[k];
+				/*
+				fprintf(stderr, "k=%d\tscore=%lf\tscoreNT=%lf\tfromNT=%d\n",
+						k,
+						prevScore[k],
+						prevScoreNT[k],
+						prevNT[k][j]);
+						*/
+			}
+		}
+		/* Check if the score is better than the max */
+		k=0;
+		for(j=1;j<ALPHABET_SIZE;j++) { /* To NT */
+			if(prevScore[k] < prevScore[j]) {
+				k=j;
+			}
+		}
+		if(maxScore < prevScore[k]) {
+			maxScore = prevScore[k];
+			maxScoreNT = prevScoreNT[k];
+			/* TO GET COLORS WE NEED TO BACKTRACK */
+			l=k;
+			for(j=readLength-1;0<=j;j--) {
+				maxNT[j] = l;
+				l=prevNT[l][j];
+			}
+			offset = i;
+		}
+	}
+
+	/* Copy over */
+	a->referenceLength = readLength;
+	a->length = readLength;
+	a->score = maxScoreNT;
+	/* Allocate memory */
+	assert(NULL==a->read);
+	a->read = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->read) {
+		PrintError(FnName,
+				"a->read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL==a->reference);
+	a->reference = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->reference) {
+		PrintError(FnName,
+				"a->reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL==a->colorError);
+
+	a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL==a->colorError) {
+		PrintError(FnName,
+				"a->colorError",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Copy over */
+	for(i=0;i<a->length;i++) {
+
+		uint8_t c[2];
+		a->read[i] = DNA[maxNT[i]];
+		a->reference[i] = reference[i+offset];
+		ConvertBaseToColorSpace((i==0)?COLOR_SPACE_START_NT:read[i-1],
+					read[i],
+					&c[0]);
+		ConvertBaseToColorSpace((i==0)?COLOR_SPACE_START_NT:a->read[i-1],
+					a->read[i],
+					&c[1]);
+		a->colorError[i] = (c[0] == c[1])?'0':'1';
+	}
+	a->read[a->length] = '\0';
+	a->reference[a->length] = '\0';
+	a->colorError[a->length] = '\0';
+	
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;
 }

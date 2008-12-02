@@ -8,6 +8,7 @@ struct arguments
 	char *matchFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
 	int binaryInput;                        /* -b - not used */
+	int alignmentType;						/* -a */
 	int space;								/* -A */
 	int startContig;                        /* -s */
 	int startPos;                           /* -S */

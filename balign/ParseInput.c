@@ -58,7 +58,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
+	DescAlgoTitle, DescAlignmentType, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -77,6 +77,7 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
+	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -121,7 +122,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:l:m:n:o:r:s:x:A:E:H:M:O:S:T:2fhpt";
+"a:d:e:l:m:n:o:r:s:x:A:E:H:M:O:S:T:2fhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -186,6 +187,7 @@ main (int argc, char **argv)
 						RunAligner(&rg,
 								arguments.matchFileName,
 								arguments.scoringMatrixFileName,
+								arguments.alignmentType,
 								arguments.space,
 								arguments.startContig,
 								arguments.startPos,
@@ -320,6 +322,10 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
+	if(args->alignmentType != FullAlignment && args->alignmentType != MismatchesOnly) {
+		PrintError(FnName, "alignmentType", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
 	}
@@ -415,6 +421,7 @@ AssignDefaultValues(struct arguments *args)
 	args->binaryInput = BMATCHES_DEFAULT_OUTPUT;
 	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
 
+	args->alignmentType = FullAlignment;
 	args->space = NTSpace;
 	args->startContig=0;
 	args->startPos=0;
@@ -457,11 +464,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
-	fprintf(fp, "matchFileName\t\t\t\t%s\n", args->matchFileName);
-	fprintf(fp, "scoringMatrixFileName\t\t\t%s\n", args->scoringMatrixFileName);
+	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
+	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
+	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -550,6 +558,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   case 'b':
 						   arguments->binaryInput = 1;break;
 						   */
+					case 'a':
+						arguments->alignmentType=atoi(OPTARG);break;
 					case 'd':
 						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */

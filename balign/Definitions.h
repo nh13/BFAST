@@ -15,6 +15,8 @@
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 
+enum {FullAlignment, MismatchesOnly};
+
 /* Align.c specific definitions */
 typedef struct {
 	double gapOpenPenalty;

@@ -10,6 +10,43 @@
 #include "Align.h"
 #include "AlignNTSpace.h"
 
+int AlignNTSpace(char *read,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		ScoringMatrix *sm,
+		AlignEntry *a,
+		int type)
+{
+	char *FnName="AlignNTSpace";
+
+	switch(type) {
+		case MismatchesOnly:
+			return AlignNTSpaceMismatchesOnly(read,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a);
+			break;
+		case FullAlignment:
+			return AlignNTSpaceFull(read,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a);
+			break;
+		default:
+			PrintError(FnName,
+					"type",
+					"Could not understand alignment type",
+					Exit,
+					OutOfRange);
+	}
+	return -1;
+}
+
 /* TODO */
 /* Note: we could do this in log-space if necessary */
 /* Note: we should be aware that we are adding a lot of negative
@@ -20,14 +57,14 @@
  * the read are OK) in relation to the start of the reference
  * sequence 
  * */
-int AlignNTSpace(char *read,
+int AlignNTSpaceFull(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *aEntry)
+		AlignEntry *a)
 {
-	char *FnName = "AlignNTSpace";
+	char *FnName = "AlignNTSpaceFull";
 	/* read goes on the rows, reference on the columns */
 	AlignMatrix **matrix=NULL;
 	int offset = 0;
@@ -142,7 +179,7 @@ int AlignNTSpace(char *read,
 		}
 	}
 
-	offset = FillAlignEntryFromMatrix(aEntry,
+	offset = FillAlignEntryFromMatrix(a,
 			matrix,
 			read,
 			readLength,
@@ -160,5 +197,77 @@ int AlignNTSpace(char *read,
 	matrix=NULL;
 
 	/* The return is the number of gaps at the beginning of the reference */
+	return offset;
+}
+
+int AlignNTSpaceMismatchesOnly(char *read,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		ScoringMatrix *sm,
+		AlignEntry *a)
+{
+	char *FnName = "AlignNTSpaceMismatchesOnly";
+	/* Read goes on the second row, reference on the first */
+	int i, j;
+	double maxScore = NEGATIVE_INFINITY;
+	int offset=-1;
+	double curScore = 0.0;
+	
+	assert(readLength <= referenceLength);
+	
+	for(i=0;i<referenceLength-readLength+1;i++) { /* Starting position */
+		curScore = 0.0;
+		for(j=0;j<readLength;j++) { /* Position in the alignment */
+			curScore += ScoringMatrixGetNTScore(read[j], reference[i+j], sm);
+		}
+		if(maxScore < curScore) {
+			maxScore = curScore;
+			offset = i;
+		}
+	}
+
+	/* Copy over */
+	a->referenceLength = readLength;
+	a->length = readLength;
+	a->score = maxScore;
+	/* Allocate memory */
+	assert(NULL==a->read);
+	a->read = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->read) {
+		PrintError(FnName,
+				"a->read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL==a->reference);
+	a->reference = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->reference) {
+		PrintError(FnName,
+				"a->reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL==a->colorError);
+	/*
+	   a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	   if(NULL==a->colorError) {
+	   PrintError(FnName,
+	   "a->colorError",
+	   "Could not allocate memory",
+	   Exit,
+	   MallocMemory);
+	   }
+	   */
+	/* Copy over */
+	for(i=0;i<a->length;i++) {
+		a->read[i] = read[i];
+		a->reference[i] = reference[i+offset];
+	}
+	a->read[a->length] = '\0';
+	a->reference[a->length] = '\0';
+	
 	return offset;
 }

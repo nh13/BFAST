@@ -22,7 +22,8 @@ int Align(char *read,
 		ScoringMatrix *sm,
 		AlignEntry *a,
 		char strand,
-		int space)
+		int space,
+		int type)
 {
 	char *FnName="Align";
 	int returnValue=-1;
@@ -42,7 +43,8 @@ int Align(char *read,
 							reference,
 							referenceLength,
 							sm,
-							a);
+							a,
+							type);
 					break;
 				case REVERSE:
 					/* Reverse the read to match the forward strand  */
@@ -53,7 +55,8 @@ int Align(char *read,
 							reference,
 							referenceLength,
 							sm,
-							a);
+							a,
+							type);
 					/* We must reverse the alignment to match the REVERSE stand */
 					GetReverseComplimentAnyCase(a->read, tmpString, a->length);
 					strcpy(a->read, tmpString);
@@ -82,7 +85,8 @@ int Align(char *read,
 							referenceLength,
 							sm,
 							a,
-							FORWARD);
+							FORWARD,
+							type);
 					break;
 				case REVERSE:
 					/* Matches the reverse strand */
@@ -105,7 +109,8 @@ int Align(char *read,
 							referenceLength,
 							sm,
 							a,
-							REVERSE);
+							REVERSE,
+							type);
 					/* No need to reverse alignment, since we reversed the reference
 					 * to be the reverse strand */
 
