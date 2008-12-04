@@ -83,12 +83,17 @@ static struct argp_option options[] = {
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow when searching for candidates\n\t\t\t"
-		"(SNPs in NT space and color errors in color space)", 2},
-	{"numDeletions", 'y', "numDeletions", 0, "Specifies the maximum contiguous deletion allowed when searching for candidates", 2},
-	{"numInsertions", 'z', "numInsertions", 0, "Specifies the maximum contigous deletion allowed when searcing for candidates", 2},
-	{"numGapDeletions", 'Y', "numGapDeletions", 0, "Specifies the number of gap deletions allowed in the gap between pairs", 2},
-	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gap between pairs", 2},
+	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow in the mask when searching for candidates"
+		"\n\t\t\t(exponential enumeration: not recommended for use)"
+			"\n\t\t\t(SNPs in NT space and color errors in color space)", 2},
+	{"numDeletions", 'y', "numDeletions", 0, "Specifies the maximum contiguous deletion allowed in the mask when searching for candidates"
+		"\n\t\t\t(exponential enumeration: not recommended for use)", 2},
+	{"numInsertions", 'z', "numInsertions", 0, "Specifies the maximum contigous deletion allowed in the mask when searcing for candidates"
+		"\n\t\t\t(exponential enumeration: not recommended for use)", 2},
+	{"numGapDeletions", 'Y', "numGapDeletions", 0, "Specifies the number of gap deletions allowed in the gaps within the mask"
+		"\n\t\t\t(enumeration: not recommended for use)", 2},
+	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gaps within the mask"
+		"\n\t\t\t(enumeration: not recommended for use)", 2},
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
 	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse strand only", 2},
