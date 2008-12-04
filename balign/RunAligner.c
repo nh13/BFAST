@@ -48,6 +48,9 @@ void RunAligner(RGBinary *rg,
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char notAlignedFileName[MAX_FILENAME_LENGTH]="\0";
 
+	assert(BinaryInput == binaryInput);
+	assert(BinaryOutput == binaryOutput);
+
 	/* Check rg to make sure it is in NT Space */
 	if(rg->space != NTSpace) {
 		PrintError(FnName,
@@ -407,7 +410,7 @@ void RunDynamicProgramming(FILE *matchFP,
 				continueReading=1;
 				/* Update the number that were aligned */
 				assert(aEntries.numEntriesOne > 0 ||
-						(aEntries.pairedEnd == 1 && aEntries.numEntriesTwo > 0));
+						(aEntries.pairedEnd == PairedEnd && aEntries.numEntriesTwo > 0));
 				numAligned++;
 				/* Print it out */
 				AlignEntriesPrint(&aEntries,
@@ -434,7 +437,7 @@ void RunDynamicProgramming(FILE *matchFP,
 			if(RGMatchesRead(data[i].notAlignedFP,
 						&m,
 						pairedEnd,
-						0) == EOF) {
+						binaryInput) == EOF) {
 				continueReading = 0;
 			}
 			else {
@@ -486,9 +489,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	ThreadData *data = (ThreadData *)(arg);
 	FILE *inputFP=data->inputFP;
 	FILE *outputFP=data->outputFP;
-	/*
-	   FILE *notAlignedFP = data->notAlignedFP;
-	   */
+	FILE *notAlignedFP = data->notAlignedFP;
 	RGBinary *rg=data->rg;
 	int space=data->space;
 	int offsetLength=data->offsetLength;
@@ -622,9 +623,17 @@ void *RunDynamicProgrammingThread(void *arg)
 		assert(pairedEnd == aEntries.pairedEnd);
 
 		/* Output alignment */
-		AlignEntriesPrint(&aEntries,
+		if(0 < aEntries.numEntriesOne || 
+				(PairedEnd == aEntries.pairedEnd && 0 < aEntries.numEntriesTwo)) {
+			AlignEntriesPrint(&aEntries,
 				outputFP,
 				binaryOutput);
+		}
+		else {
+			RGMatchesPrint(notAlignedFP,
+					&m,
+					binaryOutput);
+		}
 
 		/* Free memory */
 		AlignEntriesFree(&aEntries);
