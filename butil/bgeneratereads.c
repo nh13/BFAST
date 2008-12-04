@@ -263,7 +263,7 @@ void GenerateReads(RGBinary *rg,
 					numSNPs,
 					numErrors)) {
 			/* Output */
-			r.readNum = i;
+			r.readNum = i+1;
 			ReadPrint(&r,
 					fp);
 		}
