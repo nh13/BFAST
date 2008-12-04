@@ -321,12 +321,18 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 
 	/* Go through index and update the hash */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Creating a hash. Out of %u, currently on:\n0",
+		fprintf(stderr, "Creating a hash.\nPass 1 out of 2.  Out of %u, currently on:\n0",
 				(uint32_t)index->length);
 	}
 
 	prevHash = UINT_MAX;
 	for(i=0;i<index->length;i++) {
+		if(VERBOSE >= 0 && i%RGINDEX_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%lld", 
+					(long long int)i);
+		}
+
+
 		curHash = RGIndexGetHashIndex(index, rg, i, 0);
 		if(prevHash == curHash) {
 			/* Ignore */
@@ -339,17 +345,31 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 			prevHash = curHash;
 		}
 	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\r%lld\n", 
+				(long long int)i);
+		fprintf(stderr, "Pass 2 of 2.  Out of %lld, currentyl on:\n0",
+				(long long int)index->hashLength);
+	}
 
 	/* Go through hash and reset all UINT_MAX starts */
 	for(i=index->hashLength-1, prevStart=UINT_MAX;
 			0<=i;
 			i--) {
+		if(VERBOSE >=0 && (index->hashLength-i)%RGINDEX_ROTATE_NUM == 0) {
+			fprintf(stderr, "\r%lld", 
+					(long long int)(index->hashLength-i));
+		}
 		if(UINT_MAX == index->starts[i]) {
 			index->starts[i] = prevStart;
 		}
 		else {
 			prevStart = index->starts[i];
 		}
+	}
+	if(VERBOSE >=0) {
+		fprintf(stderr, "\r%lld\n", 
+				(long long int)(index->hashLength));
 	}
 
 	/* Test hash creation */
@@ -1567,7 +1587,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 				Exit,
 				MallocMemory);
 	}
-			
+
 	if(fread(index->packageVersion, sizeof(int8_t), index->packageVersionLength, fp) != index->packageVersionLength ||
 			fread(&index->length, sizeof(int64_t), 1, fp) != 1 || 
 			fread(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
