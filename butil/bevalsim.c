@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
 
 void ReadTypeInitialize(ReadType *r)
 {
+	r->readNum=0;
 	r->strand=0;
 	r->contig=0;
 	r->pos=0;
@@ -104,6 +105,7 @@ void ReadTypeCopy(ReadType *dest,
 		ReadType *src)
 {
 	/* Only copy meta data */ 
+	dest->readNum = src->readNum;
 	dest->strand=src->strand;
 	dest->contig=src->contig;
 	dest->pos=src->pos;
@@ -121,6 +123,7 @@ void ReadTypeCopy(ReadType *dest,
 
 void ReadTypePrint(ReadType *r, FILE *fp)
 {
+	fprintf(fp, "readNum=%d\n", r->readNum);
 	fprintf(fp, "strand=%c\n", r->strand);
 	fprintf(fp, "contig=%d\n", r->contig);
 	fprintf(fp, "pos=%d\n", r->pos);
@@ -321,7 +324,8 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 	int state;
 
 	if(EOF == sscanf(readName, 
-				">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
+				">readNum=%d_strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
+				&r->readNum,
 				&r->strand,
 				&r->contig,
 				&r->pos,

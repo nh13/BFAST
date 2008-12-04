@@ -3,6 +3,7 @@
 
 typedef struct {
 	/* Meta data */
+	int readNum;
 	char strand;
 	int contig;
 	int pos;

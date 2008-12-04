@@ -10,6 +10,7 @@ typedef struct {
 	int readTwoType[SEQUENCE_LENGTH];
 	int contig;
 	int pos;
+	int readNum;
 	char strand;
 	int whichReadVariants;
 	int startIndel;

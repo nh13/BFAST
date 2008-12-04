@@ -49,7 +49,8 @@ void ReadPrint(Read *r,
 	int i;
 
 	/* Read name */
-	fprintf(fp, ">strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
+	fprintf(fp, ">readNum=%d_strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
+			r->readNum,
 			r->strand,
 			r->contig,
 			r->pos,
@@ -262,6 +263,7 @@ void GenerateReads(RGBinary *rg,
 					numSNPs,
 					numErrors)) {
 			/* Output */
+			r.readNum = i;
 			ReadPrint(&r,
 					fp);
 		}
