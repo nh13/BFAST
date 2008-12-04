@@ -325,7 +325,7 @@ void CheckRGIndexes(char **mainFileNames,
 		}
 
 		/* Get the header */
-		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
+		RGIndexReadHeader(fp, &tempIndex);
 
 		assert(tempIndex.startContig < tempIndex.endContig ||
 				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
@@ -373,7 +373,7 @@ void CheckRGIndexes(char **mainFileNames,
 		}
 
 		/* Get the header */
-		RGIndexReadHeader(fp, &tempIndex, binaryInput); 
+		RGIndexReadHeader(fp, &tempIndex);
 
 		assert(tempIndex.startContig < tempIndex.endContig ||
 				(tempIndex.startContig == tempIndex.endContig && tempIndex.startPos <= tempIndex.endPos));
@@ -1184,3 +1184,55 @@ int IsWhiteSpace(char c)
 	}
 	return 0;
 }
+
+/* TODO */
+void CheckPackageCompatibility(int8_t *packageVersion, int fileType) 
+{
+	char *FnName="CheckPackageCompatibility";
+	int version[3]={0, 0, 0};
+
+	if(3 != sscanf((char*)packageVersion, "%d.%d.%d",
+				&version[0],
+				&version[1],
+				&version[2])) {
+		PrintError(FnName,
+				(char*)packageVersion,
+				"Could not parse package version",
+				Exit,
+				OutOfRange);
+	}
+
+	switch(fileType) {
+		case BFASTReferenceGenomeFile:
+			if(version[0] < 0 ||
+					version[1] < 2) {
+				fprintf(stderr, "%d.%d.%d\n",
+						version[0],
+						version[1],
+						version[2]);
+				PrintError(FnName,
+						(char*)packageVersion,
+						"File was created using too old of a package",
+						Exit,
+						OutOfRange);
+			}
+			break;
+		case BFASTIndexFile:
+			if(version[0] < 0 ||
+					version[1] < 2) {
+				PrintError(FnName,
+						(char*)packageVersion,
+						"File was created using too old of a package",
+						Exit,
+						OutOfRange);
+			}
+			break;
+		default:
+			PrintError(FnName,
+					"fileType",
+					"Unrecognized file type given",
+					Exit,
+					OutOfRange);
+	}
+}
+

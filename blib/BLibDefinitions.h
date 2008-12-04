@@ -71,6 +71,7 @@ enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
 enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
 enum {IgnoreExons, UseExons};
 enum {BothStrands, ForwardStrand, ReverseStrand};
+enum {BFASTReferenceGenomeFile, BFASTIndexFile};
 
 /************************************/
 /* 		Data structures 			*/
@@ -128,6 +129,8 @@ typedef struct {
 typedef struct {
 	/* Storage type */
 	int32_t id;
+	int32_t packageVersionLength;
+	int8_t *packageVersion;
 	/* RG storage */
 	RGBinaryContig *contigs;
 	int32_t numContigs;
@@ -139,6 +142,8 @@ typedef struct {
 typedef struct {
 	/* Storage type */
 	int32_t id;
+	int32_t packageVersionLength;
+	int8_t *packageVersion;
 	/* Index storage */
 	uint8_t *contigs_8;
 	uint32_t *contigs_32;
@@ -161,8 +166,6 @@ typedef struct {
 	uint32_t hashWidth; /* in bases */
 	int64_t hashLength; 
 	uint32_t *starts;
-	uint32_t *ends;
-
 } RGIndex;
 
 /* TODO */

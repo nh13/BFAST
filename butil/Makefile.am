@@ -1,6 +1,7 @@
 bin_PROGRAMS = bafconvert \
 			   bevalsim \
 			   bexonify \
+			   bfix \
 			   bfixhash \
 			   bgeneratereads \
 			   bgeterrordistribution \
@@ -53,6 +54,18 @@ bexonify_SOURCES = \
 				   bexonify.c	bexonify.h
 
 bexonify_LDADD =
+
+bfix_SOURCES = \
+				  ../blib/BError.c	../blib/BError.h \
+				  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+				  ../blib/RGIndex.c	../blib/RGIndex.h \
+				  ../blib/BLib.c	../blib/BLib.h \
+				  ../blib/RGBinary.c ../blib/RGBinary.h \
+				  ../blib/RGMatch.c ../blib/RGMatch.h \
+				  ../blib/RGRanges.c ../blib/RGRanges.h \
+				  bfix.c	bfix.h 
+
+bfix_LDADD =  
 
 bfixhash_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \

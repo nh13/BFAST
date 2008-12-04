@@ -261,31 +261,11 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 	return numReads;
 }
 
-/* TODO */
-/* Reads in a RGIndexfrom file */
-void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput, int space)
+void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int space)
 {
-	FILE *fp;
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading index from %s.\n",
-				rgIndexFileName);
-	}
-
-	/* open file */
-	if((fp=fopen(rgIndexFileName, "r"))==0) {
-		PrintError("ReadRGIndex",
-				rgIndexFileName,
-				"Could not open rgIndexFileName for reading",
-				Exit,
-				OpenFileError);
-	}
 
 	/* Read from file */
-	RGIndexRead(fp, index, binaryInput);
-
-	/* close file */
-	fclose(fp);
+	RGIndexRead(index, rgIndexFileName);
 
 	if(index->space != space) {
 		PrintError("space",
@@ -293,11 +273,6 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int binaryInput, int spa
 				"The index has a different space parity than specified",
 				Exit,
 				OutOfRange);
-	}
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Read index from %s.\n",
-				rgIndexFileName);
 	}
 }
 

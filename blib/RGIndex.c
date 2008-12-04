@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <string.h>
 #include <pthread.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -64,6 +67,16 @@ void RGIndexCreate(RGIndex *index,
 
 	/* Copy over other metadata */
 	index->id = BFAST_ID;
+	index->packageVersionLength = (int)strlen(PACKAGE_VERSION);
+	index->packageVersion = malloc(sizeof(int8_t)*(index->packageVersionLength+1));
+	if(NULL==index->packageVersion) {
+		PrintError(FnName,
+				"index->packageVersion",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	strcpy((char*)index->packageVersion, PACKAGE_VERSION);
 	index->repeatMasker = repeatMasker;
 	index->space = space;
 
@@ -279,8 +292,7 @@ void RGIndexCreateHelper(RGIndex *index,
 void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 {
 	char *FnName = "RGIndexCreateHash";
-	uint32_t start, end;
-	uint32_t curHash, startHash;
+	uint32_t curHash, prevHash, prevStart;
 	int64_t i;
 
 	if(index->length >= UINT_MAX) {
@@ -301,20 +313,10 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 				MallocMemory);
 	}
 
-	index->ends = malloc(sizeof(uint32_t)*index->hashLength);
-	if(NULL==index->ends) {
-		PrintError(FnName,
-				"index->ends",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
 	/* initialize */
 	for(i=0;i<index->hashLength;i++) {
 		/* Can't use -1, so use UINT_MAX */
 		index->starts[i] = UINT_MAX;
-		index->ends[i] = UINT_MAX;
 	}
 
 	/* Go through index and update the hash */
@@ -322,77 +324,39 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 		fprintf(stderr, "Creating a hash. Out of %u, currently on:\n0",
 				(uint32_t)index->length);
 	}
-	startHash = RGIndexGetHashIndex(index, rg, 0, 0);
-	for(end=1, start=0;end < index->length;end++) {
-		if(VERBOSE >= 0 && end%RGINDEX_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%u", end);
-		}
-		curHash = RGIndexGetHashIndex(index, rg, end, 0);
-		assert(curHash >= startHash);
-		if(curHash == startHash) {
-			/* Do nothing */
+
+	prevHash = UINT_MAX;
+	for(i=0;i<index->length;i++) {
+		curHash = RGIndexGetHashIndex(index, rg, i, 0);
+		if(prevHash == curHash) {
+			/* Ignore */
 		}
 		else {
-			/* Paranoia check */
-			assert(startHash < curHash);
-			assert(curHash != startHash);
-			/* Check that it is within bounds */
-			if(startHash < 0 || startHash >= index->hashLength) {
-				fprintf(stderr, "%s: %lld\t%lld\n",
-						FnName,
-						(long long int)startHash,
-						(long long int)index->hashLength);
-			}
-			assert(startHash >= 0 && startHash < index->hashLength);
-			/* Check that it has not been already initialized */
-			if(index->starts[startHash] != UINT_MAX) {
-				fprintf(stderr, "%s: %lld\t%lld\n",
-						FnName,
-						(long long int)startHash,
-						(long long int)index->starts[startHash]);
-			}
-			assert(index->starts[startHash] == UINT_MAX);
-			if(index->ends[startHash] != UINT_MAX) {
-				fprintf(stderr, "%s: %lld\t%lld\n",
-						FnName,
-						(long long int)startHash,
-						(long long int)index->ends[startHash]);
-			}
-			assert(index->ends[startHash] == UINT_MAX);
-
-			/* Store start and end */
-			index->starts[startHash] = start;
-			index->ends[startHash] = end-1;
-
-			/* Check correctness */
-			if(index->starts[startHash] > 0 && index->starts[startHash] != UINT_MAX) {
-				assert( RGIndexCompareAt(index, rg, index->starts[startHash]-1, index->starts[startHash], 0) < 0);
-			}
-			if(index->ends[startHash] < index->length-1 && index->ends[startHash] != UINT_MAX) {
-				assert( RGIndexCompareAt(index, rg, index->ends[startHash], index->ends[startHash]+1, 0) < 0);
-			}
-
-			/* Update start */
-			start = end;
-			startHash = curHash;
+			/* Update */
+			assert(i < UINT_MAX);
+			assert(0 <= curHash && curHash < index->hashLength);
+			index->starts[curHash] = i;
+			prevHash = curHash;
 		}
 	}
-	/* In the boundary case... */
-	/* Store start and end */
-	index->starts[startHash] = start;
-	index->ends[startHash] = end-1;
+
+	/* Go through hash and reset all UINT_MAX starts */
+	for(i=index->hashLength-1, prevStart=UINT_MAX;
+			0<=i;
+			i--) {
+		if(UINT_MAX == index->starts[i]) {
+			index->starts[i] = prevStart;
+		}
+		else {
+			prevStart = index->starts[i];
+		}
+	}
 
 	/* Test hash creation */
 	/*
 	   for(i=0;i<index->hashLength;i++) {
-	   assert( (index->starts[i] == UINT_MAX && index->ends[i] == UINT_MAX) ||
-	   (index->starts[i] != UINT_MAX && index->ends[i] != UINT_MAX));
-	   if(index->starts[i] > 0 && index->starts[i] != UINT_MAX) {
-	   assert( RGIndexCompareAt(index, rg, index->starts[i]-1, index->starts[i], 0) < 0);
-	   }
-	   if(index->ends[i] < index->length-1 && index->ends[i] != UINT_MAX) {
-	   assert( RGIndexCompareAt(index, rg, index->ends[i], index->ends[i]+1, 0) < 0);
-	   }
+	   assert(0 <= index->starts[i]);
+	   assert(index->starts[i] < index->length);
 	   }
 	   */
 	if(VERBOSE >= 0) {
@@ -1298,7 +1262,6 @@ void RGIndexDelete(RGIndex *index)
 	free(index->positions);
 	free(index->mask);
 	free(index->starts);
-	free(index->ends);
 
 	RGIndexInitialize(index);
 }
@@ -1315,8 +1278,6 @@ double RGIndexGetSize(RGIndex *index, int32_t outputSize)
 	/* memory used by the mask */
 	total += sizeof(int32_t)*index->width;
 	/* memory used by starts */
-	total += sizeof(uint32_t)*index->hashLength;
-	/* memory used by ends */
 	total += sizeof(uint32_t)*index->hashLength;
 	/* memory used by the index base structure */
 	total += sizeof(RGIndex); 
@@ -1338,83 +1299,66 @@ double RGIndexGetSize(RGIndex *index, int32_t outputSize)
 }
 
 /* TODO */
-void RGIndexPrint(FILE *fp, RGIndex *index, int32_t binaryOutput)
+void RGIndexPrint(FILE *fp, RGIndex *index)
 {
 	char *FnName="RGIndexPrint";
-	int64_t i;
 
 	/* Print header */
-	RGIndexPrintHeader(fp, index, binaryOutput);
+	RGIndexPrintHeader(fp, index);
 
-	if(binaryOutput == TextOutput) {
-
-		/* Print the positions and contigs */
-		if(index->contigType == Contig_8) {
-			for(i=0;i<index->length;i++) {
-				fprintf(fp, "%u\t%u\n", 
-						index->positions[i],
-						(uint32_t)index->contigs_8[i]);
-			}
-		}
-		else {
-			for(i=0;i<index->length;i++) {
-				fprintf(fp, "%u\t%u\n", 
-						index->positions[i],
-						index->contigs_32[i]);
-			}
-		}
-
-		/* Print the starts and ends */
-		for(i=0;i<index->hashLength;i++) {
-			fprintf(fp, "%u\t%u\n",
-					index->starts[i],
-					index->ends[i]);
+	/* Print positions */
+	if(index->contigType == Contig_8) {
+		if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
+				/* Print chomosomes */
+				fwrite(index->contigs_8, sizeof(uint8_t), index->length, fp) != index->length ||
+				/* Print the starts */
+				fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength) {
+			PrintError(FnName,
+					NULL,
+					"Could not write index and hash",
+					Exit,
+					WriteFileError);
 		}
 	}
 	else {
-		/* Print positions */
-		if(index->contigType == Contig_8) {
-			if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
-					/* Print chomosomes */
-					fwrite(index->contigs_8, sizeof(uint8_t), index->length, fp) != index->length ||
-					/* Print the starts */
-					fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength ||
-					/* Print the ends */
-					fwrite(index->ends, sizeof(uint32_t), index->hashLength, fp) != index->hashLength) {
-				PrintError(FnName,
-						NULL,
-						"Could not write index and hash",
-						Exit,
-						WriteFileError);
-			}
-		}
-		else {
-			if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
-					/* Print chomosomes */
-					fwrite(index->contigs_32, sizeof(uint32_t), index->length, fp) != index->length ||
-					/* Print the starts */
-					fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength ||
-					/* Print the ends */
-					fwrite(index->ends, sizeof(uint32_t), index->hashLength, fp) != index->hashLength) {
-				PrintError(FnName,
-						NULL,
-						"Could not write index and hash",
-						Exit,
-						WriteFileError);
-			}
+		if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
+				/* Print chomosomes */
+				fwrite(index->contigs_32, sizeof(uint32_t), index->length, fp) != index->length ||
+				/* Print the starts */
+				fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength) {
+			PrintError(FnName,
+					NULL,
+					"Could not write index and hash",
+					Exit,
+					WriteFileError);
 		}
 	}
 }
 
 /* TODO */
-void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
+void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 {
 	char *FnName="RGIndexRead";
-	int64_t i;
-	uint32_t tempInt;
+
+	FILE *fp;
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Reading index from %s.\n",
+				rgIndexFileName);
+	}
+
+	/* open file */
+	if((fp=fopen(rgIndexFileName, "r"))==0) {
+		PrintError(FnName,
+				rgIndexFileName,
+				"Could not open rgIndexFileName for reading",
+				Exit,
+				OpenFileError);
+	}
 
 	/* Read in the header */
-	RGIndexReadHeader(fp, index, binaryInput);
+	RGIndexReadHeader(fp, index);
 
 	assert(index->length > 0);
 
@@ -1457,96 +1401,52 @@ void RGIndexRead(FILE *fp, RGIndex *index, int32_t binaryInput)
 				Exit,
 				MallocMemory);
 	}
-	/* Allocate memory for the ends */
-	index->ends = malloc(sizeof(uint32_t)*index->hashLength);
-	if(NULL == index->ends) {
+
+	/* Read in positions */
+	if(fread(index->positions, sizeof(uint32_t), index->length, fp)!=index->length) {
 		PrintError(FnName,
-				"index->ends",
-				"Could not allocate memory",
+				NULL,
+				"Could not read in positions",
 				Exit,
-				MallocMemory);
+				ReadFileError);
 	}
 
-	if(binaryInput == TextInput) {
-		/* Read the positions and contigs */
-		for(i=0;i<index->length;i++) {
-			if(fscanf(fp, "%u\t%u\n",
-						&index->positions[i],
-						&tempInt)==EOF) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in contig and position",
-						Exit,
-						EndOfFile);
-			}
-			if(index->contigType == Contig_8) {
-				index->contigs_8[i] = (uint8_t)tempInt;
-			}
-			else {
-				index->contigs_32[i] = tempInt;
-			}
-		}
-
-		/* Read the positions and contigs */
-		for(i=0;i<index->hashLength;i++) {
-			if(fscanf(fp, "%u\t%u\n",
-						&index->starts[i],
-						&index->ends[i])==EOF) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in starts and ends",
-						Exit,
-						EndOfFile);
-			}
+	/* Read in the contigs */
+	if(index->contigType == Contig_8) {
+		if(fread(index->contigs_8, sizeof(uint8_t), index->length, fp)!=index->length) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in contigs_8",
+					Exit,
+					ReadFileError);
 		}
 	}
 	else {
-		/* Read in positions */
-		if(fread(index->positions, sizeof(uint32_t), index->length, fp)!=index->length) {
+		if(fread(index->contigs_32, sizeof(uint32_t), index->length, fp)!=index->length) {
 			PrintError(FnName,
 					NULL,
-					"Could not read in positions",
+					"Could not read in contigs_32",
 					Exit,
 					ReadFileError);
 		}
+	}
 
-		/* Read in the contigs */
-		if(index->contigType == Contig_8) {
-			if(fread(index->contigs_8, sizeof(uint8_t), index->length, fp)!=index->length) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in contigs_8",
-						Exit,
-						ReadFileError);
-			}
-		}
-		else {
-			if(fread(index->contigs_32, sizeof(uint32_t), index->length, fp)!=index->length) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in contigs_32",
-						Exit,
-						ReadFileError);
-			}
-		}
+	/* Read in starts */
+	if(fread(index->starts, sizeof(uint32_t), index->hashLength, fp)!=index->hashLength) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in starts",
+				Exit,
+				ReadFileError);
+	}
 
-		/* Read in starts */
-		if(fread(index->starts, sizeof(uint32_t), index->hashLength, fp)!=index->hashLength) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in starts",
-					Exit,
-					ReadFileError);
-		}
+	/* close file */
+	fclose(fp);
 
-		/* Read in ends */
-		if(fread(index->ends, sizeof(uint32_t), index->hashLength, fp)!=index->hashLength) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in ends",
-					Exit,
-					ReadFileError);
-		}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Read index from %s.\n",
+				rgIndexFileName);
+		fprintf(stderr, "%s", BREAK_LINE);
 	}
 }
 
@@ -1572,9 +1472,11 @@ void RGIndexPrintInfo(char *inputFileName)
 	}
 
 	/* Read in the header */
-	RGIndexReadHeader(fp, &index, BinaryInput);
+	RGIndexReadHeader(fp, &index);
 
 	/* Print the info */
+	fprintf(stderr, "version:\t\t%s\n",
+			index.packageVersion);
 	fprintf(stderr, "start contig:\t\t%d\n",
 			index.startContig);
 	fprintf(stderr, "start position:\t\t%d\n",
@@ -1616,163 +1518,96 @@ void RGIndexPrintInfo(char *inputFileName)
 }
 
 /* TODO */
-void RGIndexPrintHeader(FILE *fp, RGIndex *index, int32_t binaryOutput)
+void RGIndexPrintHeader(FILE *fp, RGIndex *index)
 {
 	char *FnName="RGIndexPrintHeader";
-	int i;
-	if(binaryOutput == 0) {
-		fprintf(fp, "%d\t%lld\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%u\t%lld\t",
-				index->id,
-				(long long int)index->length,
-				index->contigType,
-				index->startContig,
-				index->startPos,
-				index->endContig,
-				index->endPos,
-				index->width,
-				index->keysize,
-				index->repeatMasker,
-				index->space,
-				index->hashWidth,
-				(long long int)index->hashLength
-			   );
-		/* Print the mask */
-		for(i=0;i<index->width;i++) {
-			fprintf(stderr, "%1d", index->mask[i]);
-		}
-		fprintf(stderr, "\n");
-	}
-	else {
-		/* Print Header */
-		if(fwrite(&index->id, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->length, sizeof(int64_t), 1, fp) != 1 || 
-				fwrite(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->endContig, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->endPos, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->width, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->space, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
-				fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
-				fwrite(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
-			PrintError(FnName,
-					NULL,
-					"Could not write header",
-					Exit,
-					WriteFileError);
-		}
+	/* Print Header */
+	if(fwrite(&index->id, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->packageVersionLength, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(index->packageVersion, sizeof(int8_t), index->packageVersionLength, fp) != index->packageVersionLength ||
+			fwrite(&index->length, sizeof(int64_t), 1, fp) != 1 || 
+			fwrite(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->endContig, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->endPos, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->width, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->space, sizeof(int32_t), 1, fp) != 1 ||
+			fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
+			fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
+			fwrite(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
+		PrintError(FnName,
+				NULL,
+				"Could not write header",
+				Exit,
+				WriteFileError);
 	}
 }
 
 /* TODO */
-void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
+void RGIndexReadHeader(FILE *fp, RGIndex *index) 
 {
 	char *FnName = "RGIndexReadHeader";
-	int i;
-	char tempChar;
-	long long int tempLongLongInt[2];
 	/* Read in header */
-	if(binaryInput == 0) {
-		if(fscanf(fp, "%d %lld %d %d %d %d %d %d %d %d %d %u %lld",
-					&index->id,
-					&tempLongLongInt[0],
-					&index->contigType,
-					&index->startContig,
-					&index->startPos,
-					&index->endContig,
-					&index->endPos,
-					&index->width,
-					&index->keysize,
-					&index->repeatMasker,
-					&index->space,
-					&index->hashWidth,
-					&tempLongLongInt[1])==EOF) {
-			PrintError(FnName,
-					NULL,
-					"Could not read header",
-					Exit,
-					EndOfFile);
-		}
-		index->length = tempLongLongInt[0];
-		index->hashLength = tempLongLongInt[1];
-		/* Allocate memory for the mask */
-		index->mask = malloc(sizeof(int32_t)*index->width);
-		if(NULL==index->mask) {
-			PrintError(FnName,
-					"index->mask",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		/* Read the mask */
-		for(i=0;i<index->width;i++) {
-			if(fscanf(fp, "%c", &tempChar)==EOF) {
-				PrintError(FnName,
-						NULL,
-						"Could not read header",
-						Exit,
-						EndOfFile);
-			}
-			switch(tempChar) {
-				case '0':
-					index->mask[i] = 0;
-					break;
-				case '1':
-					index->mask[i] = 1;
-					break;
-				default:
-					PrintError(FnName,
-							NULL,
-							"Could not read mask",
-							Exit,
-							OutOfRange);
-			}
-		}
+	if(fread(&index->id, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->packageVersionLength, sizeof(int32_t), 1, fp) != 1) {
+		PrintError(FnName,
+				NULL,
+				"Could not read header",
+				Exit,
+				ReadFileError);
 	}
-	else {
-		if(fread(&index->id, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->length, sizeof(int64_t), 1, fp) != 1 || 
-				fread(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->endContig, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->endPos, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->width, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->space, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
-				fread(&index->hashLength, sizeof(int64_t), 1, fp) != 1) {
-			PrintError(FnName,
-					NULL,
-					"Could not read header",
-					Exit,
-					ReadFileError);
-		}
-		/* Allocate memory for the mask */
-		index->mask = malloc(sizeof(int32_t)*index->width);
-		if(NULL==index->mask) {
-			PrintError(FnName,
-					"index->mask",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		/* Read the mask */
-		if(fread(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
-			PrintError(FnName,
-					NULL,
-					"Could not read header",
-					Exit,
-					ReadFileError);
-		}
+	index->packageVersion = malloc(sizeof(int8_t)*(index->packageVersionLength+1));
+	if(NULL==index->packageVersion) {
+		PrintError(FnName,
+				"index->packageVersion",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+			
+	if(fread(index->packageVersion, sizeof(int8_t), index->packageVersionLength, fp) != index->packageVersionLength ||
+			fread(&index->length, sizeof(int64_t), 1, fp) != 1 || 
+			fread(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->endContig, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->endPos, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->width, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->space, sizeof(int32_t), 1, fp) != 1 ||
+			fread(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
+			fread(&index->hashLength, sizeof(int64_t), 1, fp) != 1) {
+		PrintError(FnName,
+				NULL,
+				"Could not read header",
+				Exit,
+				ReadFileError);
+	}
+	/* Allocate memory for the mask */
+	index->mask = malloc(sizeof(int32_t)*index->width);
+	if(NULL==index->mask) {
+		PrintError(FnName,
+				"index->mask",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Read the mask */
+	if(fread(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
+		PrintError(FnName,
+				NULL,
+				"Could not read header",
+				Exit,
+				ReadFileError);
 	}
 
 	/* Error checking */
 	assert(index->id == (int)BFAST_ID);
+	CheckPackageCompatibility(index->packageVersion, BFASTIndexFile);
 	assert(index->length > 0);
 	assert(index->contigType == Contig_8 || index->contigType == Contig_32);
 	assert(index->startContig > 0);
@@ -1792,42 +1627,24 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index, int32_t binaryInput)
 int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int64_t *startIndex, int64_t *endIndex) 
 {
 	int64_t foundIndex=0;
-	uint32_t hashIndex=0;
-	
+
 	if(1!=WillGenerateValidKey(index, read, readLength)) {
 		return 0;
 	}
 
-	/* Get the hash index */
-	/* The hope is that the hash will give better smaller bounds (if not
-	 * zero bounds for the binary search on the index */
-	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
-	assert(hashIndex >= 0 && hashIndex < index->hashLength);
-
-	if(index->starts[hashIndex] == UINT_MAX || 
-			index->ends[hashIndex] == UINT_MAX) {
-		/* Skip */
-		return 0;
+	/* Search the index using the bounds from the hash */
+	foundIndex = RGIndexGetIndex(index, 
+			rg, 
+			read,
+			readLength,
+			startIndex,
+			endIndex);
+	if(foundIndex > 0) {
+		assert((*endIndex) >= (*startIndex));
+		assert((*startIndex) >= 0 && (*startIndex) < index->length);
+		assert((*endIndex) >= 0 && (*endIndex) < index->length);
 	}
-	else {
-		assert(index->starts[hashIndex] >=0 && index->starts[hashIndex] < index->length);
-		assert(index->ends[hashIndex] >=0 && index->ends[hashIndex] < index->length);
-
-		/* Search the index using the bounds from the hash */
-		foundIndex = RGIndexGetIndex(index, 
-				rg, 
-				index->starts[hashIndex],  
-				index->ends[hashIndex],
-				read,
-				startIndex,
-				endIndex);
-		if(foundIndex > 0) {
-			assert((*endIndex) >= (*startIndex));
-			assert((*startIndex) >= 0 && (*startIndex) < index->length);
-			assert((*endIndex) >= 0 && (*endIndex) < index->length);
-		}
-		return foundIndex;
-	}
+	return foundIndex;
 }
 
 /* TODO */
@@ -1908,9 +1725,8 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 /* TODO */
 int64_t RGIndexGetIndex(RGIndex *index,
 		RGBinary *rg,
-		int64_t low,
-		int64_t high,
 		char *read,
+		int32_t readLength,
 		int64_t *startIndex,
 		int64_t *endIndex)
 {
@@ -1918,8 +1734,38 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	int32_t cmp;
 	int32_t cont = 1;
 	int64_t tmpLow, tmpMid, tmpHigh;
+	int64_t low, high;
+	uint32_t hashIndex;
 
-	assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0) > 0);
+	/* Use hash to restrict low and high */
+	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
+	assert(0 <= hashIndex && hashIndex < index->hashLength);
+
+	if(UINT_MAX == index->starts[hashIndex]) {
+		/* The hash from this point on does not index anything */
+		return 0;
+	}
+	else if(index->hashLength - 1 == hashIndex) {
+		/* The end must point to entries in the index */
+		low = index->starts[hashIndex];
+		high = index->length - 1;
+	}
+	else if(index->starts[hashIndex] < index->starts[hashIndex+1]) {
+		low = index->starts[hashIndex];
+		/* Check to see if this goes all the way to the end of the index */
+		if(UINT_MAX == index->starts[hashIndex+1]) {
+			high = index->length - 1;
+		}
+		else {
+			high = index->starts[hashIndex+1] - 1;
+		}
+	}
+	else {
+		return 0;
+	}
+
+	assert(low <= high);
+	assert(low==0 || 0 < RGIndexCompareRead(index, rg, read, low-1, 0));
 	assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
 
 	while(low <= high && cont==1) {
@@ -2434,5 +2280,4 @@ void RGIndexInitialize(RGIndex *index)
 	index->hashWidth = 0;
 	index->hashLength = 0;
 	index->starts = NULL;
-	index->ends = NULL;
 }

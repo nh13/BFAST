@@ -759,7 +759,7 @@ int FindMatchesInIndex(char *indexFileName,
 
 	/* Read in the RG Index */
 	startTime = time(NULL);
-	ReadRGIndex(indexFileName, &index, binaryInput, space);
+	ReadRGIndex(indexFileName, &index, space);
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
 

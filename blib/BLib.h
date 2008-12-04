@@ -42,6 +42,7 @@ int ValidateFileName(char*);
 void StringCopyAndReallocate(char**, const char*);
 int StringTrimWhiteSpace(char*);
 int IsWhiteSpace(char);
+void CheckPackageCompatibility(int8_t*, int);
 
 #endif
 

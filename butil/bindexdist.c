@@ -25,7 +25,6 @@
 
 int main(int argc, char *argv[]) 
 {
-	FILE *fp=NULL;
 	char indexFileName[MAX_FILENAME_LENGTH]="\0";
 	char distributionFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
@@ -63,17 +62,7 @@ int main(int argc, char *argv[])
 		RGBinaryReadBinary(&rg, rgFileName);
 
 		/* Read the index */
-		fprintf(stderr, "Reading in index from %s.\n",
-				indexFileName);
-		if(!(fp=fopen(indexFileName, "rb"))) {
-			PrintError(Name,
-					indexFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
-		}
-		RGIndexRead(fp, &index, 1);
-		fclose(fp);
+		RGIndexRead(&index, indexFileName);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		PrintDistribution(&index, 

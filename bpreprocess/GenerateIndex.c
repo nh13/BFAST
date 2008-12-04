@@ -102,7 +102,7 @@ void GenerateIndex(RGBinary *rg,
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Outputting index to %s\n", outputFileName);
 		}
-		RGIndexPrint(fp, &index, binaryOutput);
+		RGIndexPrint(fp, &index);
 		/* Close the output file */
 		fclose(fp);
 

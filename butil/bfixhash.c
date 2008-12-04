@@ -34,23 +34,11 @@ int main(int argc, char *argv[])
 		RGBinaryReadBinary(&rg, rgFileName);
 
 		/* Read the index */
-		fprintf(stderr, "Reading in index from %s.\n",
-				indexFileName);
-		if(!(fp=fopen(indexFileName, "rb"))) {
-			PrintError("bfixhash",
-					indexFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
-		}
-		RGIndexRead(fp, &index, 1);
-		fclose(fp);
+		RGIndexRead(&index, indexFileName);
 
 		/* Free hash */
 		free(index.starts);
 		index.starts=NULL;
-		free(index.ends);
-		index.ends=NULL;
 
 		/* Update to new width */
 		index.hashWidth = hashWidth;
@@ -71,7 +59,7 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
-		RGIndexPrint(fp, &index, 1);
+		RGIndexPrint(fp, &index);
 		fclose(fp);
 
 		fprintf(stderr, "%s", BREAK_LINE);

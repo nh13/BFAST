@@ -3,6 +3,9 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include "BError.h"
 #include "BLib.h"
 #include "BLibDefinitions.h"
@@ -33,6 +36,16 @@ void RGBinaryRead(char *rgFileName,
 
 	/* Initialize the data structure for holding the rg */
 	rg->id=BFAST_ID;
+	rg->packageVersionLength = (int)strlen(PACKAGE_VERSION);
+	rg->packageVersion = malloc(sizeof(int8_t)*(rg->packageVersionLength+1));
+	if(NULL==rg->packageVersion) {
+		PrintError(FnName,
+				"rg->packageVersion",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	strcpy((char*)rg->packageVersion, PACKAGE_VERSION);
 	rg->contigs=NULL;
 	rg->numContigs=0;
 	rg->space=space;
@@ -283,6 +296,23 @@ void RGBinaryReadBinary(RGBinary *rg,
 
 	/* Read RGBinary information */
 	if( fread(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
+			fread(&rg->packageVersionLength, sizeof(int32_t), 1, fpRG)!=1) {
+		PrintError(FnName,
+				NULL,
+				"Could not read RGBinary information",
+				Exit,
+				ReadFileError);
+	}
+	assert(0<rg->packageVersionLength);
+	rg->packageVersion = malloc(sizeof(int8_t)*(rg->packageVersionLength+1));
+	if(NULL==rg->packageVersion) {
+		PrintError(FnName,
+				"rg->packageVersion",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	if(fread(rg->packageVersion, sizeof(int8_t), rg->packageVersionLength, fpRG)!=rg->packageVersionLength ||
 			fread(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
@@ -300,6 +330,8 @@ void RGBinaryReadBinary(RGBinary *rg,
 				Exit,
 				OutOfRange);
 	}
+	CheckPackageCompatibility(rg->packageVersion,
+				BFASTReferenceGenomeFile);
 
 	assert(rg->numContigs > 0);
 	assert(rg->space == NTSpace|| rg->space == ColorSpace);
@@ -402,6 +434,8 @@ void RGBinaryWriteBinary(RGBinary *rg,
 
 	/* Output RGBinary information */
 	if(fwrite(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
+			fwrite(&rg->packageVersionLength, sizeof(int32_t), 1, fpRG)!=1 ||
+			fwrite(rg->packageVersion, sizeof(int8_t), rg->packageVersionLength, fpRG)!=rg->packageVersionLength || 
 			fwrite(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
 			fwrite(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
@@ -1006,6 +1040,7 @@ void RGBinaryPrintInfo(char *rgFileName)
 		fprintf(stderr, "contig:%6d\tlength:\t%d\n", i+1, rg.contigs[i].sequenceLength);
 	}
 	fprintf(stderr, "number of contigs:\t%d\n", rg.numContigs);
+	fprintf(stderr, "version:\t\t%s\n", rg.packageVersion);
 	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
 
 	RGBinaryDelete(&rg);

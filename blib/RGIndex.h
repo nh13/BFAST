@@ -21,14 +21,14 @@ void RGIndexMergeHelperFromDiskContig_32(RGIndex*, RGBinary*, int64_t, int64_t, 
 
 void RGIndexDelete(RGIndex*);
 double RGIndexGetSize(RGIndex*, int32_t);
-void RGIndexPrint(FILE*, RGIndex*, int32_t);
-void RGIndexRead(FILE*, RGIndex*, int32_t);
+void RGIndexPrint(FILE*, RGIndex*);
+void RGIndexRead(RGIndex*, char*);
 void RGIndexPrintInfo(char*);
-void RGIndexPrintHeader(FILE*, RGIndex*, int32_t);
-void RGIndexReadHeader(FILE*, RGIndex*, int32_t);
+void RGIndexPrintHeader(FILE*, RGIndex*);
+void RGIndexReadHeader(FILE*, RGIndex*);
 int64_t RGIndexGetRanges(RGIndex*, RGBinary*, char*, int32_t, int8_t, int32_t, int64_t*, int64_t*);
 void RGIndexGetRangesBothStrands(RGIndex*, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, RGRanges*);
-int64_t RGIndexGetIndex(RGIndex*, RGBinary*, int64_t, int64_t, char*, int64_t*, int64_t*);
+int64_t RGIndexGetIndex(RGIndex*, RGBinary*, char*, int32_t, int64_t*, int64_t*);
 void RGIndexSwapAt(RGIndex*, int64_t, int64_t);
 int64_t RGIndexGetPivot(RGIndex*, RGBinary*, int64_t, int64_t);
 int32_t RGIndexCompareContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, uint32_t, uint32_t, int);
