@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.2.2
+* Added check when making the indexes that the hash width is less 
+than or equal to the key-size.
+
 Version 0.2.1
 * Major version change.
 * Added option in balign to allow local alignment to only consider

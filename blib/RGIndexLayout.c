@@ -115,6 +115,14 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *layout)
 					Exit,
 					OutOfRange);
 		}
+		/* Check that key-size is greater than or equalt to the hash width */
+		if(layout->keysizes[layout->numIndexes-1] < layout->hashWidths[layout->numIndexes-1]) {
+			PrintError(FnName,
+					layoutFileName,
+					"Hash width was greater than the key size in the layout file",
+					Exit,
+					OutOfRange);
+		}
 	}
 
 	/* Close the file */
