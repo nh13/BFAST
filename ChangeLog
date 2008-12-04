@@ -9,6 +9,7 @@ Version 0.1.14
 * Added option in balign to allow local alignment to only consider
 mismatches and color errors.
 * Removed memory leak in balign.
+* begenerate reads now outputes a read number in the read name.
 
 Version 0.1.13
 * Updated bug in RGIndex where reverse read could have n's.
