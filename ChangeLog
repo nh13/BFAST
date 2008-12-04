@@ -5,14 +5,15 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
-Version 0.1.14
+Version 0.2.1
+* Major version change.
 * Added option in balign to allow local alignment to only consider
 mismatches and color errors.
 * Removed memory leak in balign.
 * begenerate reads now outputes a read number in the read name.
-* Halved the required storage size of the hash.
-* Added bfix which will convert 0.1.13 <= reference genome and 
-index files to the current version.
+* Halved the required storage size of the hash in the index.
+* Added butil utility bfix which will convert 0.2.1 < reference 
+genome and index files to the current version.
 
 Version 0.1.13
 * Updated bug in RGIndex where reverse read could have n's.
