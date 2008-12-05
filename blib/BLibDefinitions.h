@@ -72,6 +72,7 @@ enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
 enum {IgnoreExons, UseExons};
 enum {BothStrands, ForwardStrand, ReverseStrand};
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
+enum {RGBinaryPacked, RGBinaryUnPacked};
 
 /************************************/
 /* 		Data structures 			*/
@@ -131,6 +132,7 @@ typedef struct {
 	int32_t id;
 	int32_t packageVersionLength;
 	int8_t *packageVersion;
+	int32_t packed;
 	/* RG storage */
 	RGBinaryContig *contigs;
 	int32_t numContigs;

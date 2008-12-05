@@ -181,6 +181,10 @@ main (int argc, char **argv)
 						startTime = time(NULL);
 						RGBinaryReadBinary(&rg,
 								arguments.rgFileName);
+						/* Unpack */
+						/*
+						RGBinaryUnPack(&rg);
+						*/
 						endTime = time(NULL);
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */

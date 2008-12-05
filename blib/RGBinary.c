@@ -46,6 +46,7 @@ void RGBinaryRead(char *rgFileName,
 				MallocMemory);
 	}
 	strcpy((char*)rg->packageVersion, PACKAGE_VERSION);
+	rg->packed=RGBinaryPacked;
 	rg->contigs=NULL;
 	rg->numContigs=0;
 	rg->space=space;
@@ -208,7 +209,9 @@ void RGBinaryRead(char *rgFileName,
 					rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1] = 0;
 				}
 				/* Insert the sequence correctly (as opposed to incorrectly) */
-				RGBinaryInsertBase(&rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1], byteIndex, original);
+				RGBinaryInsertBase(&rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1], 
+						byteIndex, 
+						original);
 				rg->contigs[rg->numContigs-1].sequenceLength++;
 				numPosRead++;
 				if(rg->contigs[rg->numContigs-1].sequenceLength >= UINT_MAX) {
@@ -273,7 +276,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 {
 	char *FnName="RGBinaryReadBinary";
 	FILE *fpRG;
-	int i;
+	int32_t i;
 	int32_t numCharsPerByte;
 	int64_t numPosRead=0;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
@@ -331,7 +334,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 				OutOfRange);
 	}
 	CheckPackageCompatibility(rg->packageVersion,
-				BFASTReferenceGenomeFile);
+			BFASTReferenceGenomeFile);
 
 	assert(rg->numContigs > 0);
 	assert(rg->space == NTSpace|| rg->space == ColorSpace);
@@ -395,6 +398,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 					Exit,
 					ReadFileError);
 		}
+
 		numPosRead += rg->contigs[i].sequenceLength;
 	}
 
@@ -418,6 +422,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	int32_t numCharsPerByte;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
+	assert(RGBinaryPacked == rg->packed);
 	numCharsPerByte=ALPHABET_SIZE/2;
 
 	fprintf(stderr, "%s", BREAK_LINE);
@@ -488,6 +493,7 @@ void RGBinaryDelete(RGBinary *rg)
 
 	/* Initialize structure */
 	rg->packageVersionLength=0;
+	rg->packed = RGBinaryPacked;
 	rg->id = 0;
 	rg->numContigs = 0;
 	rg->space = NTSpace;
@@ -499,6 +505,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 		int8_t base)
 {
 	/*********************************
+	 * Packed Version:
 	 * In four bits we hold two no:
 	 *
 	 * left two bits:
@@ -517,8 +524,8 @@ void RGBinaryInsertBase(uint8_t *dest,
 	int32_t numCharsPerByte;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
-	numCharsPerByte=ALPHABET_SIZE/2;
 
+	numCharsPerByte=ALPHABET_SIZE/2;
 	switch(byteIndex%numCharsPerByte) {
 		case 0:
 			(*dest)=0;
@@ -657,7 +664,6 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 	char *reverseCompliment;
 	int32_t curPos;
 
-	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
 	assert(contig > 0 && contig <= rg->numContigs);
 
@@ -734,7 +740,6 @@ void RGBinaryGetReference(RGBinary *rg,
 	int32_t startPos, endPos;
 	int success;
 
-	/* We assume that we can hold 2 [acgt] (nts) in each byte */
 	assert(ALPHABET_SIZE==4);
 	if(contig <= 0 || contig > rg->numContigs) {
 		fprintf(stderr, "\ncontig=%d\n(%d,%d)\n",
@@ -823,157 +828,163 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 		return 0;
 	}
 
-	/* For DNA */
-	assert(numCharsPerByte == 2);
-
-	/* The index in the sequence for the given position */
-	int32_t posIndex = position-1;
-	int32_t byteIndex = posIndex%numCharsPerByte; /* Which bits in the byte */
-	posIndex = (posIndex - byteIndex)/numCharsPerByte; /* Get which byte */
-
-	/* Get the current byte */
-	assert(posIndex >= 0 && posIndex < rg->contigs[contig-1].numBytes);
-	curByte= rg->contigs[contig-1].sequence[posIndex];
-
-	/* Extract base */
-	repeat = 0;
-	curChar = 'E';
-	switch(byteIndex) {
-		case 0:
-			/* left-most 2-bits */
-			repeat = curByte & 0xC0; /* zero out the irrelevant bits */
-			switch(repeat) {
-				case 0x00:
-					repeat = 0;
-					break;
-				case 0x40:
-					repeat = 1;
-					break;
-				case 0x80:
-					repeat = 2;
-					break;
-				default:
-					PrintError(FnName,
-							NULL,
-							"Could not understand case 0 repeat",
-							Exit,
-							OutOfRange);
-					break;
-			}                /* third and fourth bits from the left */
-			curByte = curByte & 0x30; /* zero out the irrelevant bits */
-			switch(curByte) {
-				case 0x00:
-					curChar = 'a';
-					break;
-				case 0x10:
-					curChar = 'c';
-					break;
-				case 0x20:
-					curChar = 'g';
-					break;
-				case 0x30:
-					curChar = 't';
-					break;
-				default:
-					PrintError(FnName,
-							NULL,
-							"Could not understand case 0 base",
-							Exit,
-							OutOfRange);
-					break;
-			}
-			break;
-		case 1:
-			/* third and fourth bits from the right */
-			repeat = curByte & 0x0C; /* zero out the irrelevant bits */
-			switch(repeat) {
-				case 0x00:
-					repeat = 0;
-					break;
-				case 0x04:
-					repeat = 1;
-					break;
-				case 0x08:
-					repeat = 2;
-					break;
-				default:
-					PrintError(FnName,
-							NULL,
-							"Could not understand case 1 repeat",
-							Exit,
-							OutOfRange);
-					break;
-			}
-			/* right-most 2-bits */
-			curByte = curByte & 0x03; /* zero out the irrelevant bits */
-			switch(curByte) {
-				case 0x00:
-					curChar = 'a';
-					break;
-				case 0x01:
-					curChar = 'c';
-					break;
-				case 0x02:
-					curChar = 'g';
-					break;
-				case 0x03:
-					curChar = 't';
-					break;
-				default:
-					PrintError(FnName,
-							NULL,
-							"Could not understand case 1 base",
-							Exit,
-							OutOfRange);
-					break;
-			}
-			break;
-		default:
-			PrintError(FnName,
-					"byteIndex",
-					"Could not understand byteIndex",
-					Exit,
-					OutOfRange);
+	if(RGBinaryUnPacked == rg->packed) {
+		/* Simple */
+		curChar = rg->contigs[contig-1].sequence[position-1];
 	}
-	/* Update based on repeat */
-	switch(repeat) {
-		case 0:
-			/* ignore, not a repeat */
-			break;
-		case 1:
-			/* repeat, convert int8_t to upper */
-			curChar=ToUpper(curChar);
-			break;
-		case 2:
-			/* N int8_tacter */
-			curChar='N';
-			break;
-		default:
-			PrintError(FnName,
-					"repeat",
-					"Could not understand repeat",
-					Exit,
-					OutOfRange);
-			break;
-	}
-	/* Error check */
-	switch(curChar) {
-		case 'a':
-		case 'c':
-		case 'g':
-		case 't':
-		case 'A':
-		case 'C':
-		case 'G':
-		case 'T':
-		case 'N':
-			break;
-		default:
-			PrintError(FnName,
-					NULL,
-					"Could not understand base",
-					Exit,
-					OutOfRange);
+	else {
+		/* For DNA */
+		assert(numCharsPerByte == 2);
+
+		/* The index in the sequence for the given position */
+		int32_t posIndex = position-1;
+		int32_t byteIndex = posIndex%numCharsPerByte; /* Which bits in the byte */
+		posIndex = (posIndex - byteIndex)/numCharsPerByte; /* Get which byte */
+
+		/* Get the current byte */
+		assert(posIndex >= 0 && posIndex < rg->contigs[contig-1].numBytes);
+		curByte= rg->contigs[contig-1].sequence[posIndex];
+
+		/* Extract base */
+		repeat = 0;
+		curChar = 'E';
+		switch(byteIndex) {
+			case 0:
+				/* left-most 2-bits */
+				repeat = curByte & 0xC0; /* zero out the irrelevant bits */
+				switch(repeat) {
+					case 0x00:
+						repeat = 0;
+						break;
+					case 0x40:
+						repeat = 1;
+						break;
+					case 0x80:
+						repeat = 2;
+						break;
+					default:
+						PrintError(FnName,
+								NULL,
+								"Could not understand case 0 repeat",
+								Exit,
+								OutOfRange);
+						break;
+				}                /* third and fourth bits from the left */
+				curByte = curByte & 0x30; /* zero out the irrelevant bits */
+				switch(curByte) {
+					case 0x00:
+						curChar = 'a';
+						break;
+					case 0x10:
+						curChar = 'c';
+						break;
+					case 0x20:
+						curChar = 'g';
+						break;
+					case 0x30:
+						curChar = 't';
+						break;
+					default:
+						PrintError(FnName,
+								NULL,
+								"Could not understand case 0 base",
+								Exit,
+								OutOfRange);
+						break;
+				}
+				break;
+			case 1:
+				/* third and fourth bits from the right */
+				repeat = curByte & 0x0C; /* zero out the irrelevant bits */
+				switch(repeat) {
+					case 0x00:
+						repeat = 0;
+						break;
+					case 0x04:
+						repeat = 1;
+						break;
+					case 0x08:
+						repeat = 2;
+						break;
+					default:
+						PrintError(FnName,
+								NULL,
+								"Could not understand case 1 repeat",
+								Exit,
+								OutOfRange);
+						break;
+				}
+				/* right-most 2-bits */
+				curByte = curByte & 0x03; /* zero out the irrelevant bits */
+				switch(curByte) {
+					case 0x00:
+						curChar = 'a';
+						break;
+					case 0x01:
+						curChar = 'c';
+						break;
+					case 0x02:
+						curChar = 'g';
+						break;
+					case 0x03:
+						curChar = 't';
+						break;
+					default:
+						PrintError(FnName,
+								NULL,
+								"Could not understand case 1 base",
+								Exit,
+								OutOfRange);
+						break;
+				}
+				break;
+			default:
+				PrintError(FnName,
+						"byteIndex",
+						"Could not understand byteIndex",
+						Exit,
+						OutOfRange);
+		}
+		/* Update based on repeat */
+		switch(repeat) {
+			case 0:
+				/* ignore, not a repeat */
+				break;
+			case 1:
+				/* repeat, convert int8_t to upper */
+				curChar=ToUpper(curChar);
+				break;
+			case 2:
+				/* N int8_tacter */
+				curChar='N';
+				break;
+			default:
+				PrintError(FnName,
+						"repeat",
+						"Could not understand repeat",
+						Exit,
+						OutOfRange);
+				break;
+		}
+		/* Error check */
+		switch(curChar) {
+			case 'a':
+			case 'c':
+			case 'g':
+			case 't':
+			case 'A':
+			case 'C':
+			case 'G':
+			case 'T':
+			case 'N':
+				break;
+			default:
+				PrintError(FnName,
+						NULL,
+						"Could not understand base",
+						Exit,
+						OutOfRange);
+		}
 	}
 	return curChar;
 }
@@ -1050,3 +1061,36 @@ void RGBinaryPrintInfo(char *rgFileName)
 	RGBinaryDelete(&rg);
 }
 
+/* TODO */
+void RGBinaryUnPack(RGBinary *rg) 
+{
+	char *FnName="RGBinaryUnPack";
+	int32_t i, j;
+	int8_t *tempSequence=NULL;
+
+	if(RGBinaryUnPacked == rg->packed) {
+		return;
+	}
+
+	for(i=0;i<rg->numContigs;i++) {
+		tempSequence = malloc(sizeof(uint8_t)*rg->contigs[i].sequenceLength);
+		if(NULL==tempSequence) {
+			PrintError(FnName,
+					"tempSequence",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Unpack this */
+		for(j=1;j<=rg->contigs[i].sequenceLength;j++) {
+			tempSequence[j-1] = RGBinaryGetBase(rg, i+1, j);
+		}
+		/* Free sequence and copy over */
+		free(rg->contigs[i].sequence);
+		rg->contigs[i].sequence=(uint8_t*)tempSequence;
+		tempSequence=NULL;
+		rg->contigs[i].numBytes = rg->contigs[i].sequenceLength;
+	}
+
+	rg->packed = RGBinaryUnPacked;
+}
