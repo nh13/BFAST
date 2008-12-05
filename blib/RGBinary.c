@@ -338,6 +338,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 
 	assert(rg->numContigs > 0);
 	assert(rg->space == NTSpace|| rg->space == ColorSpace);
+	rg->packed = RGBinaryPacked;
 
 	/* Allocate memory for the contigs */
 	rg->contigs = malloc(sizeof(RGBinaryContig)*rg->numContigs);
@@ -379,6 +380,8 @@ void RGBinaryReadBinary(RGBinary *rg,
 					Exit,
 					ReadFileError);
 		}
+		/* It should be packed */
+		assert(numCharsPerByte == (rg->contigs[i].sequenceLength / rg->contigs[i].numBytes));
 		/* Add null terminator */
 		rg->contigs[i].contigName[rg->contigs[i].contigNameLength]='\0';
 		/* Allocate memory for the sequence */
@@ -741,12 +744,6 @@ void RGBinaryGetReference(RGBinary *rg,
 	int success;
 
 	assert(ALPHABET_SIZE==4);
-	if(contig <= 0 || contig > rg->numContigs) {
-		fprintf(stderr, "\ncontig=%d\n(%d,%d)\n",
-				contig,
-				1,
-				rg->numContigs);
-	}
 	assert(contig > 0 && contig <= rg->numContigs);
 
 	/* Get bounds for the sequence to return */
@@ -821,6 +818,7 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 	uint8_t curByte, curChar;
 	int32_t repeat;
 
+	curChar = 0;
 	if(contig < 1 ||
 			contig > rg->numContigs ||
 			position < 1 ||
