@@ -483,6 +483,10 @@ void RGBinaryDelete(RGBinary *rg)
 	free(rg->contigs);
 	rg->contigs = NULL;
 
+	free(rg->packageVersion);
+	rg->packageVersion=NULL;
+	rg->packaveVersionLength=0;
+
 	/* Initialize structure */
 	rg->id = 0;
 	rg->numContigs = 0;
