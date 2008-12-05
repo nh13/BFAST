@@ -147,8 +147,8 @@ int AlignColorSpaceFull(char *read,
 
 			for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) { /* To NT */
 				char DNA[4] = "ACGT";
-				double maxScore = NEGATIVE_INFINITY-1;
-				double maxScoreNT = NEGATIVE_INFINITY-1;
+				int32_t maxScore = NEGATIVE_INFINITY-1;
+				int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
 				char maxColorError = '0';
 				int maxLength = 0;
@@ -156,8 +156,8 @@ int AlignColorSpaceFull(char *read,
 				char maxPrevInsertionBase='X';
 
 				for(l=0;l<ALIGNMATRIXCELL_NUM_SUB_CELLS;l++) { /* From NT */
-					double curScore=NEGATIVE_INFINITY;
-					double curScoreNT=NEGATIVE_INFINITY;
+					int32_t curScore=NEGATIVE_INFINITY;
+					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curFrom=-1;
 					int curLength=-1;
 					char curPrevDeletionBase='X';
@@ -492,11 +492,11 @@ int AlignColorSpaceMismatchesOnly(char *read,
 	int i, j, k, l;
 
 	int offset=-1;
-	double prevScore[4];
-	double prevScoreNT[4];
+	int32_t prevScore[4];
+	int32_t prevScoreNT[4];
 	int prevNT[4][SEQUENCE_LENGTH];
-	double maxScore = NEGATIVE_INFINITY;
-	double maxScoreNT = NEGATIVE_INFINITY;
+	int32_t maxScore = NEGATIVE_INFINITY;
+	int32_t maxScoreNT = NEGATIVE_INFINITY;
 	int maxNT[SEQUENCE_LENGTH];
 	char DNA[ALPHABET_SIZE] = "ACGT";
 
@@ -535,21 +535,21 @@ int AlignColorSpaceMismatchesOnly(char *read,
 						Exit,
 						OutOfRange);
 			}
-			double nextScore[4];
-			double nextScoreNT[4];
+			int32_t nextScore[4];
+			int32_t nextScoreNT[4];
 			uint8_t nextNT[4];
 			for(k=0;k<ALPHABET_SIZE;k++) { /* To NT */
 
 				/* Get the best score to this NT */
-				double bestScore = NEGATIVE_INFINITY;
-				double bestScoreNT = NEGATIVE_INFINITY;
+				int32_t bestScore = NEGATIVE_INFINITY;
+				int32_t bestScoreNT = NEGATIVE_INFINITY;
 				int bestNT=-1;
 				uint8_t bestColor = 'X';
 
 				for(l=0;l<ALPHABET_SIZE;l++) { /* From NT */
 					uint8_t convertedColor='X';
-					double curScore = prevScore[l];
-					double curScoreNT = prevScoreNT[l]; 
+					int32_t curScore = prevScore[l];
+					int32_t curScoreNT = prevScoreNT[l]; 
 					/* Get color */
 					if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
 						fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",

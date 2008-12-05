@@ -210,9 +210,9 @@ int AlignNTSpaceMismatchesOnly(char *read,
 	char *FnName = "AlignNTSpaceMismatchesOnly";
 	/* Read goes on the second row, reference on the first */
 	int i, j;
-	double maxScore = NEGATIVE_INFINITY;
+	int32_t maxScore = NEGATIVE_INFINITY;
 	int offset=-1;
-	double curScore = 0.0;
+	int32_t curScore = 0.0;
 	
 	assert(readLength <= referenceLength);
 	

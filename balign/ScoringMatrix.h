@@ -6,7 +6,7 @@
 int ScoringMatrixRead(char*, ScoringMatrix*, int);
 void ScoringMatrixInitialize(ScoringMatrix*);
 void ScoringMatrixFree(ScoringMatrix*);
-double ScoringMatrixGetNTScore(char, char, ScoringMatrix*);
-double ScoringMatrixGetColorScore(uint8_t, uint8_t, ScoringMatrix*);
+int32_t ScoringMatrixGetNTScore(char, char, ScoringMatrix*);
+int32_t ScoringMatrixGetColorScore(uint8_t, uint8_t, ScoringMatrix*);
 
 #endif

@@ -15,6 +15,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 {
 	char *FnName="ScoringMatrixRead";
 	int i, j;
+	int32_t tempInt;
 	FILE *fp;
 
 	/* Open the scoring matrix file */
@@ -27,22 +28,24 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 	}
 
 	/* Read in the gap open penalty */
-	if(fscanf(fp, "%lf", &sm->gapOpenPenalty)==EOF) {
+	if(fscanf(fp, "%d", &tempInt)==EOF) {
 		PrintError(FnName,
 				scoringMatrixFileName,
 				"Could not read in the gap open penalty",
 				Exit,
 				OutOfRange);
 	}
+	sm->gapOpenPenalty = tempInt;
 
 	/* Read in the gap close penalty */
-	if(fscanf(fp, "%lf", &sm->gapExtensionPenalty)==EOF) {
+	if(fscanf(fp, "%d", &tempInt)==EOF) {
 		PrintError(FnName,
 				scoringMatrixFileName,
 				"Could not read in the gap extension penalty",
 				Exit,
 				OutOfRange);
 	}
+	sm->gapExtensionPenalty = tempInt;
 
 	/* Assume the NT key is acgt */
 	assert(ALPHABET_SIZE==4);
@@ -64,7 +67,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 	sm->NTKeys[4] = 'n';
 
 	/* Allocate memory for the scores */
-	sm->NTScores = (double**)malloc(sizeof(double*)*(ALPHABET_SIZE+1));
+	sm->NTScores = (int32_t**)malloc(sizeof(int32_t*)*(ALPHABET_SIZE+1));
 	if(NULL==sm->NTScores) {
 		PrintError(FnName,
 				"sm->NTScores",
@@ -73,7 +76,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 				MallocMemory);
 	}
 	for(i=0;i<ALPHABET_SIZE+1;i++) {
-		sm->NTScores[i] = (double*)malloc(sizeof(double)*(ALPHABET_SIZE+1));
+		sm->NTScores[i] = (int32_t*)malloc(sizeof(int32_t)*(ALPHABET_SIZE+1));
 		if(NULL==sm->NTScores[i]) {
 			PrintError(FnName,
 					"sm->NTScores[i]",
@@ -85,13 +88,14 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 	/* Read in the score matrix */
 	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 		for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
-			if(fscanf(fp, "%lf", &sm->NTScores[i][j])==EOF) {
+			if(fscanf(fp, "%d", &tempInt)==EOF) {
 				PrintError(FnName,
 						scoringMatrixFileName,
 						"Could not read in the scoring matrix (NTScores)",
 						Exit,
 						OutOfRange);
 			}
+			sm->NTScores[i][j]= tempInt;
 		}
 	}
 
@@ -116,7 +120,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		sm->ColorKeys[4] = 4;
 
 		/* Allocate memory for the scores */
-		sm->ColorScores = (double**)malloc(sizeof(double*)*(ALPHABET_SIZE+1));
+		sm->ColorScores = (int32_t**)malloc(sizeof(int32_t*)*(ALPHABET_SIZE+1));
 		if(NULL==sm->ColorScores) {
 			PrintError(FnName,
 					"sm->ColorScores",
@@ -125,7 +129,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 					MallocMemory);
 		}
 		for(i=0;i<ALPHABET_SIZE+1;i++) {
-			sm->ColorScores[i] = (double*)malloc(sizeof(double)*(ALPHABET_SIZE+1));
+			sm->ColorScores[i] = (int32_t*)malloc(sizeof(int32_t)*(ALPHABET_SIZE+1));
 			if(NULL==sm->ColorScores[i]) {
 				PrintError(FnName,
 						"sm->ColorScores[i]",
@@ -137,13 +141,14 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		/* Read in the score matrix */
 		for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 			for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
-				if(fscanf(fp, "%lf", &sm->ColorScores[i][j])==EOF) {
+				if(fscanf(fp, "%d", &tempInt)==EOF) {
 					PrintError(FnName,
 							scoringMatrixFileName,
 							"Could not read in the scoring matrix (ColorScores)",
 							Exit,
 							OutOfRange);
 				}
+				sm->ColorScores[i][j] = tempInt;
 			}
 		}
 	}
@@ -180,7 +185,7 @@ void ScoringMatrixFree(ScoringMatrix *sm)
 }
 
 /* TODO */
-double ScoringMatrixGetNTScore(char a,
+int32_t ScoringMatrixGetNTScore(char a,
 		char b,
 		ScoringMatrix *sm)
 {
@@ -253,7 +258,7 @@ double ScoringMatrixGetNTScore(char a,
 }
 
 /* TODO */
-double ScoringMatrixGetColorScore(uint8_t a,
+int32_t ScoringMatrixGetColorScore(uint8_t a,
 		uint8_t b,
 		ScoringMatrix *sm)
 {

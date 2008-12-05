@@ -193,6 +193,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	int numAligned=0;
 	int numNotAligned=0;
 	int startTime, endTime;
+	int64_t numLocalAlignments=0;
 	AlignEntries aEntries;
 	/* Thread specific data */
 	ThreadData *data;
@@ -317,6 +318,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].binaryOutput=binaryOutput;
 		data[i].sm = &sm;
 		data[i].alignmentType = alignmentType;
+		data[i].numLocalAlignments = 0;
 		data[i].threadID = i;
 	}
 
@@ -389,6 +391,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	/* Close tmp input files */
 	for(i=0;i<numThreads;i++) {
 		CloseTmpFile(&data[i].inputFP, &data[i].inputFileName);
+		numLocalAlignments += data[i].numLocalAlignments;
 	}
 
 	/* Merge all the aligned reads from the threads */
@@ -468,6 +471,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	(*totalFileHandlingTime) += endTime - startTime;
 
 	if(VERBOSE >=0) {
+		fprintf(stderr, "Performed %lld local alignments.\n", numLocalAlignments);
 		fprintf(stderr, "Outputted alignments for %d reads.\n", numAligned);
 		fprintf(stderr, "Outputted %d reads for which there were no alignments.\n", numNotAligned); 
 		fprintf(stderr, "Outputting complete.\n");
@@ -634,6 +638,10 @@ void *RunDynamicProgrammingThread(void *arg)
 					&m,
 					binaryOutput);
 		}
+	
+		/* Update the number of local alignments performed */
+		data->numLocalAlignments += ctrOne;
+		data->numLocalAlignments += ctrTwo;
 
 		/* Free memory */
 		AlignEntriesFree(&aEntries);
@@ -642,7 +650,6 @@ void *RunDynamicProgrammingThread(void *arg)
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 	}
-
 
 	return arg;
 }

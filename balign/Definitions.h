@@ -19,21 +19,21 @@ enum {FullAlignment, MismatchesOnly};
 
 /* Align.c specific definitions */
 typedef struct {
-	double gapOpenPenalty;
-	double gapExtensionPenalty;
+	int32_t gapOpenPenalty;
+	int32_t gapExtensionPenalty;
 	char *NTKeys;
-	double **NTScores;
-	int *ColorKeys;
-	double **ColorScores;
+	int32_t **NTScores;
+	int32_t *ColorKeys;
+	int32_t **ColorScores;
 } ScoringMatrix;
 
 /* TODO */
 typedef struct {
 	/* add three for the insertion, deletion and best score */
-	double score[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
-	double scoreNT[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
-	int from[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* previous arc */
-	int length[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* path length */
+	int32_t score[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
+	int32_t scoreNT[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
+	int32_t from[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* previous arc */
+	int32_t length[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* path length */
 	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* color error */
 	char prevDeletionBase; /* When we create a run of deletions, we must keep track of the base used right before the deletion */
 	char prevInsertionBase; /* When we create a run of insertions, we must keep track of the base used right before the insertion */
