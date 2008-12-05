@@ -132,7 +132,6 @@ typedef struct {
 	int32_t id;
 	int32_t packageVersionLength;
 	int8_t *packageVersion;
-	int32_t packed;
 	/* RG storage */
 	RGBinaryContig *contigs;
 	int32_t numContigs;
