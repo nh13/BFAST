@@ -72,7 +72,6 @@ enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
 enum {IgnoreExons, UseExons};
 enum {BothStrands, ForwardStrand, ReverseStrand};
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
-enum {RGBinaryPacked, RGBinaryUnPacked};
 
 /************************************/
 /* 		Data structures 			*/
