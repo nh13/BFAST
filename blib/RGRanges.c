@@ -74,7 +74,12 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 					m->contigs[counter] = index->contigs_32[j];
 				}
 				/* Adjust position with the offset */
-				m->positions[counter] = index->positions[j] - r->offset[i];
+				if(FORWARD == r->strand[i]) {
+					m->positions[counter] = index->positions[j] - r->offset[i];
+				}
+				else {
+					m->positions[counter] = index->positions[j] + r->offset[i];
+				}
 				/* Default position to one if the end of the read matched
 				 * the beginning of the contig
 				 * */
