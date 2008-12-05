@@ -1363,7 +1363,6 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 	FILE *fp;
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading index from %s.\n",
 				rgIndexFileName);
 	}
@@ -1466,7 +1465,6 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Read index from %s.\n",
 				rgIndexFileName);
-		fprintf(stderr, "%s", BREAK_LINE);
 	}
 }
 

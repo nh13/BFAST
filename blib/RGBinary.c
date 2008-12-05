@@ -800,7 +800,7 @@ void RGBinaryGetReference(RGBinary *rg,
 		if(0 == success) {
 			PrintError(FnName,
 					NULL,
-					"COuld not get reference",
+					"Could not get reference",
 					Exit,
 					OutOfRange);
 		}
