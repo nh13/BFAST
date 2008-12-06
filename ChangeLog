@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.2.3
+* Updated bfix to include packed.
+
 Version 0.2.2
 * Fixed major bug that was introduced in 0.1.10 where matches to 
 the reverse strand were being erroneously included.
