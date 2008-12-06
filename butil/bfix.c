@@ -123,6 +123,7 @@ void ConvertRGBinaryFrom_0_1_13(char *inputFileName,
 	rg.space = rg_0_1_13.space;
 
 	/* Modify changed fields */
+	rg.packed = RGBinaryPacked;
 
 	/* Add new fields */
 	rg.packageVersionLength = (int)strlen(PACKAGE_VERSION);
