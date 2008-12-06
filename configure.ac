@@ -98,6 +98,7 @@ OS X is known to have this problem.
 If your system does not have argp.h then bfast will
 attempt to use getopt.h for command line parsing.])])
 
+
 AC_CONFIG_FILES([Makefile
 				 doc/Makefile
 				 bpreprocess/Makefile
@@ -105,6 +106,7 @@ AC_CONFIG_FILES([Makefile
 				 balign/Makefile
 				 bpostprocess/Makefile
 				 butil/Makefile
+				 tests/Makefile
 				 ])
 
 AC_OUTPUT
