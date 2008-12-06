@@ -1,4 +1,4 @@
 EXTRA_DIST = LICENSE \
 			 doc/bfast.1 doc/bpreprocess.1 doc/bmatches.1 doc/balign.1 doc/bpostprocess.1 doc/butil.1 \
-			 blib/BLibDefinitions.h 
+			 blib/BLibDefinitions.h tests 
 SUBDIRS = bpreprocess bmatches balign bpostprocess butil doc tests
