@@ -381,7 +381,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 					ReadFileError);
 		}
 		/* It should be packed */
-		assert(numCharsPerByte == (rg->contigs[i].sequenceLength / rg->contigs[i].numBytes));
+		assert(numCharsPerByte == (rg->contigs[i].sequenceLength + (rg->contigs[i].sequenceLength % 2))/rg->contigs[i].numBytes);
 		/* Add null terminator */
 		rg->contigs[i].contigName[rg->contigs[i].contigNameLength]='\0';
 		/* Allocate memory for the sequence */
