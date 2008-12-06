@@ -78,7 +78,7 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 					m->positions[counter] = index->positions[j] - r->offset[i];
 				}
 				else {
-					m->positions[counter] = index->positions[j] + r->offset[i];
+					m->positions[counter] = index->positions[j] + r->offset[i] - m->readLength;
 				}
 				/* Default position to one if the end of the read matched
 				 * the beginning of the contig

@@ -1735,7 +1735,8 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 			r->startIndex[r->numEntries-1] = startIndexReverse;
 			r->endIndex[r->numEntries-1] = endIndexReverse;
 			r->strand[r->numEntries-1] = REVERSE;
-			r->offset[r->numEntries-1] = offset;
+			/* Must adjust for being the reverse */
+			r->offset[r->numEntries-1] = offset + index->width;
 		}
 	}
 }
