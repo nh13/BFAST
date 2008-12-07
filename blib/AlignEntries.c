@@ -330,7 +330,7 @@ void AlignEntriesReallocate(AlignEntries *a,
 	}
 	*/
 
-	assert(a->pairedEnd == SingleEnd || a->numEntriesTwo == PairedEnd);
+	assert(a->pairedEnd == SingleEnd || a->pairedEnd == PairedEnd);
 
 	/* Allocate memory for the entries */ 
 	a->entriesOne = realloc(a->entriesOne, sizeof(AlignEntry)*a->numEntriesOne);

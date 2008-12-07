@@ -80,18 +80,11 @@ void FindMatches(
 	int startChr, startPos, endChr, endPos;
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
-			startReadNum,
-			endReadNum,
-			numMismatches,
-			numInsertions,
-			numDeletions,
-			numGapInsertions,
-			numGapDeletions,
 			pairedEnd,
 			BFAST_MATCHES_FILE_EXTENSION);
 
@@ -141,18 +134,11 @@ void FindMatches(
 	 * source read read file for each index. 
 	 * */
 	/* Create filtered reads file name */
-	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%d.%d.%d.%d.%d.%d.%d.%d.%d.%s",
+	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
-			startReadNum,
-			endReadNum,
-			numMismatches,
-			numInsertions,
-			numDeletions,
-			numGapInsertions,
-			numGapDeletions,
 			pairedEnd,
 			BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
 	/* open read file */

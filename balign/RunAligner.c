@@ -68,18 +68,20 @@ void RunAligner(RGBinary *rg,
 			&endPos);
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%s",
+	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
+			pairedEnd,
 			BFAST_ALIGN_FILE_EXTENSION);
 	/* Create not aligned file name */
-	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%s",
+	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
+			pairedEnd,
 			BFAST_NOT_ALIGNED_FILE_EXTENSION);
 
 	/* Open output file */
@@ -471,7 +473,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	(*totalFileHandlingTime) += endTime - startTime;
 
 	if(VERBOSE >=0) {
-		fprintf(stderr, "Performed %lld local alignments.\n", numLocalAlignments);
+		fprintf(stderr, "Performed %lld local alignments.\n", (long long int)numLocalAlignments);
 		fprintf(stderr, "Outputted alignments for %d reads.\n", numAligned);
 		fprintf(stderr, "Outputted %d reads for which there were no alignments.\n", numNotAligned); 
 		fprintf(stderr, "Outputting complete.\n");
