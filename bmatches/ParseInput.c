@@ -112,6 +112,8 @@ static struct argp_option options[] = {
 	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
 	{0, 0, 0, 0, 0, 0}
 };
+
+#ifdef HAVE_ARGP_H
 /*
    ARGS_DOC. Field 3 in ARGP.
    A description of the non-option command-line arguments that we accept.
@@ -122,8 +124,6 @@ static char args_doc[] = "";
    DOC.  Field 4 in ARGP.  Program documentation.
    */
 static char doc[] = "";
-
-#ifdef HAVE_ARGP_H
 /*
    The ARGP structure itself.
    */
