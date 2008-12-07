@@ -13,10 +13,13 @@ do
 	RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.$SPACE.brg";
 
 	# Make an some index
-	../bpreprocess/bpreprocess -r $RG -a 1 -A $SPACE -i $LAYOUT_FILE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR 2> /dev/null > /dev/null; 
+	CMD="../bpreprocess/bpreprocess -r $RG -a 1 -A $SPACE -i $LAYOUT_FILE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+	$CMD 2> /dev/null > /dev/null; 
 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
+		# Run again without piping anything
+		$CMD;
 		exit 1
 	fi
 done

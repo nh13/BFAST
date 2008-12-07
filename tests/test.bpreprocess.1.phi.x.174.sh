@@ -11,10 +11,13 @@ for SPACE in 0 1
 do  
 	echo "        Testing -A "$SPACE;
 	# Make reference genome
-	../bpreprocess/bpreprocess -r $RG_FASTA -a 0 -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR 2> /dev/null > /dev/null;
+	CMD="../bpreprocess/bpreprocess -r $RG_FASTA -a 0 -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+	$CMD 2> /dev/null > /dev/null;
 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
+		# Run again without piping anything
+		$CMD;
 		exit 1
 	fi
 done

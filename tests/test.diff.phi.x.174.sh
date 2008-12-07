@@ -16,6 +16,7 @@ do
 
 		# Get return code
 		if [ "$?" -ne "0" ]; then
+			echo "        $NAME* did not match.";
 			exit 1
 		fi
 	done

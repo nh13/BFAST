@@ -12,9 +12,12 @@ do
 
 	ALIGN=$OUTPUT_DIR"bfast.aligned.file.$OUTPUT_ID.$SPACE.baf";
 	# Run local alignment
-	../bpostprocess/bpostprocess -r $RG -i $ALIGN -o $OUTPUT_ID.$SPACE -d $OUTPUT_DIR 2> /dev/null > /dev/null; 
+	CMD="../bpostprocess/bpostprocess -r $RG -i $ALIGN -o $OUTPUT_ID.$SPACE -d $OUTPUT_DIR";
+	$CMD 2> /dev/null > /dev/null; 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
+		# Run again without piping anything
+		$CMD;
 		exit 1
 	fi
 done

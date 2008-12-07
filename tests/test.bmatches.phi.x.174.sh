@@ -29,9 +29,12 @@ do
 	fi
 
 	# Find matches
-	../bmatches/bmatches -r $RG -i $MAIN -I $SECONDARY -O $OFFSETS -R $READS -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR 2> /dev/null > /dev/null; 
+	CMD="../bmatches/bmatches -r $RG -i $MAIN -I $SECONDARY -O $OFFSETS -R $READS -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+	$CMD 2> /dev/null > /dev/null; 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
+		# Run again without piping anything
+		$CMD;
 		exit 1
 	fi
 done
