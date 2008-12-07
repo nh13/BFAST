@@ -139,6 +139,9 @@ void ConvertRGBinaryFrom_0_1_13(char *inputFileName,
 
 	/* Print new */
 	RGBinaryWriteBinary(&rg, outputFileName);
+
+	/* Free memory */
+	RGBinaryDelete(&rg);
 }
 
 void ConvertRGIndexFrom_0_1_13(char *inputFileName,
@@ -229,6 +232,8 @@ void ConvertRGIndexFrom_0_1_13(char *inputFileName,
 	RGIndexPrint(fp, &index);
 	fclose(fp);
 
+	/* Free memory */
+	RGIndexDelete(&index);
 }
 
 void RGBinaryReadBinary_0_1_13(RGBinary_0_1_13 *rg,
