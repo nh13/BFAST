@@ -9,6 +9,7 @@ Version 0.2.3
 * Updated bfix to include packed.
 * Updated bug when reading a bfast reference genome file.
 * Added "make check" functionality for regression testing.
+* Fixed warning in Mac OS X complaining of unused argp structures.
 
 Version 0.2.2
 * Fixed major bug that was introduced in 0.1.10 where matches to 
