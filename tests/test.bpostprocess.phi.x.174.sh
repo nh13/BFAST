@@ -22,7 +22,7 @@ do
 		if [ "$PAIRED_END" -eq "0" ]; then
 			CMD="../bpostprocess/bpostprocess -r $RG -i $ALIGN -a 3 -o $OUTPUT_ID.$SPACE.$PAIRED_END -d $OUTPUT_DIR";
 		else
-			CMD="../bpostprocess/bpostprocess -r $RG -i $ALIGN -a 3 -2 -o $OUTPUT_ID.$SPACE.$PAIRED_END -d $OUTPUT_DIR";
+			CMD="../bpostprocess/bpostprocess -r $RG -i $ALIGN -A 3 -2 -o $OUTPUT_ID.$SPACE.$PAIRED_END -d $OUTPUT_DIR";
 		fi
 		$CMD 2> /dev/null > /dev/null; 
 		# Get return code
