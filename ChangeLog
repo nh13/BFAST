@@ -8,6 +8,7 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 Version 0.2.4
 * Added a .sh script to update the tests since the reference
 genome files and index files have their version numbers embedded.
+* Updated balign "Validatin outputID" message.
 
 Version 0.2.3
 * Updated bfix to include packed.

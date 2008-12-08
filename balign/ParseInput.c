@@ -367,7 +367,7 @@ int ValidateInputs(struct arguments *args) {
 	} 
 
 	if(args->outputID!=0) {
-		fprintf(stderr, "Validating outputID path %s. \n",
+		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
 		if(ValidateFileName(args->outputID)==0)
 			PrintError(FnName, "outputID", "Command line argument", Exit, IllegalFileName);
