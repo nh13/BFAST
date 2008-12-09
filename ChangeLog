@@ -9,6 +9,8 @@ Version 0.2.4
 * Added a .sh script to update the tests since the reference
 genome files and index files have their version numbers embedded.
 * Updated balign "Validatin outputID" message.
+* Moved from using mktemp to mkstemp, which means no more mktemp
+warnings.
 
 Version 0.2.3
 * Updated bfix to include packed.

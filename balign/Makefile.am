@@ -20,4 +20,3 @@ balign_SOURCES = \
 	Definitions.h
 	
 balign_LDADD = -lm 
-

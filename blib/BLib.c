@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
@@ -439,7 +441,8 @@ FILE *OpenTmpFile(char *tmpDir,
 		char **tmpFileName)
 {
 	char *FnName = "OpenTmpFile";
-	FILE *fp;
+	FILE *fp=NULL;
+	int fd;
 
 	/* Allocate memory */
 	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
@@ -457,23 +460,49 @@ FILE *OpenTmpFile(char *tmpDir,
 	/* Copy over the tmp name */
 	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
 
-	/* Create a new tmp file name */
-	if(NULL == mktemp((*tmpFileName))) {
-		PrintError(FnName,
-				(*tmpFileName),
-				"Could not create a tmp file name",
-				Exit,
-				IllegalFileName);
+	if(-1 == (fd = mkstemp((*tmpFileName))) ||
+			NULL == (fp = fdopen(fd, "wb+"))) {
+		/* Check if the fd was open */ 
+		if(-1 != fd) {
+			/* Remove the file and close */
+			unlink((*tmpFileName));
+			close(fd);
+			PrintError(FnName,
+					(*tmpFileName),
+					"Could not open temporary file",
+					Exit,
+					OpenFileError);
+		}
+		else {
+			PrintError(FnName,
+					(*tmpFileName),
+					"Could not create a tmp file name",
+					Exit,
+					IllegalFileName);
+		}
 	}
 
+	/* Create a new tmp file name */
+	/*
+	   if(NULL == mktemp((*tmpFileName))) {
+	   PrintError(FnName,
+	   (*tmpFileName),
+	   "Could not create a tmp file name",
+	   Exit,
+	   IllegalFileName);
+	   }
+	   */
+
 	/* Open a new file */
-	if(!(fp = fopen((*tmpFileName), "wb+"))) {
-		PrintError(FnName,
-				(*tmpFileName),
-				"Could not open temporary file",
-				Exit,
-				OpenFileError);
-	}
+	/*
+	   if(!(fp = fopen((*tmpFileName), "wb+"))) {
+	   PrintError(FnName,
+	   (*tmpFileName),
+	   "Could not open temporary file",
+	   Exit,
+	   OpenFileError);
+	   }
+	   */
 
 	return fp;
 }
