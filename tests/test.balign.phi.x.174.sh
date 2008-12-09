@@ -1,7 +1,8 @@
 #!/bin/sh
 
 OUTPUT_ID="phi.x.174";
-OUTPUT_DIR="output/"
+OUTPUT_DIR="output/";
+SAVE_DIR="save/";
 TMP_DIR="tmp/";
 RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";
 
@@ -33,6 +34,21 @@ do
 			$CMD;
 			exit 1
 		fi
+
+		# Test if the files created were the same
+		for PREFIX in aligned not.aligned 
+		do
+			NAME="bfast.$PREFIX.file.$OUTPUT_ID.$SPACE.$PAIRED_END";
+			echo "          Comparing $NAME*";
+
+			diff -q $OUTPUT_DIR/$NAME* $SAVE_DIR/$NAME*;
+
+			# Get return code
+			if [ "$?" -ne "0" ]; then
+				echo "          $NAME* did not match.";
+				exit 1
+			fi
+		done
 	done
 done
 

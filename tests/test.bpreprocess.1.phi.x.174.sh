@@ -2,6 +2,7 @@
 
 OUTPUT_ID="phi.x.174";
 OUTPUT_DIR="output/";
+SAVE_DIR="save/";
 RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 TMP_DIR="tmp/";
 
@@ -18,6 +19,19 @@ do
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
 		$CMD;
+		exit 1
+	fi
+
+	# Test if the file created was the same
+	NAME="bfast.rg.file.$OUTPUT_ID.$SPACE.brg";
+	echo "          Comparing $NAME";
+
+	diff -q $OUTPUT_DIR/$NAME* $SAVE_DIR/$NAME*;
+
+	# Get return code
+	if [ "$?" -ne "0" ]; then
+	
+		echo "          $NAME* did not match.";
 		exit 1
 	fi
 done

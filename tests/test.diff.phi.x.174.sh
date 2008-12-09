@@ -4,7 +4,7 @@ OUTPUT_ID="phi.x.174";
 OUTPUT_DIR="output/";
 SAVE_DIR="save/";
 
-echo "      Comparing output files.";
+echo "      Double-checking output files.";
 for PREFIX in rg index 
 do
 	for SPACE in 0 1
