@@ -59,7 +59,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	/* Get file extension for the output files */
 	switch(outputFormat) {
 		case BAF:
-			strcpy(fileExtension,  BFAST_ALIGN_FILE_EXTENSION);
+			strcpy(fileExtension,  BFAST_ALIGNED_FILE_EXTENSION);
 			break;
 		case MAF:
 			strcpy(fileExtension, BFAST_MAF_FILE_EXTENSION);
