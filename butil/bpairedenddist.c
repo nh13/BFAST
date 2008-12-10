@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 	if(argc == 2) {
 		strcpy(inputFileName, argv[1]);
 
+		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading in from %s.\n",
 				inputFileName);
 		if(!(fp=fopen(inputFileName, "rb"))) {
@@ -38,8 +39,8 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
-
 		fprintf(stderr, "%s", BREAK_LINE);
+
 		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
 			PrintDistributionFromBMF(fp,
 					stdout);
