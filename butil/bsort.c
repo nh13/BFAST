@@ -119,7 +119,7 @@ void MoveAllIntoTmpFile(char *inputFileName,
 					OutOfRange);
 		}
 		else {
-			assert(a.numEntriesOne == 1 && a.numEntriesTwo == 1);
+			assert(a.numEntriesOne == 1 && (SingleEnd == a.pairedEnd || a.numEntriesTwo == 1));
 			AlignEntriesPrint(&a, 
 					tmpFile->FP,
 					BinaryOutput);
@@ -191,7 +191,8 @@ void SplitEntriesAndPrint(FILE *outputFP,
 
 		/* Read in, sort, and print */
 		numEntries = 0;
-		while(EOF != AlignEntriesRead(entries[numEntries],
+		while(numEntries < tmpFile->numEntries &&
+				EOF != AlignEntriesRead(entries[numEntries],
 					tmpFile->FP,
 					PairedEndDoesNotMatter,
 					SpaceDoesNotMatter,
@@ -359,7 +360,7 @@ int main(int argc, char *argv[])
 		strcpy(outputFileName, inputFileName);
 		strcat(outputFileName, ".sorted");
 
-		if(!(outputFP == fopen(outputFileName, "wb"))) {
+		if(!(outputFP = fopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
 					"Could not open file for writing",
