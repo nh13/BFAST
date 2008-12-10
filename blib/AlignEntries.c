@@ -89,6 +89,8 @@ int AlignEntriesRead(AlignEntries *a,
 	char *FnName = "AlignEntriesRead";
 	int i;
 
+	assert(a != NULL);
+
 	/* Allocate memory for the read name */
 	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
 	if(a->readName == NULL) {
@@ -148,6 +150,10 @@ int AlignEntriesRead(AlignEntries *a,
 					Exit,
 					ReallocMemory);
 		}
+	}
+	else {
+		free(a->readName);
+		a->readName=NULL;
 	}
 
 	if(a->pairedEnd == 0 && a->numEntriesTwo > 0) {
@@ -524,14 +530,17 @@ int64_t AlignEntriesGetSize(AlignEntries *a)
 	int64_t size = 0;
 
 	for(i=0;i<a->numEntriesOne;i++) {
-		size += AlignEntryGetSize(&a->entriesOne[0]);
+		size += AlignEntryGetSize(&a->entriesOne[i]);
 	}
 	for(i=0;i<a->numEntriesTwo;i++) {
-		size += AlignEntryGetSize(&a->entriesTwo[0]);
+		size += AlignEntryGetSize(&a->entriesTwo[i]);
 	}
 
 	size += sizeof(AlignEntries);
-	size += sizeof(char)*(a->readNameLength+1);
+	if(0 < a->readNameLength) {
+		size += sizeof(char)*(a->readNameLength+1);
+	}
+	size += sizeof(AlignEntry*)*(a->numEntriesOne + a->numEntriesTwo);
 
 	return size;
 }
@@ -613,11 +622,11 @@ int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
 	int cmp = 0;
 
 	assert(one->numEntriesOne == 1 && two->numEntriesOne == 1);
-	cmp = AlignEntryCompareAtIndex(one->entriesOne, 0, two->entriesOne, 0, AlignEntrySortByAll);
+	cmp = AlignEntryCompareAtIndex(one->entriesOne, 0, two->entriesOne, 0, AlignEntrySortByContigPos);
 	if(0==cmp && PairedEnd == one->pairedEnd) {
 		assert(PairedEnd == two->pairedEnd);
 		assert(one->numEntriesTwo == 1 && two->numEntriesTwo == 1);
-		cmp = AlignEntryCompareAtIndex(one->entriesTwo, 0, two->entriesTwo, 0, AlignEntrySortByAll);
+		cmp = AlignEntryCompareAtIndex(one->entriesTwo, 0, two->entriesTwo, 0, AlignEntrySortByContigPos);
 	}
 
 	return cmp;

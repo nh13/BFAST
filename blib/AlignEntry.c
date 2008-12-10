@@ -225,6 +225,9 @@ int AlignEntryRead(AlignEntry *a,
 					ReallocMemory);
 		}
 	}
+	else {
+		assert(NULL == a->colorError);
+	}
 
 	/*
 	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
@@ -751,10 +754,15 @@ int64_t AlignEntryGetSize(AlignEntry *a)
 	int64_t size = 0;
 
 	size += sizeof(AlignEntry);
-	size += sizeof(char)*(a->contigNameLength+1);
-	size += 2*sizeof(char)*(a->length+1); /* Read and reference */
-	if(NULL != a->colorError) {
-		size += sizeof(char)*(a->length+1); /* Color error */
+
+	if(0 < a->contigNameLength) {
+		size += sizeof(char)*(a->contigNameLength+1);
+	}
+	if(0 < a->length) {
+		size += 2*sizeof(char)*(a->length+1); /* Read and reference */
+		if(NULL != a->colorError) {
+			size += sizeof(char)*(a->length+1); /* Color error */
+		}
 	}
 
 	return size;

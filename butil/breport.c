@@ -330,7 +330,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 							OutOfRange);
 			}
 			assert(fCounts[i] + rCounts[i] <= total);
-			if(0>fprintf(wigFP, "contig%d %lld %lld %d f[%d %d %d %d %d %d %3.2lf] r[%d %d %d %d %d %d %lf] t[%3.2lf]\n",
+			if(0>fprintf(wigFP, "contig%d %lld %lld %d f[%d %d %d %d %d %d %3.2lf] r[%d %d %d %d %d %d %3.2lf] t[%3.2lf]\n",
 						contig,
 						(long long int)(curPos-SUBTRACT),
 						(long long int)(curPos+1-SUBTRACT),

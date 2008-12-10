@@ -8,7 +8,7 @@ typedef struct {
 	int32_t startPos;
 	int32_t endContig;
 	int32_t endPos;
-	int32_t memory; /* in MB */
+	int64_t memory; 
 	int64_t numEntries;
 	FILE *FP;
 	char *FileName;

@@ -60,6 +60,8 @@ void TmpFileUpdateMetaData(TmpFile *tmpFile,
 		TmpFileUpdateMetaDataHelper(tmpFile, &a->entriesTwo[0]);
 	}
 	tmpFile->memory += AlignEntriesGetSize(a);
+	/* This is needed for later, when we have an array of pointers to AligEntries */
+	tmpFile->memory += sizeof(AlignEntries*); 
 	tmpFile->numEntries++;
 }
 
@@ -130,8 +132,14 @@ void MoveAllIntoTmpFile(char *inputFileName,
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);
-	fprintf(stderr, "Moved %lld entries into a tmp file\n",
-			(long long int)counter);
+	fprintf(stderr, "Total size of data is %lld entries in %lldMB.\n",
+			(long long int)tmpFile->numEntries,
+			(long long int)(tmpFile->memory/pow(2, 20)));
+	fprintf(stderr, "Sorting range is contig%d:%d to contig%d:%d.\n",
+			tmpFile->startContig,
+			tmpFile->startPos,
+			tmpFile->endContig,
+			tmpFile->endPos);
 
 	/* Close the input file */
 	fclose(fpIn);
@@ -160,15 +168,19 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	fseek(tmpFile->FP, 0, SEEK_SET);
 
 	/* Check if we should print or split */
-	if(tmpFile->memory <= (memoryLimit/pow(2, 20))) { /* Assumes MEGABYTES */
+	/* Remember to include the amount of memory required for sorting */
+	/* Assumes MEGABYTES */
+	if(tmpFile->memory + tmpFile->numEntries*sizeof(AlignEntries*) <= (memoryLimit*pow(2, 20))) { 
 		/* Sort and print */
 		PrintContigPos(stderr,
 				tmpFile->startContig,
 				tmpFile->startPos);
 		assert(tmpFile->numEntries > 0);
-
+		
+		int64_t actual = 0;
 
 		/* Allocate memory for the entries */
+		actual += (long long int)(sizeof(AlignEntries*)*tmpFile->numEntries);
 		entries = malloc(sizeof(AlignEntries*)*tmpFile->numEntries);
 		if(NULL == entries) {
 			PrintError(FnName,
@@ -197,16 +209,28 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					PairedEndDoesNotMatter,
 					SpaceDoesNotMatter,
 					BinaryInput)) {
+			actual += AlignEntriesGetSize(entries[numEntries]);
 			assert(numEntries < tmpFile->numEntries);
 			numEntries++;
 		}
 		assert(numEntries == tmpFile->numEntries);
+		/*
+		fprintf(stderr, "tmpFile->memory=%lld\n",
+				(long long int)tmpFile->memory);
+		fprintf(stderr, "actual=%lld\n",
+				(long long int)actual);
+		fprintf(stderr, "just pointers=%lld\n",
+				(long long int)(sizeof(AlignEntries*)*tmpFile->numEntries));
+				*/
+
+		/* Close the file */
+		TmpFileClose(tmpFile);
 		/* Sort */
 		AlignEntriesMergeSortAll(entries, 
 				0,
-				numEntries);
+				numEntries-1);
 		/* Print and Free memory */
-		for(i=0;i<tmpFile->numEntries;i++) {
+		for(i=0;i<numEntries;i++) {
 			/* Print */
 			AlignEntriesPrint(entries[i],
 					outputFP,
@@ -280,6 +304,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 						belowTmpFile.FP, 
 						BinaryOutput);
 				belowTmpFile.numEntries++;
+				belowTmpFile.memory += AlignEntriesGetSize(&a) + sizeof(AlignEntries*);
 				if(a.entriesOne[0].contig < belowMinContig ||
 						(a.entriesOne[0].contig == belowMinContig && a.entriesOne[0].position < belowMinPosition)) {
 					belowMinContig = a.entriesOne[0].contig;
@@ -290,12 +315,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					belowMaxContig = a.entriesOne[0].contig;
 					aboveMaxPosition = a.entriesOne[0].position;
 				}
+
 			}
 			else {
 				AlignEntriesPrint(&a,
 						aboveTmpFile.FP, 
 						BinaryOutput);
 				aboveTmpFile.numEntries++;
+				aboveTmpFile.memory += AlignEntriesGetSize(&a) + sizeof(AlignEntries*);
 				if(a.entriesOne[0].contig < aboveMinContig ||
 						(a.entriesOne[0].contig == aboveMinContig && a.entriesOne[0].position < aboveMinPosition)) {
 					aboveMinContig = a.entriesOne[0].contig;
@@ -306,18 +333,20 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					aboveMaxContig = a.entriesOne[0].contig;
 					aboveMaxPosition = a.entriesOne[0].position;
 				}
-			}
-		}
 
-		/* Update ranges */
-		belowTmpFile.startContig = belowMinContig;
-		belowTmpFile.startPos = belowMinPosition;
-		belowTmpFile.endContig = belowMaxContig;
-		belowTmpFile.endPos  = belowMaxPosition;
-		aboveTmpFile.startContig = aboveMinContig;
-		aboveTmpFile.startPos = aboveMinPosition;
-		aboveTmpFile.endContig = aboveMaxContig;
-		aboveTmpFile.endPos = aboveMaxPosition;
+			}
+			AlignEntriesFree(&a);
+		}
+		/*
+		fprintf(stderr, "Split!\n");
+		fprintf(stderr, "tmpFile->memory=%lld\nbelowTmpFile=%lld\naboveTmpFile=%lld\nsum=%lld\n",
+				(long long int)tmpFile->memory,
+				(long long int)belowTmpFile.memory,
+				(long long int)aboveTmpFile.memory,
+				(long long int)(belowTmpFile.memory + aboveTmpFile.memory));
+				*/
+		/* Close tmp file */
+		TmpFileClose(tmpFile);
 
 		/* Recurse on the two */
 		SplitEntriesAndPrint(outputFP,
@@ -328,16 +357,11 @@ void SplitEntriesAndPrint(FILE *outputFP,
 				&aboveTmpFile,
 				tmpDir,
 				memoryLimit);
-
-		/* Close the files */
-		TmpFileClose(&belowTmpFile);
-		TmpFileClose(&aboveTmpFile);
 	}
 }
 
 int main(int argc, char *argv[])
 {
-
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	int32_t memoryLimit=0;
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
@@ -349,7 +373,7 @@ int main(int argc, char *argv[])
 		strcpy(inputFileName, argv[1]);
 		memoryLimit = atoi(argv[2]);
 		strcpy(tmpDir, argv[3]);
-
+		
 		/* Move all into a tmp file */
 		fprintf(stderr, "%s", BREAK_LINE);
 		MoveAllIntoTmpFile(inputFileName, &tmpFile, tmpDir);
@@ -369,14 +393,18 @@ int main(int argc, char *argv[])
 		}
 
 		/* Split entries and print */
+		fprintf(stderr, "Performing initial split, this could take some time.\n");
 		SplitEntriesAndPrint(outputFP,
 				&tmpFile,
 				tmpDir,
 				memoryLimit);
+		PrintContigPos(stderr,
+				tmpFile.endContig,
+				tmpFile.endPos);
+		fprintf(stderr, "\n");
 
 		/* Close files */
 		fclose(outputFP);
-		TmpFileClose(&tmpFile);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Terminating successfully!\n");
