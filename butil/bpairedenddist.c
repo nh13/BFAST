@@ -8,11 +8,9 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
-#include "../blib/RGIndex.h"
-#include "../blib/RGRanges.h"
 #include "../blib/RGMatch.h"
 #include "../blib/RGMatches.h"
-#include "../blib/RGReads.h"
+#include "../blib/AlignEntries.h"
 #include "bpairedenddist.h"
 
 #define Name "bpairedenddist"
@@ -26,29 +24,37 @@
 int main(int argc, char *argv[]) 
 {
 	FILE *fp=NULL;
-	char matchesFileName[MAX_FILENAME_LENGTH]="\0";
-	int binaryInput;
+	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 
-	if(argc == 3) {
-		strcpy(matchesFileName, argv[1]);
-		binaryInput = atoi(argv[2]);
-		assert(binaryInput == 0 || binaryInput == 1);
+	if(argc == 2) {
+		strcpy(inputFileName, argv[1]);
 
-		/* Read the index */
-		fprintf(stderr, "Reading in bfast matches file from %s.\n",
-				matchesFileName);
-		if(!(fp=fopen(matchesFileName, "rb"))) {
+		fprintf(stderr, "Reading in from %s.\n",
+				inputFileName);
+		if(!(fp=fopen(inputFileName, "rb"))) {
 			PrintError(Name,
-					matchesFileName,
+					inputFileName,
 					"Could not open file for reading",
 					Exit,
 					OpenFileError);
 		}
 
 		fprintf(stderr, "%s", BREAK_LINE);
-		PrintDistribution(fp,
-				binaryInput,
-				stdout);
+		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
+			PrintDistributionFromBMF(fp,
+					stdout);
+		}
+		else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
+			PrintDistributionFromBAF(fp,
+					stdout);
+		}
+		else {
+			PrintError(Name,
+					"input file",
+					"Could not recognize input file extension",
+					Warn,
+					OutOfRange);
+		}
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Close the file */
@@ -60,17 +66,16 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t\t<bfast matches file name>\n");
-		fprintf(stderr, "\t\t<binary Input: 0-text 1-binary>\n");
+		fprintf(stderr, "\t\t<bfast matches, aligned, or reported file name>\n");
 	}
 
 	return 0;
 }
 
-void PrintDistribution(FILE *fpIn,
-		int binaryInput,
+void PrintDistributionFromBMF(FILE *fpIn,
 		FILE *fpOut)
 {
+	char *FnName = "PrintDistributionFromBMF";
 	RGMatches m;
 	int64_t posOne, posTwo, difference;
 	int64_t counter=0, numUnique=0;
@@ -80,32 +85,87 @@ void PrintDistribution(FILE *fpIn,
 
 	while(EOF != RGMatchesRead(fpIn,
 				&m,
-				1,
-				binaryInput)) {
+				PairedEndDoesNotMatter,
+				BinaryInput)) {
+		if(m.pairedEnd != PairedEnd) {
+			PrintError(FnName,
+					"m.pairedEnd",
+					"Data was not paired end",
+					Exit,
+					OutOfRange);
+		}
 		/* Only use unique sequences on the same contig and strand */
-			if(1 == m.matchOne.numEntries &&
-					1 == m.matchTwo.numEntries &&
-					m.matchOne.contigs[0] == m.matchTwo.contigs[0] &&
-					m.matchOne.strand[0] == m.matchTwo.strand[0]) {
-				/* Simple way to avoid overflow */
-				posOne = m.matchOne.positions[0];
-				posTwo = m.matchTwo.positions[0];
-				difference = posOne - posTwo;
-				/* Print */
-				/*
-				   fprintf(fpOut, "%lld\t%lld\t%lld\n",
-				   (long long int)posOne,
-				   (long long int)posTwo,
-				   (long long int)difference);
-				   */
-				fprintf(fpOut, "%lld\n",
-						(long long int)difference);
-				numUnique++;
+		if(1 == m.matchOne.numEntries &&
+				1 == m.matchTwo.numEntries &&
+				m.matchOne.contigs[0] == m.matchTwo.contigs[0] &&
+				m.matchOne.strand[0] == m.matchTwo.strand[0]) {
+			/* Simple way to avoid overflow */
+			posOne = m.matchOne.positions[0];
+			posTwo = m.matchTwo.positions[0];
+			difference = posOne - posTwo;
+			/* Print */
+			/*
+			   fprintf(fpOut, "%lld\t%lld\t%lld\n",
+			   (long long int)posOne,
+			   (long long int)posTwo,
+			   (long long int)difference);
+			   */
+			fprintf(fpOut, "%lld\n",
+					(long long int)difference);
+			numUnique++;
 		}
 		counter++;
 
 		/* Free matches */
 		RGMatchesFree(&m);
+	}
+
+	fprintf(stderr, "number unique was %lld out of %lld.\n",
+			(long long int)numUnique,
+			(long long int)counter);
+
+}
+
+void PrintDistributionFromBAF(FILE *fpIn,
+		FILE *fpOut)
+{
+	char *FnName = "PrintDistributionFromBAF";
+	AlignEntries a;
+	int64_t posOne, posTwo, difference;
+	int64_t counter=0, numUnique=0;
+
+	/* Initialize */
+	AlignEntriesInitialize(&a);
+
+	while(EOF != AlignEntriesRead(&a,
+				fpIn,
+				PairedEndDoesNotMatter,
+				SpaceDoesNotMatter,
+				BinaryInput)) {
+		if(a.pairedEnd != PairedEnd) {
+			PrintError(FnName,
+					"a.pairedEnd",
+					"Data was not paired end",
+					Exit,
+					OutOfRange);
+		}
+		/* Only use unique sequences on the same contig and strand */
+		if(1 == a.numEntriesOne &&
+				1 == a.numEntriesTwo &&
+				a.entriesOne[0].contig == a.entriesTwo[0].contig &&
+				a.entriesOne[0].strand == a.entriesTwo[0].strand) {
+			/* Simple way to avoid overflow */
+			posOne = a.entriesOne[0].position;
+			posTwo = a.entriesTwo[0].position;
+			difference = posOne - posTwo;
+			fprintf(fpOut, "%lld\n",
+					(long long int)difference);
+			numUnique++;
+		}
+		counter++;
+
+		/* Free memory */
+		AlignEntriesFree(&a);
 	}
 
 	fprintf(stderr, "number unique was %lld out of %lld.\n",

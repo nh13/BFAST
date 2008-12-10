@@ -74,7 +74,7 @@ void RunAligner(RGBinary *rg,
 			outputID,
 			space,
 			pairedEnd,
-			BFAST_ALIGN_FILE_EXTENSION);
+			BFAST_ALIGNED_FILE_EXTENSION);
 	/* Create not aligned file name */
 	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%d.%s",
 			outputDir,

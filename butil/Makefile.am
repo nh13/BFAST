@@ -154,6 +154,8 @@ bpairedenddist_SOURCES = \
 						 ../blib/RGMatches.c ../blib/RGMatches.h \
 						 ../blib/RGRanges.c ../blib/RGRanges.h \
 						 ../blib/RGReads.c	../blib/RGReads.h \
+						 ../blib/AlignEntries.c	../blib/AlignEntries.h \
+						 ../blib/AlignEntry.c	../blib/AlignEntry.h \
 						 bpairedenddist.c	bpairedenddist.h
 
 bpairedenddist_LDADD =

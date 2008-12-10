@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
 			type=BMF;
 		}
-		else if(NULL!=strstr(inputFileName, BFAST_ALIGN_FILE_EXTENSION)) {
+		else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
 			type=BAF;
 		}
 		else {
