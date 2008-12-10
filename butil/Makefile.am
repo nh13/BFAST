@@ -12,6 +12,7 @@ bin_PROGRAMS = bafconvert \
 			   bpairedenddist \
 			   brepeat \
 			   breport \
+			   bsort \
 			   btestindexes 
 
 bafconvert_SOURCES = \
@@ -56,14 +57,14 @@ bexonify_SOURCES = \
 bexonify_LDADD =
 
 bfix_SOURCES = \
-				  ../blib/BError.c	../blib/BError.h \
-				  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-				  ../blib/RGIndex.c	../blib/RGIndex.h \
-				  ../blib/BLib.c	../blib/BLib.h \
-				  ../blib/RGBinary.c ../blib/RGBinary.h \
-				  ../blib/RGMatch.c ../blib/RGMatch.h \
-				  ../blib/RGRanges.c ../blib/RGRanges.h \
-				  bfix.c	bfix.h 
+			   ../blib/BError.c	../blib/BError.h \
+			   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+			   ../blib/RGIndex.c	../blib/RGIndex.h \
+			   ../blib/BLib.c	../blib/BLib.h \
+			   ../blib/RGBinary.c ../blib/RGBinary.h \
+			   ../blib/RGMatch.c ../blib/RGMatch.h \
+			   ../blib/RGRanges.c ../blib/RGRanges.h \
+			   bfix.c	bfix.h 
 
 bfix_LDADD =  
 
@@ -198,6 +199,22 @@ breport_SOURCES = \
 				  breport.c	breport.h
 
 breport_LDADD =
+
+bsort_SOURCES = \
+				../blib/AlignEntry.c	../blib/AlignEntry.h \
+				../blib/AlignEntries.c	../blib/AlignEntries.h \
+				../blib/BError.c	../blib/BError.h \
+				../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+				../blib/RGIndex.c	../blib/RGIndex.h \
+				../blib/BLib.c	../blib/BLib.h \
+				../blib/RGBinary.c ../blib/RGBinary.h \
+				../blib/RGMatch.c ../blib/RGMatch.h \
+				../blib/RGMatches.c ../blib/RGMatches.h \
+				../blib/RGRanges.c ../blib/RGRanges.h \
+				../blib/RGReads.c	../blib/RGReads.h \
+				bsort.c	bsort.h
+
+bsort_LDADD =
 
 btestindexes_SOURCES = \
 					   ../blib/RGRanges.c ../blib/RGRanges.h \

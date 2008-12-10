@@ -210,6 +210,7 @@ typedef struct {
 
 /* TODO */
 typedef struct {
+	int32_t readNameLength;
 	char *readName;
 	int32_t pairedEnd;
 	int32_t space;

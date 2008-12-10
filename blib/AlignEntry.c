@@ -745,3 +745,17 @@ int AlignEntryGetPivot(AlignEntry *a,
 	}
 	return pivot;
 }
+
+int64_t AlignEntryGetSize(AlignEntry *a)
+{
+	int64_t size = 0;
+
+	size += sizeof(AlignEntry);
+	size += sizeof(char)*(a->contigNameLength+1);
+	size += 2*sizeof(char)*(a->length+1); /* Read and reference */
+	if(NULL != a->colorError) {
+		size += sizeof(char)*(a->length+1); /* Color error */
+	}
+
+	return size;
+}

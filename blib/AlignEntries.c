@@ -15,7 +15,6 @@ void AlignEntriesPrint(AlignEntries *a,
 {
 	char *FnName = "AlignEntriesPrint";
 	int i;
-	int32_t tempReadNameLength;
 
 	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
 
@@ -36,9 +35,9 @@ void AlignEntriesPrint(AlignEntries *a,
 	}
 	else {
 		assert(a!=NULL);
-		tempReadNameLength = (int)strlen(a->readName);
-		if(fwrite(&tempReadNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(a->readName, sizeof(char), tempReadNameLength, outputFP) != tempReadNameLength ||
+		a->readNameLength = (int)strlen(a->readName);
+		if(fwrite(&a->readNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
+				fwrite(a->readName, sizeof(char), a->readNameLength, outputFP) != a->readNameLength ||
 				fwrite(&a->pairedEnd, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->space, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->numEntriesOne, sizeof(int32_t), 1, outputFP) != 1 ||
@@ -89,7 +88,6 @@ int AlignEntriesRead(AlignEntries *a,
 {
 	char *FnName = "AlignEntriesRead";
 	int i;
-	int32_t tempReadNameLength;
 
 	/* Allocate memory for the read name */
 	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
@@ -116,15 +114,16 @@ int AlignEntriesRead(AlignEntries *a,
 			a->readName=NULL;
 			return EOF;
 		}
+		a->readNameLength = (int)strlen(a->readName);
 	}
 	else {
-		if(fread(&tempReadNameLength, sizeof(int32_t), 1, inputFP) != 1) {
+		if(fread(&a->readNameLength, sizeof(int32_t), 1, inputFP) != 1) {
 			/* Free read name before leaving */
 			free(a->readName);
 			a->readName=NULL;
 			return EOF;
 		}
-		if(fread(a->readName, sizeof(char), tempReadNameLength, inputFP) != tempReadNameLength ||
+		if(fread(a->readName, sizeof(char), a->readNameLength, inputFP) != a->readNameLength ||
 				fread(&a->pairedEnd, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->space, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->numEntriesOne, sizeof(int32_t), 1, inputFP) != 1 ||
@@ -136,7 +135,19 @@ int AlignEntriesRead(AlignEntries *a,
 					ReadFileError);
 		}
 		/* Add the null terminator */
-		a->readName[tempReadNameLength]='\0';
+		a->readName[a->readNameLength]='\0';
+	}
+
+	/* Reallocate to conserve memory */
+	if(0 < a->readNameLength) {
+		a->readName = realloc(a->readName, sizeof(char)*(a->readNameLength+1));
+		if(NULL == a->readName) {
+			PrintError(FnName,
+					"a->readName",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
 	}
 
 	if(a->pairedEnd == 0 && a->numEntriesTwo > 0) {
@@ -317,18 +328,6 @@ void AlignEntriesReallocate(AlignEntries *a,
 	a->space = space;
 
 	/* Don't change read name */
-	/*
-	a->readName = realloc(a->readName, sizeof(char)*SEQUENCE_NAME_LENGTH);
-	if(a->readName == NULL) {
-		if(NULL == a->readName) {
-			PrintError(FnName,
-					"a->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	*/
 
 	assert(a->pairedEnd == SingleEnd || a->pairedEnd == PairedEnd);
 
@@ -371,8 +370,9 @@ void AlignEntriesAllocate(AlignEntries *a,
 	a->numEntriesTwo = numEntriesTwo;
 	a->pairedEnd = pairedEnd;
 	a->space = space;
+	a->readNameLength = (int)strlen(readName);
 
-	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+	a->readName = malloc(sizeof(char)*(a->readNameLength+1));
 	if(a->readName == NULL) {
 		if(NULL == a->readName) {
 			PrintError(FnName,
@@ -448,6 +448,7 @@ void AlignEntriesFree(AlignEntries *a)
 /* TODO */
 void AlignEntriesInitialize(AlignEntries *a) 
 {
+	a->readNameLength=0;
 	a->readName=NULL;
 	a->entriesOne=NULL;
 	a->numEntriesOne=0;
@@ -465,7 +466,7 @@ void AlignEntriesKeepOnly(AlignEntries *a,
 		int space)
 {
 	assert(pairedEnd == a->pairedEnd);
-	
+
 	/* First read */
 	assert(0 <= indexOne && indexOne < a->numEntriesOne);
 	/* Copy to the front */
@@ -515,4 +516,109 @@ void AlignEntriesCopy(AlignEntries *src, AlignEntries *dst)
 	for(i=0;i<src->numEntriesTwo;i++) {
 		AlignEntryCopy(&src->entriesTwo[i], &dst->entriesTwo[i]);
 	}
+}
+
+int64_t AlignEntriesGetSize(AlignEntries *a)
+{
+	int32_t i;
+	int64_t size = 0;
+
+	for(i=0;i<a->numEntriesOne;i++) {
+		size += AlignEntryGetSize(&a->entriesOne[0]);
+	}
+	for(i=0;i<a->numEntriesTwo;i++) {
+		size += AlignEntryGetSize(&a->entriesTwo[0]);
+	}
+
+	size += sizeof(AlignEntries);
+	size += sizeof(char)*(a->readNameLength+1);
+
+	return size;
+}
+
+/* O(n) space, but really double */
+/* Should be a list of pointers to individual AlignEntries */
+void AlignEntriesMergeSortAll(AlignEntries **a,
+		int64_t low, 
+		int64_t high)
+{
+	char *FnName="AlignEntriesMergeSortAll";
+	int64_t mid = (low + high)/2;
+	int64_t startLower = low;
+	int64_t endLower = mid;
+	int64_t startUpper = mid+1;
+	int64_t endUpper = high;
+	int64_t ctr, i;
+	AlignEntries **tmp=NULL;
+
+	if(low >= high) {
+		return;
+	}
+
+	/* Split */
+	AlignEntriesMergeSortAll(a,
+			low,
+			mid);
+	AlignEntriesMergeSortAll(a,
+			mid+1,
+			high);
+
+	/* Merge */
+	tmp = malloc(sizeof(AlignEntries*)*(high-low+1));
+	if(NULL == tmp) {
+		PrintError(FnName,
+				"tmp",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	/* Merge the two lists */
+	ctr=0;
+	while( (startLower <= endLower) && (startUpper <= endUpper)) {
+		if(AlignEntriesCompareAll(a[startLower], a[startUpper]) <= 0) {
+			tmp[ctr] = a[startLower];
+			startLower++;
+		}
+		else {
+			tmp[ctr] = a[startUpper];
+			startUpper++;
+		}
+		ctr++;
+	}
+	while(startLower <= endLower) {
+		tmp[ctr] = a[startLower];
+		startLower++;
+		ctr++;
+	}
+	while(startUpper <= endUpper) {
+		tmp[ctr] = a[startUpper];
+		startUpper++;
+		ctr++;
+	}
+	/* Copy back */
+	for(i=low, ctr=0;
+			i<=high;
+			i++, ctr++) {
+		a[i] = tmp[ctr];
+	}
+
+	free(tmp);
+	tmp=NULL;
+}
+
+/* TODO */
+int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
+{
+	/* Compare by chr/pos */ 
+	int cmp = 0;
+
+	assert(one->numEntriesOne == 1 && two->numEntriesOne == 1);
+	cmp = AlignEntryCompareAtIndex(one->entriesOne, 0, two->entriesOne, 0, AlignEntrySortByAll);
+	if(0==cmp && PairedEnd == one->pairedEnd) {
+		assert(PairedEnd == two->pairedEnd);
+		assert(one->numEntriesTwo == 1 && two->numEntriesTwo == 1);
+		cmp = AlignEntryCompareAtIndex(one->entriesTwo, 0, two->entriesTwo, 0, AlignEntrySortByAll);
+	}
+
+	return cmp;
 }

@@ -19,4 +19,5 @@ void AlignEntryFree(AlignEntry*);
 void AlignEntryInitialize(AlignEntry*);
 void AlignEntryCheckReference(AlignEntry*, RGBinary*, int);
 int AlignEntryGetPivot(AlignEntry*, int, int, int);
+int64_t AlignEntryGetSize(AlignEntry*);
 #endif
