@@ -12,19 +12,9 @@
 #include "bsort.h"
 
 #define Name "bsort"
-#define BREPORT_ROTATE_NUM 100000
-#define MAX_LINE_LENGTH 4028
-/* For zero-based, set this to 0, otherwise to 1 */
-#define SUBTRACT 0
-#define BED "BED"
-#define WIG "WIG"
-#define DELIMINATORS "\t\n "
+#define BSORT_ROTATE_NUM 100000
 
-/* Converts a bfast .baf file to bfast .bed and .wig files.  The
- * .baf file must be generated from bpostprocess, with each
- * read having a unique alignment.  The files generated files 
- * do not conform with UCSC standards but are nonetheless more 
- * verbose.  There will be two files per contig.
+/* Sorts a bfast report file.
  * */
 
 void TmpFileOpen(TmpFile *tmpFile,
@@ -105,7 +95,7 @@ void MoveAllIntoTmpFile(char *inputFileName,
 	fprintf(stderr, "Moving all entries into a tmp file.  Currently on read:\n0");
 	AlignEntriesInitialize(&a);
 	while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
-		if(counter%BREPORT_ROTATE_NUM==0) {
+		if(counter%BSORT_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
@@ -152,7 +142,8 @@ void SplitEntriesAndPrint(FILE *outputFP,
 {
 	char *FnName="SplitEntriesAndPrint";
 	int32_t meanPos, meanContig;
-	AlignEntries **entries=NULL;
+	AlignEntries *entries=NULL;
+	AlignEntries **entriesPtr=NULL;
 	AlignEntries a;
 	int64_t numEntries=0;
 	TmpFile belowTmpFile, aboveTmpFile;
@@ -181,7 +172,16 @@ void SplitEntriesAndPrint(FILE *outputFP,
 
 		/* Allocate memory for the entries */
 		actual += (long long int)(sizeof(AlignEntries*)*tmpFile->numEntries);
-		entries = malloc(sizeof(AlignEntries*)*tmpFile->numEntries);
+		/* Must allocate in this way to guarantee aligned memory */
+		entriesPtr = malloc(sizeof(AlignEntries*)*tmpFile->numEntries);
+		if(NULL == entriesPtr) {
+			PrintError(FnName,
+					"entriesPtr",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		entries = malloc(sizeof(AlignEntries)*tmpFile->numEntries);
 		if(NULL == entries) {
 			PrintError(FnName,
 					"entries",
@@ -189,27 +189,21 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					Exit,
 					MallocMemory);
 		}
+		/* Initialize */
 		for(i=0;i<tmpFile->numEntries;i++) {
-			entries[i] = malloc(sizeof(AlignEntries));
-			if(NULL == entries[i]) {
-				PrintError(FnName,
-						"entries[i]",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-			AlignEntriesInitialize(entries[i]);
+			entriesPtr[i] = &entries[i];
+			AlignEntriesInitialize(entriesPtr[i]);
 		}
 
 		/* Read in, sort, and print */
 		numEntries = 0;
 		while(numEntries < tmpFile->numEntries &&
-				EOF != AlignEntriesRead(entries[numEntries],
+				EOF != AlignEntriesRead(entriesPtr[numEntries],
 					tmpFile->FP,
 					PairedEndDoesNotMatter,
 					SpaceDoesNotMatter,
 					BinaryInput)) {
-			actual += AlignEntriesGetSize(entries[numEntries]);
+			actual += AlignEntriesGetSize(entriesPtr[numEntries]);
 			assert(numEntries < tmpFile->numEntries);
 			numEntries++;
 		}
@@ -226,20 +220,21 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		/* Close the file */
 		TmpFileClose(tmpFile);
 		/* Sort */
-		AlignEntriesMergeSortAll(entries, 
+		AlignEntriesMergeSortAll(entriesPtr, 
 				0,
 				numEntries-1);
 		/* Print and Free memory */
 		for(i=0;i<numEntries;i++) {
 			/* Print */
-			AlignEntriesPrint(entries[i],
+			AlignEntriesPrint(entriesPtr[i],
 					outputFP,
 					BinaryOutput);
 			/* Free memory */
-			AlignEntriesFree(entries[i]);
-			free(entries[i]);
-			entries[i]=NULL;
+			AlignEntriesFree(entriesPtr[i]);
+			entriesPtr[i]=NULL;
 		}
+		free(entriesPtr);
+		entriesPtr=NULL;
 		free(entries);
 		entries=NULL;
 	}

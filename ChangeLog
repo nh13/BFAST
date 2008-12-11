@@ -11,6 +11,7 @@ genome files and index files have their version numbers embedded.
 * Updated balign "Validatin outputID" message.
 * Moved from using mktemp to mkstemp, which means no more mktemp
 warnings.
+* Added a new utility, bsort, which sorts a bfast reported file.
 
 Version 0.2.3
 * Updated bfix to include packed.
