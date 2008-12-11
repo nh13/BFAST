@@ -1642,7 +1642,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int8_t direction, int32_t offset, int64_t *startIndex, int64_t *endIndex) 
+int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int64_t *startIndex, int64_t *endIndex) 
 {
 	int64_t foundIndex=0;
 
@@ -1685,8 +1685,6 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 				rg,
 				read,
 				readLength,
-				FORWARD,
-				offset,
 				&startIndexForward,
 				&endIndexForward);
 	}
@@ -1706,8 +1704,6 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 				rg,
 				reverseRead,
 				readLength,
-				REVERSE,
-				offset,
 				&startIndexReverse,
 				&endIndexReverse);
 	}
@@ -1737,6 +1733,11 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 			r->strand[r->numEntries-1] = REVERSE;
 			/* Must adjust for being the reverse */
 			r->offset[r->numEntries-1] = offset + index->width;
+			if(ColorSpace == space) {
+				/* Must adjust for color space, since removed one color as well as being off by one
+				 * in general for color space */
+				r->offset[r->numEntries-1] = offset + index->width+2;
+			}
 		}
 	}
 }

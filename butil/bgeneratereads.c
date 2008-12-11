@@ -614,7 +614,6 @@ int ModifyRead(RGBinary *rg,
 	assert(curNumErrors == numErrors);
 	assert(curInsertionLength == indelLength || indel != 2);
 
-
 	return 1;
 }
 

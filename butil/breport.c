@@ -51,6 +51,7 @@ void TmpFileInitialize(TmpFile *tmpFile)
 }
 
 void PrintEntriesToBedAndWig(AlignEntries *a,
+		RGBinary *rg,
 		int contig,
 		int64_t startPos,
 		int64_t endPos,
@@ -83,7 +84,6 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 		fCounts[0] = fCounts[1] = fCounts[2] = fCounts[3] = fCounts[4] = fCounts[5] = 0;
 		rCounts[0] = rCounts[1] = rCounts[2] = rCounts[3] = rCounts[4] = fCounts[5] = 0;
 		total = totalF = totalR = 0;
-		referenceBase = 'n';
 
 		if(curPos < a->entriesOne[start].position) {
 			curPos = a->entriesOne[start].position;
@@ -142,14 +142,6 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 				/* We should not end with a gap so this should be true */
 				assert(j < a->entriesOne[cur].length);
 				assert(reference[j] != GAP);
-				/* Update based on the current base */
-				if((referenceBase == 'n' || referenceBase == 'N') && 
-						reference[j] != 'n' && reference[j] != 'N') {
-					referenceBase = reference[j];
-					assert(referenceBase != GAP);
-					assert(referenceBase != 'N');
-					assert(referenceBase != 'n');
-				}
 				/* Update counts */
 				switch(a->entriesOne[cur].strand) {
 					case FORWARD:
@@ -294,32 +286,44 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 				}
 			}
 		}
+		/* Get reference base */
+		referenceBase = (char)RGBinaryGetBase(rg,
+				contig,
+				curPos);
+				
 		/* Print out counts */
 		if(total > 0) {
 			i=0;
+			j=0;
 			switch(referenceBase) {
 				case 'a':
 				case 'A':
 					i=0;
+					j=3;
 					break;
 				case 'c':
 				case 'C':
 					i=1;
+					j=2;
 					break;
 				case 'g':
 				case 'G':
 					i=2;
+					j=1;
 					break;
 				case 't':
 				case 'T':
 					i=3;
+					j=0;
 					break;
 				case 'n':
 				case 'N':
 					i=4;
+					j=4;
 					break;
 				case GAP:
 					i=5;
+					j=5;
 					break;
 				default:
 					fprintf(stderr, "\nreferenceBase=%c.\n", referenceBase);
@@ -329,12 +333,13 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 							Exit,
 							OutOfRange);
 			}
-			assert(fCounts[i] + rCounts[i] <= total);
-			if(0>fprintf(wigFP, "contig%d %lld %lld %d f[%d %d %d %d %d %d %3.2lf] r[%d %d %d %d %d %d %3.2lf] t[%3.2lf]\n",
+			assert(fCounts[i] + rCounts[j] <= total);
+			if(0>fprintf(wigFP, "contig%d %lld %lld %d f[%c %d %d %d %d %d %d %3.2lf] r[%c %d %d %d %d %d %d %3.2lf] t[%3.2lf]\n",
 						contig,
 						(long long int)(curPos-SUBTRACT),
-						(long long int)(curPos+1-SUBTRACT),
+						(long long int)(curPos-SUBTRACT+1),
 						total,
+						referenceBase,
 						fCounts[0],
 						fCounts[1],
 						fCounts[2],
@@ -342,14 +347,15 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						fCounts[4],
 						fCounts[5],
 						(100.0*fCounts[i])/((double)totalF),
+						GetReverseComplimentAnyCaseBase(referenceBase),
 						rCounts[0],
 						rCounts[1],
 						rCounts[2],
 						rCounts[3],
 						rCounts[4],
 						rCounts[5],
-						(100.0*rCounts[i])/((double)totalR),
-						(100.0*(fCounts[i] + rCounts[i]))/((double)total))) {
+						(100.0*rCounts[j])/((double)totalR),
+						(100.0*(fCounts[i] + rCounts[j]))/((double)total))) {
 				PrintError(FnName,
 						"wigFP",
 						"Could not write to file",
@@ -488,7 +494,8 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 	return numFiles;
 }
 
-void SplitEntriesAndPrint(FILE *bedFP,
+void SplitEntriesAndPrint(RGBinary *rg,
+		FILE *bedFP,
 		FILE *wigFP,
 		TmpFile *tmpFile, /* Should all be from the same contig */
 		char *tmpDir,
@@ -541,6 +548,7 @@ void SplitEntriesAndPrint(FILE *bedFP,
 				0);
 		/* Print Out */
 		PrintEntriesToBedAndWig(&entries, 
+				rg,
 				tmpFile->contig, 
 				tmpFile->minPos, 
 				tmpFile->maxPos, 
@@ -593,12 +601,14 @@ void SplitEntriesAndPrint(FILE *bedFP,
 		}
 
 		/* Recurse on the two */
-		SplitEntriesAndPrint(bedFP,
+		SplitEntriesAndPrint(rg,
+				bedFP,
 				wigFP,
 				&belowTmpFile,
 				tmpDir,
 				maxNumEntries);
-		SplitEntriesAndPrint(bedFP,
+		SplitEntriesAndPrint(rg,
+				bedFP,
 				wigFP,
 				&aboveTmpFile,
 				tmpDir,
@@ -619,27 +629,29 @@ int main(int argc, char *argv[])
 	int numTmpFiles=0;
 	int i;
 	int maxNumEntries;
+	RGBinary rg;
+	char rgFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *bedFP=NULL;
 	char bedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *wigFP=NULL;
 	char wigFileName[MAX_FILENAME_LENGTH]="\0";
-	int startContig;
-	int endContig;
 
-	if(argc == 6) {
+	if(argc == 5) {
 		strcpy(inputFileName, argv[1]);
-		maxNumEntries = atoi(argv[2]);
-		strcpy(tmpDir, argv[3]);
-		startContig = atoi(argv[4]);
-		endContig = atoi(argv[5]);
+		strcpy(rgFileName, argv[2]);
+		maxNumEntries = atoi(argv[3]);
+		strcpy(tmpDir, argv[4]);
+
+		/* Read in rg file */
+		RGBinaryReadBinary(&rg, rgFileName);
 
 		/* Split AlignEntries by contig */
 		fprintf(stderr, "%s", BREAK_LINE);
 		numTmpFiles=SplitIntoTmpFilesByContig(inputFileName,
 				&tmpFiles,
 				tmpDir,
-				startContig,
-				endContig);
+				1,
+				rg.numContigs);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Output bed and wig files for each contig */
@@ -675,7 +687,8 @@ int main(int argc, char *argv[])
 						tmpFiles[i].minPos,
 						tmpFiles[i].maxPos
 					   );
-				SplitEntriesAndPrint(bedFP,
+				SplitEntriesAndPrint(&rg,
+						bedFP,
 						wigFP,
 						&tmpFiles[i],
 						tmpDir,
@@ -696,10 +709,9 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast report file name>\n");
+		fprintf(stderr, "\t<bfast reference genome file>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");
-		fprintf(stderr, "\t<start contig>\n");
-		fprintf(stderr, "\t<end contig>\n");
 	}
 	return 0;
 }
