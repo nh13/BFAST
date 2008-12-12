@@ -700,7 +700,6 @@ int RunDynamicProgrammingThreadHelper(RGBinary *rg,
 				strand,
 				space,
 				alignmentType);
-
 		/* Update adjustPosition based on offsetLength */
 		assert(adjustPosition >= 0 && adjustPosition <= referenceLength);
 

@@ -23,9 +23,9 @@ do
 
 		# Run local alignment
 		if [ "$PAIRED_END" -eq "0" ]; then
-			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -O 10 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		else
-			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -2 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -2 -O 10 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		fi
 		$CMD 2> /dev/null > /dev/null; 
 		# Get return code
@@ -34,21 +34,6 @@ do
 			$CMD;
 			exit 1
 		fi
-
-		# Test if the files created were the same
-		for PREFIX in aligned not.aligned 
-		do
-			NAME="bfast.$PREFIX.file.$OUTPUT_ID.$SPACE.$PAIRED_END";
-			echo "          Comparing $NAME*";
-
-			diff -q $OUTPUT_DIR/$NAME* $SAVE_DIR/$NAME*;
-
-			# Get return code
-			if [ "$?" -ne "0" ]; then
-				echo "          $NAME* did not match.";
-				exit 1
-			fi
-		done
 	done
 done
 

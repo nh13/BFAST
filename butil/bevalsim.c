@@ -190,17 +190,17 @@ int ReadTypeRead(ReadType *r,
 
 	/* Read in align entries */
 	if(BMF==type) {
-		if(EOF==RGMatchesRead(fp, &m, PairedEndDoesNotMatter, BMATCHES_DEFAULT_OUTPUT)) {
+		if(EOF==RGMatchesRead(fp, &m, pairedEnd, BMATCHES_DEFAULT_OUTPUT)) {
 			return EOF;
 		}
-		assert(a.pairedEnd == pairedEnd);
+		assert(m.pairedEnd == pairedEnd);
 		readName = (char*)m.readName;
 		/* Update the number of entries */
 		r->numOne = m.matchOne.numEntries;
 		r->numTwo = m.matchTwo.numEntries;
 	}
 	else if(BAF==type) {
-		if(EOF==AlignEntriesRead(&a, fp, PairedEndDoesNotMatter, SpaceDoesNotMatter, BALIGN_DEFAULT_OUTPUT)) {
+		if(EOF==AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter, BALIGN_DEFAULT_OUTPUT)) {
 			return EOF;
 		}
 		assert(a.pairedEnd == pairedEnd);
@@ -770,7 +770,7 @@ void Evaluate(char *inputFileName,
 	}
 
 	count = 0;
-	fprintf(stderr, "Reading in aligned reads from %s.\nCurrently on:\n%d", inputFileName, 0);
+	fprintf(stderr, "Reading in from %s.\nCurrently on:\n%d", inputFileName, 0);
 	while(EOF != ReadTypeRead(&r, pairedEnd, fpIn, type)) {
 		count++;
 		if(count % COUNT_ROTATE_NUM == 0) {

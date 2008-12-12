@@ -16,6 +16,7 @@ warnings.
 * Added a new utility, bsort, which sorts a bfast reported file.
 * Fixed off by two error for reverse strand in color space for 
 bmatches.
+* Fixed bug with paired end bmatches file as input to bevalsim.
 
 Version 0.2.3
 * Updated bfix to include packed.

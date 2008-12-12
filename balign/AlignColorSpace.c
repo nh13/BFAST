@@ -473,6 +473,9 @@ int AlignColorSpaceFull(char *read,
 	free(matrix);
 	matrix=NULL;
 
+	if(REVERSE == strand) {
+		offset = referenceLength - a->referenceLength - offset; 
+	}
 
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;
@@ -671,7 +674,11 @@ int AlignColorSpaceMismatchesOnly(char *read,
 	a->read[a->length] = '\0';
 	a->reference[a->length] = '\0';
 	a->colorError[a->length] = '\0';
-	
+
+	if(REVERSE == strand) {
+		offset = referenceLength - readLength - offset; 
+	}
+
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;
 }

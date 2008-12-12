@@ -23,18 +23,6 @@ do
 		$CMD;
 		exit 1
 	fi
-
-	# Test if the file created was the same
-	NAME="bfast.index.file.$OUTPUT_ID.$SPACE.*.bif";
-	echo "          Comparing $NAME";
-
-	diff -q $OUTPUT_DIR/$NAME* $SAVE_DIR/$NAME*;
-
-	# Get return code              
-	if [ "$?" -ne "0" ]; then               
-		echo "          $NAME* did not match.";               
-		exit 1                                                          
-	fi
 done
 
 # Test passed!
