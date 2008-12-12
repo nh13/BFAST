@@ -8,6 +8,8 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 Version 0.2.4
 * Added a .sh script to update the tests since the reference
 genome files and index files have their version numbers embedded.
+* Updated color space tests; there was a bug in reporting the 
+reverse strand.
 * Updated balign "Validatin outputID" message.
 * Moved from using mktemp to mkstemp, which means no more mktemp
 warnings.
