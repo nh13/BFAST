@@ -23,9 +23,9 @@ do
 
 		# Run local alignment
 		if [ "$PAIRED_END" -eq "0" ]; then
-			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -O 10 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		else
-			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -2 -O 10 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -2 -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		fi
 		$CMD 2> /dev/null > /dev/null; 
 		# Get return code

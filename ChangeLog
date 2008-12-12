@@ -17,6 +17,8 @@ warnings.
 * Fixed off by two error for reverse strand in color space for 
 bmatches.
 * Fixed bug with paired end bmatches file as input to bevalsim.
+* Fixed bug with calling insertions on the reverse strand.  The
+offset was off by the two times the length of the insertion.
 
 Version 0.2.3
 * Updated bfix to include packed.

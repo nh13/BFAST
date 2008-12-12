@@ -134,6 +134,13 @@ int Align(char *read,
 					Exit,
 					OutOfRange);
 	}
+
+
+	/* Adjust for the reverse strand */
+	if(REVERSE == strand) {
+		returnValue = referenceLength - a->referenceLength - returnValue;
+	}
+
 	return returnValue;
 }
 
@@ -232,7 +239,7 @@ int FillAlignEntryFromMatrix(AlignEntry *a,
 	curCell=startCell;
 
 	if(space == ColorSpace) {
-	/* Color space */
+		/* Color space */
 		/*Initialize the current read base */
 		switch(curCell) {
 			case 0:
