@@ -46,11 +46,9 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
-		fprintf(stderr, "%s", BREAK_LINE);
-
 		fprintf(stderr, "Writing to %s.\n",
 				outputFileName);
-		if(!(fpOut=fopen(outputFileName, "rb"))) {
+		if(!(fpOut=fopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
 					"Could not open file for writing",
