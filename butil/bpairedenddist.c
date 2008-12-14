@@ -23,16 +23,23 @@
 
 int main(int argc, char *argv[]) 
 {
-	FILE *fp=NULL;
+	FILE *fpIn=NULL;
+	FILE *fpOut=NULL;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
+	char outputID[MAX_FILENAME_LENGTH]="\0";
+	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 
-	if(argc == 2) {
+	if(argc == 3) {
 		strcpy(inputFileName, argv[1]);
+		strcpy(outputID, argv[2]);
+		sprintf(outputFileName, "%s.paired.end.distribution.%s.txt",
+				PROGRAM_NAME,
+				outputID);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading in from %s.\n",
 				inputFileName);
-		if(!(fp=fopen(inputFileName, "rb"))) {
+		if(!(fpIn=fopen(inputFileName, "rb"))) {
 			PrintError(Name,
 					inputFileName,
 					"Could not open file for reading",
@@ -41,13 +48,24 @@ int main(int argc, char *argv[])
 		}
 		fprintf(stderr, "%s", BREAK_LINE);
 
+		fprintf(stderr, "Writing to %s.\n",
+				outputFileName);
+		if(!(fpOut=fopen(outputFileName, "rb"))) {
+			PrintError(Name,
+					outputFileName,
+					"Could not open file for writing",
+					Exit,
+					OpenFileError);
+		}
+		fprintf(stderr, "%s", BREAK_LINE);
+
 		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
-			PrintDistributionFromBMF(fp,
-					stdout);
+			PrintDistributionFromBMF(fpIn,
+					fpOut);
 		}
 		else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
-			PrintDistributionFromBAF(fp,
-					stdout);
+			PrintDistributionFromBAF(fpIn,
+					fpOut);
 		}
 		else {
 			PrintError(Name,
@@ -59,7 +77,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Close the file */
-		fclose(fp);
+		fclose(fpIn);
+		fclose(fpOut);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Terminating successfully!\n");
@@ -68,6 +87,7 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t\t<bfast matches, aligned, or reported file name>\n");
+		fprintf(stderr, "\t\t<output id>\n");
 	}
 
 	return 0;
