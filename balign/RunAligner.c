@@ -345,7 +345,7 @@ void RunDynamicProgramming(FILE *matchFP,
 				RunDynamicProgrammingThread, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
-			PrintError("RunDynamicProgramming",
+			PrintError("RunDynamicProgrammingThread",
 					"pthread_create: errCode",
 					"Could not start thread",
 					Exit,

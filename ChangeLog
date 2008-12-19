@@ -7,6 +7,7 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.2.5
 * bpairedenddist now outputs to a file instead of stdout.
+* Added a new utility balignsim which tests the accuracy of 
 
 Version 0.2.4
 * Added a .sh script to update the tests since the reference

@@ -1,4 +1,5 @@
 bin_PROGRAMS = bafconvert \
+			   balignsim \
 			   bevalsim \
 			   bexonify \
 			   bfix \
@@ -28,6 +29,28 @@ bafconvert_SOURCES = \
 					 bafconvert.c bafconvert.h
 
 bafconvert_LDADD =
+
+balignsim_SOURCES = \
+					SimRead.c	SimRead.h \
+					../blib/BError.c	../blib/BError.h \
+					../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+					../blib/RGIndex.c	../blib/RGIndex.h \
+					../blib/BLib.c	../blib/BLib.h \
+					../blib/RGBinary.c ../blib/RGBinary.h \
+					../blib/RGMatch.c ../blib/RGMatch.h \
+					../blib/RGMatches.c	../blib/RGMatches.h \
+					../blib/RGRanges.c ../blib/RGRanges.h \
+					../blib/AlignEntries.c	../blib/AlignEntries.h \
+					../blib/AlignEntry.c	../blib/AlignEntry.h \
+					../balign/RunAligner.c	../balign/RunAligner.h \
+					../balign/ScoringMatrix.c	../balign/ScoringMatrix.h \
+					../balign/Align.c	../balign/Align.h \
+					../balign/AlignColorSpace.c	../balign/AlignColorSpace.h \
+					../balign/AlignNTSpace.c	../balign/AlignNTSpace.h \
+					../balign/Definitions.h \
+					balignsim.c	balignsim.h
+
+balignsim_LDADD =
 
 bevalsim_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
@@ -88,6 +111,7 @@ bgeneratereads_SOURCES = \
 						 ../blib/RGBinary.c ../blib/RGBinary.h \
 						 ../blib/RGMatch.c ../blib/RGMatch.h \
 						 ../blib/RGRanges.c ../blib/RGRanges.h \
+						 SimRead.c	SimRead.h \
 						 bgeneratereads.c	bgeneratereads.h 
 
 bgeneratereads_LDADD =  
