@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <time.h>
+#include <math.h>
 
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
@@ -448,13 +449,14 @@ void Run(RGBinary *rg,
 					Exit,
 					OutOfRange);
 		}
-		if(a.entriesOne[0].score < score) {
+
+		if(ceil(a.entriesOne[0].score) < score) {
 			numScoreLessThan++;
-			/*
+			/* HERE */
 			AlignEntriesPrint(&a, stderr, TextOutput);
-			*/
+			exit(1);
 		}
-		else if(score < a.entriesOne[0].score) {
+		else if(score < ceil(a.entriesOne[0].score)) {
 			numScoreGreaterThan++;
 			/*
 			   AlignEntriesPrint(&a, stderr, TextOutput);
