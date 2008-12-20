@@ -1,0 +1,405 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#include <assert.h>
+#include <time.h>
+
+#include "../blib/BError.h"
+#include "../blib/BLib.h"
+#include "../blib/BLibDefinitions.h"
+#include "../blib/RGMatches.h"
+#include "../blib/AlignEntries.h"
+#include "../balign/RunAligner.h"
+#include "../balign/ScoringMatrix.h"
+#include "SimRead.h"
+#include "balignsim.h"
+
+#define READS_ROTATE_NUM 10000
+#define Name "balignsim"
+
+/* Generate synthetic reads given a number of variants and errors
+ * from a reference genome and tests the various local alignment 
+ * algorithms. */
+
+int main(int argc, char *argv[]) 
+{
+	RGBinary rg;
+	char rgFileName[MAX_FILENAME_LENGTH]="\0";
+	char scoringMatrixFileName[MAX_FILENAME_LENGTH]="\0";
+	int alignmentType=FullAlignment;
+	int space = 0;
+	int indel = 0;
+	int indelLength = 0;
+	int withinInsertion = 0;
+	int numSNPs = 0;
+	int numErrors = 0;
+	int readLength = 0;
+	int numReads = 0;
+	int numThreads = 1;
+	char tmpDir[MAX_FILENAME_LENGTH]="\0";
+
+	if(argc == 14) {
+
+		/* Get cmd line options */
+		strcpy(rgFileName, argv[1]);
+		strcpy(scoringMatrixFileName, argv[2]);
+		alignmentType = atoi(argv[3]);
+		space = atoi(argv[4]);
+		indel = atoi(argv[5]);
+		indelLength = atoi(argv[6]);
+		withinInsertion = atoi(argv[7]);
+		numSNPs = atoi(argv[8]);
+		numErrors = atoi(argv[9]);
+		readLength = atoi(argv[10]);
+		numReads = atoi(argv[11]);
+		numThreads = atoi(argv[12]);
+		strcpy(tmpDir, argv[13]);
+
+		/* Check cmd line options */
+		assert(FullAlignment == alignmentType || MismatchesOnly == alignmentType);
+		assert(NTSpace == space || ColorSpace == space);
+		assert(indel >= 0 && indel <= 2);
+		assert(indelLength > 0 || indel == 0);
+		assert(withinInsertion == 0 || (indel == 2 && withinInsertion == 1));
+		assert(numSNPs >= 0);
+		assert(readLength > 0);
+		assert(readLength < SEQUENCE_LENGTH);
+		assert(numReads > 0);
+		assert(numThreads > 0);
+
+		/* Should check if we have enough bases for everything */
+
+		/* Get reference genome */
+		RGBinaryReadBinary(&rg,
+				rgFileName);
+
+		/* Run Simulation */
+		Run(&rg,
+				scoringMatrixFileName,
+				alignmentType,
+				space,
+				indel,
+				indelLength,
+				withinInsertion,
+				numSNPs,
+				numErrors,
+				readLength,
+				numReads,
+				numThreads,
+				tmpDir);
+
+		/* Delete reference genome */
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Deleting reference genome.\n");
+		RGBinaryDelete(&rg);
+		fprintf(stderr, "%s", BREAK_LINE);
+
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Terminating successfully.\n");
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
+	else {
+		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
+		fprintf(stderr, "\t<bfast reference genome file name (must be in nt space)>\n");
+		fprintf(stderr, "\t<scoring matrix file name>\n");
+		fprintf(stderr, "\t<alignmentType 0: Full alignment 1: mismatches only>\n");
+		fprintf(stderr, "\t<space 0: nt space 1: color space>\n");
+		fprintf(stderr, "\t<indel 0: none 1: deletion 2: insertion>\n");
+		fprintf(stderr, "\t<indel length>\n");
+		fprintf(stderr, "\t<include errors within insertion 0: false 1: true>\n");
+		fprintf(stderr, "\t<# of SNPs>\n");
+		fprintf(stderr, "\t<# of errors>\n");
+		fprintf(stderr, "\t<read length>\n");
+		fprintf(stderr, "\t<number of reads>\n");
+		fprintf(stderr, "\t<number of threads\n");
+		fprintf(stderr, "\t<tmp file directory>\n");
+	}
+	return 0;
+}
+
+/* TODO */
+void Run(RGBinary *rg,
+		char *scoringMatrixFileName,
+		int alignmentType,
+		int space,
+		int indel,
+		int indelLength,
+		int withinInsertion,
+		int numSNPs,
+		int numErrors,
+		int readLength,
+		int numReads,
+		int numThreads,
+		char *tmpDir)
+{
+	char *FnName="Run";
+	int i, j;
+	int64_t rgLength=0;
+	FILE *matchesFP=NULL;
+	char *matchesFileName=NULL;
+	FILE *alignFP=NULL;
+	char *alignFileName=NULL;
+	FILE *notAlignedFP=NULL;
+	char *notAlignedFileName=NULL;
+	int32_t totalAlignTime = 0;
+	int32_t totalFileHandlingTime = 0;
+	ScoringMatrix sm;
+	SimRead r;
+	RGMatches m;
+	AlignEntries a;
+	int32_t score, prev, score_m, score_mm, wasInsertion;
+	int32_t numScoreLessThan, numScoreEqual, numScoreGreaterThan;
+	int insertionLength = (2==indel)?indelLength:0;
+	int deletionLength = (1==indel)?indelLength:0;
+
+	/* ********************************************************
+	 * 1.
+	 * Generate reads and create artificial matches file.
+	 ********************************************************
+	 */
+
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Generating reads and creating artificial matches.\n");
+
+	/* Get the reference genome length */
+	for(i=0;i<rg->numContigs;i++) {
+		rgLength += rg->contigs[i].sequenceLength;
+	}
+
+	/* Open tmp files */
+	matchesFP = OpenTmpFile(tmpDir, &matchesFileName);
+	alignFP = OpenTmpFile(tmpDir, &alignFileName);
+	notAlignedFP = OpenTmpFile(tmpDir, &notAlignedFileName);
+
+	/* Get scoring matrix */
+	ScoringMatrixInitialize(&sm);
+	ScoringMatrixRead(scoringMatrixFileName,
+			&sm,
+			space);
+	/* In these sims we want the scoring matrix to have certain constraints:
+	 * All scores for matches must be the same and all scores for mismatches 
+	 * must be the same */
+	score_m = ScoringMatrixGetNTScore('A', 'A', &sm);
+	score_mm = ScoringMatrixGetNTScore('A', 'C', &sm);
+	for(i=0;i<=ALPHABET_SIZE;i++) {
+		for(j=0;j<=ALPHABET_SIZE;j++) {
+			if(i==j && ScoringMatrixGetNTScore(DNA[i], DNA[j], &sm) != score_m) {
+				PrintError(FnName,
+						"Scoring matrix",
+						"Match scores must be the same",
+						Exit,
+						OutOfRange);
+			}
+			else if(i!=j && ScoringMatrixGetNTScore(DNA[i], DNA[j], &sm) != score_mm) {
+				PrintError(FnName,
+						"Scoring matrix",
+						"Mismatch scores must be the same",
+						Exit,
+						OutOfRange);
+			}
+		}
+	}
+
+	/* Seed random number */
+	srand(time(NULL));
+
+	/* Create RGMatches */
+	RGMatchesInitialize(&m);
+	SimReadInitialize(&r);
+	fprintf(stderr, "Currently on:\n0");
+	for(i=0;i<numReads;i++) {
+		if((i+1) % READS_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d",
+					(i+1));
+		}
+
+		/* Get the read */
+		SimReadGetRandom(rg,
+				rgLength,
+				&r,
+				space,
+				indel,
+				indelLength,
+				withinInsertion,
+				numSNPs,
+				numErrors,
+				readLength,
+				SingleEnd,
+				0);
+		r.readNum = i+1;
+
+		/* Convert into RGMatches */
+		RGMatchesInitialize(&m);
+		m.pairedEnd = SingleEnd;
+		/*
+		   m.readName = (int8_t*)SimReadGetName(&r);
+		   */
+		/* Get score for proper alignment and store in read name */
+		score = wasInsertion = 0;
+		prev = Default;
+		for(j=0;j<r.readLength;j++) {
+			switch(r.readOneType[j]) {
+				case Insertion:
+				case InsertionAndSNP:
+				case InsertionAndError:
+				case InsertionSNPAndError:
+					if(Insertion == prev) {
+						score += sm.gapExtensionPenalty;  
+					}
+					else {
+						score += sm.gapOpenPenalty;  
+					}
+					wasInsertion=1;
+					break;
+				case SNP:
+				case Error:
+				case SNPAndError:
+					score += score_mm;
+					break;
+				case Default:
+					score += score_m;
+					break;
+				default:
+					fprintf(stderr, "r.readOneType[%d]=%d\n", j, r.readOneType[j]);
+					PrintError(FnName,
+							"r.readOneType[j]",
+							"Could not recognize type",
+							Exit,
+							OutOfRange);
+			}
+			prev = r.readOneType[j];
+		}
+		if(1==wasInsertion) {
+			/* Add in deletion */
+			score += sm.gapOpenPenalty;
+			score += (r.indelLength-1)*sm.gapExtensionPenalty;
+		}
+		assert(NULL==m.readName);
+		m.readName = malloc(sizeof(int8_t)*(SEQUENCE_LENGTH+1));
+		if(NULL == m.readName) {
+			PrintError(FnName,
+					"m.readName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		assert(0 <= sprintf((char*)m.readName, ">%d", score));
+		m.readNameLength = strlen((char*)m.readName);
+		m.matchOne.numEntries = 1;
+		m.matchTwo.numEntries = 0;
+		m.matchOne.readLength = r.readLength;
+		m.matchOne.read = malloc(sizeof(int8_t)*(r.readLength+1));
+		if(NULL==m.matchOne.read) {
+			PrintError(FnName,
+					"m.matchOne.read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		strcpy((char*)m.matchOne.read, r.readOne); 
+		m.matchOne.maxReached = 0;
+		m.matchOne.numEntries = 1;
+		m.matchOne.contigs = malloc(sizeof(uint32_t));
+		assert(NULL != m.matchOne.contigs);
+		m.matchOne.positions = malloc(sizeof(int32_t));
+		assert(NULL != m.matchOne.positions);
+		m.matchOne.strand= malloc(sizeof(int8_t));
+		assert(NULL != m.matchOne.strand);
+		m.matchOne.contigs[0] = r.contig;
+		m.matchOne.positions[0] = r.pos;
+		m.matchOne.strand[0] = r.strand;
+
+		/* Output */
+		RGMatchesPrint(matchesFP,
+				&m,
+				BinaryOutput);
+
+		/* Clean up */
+		SimReadDelete(&r);
+		RGMatchesFree(&m);
+	}
+	fprintf(stderr, "\r%d\n", numReads);
+	fprintf(stderr, "%s", BREAK_LINE);
+
+	/* Run "RunDynamicProgramming" from balign */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Running local alignment.\n");
+	fseek(matchesFP, 0, SEEK_SET);
+	RunDynamicProgramming(matchesFP,
+			rg,
+			scoringMatrixFileName,
+			alignmentType,
+			space,
+			1,
+			1,
+			rg->numContigs,
+			rg->contigs[rg->numContigs-1].sequenceLength,
+			2*readLength,
+			INT_MAX,
+			SingleEnd,
+			BinaryInput,
+			numThreads,
+			0,
+			0,
+			0,
+			tmpDir,
+			alignFP,
+			notAlignedFP,
+			BinaryOutput,
+			&totalAlignTime,
+			&totalFileHandlingTime);
+	fprintf(stderr, "%s", BREAK_LINE);
+
+	/* Read in output and sum up accuracy */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Summing up totals.\n");
+	fseek(alignFP, 0, SEEK_SET);
+	AlignEntriesInitialize(&a);
+	numScoreLessThan = numScoreEqual = numScoreGreaterThan = 0;
+	while(EOF != AlignEntriesRead(&a,
+				alignFP,
+				SingleEnd,
+				space,
+				BinaryInput)) {
+		if(sscanf(a.readName, ">%d", &score) < 0) {
+			PrintError(FnName,
+					"a.readName",
+					"Could not parse read name",
+					Exit,
+					OutOfRange);
+		}
+		if(a.entriesOne[0].score < score) {
+			numScoreLessThan++;
+		}
+		else if(score < a.entriesOne[0].score) {
+			numScoreGreaterThan++;
+		}
+		else {
+			numScoreEqual++;
+		}
+		/* Free */
+		AlignEntriesFree(&a);
+	}
+	fprintf(stderr, "%s", BREAK_LINE);
+
+	/* Close matches file */
+	CloseTmpFile(&matchesFP, &matchesFileName);
+	CloseTmpFile(&alignFP, &alignFileName);
+	CloseTmpFile(&notAlignedFP, &notAlignedFileName);
+
+	/* Free */
+	ScoringMatrixFree(&sm);
+
+	fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+			numReads,
+			numScoreLessThan,
+			numScoreEqual,
+			numScoreGreaterThan,
+			numReads - numScoreLessThan - numScoreEqual - numScoreGreaterThan,
+			numSNPs,
+			numErrors,
+			deletionLength,
+			insertionLength
+		   );
+}
