@@ -178,8 +178,14 @@ void ScoringMatrixInitialize(ScoringMatrix *sm)
 void ScoringMatrixFree(ScoringMatrix *sm)
 {
 	free(sm->NTKeys);
-	free(sm->NTScores);
 	free(sm->ColorKeys);
+	for(i=0;i<ALPHABET_SIZE+1;i++) {
+		free(sm->NTScores[i]);
+		if(NULL != sm->ColorScores) {
+			free(sm->ColorScores[i]);
+		}
+	}
+	free(sm->NTScores);
 	free(sm->ColorScores);
 	ScoringMatrixInitialize(sm);
 }
