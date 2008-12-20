@@ -185,7 +185,8 @@ int AlignNTSpaceFull(char *read,
 			readLength,
 			reference,
 			referenceLength,
-			0,
+			NTSpace,
+			NTSpace,
 			0);
 
 	/* Free the matrix, free your mind */

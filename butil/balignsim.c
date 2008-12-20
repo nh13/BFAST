@@ -148,10 +148,23 @@ void Run(RGBinary *rg,
 	SimRead r;
 	RGMatches m;
 	AlignEntries a;
-	int32_t score, prev, score_m, score_mm, wasInsertion;
+	int32_t score, prev, score_m, score_mm, score_cm, score_ce, wasInsertion;
 	int32_t numScoreLessThan, numScoreEqual, numScoreGreaterThan;
 	int insertionLength = (2==indel)?indelLength:0;
 	int deletionLength = (1==indel)?indelLength:0;
+	char string[32]="\0";
+	
+	score = prev = score_m = score_mm = score_cm = score_ce = wasInsertion = 0;
+
+	/* Check rg to make sure it is in NT Space */
+	if(rg->space != NTSpace) {
+		PrintError(FnName,
+				"rg->space",
+				"The reference genome must be in NT space",
+				Exit,
+				OutOfRange);
+	}
+
 
 	/* ********************************************************
 	 * 1.
@@ -182,6 +195,10 @@ void Run(RGBinary *rg,
 	 * must be the same */
 	score_m = ScoringMatrixGetNTScore('A', 'A', &sm);
 	score_mm = ScoringMatrixGetNTScore('A', 'C', &sm);
+	if(ColorSpace == space) {
+	score_cm = ScoringMatrixGetColorScore(0, 0, &sm);
+	score_ce = ScoringMatrixGetColorScore(0, 1, &sm);
+	}
 	for(i=0;i<=ALPHABET_SIZE;i++) {
 		for(j=0;j<=ALPHABET_SIZE;j++) {
 			if(i==j && ScoringMatrixGetNTScore(DNA[i], DNA[j], &sm) != score_m) {
@@ -197,6 +214,22 @@ void Run(RGBinary *rg,
 						"Mismatch scores must be the same",
 						Exit,
 						OutOfRange);
+			}
+			if(ColorSpace == space) {
+				if(i==j && score_cm != ScoringMatrixGetColorScore(i, j, &sm)) {
+					PrintError(FnName,
+							"Scoring matrix",
+							"Color match scores must be the same",
+							Exit,
+							OutOfRange);
+				}
+				else if(i!=j && score_ce != ScoringMatrixGetColorScore(i, j, &sm)) {
+					PrintError(FnName,
+							"Scoring matrix",
+							"Color error scores must be the same",
+							Exit,
+							OutOfRange);
+				}
 			}
 		}
 	}
@@ -232,63 +265,107 @@ void Run(RGBinary *rg,
 		/* Convert into RGMatches */
 		RGMatchesInitialize(&m);
 		m.pairedEnd = SingleEnd;
-		/*
-		   m.readName = (int8_t*)SimReadGetName(&r);
-		   */
 		/* Get score for proper alignment and store in read name */
 		score = wasInsertion = 0;
 		prev = Default;
-		for(j=0;j<r.readLength;j++) {
-			switch(r.readOneType[j]) {
-				case Insertion:
-				case InsertionAndSNP:
-				case InsertionAndError:
-				case InsertionSNPAndError:
-					if(Insertion == prev) {
-						score += sm.gapExtensionPenalty;  
-					}
-					else {
-						score += sm.gapOpenPenalty;  
-					}
-					wasInsertion=1;
-					break;
-				case SNP:
-				case Error:
-				case SNPAndError:
-					score += score_mm;
-					break;
-				case Default:
-					score += score_m;
-					break;
-				default:
-					fprintf(stderr, "r.readOneType[%d]=%d\n", j, r.readOneType[j]);
-					PrintError(FnName,
-							"r.readOneType[j]",
-							"Could not recognize type",
-							Exit,
-							OutOfRange);
+		if(NTSpace == space) {
+			for(j=0;j<r.readLength;j++) {
+				switch(r.readOneType[j]) {
+					case Insertion:
+					case InsertionAndSNP:
+					case InsertionAndError:
+					case InsertionSNPAndError:
+						if(Insertion == prev) {
+							score += sm.gapExtensionPenalty;  
+						}
+						else {
+							score += sm.gapOpenPenalty;  
+						}
+						wasInsertion=1;
+						break;
+					case SNP:
+					case Error:
+						score += score_mm;
+						break;
+					case Default:
+						score += score_m;
+						break;
+					default:
+						fprintf(stderr, "r.readOneType[%d]=%d\n", j, r.readOneType[j]);
+						PrintError(FnName,
+								"r.readOneType[j]",
+								"Could not recognize type",
+								Exit,
+								OutOfRange);
+				}
+				prev = r.readOneType[j];
 			}
-			prev = r.readOneType[j];
+		} 
+		else {
+			for(j=0;j<r.readLength;j++) {
+				switch(r.readOneType[j]) {
+					case Insertion:
+					case InsertionAndSNP:
+					case InsertionAndError:
+					case InsertionSNPAndError:
+						if(Insertion == prev) {
+							score += sm.gapExtensionPenalty;  
+						}
+						else {
+							score += sm.gapOpenPenalty;  
+						}
+						wasInsertion=1;
+						break;
+					case SNP:
+						score += score_mm + score_cm;
+						break;
+					case Error:
+						score += score_m + score_ce;
+						break;
+					case SNPAndError:
+						score += score_mm + score_ce;
+						break;
+					case Default:
+						score += score_m + score_cm;
+						break;
+					default:
+						fprintf(stderr, "r.readOneType[%d]=%d\n", j, r.readOneType[j]);
+						PrintError(FnName,
+								"r.readOneType[j]",
+								"Could not recognize type",
+								Exit,
+								OutOfRange);
+				}
+				prev = r.readOneType[j];
+			}
 		}
-		if(1==wasInsertion) {
+		if(0 < indelLength && 0 == wasInsertion) {
 			/* Add in deletion */
 			score += sm.gapOpenPenalty;
 			score += (r.indelLength-1)*sm.gapExtensionPenalty;
 		}
-		assert(NULL==m.readName);
-		m.readName = malloc(sizeof(int8_t)*(SEQUENCE_LENGTH+1));
-		if(NULL == m.readName) {
-			PrintError(FnName,
-					"m.readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		assert(0 <= sprintf((char*)m.readName, ">%d", score));
+		m.readName = (int8_t*)SimReadGetName(&r);
+		sprintf(string, "_score=%d", score);
+		strcat((char*)m.readName, string);
+		/*
+		   assert(NULL==m.readName);
+		   m.readName = malloc(sizeof(int8_t)*(SEQUENCE_LENGTH+1));
+		   if(NULL == m.readName) {
+		   PrintError(FnName,
+		   "m.readName",
+		   "Could not allocate memory",
+		   Exit,
+		   MallocMemory);
+		   }
+		   assert(0 <= sprintf((char*)m.readName, ">%d", score));
+		   */
 		m.readNameLength = strlen((char*)m.readName);
 		m.matchOne.numEntries = 1;
 		m.matchTwo.numEntries = 0;
 		m.matchOne.readLength = r.readLength;
+		if(ColorSpace == space) {
+			m.matchOne.readLength++;
+		}
 		m.matchOne.read = malloc(sizeof(int8_t)*(r.readLength+1));
 		if(NULL==m.matchOne.read) {
 			PrintError(FnName,
@@ -309,6 +386,7 @@ void Run(RGBinary *rg,
 		m.matchOne.contigs[0] = r.contig;
 		m.matchOne.positions[0] = r.pos;
 		m.matchOne.strand[0] = r.strand;
+
 
 		/* Output */
 		RGMatchesPrint(matchesFP,
@@ -331,11 +409,12 @@ void Run(RGBinary *rg,
 			scoringMatrixFileName,
 			alignmentType,
 			space,
+			space,
 			1,
 			1,
 			rg->numContigs,
 			rg->contigs[rg->numContigs-1].sequenceLength,
-			2*readLength,
+			readLength,
 			INT_MAX,
 			SingleEnd,
 			BinaryInput,
@@ -362,7 +441,7 @@ void Run(RGBinary *rg,
 				SingleEnd,
 				space,
 				BinaryInput)) {
-		if(sscanf(a.readName, ">%d", &score) < 0) {
+		if(sscanf(a.readName, "score=%d", &score) < 0) {
 			PrintError(FnName,
 					"a.readName",
 					"Could not parse read name",
@@ -371,9 +450,15 @@ void Run(RGBinary *rg,
 		}
 		if(a.entriesOne[0].score < score) {
 			numScoreLessThan++;
+			/*
+			AlignEntriesPrint(&a, stderr, TextOutput);
+			*/
 		}
 		else if(score < a.entriesOne[0].score) {
 			numScoreGreaterThan++;
+			/*
+			   AlignEntriesPrint(&a, stderr, TextOutput);
+			   */
 		}
 		else {
 			numScoreEqual++;

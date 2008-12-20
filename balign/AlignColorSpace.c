@@ -19,7 +19,8 @@ int AlignColorSpace(char *read,
 		ScoringMatrix *sm,
 		AlignEntry *a,
 		char strand,
-		int type)
+		int type,
+		int scoringType)
 {
 	char *FnName="AlignColorSpace"; 
 	switch(type) {
@@ -28,6 +29,7 @@ int AlignColorSpace(char *read,
 					readLength,
 					reference,
 					referenceLength,
+					scoringType,
 					sm,
 					a,
 					strand);
@@ -37,6 +39,7 @@ int AlignColorSpace(char *read,
 					readLength,
 					reference,
 					referenceLength,
+					scoringType,
 					sm,
 					a,
 					strand);
@@ -56,6 +59,7 @@ int AlignColorSpaceFull(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
+		int scoringType,
 		ScoringMatrix *sm,
 		AlignEntry *a,
 		char strand)
@@ -163,6 +167,7 @@ int AlignColorSpaceFull(char *read,
 					char curPrevDeletionBase='X';
 					char curPrevInsertionBase='X';
 					uint8_t convertedColor='X';
+					curLength = matrix[i][j].length[l] + 1;
 					switch(k) {
 						case 0:
 						case 1:
@@ -172,7 +177,6 @@ int AlignColorSpaceFull(char *read,
 							/* Previous score */ 
 							curScore = matrix[i][j].score[l];
 							curScoreNT = matrix[i][j].scoreNT[l];
-							curLength = matrix[i][j].length[l] + 1;
 							/* Plus score for colors */
 							switch(l) {
 								case 0:
@@ -462,7 +466,8 @@ int AlignColorSpaceFull(char *read,
 			readLength,
 			reference,
 			referenceLength,
-			1,
+			ColorSpace,
+			scoringType,
 			0);
 
 	/* Free the matrix, free your mind */
@@ -482,6 +487,7 @@ int AlignColorSpaceMismatchesOnly(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
+		int scoringType,
 		ScoringMatrix *sm,
 		AlignEntry *a,
 		char strand)
@@ -591,12 +597,12 @@ int AlignColorSpaceMismatchesOnly(char *read,
 				prevScoreNT[k] = nextScoreNT[k];
 				prevNT[k][j] = nextNT[k];
 				/*
-				fprintf(stderr, "k=%d\tscore=%lf\tscoreNT=%lf\tfromNT=%d\n",
-						k,
-						prevScore[k],
-						prevScoreNT[k],
-						prevNT[k][j]);
-						*/
+				   fprintf(stderr, "k=%d\tscore=%lf\tscoreNT=%lf\tfromNT=%d\n",
+				   k,
+				   prevScore[k],
+				   prevScoreNT[k],
+				   prevNT[k][j]);
+				   */
 			}
 		}
 		/* Check if the score is better than the max */
@@ -622,7 +628,13 @@ int AlignColorSpaceMismatchesOnly(char *read,
 	/* Copy over */
 	a->referenceLength = readLength;
 	a->length = readLength;
-	a->score = maxScoreNT;
+	/* Copy over score */
+	if(scoringType == NTSpace) {
+		a->score = maxScoreNT;
+	}
+	else {
+		a->score = maxScore;
+	}
 	/* Allocate memory */
 	assert(NULL==a->read);
 	a->read = malloc(sizeof(char)*(a->length+1));
@@ -660,11 +672,11 @@ int AlignColorSpaceMismatchesOnly(char *read,
 		a->read[i] = DNA[maxNT[i]];
 		a->reference[i] = reference[i+offset];
 		ConvertBaseToColorSpace((i==0)?COLOR_SPACE_START_NT:read[i-1],
-					read[i],
-					&c[0]);
+				read[i],
+				&c[0]);
 		ConvertBaseToColorSpace((i==0)?COLOR_SPACE_START_NT:a->read[i-1],
-					a->read[i],
-					&c[1]);
+				a->read[i],
+				&c[1]);
 		a->colorError[i] = (c[0] == c[1])?'0':'1';
 	}
 	a->read[a->length] = '\0';

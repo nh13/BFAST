@@ -25,6 +25,7 @@ typedef struct {
 	char *notAlignedFileName;
 	RGBinary *rg;
 	int space;
+	int scoringType;
 	int offsetLength;
 	int pairedEnd;
 	int usePairedEndLength;
@@ -38,8 +39,8 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
 void *RunDynamicProgrammingThread(void *);
-int RunDynamicProgrammingThreadHelper(RGBinary*, uint32_t, uint32_t, int8_t, char*, int, int, int, ScoringMatrix*, AlignEntry*, int);
+int RunDynamicProgrammingThreadHelper(RGBinary*, uint32_t, uint32_t, int8_t, char*, int, int, int, int, ScoringMatrix*, AlignEntry*, int);
 #endif

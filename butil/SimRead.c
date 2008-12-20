@@ -508,7 +508,7 @@ int SimReadInsertIndel(RGBinary *rg,
 					r->readLength + indelLength);
 			if(success == 1) {
 				/* Shift over bases */
-				for(i=start;i<r->readLength-indelLength;i++) {
+				for(i=start;i<r->readLength;i++) {
 					r->readOne[i] = r->readOne[i+indelLength];
 				}
 				/* Reallocate memory */
@@ -527,6 +527,7 @@ int SimReadInsertIndel(RGBinary *rg,
 			}
 		}
 		else {
+			/* Insertion */
 			/* Free read */
 			free(r->readTwo);
 			r->readTwo = NULL;
@@ -539,7 +540,7 @@ int SimReadInsertIndel(RGBinary *rg,
 					r->readLength + indelLength);
 			if(success == 1) {
 				/* Shift over bases */
-				for(i=start;i<r->readLength-indelLength;i++) {
+				for(i=start;i<r->readLength;i++) {
 					r->readTwo[i] = r->readTwo[i+indelLength];
 				}
 				/* Reallocate memory */

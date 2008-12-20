@@ -10,6 +10,7 @@ struct arguments
 	int binaryInput;                        /* -b - not used */
 	int alignmentType;						/* -a */
 	int space;								/* -A */
+	int scoringType;						/* -X */
 	int startContig;                        /* -s */
 	int startPos;                           /* -S */
 	int endContig;                          /* -e */
@@ -18,7 +19,7 @@ struct arguments
 	int maxNumMatches;						/* -M */
 	int pairedEnd;                          /* -2 */
 	int numThreads;                         /* -n */
-	int usePairedEndLength;					/* -l - compainion to pairedEndLength */
+	int usePairedEndLength;					/* -l - companion to pairedEndLength */
 	int forceMirroring;						/* -f */
 	int pairedEndLength;					/* -l */
 	char *outputID;							/* -o */

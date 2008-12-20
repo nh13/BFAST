@@ -23,6 +23,7 @@ int Align(char *read,
 		AlignEntry *a,
 		char strand,
 		int space,
+		int scoringType,
 		int type)
 {
 	char *FnName="Align";
@@ -86,7 +87,8 @@ int Align(char *read,
 							sm,
 							a,
 							FORWARD,
-							type);
+							type,
+							scoringType);
 					break;
 				case REVERSE:
 					/* Matches the reverse strand */
@@ -110,7 +112,8 @@ int Align(char *read,
 							sm,
 							a,
 							REVERSE,
-							type);
+							type,
+							scoringType);
 					/* No need to reverse alignment, since we reversed the reference
 					 * to be the reverse strand */
 
@@ -151,6 +154,7 @@ int FillAlignEntryFromMatrix(AlignEntry *a,
 		char *reference,
 		int referenceLength,
 		int space,
+		int scoringType,
 		int debug)
 {
 	char *FnName="FillAlignEntryFromMatrix";
@@ -207,8 +211,8 @@ int FillAlignEntryFromMatrix(AlignEntry *a,
 	for(i=0;i<referenceLength+1;i++) {
 		if(space == ColorSpace) {
 			for(j=0;j<ALIGNMATRIXCELL_NUM_SUB_CELLS;j++) {
-				/* Cannot end with a deletion from the read */
-				if(j != 4 && matrix[readLength][i].score[j] > maxScore) {
+				/* Don't end with a deletion in the read */
+				if(4 != j && matrix[readLength][i].score[j] > maxScore) {
 					maxScore = matrix[readLength][i].score[j];
 					maxScoreNT = matrix[readLength][i].scoreNT[j];
 					startRow = readLength;
@@ -255,7 +259,7 @@ int FillAlignEntryFromMatrix(AlignEntry *a,
 				curReadBase = 'T';
 				break;
 			case 5:
-				curReadBase = matrix[curRow][curCol].prevInsertionBase;
+				curReadBase = read[curRow-1];
 				break;
 			default:
 				PrintError(FnName,
@@ -268,7 +272,14 @@ int FillAlignEntryFromMatrix(AlignEntry *a,
 		a->referenceLength=0;
 		i=matrix[curRow][curCol].length[curCell]-1; /* Get the length of the alignment */
 		a->length=matrix[curRow][curCol].length[curCell]; /* Copy over the length */
-		a->score = maxScoreNT; /* Copy over score */
+
+		/* Copy over score */
+		if(scoringType == NTSpace) {
+			a->score = maxScoreNT; 
+		}
+		else {
+			a->score = maxScore; 
+		}
 		/* Now trace back the alignment using the "from" member in the matrix */
 		while(curRow > 0 && curCol > 0) {
 			/* Where did the current cell come from */

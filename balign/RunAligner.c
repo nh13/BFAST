@@ -22,6 +22,7 @@ void RunAligner(RGBinary *rg,
 		char *scoringMatrixFileName,
 		int alignmentType,
 		int space,
+		int scoringType,
 		int startContig,
 		int startPos,
 		int endContig,
@@ -128,6 +129,7 @@ void RunAligner(RGBinary *rg,
 			scoringMatrixFileName,
 			alignmentType,
 			space,
+			scoringType,
 			startContig,
 			startPos,
 			endContig,
@@ -167,6 +169,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		char *scoringMatrixFileName,
 		int alignmentType,
 		int space,
+		int scoringType,
 		int startContig,
 		int startPos,
 		int endContig,
@@ -311,6 +314,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		fseek(data[i].outputFP, 0, SEEK_SET);
 		data[i].rg=rg;
 		data[i].space=space;
+		data[i].scoringType=scoringType;
 		data[i].offsetLength=offsetLength;
 		data[i].pairedEnd=pairedEnd;
 		data[i].usePairedEndLength = usePairedEndLength;
@@ -498,6 +502,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	FILE *notAlignedFP = data->notAlignedFP;
 	RGBinary *rg=data->rg;
 	int space=data->space;
+	int scoringType=data->scoringType;
 	int offsetLength=data->offsetLength;
 	int pairedEnd=data->pairedEnd;
 	int usePairedEndLength=data->usePairedEndLength;
@@ -534,7 +539,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		numMatches++;
 		numAlignEntries = 0;
 		ctrOne=ctrTwo=0;
-
+	
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
@@ -576,6 +581,7 @@ void *RunDynamicProgrammingThread(void *arg)
 						matchRead,
 						matchReadLength,
 						space,
+						scoringType,
 						offsetLength,
 						sm,
 						&aEntries.entriesOne[ctrOne],
@@ -600,6 +606,7 @@ void *RunDynamicProgrammingThread(void *arg)
 						matchRead,
 						matchReadLength,
 						space,
+						scoringType,
 						offsetLength,
 						sm,
 						&aEntries.entriesTwo[ctrTwo],
@@ -632,15 +639,15 @@ void *RunDynamicProgrammingThread(void *arg)
 		if(0 < aEntries.numEntriesOne || 
 				(PairedEnd == aEntries.pairedEnd && 0 < aEntries.numEntriesTwo)) {
 			AlignEntriesPrint(&aEntries,
-				outputFP,
-				binaryOutput);
+					outputFP,
+					binaryOutput);
 		}
 		else {
 			RGMatchesPrint(notAlignedFP,
 					&m,
 					binaryOutput);
 		}
-	
+
 		/* Update the number of local alignments performed */
 		data->numLocalAlignments += ctrOne;
 		data->numLocalAlignments += ctrTwo;
@@ -664,6 +671,7 @@ int RunDynamicProgrammingThreadHelper(RGBinary *rg,
 		char *read,
 		int readLength,
 		int space,
+		int scoringType,
 		int offsetLength,
 		ScoringMatrix *sm,
 		AlignEntry *aEntry,
@@ -699,6 +707,7 @@ int RunDynamicProgrammingThreadHelper(RGBinary *rg,
 				aEntry,
 				strand,
 				space,
+		scoringType,
 				alignmentType);
 		/* Update adjustPosition based on offsetLength */
 		assert(adjustPosition >= 0 && adjustPosition <= referenceLength);

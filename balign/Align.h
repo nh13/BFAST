@@ -3,12 +3,13 @@
 #include "../blib/AlignEntry.h"
 #include "Definitions.h"
 
-int Align(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int, int);
+int Align(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int, int, int);
 int FillAlignEntryFromMatrix(AlignEntry*,
 		AlignMatrix**,
 		char*,
 		int,
 		char*,
+		int,
 		int,
 		int,
 		int);
