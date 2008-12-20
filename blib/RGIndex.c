@@ -1605,6 +1605,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 				Exit,
 				ReadFileError);
 	}
+	index->packageVersion[index->packageVersionLength]='\0';
 	/* Allocate memory for the mask */
 	index->mask = malloc(sizeof(int32_t)*index->width);
 	if(NULL==index->mask) {

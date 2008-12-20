@@ -324,6 +324,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 				Exit,
 				ReadFileError);
 	}
+	rg->packageVersion[rg->packageVersionLength]='\0';
 
 	/* Check id */
 	if(BFAST_ID != rg->id) {

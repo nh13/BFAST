@@ -167,10 +167,8 @@ void GenerateReads(RGBinary *rg,
 	fprintf(stderr, "%s", BREAK_LINE);
 
 	/* Initialize */
-	r.readLength = readLength;
 	r.pairedEnd = pairedEnd;
 	r.pairedEndLength = pairedEndLength;
-	r.indelLength = indelLength;
 	SimReadInitialize(&r);
 
 	/* Generate the reads */
@@ -185,12 +183,15 @@ void GenerateReads(RGBinary *rg,
 		SimReadGetRandom(rg,
 				rgLength,
 				&r,
-				space,
-				indel,
-				indelLength,
-				withinInsertion,
-				numSNPs,
-				numErrors);
+			space,
+			indel,
+			indelLength,
+			withinInsertion,
+			numSNPs,
+			numErrors,
+			readLength,
+			pairedEnd,
+			pairedEndLength);
 		/* Output */
 		r.readNum = i+1;
 		SimReadPrint(&r,

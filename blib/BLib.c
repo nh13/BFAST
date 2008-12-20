@@ -1220,6 +1220,8 @@ void CheckPackageCompatibility(int8_t *packageVersion, int fileType)
 	char *FnName="CheckPackageCompatibility";
 	int version[3]={0, 0, 0};
 
+	assert(NULL != packageVersion);
+
 	if(3 != sscanf((char*)packageVersion, "%d.%d.%d",
 				&version[0],
 				&version[1],
