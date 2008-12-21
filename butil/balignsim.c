@@ -16,6 +16,7 @@
 #include "SimRead.h"
 #include "balignsim.h"
 
+#define round(x)(int)(x<0?ceil((x)-0.5):floor((x)+0.5))
 #define READS_ROTATE_NUM 10000
 #define Name "balignsim"
 
@@ -153,9 +154,11 @@ void Run(RGBinary *rg,
 	int32_t numScoreLessThan, numScoreEqual, numScoreGreaterThan;
 	int insertionLength = (2==indel)?indelLength:0;
 	int deletionLength = (1==indel)?indelLength:0;
-	char string[32]="\0";
+	char string[4096]="\0";
+	int ret=0;
+	char *s=NULL;
 	
-	score = prev = score_m = score_mm = score_cm = score_ce = wasInsertion = 0;
+	score = prev = score_m = score_mm = score_cm = score_ce = 0;
 
 	/* Check rg to make sure it is in NT Space */
 	if(rg->space != NTSpace) {
@@ -267,8 +270,9 @@ void Run(RGBinary *rg,
 		RGMatchesInitialize(&m);
 		m.pairedEnd = SingleEnd;
 		/* Get score for proper alignment and store in read name */
-		score = wasInsertion = 0;
+		score = 0;
 		prev = Default;
+		wasInsertion=0;
 		if(NTSpace == space) {
 			for(j=0;j<r.readLength;j++) {
 				switch(r.readOneType[j]) {
@@ -442,7 +446,20 @@ void Run(RGBinary *rg,
 				SingleEnd,
 				space,
 				BinaryInput)) {
-		if(sscanf(a.readName, "score=%d", &score) < 0) {
+		/* Get substring */
+		s = strstr(a.readName, "score=");
+		if(NULL == s) {
+			PrintError(FnName,
+					"a.readName",
+					"Could not find \"score=\"",
+					Exit,
+					OutOfRange);
+		}
+		/* Extract score */
+		ret = sscanf(s, "score=%d", &score);
+		if(ret != 1) {
+			fprintf(stderr, "ret=%d\nscore=%d\n", ret, score);
+			fprintf(stderr, "a.readName=%s\n", a.readName);
 			PrintError(FnName,
 					"a.readName",
 					"Could not parse read name",
@@ -450,13 +467,20 @@ void Run(RGBinary *rg,
 					OutOfRange);
 		}
 
-		if(ceil(a.entriesOne[0].score) < score) {
+		if(round(a.entriesOne[0].score) < score) {
 			numScoreLessThan++;
-			/* HERE */
+			fprintf(stderr, "a.readName=%s\n", a.readName);
+			fprintf(stderr, "found=%d\nexpected=%d\n",
+					round(a.entriesOne[0].score),
+					score);
 			AlignEntriesPrint(&a, stderr, TextOutput);
-			exit(1);
+			PrintError(FnName,
+					"numScoreLessThan",
+					"The alignment score should not be less than expected",
+					Exit,
+					OutOfRange);
 		}
-		else if(score < ceil(a.entriesOne[0].score)) {
+		else if(score < round(a.entriesOne[0].score)) {
 			numScoreGreaterThan++;
 			/*
 			   AlignEntriesPrint(&a, stderr, TextOutput);
