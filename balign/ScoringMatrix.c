@@ -177,6 +177,7 @@ void ScoringMatrixInitialize(ScoringMatrix *sm)
 /* TODO */
 void ScoringMatrixFree(ScoringMatrix *sm)
 {
+	int i;
 	free(sm->NTKeys);
 	free(sm->ColorKeys);
 	for(i=0;i<ALPHABET_SIZE+1;i++) {
