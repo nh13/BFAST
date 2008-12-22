@@ -29,41 +29,63 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	/* add three for the insertion, deletion and best score */
-	int32_t score[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
-	int32_t scoreNT[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* current score */
-	int32_t from[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* previous arc */
-	int32_t length[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* path length */
-	char colorError[ALIGNMATRIXCELL_NUM_SUB_CELLS]; /* color error */
-	char prevDeletionBase; /* When we create a run of deletions, we must keep track of the base used right before the deletion */
-	char prevInsertionBase; /* When we create a run of insertions, we must keep track of the base used right before the insertion */
-} AlignMatrix;
+	int32_t score;
+	int32_t from;
+	int32_t length;
+} AlignCellNT;
 
-/* For the "from" in the struct "AlignMatrixCell" */
+/* TODO */
+typedef struct {
+	AlignCellNT h;
+	AlignCellNT s;
+	AlignCellNT v;
+} AlignMatrixNT;
+
+typedef struct {
+	/* For A, C, G, T, and N */
+	int32_t score[ALPHABET_SIZE+1];
+	int32_t scoreNT[ALPHABET_SIZE+1];
+	int32_t from[ALPHABET_SIZE+1];
+	int32_t length[ALPHABET_SIZE+1];
+	char colorError[ALPHABET_SIZE+1];
+} AlignCellCS;
+
+/* TODO */
+typedef struct {
+	/* Deletion */
+	AlignCellCS h;
+	/* Match/Mismatch  */
+	AlignCellCS s;
+	/* Insertion */
+	AlignCellCS v;
+} AlignMatrixCS;
+
+/* For the "from" in the struct "AlignCellNT" */
+enum {StartNT, /* 0 */
+	DeletionStart, /* 1 */
+	DeletionExtension, /* 2 */
+	Match, /* 3 */
+	InsertionStart, /* 4 */
+	InsertionExtension}; /* 5 */
+
+/* For the "from" in the struct "AlignCellCS" */
 enum {
 	Start, /* 0 */
-	/* From diagonals */
-	DiagA, /* 1 */
-	DiagC, /* 2 */
-	DiagG, /* 3 */
-	DiagT, /* 4 */
-	/* From deletion */
-	/* Start of deletion */
-	DeletionA, /* 5 */
-	DeletionC, /* 6 */
-	DeletionG, /* 7 */
-	DeletionT, /* 8 */
-	/* Extension of deletion */
-	DeletionExt, /* 9 */
-	/* End of deletion */
-	DeletionEnd, /* 10 */
-	/* From insertion */
+	DeletionA, /* 1 */
+	DeletionC, /* 2 */
+	DeletionG, /* 3 */
+	DeletionT, /* 4 */
+	DeletionN, /* 5 */
+	MatchA, /* 6 */
+	MatchC, /* 7 */
+	MatchG, /* 8 */
+	MatchT, /* 9 */
+	MatchN, /* 10 */
 	InsertionA, /* 11 */
 	InsertionC, /* 12 */
 	InsertionG, /* 13 */
 	InsertionT, /* 14 */
-	InsertionExt, /* 15 */
-	InsertionEnd, /* 16 */
+	InsertionN  /* 15 */
 };
 
 #endif

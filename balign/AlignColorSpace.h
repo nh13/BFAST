@@ -7,5 +7,6 @@
 int AlignColorSpace(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int, int);
 int AlignColorSpaceMismatchesOnly(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char);
 int AlignColorSpaceFull(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char);
+int FillAlignEntryFromMatrixColorSpace(AlignEntry*, AlignMatrixCS**, char*, int, char*, int, int, int);
 
 #endif

@@ -6,5 +6,6 @@
 int AlignNTSpace(char*, int, char*, int, ScoringMatrix*, AlignEntry*, int);
 int AlignNTSpaceFull(char*, int, char*, int, ScoringMatrix*, AlignEntry*);
 int AlignNTSpaceMismatchesOnly(char*, int, char*, int, ScoringMatrix*, AlignEntry*);
+int FillAlignEntryFromMatrixNTSpace(AlignEntry*, AlignMatrixNT**, char*, int, char*, int, int, int);
 
 #endif
