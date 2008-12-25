@@ -321,7 +321,7 @@ int AlignColorSpaceFull(char *read,
 	/* Row 0 column j should be zero since we want to find the best
 	 * local alignment within the reference */
 	for(j=0;j<referenceLength+1;j++) {
-		for(k=0;k<ALIGNMATRIXCELL_NUM_SUB_CELLS;k++) {
+		for(k=0;k<ALPHABET_SIZE+1;k++) {
 			matrix[0][j].h.score[k] = NEGATIVE_INFINITY;
 			matrix[0][j].h.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[0][j].h.from[k] = Start;
@@ -398,6 +398,7 @@ int AlignColorSpaceFull(char *read,
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
 					curScoreNT = NEGATIVE_INFINITY;
+					assert(curScore < 0);
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
@@ -418,6 +419,7 @@ int AlignColorSpaceFull(char *read,
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
 					curScoreNT = NEGATIVE_INFINITY;
+					assert(curScore < 0);
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
@@ -478,6 +480,7 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
+						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -497,6 +500,7 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
+						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -516,6 +520,7 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
+						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -574,6 +579,7 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
+						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -594,6 +600,7 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
+						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -610,7 +617,6 @@ int AlignColorSpaceFull(char *read,
 				matrix[i+1][j+1].v.colorError[k] = maxColorError;
 				matrix[i+1][j+1].v.length[k] = maxLength;
 			}
-
 		}
 	}
 
@@ -664,9 +670,9 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 	startRow=-1;
 	startCol=-1;
 	startCell=-1;
-	maxScore = NEGATIVE_INFINITY;
-	maxScoreNT = NEGATIVE_INFINITY;
-	for(i=0;i<referenceLength+1;i++) {
+	maxScore = NEGATIVE_INFINITY-1;
+	maxScoreNT = NEGATIVE_INFINITY-1;
+	for(i=1;i<referenceLength+1;i++) {
 		for(j=0;j<ALPHABET_SIZE+1;j++) {
 			/* Don't end with a Deletion in the read */
 
@@ -707,6 +713,31 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 	else {
 		a->length = matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 	}
+	/* HERE */
+	if(!(readLength <= a->length)) {
+		for(i=0;i<readLength+1;i++) {
+			for(j=0;j<referenceLength+1;j++) {
+				int k;
+				fprintf(stderr, "s[%d,%d]=[",
+						i,
+						j);
+				for(k=0;k<ALPHABET_SIZE+1;k++) {
+					fprintf(stderr, "%d", matrix[i][j].s.score[k]);
+					if(k<ALPHABET_SIZE) {
+						fprintf(stderr, ",");
+					}
+					else {
+						fprintf(stderr, "]\n");
+					}
+				}
+			}
+		}
+
+		fprintf(stderr, "readLength=%d\na->length=%d\n",
+				readLength,
+				a->length);
+	}
+	assert(readLength <= a->length);
 	i=a->length-1;
 	/* Copy over score */
 	if(scoringType == NTSpace) {
@@ -751,14 +782,38 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 		/* Where did the current cell come from */
 		/* Get if there was a color error */
 		if(curFrom <= (ALPHABET_SIZE + 1)) {
+			/*
+			fprintf(stderr, "\ni=%d\ncurFrom=%d\nh.length=%d\n%s",
+					i,
+					curFrom,
+					matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+					BREAK_LINE);
+			*/
+			assert(i + 1 == matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
 			nextFrom = matrix[curRow][curCol].h.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			a->colorError[i] = matrix[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else if(2*(ALPHABET_SIZE + 1) < curFrom) {
+			/*
+			fprintf(stderr, "\ni=%d\ncurFrom=%d\nv.length=%d\n%s",
+					i,
+					curFrom,
+					matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+					BREAK_LINE);
+			*/
+			assert(i + 1 == matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
 			nextFrom = matrix[curRow][curCol].v.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			a->colorError[i] = matrix[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else {
+			/*
+			fprintf(stderr, "\ni=%d\ncurFrom=%d\ns.length=%d\n%s",
+					i,
+					curFrom,
+					matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+					BREAK_LINE);
+					*/
+			assert(i + 1 == matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
 			nextFrom = matrix[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			a->colorError[i] = matrix[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}

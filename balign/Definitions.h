@@ -3,15 +3,14 @@
 
 #include "../blib/BLibDefinitions.h"
 
-#define NEGATIVE_INFINITY INT_MIN/2 /* cannot make this too small, otherwise we will not have numerical stability, i.e. become positive */
-#define VERY_NEGATIVE_INFINITY (INT_MIN/2)-1000 /* cannot make this too small, otherwise we will not have numerical stability, i.e. become positive */
+#define NEGATIVE_INFINITY INT_MIN/16 /* cannot make this too small, otherwise we will not have numerical stability, i.e. become positive */
+#define VERY_NEGATIVE_INFINITY (INT_MIN/16)-1000 /* cannot make this too small, otherwise we will not have numerical stability, i.e. become positive */
 
 /* Algorithm command line options:
  * 0: Dynamic programming 
  * */
 #define MIN_ALGORITHM 0
 #define MAX_ALGORITHM 1
-#define ALIGNMATRIXCELL_NUM_SUB_CELLS 6
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 
