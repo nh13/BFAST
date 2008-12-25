@@ -419,7 +419,6 @@ int AlignColorSpaceFull(char *read,
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
 					curScoreNT = NEGATIVE_INFINITY;
-					assert(curScore < 0);
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
@@ -480,7 +479,6 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
-						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -500,7 +498,6 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
-						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -520,7 +517,6 @@ int AlignColorSpaceFull(char *read,
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
 						curScoreNT = NEGATIVE_INFINITY;
-						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
@@ -546,70 +542,73 @@ int AlignColorSpaceFull(char *read,
 				char maxColorError = '0';
 				int maxLength = 0;
 
-				for(l=0;l<ALPHABET_SIZE+1;l++) { /* From NT */
-					int32_t curScore=NEGATIVE_INFINITY;
-					int32_t curScoreNT=NEGATIVE_INFINITY;
-					int curLength=-1;
-					uint8_t convertedColor='X';
-					int32_t scoreNT, scoreColor;
+				int32_t curScore=NEGATIVE_INFINITY;
+				int32_t curScoreNT=NEGATIVE_INFINITY;
+				int curLength=-1;
+				uint8_t B;
 
-					/* Get color */
-					if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
-						fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
-								l,
-								DNA[l],
-								k,
-								DNA[k]);
-						PrintError(FnName,
-								"convertedColor",
-								"Could not convert base to color space",
-								Exit,
-								OutOfRange);
-					}
-					/* Get NT and Color scores */
-					scoreNT = ScoringMatrixGetNTScore(DNA[k], DNA[k], sm); /* Assume it is correct */
-					scoreColor = ScoringMatrixGetColorScore(curColor,
-							convertedColor,
-							sm);
-
-					/* New insertion */
-					curLength = matrix[i][j+1].s.length[k] + 1;
-					curScore = curScoreNT + matrix[i][j+1].s.score[k] + sm->gapOpenPenalty + scoreNT + scoreColor;
-					/* Make sure we aren't below infinity */
-					if(curScore < NEGATIVE_INFINITY/2) {
-						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
-						assert(curScore < 0);
-					}
-					if(curScore > maxScore) {
-						maxScore = curScore;
-						maxScoreNT = curScoreNT;
-						maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-						maxColorError = '0';
-						maxLength = curLength;
-					}
-
-					/* Extend current insertion */
-					curLength = matrix[i][j+1].v.length[k] + 1;
-					/* Insertion - previous row */
-					curScore = curScoreNT = matrix[i][j+1].v.score[k] + sm->gapExtensionPenalty + scoreNT + scoreColor;
-					/* Ignore color error since one color will span the entire
-					 * deletion.  We will consider the color at the end of the deletion.
-					 * */
-					/* Make sure we aren't below infinity */
-					if(curScore < NEGATIVE_INFINITY/2) {
-						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
-						assert(curScore < 0);
-					}
-					if(curScore > maxScore) {
-						maxScore = curScore;
-						maxScoreNT = curScoreNT;
-						maxFrom = l + 1 + 2*(ALPHABET_SIZE +1); /* see the enum */ 
-						maxColorError = '0';
-						maxLength = curLength;
-					}
+				if(0 == ConvertBaseAndColor(DNA[k], curColor, &B)) {
+					PrintError(FnName,
+							NULL,
+							"Could not convert base and color",
+							Exit,
+							OutOfRange);
 				}
+				switch(B) {
+					case 'a':
+					case 'A':
+						l=0;
+						break;
+					case 'c':
+					case 'C':
+						l=1;
+						break;
+					case 'g':
+					case 'G':
+						l=2;
+						break;
+					case 't':
+					case 'T':
+						l=3;
+						break;
+					default:
+						l=4;
+				}
+
+
+				/* New insertion */
+				curLength = matrix[i][j+1].s.length[l] + 1;
+				curScore = curScoreNT = matrix[i][j+1].s.score[l] + sm->gapOpenPenalty;
+				/* Make sure we aren't below infinity */
+				if(curScore < NEGATIVE_INFINITY/2) {
+					curScore = NEGATIVE_INFINITY;
+					curScoreNT = NEGATIVE_INFINITY;
+				}
+				if(curScore > maxScore) {
+					maxScore = curScore;
+					maxScoreNT = curScoreNT;
+					maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
+					maxColorError = '0';
+					maxLength = curLength;
+				}
+
+				/* Extend current insertion */
+				curLength = matrix[i][j+1].v.length[l] + 1;
+				/* Insertion - previous row */
+				curScore = curScoreNT = matrix[i][j+1].v.score[l] + sm->gapExtensionPenalty;
+				/* Make sure we aren't below infinity */
+				if(curScore < NEGATIVE_INFINITY/2) {
+					curScore = NEGATIVE_INFINITY;
+					curScoreNT = NEGATIVE_INFINITY;
+				}
+				if(curScore > maxScore) {
+					maxScore = curScore;
+					maxScoreNT = curScoreNT;
+					maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
+					maxColorError = '0';
+					maxLength = curLength;
+				}
+
 				/* Update */
 				matrix[i+1][j+1].v.score[k] = maxScore;
 				matrix[i+1][j+1].v.scoreNT[k] = maxScoreNT;
@@ -713,30 +712,6 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 	else {
 		a->length = matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 	}
-	/* HERE */
-	if(!(readLength <= a->length)) {
-		for(i=0;i<readLength+1;i++) {
-			for(j=0;j<referenceLength+1;j++) {
-				int k;
-				fprintf(stderr, "s[%d,%d]=[",
-						i,
-						j);
-				for(k=0;k<ALPHABET_SIZE+1;k++) {
-					fprintf(stderr, "%d", matrix[i][j].s.score[k]);
-					if(k<ALPHABET_SIZE) {
-						fprintf(stderr, ",");
-					}
-					else {
-						fprintf(stderr, "]\n");
-					}
-				}
-			}
-		}
-
-		fprintf(stderr, "readLength=%d\na->length=%d\n",
-				readLength,
-				a->length);
-	}
 	assert(readLength <= a->length);
 	i=a->length-1;
 	/* Copy over score */
@@ -783,37 +758,37 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 		/* Get if there was a color error */
 		if(curFrom <= (ALPHABET_SIZE + 1)) {
 			/*
-			fprintf(stderr, "\ni=%d\ncurFrom=%d\nh.length=%d\n%s",
-					i,
-					curFrom,
-					matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
-					BREAK_LINE);
-			*/
-			assert(i + 1 == matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   fprintf(stderr, "\ni=%d\ncurFrom=%d\nh.length=%d\n%s",
+			   i,
+			   curFrom,
+			   matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+			   BREAK_LINE);
+			   assert(i + 1 == matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   */
 			nextFrom = matrix[curRow][curCol].h.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			a->colorError[i] = matrix[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else if(2*(ALPHABET_SIZE + 1) < curFrom) {
 			/*
-			fprintf(stderr, "\ni=%d\ncurFrom=%d\nv.length=%d\n%s",
-					i,
-					curFrom,
-					matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
-					BREAK_LINE);
-			*/
-			assert(i + 1 == matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   fprintf(stderr, "\ni=%d\ncurFrom=%d\nv.length=%d\n%s",
+			   i,
+			   curFrom,
+			   matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+			   BREAK_LINE);
+			   assert(i + 1 == matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   */
 			nextFrom = matrix[curRow][curCol].v.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			a->colorError[i] = matrix[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else {
 			/*
-			fprintf(stderr, "\ni=%d\ncurFrom=%d\ns.length=%d\n%s",
-					i,
-					curFrom,
-					matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
-					BREAK_LINE);
-					*/
-			assert(i + 1 == matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   fprintf(stderr, "\ni=%d\ncurFrom=%d\ns.length=%d\n%s",
+			   i,
+			   curFrom,
+			   matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+			   BREAK_LINE);
+			   assert(i + 1 == matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   */
 			nextFrom = matrix[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			a->colorError[i] = matrix[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
