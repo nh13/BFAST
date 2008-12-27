@@ -469,6 +469,7 @@ void Run(RGBinary *rg,
 
 		if(round(a.entriesOne[0].score) < score) {
 			numScoreLessThan++;
+			/*
 			fprintf(stderr, "a.readName=%s\n", a.readName);
 			fprintf(stderr, "found=%d\nexpected=%d\n",
 					round(a.entriesOne[0].score),
@@ -479,6 +480,7 @@ void Run(RGBinary *rg,
 					"The alignment score should not be less than expected",
 					Exit,
 					OutOfRange);
+					*/
 		}
 		else if(score < round(a.entriesOne[0].score)) {
 			numScoreGreaterThan++;
