@@ -484,7 +484,7 @@ int AlignColorSpaceFull(char *read,
 						maxScore = curScore;
 						maxScoreNT = curScoreNT;
 						maxFrom = l + 1; /* see the enum */ 
-						maxColorError = '0';
+						maxColorError = (curColor == convertedColor)?'0':'1';
 						maxLength = curLength;
 					}
 
@@ -503,7 +503,7 @@ int AlignColorSpaceFull(char *read,
 						maxScore = curScore;
 						maxScoreNT = curScoreNT;
 						maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
-						maxColorError = '0';
+						maxColorError = (curColor == convertedColor)?'0':'1';
 						maxLength = curLength;
 					}
 
@@ -522,7 +522,7 @@ int AlignColorSpaceFull(char *read,
 						maxScore = curScore;
 						maxScoreNT = curScoreNT;
 						maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-						maxColorError = '0';
+						maxColorError = (curColor == convertedColor)?'0':'1';
 						maxLength = curLength;
 					}
 				}
@@ -546,7 +546,9 @@ int AlignColorSpaceFull(char *read,
 				int32_t curScoreNT=NEGATIVE_INFINITY;
 				int curLength=-1;
 				uint8_t B;
+				int fromNT=-1;
 
+				/* Get from base for extending an insertion */
 				if(0 == ConvertBaseAndColor(DNA[k], curColor, &B)) {
 					PrintError(FnName,
 							NULL,
@@ -557,28 +559,37 @@ int AlignColorSpaceFull(char *read,
 				switch(B) {
 					case 'a':
 					case 'A':
-						l=0;
+						fromNT=0;
 						break;
 					case 'c':
 					case 'C':
-						l=1;
+						fromNT=1;
 						break;
 					case 'g':
 					case 'G':
-						l=2;
+						fromNT=2;
 						break;
 					case 't':
 					case 'T':
-						l=3;
+						fromNT=3;
 						break;
 					default:
-						l=4;
+						fromNT=4;
+						break;
 				}
 
-
 				/* New insertion */
-				curLength = matrix[i][j+1].s.length[l] + 1;
-				curScore = curScoreNT = matrix[i][j+1].s.score[l] + sm->gapOpenPenalty;
+				curScore=NEGATIVE_INFINITY;
+				curScoreNT=NEGATIVE_INFINITY;
+				curLength=-1;
+				/* Get NT and Color scores */
+				curLength = matrix[i][j+1].s.length[fromNT] + 1;
+				curScore = curScoreNT = matrix[i][j+1].s.score[fromNT] + sm->gapOpenPenalty;
+				/*
+				   curScore += ScoringMatrixGetColorScore(curColor,
+				   convertedColor,
+				   sm);
+				   */
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
@@ -587,15 +598,15 @@ int AlignColorSpaceFull(char *read,
 				if(curScore > maxScore) {
 					maxScore = curScore;
 					maxScoreNT = curScoreNT;
-					maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
+					maxFrom = fromNT + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 					maxColorError = '0';
 					maxLength = curLength;
 				}
 
 				/* Extend current insertion */
-				curLength = matrix[i][j+1].v.length[l] + 1;
+				curLength = matrix[i][j+1].v.length[fromNT] + 1;
 				/* Insertion - previous row */
-				curScore = curScoreNT = matrix[i][j+1].v.score[l] + sm->gapExtensionPenalty;
+				curScore = curScoreNT = matrix[i][j+1].v.score[fromNT] + sm->gapExtensionPenalty;
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
@@ -604,7 +615,7 @@ int AlignColorSpaceFull(char *read,
 				if(curScore > maxScore) {
 					maxScore = curScore;
 					maxScoreNT = curScoreNT;
-					maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
+					maxFrom = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
 					maxColorError = '0';
 					maxLength = curLength;
 				}
