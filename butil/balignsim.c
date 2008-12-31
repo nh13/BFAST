@@ -157,7 +157,19 @@ void Run(RGBinary *rg,
 	char string[4096]="\0";
 	int ret=0;
 	char *s=NULL;
-	
+
+	if(ColorSpace == space &&
+			1 == withinInsertion && 
+			0 < indelLength && 
+			2 == indel) {
+		PrintError(Name,
+				"withinInsertion",
+				"Incosistent results will occurs.  Try not using withinInsertion == 1.",
+				Warn,
+				OutOfRange);
+	}
+
+
 	score = prev = score_m = score_mm = score_cm = score_ce = 0;
 
 	/* Check rg to make sure it is in NT Space */
@@ -200,8 +212,8 @@ void Run(RGBinary *rg,
 	score_m = ScoringMatrixGetNTScore('A', 'A', &sm);
 	score_mm = ScoringMatrixGetNTScore('A', 'C', &sm);
 	if(ColorSpace == space) {
-	score_cm = ScoringMatrixGetColorScore(0, 0, &sm);
-	score_ce = ScoringMatrixGetColorScore(0, 1, &sm);
+		score_cm = ScoringMatrixGetColorScore(0, 0, &sm);
+		score_ce = ScoringMatrixGetColorScore(0, 1, &sm);
 	}
 	for(i=0;i<=ALPHABET_SIZE;i++) {
 		for(j=0;j<=ALPHABET_SIZE;j++) {
@@ -480,18 +492,18 @@ void Run(RGBinary *rg,
 					"The alignment score should not be less than expected",
 					Exit,
 					OutOfRange);
-					*/
+			*/
 		}
 		else if(score < round(a.entriesOne[0].score)) {
 			numScoreGreaterThan++;
 			/*
-			AlignEntriesPrint(&a, stderr, TextOutput);
-			PrintError(FnName,
-					"numScoreGreaterThan",
-					"The alignment score was greater than expected",
-					Exit,
-					OutOfRange);
-					*/
+			   AlignEntriesPrint(&a, stderr, TextOutput);
+			   PrintError(FnName,
+			   "numScoreGreaterThan",
+			   "The alignment score was greater than expected",
+			   Exit,
+			   OutOfRange);
+			   */
 		}
 		else {
 			numScoreEqual++;

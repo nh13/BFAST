@@ -79,7 +79,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"scoringType", 'X', "scoringType", 0, "Final alignment score should by in 0: NT space 1: Color space", 2},
+	{"scoringType", 'X', "scoringType", 0, "Final alignment score should by in 0: NT space 1: color space", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endContig", 'e', "endContig", 0, "Specifies the end chromosome", 2},
