@@ -43,7 +43,6 @@ AC_PROG_CC
 
 AC_PROG_INSTALL
 AC_GNU_SOURCE
-AC_PROG_LIBTOOL
 AC_PROG_RANLIB
 
 # set CFLAGS and CXXFLAGS
@@ -103,7 +102,6 @@ attempt to use getopt.h for command line parsing.])])
 
 AC_CONFIG_FILES([Makefile
 				 doc/Makefile
-				 blib/Makefile
 				 bpreprocess/Makefile
 				 bmatches/Makefile
 				 balign/Makefile
