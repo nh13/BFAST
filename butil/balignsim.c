@@ -302,6 +302,7 @@ void Run(RGBinary *rg,
 						break;
 					case SNP:
 					case Error:
+					case SNPAndError:
 						score += score_mm;
 						break;
 					case Default:
