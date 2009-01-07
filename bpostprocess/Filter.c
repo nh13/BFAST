@@ -17,11 +17,15 @@ int FilterAlignEntries(AlignEntries *a,
 		int startPos,
 		int endContig,
 		int endPos,
+		int maxMismatches,
+		int maxColorErrors,
 		int pairedEnd,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,
-		int maxDistancePaired)
+		int maxDistancePaired,
+		int maxMismatchesPaired,
+		int maxColorErrorsPaired)
 {
 	char *FnName="FilterAlignEntries";
 	int foundType=NoneFound;
@@ -49,6 +53,8 @@ int FilterAlignEntries(AlignEntries *a,
 						startPos,
 						endContig,
 						endPos,
+						maxMismatches,
+						maxColorErrors,
 						First);
 				break;
 			case Unique:
@@ -60,6 +66,8 @@ int FilterAlignEntries(AlignEntries *a,
 						startPos,
 						endContig,
 						endPos,
+						maxMismatches,
+						maxColorErrors,
 						First);
 				break;
 			default:
@@ -86,6 +94,8 @@ int FilterAlignEntries(AlignEntries *a,
 							startPos,
 							endContig,
 							endPos,
+							maxMismatches,
+							maxColorErrors,
 							First) &&
 						Found==FilterReadInAlignEntries(a,
 							algorithmReadsPaired,
@@ -94,6 +104,8 @@ int FilterAlignEntries(AlignEntries *a,
 							startPos,
 							endContig,
 							endPos,
+							maxMismatches,
+							maxColorErrors,
 							Second)) {
 					foundType=Found;
 				}
@@ -106,10 +118,14 @@ int FilterAlignEntries(AlignEntries *a,
 						endContig,
 						endPos,
 						minScoreReads,
+						maxMismatches,
+						maxColorErrors,
 						algorithmReadsPaired,
 						minScoreReadsPaired,
 						minDistancePaired,
-						maxDistancePaired);
+						maxDistancePaired,
+						maxMismatchesPaired,
+						maxColorErrorsPaired);
 				break;
 			default:
 				PrintError(FnName,
@@ -138,6 +154,8 @@ int FilterReadInAlignEntries(AlignEntries *a,
 		int startPos,
 		int endContig,
 		int endPos,
+		int maxMismatches,
+		int maxColorErrors,
 		int which)
 {
 	char *FnName="FilterReadInAlignEntries";
@@ -173,11 +191,16 @@ int FilterReadInAlignEntries(AlignEntries *a,
 	for(i=0;i<(*ptrNumEntries) && Found==foundType;i++) {
 		/* Check if we should filter */
 		if(1!=FilterAlignEntry(&(*ptrEntries)[i],
+					a->space,
 					minScoreReads,
 					startContig,
 					startPos,
 					endContig,
-					endPos)) {
+					endPos,
+					maxMismatches,
+					maxColorErrors,
+					NULL,
+					NULL)) {
 			uniqueIndex=i;
 			numNotFiltered++;
 
@@ -325,12 +348,19 @@ int FilterReadInAlignEntries(AlignEntries *a,
 
 /* TODO */
 int FilterAlignEntry(AlignEntry *a,
+		int space,
 		int minScoreReads,
 		int startContig,
 		int startPos,
 		int endContig,
-		int endPos)
+		int endPos,
+		int maxMismatches,
+		int maxColorErrors,
+		int *returnNumMismatches,
+		int *returnNumColorErrors)
 {
+	int32_t i, numMismatches, numColorErrors;
+	numMismatches=numColorErrors=0;
 	/* Check if the alignment has at least the minimum score */
 	if(a->score < minScoreReads) {
 		return 1;
@@ -342,6 +372,40 @@ int FilterAlignEntry(AlignEntry *a,
 			(endContig != 0 && a->contig > endContig)) {
 		return 1;
 	}
+	/* Check mismatches */
+	for(i=0;i<a->length;i++) {
+		/* Increment mismatches */
+		if(GAP != a->read[i] && GAP != a->reference[i] && a->read[i] != a->reference[i]) {
+			numMismatches++;
+		}
+	}
+	if(NULL != returnNumMismatches) {
+		(*returnNumMismatches) = numMismatches;
+	}
+	/* Check color errors */
+	if(ColorSpace == space) {
+		for(i=0;i<a->length;i++) {
+			/* Increment color errors */
+			switch(a->colorError[i]) {
+				case '1':
+					numColorErrors++;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+	if(NULL != returnNumColorErrors) {
+		(*returnNumColorErrors) = numColorErrors;
+	}
+	if(maxMismatches < numMismatches) {
+		return 1;
+	}
+	if(ColorSpace == space) {
+		if(maxColorErrors < numColorErrors) {
+			return 1;
+		}
+	}
 	return 0;
 }
 
@@ -352,12 +416,17 @@ int FilterOneAlignEntries(AlignEntries *a,
 		int endContig,
 		int endPos,
 		int minScoreReads,
+		int maxMismatches,
+		int maxColorErrors,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,
-		int maxDistancePaired)
+		int maxDistancePaired,
+		int maxMismatchesPaired,
+		int maxColorErrorsPaired)
 {
 	char *FnName = "FilterOneAlignEntries";
+	int numMismatchesOne, numMismatchesTwo, numColorErrorsOne, numColorErrorsTwo;
 	/* best score */
 	double bestScore=DBL_MIN;
 	int bestScoreOne=-1, bestScoreTwo=-1;
@@ -383,23 +452,37 @@ int FilterOneAlignEntries(AlignEntries *a,
 	/* Go through all possible pairs of alignments */
 	for(i=0;i<a->numEntriesOne;i++) { /* First read */
 		/* Filter first entry for contig position */
+				numMismatchesOne=numColorErrorsOne=0;
 		if(0 == FilterAlignEntry(&a->entriesOne[i],
+					a->space,
 					minScoreReads,
 					startContig,
 					startPos,
 					endContig,
-					endPos)) {
+					endPos,
+					maxMismatches,
+					maxColorErrors,
+					&numMismatchesOne,
+					&numColorErrorsOne)) {
 			for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
+				numMismatchesTwo=numColorErrorsTwo=0;
 				/* Get the current score */
 				curScore = a->entriesOne[i].score + a->entriesTwo[j].score;
 				/* Filter second entry for contig position.  Also filter based on score. */
 				if(0 == FilterAlignEntry(&a->entriesTwo[j],
+							a->space,
 							minScoreReads,
 							startContig,
 							startPos,
 							endContig,
-							endPos) &&
-						(minScoreReadsPaired <= curScore)) {
+							endPos,
+							maxMismatches,
+							maxColorErrors,
+							&numMismatchesOne,
+							&numColorErrorsOne) &&
+						(minScoreReadsPaired <= curScore) &&
+						(numMismatchesOne + numMismatchesTwo <= maxMismatchesPaired) &&
+						(numColorErrorsOne + numColorErrorsTwo <= maxColorErrorsPaired)) {
 					/* Get the distance between the two */
 					curContigDistance = a->entriesTwo[j].contig - a->entriesOne[i].contig;
 					curPositionDistance = a->entriesTwo[j].position - a->entriesOne[i].position;

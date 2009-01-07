@@ -58,8 +58,8 @@ PACKAGE_BUGREPORT;
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
 	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired,
-	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, 
-	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, 
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
+	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMaxMismatchesPaired, DescMaxColorErrorsPaired, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -94,11 +94,15 @@ static struct argp_option options[] = {
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
-	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads",34},
+	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads", 3},
+	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for single-end reads", 3},
+	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for single-end reads", 3},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
 	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 4},
 	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends for filtering", 4},
 	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends for filtering", 4},
+	{"maxMismatchesPaired", 'J', "maxMismatchesPaired", 0, "Specifies the maximum number of mismatches to consider in total for the two paired reads", 4},
+	{"maxColorErrorsPaired", 'K', "maxColorErrorsPaired", 0, "Specifies the maximum number of color errors to consider in total for the two paired reads", 4},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 5},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 5},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 5},
@@ -128,7 +132,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:m:o:r:s:A:E:I:M:O:P:S:T:X:Y:2hptCI";
+"a:d:e:i:j:k:m:o:r:s:A:E:I:J:K:M:O:P:S:T:X:Y:2hptCI";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -192,10 +196,14 @@ main (int argc, char **argv)
 								arguments.endPos,
 								arguments.algorithmReads,
 								arguments.minScoreReads,
+								arguments.maxMismatches,
+								arguments.maxColorErrors,
 								arguments.algorithmReadsPaired,
 								arguments.minScoreReadsPaired,
 								arguments.minDistancePaired,
 								arguments.maxDistancePaired,
+								arguments.maxMismatchesPaired,
+								arguments.maxColorErrorsPaired,
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.outputID,
@@ -304,6 +312,22 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->maxMismatches < 0) {
+		PrintError(FnName, "maxMismatches < 0", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->maxColorErrors < 0) {
+		PrintError(FnName, "maxColorErrors < 0", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->maxMismatchesPaired < 0) {
+		PrintError(FnName, "maxMismatchesPaired < 0", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->maxColorErrorsPaired < 0) {
+		PrintError(FnName, "maxColorErrorsPaired < 0", "Command line argument", Exit, OutOfRange);
+	}
+
 	/* Check that the min distance is less than or equal to the max distance */
 	if(args->minDistancePaired > args->maxDistancePaired) {
 		PrintError(FnName, "minDistancePaired > maxDistancePaired", "Command line argument", Exit, OutOfRange);
@@ -373,11 +397,15 @@ AssignDefaultValues(struct arguments *args)
 
 	args->algorithmReads=0;
 	args->minScoreReads=INT_MIN;
+	args->maxMismatches=INT_MAX;
+	args->maxColorErrors=INT_MAX;
 
 	args->algorithmReadsPaired=0;
 	args->minScoreReadsPaired=INT_MIN;
 	args->minDistancePaired=INT_MIN;
 	args->maxDistancePaired=INT_MAX;
+	args->maxMismatchesPaired=INT_MAX;
+	args->maxColorErrorsPaired=INT_MAX;
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 
@@ -422,9 +450,13 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
 	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
+	fprintf(fp, "maxMismatches:\t\t%d\n", args->maxMismatches);
+	fprintf(fp, "maxColorErrors:\t\t%d\n", args->maxColorErrors);
 	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
 	fprintf(fp, "maxDistancePaired:\t%d\n", args->maxDistancePaired);
+	fprintf(fp, "maxMismatchesPaired:\t\t%d\n", args->maxMismatchesPaired);
+	fprintf(fp, "maxColorErrorsPaired:\t\t%d\n", args->maxColorErrorsPaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -508,6 +540,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'i':
 						StringCopyAndReallocate(&arguments->alignFileName, OPTARG);
 						break;
+					case 'j':
+						arguments->maxMismatches=atoi(OPTARG);break;
+					case 'k':
+						arguments->maxColorErrors=atoi(OPTARG);break;
 					case 'm':
 						arguments->minScoreReads = atoi(OPTARG);break;
 					case 'o':
@@ -529,6 +565,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->endPos=atoi(OPTARG);break;
 					case 'I':
 						arguments->inversionsPaired = 1;break;
+					case 'J':
+						arguments->maxMismatchesPaired=atoi(OPTARG);break;
+					case 'K':
+						arguments->maxColorErrorsPaired=atoi(OPTARG);break;
 					case 'M':
 						arguments->minScoreReadsPaired = atoi(OPTARG);break;
 					case 'O':
