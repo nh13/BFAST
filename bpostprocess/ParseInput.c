@@ -455,8 +455,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
 	fprintf(fp, "maxDistancePaired:\t%d\n", args->maxDistancePaired);
-	fprintf(fp, "maxMismatchesPaired:\t\t%d\n", args->maxMismatchesPaired);
-	fprintf(fp, "maxColorErrorsPaired:\t\t%d\n", args->maxColorErrorsPaired);
+	fprintf(fp, "maxMismatchesPaired:\t%d\n", args->maxMismatchesPaired);
+	fprintf(fp, "maxColorErrorsPaired:\t%d\n", args->maxColorErrorsPaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
