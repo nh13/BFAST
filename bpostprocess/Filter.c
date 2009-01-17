@@ -30,7 +30,7 @@ int FilterAlignEntries(AlignEntries *a,
 	char *FnName="FilterAlignEntries";
 	int foundType=NoneFound;
 	AlignEntries tmpA;
-	int32_t i, bestScore, bestScoreIndex;
+	int32_t i, bestScore, bestScoreIndex, numBestScore;
 	assert(a->pairedEnd == pairedEnd);
 
 	AlignEntriesInitialize(&tmpA);
@@ -51,7 +51,7 @@ int FilterAlignEntries(AlignEntries *a,
 	/* Filter each read individually */
 	for(i=0;i<tmpA.numEntriesOne;i++) {
 		/* Check if we should filter */
-		if(1!=FilterAlignEntry(&tmpA.entriesOne[i],
+		if(0<FilterAlignEntry(&tmpA.entriesOne[i],
 					tmpA.space,
 					minScoreReads,
 					startContig,
@@ -64,7 +64,7 @@ int FilterAlignEntries(AlignEntries *a,
 			if(i < tmpA.numEntriesOne-1) {
 				AlignEntryCopy(&tmpA.entriesOne[tmpA.numEntriesOne-1], &tmpA.entriesOne[i]);
 			}
-			AlignEntriesReallocate(a, tmpA.numEntriesOne-1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
+			AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne-1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
 			/* Since we removed, do not incrememt */
 			i--;
 		}
@@ -72,7 +72,7 @@ int FilterAlignEntries(AlignEntries *a,
 	if(PairedEnd == tmpA.pairedEnd) {
 		for(i=0;i<tmpA.numEntriesTwo;i++) {
 			/* Check if we should filter */
-			if(1!=FilterAlignEntry(&tmpA.entriesTwo[i],
+			if(0<FilterAlignEntry(&tmpA.entriesTwo[i],
 						tmpA.space,
 						minScoreReads,
 						startContig,
@@ -85,7 +85,7 @@ int FilterAlignEntries(AlignEntries *a,
 				if(i < tmpA.numEntriesTwo-1) {
 					AlignEntryCopy(&tmpA.entriesTwo[tmpA.numEntriesTwo-1], &tmpA.entriesTwo[i]);
 				}
-				AlignEntriesReallocate(a, tmpA.numEntriesOne, tmpA.numEntriesTwo-1, tmpA.pairedEnd, tmpA.space);
+				AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, tmpA.numEntriesTwo-1, tmpA.pairedEnd, tmpA.space);
 				/* Since we removed, do not incrememt */
 				i--;
 			}
@@ -104,13 +104,18 @@ int FilterAlignEntries(AlignEntries *a,
 			case BestScore:
 				bestScore = INT_MIN;
 				bestScoreIndex = -1;
+				numBestScore=0;
 				for(i=0;i<tmpA.numEntriesOne;i++) {
 					if(bestScore < tmpA.entriesOne[i].score) {
 						bestScore = tmpA.entriesOne[i].score;
 						bestScoreIndex = i;
+						numBestScore = 1;
+					}
+					else if(bestScore == tmpA.entriesOne[i].score) {
+						numBestScore++;
 					}
 				}
-				if(-1 < bestScoreIndex) {
+				if(1 == numBestScore) {
 					AlignEntryCopy(&tmpA.entriesOne[bestScoreIndex], &tmpA.entriesOne[0]);
 					AlignEntriesReallocate(a, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
 					foundType=Found;
@@ -133,7 +138,7 @@ int FilterAlignEntries(AlignEntries *a,
 			case AllNotFiltered:
 			case Unique:
 			case BestScore:
-				FilterPairedEnd(&tmpA,
+				foundType = FilterPairedEnd(&tmpA,
 						algorithmReadsPaired,
 						minScoreReadsPaired,
 						minDistancePaired,
@@ -150,8 +155,8 @@ int FilterAlignEntries(AlignEntries *a,
 				break;
 		}
 	}
-	/* If we filtered all, copy back */
-	if(foundType == NoneFound) {
+	/* If we found, then copy back */
+	if(NoneFound != foundType) {
 		AlignEntriesFree(a);
 		AlignEntriesCopy(&tmpA, a);
 	}
@@ -182,18 +187,18 @@ int FilterAlignEntry(AlignEntry *a,
 			(startContig != 0 && a->contig == startContig && startPos != 0 && a->position < startPos) ||
 			(endContig != 0 && a->contig == endContig && endPos != 0 && a->position > endPos) ||
 			(endContig != 0 && a->contig > endContig)) {
-		return 1;
+		return 2;
 	}
 	/* Check mismatches */
 	numMismatches = GetNumMismatchesInAlignEntry(a);
 	/* Check color errors */
 	numColorErrors = GetNumColorErrorsInAlignEntry(a, space);
 	if(maxMismatches < numMismatches) {
-		return 1;
+		return 3;
 	}
 	if(ColorSpace == space) {
 		if(maxColorErrors < numColorErrors) {
-			return 1;
+			return 4;
 		}
 	}
 	return 0;
