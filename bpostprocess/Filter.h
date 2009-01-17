@@ -20,17 +20,6 @@ int FilterAlignEntries(AlignEntries *a,
 		int maxMismatchesPaired,
 		int maxColorErrorsPaired);
 
-int FilterReadInAlignEntries(AlignEntries *a,
-		int algorithmReads,
-		int minScoreReads,
-		int startChr,
-		int startPos,
-		int endChr,
-		int endPos,
-		int maxMismatches,
-		int maxColorErrors,
-		int which);
-
 int FilterAlignEntry(AlignEntry *a,
 		int space,
 		int minScoreReads,
@@ -39,18 +28,13 @@ int FilterAlignEntry(AlignEntry *a,
 		int endChr,
 		int endPos,
 		int maxMismatches,
-		int maxColorErrors,
-		int *returnNumMismatches,
-		int *returnNumColorErrors);
+		int maxColorErrors);
 
-int FilterOneAlignEntries(AlignEntries *a,
-		int startChr,
-		int startPos,
-		int endChr,
-		int endPos,
-		int minScoreReads,
-		int maxColorErrors,
-		int pairedEnd,
+int GetNumMismatchesInAlignEntry(AlignEntry *a);
+
+int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space);
+
+int FilterPairedEnd(AlignEntries *a,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,

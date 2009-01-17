@@ -23,6 +23,7 @@ struct arguments
 	int maxColorErrorsPaired;				/* -k */
 	int contigAbPaired;						/* -C */
 	int inversionsPaired;					/* -I */
+	int unpaired;							/* -U */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
 	int outputFormat;						/* -O */

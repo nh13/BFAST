@@ -30,13 +30,14 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int maxColorErrorsPaired,
 		int contigAbPaired,
 		int inversionsPaired,
+		int unpaired,
 		char *outputID,
 		char *outputDir,
 		int outputFormat)
 {
 	char *FnName="ReadInputFilterAndOutput";
 	FILE *fp=NULL;
-	int64_t counter, foundType, numContigAb, numInversions, numNotReported, numReported;
+	int64_t counter, foundType, numContigAb, numUnpaired, numInversions, numNotReported, numReported;
 	AlignEntries a;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpOut=NULL;
@@ -44,6 +45,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	FILE *fpContigAb=NULL;
 	char inversionsFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpInversions=NULL;
+	char unpairedFileName[MAX_FILENAME_LENGTH]="\0";
+	FILE *fpUnpaired=NULL;
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpNotReported=NULL;
 	char fileExtension[256]="\0";
@@ -86,6 +89,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			PROGRAM_NAME,
 			outputID,
 			fileExtension);
+	sprintf(unpairedFileName, "%s%s.unpaired.file.%s.%s",
+			outputDir,
+			PROGRAM_NAME,
+			outputID,
+			fileExtension);
 	sprintf(notReportedFileName, "%s%s.not.reported.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
@@ -120,6 +128,17 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		}
 		PrintHeader(fpInversions, outputFormat);
 	}
+	if(unpaired == 1) {
+		assert(1==pairedEnd);
+		if(!(fpUnpaired=fopen(unpairedFileName, "wb"))) {
+			PrintError(FnName,
+					unpairedFileName,
+					"Could not open unpairedFileName for writing",
+					Exit,
+					OpenFileError);
+		}
+		PrintHeader(fpUnpaired, outputFormat);
+	}
 	if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
 		PrintError(FnName,
 				notReportedFileName,
@@ -144,7 +163,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
-	counter = numReported = numNotReported = numContigAb = numInversions = 0;
+	counter = numReported = numNotReported = numContigAb = numUnpaired = numInversions = 0;
 	while(EOF != AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter, binaryInput)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
@@ -188,6 +207,14 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					numContigAb++;
 				}
 				break;
+			case Unpaired:
+				assert(pairedEnd == 1);
+				if(unpaired == 1) {
+					/* Print to Unpaired file */
+					PrintAlignEntriesToOutputFormat(&a, rg, fpUnpaired, outputFormat, binaryInput);
+					numUnpaired++;
+				}
+				break;
 			case Inversion:
 				assert(pairedEnd == 1);
 				if(inversionsPaired == 1) {
@@ -222,6 +249,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		if(1==inversionsPaired) {
 			fprintf(stderr, "Found %lld inverted paired end reads.\n", (long long int)numInversions); 
 		}
+		if(1==unpaired) {
+			fprintf(stderr, "Found %lld unpaired paired end reads.\n", (long long int)numUnpaired);
+		}
 	}
 
 	/* Close output files, if necessary */
@@ -234,6 +264,10 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	if(contigAbPaired == 1) {
 		assert(1==pairedEnd);
 		fclose(fpContigAb);
+	}
+	if(unpaired == 1) {
+		assert(1==pairedEnd);
+		fclose(fpUnpaired);
 	}
 
 	/* Close the input file */

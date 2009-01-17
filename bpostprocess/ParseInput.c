@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired,
+	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMaxMismatchesPaired, DescMaxColorErrorsPaired, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
@@ -87,8 +87,9 @@ static struct argp_option options[] = {
 			"\n\t\t1: Specifies that all alignments for either end that pass the general filters will be outputted"
 			"\n\t\t2: Specifies to only consider paired reads where both reads have been aligned uniquely"
 			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined", 2},
-	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 5},
-	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 5},
+	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 2},
+	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 2},
+	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that have one end pass the filters", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
@@ -132,7 +133,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:A:E:I:J:K:M:O:P:S:T:X:Y:2hptCI";
+"a:d:e:i:j:k:m:o:r:s:A:E:I:J:K:M:O:P:S:T:X:Y:2hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -206,6 +207,7 @@ main (int argc, char **argv)
 								arguments.maxColorErrorsPaired,
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
+								arguments.unpaired,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.outputFormat);
@@ -336,6 +338,7 @@ int ValidateInputs(struct arguments *args) {
 	/* This must hold internally */
 	assert(args->contigAbPaired == 0 || args->contigAbPaired == 1);
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
+	assert(args->unpaired == 0 || args->unpaired == 1);
 
 	if(args->pairedEnd == 0 && args->contigAbPaired == 1) {
 		PrintError(FnName, "Cannot use contigAbPaired without paired end", "Command line argument", Exit, OutOfRange);
@@ -343,6 +346,10 @@ int ValidateInputs(struct arguments *args) {
 
 	if(args->pairedEnd == 0 && args->inversionsPaired == 1) {
 		PrintError(FnName, "Cannot use inversionsPaired without paired end", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->unpaired == 0 && args->unpaired == 1) {
+		PrintError(FnName, "Cannot use unpaired without paired end", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->outputID!=0) {
@@ -408,6 +415,7 @@ AssignDefaultValues(struct arguments *args)
 	args->maxColorErrorsPaired=INT_MAX;
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
+	args->unpaired=0;
 
 	args->outputID = 
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -445,6 +453,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
 	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
 	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
+	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
@@ -575,6 +584,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->outputFormat=atoi(OPTARG);break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
+					case 'U':
+						arguments->unpaired = 1;break;
 					case 'X':
 						arguments->minDistancePaired = atoi(OPTARG);break;
 					case 'Y':

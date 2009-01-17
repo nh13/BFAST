@@ -30,45 +30,94 @@ int FilterAlignEntries(AlignEntries *a,
 	char *FnName="FilterAlignEntries";
 	int foundType=NoneFound;
 	AlignEntries tmpA;
+	int32_t i, bestScore, bestScoreIndex;
 	assert(a->pairedEnd == pairedEnd);
+
 	AlignEntriesInitialize(&tmpA);
 
-	/* We should only modify "a" if it is going to be reported */ 
+	if(SingleEnd == a->pairedEnd && 
+			NoFiltering == algorithmReads) {
+		return Found;
+	}
+	else if(PairedEnd == a->pairedEnd &&
+			NoFiltering == algorithmReadsPaired) {
+		return Found;
+	}
 
+	/* We should only modify "a" if it is going to be reported */ 
 	/* Copy in case we do not find anything to report */
 	AlignEntriesCopy(a, &tmpA);
 
-	/* Filter for reads that are not paired end */
+	/* Filter each read individually */
+	for(i=0;i<tmpA.numEntriesOne;i++) {
+		/* Check if we should filter */
+		if(1!=FilterAlignEntry(&tmpA.entriesOne[i],
+					tmpA.space,
+					minScoreReads,
+					startContig,
+					startPos,
+					endContig,
+					endPos,
+					maxMismatches,
+					maxColorErrors)) {
+			/* Copy end here */
+			if(i < tmpA.numEntriesOne-1) {
+				AlignEntryCopy(&tmpA.entriesOne[tmpA.numEntriesOne-1], &tmpA.entriesOne[i]);
+			}
+			AlignEntriesReallocate(a, tmpA.numEntriesOne-1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
+			/* Since we removed, do not incrememt */
+			i--;
+		}
+	}
+	if(PairedEnd == tmpA.pairedEnd) {
+		for(i=0;i<tmpA.numEntriesTwo;i++) {
+			/* Check if we should filter */
+			if(1!=FilterAlignEntry(&tmpA.entriesTwo[i],
+						tmpA.space,
+						minScoreReads,
+						startContig,
+						startPos,
+						endContig,
+						endPos,
+						maxMismatches,
+						maxColorErrors)) {
+				/* Copy end here */
+				if(i < tmpA.numEntriesTwo-1) {
+					AlignEntryCopy(&tmpA.entriesTwo[tmpA.numEntriesTwo-1], &tmpA.entriesTwo[i]);
+				}
+				AlignEntriesReallocate(a, tmpA.numEntriesOne, tmpA.numEntriesTwo-1, tmpA.pairedEnd, tmpA.space);
+				/* Since we removed, do not incrememt */
+				i--;
+			}
+		}
+	}
+
+	/* Pick alignment if possible */
 	if(pairedEnd == SingleEnd) {
 		switch(algorithmReads) {
-			case NoFiltering:
-				/* Do nothing */
-				foundType=Found;
-				break;
 			case AllNotFiltered:
-				foundType=FilterReadInAlignEntries(a,
-						algorithmReads,
-						minScoreReads,
-						startContig,
-						startPos,
-						endContig,
-						endPos,
-						maxMismatches,
-						maxColorErrors,
-						First);
+				foundType=(0<tmpA.numEntriesOne)?Found:NoneFound;
 				break;
 			case Unique:
+				foundType=(1==tmpA.numEntriesOne)?Found:NoneFound;
+				break;
 			case BestScore:
-				foundType=FilterReadInAlignEntries(a,
-						algorithmReads,
-						minScoreReads,
-						startContig,
-						startPos,
-						endContig,
-						endPos,
-						maxMismatches,
-						maxColorErrors,
-						First);
+				bestScore = INT_MIN;
+				bestScoreIndex = -1;
+				for(i=0;i<tmpA.numEntriesOne;i++) {
+					if(bestScore < tmpA.entriesOne[i].score) {
+						bestScore = tmpA.entriesOne[i].score;
+						bestScoreIndex = i;
+					}
+				}
+				if(-1 < bestScoreIndex) {
+					AlignEntryCopy(&tmpA.entriesOne[bestScoreIndex], &tmpA.entriesOne[0]);
+					AlignEntriesReallocate(a, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
+					foundType=Found;
+				}
+				else {
+					foundType=NoneFound;
+				}
 				break;
 			default:
 				PrintError(FnName,
@@ -81,45 +130,10 @@ int FilterAlignEntries(AlignEntries *a,
 	}
 	else {
 		switch(algorithmReadsPaired) {
-			case NoFiltering:
-				/* Do nothing */
-				foundType=Found;
-				break;
 			case AllNotFiltered:
-				/* Filter both ends separately */
-				if(Found==FilterReadInAlignEntries(a,
-							algorithmReadsPaired,
-							minScoreReads,
-							startContig,
-							startPos,
-							endContig,
-							endPos,
-							maxMismatches,
-							maxColorErrors,
-							First) &&
-						Found==FilterReadInAlignEntries(a,
-							algorithmReadsPaired,
-							minScoreReads,
-							startContig,
-							startPos,
-							endContig,
-							endPos,
-							maxMismatches,
-							maxColorErrors,
-							Second)) {
-					foundType=Found;
-				}
-				break;
 			case Unique:
 			case BestScore:
-				foundType=FilterOneAlignEntries(a,
-						startContig,
-						startPos,
-						endContig,
-						endPos,
-						minScoreReads,
-						maxMismatches,
-						maxColorErrors,
+				FilterPairedEnd(&tmpA,
 						algorithmReadsPaired,
 						minScoreReadsPaired,
 						minDistancePaired,
@@ -147,206 +161,6 @@ int FilterAlignEntries(AlignEntries *a,
 }
 
 /* TODO */
-int FilterReadInAlignEntries(AlignEntries *a,
-		int algorithmReads,
-		int minScoreReads,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
-		int maxMismatches,
-		int maxColorErrors,
-		int which)
-{
-	char *FnName="FilterReadInAlignEntries";
-	int i;
-	int numNotFiltered = 0;
-	int uniqueIndex=-1;
-	int bestScore = INT_MIN;
-	double numBestScore = 0;
-	int bestScoreIndex = -1;
-	int foundType = Found;
-	AlignEntry **ptrEntries=NULL;
-	int *ptrNumEntries=NULL;
-
-	switch(which) {
-		case First:
-			ptrEntries = &a->entriesOne;
-			ptrNumEntries = &a->numEntriesOne;
-			break;
-		case Second:
-			ptrEntries = &a->entriesTwo;
-			ptrNumEntries = &a->numEntriesTwo;
-			break;
-		default:
-			PrintError(FnName,
-					"which",
-					"Could not understand which",
-					Exit,
-					OutOfRange);
-			break;
-	}
-
-	/* Filter each entry for this read */
-	for(i=0;i<(*ptrNumEntries) && Found==foundType;i++) {
-		/* Check if we should filter */
-		if(1!=FilterAlignEntry(&(*ptrEntries)[i],
-					a->space,
-					minScoreReads,
-					startContig,
-					startPos,
-					endContig,
-					endPos,
-					maxMismatches,
-					maxColorErrors,
-					NULL,
-					NULL)) {
-			uniqueIndex=i;
-			numNotFiltered++;
-
-			switch(algorithmReads) {
-				case AllNotFiltered:
-					/* Do nothing */
-					break;
-				case Unique:
-					if(numNotFiltered > 1) {
-						/* This means that two ore more entries passed the filters.  Therefore
-						 * we will not have a unique alignment for this read.  Free memory and 
-						 * return */
-						foundType = NoneFound;
-					}
-					break;
-				case BestScore:
-					if((*ptrEntries)[i].score == bestScore) {
-						assert(numBestScore > 0);
-						numBestScore++;
-					}
-					else if((*ptrEntries)[i].score > bestScore) {
-						bestScore = (*ptrEntries)[i].score;
-						numBestScore = 1;
-						bestScoreIndex = i;
-					}
-					break;
-				default:
-					PrintError(FnName,
-							"algorithmReads",
-							"Could not understand algorithmReads",
-							Exit,
-							OutOfRange);
-					break;
-			}
-		}
-		else {
-			switch(algorithmReads) {
-				case AllNotFiltered:
-					/* Copy end here */
-					if(i < (*ptrNumEntries)-1) {
-						AlignEntryCopy(&(*ptrEntries)[(*ptrNumEntries)-1], &(*ptrEntries)[i]);
-					}
-					/* Reallocate */
-					switch(which) {
-						case First:
-							AlignEntriesReallocate(a, a->numEntriesOne-1, a->numEntriesTwo, a->pairedEnd, a->space); 
-							break;
-						case Second:
-							AlignEntriesReallocate(a, a->numEntriesOne, a->numEntriesTwo-1, a->pairedEnd, a->space); 
-							break;
-						default:
-							PrintError(FnName,
-									"which",
-									"Could not understand which",
-									Exit,
-									OutOfRange);
-							break;
-					}
-					/* Since we removed, do not incrememt */
-					i--;
-					break;
-				case Unique:
-				case BestScore:
-					/* Do nothing */
-					break;
-				default:
-					PrintError(FnName,
-							"algorithmReads",
-							"Could not understand algorithmReads",
-							Exit,
-							OutOfRange);
-					break;
-			}
-		}
-	}
-
-	/* Check if we found an alignment */
-	switch(algorithmReads) {
-		case AllNotFiltered:
-			if((*ptrNumEntries) > 0) {
-				foundType = Found;
-			}
-			else {
-				foundType = NoneFound;
-			}
-			break;
-		case Unique:
-			/* Do nothing */
-			if(foundType == Found) {
-				/* Copy to the front and update */
-				switch(which) {
-					case First:
-						AlignEntriesKeepOnly(a, uniqueIndex, 0, 0, a->space);
-						break;
-					case Second:
-						AlignEntriesKeepOnly(a, 0, uniqueIndex, 0, a->space);
-						break;
-					default:
-						PrintError(FnName,
-								"which",
-								"Could not understand which",
-								Exit,
-								OutOfRange);
-						break;
-				}
-			}
-			else {
-				foundType = NoneFound;
-			}
-			break;
-		case BestScore:
-			if(numBestScore == 1) {
-				assert(foundType == Found);
-				/* Check if there is a best score (unique best score) */
-				switch(which) {
-					case First:
-						AlignEntriesKeepOnly(a, bestScoreIndex, 0, 0, a->space);
-						break;
-					case Second:
-						AlignEntriesKeepOnly(a, 0, bestScoreIndex, 0, a->space);
-						break;
-					default:
-						PrintError(FnName,
-								"which",
-								"Could not understand which",
-								Exit,
-								OutOfRange);
-						break;
-				}
-			}
-			else {
-				foundType = NoneFound;
-			}
-			break;
-		default:
-			PrintError(FnName,
-					"algorithmReads",
-					"Could not understand algorithmReads",
-					Exit,
-					OutOfRange);
-			break;
-	}
-	return foundType;
-}
-
-/* TODO */
 int FilterAlignEntry(AlignEntry *a,
 		int space,
 		int minScoreReads,
@@ -355,11 +169,9 @@ int FilterAlignEntry(AlignEntry *a,
 		int endContig,
 		int endPos,
 		int maxMismatches,
-		int maxColorErrors,
-		int *returnNumMismatches,
-		int *returnNumColorErrors)
+		int maxColorErrors)
 {
-	int32_t i, numMismatches, numColorErrors;
+	int32_t numMismatches, numColorErrors;
 	numMismatches=numColorErrors=0;
 	/* Check if the alignment has at least the minimum score */
 	if(a->score < minScoreReads) {
@@ -373,31 +185,9 @@ int FilterAlignEntry(AlignEntry *a,
 		return 1;
 	}
 	/* Check mismatches */
-	for(i=0;i<a->length;i++) {
-		/* Increment mismatches */
-		if(GAP != a->read[i] && GAP != a->reference[i] && a->read[i] != a->reference[i]) {
-			numMismatches++;
-		}
-	}
-	if(NULL != returnNumMismatches) {
-		(*returnNumMismatches) = numMismatches;
-	}
+	numMismatches = GetNumMismatchesInAlignEntry(a);
 	/* Check color errors */
-	if(ColorSpace == space) {
-		for(i=0;i<a->length;i++) {
-			/* Increment color errors */
-			switch(a->colorError[i]) {
-				case '1':
-					numColorErrors++;
-					break;
-				default:
-					break;
-			}
-		}
-	}
-	if(NULL != returnNumColorErrors) {
-		(*returnNumColorErrors) = numColorErrors;
-	}
+	numColorErrors = GetNumColorErrorsInAlignEntry(a, space);
 	if(maxMismatches < numMismatches) {
 		return 1;
 	}
@@ -410,14 +200,45 @@ int FilterAlignEntry(AlignEntry *a,
 }
 
 /* TODO */
-int FilterOneAlignEntries(AlignEntries *a,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
-		int minScoreReads,
-		int maxMismatches,
-		int maxColorErrors,
+int GetNumMismatchesInAlignEntry(AlignEntry *a)
+{
+	int32_t i, numMismatches;
+	/* Check mismatches */
+	numMismatches=0;
+	for(i=0;i<a->length;i++) {
+		/* Increment mismatches */
+		if(GAP != a->read[i] && 
+				GAP != a->reference[i] && 
+				a->read[i] != a->reference[i]) {
+			numMismatches++;
+		}
+	}
+	return numMismatches;
+}
+
+/* TODO */
+int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space)
+{
+	int32_t i, numColorErrors;
+	/* Check color errors */
+	numColorErrors=0;
+	if(ColorSpace == space) {
+		for(i=0;i<a->length;i++) {
+			/* Increment color errors */
+			switch(a->colorError[i]) {
+				case '1':
+					numColorErrors++;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+	return numColorErrors;
+}
+
+/* TODO */
+int FilterPairedEnd(AlignEntries *a,
 		int algorithmReadsPaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,
@@ -425,7 +246,7 @@ int FilterOneAlignEntries(AlignEntries *a,
 		int maxMismatchesPaired,
 		int maxColorErrorsPaired)
 {
-	char *FnName = "FilterOneAlignEntries";
+	char *FnName = "FilterPairedEnd";
 	int numMismatchesOne, numMismatchesTwo, numColorErrorsOne, numColorErrorsTwo;
 	/* best score */
 	double bestScore=DBL_MIN;
@@ -444,116 +265,94 @@ int FilterOneAlignEntries(AlignEntries *a,
 	/* current distance to the mean */
 	int curContigDistance, curPositionDistance;
 	double curScore;
-	int i, j;
-	int foundType=NoneFound;
+	int i, j, foundType;
 
-	/* Note: this does not take into account strandedness */
+	foundType=NoneFound;
 
 	/* Go through all possible pairs of alignments */
 	for(i=0;i<a->numEntriesOne;i++) { /* First read */
 		/* Filter first entry for contig position */
-				numMismatchesOne=numColorErrorsOne=0;
-		if(0 == FilterAlignEntry(&a->entriesOne[i],
-					a->space,
-					minScoreReads,
-					startContig,
-					startPos,
-					endContig,
-					endPos,
-					maxMismatches,
-					maxColorErrors,
-					&numMismatchesOne,
-					&numColorErrorsOne)) {
-			for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
-				numMismatchesTwo=numColorErrorsTwo=0;
-				/* Get the current score */
-				curScore = a->entriesOne[i].score + a->entriesTwo[j].score;
-				/* Filter second entry for contig position.  Also filter based on score. */
-				if(0 == FilterAlignEntry(&a->entriesTwo[j],
-							a->space,
-							minScoreReads,
-							startContig,
-							startPos,
-							endContig,
-							endPos,
-							maxMismatches,
-							maxColorErrors,
-							&numMismatchesOne,
-							&numColorErrorsOne) &&
-						(minScoreReadsPaired <= curScore) &&
-						(numMismatchesOne + numMismatchesTwo <= maxMismatchesPaired) &&
-						(numColorErrorsOne + numColorErrorsTwo <= maxColorErrorsPaired)) {
-					/* Get the distance between the two */
-					curContigDistance = a->entriesTwo[j].contig - a->entriesOne[i].contig;
-					curPositionDistance = a->entriesTwo[j].position - a->entriesOne[i].position;
-					if(0==curContigDistance &&
-							curPositionDistance <= maxDistancePaired &&
-							curPositionDistance >= minDistancePaired) {
-						/* Inside the bounds */
-						switch(algorithmReadsPaired) {
-							case Unique:
-								/* unique */
-								numUnique++; /* Update the number of unique */
-								uniqueOne = i;
-								uniqueTwo = j;
-								break;
-							case BestScore:
-								/* best score */
-								if(bestScore == curScore) {
-									/* If we have the same score update the number */ 
-									assert(numBestScore > 0);
-									numBestScore++;
-								}
-								else if(bestScore < curScore) {
-									/* Update the score */
-									bestScore = curScore;
-									bestScoreOne = i;
-									bestScoreTwo = j;
-									numBestScore=1;
-								}
-								break;
-							default:
-								PrintError(FnName,
-										"algorithmReadsPaired",
-										"Could not understand algorithmReadsPaired",
-										Exit,
-										OutOfRange);
-								break;
-						}
+		numMismatchesOne=GetNumMismatchesInAlignEntry(&a->entriesOne[i]);
+		numColorErrorsOne=GetNumColorErrorsInAlignEntry(&a->entriesOne[i], a->space);
+		for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
+			numMismatchesTwo=GetNumMismatchesInAlignEntry(&a->entriesTwo[i]);
+			numColorErrorsTwo=GetNumColorErrorsInAlignEntry(&a->entriesTwo[i], a->space);
+			/* Get the current score */
+			curScore = a->entriesOne[i].score + a->entriesTwo[j].score;
+			/* Filter second entry for contig position.  Also filter based on score. */
+			if((minScoreReadsPaired <= curScore) &&
+					(numMismatchesOne + numMismatchesTwo <= maxMismatchesPaired) &&
+					(numColorErrorsOne + numColorErrorsTwo <= maxColorErrorsPaired)) {
+				/* Get the distance between the two */
+				curContigDistance = a->entriesTwo[j].contig - a->entriesOne[i].contig;
+				curPositionDistance = a->entriesTwo[j].position - a->entriesOne[i].position;
+				/* Check within bounds */
+				if(0==curContigDistance &&
+						curPositionDistance <= maxDistancePaired &&
+						curPositionDistance >= minDistancePaired) {
+					/* Inside the bounds */
+					switch(algorithmReadsPaired) {
+						case Unique:
+							/* unique */
+							numUnique++; /* Update the number of unique */
+							uniqueOne = i;
+							uniqueTwo = j;
+							break;
+						case BestScore:
+							/* best score */
+							if(bestScore == curScore) {
+								/* If we have the same score update the number */
+								assert(numBestScore > 0);
+								numBestScore++;
+							}
+							else if(bestScore < curScore) {
+								/* Update the score */
+								bestScore = curScore;
+								bestScoreOne = i;
+								bestScoreTwo = j;
+								numBestScore=1;
+							}
+							break;
+						default:
+							PrintError(FnName,
+									"algorithmReadsPaired",
+									"Could not understand algorithmReadsPaired",
+									Exit,
+									OutOfRange);
+							break;
 					}
-					else {
-						/* Outside the bounds */
-
-						switch(algorithmReadsPaired) {
-							case Unique:
-								/* unique outside */
-								numUniqueOutside++;
-								uniqueOutsideOne = i;
-								uniqueOutsideTwo = j;
-								break;
-							case BestScore:
-								/* best score outside */
-								if(curScore == bestScoreOutside) {
-									/* If we have the same score update the number */ 
-									assert(numBestScoreOutside > 0);
-									numBestScoreOutside++;
-								}
-								else if(bestScoreOutside < curScore) {
-									/* Update the score */
-									bestScoreOutside = curScore;
-									bestScoreOutsideOne = i;
-									bestScoreOutsideTwo = j;
-									numBestScoreOutside=1;
-								}
-								break;
-							default:
-								PrintError(FnName,
-										"algorithmReadsPaired",
-										"Could not understand algorithmReadsPaired",
-										Exit,
-										OutOfRange);
-								break;
-						}
+				}
+				else {
+					/* Outside the bounds */
+					switch(algorithmReadsPaired) {
+						case Unique:
+							/* unique outside */
+							numUniqueOutside++;
+							uniqueOutsideOne = i;
+							uniqueOutsideTwo = j;
+							break;
+						case BestScore:
+							/* best score outside */
+							if(curScore == bestScoreOutside) {
+								/* If we have the same score update the number */
+								assert(numBestScoreOutside > 0);
+								numBestScoreOutside++;
+							}
+							else if(bestScoreOutside < curScore) {
+								/* Update the score */
+								bestScoreOutside = curScore;
+								bestScoreOutsideOne = i;
+								bestScoreOutsideTwo = j;
+								numBestScoreOutside=1;
+							}
+							break;
+						default:
+							PrintError(FnName,
+									"algorithmReadsPaired",
+									"Could not understand algorithmReadsPaired",
+									Exit,
+									OutOfRange);
+							break;
 					}
 				}
 			}
@@ -563,7 +362,7 @@ int FilterOneAlignEntries(AlignEntries *a,
 	/* Check if we have a unique pair of alignments */
 	switch(algorithmReadsPaired) {
 		case Unique: /* unique */
-			if(numUnique == 1) { 
+			if(numUnique == 1) {
 				/* Prefer within the boundaries */
 				AlignEntriesKeepOnly(a,
 						uniqueOne,
@@ -573,7 +372,7 @@ int FilterOneAlignEntries(AlignEntries *a,
 				foundType=Found;
 			}
 			else if(numUnique == 0 &&
-					numUniqueOutside == 1) { 
+					numUniqueOutside == 1) {
 				/* If there are no pairs within the bounds */
 				AlignEntriesKeepOnly(a,
 						uniqueOutsideOne,
