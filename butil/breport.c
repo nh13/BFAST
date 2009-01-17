@@ -13,8 +13,8 @@
 #define Name "breport"
 #define BREPORT_ROTATE_NUM 100000
 #define MAX_LINE_LENGTH 4028
-/* For zero-based, set this to 0, otherwise to 1 */
-#define SUBTRACT 0
+/* For zero-based, set this to 1, otherwise to 0 */
+#define SUBTRACT 1
 #define BED "BED"
 #define WIG "WIG"
 #define DELIMINATORS "\t\n "
@@ -185,19 +185,19 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						switch(read[j]) {
 							case 'a':
 							case 'A':
-								rCounts[0]++;
+								rCounts[3]++;
 								break;
 							case 'c':
 							case 'C':
-								rCounts[1]++;
+								rCounts[2]++;
 								break;
 							case 'g':
 							case 'G':
-								rCounts[2]++;
+								rCounts[1]++;
 								break;
 							case 't':
 							case 'T':
-								rCounts[3]++;
+								rCounts[0]++;
 								break;
 							case 'N':
 							case 'n':
@@ -598,6 +598,7 @@ void SplitEntriesAndPrint(RGBinary *rg,
 						BinaryOutput);
 				aboveTmpFile.numEntries++;
 			}
+			AlignEntryFree(&a);
 		}
 
 		/* Recurse on the two */

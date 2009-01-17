@@ -15,7 +15,6 @@
 
 int main(int argc, char *argv[])
 {
-
 	FILE *fpIn, *fpOut;
 	int binaryInput, binaryOutput;
 	long long int counter;
