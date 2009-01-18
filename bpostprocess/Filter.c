@@ -363,8 +363,8 @@ int FilterPairedEnd(AlignEntries *a,
 		numMismatchesOne=GetNumMismatchesInAlignEntry(&a->entriesOne[i]);
 		numColorErrorsOne=GetNumColorErrorsInAlignEntry(&a->entriesOne[i], a->space);
 		for(j=0;j<a->numEntriesTwo;j++) { /* Second read */
-			numMismatchesTwo=GetNumMismatchesInAlignEntry(&a->entriesTwo[i]);
-			numColorErrorsTwo=GetNumColorErrorsInAlignEntry(&a->entriesTwo[i], a->space);
+			numMismatchesTwo=GetNumMismatchesInAlignEntry(&a->entriesTwo[j]);
+			numColorErrorsTwo=GetNumColorErrorsInAlignEntry(&a->entriesTwo[j], a->space);
 			/* Get the current score */
 			curScore = a->entriesOne[i].score + a->entriesTwo[j].score;
 			/* Filter second entry for contig position.  Also filter based on score. */
