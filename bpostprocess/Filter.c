@@ -21,6 +21,7 @@ int FilterAlignEntries(AlignEntries *a,
 		int maxColorErrors,
 		int pairedEnd,
 		int algorithmReadsPaired,
+		int unpaired,
 		int minScoreReadsPaired,
 		int minDistancePaired,
 		int maxDistancePaired,
@@ -134,25 +135,107 @@ int FilterAlignEntries(AlignEntries *a,
 		}
 	}
 	else {
-		switch(algorithmReadsPaired) {
-			case AllNotFiltered:
-			case Unique:
-			case BestScore:
-				foundType = FilterPairedEnd(&tmpA,
-						algorithmReadsPaired,
-						minScoreReadsPaired,
-						minDistancePaired,
-						maxDistancePaired,
-						maxMismatchesPaired,
-						maxColorErrorsPaired);
-				break;
-			default:
-				PrintError(FnName,
-						"algorithmReadsPaired",
-						"Could not understand algorithmReads",
-						Exit,
-						OutOfRange);
-				break;
+		if(tmpA.numEntriesOne == 0 && 0 < tmpA.numEntriesTwo && 1 == unpaired) {
+			switch(algorithmReadsPaired) {
+				case AllNotFiltered:
+					foundType=(0<tmpA.numEntriesTwo)?Unpaired:NoneFound;
+					break;
+				case Unique:
+					foundType=(1==tmpA.numEntriesTwo)?Unpaired:NoneFound;
+					break;
+				case BestScore:
+					bestScore = INT_MIN;
+					bestScoreIndex = -1;
+					numBestScore=0;
+					for(i=0;i<tmpA.numEntriesTwo;i++) {
+						if(bestScore < tmpA.entriesTwo[i].score) {
+							bestScore = tmpA.entriesTwo[i].score;
+							bestScoreIndex = i;
+							numBestScore = 1;
+						}
+						else if(bestScore == tmpA.entriesTwo[i].score) {
+							numBestScore++;
+						}
+					}
+					if(1 == numBestScore) {
+						AlignEntryCopy(&tmpA.entriesTwo[bestScoreIndex], &tmpA.entriesTwo[0]);
+						AlignEntriesReallocate(a, tmpA.numEntriesOne, 1, tmpA.pairedEnd, tmpA.space);
+						foundType=Unpaired;
+					}
+					else {
+						foundType=NoneFound;
+					}
+					break;
+				default:
+					PrintError(FnName,
+							"algorithmReadsPaired",
+							"Could not understand algorithmReadsPaired",
+							Exit,
+							OutOfRange);
+					break;
+			}
+		}
+		else if(0 < tmpA.numEntriesOne && tmpA.numEntriesTwo == 0 && 1 == unpaired) {
+			switch(algorithmReadsPaired) {
+				case AllNotFiltered:
+					foundType=(0<tmpA.numEntriesOne)?Unpaired:NoneFound;
+					break;
+				case Unique:
+					foundType=(1==tmpA.numEntriesOne)?Unpaired:NoneFound;
+					break;
+				case BestScore:
+					bestScore = INT_MIN;
+					bestScoreIndex = -1;
+					numBestScore=0;
+					for(i=0;i<tmpA.numEntriesOne;i++) {
+						if(bestScore < tmpA.entriesOne[i].score) {
+							bestScore = tmpA.entriesOne[i].score;
+							bestScoreIndex = i;
+							numBestScore = 1;
+						}
+						else if(bestScore == tmpA.entriesOne[i].score) {
+							numBestScore++;
+						}
+					}
+					if(1 == numBestScore) {
+						AlignEntryCopy(&tmpA.entriesOne[bestScoreIndex], &tmpA.entriesOne[0]);
+						AlignEntriesReallocate(a, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
+						foundType=Unpaired;
+					}
+					else {
+						foundType=NoneFound;
+					}
+					break;
+				default:
+					PrintError(FnName,
+							"algorithmReadsPaired",
+							"Could not understand algorithmReadsPaired",
+							Exit,
+							OutOfRange);
+					break;
+			}
+		}
+		else {
+			switch(algorithmReadsPaired) {
+				case AllNotFiltered:
+				case Unique:
+				case BestScore:
+					foundType = FilterPairedEnd(&tmpA,
+							algorithmReadsPaired,
+							minScoreReadsPaired,
+							minDistancePaired,
+							maxDistancePaired,
+							maxMismatchesPaired,
+							maxColorErrorsPaired);
+					break;
+				default:
+					PrintError(FnName,
+							"algorithmReadsPaired",
+							"Could not understand algorithmReads",
+							Exit,
+							OutOfRange);
+					break;
+			}
 		}
 	}
 	/* If we found, then copy back */
