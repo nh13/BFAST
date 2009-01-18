@@ -118,7 +118,7 @@ int FilterAlignEntries(AlignEntries *a,
 				}
 				if(1 == numBestScore) {
 					AlignEntryCopy(&tmpA.entriesOne[bestScoreIndex], &tmpA.entriesOne[0]);
-					AlignEntriesReallocate(a, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
+					AlignEntriesReallocate(&tmpA, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
 					foundType=Found;
 				}
 				else {
@@ -159,7 +159,7 @@ int FilterAlignEntries(AlignEntries *a,
 					}
 					if(1 == numBestScore) {
 						AlignEntryCopy(&tmpA.entriesTwo[bestScoreIndex], &tmpA.entriesTwo[0]);
-						AlignEntriesReallocate(a, tmpA.numEntriesOne, 1, tmpA.pairedEnd, tmpA.space);
+						AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, 1, tmpA.pairedEnd, tmpA.space);
 						foundType=Unpaired;
 					}
 					else {
@@ -199,7 +199,7 @@ int FilterAlignEntries(AlignEntries *a,
 					}
 					if(1 == numBestScore) {
 						AlignEntryCopy(&tmpA.entriesOne[bestScoreIndex], &tmpA.entriesOne[0]);
-						AlignEntriesReallocate(a, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
+						AlignEntriesReallocate(&tmpA, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
 						foundType=Unpaired;
 					}
 					else {
