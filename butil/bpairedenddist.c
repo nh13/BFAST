@@ -14,7 +14,7 @@
 #include "bpairedenddist.h"
 
 #define Name "bpairedenddist"
-#define BINDEXDIST_ROTATE_NUM 1000000
+#define ROTATE_NUM 100000
 
 /* Prints the distribution of the distance between paired-end reads
  * using reads that have both ends matching only one location on 
@@ -102,10 +102,15 @@ void PrintDistributionFromBMF(FILE *fpIn,
 	/* Initialize */
 	RGMatchesInitialize(&m);
 
+	fprintf(stderr, "Currently on:\n0");
 	while(EOF != RGMatchesRead(fpIn,
 				&m,
 				PairedEndDoesNotMatter,
 				BinaryInput)) {
+		if(0==counter%ROTATE_NUM) {
+			fprintf(stderr, "\r%llf",
+					(long long int)counter);
+		}
 		if(m.pairedEnd != PairedEnd) {
 			PrintError(FnName,
 					"m.pairedEnd",
@@ -138,6 +143,8 @@ void PrintDistributionFromBMF(FILE *fpIn,
 		/* Free matches */
 		RGMatchesFree(&m);
 	}
+	fprintf(stderr, "\r%lld\n",
+			(long long int)counter);
 
 	fprintf(stderr, "number unique was %lld out of %lld.\n",
 			(long long int)numUnique,
@@ -156,11 +163,16 @@ void PrintDistributionFromBAF(FILE *fpIn,
 	/* Initialize */
 	AlignEntriesInitialize(&a);
 
+	fprintf(stderr, "Currently on:\n0");
 	while(EOF != AlignEntriesRead(&a,
 				fpIn,
 				PairedEndDoesNotMatter,
 				SpaceDoesNotMatter,
 				BinaryInput)) {
+		if(0==counter%ROTATE_NUM) {
+			fprintf(stderr, "\r%llf",
+					(long long int)counter);
+		}
 		if(a.pairedEnd != PairedEnd) {
 			PrintError(FnName,
 					"a.pairedEnd",
@@ -186,6 +198,8 @@ void PrintDistributionFromBAF(FILE *fpIn,
 		/* Free memory */
 		AlignEntriesFree(&a);
 	}
+	fprintf(stderr, "\r%lld\n",
+			(long long int)counter);
 
 	fprintf(stderr, "number unique was %lld out of %lld.\n",
 			(long long int)numUnique,
