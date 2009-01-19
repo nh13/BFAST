@@ -47,7 +47,7 @@ const char *argp_program_version =
 "balign "
 PACKAGE_VERSION
 "\n"
-"Copyright 2008.";
+"Copyright 2008-2009.";
 
 const char *argp_program_bug_address =
 PACKAGE_BUGREPORT;
