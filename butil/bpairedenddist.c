@@ -108,7 +108,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 				PairedEndDoesNotMatter,
 				BinaryInput)) {
 		if(0==counter%ROTATE_NUM) {
-			fprintf(stderr, "\r%llf",
+			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
 		if(m.pairedEnd != PairedEnd) {
@@ -170,7 +170,7 @@ void PrintDistributionFromBAF(FILE *fpIn,
 				SpaceDoesNotMatter,
 				BinaryInput)) {
 		if(0==counter%ROTATE_NUM) {
-			fprintf(stderr, "\r%llf",
+			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
 		if(a.pairedEnd != PairedEnd) {
