@@ -8,6 +8,9 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 Version 0.2.6
 * Fixed a bug in breport that caused memory leaks.
 * Added support to output unpaired reads in bpostprocess.
+* Fixed a bug in balign where the position of indels were
+being reported incorrectly for NT space.  This was as a result
+of incorporating color space code incorrectly.
 
 Version 0.2.5
 * bpairedenddist now outputs to a file instead of stdout.

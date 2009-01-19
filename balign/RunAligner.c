@@ -539,7 +539,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		numMatches++;
 		numAlignEntries = 0;
 		ctrOne=ctrTwo=0;
-	
+
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
@@ -707,8 +707,9 @@ int RunDynamicProgrammingThreadHelper(RGBinary *rg,
 				aEntry,
 				strand,
 				space,
-		scoringType,
+				scoringType,
 				alignmentType);
+
 		/* Update adjustPosition based on offsetLength */
 		assert(adjustPosition >= 0 && adjustPosition <= referenceLength);
 

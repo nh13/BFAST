@@ -114,8 +114,10 @@ int Align(char *read,
 							REVERSE,
 							type,
 							scoringType);
-					/* No need to reverse alignment, since we reversed the reference
-					 * to be the reverse strand */
+					/* Adjust for the reverse strand */
+					if(REVERSE == strand) {
+						returnValue = referenceLength - a->referenceLength - returnValue;
+					}
 
 					free(reverseReference);
 					reverseReference=NULL;
@@ -136,12 +138,6 @@ int Align(char *read,
 					"Could not understand space",
 					Exit,
 					OutOfRange);
-	}
-
-
-	/* Adjust for the reverse strand */
-	if(REVERSE == strand) {
-		returnValue = referenceLength - a->referenceLength - returnValue;
 	}
 
 	return returnValue;
