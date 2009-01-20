@@ -58,6 +58,7 @@ int Align(char *read,
 							sm,
 							a,
 							type);
+
 					/* We must reverse the alignment to match the REVERSE stand */
 					GetReverseComplimentAnyCase(a->read, tmpString, a->length);
 					strcpy(a->read, tmpString);
@@ -115,9 +116,7 @@ int Align(char *read,
 							type,
 							scoringType);
 					/* Adjust for the reverse strand */
-					if(REVERSE == strand) {
-						returnValue = referenceLength - a->referenceLength - returnValue;
-					}
+					returnValue = referenceLength - a->referenceLength - returnValue;
 
 					free(reverseReference);
 					reverseReference=NULL;

@@ -9,7 +9,7 @@
 #include "SimRead.h"
 #include "bgeneratereads.h"
 
-#define READS_ROTATE_NUM 100000
+#define READS_ROTATE_NUM 10000
 #define Name "bgeneratereads"
 
 /* Generate synthetic reads given a number of variants and errors

@@ -401,9 +401,10 @@ int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
 	assert(-1==i);
 	assert(a->length >= a->referenceLength);
 
-	offset = curCol;
 	a->read[a->length]='\0';
 	a->reference[a->length]='\0';
+
+	offset = curCol;
 
 	return offset;
 }

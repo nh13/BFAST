@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.3.1
+* Found bug in read simulator.
+* Fixing more bugs to do with indels.
+
 Version 0.2.6
 * Fixed a bug in breport that caused memory leaks.
 * Added support to output unpaired reads in bpostprocess.

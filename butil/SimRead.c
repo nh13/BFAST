@@ -130,102 +130,101 @@ void SimReadGetRandom(RGBinary *rg,
 	int readOneSuccess=0;
 	int readTwoSuccess=0;
 	int64_t ctr=0;
+	int success;
 
 	r->indelLength = indelLength;
 	r->readLength = readLength;
 	r->pairedEnd = pairedEnd;
 	r->pairedEndLength = pairedEndLength;
 
-	do {
-		/* Avoid infinite loop */
-		count++;
-		if(SIM_READ_MAX_GETRANDOM_FAILURES < count) {
-			PrintError(FnName,
-					"count",
-					"Could not get a random read",
-					Exit,
-					OutOfRange);
-		}
+	for(ctr=0, success=0;0 == success && ctr < SIM_READ_MAX_MODIFY_FAILURES;ctr++) { 
+		do {
+			/* Avoid infinite loop */
+			count++;
+			if(SIM_READ_MAX_GETRANDOM_FAILURES < count) {
+				PrintError(FnName,
+						"count",
+						"Could not get a random read",
+						Exit,
+						OutOfRange);
+			}
 
-		/* Initialize read */
-		if(count > 1) {
-			SimReadDelete(r);
-		}
+			/* Initialize read */
+			if(count > 1) {
+				SimReadDelete(r);
+			}
 
-		/* Get the random contig and position */
-		SimReadGetRandomContigPos(rg,
-				rgLength,
-				&r->contig,
-				&r->pos,
-				&r->strand);
+			/* Get the random contig and position */
+			SimReadGetRandomContigPos(rg,
+					rgLength,
+					&r->contig,
+					&r->pos,
+					&r->strand);
 
-		if(r->pairedEnd == PairedEnd) {
-			/* Get the sequence for the first read */
-			readOneSuccess = RGBinaryGetSequence(rg,
-					r->contig,
-					r->pos,
-					r->strand,
-					&r->readOne,
-					r->readLength);
-			/* Get the sequence for the second read */
-			readTwoSuccess = RGBinaryGetSequence(rg,
-					r->contig,
-					r->pos + r->pairedEndLength + r->readLength,
-					r->strand,
-					&r->readTwo,
-					r->readLength);
-		}
-		else {
-			/* Get the sequence for the first read */
-			readOneSuccess = RGBinaryGetSequence(rg,
-					r->contig,
-					r->pos,
-					r->strand,
-					&r->readOne,
-					r->readLength);
-		}
+			if(r->pairedEnd == PairedEnd) {
+				/* Get the sequence for the first read */
+				readOneSuccess = RGBinaryGetSequence(rg,
+						r->contig,
+						r->pos,
+						r->strand,
+						&r->readOne,
+						r->readLength);
+				/* Get the sequence for the second read */
+				readTwoSuccess = RGBinaryGetSequence(rg,
+						r->contig,
+						r->pos + r->pairedEndLength + r->readLength,
+						r->strand,
+						&r->readTwo,
+						r->readLength);
+			}
+			else {
+				/* Get the sequence for the first read */
+				readOneSuccess = RGBinaryGetSequence(rg,
+						r->contig,
+						r->pos,
+						r->strand,
+						&r->readOne,
+						r->readLength);
+			}
 
-		/* Make sure there are no Ns */
-		hasNs = 0;
-		if(1==readOneSuccess) {
-			for(i=0;0==hasNs && i<r->readLength;i++) {
-				if(RGBinaryIsBaseN(r->readOne[i]) == 1) {
-					hasNs = 1;
+			/* Make sure there are no Ns */
+			hasNs = 0;
+			if(1==readOneSuccess) {
+				for(i=0;0==hasNs && i<r->readLength;i++) {
+					if(RGBinaryIsBaseN(r->readOne[i]) == 1) {
+						hasNs = 1;
+					}
 				}
 			}
-		}
-		if(r->pairedEnd == 1 && 1==readTwoSuccess) {
-			for(i=0;0==hasNs && i<r->readLength;i++) {
-				if(RGBinaryIsBaseN(r->readTwo[i]) == 1) {
-					hasNs = 1;
+			if(r->pairedEnd == 1 && 1==readTwoSuccess) {
+				for(i=0;0==hasNs && i<r->readLength;i++) {
+					if(RGBinaryIsBaseN(r->readTwo[i]) == 1) {
+						hasNs = 1;
+					}
 				}
+			}
+
+		} while(
+				(readOneSuccess == 0) || /* read one was successfully read */
+				(r->pairedEnd == 1 && readTwoSuccess == 0) || /* read two was successfully read */
+				(hasNs == 1) /* Either read end has an "N" */
+			   );
+		/* Move to upper case */
+		for(i=0;i<r->readLength;i++) {
+			r->readOne[i] = ToUpper(r->readOne[i]);
+			if(r->pairedEnd == 1) {
+				r->readTwo[i] = ToUpper(r->readTwo[i]);
 			}
 		}
 
-	} while(
-			(readOneSuccess == 0) || /* read one was successfully read */
-			(r->pairedEnd == 1 && readTwoSuccess == 0) || /* read two was successfully read */
-			(hasNs == 1) /* Either read end has an "N" */
-		   );
-	/* Move to upper case */
-	for(i=0;i<r->readLength;i++) {
-		r->readOne[i] = ToUpper(r->readOne[i]);
-		if(r->pairedEnd == 1) {
-			r->readTwo[i] = ToUpper(r->readTwo[i]);
-		}
-	}
-
-	ctr=0;
-	while(ctr < SIM_READ_MAX_MODIFY_FAILURES && 
-			1 != SimReadModify(rg,
+		success = SimReadModify(rg,
 				r,
 				space,
 				indel,
 				indelLength,
 				withinInsertion,
 				numSNPs,
-				numErrors)) {
-		ctr++;
+				numErrors);
 	}
 	if(SIM_READ_MAX_MODIFY_FAILURES <= ctr) {
 		PrintError(FnName,
@@ -335,6 +334,14 @@ int SimReadModify(RGBinary *rg,
 			if(0==SimReadInsertIndel(rg, r, indel, indelLength)) {
 				/* Could not add an indel */
 				return 0;
+			}
+			if(REVERSE == r->strand) {
+				if(1 == indel) {
+					r->pos -= indelLength;
+				}
+				else {
+					r->pos += indelLength;
+				}
 			}
 			break;
 		default:
