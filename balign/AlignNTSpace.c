@@ -325,11 +325,7 @@ int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
 		switch(curFrom) {
 			case DeletionStart:
 				curFrom = matrix[curRow][curCol].s.from;
-				if(!(curFrom == Match)) {
-					fprintf(stderr, "curFrom=%d\n",
-							curFrom);
-				}
-				assert(curFrom == Match);
+				assert(curFrom == Match || curFrom == InsertionExtension);
 				break;
 			case DeletionExtension:
 				curFrom = matrix[curRow][curCol].h.from;
@@ -340,7 +336,7 @@ int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
 				break;
 			case InsertionStart:
 				curFrom = matrix[curRow][curCol].s.from;
-				assert(curFrom == Match);
+				assert(curFrom == Match || curFrom == DeletionExtension);
 				break;
 			case InsertionExtension:
 				curFrom = matrix[curRow][curCol].v.from;
