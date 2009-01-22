@@ -522,7 +522,7 @@ void Run(RGBinary *rg,
 	/* Free */
 	ScoringMatrixFree(&sm);
 
-	fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+	fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 			numReads,
 			numScoreLessThan,
 			numScoreEqual,
@@ -531,6 +531,7 @@ void Run(RGBinary *rg,
 			numSNPs,
 			numErrors,
 			deletionLength,
-			insertionLength
+			insertionLength,
+			totalAlignTime
 		   );
 }
