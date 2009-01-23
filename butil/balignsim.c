@@ -432,7 +432,10 @@ void Run(RGBinary *rg,
 			1,
 			rg->numContigs,
 			rg->contigs[rg->numContigs-1].sequenceLength,
-			readLength,
+			2,
+			/*
+			readLength, 
+			*/
 			INT_MAX,
 			SingleEnd,
 			BinaryInput,

@@ -70,8 +70,10 @@ esac
 					   
 AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such as Xeon and Core2],
 [extended_CFLAGS="${extended_CFLAGS} -mtune=nocona"], [])
+AC_ARG_ENABLE(unoptimized-sw-cs, [  --enable-unoptimized-sw-cs       use the unoptimized smith waterman algorithm for color space (use for benchmarking only)],
+[AC_DEFINE(COLOR_SPACE_UNOPTIMIZED,1,[Define 1 if we want to use the unoptimized smith waterman for color space])], 
+[])
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}"
-
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

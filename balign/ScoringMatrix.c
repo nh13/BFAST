@@ -86,6 +86,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		}
 	}
 	/* Read in the score matrix */
+	sm->maxNTScore = INT_MIN;
 	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 		for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 			if(fscanf(fp, "%d", &tempInt)==EOF) {
@@ -96,6 +97,9 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 						OutOfRange);
 			}
 			sm->NTScores[i][j]= tempInt;
+			if(sm->maxNTScore < sm->NTScores[i][j]) {
+				sm->maxNTScore = sm->NTScores[i][j];
+			}
 		}
 	}
 
@@ -139,6 +143,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 			}
 		}
 		/* Read in the score matrix */
+		sm->maxColorScore = INT_MIN;
 		for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 			for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 				if(fscanf(fp, "%d", &tempInt)==EOF) {
@@ -149,8 +154,12 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 							OutOfRange);
 				}
 				sm->ColorScores[i][j] = tempInt;
+				if(sm->maxColorScore < sm->ColorScores[i][j]) {
+					sm->maxColorScore = sm->ColorScores[i][j];
+				}
 			}
 		}
+		ScoringMatrixCheck(sm);
 	}
 	else {
 		sm->ColorKeys=NULL;
@@ -170,8 +179,10 @@ void ScoringMatrixInitialize(ScoringMatrix *sm)
 	sm->gapExtensionPenalty=0;
 	sm->NTKeys=NULL;
 	sm->NTScores=NULL;
+	sm->maxNTScore=0;
 	sm->ColorKeys=NULL;
 	sm->ColorScores=NULL;
+	sm->maxColorScore=0;
 }
 
 /* TODO */
@@ -290,4 +301,66 @@ int32_t ScoringMatrixGetColorScore(uint8_t a,
 	}
 
 	return sm->ColorScores[indexA][indexB];
+}
+
+/* TODO */
+/* For color space only */
+int32_t ScoringMatrixCheck(ScoringMatrix *sm) {
+	char *FnName="ScoringMatrixCheck";
+	int i, j;
+
+	assert(NULL != sm->ColorScores);
+
+	if(0 < sm->gapOpenPenalty) {
+		PrintError(FnName,
+				"sm->gapOpenPenalty",
+				"Must be less than or equal to zero",
+				Exit,
+				OutOfRange);
+	}
+	if(0 < sm->gapExtensionPenalty) {
+		PrintError(FnName,
+				"sm->gapExtensionPenalty",
+				"Must be less than or equal to zero",
+				Exit,
+				OutOfRange);
+	}
+
+	for(i=0;i<ALPHABET_SIZE+1;i++) {
+		for(j=0;j<ALPHABET_SIZE+1;j++) {
+			if(i==j) {
+				if(sm->NTScores[i][i] < 0) {
+					PrintError(FnName,
+							"sm->NTScores[i][i]",
+							"Must be greater than or equal to zero",
+							Exit,
+							OutOfRange);
+				}
+				if(sm->ColorScores[i][i] < 0) {
+					PrintError(FnName,
+							"sm->ColorScores[i][i]",
+							"Must be greater than or equal to zero",
+							Exit,
+							OutOfRange);
+				}
+			}
+			else {
+				if(0 < sm->NTScores[i][j]) {
+					PrintError(FnName,
+							"sm->NTScores[i][j]",
+							"Must be less than or equal to zero",
+							Exit,
+							OutOfRange);
+				}
+				if(0 < sm->ColorScores[i][j]) {
+					PrintError(FnName,
+							"sm->ColorScores[i][j]",
+							"Must be less than or equal to zero",
+							Exit,
+							OutOfRange);
+				}
+			}
+		}
+	}
+	return 1;
 }

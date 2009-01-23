@@ -1267,3 +1267,77 @@ void CheckPackageCompatibility(int8_t *packageVersion, int fileType)
 	}
 }
 
+void KnuthMorrisPrattCreateTable(char *read,
+		int readLength,
+		int *kmp_table)
+{
+	int cur, next;
+	kmp_table[0] = -1;
+	kmp_table[1] = 0;
+
+	cur=2;
+	next=0;
+	while(cur < readLength) {
+		if(ToLower(read[cur-1]) == ToLower(read[next])) {
+			kmp_table[cur] = next + 1;
+			cur++;
+			next++;
+		}
+		else if(0 < next) {
+			next = kmp_table[next];
+		}
+		else {
+			kmp_table[cur] = 0;
+			cur++;
+		}
+	}
+}
+
+int32_t KnuthMorrisPratt(char *read,
+		int readLength,
+		char *reference,
+		int referenceLength)
+{
+	int kmp_table[2056];
+	int i, m;
+
+	KnuthMorrisPrattCreateTable(read, readLength, kmp_table);
+
+	i = m = 0;
+	while(m + i < referenceLength) {
+		if(ToLower(read[i]) == ToLower(reference[m + i])) {
+			i++;
+			if(i == readLength) {
+				return m;
+			}
+		}
+		else {
+			m += i - kmp_table[i];
+			if(0 < i) {
+				i = kmp_table[i];
+			}
+		}
+	}
+	return -1;
+}
+
+/* strstr */
+int NaiveSubsequence(char *read, 
+		int32_t readLength,
+		char *reference,
+		int32_t referenceLength)
+{
+	int i, j, found;
+	for(i=0;i<referenceLength-readLength+1;i++) {
+		for(j=0, found=1;1==found && j<readLength;j++) {
+			if(ToLower(read[j]) != ToLower(reference[i+j])) {
+				found = 0;
+			}
+		}
+		if(1==found) {
+			return i;
+		}
+	}
+	return -1;
+}
+

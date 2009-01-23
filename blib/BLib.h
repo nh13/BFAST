@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include "RGIndex.h"
 
+#define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
+#define MAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
+
 extern char DNA[5];
 
 int GetFastaHeaderLine(FILE*, char*);
@@ -43,6 +46,9 @@ void StringCopyAndReallocate(char**, const char*);
 int StringTrimWhiteSpace(char*);
 int IsWhiteSpace(char);
 void CheckPackageCompatibility(int8_t*, int);
+void KnuthMorrisPrattCreateTable(char*, int, int*);
+int32_t KnuthMorrisPratt(char*, int, char*, int);
+int32_t NaiveSubsequence(char*, int, char*, int);
 
 #endif
 

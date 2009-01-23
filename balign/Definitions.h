@@ -24,6 +24,8 @@ typedef struct {
 	int32_t **NTScores;
 	int32_t *ColorKeys;
 	int32_t **ColorScores;
+	int32_t maxNTScore;
+	int32_t maxColorScore;
 } ScoringMatrix;
 
 /* TODO */
@@ -84,7 +86,8 @@ enum {
 	InsertionC, /* 12 */
 	InsertionG, /* 13 */
 	InsertionT, /* 14 */
-	InsertionN  /* 15 */
+	InsertionN, /* 15 */
+	NoFrom /* 16 */
 };
 
 #endif
