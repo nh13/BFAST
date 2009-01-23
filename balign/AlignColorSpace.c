@@ -699,7 +699,7 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 	startCell=-1;
 	maxScore = NEGATIVE_INFINITY-1;
 	maxScoreNT = NEGATIVE_INFINITY-1;
-	for(i=1+toExclude;i<referenceLength+1;i++) {
+	for(i=toExclude+1;i<referenceLength+1;i++) {
 		for(j=0;j<ALPHABET_SIZE+1;j++) {
 			/* Don't end with a Deletion in the read */
 
@@ -732,6 +732,11 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 	a->referenceLength=0;
 	/* Init */
 	if(curFrom <= (ALPHABET_SIZE + 1)) {
+		PrintError(FnName, 
+				"curFrom",
+				"Cannot end with a deletion",
+				Exit,
+				OutOfRange);
 		a->length = matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 	}
 	else if(2*(ALPHABET_SIZE + 1) < curFrom) {
@@ -741,9 +746,8 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 		a->length = matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 	}
 	if(a->length < readLength) {
-		fprintf(stderr, "\na->length=%d\nreadLength=%d", a->length, readLength);
+		fprintf(stderr, "\na->length=%d\nreadLength=%d\n", a->length, readLength);
 	}
-	assert(readLength <= a->length);
 	assert(readLength <= a->length);
 	i=a->length-1;
 	/* Copy over score */
@@ -937,7 +941,6 @@ int AlignColorSpaceFullOpt(char *read,
 	/*
 	   offset = NaiveSubsequence(read, readLength, reference, referenceLength);
 	   */
-	/* HERE */
 	offset = -1;
 	if(0 <= offset) {
 		/* Copy over */
@@ -1003,7 +1006,7 @@ int AlignColorSpaceFullOpt(char *read,
 		a->colorError[a->length] = '\0';
 		return offset;
 	}
-
+			
 	/* 2 - Get lower bound with just mismatches and color errors */
 	offset = AlignColorSpaceMismatchesOnly(read,
 			readLength,
@@ -1018,18 +1021,17 @@ int AlignColorSpaceFullOpt(char *read,
 	/* 3 - Do full alignment */
 
 	/* Get cells to exclude */
-	int toExclude=0;
+	int maxH, maxV;
+	maxH = maxV = 0;
 	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {
-		/*
-		   fprintf(stderr, "\n%lf / %lf\n",
-		   (double)(lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty),
-		   (double)(sm->gapExtensionPenalty - sm->maxColorScore - sm->maxNTScore)); 
-		   */
-		double value = (lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->maxColorScore - sm->maxNTScore); 
-		if(0 < value) {
-			toExclude = ceil(value);
-			assert(0 < toExclude);
-		}
+		/* c = max color sub score */
+		/* b = max nt sub score */
+		/* p = gap open */
+		/* e = gap extend */
+		/* Find x such that (c + b)N + p + e(x - 1) < Bound */
+		maxH = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty ));
+		/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
+		maxV = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->maxColorScore - sm->maxNTScore))); 
 	}
 	else {
 		PrintError(FnName,
@@ -1038,11 +1040,14 @@ int AlignColorSpaceFullOpt(char *read,
 				Exit,
 				OutOfRange);
 	}
-	if(toExclude <= 0) {
+	if(maxH == 0 && maxV == 0) {
 		/* Use result from searching only mismatches */
 		return offset;
 	}
+	/* Do full alignment */
 	AlignEntryInitialize(a);
+	maxH = MIN(maxH, readLength);
+	maxV = MIN(maxH, readLength);
 
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixCS*)*(readLength+1));
@@ -1141,21 +1146,13 @@ int AlignColorSpaceFullOpt(char *read,
 					OutOfRange);
 		}
 
-		for(j=MAX(0, i - readLength + toExclude + 1);
-				j <= MIN(referenceLength-1, referenceLength - toExclude + i - 1);
+		for(j=MAX(0, i - maxV);
+				j <= MIN(referenceLength-1, referenceLength - (readLength - maxH) + i);
 				j++) { /* reference/columns */
-			if(!(i <= readLength - toExclude + j && j <= referenceLength - toExclude + i - 1)) {
-				fprintf(stderr, "\n%d <= %d && %d <= %d\n",
-						i,
-						readLength - toExclude + j,
-						j,
-						referenceLength - toExclude + i);
-				fprintf(stderr, "toExclude=%d\n", toExclude);
-			}
-			assert(i <= readLength - toExclude + j - 1 && j <= referenceLength - toExclude + i - 1);
+			assert(i-maxV <= j && j <= referenceLength - (readLength - maxH) + i);
 
 			/* Deletion */
-			if(i == readLength - toExclude + j - 1) {
+			if(maxV == i - j) {
 				/* We are on the boundary, do not consider a deletion */
 				for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
 					/* Update */
@@ -1329,7 +1326,7 @@ int AlignColorSpaceFullOpt(char *read,
 			}
 
 			/* Insertion */
-			if(j == referenceLength - toExclude + i - 1) {
+			if(j == referenceLength - (readLength - maxH) + i) {
 				/* We are on the boundary, do not consider an insertion */
 				for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
 					/* Update */
@@ -1444,7 +1441,7 @@ int AlignColorSpaceFullOpt(char *read,
 			reference,
 			referenceLength,
 			scoringType,
-			toExclude,
+			readLength - maxV,
 			0);
 
 	/* Free the matrix, free your mind */
@@ -1455,6 +1452,8 @@ int AlignColorSpaceFullOpt(char *read,
 	free(matrix);
 	matrix=NULL;
 
+	/* Debug code */
+	/*
 	AlignEntry tmp;
 	AlignEntryInitialize(&tmp);
 	int tmpOffset = AlignColorSpaceFull(read,
@@ -1465,13 +1464,32 @@ int AlignColorSpaceFullOpt(char *read,
 			sm,
 			&tmp,
 			strand);
-	assert(offset == tmpOffset);
-	assert(a->length == tmp.length);
-	assert(a->referenceLength == tmp.referenceLength);
-	assert(0 == strcmp(a->read, tmp.read));
-	assert(0 == strcmp(a->reference, tmp.reference));
-	assert(0 == strcmp(a->colorError, tmp.colorError));
+	if(!(tmpOffset == offset) ||
+			!(a->length == tmp.length) ||
+			!(a->referenceLength == tmp.referenceLength) ||
+			!(0 == strcmp(a->read, tmp.read)) ||
+			!(0 == strcmp(a->reference, tmp.reference)) ||
+			!(0 == strcmp(a->colorError, tmp.colorError))) {
+		fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
+		fprintf(stderr, "\nstrand=%c\n", strand);
+		fprintf(stderr, "\nlowerBound=%lf\nmaxH=%d\nmaxV=%d\n", lowerBound, maxH, maxV);
+		fprintf(stderr, "\noffset=%d\ntmpOffset=%d\n", offset, tmpOffset);
+		AlignEntryPrint(a,
+				stderr,
+				ColorSpace,
+				TextOutput);
+		AlignEntryPrint(&tmp,
+				stderr,
+				ColorSpace,
+				TextOutput);
+		PrintError(FnName,
+				NULL,
+				"Alignments did not match",
+				Exit,
+				OutOfRange);
+	}
 	AlignEntryFree(&tmp);
+	*/
 	/* The return is the number of gaps at the beginning of the reference */
 	return offset;
 }
