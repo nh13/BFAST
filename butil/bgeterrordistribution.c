@@ -21,16 +21,22 @@
 
 int main(int argc, char *argv[])
 {
-	if(3 == argc) {
+	if(5 == argc) {
 		char inputFileName[MAX_FILENAME_LENGTH]="\0";
+		int32_t countGaps=0;
+		int32_t trimEndGaps=0;
 		char outputID[MAX_FILENAME_LENGTH]="\0";
 
 		/* Get arguments */
 		strcpy(inputFileName, argv[1]);
-		strcpy(outputID, argv[2]);
+		countGaps=atoi(argv[2]);
+		trimEndGaps=atoi(argv[3]);
+		strcpy(outputID, argv[4]);
 
 		/* Run the program */
 		GetErrorDistribution(inputFileName,
+				countGaps,
+				trimEndGaps,
 				outputID);
 
 		fprintf(stderr, "%s%s%s", 
@@ -41,19 +47,23 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<BFAST reported file>\n");
+		fprintf(stderr, "\t<count gaps as errors>\n");
+		fprintf(stderr, "\t<trim gaps at the end of the read>\n");
 		fprintf(stderr, "\t<output id>\n");
 	}
 	return 0;
 }
 
 void GetErrorDistribution(char *inputFileName,
+		int32_t countGaps,
+		int32_t trimEndGaps,
 		char *outputID)
 {
 	char *FnName="GetErrorDistribution";
 	int i, count;
 	FILE *FPin=NULL;
-	FILE *FPsout[4]={NULL,NULL,NULL,NULL};
-	char outputFileNames[4][MAX_FILENAME_LENGTH]={"\0","\0","\0","\0"};
+	FILE *FPsout[6]={NULL,NULL,NULL,NULL,NULL,NULL};
+	char outputFileNames[6][MAX_FILENAME_LENGTH]={"\0","\0","\0","\0","\0","\0"};
 	AlignEntries a;
 	Errors e;
 	int pairedEnd = SingleEnd;
@@ -65,10 +75,16 @@ void GetErrorDistribution(char *inputFileName,
 	sprintf(outputFileNames[1], "%s.error.distribution.color.by.position.%s.txt",
 			PROGRAM_NAME,
 			outputID);
-	sprintf(outputFileNames[2], "%s.error.distribution.nt.across.reads.%s.txt",
+	sprintf(outputFileNames[2], "%s.error.distribution.gaps.by.position.%s.txt",
 			PROGRAM_NAME,
 			outputID);
-	sprintf(outputFileNames[3], "%s.error.distribution.color.across.reads.%s.txt",
+	sprintf(outputFileNames[3], "%s.error.distribution.nt.across.reads.%s.txt",
+			PROGRAM_NAME,
+			outputID);
+	sprintf(outputFileNames[4], "%s.error.distribution.color.across.reads.%s.txt",
+			PROGRAM_NAME,
+			outputID);
+	sprintf(outputFileNames[5], "%s.error.distribution.gaps.across.reads.%s.txt",
 			PROGRAM_NAME,
 			outputID);
 
@@ -82,13 +98,22 @@ void GetErrorDistribution(char *inputFileName,
 	}
 
 	/* Open the output file */
-	for(i=0;i<4;i++) {
-		if(!(FPsout[i] = fopen(outputFileNames[i], "wb"))) {
-			PrintError(FnName,
-					outputFileNames[i],
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+	for(i=0;i<3;i++) {
+		if(0 == countGaps || i != 2) {
+			if(!(FPsout[i] = fopen(outputFileNames[i], "wb"))) {
+				PrintError(FnName,
+						outputFileNames[i],
+						"Could not open file for writing",
+						Exit,
+						OpenFileError);
+			}
+			if(!(FPsout[i+3] = fopen(outputFileNames[i+3], "wb"))) {
+				PrintError(FnName,
+						outputFileNames[i+3],
+						"Could not open file for writing",
+						Exit,
+						OpenFileError);
+			}
 		}
 	}
 
@@ -103,7 +128,7 @@ void GetErrorDistribution(char *inputFileName,
 			fprintf(stderr, "\r%d", count);
 		}
 		/* Update */
-		ErrorsUpdate(&e, &a);
+		ErrorsUpdate(&e, &a, countGaps, trimEndGaps);
 		/* Free memory */
 		AlignEntriesFree(&a);
 		count++;
@@ -111,81 +136,129 @@ void GetErrorDistribution(char *inputFileName,
 	fprintf(stderr, "\r%d\n", count);
 
 	/* Print output */
-	ErrorsPrint(&e, FPsout, pairedEnd);
+	ErrorsPrint(&e, FPsout, countGaps, pairedEnd);
 
 	/* Close files */
 	fclose(FPin);
-	for(i=0;i<4;i++) {
-		fclose(FPsout[i]);
+	for(i=0;i<3;i++) {
+		if(0 == countGaps || i != 2) {
+			fclose(FPsout[i]);
+			fclose(FPsout[i+3]);
+		}
 	}
 
 	/* Free memory */
 	ErrorsFree(&e);
 }
 
-void ErrorsPrint(Errors *e, FILE **fps, int pairedEnd)
+void ErrorsPrint(Errors *e, FILE **fps, int countGaps, int pairedEnd)
 {
 	/* Print each out to a separate file */
 	assert(fps!=NULL);
 	int i;
 
-	for(i=0;i<4;i++) {
-		fprintf(fps[i], "# The number of mapped reads was %d\n", e->numReads);
+	for(i=0;i<3;i++) {
+		if(0 == countGaps || i != 2) {
+			fprintf(fps[i], "# The number of mapped reads was %d\n", e->numReads);
+			fprintf(fps[i+3], "# The number of mapped reads was %d\n", e->numReads);
+		}
 	}
 
 	/* Print out */
 	CountPrint(&e->by[0], fps[0], pairedEnd);
 	CountPrint(&e->by[1], fps[1], pairedEnd);
-	CountPrint(&e->across[0], fps[2], pairedEnd);
-	CountPrint(&e->across[1], fps[3], pairedEnd);
+	CountPrint(&e->across[0], fps[3], pairedEnd);
+	CountPrint(&e->across[1], fps[4], pairedEnd);
+	if(0 == countGaps) {
+		CountPrint(&e->by[2], fps[2], pairedEnd);
+		CountPrint(&e->across[2], fps[5], pairedEnd);
+	}
 }
 
-void ErrorsUpdate(Errors *e, AlignEntries *a)
+void ErrorsUpdate(Errors *e, AlignEntries *a, int32_t countGaps, int32_t trimEndGaps)
 {
 	assert(a->numEntriesOne == 1 &&
 			(a->pairedEnd == SingleEnd || a->numEntriesTwo == 1));
 
-	ErrorsUpdateHelper(e, &a->entriesOne[0], a->space, a->pairedEnd, 0);
+	ErrorsUpdateHelper(e, &a->entriesOne[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 0);
 	if(PairedEnd == a->pairedEnd) {
-		ErrorsUpdateHelper(e, &a->entriesTwo[0], a->space, a->pairedEnd, 1);
+		ErrorsUpdateHelper(e, &a->entriesTwo[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 1);
 	}
 
 	e->numReads++;
 }
 
-void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int pairedEnd, int which) 
+void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps, int space, int pairedEnd, int which) 
 {
 	int i, ctr;
-	int numNT, numColor;
+	int numNT, numColor, numGap;
 	assert(which == 0 || which == 1);
 	assert(ColorSpace == space || NTSpace == space);
+	int32_t length;
 
 	/* Initialize */
-	numNT = numColor = 0;
+	numNT = numColor = numGap = 0;
+
+	length = a->length;
+	if(1 == trimEndGaps) {
+		while(0 < length && GAP == a->reference[length-1]) {
+			length--;
+		}
+	}
 
 	/* Go through each position in the alignment */
-	for(i=0,ctr=0;i<a->length;i++) {
-		
+	for(i=0,ctr=0;i<length;i++) {
+
 		/* Skip gaps in the read */
 		if(GAP != a->read[i]) {
 
 			/* nt space */
-			if(ToLower(a->read[i]) !=  ToLower(a->reference[i])) {
+			/* Check if it is a gap and we are not to count gaps as errors */
+			if(0 == countGaps && a->reference[i] == GAP) {
+				CountUpdate(&e->by[2],
+						CountOnly,
+						ctr,
+						pairedEnd,
+						which);
+				numGap++;
+			}
+			else if(ToLower(a->read[i]) !=  ToLower(a->reference[i])) {
 				CountUpdate(&e->by[0],
+						CountOnly,
 						ctr,
 						pairedEnd,
 						which);
 				numNT++;
 			}
+			CountUpdate(&e->by[2],
+					CountTotal,
+					ctr,
+					pairedEnd,
+					which);
+			CountUpdate(&e->by[0],
+					CountTotal,
+					ctr,
+					pairedEnd,
+					which);
 
 			/* color space */
-			if(ColorSpace == space &&
-					'1' == a->colorError[i]) {
-				CountUpdate(&e->by[1],
-						ctr,
-						pairedEnd,
-						which);
-				numColor++;
+			if(ColorSpace == space) {
+				if('1' == a->colorError[i]) {
+					CountUpdate(&e->by[1],
+							CountBoth,
+							ctr,
+							pairedEnd,
+							which);
+					numColor++;
+				}
+				else {
+					CountUpdate(&e->by[1],
+							CountTotal,
+							ctr,
+							pairedEnd,
+							which);
+				}
+
 			}
 			ctr++;
 		}
@@ -195,13 +268,23 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int pairedEnd, int 
 
 	/* nt space */
 	CountUpdate(&e->across[0],
+			CountBoth,
 			numNT,
 			pairedEnd,
 			which);
 	/* color space */
 	if(ColorSpace == space) {
 		CountUpdate(&e->across[1],
+				CountBoth,
 				numColor,
+				pairedEnd,
+				which);
+	}
+	/* gaps */
+	if(0 == countGaps) {
+		CountUpdate(&e->across[2],
+				CountBoth,
+				numGap,
 				pairedEnd,
 				which);
 	}
@@ -209,18 +292,23 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int space, int pairedEnd, int 
 
 void ErrorsInitialize(Errors *e) 
 {
+	e->numReads=0;
 	CountInitialize(&e->by[0]);
 	CountInitialize(&e->by[1]);
+	CountInitialize(&e->by[2]);
 	CountInitialize(&e->across[0]);
 	CountInitialize(&e->across[1]);
+	CountInitialize(&e->across[2]);
 }
 
 void ErrorsFree(Errors *e)
 {
 	CountFree(&e->by[0]);
 	CountFree(&e->by[1]);
+	CountFree(&e->by[2]);
 	CountFree(&e->across[0]);
 	CountFree(&e->across[1]);
+	CountFree(&e->across[2]);
 }
 
 void CountPrint(Count *c, FILE *fp, int pairedEnd)
@@ -229,20 +317,23 @@ void CountPrint(Count *c, FILE *fp, int pairedEnd)
 
 	if(SingleEnd == pairedEnd) {
 		for(i=0;i<c->length;i++) {
-			fprintf(fp, "%d\t%d\n", i, c->countOne[i]);
+			fprintf(fp, "%d\t%d\t%d\n", i, c->countOne[i], c->totalOne[i]);
 		}
 	}
 	else {
 		for(i=0;i<c->length;i++) {
-			fprintf(fp, "%d\t%d\t%d\n", 
+			fprintf(fp, "%d\t%d\t%d\t%d\t%d\n", 
 					i, 
 					c->countOne[i],
-					c->countTwo[i]);
+					c->totalOne[i],
+					c->countTwo[i],
+					c->totalTwo[i]);
 		}
 	}
 }
 
 void CountUpdate(Count *c,
+		int type,
 		int index,
 		int pairedEnd,
 		int which)
@@ -267,6 +358,17 @@ void CountUpdate(Count *c,
 		for(i=prev;i<c->length;i++) {
 			c->countOne[i] = 0;
 		}
+		c->totalOne = realloc(c->totalOne, sizeof(int)*(c->length));
+		if(NULL==c->totalOne) {
+			PrintError(FnName,
+					"c->totalOne",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=prev;i<c->length;i++) {
+			c->totalOne[i] = 0;
+		}
 
 		if(PairedEnd == pairedEnd) {
 			c->countTwo = realloc(c->countTwo, sizeof(int)*(c->length));
@@ -280,27 +382,74 @@ void CountUpdate(Count *c,
 			for(i=prev;i<c->length;i++) {
 				c->countTwo[i] = 0;
 			}
+			c->totalTwo = realloc(c->totalTwo, sizeof(int)*(c->length));
+			if(NULL==c->totalTwo) {
+				PrintError(FnName,
+						"c->totalTwo",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+			for(i=prev;i<c->length;i++) {
+				c->totalTwo[i] = 0;
+			}
 		}
 	}
 
 	/* Increment */
 	if(0 == which) {
-		c->countOne[index]++;
+		switch(type) {
+			case CountOnly:
+				c->countOne[index]++;
+				break;
+			case CountTotal:
+				c->totalOne[index]++;
+				break;
+			case CountBoth:
+				c->countOne[index]++;
+				c->totalOne[index]++;
+				break;
+			default:
+				PrintError(FnName,
+						"type",
+						"Could not understand type",
+						Exit,
+						OutOfRange);
+		}
 	}
 	else {
-		c->countTwo[index]++;
+		switch(type) {
+			case CountOnly:
+				c->countTwo[index]++;
+				break;
+			case CountTotal:
+				c->totalTwo[index]++;
+				break;
+			case CountBoth:
+				c->countTwo[index]++;
+				c->totalTwo[index]++;
+				break;
+			default:
+				PrintError(FnName,
+						"type",
+						"Could not understand type",
+						Exit,
+						OutOfRange);
+		}
 	}
 }
 
 void CountInitialize(Count *c)
 {
 	c->length=0;
-	c->countOne=c->countTwo=NULL;
+	c->countOne=c->totalOne=c->countTwo=c->totalTwo=NULL;
 }
 
 void CountFree(Count *c)
 {
 	free(c->countOne);
+	free(c->totalOne);
 	free(c->countTwo);
+	free(c->totalTwo);
 	CountInitialize(c);
 }
