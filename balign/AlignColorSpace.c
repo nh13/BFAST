@@ -667,257 +667,6 @@ int AlignColorSpaceFull(char *read,
 	return offset;
 }
 
-int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
-		AlignMatrixCS **matrix,
-		char *read,
-		int readLength,
-		char *reference,
-		int referenceLength,
-		int scoringType,
-		int toExclude,
-		int debug)
-{
-	char *FnName="FillAlignEntryFromMatrixColorSpace";
-	int curRow, curCol, startRow, startCol, startCell;
-	char curReadBase;
-	int nextRow, nextCol, nextCell, nextFrom;
-	char nextReadBase;
-	int curFrom=-1;
-	double maxScore;
-	double maxScoreNT=NEGATIVE_INFINITY;
-	int i, j;
-	int offset;
-
-	curReadBase = nextReadBase = 'X';
-	nextRow = nextCol = nextCell = -1;
-
-	/* Get the best alignment.  We can find the best score in the last row and then
-	 * trace back.  We choose the best score from the last row since we want to 
-	 * align the read completely and only locally to the reference. */
-	startRow=-1;
-	startCol=-1;
-	startCell=-1;
-	maxScore = NEGATIVE_INFINITY-1;
-	maxScoreNT = NEGATIVE_INFINITY-1;
-	for(i=toExclude+1;i<referenceLength+1;i++) {
-		for(j=0;j<ALPHABET_SIZE+1;j++) {
-			/* Don't end with a Deletion in the read */
-
-			/* End with a Match/Mismatch */
-			if(maxScore < matrix[readLength][i].s.score[j]) {
-				maxScore = matrix[readLength][i].s.score[j];
-				maxScoreNT = matrix[readLength][i].s.scoreNT[j];
-				startRow = readLength;
-				startCol = i;
-				startCell = j + 1 + (ALPHABET_SIZE + 1);
-			}
-
-			/* End with a Insertion */
-			if(maxScore < matrix[readLength][i].v.score[j]) {
-				maxScore = matrix[readLength][i].v.score[j];
-				maxScoreNT = matrix[readLength][i].v.scoreNT[j];
-				startRow = readLength;
-				startCol = i;
-				startCell = j + 1 + 2*(ALPHABET_SIZE + 1);
-			}
-		}
-	}
-	assert(startRow >= 0 && startCol >= 0 && startCell >= 0);
-
-	/* Initialize variables for the loop */
-	curRow=startRow;
-	curCol=startCol;
-	curFrom=startCell;
-
-	a->referenceLength=0;
-	/* Init */
-	if(curFrom <= (ALPHABET_SIZE + 1)) {
-		PrintError(FnName, 
-				"curFrom",
-				"Cannot end with a deletion",
-				Exit,
-				OutOfRange);
-		a->length = matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-	}
-	else if(2*(ALPHABET_SIZE + 1) < curFrom) {
-		a->length = matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-	}
-	else {
-		a->length = matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-	}
-	if(a->length < readLength) {
-		fprintf(stderr, "\na->length=%d\nreadLength=%d\n", a->length, readLength);
-	}
-	assert(readLength <= a->length);
-	i=a->length-1;
-	/* Copy over score */
-	if(scoringType == NTSpace) {
-		a->score = maxScoreNT;
-	}
-	else {
-		a->score = maxScore;
-	}
-
-	/* Allocate memory */
-	assert(NULL==a->read);
-	a->read = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	assert(NULL==a->reference);
-	a->reference = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->reference) {
-		PrintError(FnName,
-				"a->reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	assert(NULL==a->colorError);
-	a->colorError = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->colorError) {
-		PrintError(FnName,
-				"a->colorError",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-
-	/* Now trace back the alignment using the "from" member in the matrix */
-	while(curRow > 0 && curCol > 0) {
-		assert(i>=0);
-		/* Where did the current cell come from */
-		/* Get if there was a color error */
-		if(curFrom <= (ALPHABET_SIZE + 1)) {
-			/*
-			   fprintf(stderr, "\ni=%d\ncurFrom=%d\nh.length=%d\n%s",
-			   i,
-			   curFrom,
-			   matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
-			   BREAK_LINE);
-			   assert(i + 1 == matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
-			   */
-			nextFrom = matrix[curRow][curCol].h.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			a->colorError[i] = matrix[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-		}
-		else if(2*(ALPHABET_SIZE + 1) < curFrom) {
-			/*
-			   fprintf(stderr, "\ni=%d\ncurFrom=%d\nv.length=%d\n%s",
-			   i,
-			   curFrom,
-			   matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
-			   BREAK_LINE);
-			   assert(i + 1 == matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
-			   */
-			nextFrom = matrix[curRow][curCol].v.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			a->colorError[i] = matrix[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-		}
-		else {
-			/*
-			   fprintf(stderr, "\ni=%d\ncurFrom=%d\ns.length=%d\n%s",
-			   i,
-			   curFrom,
-			   matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
-			   BREAK_LINE);
-			   assert(i + 1 == matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
-			   */
-			nextFrom = matrix[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			a->colorError[i] = matrix[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-		}
-
-		switch(curFrom) {
-			case MatchA:
-			case InsertionA:
-				a->read[i] = 'A';
-				break;
-			case MatchC:
-			case InsertionC:
-				a->read[i] = 'C';
-				break;
-			case MatchG:
-			case InsertionG:
-				a->read[i] = 'G';
-				break;
-			case MatchT:
-			case InsertionT:
-				a->read[i] = 'T';
-				break;
-			case MatchN:
-			case InsertionN:
-				a->read[i] = 'N';
-				break;
-			case DeletionA:
-			case DeletionC:
-			case DeletionG:
-			case DeletionT:
-			case DeletionN:
-				a->read[i] = GAP;
-				break;
-			default:
-				fprintf(stderr, "curFrom=%d\n",
-						curFrom);
-				PrintError(FnName,
-						"curFrom",
-						"Could not understand curFrom",
-						Exit,
-						OutOfRange);
-		}
-
-		switch(curFrom) {
-			case InsertionA:
-			case InsertionC:
-			case InsertionG:
-			case InsertionT:
-			case InsertionN:
-				a->reference[i] = GAP;
-				break;
-			default:
-				a->reference[i] = reference[curCol-1];
-				a->referenceLength++;
-				break;
-		}
-
-		assert(a->read[i] != GAP || a->read[i] != a->reference[i]);
-
-		/* Update next row/col */
-		if(curFrom <= (ALPHABET_SIZE + 1)) {
-			nextRow = curRow;
-			nextCol = curCol-1;
-		}
-		else if(2*(ALPHABET_SIZE +1) < curFrom) {
-			nextRow = curRow-1;
-			nextCol = curCol;
-		}
-		else {
-			nextRow = curRow-1;
-			nextCol = curCol-1;
-		}
-
-		/* Update for next loop iteration */
-		curFrom = nextFrom;
-		assert(curFrom > 0);
-		curRow = nextRow;
-		curCol = nextCol;
-		i--;
-	} /* End loop */
-	if(-1!=i) {
-		fprintf(stderr, "i=%d\n", i);
-	}
-	assert(-1==i);
-	assert(a->length >= a->referenceLength);
-
-	offset = curCol;
-	a->read[a->length]='\0';
-	a->reference[a->length]='\0';
-	a->colorError[a->length]='\0';
-
-	return offset;
-}
-
 /* TODO */
 int AlignColorSpaceFullOpt(char *read,
 		int readLength,
@@ -1045,7 +794,7 @@ int AlignColorSpaceFullOpt(char *read,
 		return offset;
 	}
 	/* Do full alignment */
-	AlignEntryInitialize(a);
+	AlignEntryFree(a);
 	maxH = MIN(maxH, readLength);
 	maxV = MIN(maxH, readLength);
 
@@ -1491,5 +1240,256 @@ int AlignColorSpaceFullOpt(char *read,
 	AlignEntryFree(&tmp);
 	*/
 	/* The return is the number of gaps at the beginning of the reference */
+	return offset;
+}
+
+int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
+		AlignMatrixCS **matrix,
+		char *read,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		int scoringType,
+		int toExclude,
+		int debug)
+{
+	char *FnName="FillAlignEntryFromMatrixColorSpace";
+	int curRow, curCol, startRow, startCol, startCell;
+	char curReadBase;
+	int nextRow, nextCol, nextCell, nextFrom;
+	char nextReadBase;
+	int curFrom=-1;
+	double maxScore;
+	double maxScoreNT=NEGATIVE_INFINITY;
+	int i, j;
+	int offset;
+
+	curReadBase = nextReadBase = 'X';
+	nextRow = nextCol = nextCell = -1;
+
+	/* Get the best alignment.  We can find the best score in the last row and then
+	 * trace back.  We choose the best score from the last row since we want to 
+	 * align the read completely and only locally to the reference. */
+	startRow=-1;
+	startCol=-1;
+	startCell=-1;
+	maxScore = NEGATIVE_INFINITY-1;
+	maxScoreNT = NEGATIVE_INFINITY-1;
+	for(i=toExclude+1;i<referenceLength+1;i++) {
+		for(j=0;j<ALPHABET_SIZE+1;j++) {
+			/* Don't end with a Deletion in the read */
+
+			/* End with a Match/Mismatch */
+			if(maxScore < matrix[readLength][i].s.score[j]) {
+				maxScore = matrix[readLength][i].s.score[j];
+				maxScoreNT = matrix[readLength][i].s.scoreNT[j];
+				startRow = readLength;
+				startCol = i;
+				startCell = j + 1 + (ALPHABET_SIZE + 1);
+			}
+
+			/* End with a Insertion */
+			if(maxScore < matrix[readLength][i].v.score[j]) {
+				maxScore = matrix[readLength][i].v.score[j];
+				maxScoreNT = matrix[readLength][i].v.scoreNT[j];
+				startRow = readLength;
+				startCol = i;
+				startCell = j + 1 + 2*(ALPHABET_SIZE + 1);
+			}
+		}
+	}
+	assert(startRow >= 0 && startCol >= 0 && startCell >= 0);
+
+	/* Initialize variables for the loop */
+	curRow=startRow;
+	curCol=startCol;
+	curFrom=startCell;
+
+	a->referenceLength=0;
+	/* Init */
+	if(curFrom <= (ALPHABET_SIZE + 1)) {
+		PrintError(FnName, 
+				"curFrom",
+				"Cannot end with a deletion",
+				Exit,
+				OutOfRange);
+		a->length = matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+	}
+	else if(2*(ALPHABET_SIZE + 1) < curFrom) {
+		a->length = matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+	}
+	else {
+		a->length = matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+	}
+	if(a->length < readLength) {
+		fprintf(stderr, "\na->length=%d\nreadLength=%d\n", a->length, readLength);
+	}
+	assert(readLength <= a->length);
+	i=a->length-1;
+	/* Copy over score */
+	if(scoringType == NTSpace) {
+		a->score = maxScoreNT;
+	}
+	else {
+		a->score = maxScore;
+	}
+
+	/* Allocate memory */
+	assert(NULL==a->read);
+	a->read = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->read) {
+		PrintError(FnName,
+				"a->read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL==a->reference);
+	a->reference = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->reference) {
+		PrintError(FnName,
+				"a->reference",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL==a->colorError);
+	a->colorError = malloc(sizeof(char)*(a->length+1));
+	if(NULL==a->colorError) {
+		PrintError(FnName,
+				"a->colorError",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Now trace back the alignment using the "from" member in the matrix */
+	while(curRow > 0 && curCol > 0) {
+		assert(i>=0);
+		/* Where did the current cell come from */
+		/* Get if there was a color error */
+		if(curFrom <= (ALPHABET_SIZE + 1)) {
+			/*
+			   fprintf(stderr, "\ni=%d\ncurFrom=%d\nh.length=%d\n%s",
+			   i,
+			   curFrom,
+			   matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+			   BREAK_LINE);
+			   assert(i + 1 == matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   */
+			nextFrom = matrix[curRow][curCol].h.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+			a->colorError[i] = matrix[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		}
+		else if(2*(ALPHABET_SIZE + 1) < curFrom) {
+			/*
+			   fprintf(stderr, "\ni=%d\ncurFrom=%d\nv.length=%d\n%s",
+			   i,
+			   curFrom,
+			   matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+			   BREAK_LINE);
+			   assert(i + 1 == matrix[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   */
+			nextFrom = matrix[curRow][curCol].v.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+			a->colorError[i] = matrix[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		}
+		else {
+			/*
+			   fprintf(stderr, "\ni=%d\ncurFrom=%d\ns.length=%d\n%s",
+			   i,
+			   curFrom,
+			   matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)],
+			   BREAK_LINE);
+			   assert(i + 1 == matrix[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)]);
+			   */
+			nextFrom = matrix[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+			a->colorError[i] = matrix[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		}
+
+		switch(curFrom) {
+			case MatchA:
+			case InsertionA:
+				a->read[i] = 'A';
+				break;
+			case MatchC:
+			case InsertionC:
+				a->read[i] = 'C';
+				break;
+			case MatchG:
+			case InsertionG:
+				a->read[i] = 'G';
+				break;
+			case MatchT:
+			case InsertionT:
+				a->read[i] = 'T';
+				break;
+			case MatchN:
+			case InsertionN:
+				a->read[i] = 'N';
+				break;
+			case DeletionA:
+			case DeletionC:
+			case DeletionG:
+			case DeletionT:
+			case DeletionN:
+				a->read[i] = GAP;
+				break;
+			default:
+				fprintf(stderr, "curFrom=%d\n",
+						curFrom);
+				PrintError(FnName,
+						"curFrom",
+						"Could not understand curFrom",
+						Exit,
+						OutOfRange);
+		}
+
+		switch(curFrom) {
+			case InsertionA:
+			case InsertionC:
+			case InsertionG:
+			case InsertionT:
+			case InsertionN:
+				a->reference[i] = GAP;
+				break;
+			default:
+				a->reference[i] = reference[curCol-1];
+				a->referenceLength++;
+				break;
+		}
+
+		assert(a->read[i] != GAP || a->read[i] != a->reference[i]);
+
+		/* Update next row/col */
+		if(curFrom <= (ALPHABET_SIZE + 1)) {
+			nextRow = curRow;
+			nextCol = curCol-1;
+		}
+		else if(2*(ALPHABET_SIZE +1) < curFrom) {
+			nextRow = curRow-1;
+			nextCol = curCol;
+		}
+		else {
+			nextRow = curRow-1;
+			nextCol = curCol-1;
+		}
+
+		/* Update for next loop iteration */
+		curFrom = nextFrom;
+		assert(curFrom > 0);
+		curRow = nextRow;
+		curCol = nextCol;
+		i--;
+	} /* End loop */
+	if(-1!=i) {
+		fprintf(stderr, "i=%d\n", i);
+	}
+	assert(-1==i);
+	assert(a->length >= a->referenceLength);
+
+	offset = curCol;
+	a->read[a->length]='\0';
+	a->reference[a->length]='\0';
+	a->colorError[a->length]='\0';
+
 	return offset;
 }
