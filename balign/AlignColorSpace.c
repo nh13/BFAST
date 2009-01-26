@@ -1032,7 +1032,7 @@ void AlignColorSpaceFullWithBound(char *read,
 	matrix=NULL;
 
 	/* Debug code */
-	/* HERE */
+	/*
 	AlignEntry tmp;
 	AlignEntryInitialize(&tmp);
 	AlignColorSpaceFull(read,
@@ -1065,6 +1065,7 @@ void AlignColorSpaceFullWithBound(char *read,
 				OutOfRange);
 	}
 	AlignEntryFree(&tmp);
+	*/
 
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }

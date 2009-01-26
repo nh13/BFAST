@@ -76,8 +76,8 @@ fi
 					   
 AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such as Xeon and Core2],
 [extended_CFLAGS="${extended_CFLAGS} -mtune=nocona"], [])
-AC_ARG_ENABLE(unoptimized-sw-cs, [  --enable-unoptimized-sw-cs       use the unoptimized smith waterman algorithm for color space (use for benchmarking only)],
-[AC_DEFINE(COLOR_SPACE_UNOPTIMIZED,1,[Define 1 if we want to use the unoptimized smith waterman for color space])], 
+AC_ARG_ENABLE(unoptimized-sw, [  --enable-unoptimized-sw         use the unoptimized smith waterman algorithm (use for benchmarking only)],
+[AC_DEFINE(UNOPTIMIZED_SMITH_WATERMAN,1,[Define 1 if we want to use the unoptimized smith waterman (use for benchmarking only)])], 
 [])
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}"
 

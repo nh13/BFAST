@@ -351,7 +351,7 @@ void AlignNTSpaceFullWithBound(char *read,
 	matrix=NULL;
 
 	/* Debug code */
-	/* HERE */
+	/*
 	AlignEntry tmp;
 	AlignEntryInitialize(&tmp);
 	AlignNTSpaceFull(read,
@@ -383,6 +383,7 @@ void AlignNTSpaceFullWithBound(char *read,
 				OutOfRange);
 	}
 	AlignEntryFree(&tmp);
+	*/
 
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }

@@ -3,8 +3,6 @@
 # This is the commands to make the simulated reads for the test
 
 . test.definitions.sh
-READ_LENGTH=50;
-NUM_READS=10;
 RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";
 
 echo "Creating reads";
