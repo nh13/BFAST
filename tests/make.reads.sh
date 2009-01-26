@@ -2,10 +2,7 @@
 
 # This is the commands to make the simulated reads for the test
 
-SAVE_DIR="save/";
-OUTPUT_DIR="output/";
-OUTPUT_ID="phi.x.174";
-DATA_DIR="data/";
+. test.definitions.sh
 READ_LENGTH=50;
 NUM_READS=10;
 RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";

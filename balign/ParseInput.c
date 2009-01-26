@@ -78,7 +78,8 @@ static struct argp_option options[] = {
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
-	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "0: Align all matches 1: Find only the best scoring alignment(s) from all matches", 2},
+	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "If specified prompts to find only the best scoring alignment(s) across all matches."
+		"\n\t\t\tOtherwise, a best scoring alignment is output for each match.", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"scoringType", 'X', "scoringType", 0, "Final alignment score should by in 0: NT space 1: color space", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},

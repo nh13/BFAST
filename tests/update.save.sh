@@ -1,7 +1,6 @@
 #!/bin/sh
 
-SAVE_DIR="save/";
-OUTPUT_ID="phi.x.174";
+. test.definitions.sh
 
 # We update the bfast reference genome and bfast inded files for each new package version
 sh test.initialize.sh

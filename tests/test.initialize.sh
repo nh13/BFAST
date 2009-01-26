@@ -1,9 +1,6 @@
 #!/bin/sh
 
-SAVE_DIR="save/";
-INPUT_DIR="data/";
-OUTPUT_DIR="output/";
-TMP_DIR="tmp/";
+. test.definitions.sh
 
 echo "      Initializing data for tests.";
 

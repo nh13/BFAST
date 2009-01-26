@@ -1,8 +1,6 @@
 #!/bin/sh
 
-SAVE_DIR="save/";
-OUTPUT_DIR="output/";
-TMP_DIR="tmp/";
+. test.definitions.sh
 
 echo "      Cleaning up files.";
 

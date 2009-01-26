@@ -1032,27 +1032,24 @@ void AlignColorSpaceFullWithBound(char *read,
 	matrix=NULL;
 
 	/* Debug code */
-	/*
+	/* HERE */
 	AlignEntry tmp;
 	AlignEntryInitialize(&tmp);
-	int tmpOffset = AlignColorSpaceFull(read,
+	AlignColorSpaceFull(read,
 			readLength,
 			reference,
 			referenceLength,
 			scoringType,
 			sm,
 			&tmp,
-			strand);
-	if(!(tmpOffset == offset) ||
+			strand,
+			position);
+	if(a->score < tmp.score ||
+			tmp.score < a->score ||
 			!(a->length == tmp.length) ||
-			!(a->referenceLength == tmp.referenceLength) ||
-			!(0 == strcmp(a->read, tmp.read)) ||
-			!(0 == strcmp(a->reference, tmp.reference)) ||
-			!(0 == strcmp(a->colorError, tmp.colorError))) {
+			!(a->referenceLength == tmp.referenceLength)) {
 		fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
 		fprintf(stderr, "\nstrand=%c\n", strand);
-		fprintf(stderr, "\nlowerBound=%lf\nmaxH=%d\nmaxV=%d\n", lowerBound, maxH, maxV);
-		fprintf(stderr, "\noffset=%d\ntmpOffset=%d\n", offset, tmpOffset);
 		AlignEntryPrint(a,
 				stderr,
 				ColorSpace,
@@ -1068,7 +1065,7 @@ void AlignColorSpaceFullWithBound(char *read,
 				OutOfRange);
 	}
 	AlignEntryFree(&tmp);
-	*/
+
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 

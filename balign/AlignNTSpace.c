@@ -350,6 +350,40 @@ void AlignNTSpaceFullWithBound(char *read,
 	free(matrix);
 	matrix=NULL;
 
+	/* Debug code */
+	/* HERE */
+	AlignEntry tmp;
+	AlignEntryInitialize(&tmp);
+	AlignNTSpaceFull(read,
+			readLength,
+			reference,
+			referenceLength,
+			sm,
+			&tmp,
+			strand,
+			position);
+	if(a->score < tmp.score ||
+			tmp.score < a->score ||
+			!(a->length == tmp.length) ||
+			!(a->referenceLength == tmp.referenceLength)) {
+		fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
+		fprintf(stderr, "\nstrand=%c\n", strand);
+		AlignEntryPrint(a,
+				stderr,
+				ColorSpace,
+				TextOutput);
+		AlignEntryPrint(&tmp,
+				stderr,
+				ColorSpace,
+				TextOutput);
+		PrintError(FnName,
+				NULL,
+				"Alignments did not match",
+				Exit,
+				OutOfRange);
+	}
+	AlignEntryFree(&tmp);
+
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 

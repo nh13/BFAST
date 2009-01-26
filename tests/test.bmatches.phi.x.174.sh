@@ -1,9 +1,6 @@
 #!/bin/sh
 
-OUTPUT_ID="phi.x.174";
-OUTPUT_DIR="output/";
-SAVE_DIR="save/";
-TMP_DIR="tmp/";
+. test.definitions.sh
 OFFSETS=$OUTPUT_DIR"offsets.0-100.txt";
 
 echo "      Finding matches.";

@@ -1,9 +1,6 @@
 #!/bin/sh
 
-OUTPUT_ID="phi.x.174";
-OUTPUT_DIR="output/";
-SAVE_DIR="save/";
-TMP_DIR="tmp/";
+. test.definitions.sh
 RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";
 
 echo "      Running local alignment.";

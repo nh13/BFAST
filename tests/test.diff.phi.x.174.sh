@@ -1,8 +1,6 @@
 #!/bin/sh
 
-OUTPUT_ID="phi.x.174";
-OUTPUT_DIR="output/";
-SAVE_DIR="save/";
+. test.definitions.sh
 
 echo "      Double-checking output files.";
 for PREFIX in rg index 

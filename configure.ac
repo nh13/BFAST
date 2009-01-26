@@ -7,17 +7,6 @@
 AC_PREREQ(2.59)
 AC_INIT([bfast],[0.3.2],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
-svnrev="`svn info | grep Revision:`"
-
-if test -n "${svnrev}" ; then
-	AC_REVISION("${svnrev}") 
-	AC_DEFINE_UNQUOTED(SVN_REV,"${svnrev}", [Define to be the subversion revision number])
-else
-	AC_REVISION([$Revision: undefined $])
-	AC_DEFINE(SVN_REV,"$Revision: undefined$", [Define to be the subversion revision number])
-fi
-
-
 AC_COPYRIGHT([bfast is copyright 2008-2009 by The University of California - Los
 Angeles.  All rights reserved.  This License is limited to, and you
 may use the Software solely for, your own internal and non-commercial
@@ -42,7 +31,7 @@ AC_PROG_CC
 
 AC_PROG_INSTALL
 AC_GNU_SOURCE
-AC_PROG_RANLIB
+AC_PROG_LIBTOOL
 
 # set CFLAGS and CXXFLAGS
 default_CFLAGS="-Wall -g -O3 -pthread"
@@ -50,6 +39,7 @@ extended_CFLAGS=""
 case "${host_cpu}-${host_os}" in 
 	# Mac OS X
 	i386-darwin*)
+		numcpu="`sysctl -a hw | grep hw.availcpu | awk '{print $3}'`";
 		AC_ARG_ENABLE(universal, [  --enable-universal      enable universal binary (Intel Apple only)], [is_uni=1], [is_uni=0]) 
 		case $is_uni in 
 			1) 
@@ -62,11 +52,27 @@ case "${host_cpu}-${host_os}" in
 			AC_COMPILE_IFELSE([AC_LANG_PROGRAM], [extended_CFLAGS="-m64"], []);;
 		esac;;
 	*)
+		numcpu="`grep -c "processor" /proc/cpuinfo`"
 		AC_MSG_CHECKING([if gcc accepts -m64])
 		CFLAGS="-m64"
 		AC_COMPILE_IFELSE([AC_LANG_PROGRAM], [extended_CFLAGS="-m64"; 
 						   AC_MSG_RESULT([yes])], [extended_CFLAGS="-D_FILE_OFFSET_BITS=64"; AC_MSG_RESULT([no])]);;
 esac
+
+# Define some variables
+svnrev="`svn info | grep Revision:`"
+if test -n "${svnrev}" ; then
+	AC_REVISION("${svnrev}") 
+	AC_DEFINE_UNQUOTED(SVN_REV,"${svnrev}", [Define to be the subversion revision number])
+else
+	AC_REVISION([$Revision: undefined $])
+	AC_DEFINE(SVN_REV,"$Revision: undefined$", [Define to be the subversion revision number])
+fi
+if test -n "${numcpu}" ; then
+	AC_DEFINE_UNQUOTED(NUM_CPU,${numcpu}, [Define to be the number of cores available on this system])
+else
+	AC_DEFINE_UNQUOTED(NUM_CPU,1, [Define to be the number of cores available on this system])
+fi
 					   
 AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such as Xeon and Core2],
 [extended_CFLAGS="${extended_CFLAGS} -mtune=nocona"], [])
@@ -109,6 +115,7 @@ AC_CONFIG_FILES([Makefile
 				 bpostprocess/Makefile
 				 butil/Makefile
 				 tests/Makefile
+				 tests.long/Makefile
 				 ])
 
 AC_OUTPUT

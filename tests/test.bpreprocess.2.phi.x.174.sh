@@ -1,9 +1,6 @@
 #!/bin/sh
 
-OUTPUT_ID="phi.x.174";
-OUTPUT_DIR="output/";
-SAVE_DIR="save/";
-TMP_DIR="tmp/";
+. test.definitions.sh
 LAYOUT_FILE=$OUTPUT_DIR"layouts.$OUTPUT_ID.txt";
 
 echo "      Building an index.";

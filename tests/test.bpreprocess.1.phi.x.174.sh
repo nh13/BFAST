@@ -1,8 +1,6 @@
 #!/bin/sh
 
-OUTPUT_ID="phi.x.174";
-OUTPUT_DIR="output/";
-SAVE_DIR="save/";
+. test.definitions.sh
 RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 TMP_DIR="tmp/";
 
