@@ -39,7 +39,6 @@ extended_CFLAGS=""
 case "${host_cpu}-${host_os}" in 
 	# Mac OS X
 	i386-darwin*)
-		numcpu="`sysctl -a hw | grep hw.availcpu | awk '{print $3}'`";
 		AC_ARG_ENABLE(universal, [  --enable-universal      enable universal binary (Intel Apple only)], [is_uni=1], [is_uni=0]) 
 		case $is_uni in 
 			1) 
@@ -52,7 +51,6 @@ case "${host_cpu}-${host_os}" in
 			AC_COMPILE_IFELSE([AC_LANG_PROGRAM], [extended_CFLAGS="-m64"], []);;
 		esac;;
 	*)
-		numcpu="`grep -c "processor" /proc/cpuinfo`"
 		AC_MSG_CHECKING([if gcc accepts -m64])
 		CFLAGS="-m64"
 		AC_COMPILE_IFELSE([AC_LANG_PROGRAM], [extended_CFLAGS="-m64"; 
@@ -67,11 +65,6 @@ if test -n "${svnrev}" ; then
 else
 	AC_REVISION([$Revision: undefined $])
 	AC_DEFINE(SVN_REV,"$Revision: undefined$", [Define to be the subversion revision number])
-fi
-if test -n "${numcpu}" ; then
-	AC_DEFINE_UNQUOTED(NUM_CPU,${numcpu}, [Define to be the number of cores available on this system])
-else
-	AC_DEFINE_UNQUOTED(NUM_CPU,1, [Define to be the number of cores available on this system])
 fi
 					   
 AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such as Xeon and Core2],
@@ -115,7 +108,6 @@ AC_CONFIG_FILES([Makefile
 				 bpostprocess/Makefile
 				 butil/Makefile
 				 tests/Makefile
-				 tests.long/Makefile
 				 ])
 
 AC_OUTPUT
