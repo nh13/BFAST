@@ -72,7 +72,7 @@ int32_t RGMatchRead(FILE *fp,
 			if(fscanf(fp, "%u %d %c", 
 						&m->contigs[i],
 						&m->positions[i],
-						&m->strand[i])==EOF) {
+						&m->strands[i])==EOF) {
 				PrintError(FnName,
 						NULL,
 						"Could not read in match",
@@ -156,9 +156,9 @@ int32_t RGMatchRead(FILE *fp,
 					Exit,
 					ReadFileError);
 		}
-		if(fread(m->strand, sizeof(int8_t), m->numEntries, fp)!=m->numEntries) {
+		if(fread(m->strands, sizeof(int8_t), m->numEntries, fp)!=m->numEntries) {
 			PrintError(FnName,
-					"m->strand",
+					"m->strands",
 					"Could not read in strand",
 					Exit,
 					ReadFileError);
@@ -197,10 +197,10 @@ void RGMatchPrint(FILE *fp,
 			if(0 > fprintf(fp, "\t%u\t%d\t%c", 
 						m->contigs[i],
 						m->positions[i],
-						m->strand[i])) {
+						m->strands[i])) {
 				PrintError(FnName,
 						NULL,
-						"Could not write m->contigs[i], m->positions[i], and m->strand[i]",
+						"Could not write m->contigs[i], m->positions[i], and m->strands[i]",
 						Exit,
 						WriteFileError);
 			}
@@ -229,7 +229,7 @@ void RGMatchPrint(FILE *fp,
 		/* Print the contigs, positions, and strands */
 		if(fwrite(m->contigs, sizeof(uint32_t), m->numEntries, fp) != m->numEntries ||
 				fwrite(m->positions, sizeof(uint32_t), m->numEntries, fp) != m->numEntries ||
-				fwrite(m->strand, sizeof(int8_t), m->numEntries, fp) != m->numEntries) {
+				fwrite(m->strands, sizeof(int8_t), m->numEntries, fp) != m->numEntries) {
 			PrintError(FnName,
 					NULL,
 					"Could not write contigs, positions and strands",
@@ -348,10 +348,10 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 	assert(indexTwo >= 0 && indexTwo < mTwo->numEntries);
 	if(mOne->contigs[indexOne] < mTwo->contigs[indexTwo] ||
 			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] < mTwo->positions[indexTwo]) ||
-			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] < mTwo->strand[indexTwo])) {
+			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strands[indexOne] < mTwo->strands[indexTwo])) {
 		return -1;
 	}
-	else if(mOne->contigs[indexOne] ==  mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strand[indexOne] == mTwo->strand[indexTwo]) {
+	else if(mOne->contigs[indexOne] ==  mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strands[indexOne] == mTwo->strands[indexTwo]) {
 		return 0;
 	}
 	else {
@@ -413,7 +413,7 @@ void RGMatchCopyAtIndex(RGMatch *src, int32_t srcIndex, RGMatch *dest, int32_t d
 	if(src != dest || srcIndex != destIndex) {
 		dest->positions[destIndex] = src->positions[srcIndex];
 		dest->contigs[destIndex] = src->contigs[srcIndex];
-		dest->strand[destIndex] = src->strand[srcIndex];
+		dest->strands[destIndex] = src->strands[srcIndex];
 	}
 }
 
@@ -441,11 +441,11 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 				Exit,
 				MallocMemory);
 	}
-	assert(m->strand==NULL);
-	m->strand = malloc(sizeof(int8_t)*numEntries); 
-	if(NULL == m->strand) {
+	assert(m->strands==NULL);
+	m->strands = malloc(sizeof(int8_t)*numEntries); 
+	if(NULL == m->strands) {
 		PrintError(FnName,
-				"m->strand",
+				"m->strands",
 				"Could not allocate memory",
 				Exit,
 				MallocMemory);
@@ -477,10 +477,10 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 					Exit,
 					ReallocMemory);
 		}
-		m->strand = realloc(m->strand, sizeof(int8_t)*numEntries); 
-		if(numEntries > 0 && NULL == m->strand) {
+		m->strands = realloc(m->strands, sizeof(int8_t)*numEntries); 
+		if(numEntries > 0 && NULL == m->strands) {
 			PrintError(FnName,
-					"m->strand",
+					"m->strands",
 					"Could not reallocate memory",
 					Exit,
 					ReallocMemory);
@@ -500,10 +500,10 @@ void RGMatchClearMatches(RGMatch *m)
 	/* Free */
 	free(m->contigs);
 	free(m->positions);
-	free(m->strand);
+	free(m->strands);
 	m->contigs=NULL;
 	m->positions=NULL;
-	m->strand=NULL;
+	m->strands=NULL;
 }
 
 /* TODO */
@@ -512,7 +512,7 @@ void RGMatchFree(RGMatch *m)
 	free(m->read);
 	free(m->contigs);
 	free(m->positions);
-	free(m->strand);
+	free(m->strands);
 	RGMatchInitialize(m);
 }
 
@@ -525,7 +525,7 @@ void RGMatchInitialize(RGMatch *m)
 	m->numEntries=0;
 	m->contigs=NULL;
 	m->positions=NULL;
-	m->strand=NULL;
+	m->strands=NULL;
 }
 
 /* TODO */
@@ -562,10 +562,10 @@ void RGMatchCheck(RGMatch *m)
 				OutOfRange);
 	}
 	/* Check that if the number of entries is greater than zero that the entries are not null */
-	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strand == NULL)) {
+	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)) {
 		PrintError(FnName,
 				NULL,
-				"m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strand == NULL)",
+				"m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)",
 				Exit,
 				OutOfRange);
 	}

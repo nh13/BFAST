@@ -275,12 +275,12 @@ int ReadTypeRead(ReadType *r,
 		for(i=0;i<r->numOne;i++) {
 			r->aContigOne[i] = m.matchOne.contigs[i];
 			r->aPosOne[i] = m.matchOne.positions[i];
-			r->aStrandOne[i] = m.matchOne.strand[i];
+			r->aStrandOne[i] = m.matchOne.strands[i];
 		}
 		for(i=0;i<r->numTwo;i++) {
 			r->aContigTwo[i] = m.matchTwo.contigs[i];
 			r->aPosTwo[i] = m.matchTwo.positions[i];
-			r->aStrandTwo[i] = m.matchTwo.strand[i];
+			r->aStrandTwo[i] = m.matchTwo.strands[i];
 		}
 	}
 	else if(BAF==type) {

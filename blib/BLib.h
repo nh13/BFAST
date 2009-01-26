@@ -5,9 +5,6 @@
 #include <stdint.h>
 #include "RGIndex.h"
 
-#define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
-#define MAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
-
 extern char DNA[5];
 
 int GetFastaHeaderLine(FILE*, char*);

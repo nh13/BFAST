@@ -21,6 +21,7 @@ void RunAligner(RGBinary *rg,
 		char *matchFileName,
 		char *scoringMatrixFileName,
 		int alignmentType,
+		int bestOnly,
 		int space,
 		int scoringType,
 		int startContig,
@@ -128,6 +129,7 @@ void RunAligner(RGBinary *rg,
 			rg,
 			scoringMatrixFileName,
 			alignmentType,
+			bestOnly,
 			space,
 			scoringType,
 			startContig,
@@ -168,6 +170,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
 		int alignmentType,
+		int bestOnly,
 		int space,
 		int scoringType,
 		int startContig,
@@ -324,6 +327,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].binaryOutput=binaryOutput;
 		data[i].sm = &sm;
 		data[i].alignmentType = alignmentType;
+		data[i].bestOnly = bestOnly;
 		data[i].numLocalAlignments = 0;
 		data[i].threadID = i;
 	}
@@ -512,17 +516,15 @@ void *RunDynamicProgrammingThread(void *arg)
 	int binaryOutput=data->binaryOutput;
 	ScoringMatrix *sm = data->sm;
 	int alignmentType=data->alignmentType;
+	int bestOnly=data->bestOnly;
 	int threadID=data->threadID;
 	/* Local variables */
 	/*
 	   char *FnName = "RunDynamicProgrammingThread";
 	   */
-	char matchRead[SEQUENCE_LENGTH]="\0";
-	int matchReadLength=0;
 	AlignEntries aEntries;
 	int numAlignEntries=0;
 	RGMatches m;
-	int i;
 	int numMatches=0;
 	int ctrOne=0;
 	int ctrTwo=0;
@@ -544,96 +546,27 @@ void *RunDynamicProgrammingThread(void *arg)
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
 
-		/* Check to see if we should try to align one read with no candidate
-		 * locations if the other one has candidate locations.
-		 *
-		 * This assumes that the the first read is 5'->3' before the second read.
-		 * */
-		if(PairedEnd == pairedEnd && usePairedEndLength == 1) {
-			RGMatchesMirrorPairedEnd(&m, 
-					pairedEndLength,
-					forceMirroring);
-		}
-
-		/* Allocate memory for the AlignEntries */
-		AlignEntriesAllocate(&aEntries,
-				(char*)m.readName,
-				m.matchOne.numEntries,
-				m.matchTwo.numEntries,
+		/* Update the number of local alignments performed */
+		data->numLocalAlignments += AlignRGMatches(&m,
+				rg,
+				&aEntries,
+				space,
 				pairedEnd,
-				space);
-
-		/* Run the aligner */
-		/* First entry */
-		if(0 < m.matchOne.numEntries) {
-			strcpy(matchRead, (char*)m.matchOne.read);
-			matchReadLength = m.matchOne.readLength;
-			if(space == ColorSpace) {
-				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
-			}
-		}
-		assert(m.matchOne.numEntries == aEntries.numEntriesOne);
-		for(i=0,ctrOne=0;i<m.matchOne.numEntries;i++) { /* For each match */
-			if(1==RunDynamicProgrammingThreadHelper(rg,
-						m.matchOne.contigs[i],
-						m.matchOne.positions[i],
-						m.matchOne.strand[i],
-						matchRead,
-						matchReadLength,
-						space,
-						scoringType,
-						offsetLength,
-						sm,
-						&aEntries.entriesOne[ctrOne],
-						alignmentType)) {
-				ctrOne++;
-			}
-		}
-		/* Second entry */
-		if(0 < m.matchTwo.numEntries) {
-			strcpy(matchRead, (char*)m.matchTwo.read);
-			matchReadLength = m.matchTwo.readLength;
-			if(space == ColorSpace) {
-				matchReadLength = ConvertReadFromColorSpace(matchRead, matchReadLength);
-			}
-		}
-		assert(m.matchTwo.numEntries == aEntries.numEntriesTwo);
-		for(i=0,ctrTwo=0;i<m.matchTwo.numEntries;i++) { /* For each match */
-			if(1==RunDynamicProgrammingThreadHelper(rg,
-						m.matchTwo.contigs[i],
-						m.matchTwo.positions[i],
-						m.matchTwo.strand[i],
-						matchRead,
-						matchReadLength,
-						space,
-						scoringType,
-						offsetLength,
-						sm,
-						&aEntries.entriesTwo[ctrTwo],
-						alignmentType)) {
-				ctrTwo++;
-			}
-		}
-
-		/* Reallocate if necessary */
-		if(ctrOne < m.matchOne.numEntries || 
-				(pairedEnd == 1 && ctrTwo < m.matchTwo.numEntries)) {
-			AlignEntriesReallocate(&aEntries,
-					ctrOne,
-					ctrTwo,
-					pairedEnd,
-					space);
-		}
+				scoringType,
+				offsetLength,
+				sm,
+				alignmentType,
+				bestOnly,
+				usePairedEndLength,
+				pairedEndLength,
+				forceMirroring);
 
 		if(0 < aEntries.numEntriesOne ||
 				(pairedEnd == 1 && 0 < aEntries.numEntriesTwo)) {
-
 			/* Remove duplicates */
 			AlignEntriesRemoveDuplicates(&aEntries,
 					AlignEntrySortByAll);
 		}
-
-		assert(pairedEnd == aEntries.pairedEnd);
 
 		/* Output alignment */
 		if(0 < aEntries.numEntriesOne || 
@@ -648,10 +581,6 @@ void *RunDynamicProgrammingThread(void *arg)
 					binaryOutput);
 		}
 
-		/* Update the number of local alignments performed */
-		data->numLocalAlignments += ctrOne;
-		data->numLocalAlignments += ctrTwo;
-
 		/* Free memory */
 		AlignEntriesFree(&aEntries);
 		RGMatchesFree(&m);
@@ -661,83 +590,4 @@ void *RunDynamicProgrammingThread(void *arg)
 	}
 
 	return arg;
-}
-
-/* TODO */
-int RunDynamicProgrammingThreadHelper(RGBinary *rg,
-		uint32_t contig,
-		uint32_t position,
-		int8_t strand,
-		char *read,
-		int readLength,
-		int space,
-		int scoringType,
-		int offsetLength,
-		ScoringMatrix *sm,
-		AlignEntry *aEntry,
-		int alignmentType)
-{
-	char *FnName = "RunDynamicProgrammingThreadHelper";
-	char *reference=NULL;
-	int referenceLength=0;
-	int referencePosition=0;
-	int adjustPosition=0;
-	int aligned = 0;
-
-	/* Get the appropriate reference read */
-	RGBinaryGetReference(rg,
-			contig,
-			position,
-			FORWARD, /* We have been just reversing the read instead of the reference */
-			offsetLength,
-			&reference,
-			readLength,
-			&referenceLength,
-			&referencePosition);
-	assert(referenceLength > 0);
-
-	if(readLength <= referenceLength) {
-
-		/* Get alignment */
-		adjustPosition=Align(read,
-				readLength,
-				reference,
-				referenceLength,
-				sm,
-				aEntry,
-				strand,
-				space,
-				scoringType,
-				alignmentType);
-
-		/* Update adjustPosition based on offsetLength */
-		assert(adjustPosition >= 0 && adjustPosition <= referenceLength);
-
-		/* Update contig, position, strand and sequence name*/
-		aEntry->contig = contig;
-		aEntry->position = referencePosition+adjustPosition; /* Adjust position */
-		aEntry->strand = strand;
-		/* Allocate memory and copy over to contig name */
-		aEntry->contigNameLength = rg->contigs[aEntry->contig-1].contigNameLength;
-		aEntry->contigName = malloc(sizeof(char)*(aEntry->contigNameLength+1));
-		if(NULL==aEntry->contigName) {
-			PrintError(FnName,
-					"aEntry->contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		strcpy(aEntry->contigName, rg->contigs[aEntry->contig-1].contigName);
-
-		/* Check align entry */
-		/*
-		   AlignEntryCheckReference(&aEntry[i], rg);
-		   */
-		aligned = 1;
-	}
-	/* Free memory */
-	free(reference);
-	reference=NULL;
-
-	return aligned;
 }

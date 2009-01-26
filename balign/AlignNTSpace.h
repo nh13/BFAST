@@ -3,9 +3,9 @@
 #include "../blib/AlignEntry.h"
 #include "Definitions.h"
 
-int AlignNTSpace(char*, int, char*, int, ScoringMatrix*, AlignEntry*, int);
-int AlignNTSpaceFull(char*, int, char*, int, ScoringMatrix*, AlignEntry*);
-int AlignNTSpaceMismatchesOnly(char*, int, char*, int, ScoringMatrix*, AlignEntry*);
-int FillAlignEntryFromMatrixNTSpace(AlignEntry*, AlignMatrixNT**, char*, int, char*, int, int, int);
+void AlignNTSpaceMismatchesOnly(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int32_t);
+void AlignNTSpaceFull(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int32_t);
+void AlignNTSpaceFullWithBound(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int32_t, int32_t, int32_t);
+int FillAlignEntryFromMatrixNTSpace(AlignEntry*, AlignMatrixNT**, char*, int, char*, int, int, int, int);
 
 #endif

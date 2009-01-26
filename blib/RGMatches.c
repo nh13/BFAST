@@ -461,7 +461,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 			RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
 			for(i=0;i<numEntriesOne;i++) {
 				m->matchTwo.contigs[i+numEntriesTwo] = m->matchOne.contigs[i];
-				m->matchTwo.strand[i+numEntriesTwo] = m->matchOne.strand[i];
+				m->matchTwo.strands[i+numEntriesTwo] = m->matchOne.strands[i];
 				/* Adjust position */
 				m->matchTwo.positions[i+numEntriesTwo] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
 			}
@@ -472,7 +472,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 			RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
 			for(i=0;i<numEntriesTwo;i++) {
 				m->matchOne.contigs[i+numEntriesOne] = m->matchTwo.contigs[i];
-				m->matchOne.strand[i+numEntriesOne] = m->matchTwo.strand[i];
+				m->matchOne.strands[i+numEntriesOne] = m->matchTwo.strands[i];
 				/* Adjust position */
 				m->matchOne.positions[i+numEntriesOne] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
 			}
@@ -511,7 +511,7 @@ void RGMatchesCheck(RGMatches *m)
 		assert(m->matchTwo.numEntries == 0);
 		assert(m->matchTwo.contigs == NULL);
 		assert(m->matchTwo.positions == NULL);
-		assert(m->matchTwo.strand == NULL);
+		assert(m->matchTwo.strands == NULL);
 	}
 	else {
 		/* Check both matches */

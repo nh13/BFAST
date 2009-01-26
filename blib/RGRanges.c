@@ -86,7 +86,7 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 				if(m->positions[counter] <= 0) {
 					m->positions[counter] = 1;
 				}
-				m->strand[counter] = r->strand[i];
+				m->strands[counter] = r->strand[i];
 				counter++;
 			}
 		}

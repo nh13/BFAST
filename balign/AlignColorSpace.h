@@ -4,10 +4,9 @@
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
 
-int AlignColorSpace(char*, int, char*, int, ScoringMatrix*, AlignEntry*, char, int, int);
-int AlignColorSpaceMismatchesOnly(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char);
-int AlignColorSpaceFull(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char);
+void AlignColorSpaceMismatchesOnly(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char, int32_t);
+void AlignColorSpaceFull(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char, int32_t);
+void AlignColorSpaceFullWithBound(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char, int32_t, int32_t, int32_t);
 int FillAlignEntryFromMatrixColorSpace(AlignEntry*, AlignMatrixCS**, char*, int, char*, int, int, int, int);
-int AlignColorSpaceFullOpt(char*, int, char*, int, int, ScoringMatrix*, AlignEntry*, char);
 
 #endif

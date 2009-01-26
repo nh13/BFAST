@@ -58,7 +58,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlignmentType, DescSpace, DescScoringType, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
+	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescScoringType, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -78,6 +78,7 @@ static struct argp_option options[] = {
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
+	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "0: Align all matches 1: Find only the best scoring alignment(s) from all matches", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"scoringType", 'X', "scoringType", 0, "Final alignment score should by in 0: NT space 1: color space", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
@@ -123,7 +124,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:l:m:n:o:r:s:x:A:E:H:M:O:S:T:X:2fhpt";
+"a:d:e:l:m:n:o:r:s:x:A:E:H:M:O:S:T:X:2bfhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -193,6 +194,7 @@ main (int argc, char **argv)
 								arguments.matchFileName,
 								arguments.scoringMatrixFileName,
 								arguments.alignmentType,
+								arguments.bestOnly,
 								arguments.space,
 								arguments.scoringType,
 								arguments.startContig,
@@ -332,6 +334,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "alignmentType", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->bestOnly != BestOnly && args->bestOnly != AllAlignments) {
+		PrintError(FnName, "bestOnly", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
 	}
@@ -432,6 +438,7 @@ AssignDefaultValues(struct arguments *args)
 	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
 
 	args->alignmentType = FullAlignment;
+	args->bestOnly = AllAlignments;
 	args->space = NTSpace;
 	args->scoringType = NTSpace;
 	args->startContig=0;
@@ -481,6 +488,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
 	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
+	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "scoringType:\t\t\t\t%d\n", args->scoringType);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
@@ -572,6 +580,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   */
 					case 'a':
 						arguments->alignmentType=atoi(OPTARG);break;
+					case 'b':
+						arguments->bestOnly=atoi(OPTARG);break;
 					case 'd':
 						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */

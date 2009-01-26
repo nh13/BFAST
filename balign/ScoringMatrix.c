@@ -11,7 +11,7 @@
 /* TODO */
 int ScoringMatrixRead(char *scoringMatrixFileName, 
 		ScoringMatrix *sm,
-		int colorSpace)
+		int space)
 {
 	char *FnName="ScoringMatrixRead";
 	int i, j;
@@ -103,7 +103,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		}
 	}
 
-	if(colorSpace == 1) {
+	if(space == 1) {
 		/* Assume the color key is 0123 */
 		assert(ALPHABET_SIZE==4);
 		/* Allocate memory for the color key */
@@ -159,12 +159,13 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 				}
 			}
 		}
-		ScoringMatrixCheck(sm);
 	}
 	else {
 		sm->ColorKeys=NULL;
 		sm->ColorScores=NULL;
 	}
+	
+	ScoringMatrixCheck(sm, space);
 
 	/* Close the file */
 	fclose(fp);
@@ -305,11 +306,10 @@ int32_t ScoringMatrixGetColorScore(uint8_t a,
 
 /* TODO */
 /* For color space only */
-int32_t ScoringMatrixCheck(ScoringMatrix *sm) {
+int32_t ScoringMatrixCheck(ScoringMatrix *sm,
+		int space) {
 	char *FnName="ScoringMatrixCheck";
 	int i, j;
-
-	assert(NULL != sm->ColorScores);
 
 	if(0 < sm->gapOpenPenalty) {
 		PrintError(FnName,
@@ -336,7 +336,7 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm) {
 							Exit,
 							OutOfRange);
 				}
-				if(sm->ColorScores[i][i] < 0) {
+				if(ColorSpace == space && sm->ColorScores[i][i] < 0) {
 					PrintError(FnName,
 							"sm->ColorScores[i][i]",
 							"Must be greater than or equal to zero",
@@ -352,7 +352,7 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm) {
 							Exit,
 							OutOfRange);
 				}
-				if(0 < sm->ColorScores[i][j]) {
+				if(ColorSpace == space && 0 < sm->ColorScores[i][j]) {
 					PrintError(FnName,
 							"sm->ColorScores[i][j]",
 							"Must be less than or equal to zero",

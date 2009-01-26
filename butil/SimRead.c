@@ -541,7 +541,7 @@ int SimReadInsertIndel(RGBinary *rg,
 			/* Get new read */
 			success = RGBinaryGetSequence(rg,
 					r->contig,
-					r->pos,
+					r->pos + r->pairedEndLength + r->readLength,
 					r->strand,
 					&r->readTwo,
 					r->readLength + indelLength);

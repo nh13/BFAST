@@ -9,6 +9,7 @@ struct arguments
 	char *scoringMatrixFileName;			/* -x */
 	int binaryInput;                        /* -b - not used */
 	int alignmentType;						/* -a */
+	int bestOnly;							/* -b */
 	int space;								/* -A */
 	int scoringType;						/* -X */
 	int startContig;                        /* -s */

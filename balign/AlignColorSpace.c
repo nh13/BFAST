@@ -3,81 +3,25 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-#include <math.h>
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 #include "../blib/BLib.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
+#include "../blib/RGMatches.h"
 #include "../blib/AlignEntry.h"
 #include "ScoringMatrix.h"
 #include "Align.h"
 #include "AlignColorSpace.h"
 
 /* TODO */
-int AlignColorSpace(char *read,
-		int readLength,
-		char *reference,
-		int referenceLength,
-		ScoringMatrix *sm,
-		AlignEntry *a,
-		char strand,
-		int type,
-		int scoringType)
-{
-	char *FnName="AlignColorSpace"; 
-	switch(type) {
-		case MismatchesOnly:
-			return AlignColorSpaceMismatchesOnly(read,
-					readLength,
-					reference,
-					referenceLength,
-					scoringType,
-					sm,
-					a,
-					strand);
-			break;
-		case FullAlignment:
-#ifdef COLOR_SPACE_UNOPTIMIZED
-			return AlignColorSpaceFull(read,
-					readLength,
-					reference,
-					referenceLength,
-					scoringType,
-					sm,
-					a,
-					strand);
-#else
-			return AlignColorSpaceFullOpt(read,
-					readLength,
-					reference,
-					referenceLength,
-					scoringType,
-					sm,
-					a,
-					strand);
-#endif
-			break;
-		default:
-			PrintError(FnName,
-					"type",
-					"Could not understand alignment type",
-					Exit,
-					OutOfRange);
-	}
-	return -1;
-}
-
-/* TODO */
-int AlignColorSpaceMismatchesOnly(char *read,
+void AlignColorSpaceMismatchesOnly(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		int scoringType,
 		ScoringMatrix *sm,
 		AlignEntry *a,
-		char strand)
+		char strand,
+		int32_t position)
 {
 	/* read goes on the rows, reference on the columns */
 	char *FnName = "AlignColorSpaceMismatchesOnly";
@@ -118,6 +62,7 @@ int AlignColorSpaceMismatchesOnly(char *read,
 
 			/* Get the current color for the read */
 			if(0 == ConvertBaseToColorSpace(prevReadBase, curReadBase, &curColor)) {
+				fprintf(stderr, "read=%s\n", read);
 				fprintf(stderr, "prevReadBase=%c\tcurReadBase=%c\n",
 						prevReadBase,
 						curReadBase);
@@ -268,20 +213,19 @@ int AlignColorSpaceMismatchesOnly(char *read,
 	a->read[a->length] = '\0';
 	a->reference[a->length] = '\0';
 	a->colorError[a->length] = '\0';
-
-	/* The return is the number of gaps at the beginning of the reference */
-	return offset;
+	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - readLength - offset);
 }
 
 /* TODO */
-int AlignColorSpaceFull(char *read,
+void AlignColorSpaceFull(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		int scoringType,
 		ScoringMatrix *sm,
 		AlignEntry *a,
-		char strand)
+		char strand,
+		int32_t position)
 {
 	/* read goes on the rows, reference on the columns */
 	char *FnName = "AlignColorSpaceFull2";
@@ -316,19 +260,19 @@ int AlignColorSpaceFull(char *read,
 		for(k=0;k<ALPHABET_SIZE+1;k++) {
 			matrix[i][0].h.score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].h.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[i][0].h.from[k] = Start;
+			matrix[i][0].h.from[k] = StartCS;
 			matrix[i][0].h.length[k] = 0;
 			matrix[i][0].h.colorError[k] = '0';
 
 			matrix[i][0].s.score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].s.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[i][0].s.from[k] = Start;
+			matrix[i][0].s.from[k] = StartCS;
 			matrix[i][0].s.length[k] = 0;
 			matrix[i][0].s.colorError[k] = '0';
 
 			matrix[i][0].v.score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].v.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[i][0].v.from[k] = Start;
+			matrix[i][0].v.from[k] = StartCS;
 			matrix[i][0].v.length[k] = 0;
 			matrix[i][0].v.colorError[k] = '0';
 		}
@@ -339,7 +283,7 @@ int AlignColorSpaceFull(char *read,
 		for(k=0;k<ALPHABET_SIZE+1;k++) {
 			matrix[0][j].h.score[k] = NEGATIVE_INFINITY;
 			matrix[0][j].h.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[0][j].h.from[k] = Start;
+			matrix[0][j].h.from[k] = StartCS;
 			matrix[0][j].h.length[k] = 0;
 			matrix[0][j].h.colorError[k] = '0';
 
@@ -353,13 +297,13 @@ int AlignColorSpaceFull(char *read,
 				matrix[0][j].s.score[k] = NEGATIVE_INFINITY;
 				matrix[0][j].s.scoreNT[k] = NEGATIVE_INFINITY;
 			}
-			matrix[0][j].s.from[k] = Start;
+			matrix[0][j].s.from[k] = StartCS;
 			matrix[0][j].s.length[k] = 0;
 			matrix[0][j].s.colorError[k] = '0';
 
 			matrix[0][j].v.score[k] = NEGATIVE_INFINITY;
 			matrix[0][j].v.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[0][j].v.from[k] = Start;
+			matrix[0][j].v.from[k] = StartCS;
 			matrix[0][j].v.length[k] = 0;
 			matrix[0][j].v.colorError[k] = '0';
 		}
@@ -662,141 +606,27 @@ int AlignColorSpaceFull(char *read,
 	}
 	free(matrix);
 	matrix=NULL;
-
-	/* The return is the number of gaps at the beginning of the reference */
-	return offset;
+	
+	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
 /* TODO */
-int AlignColorSpaceFullOpt(char *read,
+void AlignColorSpaceFullWithBound(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		int scoringType,
 		ScoringMatrix *sm,
 		AlignEntry *a,
-		char strand)
+		char strand,
+		int32_t position,
+		int32_t maxH,
+		int32_t maxV)
 {
-	char *FnName = "AlignColorSpaceFullOpt";
+	char *FnName = "AlignColorSpaceFullOptWithBound";
 	AlignMatrixCS **matrix=NULL;
 	int i, j, k, l;
 	int32_t offset;
-	double lowerBound;
-
-	/* Priorize reads */
-
-	/* 1 - Try no indels, misatches and color errors */
-	offset = KnuthMorrisPratt(read, readLength, reference, referenceLength);
-	/*
-	   offset = NaiveSubsequence(read, readLength, reference, referenceLength);
-	   */
-	offset = -1;
-	if(0 <= offset) {
-		/* Copy over */
-		a->referenceLength = readLength;
-		a->length = readLength;
-		/* Copy over score */
-		a->score = 0;
-		char prevReadBase =  COLOR_SPACE_START_NT;
-		for(i=0;i<readLength;i++) {
-			if(ColorSpace == scoringType) {
-				uint8_t curColor='X';
-				if(0 == ConvertBaseToColorSpace(prevReadBase, read[i], &curColor)) {
-					PrintError(FnName,
-							"curColor",
-							"Could not convert base to color space",
-							Exit,
-							OutOfRange);
-				}
-				/* Add score for color error, if any */
-				a->score += ScoringMatrixGetColorScore(curColor,
-						curColor,
-						sm);
-			}
-			assert(ToLower(read[i]) == ToLower(reference[i+offset]));
-			a->score += ScoringMatrixGetNTScore(read[i], read[i], sm);
-		}
-		/* Allocate memory */
-		assert(NULL==a->read);
-		a->read = malloc(sizeof(char)*(a->length+1));
-		if(NULL==a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		assert(NULL==a->reference);
-		a->reference = malloc(sizeof(char)*(a->length+1));
-		if(NULL==a->reference) {
-			PrintError(FnName,
-					"a->reference",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		assert(NULL==a->colorError);
-		a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL==a->colorError) {
-			PrintError(FnName,
-					"a->colorError",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-
-		/* Copy over */
-		for(i=0;i<a->length;i++) {
-			a->read[i] = a->reference[i] = read[i];
-			a->colorError[i] = '0';
-		}
-		a->read[a->length] = '\0';
-		a->reference[a->length] = '\0';
-		a->colorError[a->length] = '\0';
-		return offset;
-	}
-			
-	/* 2 - Get lower bound with just mismatches and color errors */
-	offset = AlignColorSpaceMismatchesOnly(read,
-			readLength,
-			reference,
-			referenceLength,
-			scoringType,
-			sm,
-			a,
-			strand);
-	lowerBound = a->score;
-
-	/* 3 - Do full alignment */
-
-	/* Get cells to exclude */
-	int maxH, maxV;
-	maxH = maxV = 0;
-	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {
-		/* c = max color sub score */
-		/* b = max nt sub score */
-		/* p = gap open */
-		/* e = gap extend */
-		/* Find x such that (c + b)N + p + e(x - 1) < Bound */
-		maxH = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty ));
-		/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
-		maxV = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->maxColorScore - sm->maxNTScore))); 
-	}
-	else {
-		PrintError(FnName,
-				PACKAGE_BUGREPORT,
-				"This is currently not implemented.  Please report",
-				Exit,
-				OutOfRange);
-	}
-	if(maxH == 0 && maxV == 0) {
-		/* Use result from searching only mismatches */
-		return offset;
-	}
-	/* Do full alignment */
-	AlignEntryFree(a);
-	maxH = MIN(maxH, readLength);
-	maxV = MIN(maxH, readLength);
 
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixCS*)*(readLength+1));
@@ -825,19 +655,19 @@ int AlignColorSpaceFullOpt(char *read,
 		for(k=0;k<ALPHABET_SIZE+1;k++) {
 			matrix[i][0].h.score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].h.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[i][0].h.from[k] = Start;
+			matrix[i][0].h.from[k] = StartCS;
 			matrix[i][0].h.length[k] = 0;
 			matrix[i][0].h.colorError[k] = '0';
 
 			matrix[i][0].s.score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].s.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[i][0].s.from[k] = Start;
+			matrix[i][0].s.from[k] = StartCS;
 			matrix[i][0].s.length[k] = 0;
 			matrix[i][0].s.colorError[k] = '0';
 
 			matrix[i][0].v.score[k] = NEGATIVE_INFINITY;
 			matrix[i][0].v.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[i][0].v.from[k] = Start;
+			matrix[i][0].v.from[k] = StartCS;
 			matrix[i][0].v.length[k] = 0;
 			matrix[i][0].v.colorError[k] = '0';
 		}
@@ -848,7 +678,7 @@ int AlignColorSpaceFullOpt(char *read,
 		for(k=0;k<ALPHABET_SIZE+1;k++) {
 			matrix[0][j].h.score[k] = NEGATIVE_INFINITY;
 			matrix[0][j].h.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[0][j].h.from[k] = Start;
+			matrix[0][j].h.from[k] = StartCS;
 			matrix[0][j].h.length[k] = 0;
 			matrix[0][j].h.colorError[k] = '0';
 
@@ -862,13 +692,13 @@ int AlignColorSpaceFullOpt(char *read,
 				matrix[0][j].s.score[k] = NEGATIVE_INFINITY;
 				matrix[0][j].s.scoreNT[k] = NEGATIVE_INFINITY;
 			}
-			matrix[0][j].s.from[k] = Start;
+			matrix[0][j].s.from[k] = StartCS;
 			matrix[0][j].s.length[k] = 0;
 			matrix[0][j].s.colorError[k] = '0';
 
 			matrix[0][j].v.score[k] = NEGATIVE_INFINITY;
 			matrix[0][j].v.scoreNT[k] = NEGATIVE_INFINITY;
-			matrix[0][j].v.from[k] = Start;
+			matrix[0][j].v.from[k] = StartCS;
 			matrix[0][j].v.length[k] = 0;
 			matrix[0][j].v.colorError[k] = '0';
 		}
@@ -907,7 +737,7 @@ int AlignColorSpaceFullOpt(char *read,
 					/* Update */
 					matrix[i+1][j+1].h.score[k] = NEGATIVE_INFINITY-1;
 					matrix[i+1][j+1].h.scoreNT[k] = NEGATIVE_INFINITY-1;
-					matrix[i+1][j+1].h.from[k] = NoFrom;
+					matrix[i+1][j+1].h.from[k] = NoFromCS;
 					matrix[i+1][j+1].h.colorError[k] = '0';
 					matrix[i+1][j+1].h.length[k] = INT_MIN;
 				}
@@ -1081,7 +911,7 @@ int AlignColorSpaceFullOpt(char *read,
 					/* Update */
 					matrix[i+1][j+1].v.score[k] = NEGATIVE_INFINITY-1;
 					matrix[i+1][j+1].v.scoreNT[k] = NEGATIVE_INFINITY-1;
-					matrix[i+1][j+1].v.from[k] = NoFrom ;
+					matrix[i+1][j+1].v.from[k] = NoFromCS;
 					matrix[i+1][j+1].v.colorError[k] = '0';
 					matrix[i+1][j+1].v.length[k] = INT_MIN;
 				}
@@ -1239,8 +1069,7 @@ int AlignColorSpaceFullOpt(char *read,
 	}
 	AlignEntryFree(&tmp);
 	*/
-	/* The return is the number of gaps at the beginning of the reference */
-	return offset;
+	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
 int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,

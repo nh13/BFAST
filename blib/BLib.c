@@ -845,10 +845,12 @@ int ConvertReadFromColorSpace(char *read,
 			index = i-1; 
 		}
 		if(0 == ConvertBaseAndColor(read[index], read[i+1], (uint8_t*)(&read[i]))) {
-			fprintf(stderr, "read[index]=%c\tread[i+1]=%c\tread[i]=%c\nread=%s",
+			fprintf(stderr, "read[index]=%c\tread[i+1]=%c\tread[i]=%c\nread=%s\n",
 					read[index],
 					read[i+1],
 					read[i],
+					read);
+			fprintf(stderr, "read=[%s]\n",
 					read);
 			PrintError(FnName,
 					"read",

@@ -15,6 +15,7 @@
 #define COLOR_ERROR -1
 
 enum {FullAlignment, MismatchesOnly};
+enum {AllAlignments, BestOnly};
 
 /* Align.c specific definitions */
 typedef struct {
@@ -67,11 +68,12 @@ enum {StartNT, /* 0 */
 	DeletionExtension, /* 2 */
 	Match, /* 3 */
 	InsertionStart, /* 4 */
-	InsertionExtension}; /* 5 */
+	InsertionExtension, /* 5 */
+	NoFromNT}; /* 6 */
 
 /* For the "from" in the struct "AlignCellCS" */
 enum {
-	Start, /* 0 */
+	StartCS, /* 0 */
 	DeletionA, /* 1 */
 	DeletionC, /* 2 */
 	DeletionG, /* 3 */
@@ -87,7 +89,7 @@ enum {
 	InsertionG, /* 13 */
 	InsertionT, /* 14 */
 	InsertionN, /* 15 */
-	NoFrom /* 16 */
+	NoFromCS /* 16 */
 };
 
 #endif

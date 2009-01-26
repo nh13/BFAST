@@ -64,6 +64,10 @@ enum {TextInput, BinaryInput};
 #define COLOR_SPACE_START_NT 'A'
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 
+/* Macro functions */
+#define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
+#define MAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
+
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 enum {Contig_8, Contig_32};
 enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
@@ -86,7 +90,7 @@ typedef struct {
 	int32_t numEntries;
 	uint32_t *contigs;
 	int32_t *positions;
-	int8_t *strand;
+	int8_t *strands;
 } RGMatch;
 
 /* TODO */

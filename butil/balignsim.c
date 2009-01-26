@@ -399,11 +399,11 @@ void Run(RGBinary *rg,
 		assert(NULL != m.matchOne.contigs);
 		m.matchOne.positions = malloc(sizeof(int32_t));
 		assert(NULL != m.matchOne.positions);
-		m.matchOne.strand= malloc(sizeof(int8_t));
-		assert(NULL != m.matchOne.strand);
+		m.matchOne.strands= malloc(sizeof(int8_t));
+		assert(NULL != m.matchOne.strands);
 		m.matchOne.contigs[0] = r.contig;
 		m.matchOne.positions[0] = r.pos;
-		m.matchOne.strand[0] = r.strand;
+		m.matchOne.strands[0] = r.strand;
 
 
 		/* Output */
@@ -426,6 +426,7 @@ void Run(RGBinary *rg,
 			rg,
 			scoringMatrixFileName,
 			alignmentType,
+			AllAlignments,
 			space,
 			space,
 			1,

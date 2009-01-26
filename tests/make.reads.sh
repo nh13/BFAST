@@ -13,7 +13,7 @@ RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";
 echo "Creating reads";
 # Initialize
 echo "Initializing.";
-for CMD in "sh test.initialize.sh" "sh test.bpreprocess.1.$OUTPUT_ID.sh"
+for CMD in "sh test.initialize.sh" "sh test.bpreprocess.1.$OUTPUT_ID.sh" "sh test.bpreprocess.2.$OUTPUT_ID.sh"
 do
 	$CMD 2> /dev/null > /dev/null;
 	if [ "$?" -ne "0" ]; then
@@ -57,7 +57,7 @@ do
 					exit 1
 				fi
 				# Insertions
-				CMD="../butil/bgeneratereads $RG $SPACE 2 $INDEL_LENGTH 1 0 $NUM_ERRORS $READ_LENGTH $PAIRED_END 50 $NUM_READS";
+				CMD="../butil/bgeneratereads $RG $SPACE 2 $INDEL_LENGTH 0 0 $NUM_ERRORS $READ_LENGTH $PAIRED_END 50 $NUM_READS";
 				$CMD 2> /dev/null > /dev/null;
 				if [ "$?" -ne "0" ]; then
 					# Run again without piping anything
@@ -81,8 +81,8 @@ rm *fa *txt 2> /dev/null > /dev/null;
 cd ..
 
 # Re-run all
-echo "Re-running bpreprocess.2, bmatches, balign, and bpostprocess";
-for CMD in "sh test.bpreprocess.2.$OUTPUT_ID.sh" "sh test.bmatches.$OUTPUT_ID.sh" "sh test.balign.$OUTPUT_ID.sh" "sh test.bpostprocess.$OUTPUT_ID.sh"
+echo "Re-running bmatches, balign, and bpostprocess";
+for CMD in "sh test.bmatches.$OUTPUT_ID.sh" "sh test.balign.$OUTPUT_ID.sh" "sh test.bpostprocess.$OUTPUT_ID.sh"
 do
 	$CMD 2> /dev/null > /dev/null;
 	if [ "$?" -ne "0" ]; then

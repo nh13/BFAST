@@ -122,7 +122,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 		if(1 == m.matchOne.numEntries &&
 				1 == m.matchTwo.numEntries &&
 				m.matchOne.contigs[0] == m.matchTwo.contigs[0] &&
-				m.matchOne.strand[0] == m.matchTwo.strand[0]) {
+				m.matchOne.strands[0] == m.matchTwo.strands[0]) {
 			/* Simple way to avoid overflow */
 			posOne = m.matchOne.positions[0];
 			posTwo = m.matchTwo.positions[0];
