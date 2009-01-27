@@ -138,7 +138,7 @@ void MoveAllIntoTmpFile(char *inputFileName,
 void SplitEntriesAndPrint(FILE *outputFP,
 		TmpFile *tmpFile, 
 		char *tmpDir,
-		int32_t memoryLimit)
+		int32_t maxNumEntries)
 {
 	char *FnName="SplitEntriesAndPrint";
 	int32_t meanPos, meanContig;
@@ -159,20 +159,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	fseek(tmpFile->FP, 0, SEEK_SET);
 
 	/* Check if we should print or split */
-	/* Remember to include the amount of memory required for sorting */
-	/* Assumes MEGABYTES */
-	if(tmpFile->memory + tmpFile->numEntries*sizeof(AlignEntries*) <= (memoryLimit*pow(2, 20))) { 
+	if(tmpFile->numEntries <= maxNumEntries) {
 		/* Sort and print */
 		PrintContigPos(stderr,
 				tmpFile->startContig,
 				tmpFile->startPos);
-		assert(tmpFile->numEntries > 0);
+		assert(0 < tmpFile->numEntries);
 		
-		int64_t actual = 0;
-
 		/* Allocate memory for the entries */
-		actual += (long long int)(sizeof(AlignEntries*)*tmpFile->numEntries);
-		/* Must allocate in this way to guarantee aligned memory */
 		entriesPtr = malloc(sizeof(AlignEntries*)*tmpFile->numEntries);
 		if(NULL == entriesPtr) {
 			PrintError(FnName,
@@ -203,20 +197,11 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					PairedEndDoesNotMatter,
 					SpaceDoesNotMatter,
 					BinaryInput)) {
-			actual += AlignEntriesGetSize(entriesPtr[numEntries]);
 			assert(numEntries < tmpFile->numEntries);
 			numEntries++;
 		}
 		assert(numEntries == tmpFile->numEntries);
-		/*
-		fprintf(stderr, "tmpFile->memory=%lld\n",
-				(long long int)tmpFile->memory);
-		fprintf(stderr, "actual=%lld\n",
-				(long long int)actual);
-		fprintf(stderr, "just pointers=%lld\n",
-				(long long int)(sizeof(AlignEntries*)*tmpFile->numEntries));
-				*/
-
+		
 		/* Close the file */
 		TmpFileClose(tmpFile);
 		/* Sort */
@@ -242,7 +227,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 			tmpFile->startPos == tmpFile->endPos) {
 		PrintError(FnName,
 				NULL,
-				"Could not split the file any further.  Try increasing your memory limit.",
+				"Could not split the file any further.  Try increasing your the maximum number of entries.",
 				Exit,
 				OutOfRange);
 	}
@@ -299,7 +284,6 @@ void SplitEntriesAndPrint(FILE *outputFP,
 						belowTmpFile.FP, 
 						BinaryOutput);
 				belowTmpFile.numEntries++;
-				belowTmpFile.memory += AlignEntriesGetSize(&a) + sizeof(AlignEntries*);
 				if(a.entriesOne[0].contig < belowMinContig ||
 						(a.entriesOne[0].contig == belowMinContig && a.entriesOne[0].position < belowMinPosition)) {
 					belowMinContig = a.entriesOne[0].contig;
@@ -317,7 +301,6 @@ void SplitEntriesAndPrint(FILE *outputFP,
 						aboveTmpFile.FP, 
 						BinaryOutput);
 				aboveTmpFile.numEntries++;
-				aboveTmpFile.memory += AlignEntriesGetSize(&a) + sizeof(AlignEntries*);
 				if(a.entriesOne[0].contig < aboveMinContig ||
 						(a.entriesOne[0].contig == aboveMinContig && a.entriesOne[0].position < aboveMinPosition)) {
 					aboveMinContig = a.entriesOne[0].contig;
@@ -332,14 +315,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 			}
 			AlignEntriesFree(&a);
 		}
-		/*
-		fprintf(stderr, "Split!\n");
-		fprintf(stderr, "tmpFile->memory=%lld\nbelowTmpFile=%lld\naboveTmpFile=%lld\nsum=%lld\n",
-				(long long int)tmpFile->memory,
-				(long long int)belowTmpFile.memory,
-				(long long int)aboveTmpFile.memory,
-				(long long int)(belowTmpFile.memory + aboveTmpFile.memory));
-				*/
+		
 		/* Close tmp file */
 		TmpFileClose(tmpFile);
 
@@ -347,18 +323,18 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		SplitEntriesAndPrint(outputFP,
 				&belowTmpFile,
 				tmpDir,
-				memoryLimit);
+				maxNumEntries);
 		SplitEntriesAndPrint(outputFP,
 				&aboveTmpFile,
 				tmpDir,
-				memoryLimit);
+				maxNumEntries);
 	}
 }
 
 int main(int argc, char *argv[])
 {
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
-	int32_t memoryLimit=0;
+	int32_t maxNumEntries=0;
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
 	TmpFile tmpFile;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
@@ -366,7 +342,7 @@ int main(int argc, char *argv[])
 
 	if(argc == 4) {
 		strcpy(inputFileName, argv[1]);
-		memoryLimit = atoi(argv[2]);
+		maxNumEntries = atoi(argv[2]);
 		strcpy(tmpDir, argv[3]);
 		
 		/* Move all into a tmp file */
@@ -374,8 +350,7 @@ int main(int argc, char *argv[])
 		MoveAllIntoTmpFile(inputFileName, &tmpFile, tmpDir);
 		fprintf(stderr, "%s", BREAK_LINE);
 
-		/* Create output file name 
-		 * TODO */
+		/* Create output file name */ 
 		strcpy(outputFileName, inputFileName);
 		strcat(outputFileName, ".sorted");
 
@@ -392,7 +367,7 @@ int main(int argc, char *argv[])
 		SplitEntriesAndPrint(outputFP,
 				&tmpFile,
 				tmpDir,
-				memoryLimit);
+				maxNumEntries);
 		PrintContigPos(stderr,
 				tmpFile.endContig,
 				tmpFile.endPos);
@@ -408,7 +383,7 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast report file name>\n");
-		fprintf(stderr, "\t<memory limit in MB>\n");
+		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
 		fprintf(stderr, "\t<tmp directory>\n");
 	}
 	return 0;

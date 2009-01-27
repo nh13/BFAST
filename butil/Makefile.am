@@ -14,7 +14,8 @@ bin_PROGRAMS = bafconvert \
 			   brepeat \
 			   breport \
 			   bsort \
-			   btestindexes 
+			   btestindexes \
+			   btranslocations
 
 bafconvert_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
@@ -251,3 +252,19 @@ btestindexes_SOURCES = \
 					   btestindexes.c	btestindexes.h
 
 btestindexes_LDADD =
+
+btranslocations_SOURCES = \
+				../blib/AlignEntry.c	../blib/AlignEntry.h \
+				../blib/AlignEntries.c	../blib/AlignEntries.h \
+				../blib/BError.c	../blib/BError.h \
+				../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+				../blib/RGIndex.c	../blib/RGIndex.h \
+				../blib/BLib.c	../blib/BLib.h \
+				../blib/RGBinary.c ../blib/RGBinary.h \
+				../blib/RGMatch.c ../blib/RGMatch.h \
+				../blib/RGMatches.c ../blib/RGMatches.h \
+				../blib/RGRanges.c ../blib/RGRanges.h \
+				../blib/RGReads.c	../blib/RGReads.h \
+				btranslocations.c btranslocations.h
+
+btranslocations_LDADD = 
