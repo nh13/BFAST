@@ -126,7 +126,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 			/* Simple way to avoid overflow */
 			posOne = m.matchOne.positions[0];
 			posTwo = m.matchTwo.positions[0];
-			difference = posOne - posTwo;
+			difference = posTwo - posOne;
 			/* Print */
 			/*
 			   fprintf(fpOut, "%lld\t%lld\t%lld\n",
@@ -188,7 +188,7 @@ void PrintDistributionFromBAF(FILE *fpIn,
 			/* Simple way to avoid overflow */
 			posOne = a.entriesOne[0].position;
 			posTwo = a.entriesTwo[0].position;
-			difference = posOne - posTwo;
+			difference = posTwo - posOne;
 			fprintf(fpOut, "%lld\n",
 					(long long int)difference);
 			numUnique++;

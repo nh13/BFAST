@@ -89,7 +89,7 @@ static struct argp_option options[] = {
 			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined", 2},
 	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 2},
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 2},
-	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that have one end pass the filters", 2},
+	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that have one end pass the filters and have that end unambiguously chosen", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},

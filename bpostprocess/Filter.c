@@ -135,53 +135,40 @@ int FilterAlignEntries(AlignEntries *a,
 		}
 	}
 	else {
-		if(tmpA.numEntriesOne == 0 && 0 < tmpA.numEntriesTwo && 1 == unpaired) {
-			switch(algorithmReadsPaired) {
-				case AllNotFiltered:
-					foundType=(0<tmpA.numEntriesTwo)?Unpaired:NoneFound;
-					break;
-				case Unique:
-					foundType=(1==tmpA.numEntriesTwo)?Unpaired:NoneFound;
-					break;
-				case BestScore:
-					bestScore = INT_MIN;
-					bestScoreIndex = -1;
-					numBestScore=0;
-					for(i=0;i<tmpA.numEntriesTwo;i++) {
-						if(bestScore < tmpA.entriesTwo[i].score) {
-							bestScore = tmpA.entriesTwo[i].score;
-							bestScoreIndex = i;
-							numBestScore = 1;
-						}
-						else if(bestScore == tmpA.entriesTwo[i].score) {
-							numBestScore++;
-						}
-					}
-					if(1 == numBestScore) {
-						AlignEntryCopy(&tmpA.entriesTwo[bestScoreIndex], &tmpA.entriesTwo[0]);
-						AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, 1, tmpA.pairedEnd, tmpA.space);
-						foundType=Unpaired;
-					}
-					else {
-						foundType=NoneFound;
-					}
-					break;
-				default:
-					PrintError(FnName,
-							"algorithmReadsPaired",
-							"Could not understand algorithmReadsPaired",
-							Exit,
-							OutOfRange);
-					break;
-			}
+		/* Try paired end */
+		switch(algorithmReadsPaired) {
+			case AllNotFiltered:
+			case Unique:
+			case BestScore:
+				foundType = FilterPairedEnd(&tmpA,
+						algorithmReadsPaired,
+						minScoreReadsPaired,
+						minDistancePaired,
+						maxDistancePaired,
+						maxMismatchesPaired,
+						maxColorErrorsPaired);
+				break;
+			default:
+				PrintError(FnName,
+						"algorithmReadsPaired",
+						"Could not understand algorithmReads",
+						Exit,
+						OutOfRange);
+				break;
 		}
-		else if(0 < tmpA.numEntriesOne && tmpA.numEntriesTwo == 0 && 1 == unpaired) {
+		/* See if we should output unpaired */
+		if(NoneFound == foundType && 1 == unpaired) {
+			/* Try aligning each end individually.  One of them may work */
+			int32_t foundTypeOne, foundTypeTwo;
+			foundTypeOne=foundTypeTwo=NoneFound;
+
+			/* First end */
 			switch(algorithmReadsPaired) {
 				case AllNotFiltered:
-					foundType=(0<tmpA.numEntriesOne)?Unpaired:NoneFound;
+					foundTypeOne=(0<tmpA.numEntriesOne)?Unpaired:NoneFound;
 					break;
 				case Unique:
-					foundType=(1==tmpA.numEntriesOne)?Unpaired:NoneFound;
+					foundTypeOne=(1==tmpA.numEntriesOne)?Unpaired:NoneFound;
 					break;
 				case BestScore:
 					bestScore = INT_MIN;
@@ -200,10 +187,10 @@ int FilterAlignEntries(AlignEntries *a,
 					if(1 == numBestScore) {
 						AlignEntryCopy(&tmpA.entriesOne[bestScoreIndex], &tmpA.entriesOne[0]);
 						AlignEntriesReallocate(&tmpA, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
-						foundType=Unpaired;
+						foundTypeOne=Unpaired;
 					}
 					else {
-						foundType=NoneFound;
+						foundTypeOne=NoneFound;
 					}
 					break;
 				default:
@@ -214,27 +201,67 @@ int FilterAlignEntries(AlignEntries *a,
 							OutOfRange);
 					break;
 			}
-		}
-		else {
+
+			/* Second end */
 			switch(algorithmReadsPaired) {
 				case AllNotFiltered:
+					foundTypeTwo=(0<tmpA.numEntriesTwo)?Unpaired:NoneFound;
+					break;
 				case Unique:
+					foundTypeTwo=(1==tmpA.numEntriesTwo)?Unpaired:NoneFound;
+					break;
 				case BestScore:
-					foundType = FilterPairedEnd(&tmpA,
-							algorithmReadsPaired,
-							minScoreReadsPaired,
-							minDistancePaired,
-							maxDistancePaired,
-							maxMismatchesPaired,
-							maxColorErrorsPaired);
+					bestScore = INT_MIN;
+					bestScoreIndex = -1;
+					numBestScore=0;
+					for(i=0;i<tmpA.numEntriesTwo;i++) {
+						if(bestScore < tmpA.entriesTwo[i].score) {
+							bestScore = tmpA.entriesTwo[i].score;
+							bestScoreIndex = i;
+							numBestScore = 1;
+						}
+						else if(bestScore == tmpA.entriesTwo[i].score) {
+							numBestScore++;
+						}
+					}
+					if(1 == numBestScore) {
+						AlignEntryCopy(&tmpA.entriesTwo[bestScoreIndex], &tmpA.entriesTwo[0]);
+						AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, 1, tmpA.pairedEnd, tmpA.space);
+						foundTypeTwo=Unpaired;
+					}
+					else {
+						foundTypeTwo=NoneFound;
+					}
 					break;
 				default:
 					PrintError(FnName,
 							"algorithmReadsPaired",
-							"Could not understand algorithmReads",
+							"Could not understand algorithmReadsPaired",
 							Exit,
 							OutOfRange);
 					break;
+			}
+			if(Unpaired == foundTypeOne && Unpaired == foundTypeTwo) {
+				PrintError(FnName,
+						NULL,
+						"Unpaired == foundTypeOne && Unpaired == foundTypeTwo",
+						Exit,
+						OutOfRange);
+			}
+			else if(Unpaired == foundTypeOne) {
+				assert(NoneFound == foundTypeTwo);
+				AlignEntriesReallocate(&tmpA, 1, 0, tmpA.pairedEnd, tmpA.space);
+			}
+			else if(Unpaired == foundTypeTwo) {
+				assert(NoneFound == foundTypeOne);
+				AlignEntriesReallocate(&tmpA, 0, 1, tmpA.pairedEnd, tmpA.space);
+			}
+			else {
+				PrintError(FnName,
+						NULL,
+						"Control reached undefined point, please report",
+						Exit,
+						OutOfRange);
 			}
 		}
 	}
