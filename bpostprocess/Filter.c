@@ -30,7 +30,7 @@ int FilterAlignEntries(AlignEntries *a,
 {
 	char *FnName="FilterAlignEntries";
 	int foundType=NoneFound;
-	AlignEntries tmpA;
+	AlignEntries tmpA, tmpB;
 	int32_t i, bestScore, bestScoreIndex, numBestScore;
 	assert(a->pairedEnd == pairedEnd);
 
@@ -135,6 +135,10 @@ int FilterAlignEntries(AlignEntries *a,
 		}
 	}
 	else {
+		if(1 == unpaired) {
+			AlignEntriesInitialize(&tmpB);
+			AlignEntriesCopy(&tmpA, &tmpB);
+		}
 		/* Try paired end */
 		switch(algorithmReadsPaired) {
 			case AllNotFiltered:
@@ -161,6 +165,10 @@ int FilterAlignEntries(AlignEntries *a,
 			/* Try aligning each end individually.  One of them may work */
 			int32_t foundTypeOne, foundTypeTwo;
 			foundTypeOne=foundTypeTwo=NoneFound;
+
+			/* Copy back old (filtered) version */
+			AlignEntriesFree(&tmpA);
+			AlignEntriesCopy(&tmpB, &tmpA);
 
 			/* First end */
 			switch(algorithmReadsPaired) {
@@ -242,24 +250,51 @@ int FilterAlignEntries(AlignEntries *a,
 					break;
 			}
 			if(Unpaired == foundTypeOne && Unpaired == foundTypeTwo) {
-				PrintError(FnName,
-						NULL,
-						"Unpaired == foundTypeOne && Unpaired == foundTypeTwo",
-						Exit,
-						OutOfRange);
+				switch(algorithmReadsPaired) {
+					case AllNotFiltered:
+					case Unique:
+						/* Should not reach this stage */
+						/* Both ends should not have been unique if they passed
+						 * paired end filters */
+						PrintError(FnName,
+								"NULL",
+								"Control reached unexpected point, please report",
+								Exit,
+								OutOfRange);
+						break;
+					case BestScore:
+						/* This must means that each individually had a best score, 
+						 * but in combination there were two other alignments with the same
+						 * best score.  This situation is undefined so ignore */
+						foundType=NoneFound;
+						break;
+					default:
+						PrintError(FnName,
+								"algorithmReadsPaired",
+								"Could not understand algorithmReadsPaired",
+								Exit,
+								OutOfRange);
+						break;
+						break;
+				}
 			}
 			else if(Unpaired == foundTypeOne) {
 				assert(NoneFound == foundTypeTwo);
 				AlignEntriesReallocate(&tmpA, 1, 0, tmpA.pairedEnd, tmpA.space);
+				foundType=Unpaired;
 			}
 			else if(Unpaired == foundTypeTwo) {
 				assert(NoneFound == foundTypeOne);
 				AlignEntriesReallocate(&tmpA, 0, 1, tmpA.pairedEnd, tmpA.space);
+				foundType=Unpaired;
 			}
 			else {
 				assert(NoneFound==foundTypeOne && NoneFound==foundTypeTwo);
 				foundType=NoneFound;
 			}
+		}
+		if(1 == unpaired) {
+			AlignEntriesFree(&tmpB);
 		}
 	}
 	/* If we found, then copy back */
