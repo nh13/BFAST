@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	int32_t i;
 
-	if(argc < 3) {
+	if(3 <= argc) {
 		strcpy(outputID, argv[1]);
 
 		sprintf(outputFileName, "%s.paired.end.distribution.%s.txt",
@@ -90,8 +90,8 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t\t<output id>\n");
-		fprintf(stderr, "\t\t<bfast matches, aligned, or reported file name(s)>\n");
+		fprintf(stderr, "\t<output id>\n");
+		fprintf(stderr, "\t<bfast matches, aligned, or reported file name(s)>\n");
 	}
 
 	return 0;

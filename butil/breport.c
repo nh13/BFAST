@@ -641,7 +641,7 @@ int main(int argc, char *argv[])
 	FILE *wigFP=NULL;
 	char wigFileName[MAX_FILENAME_LENGTH]="\0";
 
-	if(argc == 5) {
+	if(5 <= argc) {
 		strcpy(rgFileName, argv[1]);
 		maxNumEntries = atoi(argv[2]);
 		strcpy(tmpDir, argv[3]);
