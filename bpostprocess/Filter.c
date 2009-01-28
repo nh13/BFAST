@@ -257,11 +257,8 @@ int FilterAlignEntries(AlignEntries *a,
 				AlignEntriesReallocate(&tmpA, 0, 1, tmpA.pairedEnd, tmpA.space);
 			}
 			else {
-				PrintError(FnName,
-						NULL,
-						"Control reached undefined point, please report",
-						Exit,
-						OutOfRange);
+				assert(NoneFound==foundTypeOne && NoneFound==foundTypeTwo);
+				foundType=noneFound;
 			}
 		}
 	}
