@@ -36,6 +36,12 @@ balignsim [OPTIONS]
 	<number of threads
 	<tmp file directory
 
+bgeterrordistribution [OPTIONS]
+	<count gaps as errors>
+	<trim gaps at the end of the read>
+	<output id>
+	<BFAST reported files>
+
 bevalsim [OPTIONS]
 	<bfast matches file or bfast aligned file>
 	<reads file>
@@ -69,12 +75,6 @@ bgeneratereads [OPTIONS]
 	<paired end length>
 	<number of reads>
 
-bgeterrordistribution [OPTIONS]
-	<BFAST reported file>
-	<count gaps as errors>
-	<trim gaps at the end of the read>
-	<output id>
-
 bheader [OPTIONS]
 	<input file>
 
@@ -100,8 +100,8 @@ bmfconvert [OPTIONS]
 	<input type: 0-text 1-binary>
 
 bpairedenddist [OPTIONS]
-	<bfast matches, aligned, or reported file name>
 	<output id>
+	<bfast matches, aligned, or reported file names>
 
 brepeat [OPTIONS]
 	<bfast reference genome file>
@@ -111,10 +111,10 @@ brepeat [OPTIONS]
 	<output file>
 
 breport [OPTIONS]
-	<bfast report file name>
 	<bfast reference genome file>
 	<maximum number of entries when sorting>
 	<tmp file directory
+	<bfast report file names>
 
 bsort [OPTIONS]
 	<bfast report file name>

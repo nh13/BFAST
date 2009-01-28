@@ -290,7 +290,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 		referenceBase = (char)RGBinaryGetBase(rg,
 				contig,
 				curPos);
-				
+
 		/* Print out counts */
 		if(total > 0) {
 			i=0;
@@ -356,12 +356,12 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						rCounts[5],
 						(100.0*rCounts[j])/((double)totalR),
 						(100.0*(fCounts[i] + rCounts[j]))/((double)total))) {
-				PrintError(FnName,
-						"wigFP",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
+							PrintError(FnName,
+									"wigFP",
+									"Could not write to file",
+									Exit,
+									WriteFileError);
+						}
 		}
 		/* Update next start index */
 		while(start < numEntries && 
@@ -371,8 +371,9 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 	}
 }
 
-int SplitIntoTmpFilesByContig(char *inputFileName,
+void SplitIntoTmpFilesByContig(char *inputFileName,
 		TmpFile **tmpFiles,
+		int *numFiles,
 		char *tmpDir,
 		int startContig,
 		int endContig)
@@ -381,10 +382,29 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 	int i;
 	int64_t counter=0;
 	FILE *fpIn;
-	int numFiles = endContig - startContig + 1;
 	AlignEntries a;
 
+	/* Create tmp files */
+	if((*numFiles) <= 0) {
+		(*numFiles) = endContig - startContig + 1;
+
+		(*tmpFiles) = malloc(sizeof(TmpFile)*(*numFiles));
+		if(NULL == (*tmpFiles)) {
+			PrintError(FnName,
+					"tmpFiles",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Open tmp files */
+		for(i=0;i<(*numFiles);i++) {
+			TmpFileOpen(&(*tmpFiles)[i], tmpDir, i+1);
+		}
+	}
+
 	/* Open the input file */
+	fprintf(stderr, "Splitting %s by contig.\n",
+			inputFileName);
 	if(!(fpIn=fopen(inputFileName, "r"))) {
 		PrintError(Name,
 				inputFileName,
@@ -393,22 +413,8 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 				OpenFileError);
 	}
 
-	/* Create tmp files */
-	(*tmpFiles) = malloc(sizeof(TmpFile)*numFiles);
-	if(NULL == (*tmpFiles)) {
-		PrintError(FnName,
-				"tmpFiles",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Open tmp files */
-	for(i=0;i<numFiles;i++) {
-		TmpFileOpen(&(*tmpFiles)[i], tmpDir, i+1);
-	}
-
 	/* Split into temporary files */
-	fprintf(stderr, "Splitting by contig.  Currently on read:\n0");
+	fprintf(stderr, "Currently on read:\n0");
 	AlignEntriesInitialize(&a);
 	while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
 		if(counter%BREPORT_ROTATE_NUM==0) {
@@ -429,16 +435,16 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 					OutOfRange);
 		}
 		else if(a.numEntriesOne == 1) {
-			if(!(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= numFiles)) {
+			if(!(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= (*numFiles))) {
 				fprintf(stderr, "\n");
 				fprintf(stderr, "%d:%d\n",
 						startContig,
 						endContig);
 				fprintf(stderr, "0 < %d < %d\n",
 						a.entriesOne[0].contig,
-						numFiles);
+						(*numFiles));
 			} 
-			assert(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= numFiles);
+			assert(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= (*numFiles));
 			AlignEntryPrint(&a.entriesOne[0], 
 					(*tmpFiles)[a.entriesOne[0].contig-1].FP,
 					NTSpace, /* Dont print color space information */
@@ -465,7 +471,7 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 						OutOfRange);
 			}
 			else if(a.numEntriesTwo == 1) {
-				assert(a.entriesTwo[0].contig > 0 && a.entriesTwo[0].contig <= numFiles);
+				assert(a.entriesTwo[0].contig > 0 && a.entriesTwo[0].contig <= (*numFiles));
 				AlignEntryPrint(&a.entriesTwo[0], 
 						(*tmpFiles)[a.entriesTwo[0].contig-1].FP,
 						NTSpace, /* Dont print color space information */
@@ -490,8 +496,6 @@ int SplitIntoTmpFilesByContig(char *inputFileName,
 
 	/* Close the input file */
 	fclose(fpIn);
-
-	return numFiles;
 }
 
 void SplitEntriesAndPrint(RGBinary *rg,
@@ -638,21 +642,24 @@ int main(int argc, char *argv[])
 	char wigFileName[MAX_FILENAME_LENGTH]="\0";
 
 	if(argc == 5) {
-		strcpy(inputFileName, argv[1]);
-		strcpy(rgFileName, argv[2]);
-		maxNumEntries = atoi(argv[3]);
-		strcpy(tmpDir, argv[4]);
+		strcpy(rgFileName, argv[1]);
+		maxNumEntries = atoi(argv[2]);
+		strcpy(tmpDir, argv[3]);
 
 		/* Read in rg file */
 		RGBinaryReadBinary(&rg, rgFileName);
 
 		/* Split AlignEntries by contig */
 		fprintf(stderr, "%s", BREAK_LINE);
-		numTmpFiles=SplitIntoTmpFilesByContig(inputFileName,
-				&tmpFiles,
-				tmpDir,
-				1,
-				rg.numContigs);
+		for(i=4;i<argc;i++) {
+			strcpy(inputFileName, argv[i]);
+			SplitIntoTmpFilesByContig(inputFileName,
+					&tmpFiles,
+					&numTmpFiles,
+					tmpDir,
+					1,
+					rg.numContigs);
+		}
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Output bed and wig files for each contig */
@@ -709,10 +716,10 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast report file name>\n");
 		fprintf(stderr, "\t<bfast reference genome file>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");
+		fprintf(stderr, "\t<bfast report file names>\n");
 	}
 	return 0;
 }

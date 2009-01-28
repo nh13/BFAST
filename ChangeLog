@@ -6,6 +6,9 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.3.2
+* Update berrordistribution and bpairedenddist to accept any
+number of input files.
+* Changed bgeterrordistribution to berrordistribution.
 * Updated bpostprocess to output unpaired reads when one end
 has ambiguity.
 * Updated local alignment optimization in balign (-b).

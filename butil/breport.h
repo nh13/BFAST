@@ -17,7 +17,7 @@ void TmpFileClose(TmpFile*);
 void TmpFileInitialize(TmpFile*);
 
 void PrintEntriesToBedAndWig(AlignEntries*, RGBinary*, int, int64_t, int64_t, FILE*, FILE*);
-int SplitIntoTmpFilesByContig(char*, TmpFile**, char*, int, int);
+void SplitIntoTmpFilesByContig(char*, TmpFile**, int*, char*, int, int);
 void SplitEntriesAndPrint(RGBinary*, FILE*, FILE*, TmpFile*, char*, int);
 
 #endif

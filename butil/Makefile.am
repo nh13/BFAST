@@ -5,7 +5,7 @@ bin_PROGRAMS = bafconvert \
 			   bfix \
 			   bfixhash \
 			   bgeneratereads \
-			   bgeterrordistribution \
+			   berrordistribution \
 			   bheader \
 			   bindexdist \
 			   bindexhist \
@@ -117,7 +117,7 @@ bgeneratereads_SOURCES = \
 
 bgeneratereads_LDADD =  
 
-bgeterrordistribution_SOURCES = \
+berrordistribution_SOURCES = \
 								../blib/AlignEntry.c	../blib/AlignEntry.h \
 								../blib/AlignEntries.c	../blib/AlignEntries.h \
 								../blib/BError.c	../blib/BError.h \
@@ -127,9 +127,9 @@ bgeterrordistribution_SOURCES = \
 								../blib/RGBinary.c ../blib/RGBinary.h \
 								../blib/RGMatch.c ../blib/RGMatch.h \
 								../blib/RGRanges.c ../blib/RGRanges.h \
-								bgeterrordistribution.c	bgeterrordistribution.h 
+								berrordistribution.c	berrordistribution.h 
 
-bgeterrordistribution_LDADD =  
+berrordistribution_LDADD =  
 
 bheader_SOURCES = \
 				  ../blib/BError.c	../blib/BError.h \

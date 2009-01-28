@@ -28,24 +28,15 @@ int main(int argc, char *argv[])
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputID[MAX_FILENAME_LENGTH]="\0";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
+	int32_t i;
 
-	if(argc == 3) {
-		strcpy(inputFileName, argv[1]);
-		strcpy(outputID, argv[2]);
+	if(argc < 3) {
+		strcpy(outputID, argv[1]);
+
 		sprintf(outputFileName, "%s.paired.end.distribution.%s.txt",
 				PROGRAM_NAME,
 				outputID);
-
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Reading in from %s.\n",
-				inputFileName);
-		if(!(fpIn=fopen(inputFileName, "rb"))) {
-			PrintError(Name,
-					inputFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
-		}
 		fprintf(stderr, "Writing to %s.\n",
 				outputFileName);
 		if(!(fpOut=fopen(outputFileName, "wb"))) {
@@ -55,27 +46,42 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
-		fprintf(stderr, "%s", BREAK_LINE);
 
-		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
-			PrintDistributionFromBMF(fpIn,
-					fpOut);
-		}
-		else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
-			PrintDistributionFromBAF(fpIn,
-					fpOut);
-		}
-		else {
-			PrintError(Name,
-					"input file",
-					"Could not recognize input file extension",
-					Warn,
-					OutOfRange);
-		}
-		fprintf(stderr, "%s", BREAK_LINE);
+		for(i=2;i<argc;i++) {
+			strcpy(inputFileName, argv[i]);
 
-		/* Close the file */
-		fclose(fpIn);
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Reading in from %s.\n",
+					inputFileName);
+			if(!(fpIn=fopen(inputFileName, "rb"))) {
+				PrintError(Name,
+						inputFileName,
+						"Could not open file for reading",
+						Exit,
+						OpenFileError);
+			}
+			fprintf(stderr, "%s", BREAK_LINE);
+
+			if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
+				PrintDistributionFromBMF(fpIn,
+						fpOut);
+			}
+			else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
+				PrintDistributionFromBAF(fpIn,
+						fpOut);
+			}
+			else {
+				PrintError(Name,
+						"input file",
+						"Could not recognize input file extension",
+						Warn,
+						OutOfRange);
+			}
+			fprintf(stderr, "%s", BREAK_LINE);
+
+			/* Close the file */
+			fclose(fpIn);
+		}
 		fclose(fpOut);
 
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -84,8 +90,8 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t\t<bfast matches, aligned, or reported file name>\n");
 		fprintf(stderr, "\t\t<output id>\n");
+		fprintf(stderr, "\t\t<bfast matches, aligned, or reported file name(s)>\n");
 	}
 
 	return 0;
@@ -155,10 +161,13 @@ void PrintDistributionFromBMF(FILE *fpIn,
 void PrintDistributionFromBAF(FILE *fpIn,
 		FILE *fpOut)
 {
-	char *FnName = "PrintDistributionFromBAF";
+	/*
+	   char *FnName = "PrintDistributionFromBAF";
+	   */
 	AlignEntries a;
 	int64_t posOne, posTwo, difference;
 	int64_t counter=0, numUnique=0;
+	int32_t warnUnpaired=0;
 
 	/* Initialize */
 	AlignEntriesInitialize(&a);
@@ -174,24 +183,29 @@ void PrintDistributionFromBAF(FILE *fpIn,
 					(long long int)counter);
 		}
 		if(a.pairedEnd != PairedEnd) {
-			PrintError(FnName,
-					"a.pairedEnd",
-					"Data was not paired end",
-					Exit,
-					OutOfRange);
+			warnUnpaired = 1;
+			/*
+			   PrintError(FnName,
+			   "a.pairedEnd",
+			   "Data was not paired end",
+			   Exit,
+			   OutOfRange);
+			   */
 		}
-		/* Only use unique sequences on the same contig and strand */
-		if(1 == a.numEntriesOne &&
-				1 == a.numEntriesTwo &&
-				a.entriesOne[0].contig == a.entriesTwo[0].contig &&
-				a.entriesOne[0].strand == a.entriesTwo[0].strand) {
-			/* Simple way to avoid overflow */
-			posOne = a.entriesOne[0].position;
-			posTwo = a.entriesTwo[0].position;
-			difference = posTwo - posOne;
-			fprintf(fpOut, "%lld\n",
-					(long long int)difference);
-			numUnique++;
+		else {
+			/* Only use unique sequences on the same contig and strand */
+			if(1 == a.numEntriesOne &&
+					1 == a.numEntriesTwo &&
+					a.entriesOne[0].contig == a.entriesTwo[0].contig &&
+					a.entriesOne[0].strand == a.entriesTwo[0].strand) {
+				/* Simple way to avoid overflow */
+				posOne = a.entriesOne[0].position;
+				posTwo = a.entriesTwo[0].position;
+				difference = posTwo - posOne;
+				fprintf(fpOut, "%lld\n",
+						(long long int)difference);
+				numUnique++;
+			}
 		}
 		counter++;
 
