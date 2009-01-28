@@ -258,7 +258,7 @@ int FilterAlignEntries(AlignEntries *a,
 			}
 			else {
 				assert(NoneFound==foundTypeOne && NoneFound==foundTypeTwo);
-				foundType=noneFound;
+				foundType=NoneFound;
 			}
 		}
 	}
