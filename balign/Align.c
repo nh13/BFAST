@@ -112,7 +112,6 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t *referenceLengths=NULL;
 	int32_t *referencePositions=NULL;
 	double bestScore=DBL_MIN;
-	int32_t foundExact;
 	char read[SEQUENCE_LENGTH]="\0";
 	int32_t readLength;
 
@@ -183,6 +182,7 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 	}
 
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
+	int32_t foundExact;
 	foundExact = 0;
 	/* Try exact alignment */
 	for(i=0;i<m->numEntries;i++) {
@@ -216,35 +216,46 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 	}
 #endif
 
-	for(i=0;i<m->numEntries;i++) {
-		if(!(DBL_MIN < entries[i].score)) {
-			AlignMismatchesOnly(read,
-					readLength,
-					references[i],
-					referenceLengths[i],
-					scoringType,
-					sm,
-					&entries[i],
-					space,
-					m->strands[i],
-					referencePositions[i]);
-			if(bestScore < entries[i].score) {
-				bestScore = entries[i].score;
+#ifdef UNOPTIMIZED_SMITH_WATERMAN
+	if(MismatchesOnly == alignmentType) {
+#endif
+		for(i=0;i<m->numEntries;i++) {
+			if(!(DBL_MIN < entries[i].score)) {
+				AlignMismatchesOnly(read,
+						readLength,
+						references[i],
+						referenceLengths[i],
+						scoringType,
+						sm,
+						&entries[i],
+						space,
+						m->strands[i],
+						referencePositions[i]);
+				if(bestScore < entries[i].score) {
+					bestScore = entries[i].score;
+				}
 			}
 		}
-	}
 
-	/* Return if we are only to be searching for mismatches */
-	if(MismatchesOnly == alignmentType) {
-		for(i=0;i<m->numEntries;i++) {
-			free(references[i]);
+		/* Return if we are only to be searching for mismatches */
+#ifndef UNOPTIMIZED_SMITH_WATERMAN
+		if(MismatchesOnly == alignmentType) {
+#endif
+			for(i=0;i<m->numEntries;i++) {
+				free(references[i]);
+			}
+			free(references);
+			free(referenceLengths);
+			free(referencePositions);
+
+			return bestScore;
+			/* These compiler commands aren't necessary, but are here
+			 * for vim tab indenting */
+#ifdef UNOPTIMIZED_SMITH_WATERMAN
 		}
-		free(references);
-		free(referenceLengths);
-		free(referencePositions);
-
-		return bestScore;
+#else 
 	}
+#endif
 
 	/* Run Full */
 	for(i=0;i<m->numEntries;i++) {

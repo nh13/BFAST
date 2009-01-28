@@ -194,7 +194,6 @@ void AlignNTSpaceFull(char *read,
 			readLength,
 			reference,
 			referenceLength,
-			NTSpace,
 			0,
 			0);
 
@@ -340,7 +339,6 @@ void AlignNTSpaceFullWithBound(char *read,
 			readLength,
 			reference,
 			referenceLength,
-			NTSpace,
 			readLength - maxV,
 			0);
 
@@ -397,7 +395,6 @@ int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int scoringType,
 		int toExclude,
 		int debug)
 {
@@ -420,7 +417,7 @@ int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
 	startRow=-1;
 	startCol=-1;
 	maxScore = NEGATIVE_INFINITY;
-	for(i=toExclude+1;i<referenceLength+1;i++) {
+	for(i=toExclude;i<referenceLength+1;i++) {
 		/* Check only the first cell */
 		if(maxScore < matrix[readLength][i].s.score) {
 			maxScore = matrix[readLength][i].s.score;

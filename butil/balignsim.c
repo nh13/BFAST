@@ -433,10 +433,7 @@ void Run(RGBinary *rg,
 			1,
 			rg->numContigs,
 			rg->contigs[rg->numContigs-1].sequenceLength,
-			2,
-			/*
 			readLength, 
-			*/
 			INT_MAX,
 			SingleEnd,
 			BinaryInput,
@@ -486,18 +483,18 @@ void Run(RGBinary *rg,
 
 		if(round(a.entriesOne[0].score) < score) {
 			numScoreLessThan++;
-			/*
-			fprintf(stderr, "a.readName=%s\n", a.readName);
-			fprintf(stderr, "found=%d\nexpected=%d\n",
-					round(a.entriesOne[0].score),
-					score);
-			AlignEntriesPrint(&a, stderr, TextOutput);
-			PrintError(FnName,
-					"numScoreLessThan",
-					"The alignment score should not be less than expected",
-					Exit,
-					OutOfRange);
-			*/
+			if(FullAlignment == alignmentType) {
+				fprintf(stderr, "a.readName=%s\n", a.readName);
+				fprintf(stderr, "found=%d\nexpected=%d\n",
+						round(a.entriesOne[0].score),
+						score);
+				AlignEntriesPrint(&a, stderr, TextOutput);
+				PrintError(FnName,
+						"numScoreLessThan",
+						"The alignment score should not be less than expected",
+						Exit,
+						OutOfRange);
+			}
 		}
 		else if(score < round(a.entriesOne[0].score)) {
 			numScoreGreaterThan++;
