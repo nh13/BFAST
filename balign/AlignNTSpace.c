@@ -227,6 +227,8 @@ void AlignNTSpaceFullWithBound(char *read,
 	int offset = 0;
 	int i, j;
 
+	assert(maxV >= 0 && maxH >= 0);
+
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixNT*)*(readLength+1));
 	if(NULL==matrix) {

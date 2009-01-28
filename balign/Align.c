@@ -421,7 +421,7 @@ void AlignFullWithBound(char *read,
 		double lowerBound)
 {
 	char *FnName="AlignFullWithBound";
-	int32_t maxH, maxV;
+	int64_t maxH, maxV;
 
 	maxV = maxH = 0;
 	/* Get the maximum number of vertical and horizontal moves allowed */
@@ -431,9 +431,10 @@ void AlignFullWithBound(char *read,
 		/* p = gap open */
 		/* e = gap extend */
 		/* Find x such that (c + b)N + p + e(x - 1) < Bound */
-		maxH = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty ));
+		maxH = MAX(0, (int32_t)ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
 		/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
 		maxV = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->maxColorScore - sm->maxNTScore)));
+		assert(maxH >= 0 && maxV >= 0);
 	}
 	else {
 		PrintError(FnName,
@@ -457,7 +458,7 @@ void AlignFullWithBound(char *read,
 
 	/* Get the maximum number of vertical and horizontal moves */
 	maxH = MIN(maxH, readLength);
-	maxV = MIN(maxH, readLength);
+	maxV = MIN(maxV, readLength);
 
 	switch(space) {
 		case NTSpace:
