@@ -265,7 +265,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 							if(0>fprintf(bedFP, "contig%d %lld %lld %c %c %s\n",
 										a->entriesOne[cur].contig,
 										(long long int)(curPos-SUBTRACT),
-										(long long int)(curPos+i-1-SUBTRACT),
+										(long long int)(curPos+i-SUBTRACT),
 										a->entriesOne[cur].strand,
 										type,
 										indel)) {
