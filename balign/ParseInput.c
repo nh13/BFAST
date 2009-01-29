@@ -59,7 +59,7 @@ PACKAGE_BUGREPORT;
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescScoringType, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescPairedEnd, DescNumThreads,
-	DescPairedEndOptionsTitle, DescPairedEndLength, DescForceMirroring, 
+	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
 };
@@ -91,7 +91,11 @@ static struct argp_option options[] = {
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read's CALs", 3},
+	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not,"
+		"\n\t\t\tthis distance will be used to infer the latter read's CALs", 3},
+	{"mirroringType", 'L', "mirroringType", 0, "0: No mirroring should occur 1: specifies that we assume that the first end"
+		"\n\t\t\tis before the second end (5'->3') 2: specifies that we assume that the first end is before the second"
+			"\n\t\t\tend (5'->3') 3: specifies that we mirror CALs in both directions", 3},
 	{"forceMirroring", 'f', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
@@ -125,7 +129,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:l:m:n:o:r:s:x:A:E:H:M:O:S:T:X:2bfhpt";
+"a:d:e:l:m:n:o:r:s:x:A:E:H:L:M:O:S:T:X:2bfhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -209,6 +213,7 @@ main (int argc, char **argv)
 								arguments.numThreads,
 								arguments.usePairedEndLength,
 								arguments.pairedEndLength,
+								arguments.mirroringType,
 								arguments.forceMirroring,
 								arguments.outputID,
 								arguments.outputDir,
@@ -406,6 +411,10 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
+	assert(NoMirroring <= args->mirroringType && args->mirroringType <= MirrorBoth);
+	if(args->mirroringType != NoMirroring && args->usePairedEndLength == 0) {
+		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using mirroring", Exit, OutOfRange);
+	}
 	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {
 		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);
 	}
@@ -452,6 +461,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numThreads = 1;
 	args->usePairedEndLength = 0;
 	args->pairedEndLength = 0;
+	args->mirroringType = NoMirroring;
 	args->forceMirroring = 0;
 
 	args->outputID =
@@ -501,6 +511,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEnd:\t\t\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
+	fprintf(fp, "mirroringType:\t\t\t\t%d\n", args->mirroringType);
 	fprintf(fp, "forceMirroring:\t\t\t\t%d\n", args->forceMirroring);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
@@ -627,6 +638,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   */
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
+					case 'L':
+						arguments->mirroringType=atoi(OPTARG);break;
 					case 'M':
 						arguments->maxNumMatches=atoi(OPTARG);break;
 					case 'O':

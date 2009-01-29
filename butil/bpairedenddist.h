@@ -5,7 +5,17 @@
 #include "../blib/RGBinary.h"
 #include "../blib/RGMatch.h"
 
-void PrintDistributionFromBMF(FILE*, FILE*);
-void PrintDistributionFromBAF(FILE*, FILE*);
+typedef struct {
+	int minDistance;
+	int maxDistance;
+	int binSize;
+	int32_t *counts;
+	int32_t numCounts;
+} Bins;
 
+void PrintDistributionFromBMF(FILE*, Bins*);
+void PrintDistributionFromBAF(FILE*, Bins*);
+
+int BinsInsert(Bins*, int32_t);
+void BinsPrint(Bins*, FILE*);
 #endif

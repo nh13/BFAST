@@ -34,7 +34,8 @@ AC_GNU_SOURCE
 AC_PROG_LIBTOOL
 
 # set CFLAGS and CXXFLAGS
-default_CFLAGS="-Wall -g -O3 -pthread"
+default_CFLAGS="-Wall -g -O0 -pthread"
+#default_CFLAGS="-Wall -g -O3 -pthread"
 extended_CFLAGS=""
 case "${host_cpu}-${host_os}" in 
 	# Mac OS X

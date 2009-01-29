@@ -35,6 +35,7 @@ void RunAligner(RGBinary *rg,
 		int numThreads,
 		int usePairedEndLength,
 		int pairedEndLength,
+		int mirroringType,
 		int forceMirroring,
 		char *outputID,
 		char *outputDir,
@@ -143,6 +144,7 @@ void RunAligner(RGBinary *rg,
 			numThreads,
 			usePairedEndLength,
 			pairedEndLength,
+			mirroringType,
 			forceMirroring,
 			tmpDir,
 			outputFP,
@@ -184,6 +186,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		int numThreads,
 		int usePairedEndLength,
 		int pairedEndLength,
+		int mirroringType,
 		int forceMirroring,
 		char *tmpDir,
 		FILE *outputFP,
@@ -322,6 +325,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].pairedEnd=pairedEnd;
 		data[i].usePairedEndLength = usePairedEndLength;
 		data[i].pairedEndLength = pairedEndLength;
+		data[i].mirroringType = mirroringType;
 		data[i].forceMirroring = forceMirroring;
 		data[i].binaryInput=binaryInput;
 		data[i].binaryOutput=binaryOutput;
@@ -511,6 +515,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int pairedEnd=data->pairedEnd;
 	int usePairedEndLength=data->usePairedEndLength;
 	int pairedEndLength=data->pairedEndLength;
+	int mirroringType=data->mirroringType;
 	int forceMirroring=data->forceMirroring;
 	int binaryInput=data->binaryInput;
 	int binaryOutput=data->binaryOutput;
@@ -559,6 +564,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				bestOnly,
 				usePairedEndLength,
 				pairedEndLength,
+				mirroringType,
 				forceMirroring);
 
 		if(0 < aEntries.numEntriesOne ||

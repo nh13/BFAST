@@ -30,6 +30,7 @@ typedef struct {
 	int pairedEnd;
 	int usePairedEndLength;
 	int pairedEndLength;
+	int mirroringType;
 	int forceMirroring;
 	int binaryInput;
 	int binaryOutput;
@@ -40,7 +41,7 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 #endif

@@ -32,6 +32,7 @@ int AlignRGMatches(RGMatches *m,
 		int32_t bestOnly,
 		int32_t usePairedEndLength,
 		int32_t pairedEndLength,
+		int32_t mirroringType,
 		int32_t forceMirroring)
 {
 	double bestScore;
@@ -44,7 +45,9 @@ int AlignRGMatches(RGMatches *m,
 	 * */
 	if(PairedEnd == pairedEnd && usePairedEndLength == 1) {
 		RGMatchesMirrorPairedEnd(m,
+				rg,
 				pairedEndLength,
+				mirroringType,
 				forceMirroring);
 	}
 

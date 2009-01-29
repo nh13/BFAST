@@ -29,25 +29,29 @@ int main(int argc, char *argv[])
 	char outputID[MAX_FILENAME_LENGTH]="\0";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	int32_t i;
+	Bins b;
 
-	if(3 <= argc) {
+	if(6 <= argc) {
 		strcpy(outputID, argv[1]);
+		b.minDistance = atoi(argv[2]);
+		b.maxDistance = atoi(argv[3]);
+		b.binSize = atoi(argv[4]);
 
-		sprintf(outputFileName, "%s.paired.end.distribution.%s.txt",
-				PROGRAM_NAME,
-				outputID);
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Writing to %s.\n",
-				outputFileName);
-		if(!(fpOut=fopen(outputFileName, "wb"))) {
+		assert(b.minDistance <= b.maxDistance);
+
+		/* Allocate memory */
+		b.numCounts = (b.maxDistance - b.minDistance + 1) % b.binSize;
+		b.numCounts += (int32_t)(b.maxDistance - b.minDistance + 1)/b.binSize;
+		b.counts = calloc(b.numCounts, sizeof(int32_t));
+		if(NULL == b.counts) {
 			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
+					"b.counts",
+					"Could not allocate memory",
 					Exit,
-					OpenFileError);
+					MallocMemory);
 		}
 
-		for(i=2;i<argc;i++) {
+		for(i=5;i<argc;i++) {
 			strcpy(inputFileName, argv[i]);
 
 			fprintf(stderr, "%s", BREAK_LINE);
@@ -64,11 +68,11 @@ int main(int argc, char *argv[])
 
 			if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
 				PrintDistributionFromBMF(fpIn,
-						fpOut);
+						&b);
 			}
 			else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
 				PrintDistributionFromBAF(fpIn,
-						fpOut);
+						&b);
 			}
 			else {
 				PrintError(Name,
@@ -82,7 +86,26 @@ int main(int argc, char *argv[])
 			/* Close the file */
 			fclose(fpIn);
 		}
+
+		/* Output */
+		sprintf(outputFileName, "%s.paired.end.distribution.%s.txt",
+				PROGRAM_NAME,
+				outputID);
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Writing to %s.\n",
+				outputFileName);
+		if(!(fpOut=fopen(outputFileName, "wb"))) {
+			PrintError(Name,
+					outputFileName,
+					"Could not open file for writing",
+					Exit,
+					OpenFileError);
+		}
+		BinsPrint(&b, fpOut);
 		fclose(fpOut);
+
+		/* Free memory */
+		free(b.counts);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Terminating successfully!\n");
@@ -91,6 +114,9 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<output id>\n");
+		fprintf(stderr, "\t<minimum distance>\n");
+		fprintf(stderr, "\t<maximum distance>\n");
+		fprintf(stderr, "\t<bin size>\n");
 		fprintf(stderr, "\t<bfast matches, aligned, or reported file name(s)>\n");
 	}
 
@@ -98,12 +124,12 @@ int main(int argc, char *argv[])
 }
 
 void PrintDistributionFromBMF(FILE *fpIn,
-		FILE *fpOut)
+		Bins *b)
 {
 	char *FnName = "PrintDistributionFromBMF";
 	RGMatches m;
 	int64_t posOne, posTwo, difference;
-	int64_t counter=0, numUnique=0;
+	int64_t counter=0, numFound=0;
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
@@ -124,7 +150,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 					Exit,
 					OutOfRange);
 		}
-		/* Only use unique sequences on the same contig and strand */
+		/* Only use found sequences on the same contig and strand */
 		if(1 == m.matchOne.numEntries &&
 				1 == m.matchTwo.numEntries &&
 				m.matchOne.contigs[0] == m.matchTwo.contigs[0] &&
@@ -140,9 +166,9 @@ void PrintDistributionFromBMF(FILE *fpIn,
 			   (long long int)posTwo,
 			   (long long int)difference);
 			   */
-			fprintf(fpOut, "%lld\n",
-					(long long int)difference);
-			numUnique++;
+			if(1==BinsInsert(b, difference)) {
+				numFound++;
+			}
 		}
 		counter++;
 
@@ -152,21 +178,20 @@ void PrintDistributionFromBMF(FILE *fpIn,
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);
 
-	fprintf(stderr, "number unique was %lld out of %lld.\n",
-			(long long int)numUnique,
+	fprintf(stderr, "number found was %lld out of %lld.\n",
+			(long long int)numFound,
 			(long long int)counter);
-
 }
 
 void PrintDistributionFromBAF(FILE *fpIn,
-		FILE *fpOut)
+		Bins *b)
 {
 	/*
 	   char *FnName = "PrintDistributionFromBAF";
 	   */
 	AlignEntries a;
 	int64_t posOne, posTwo, difference;
-	int64_t counter=0, numUnique=0;
+	int64_t counter=0, numFound=0;
 	int32_t warnUnpaired=0;
 
 	/* Initialize */
@@ -193,7 +218,7 @@ void PrintDistributionFromBAF(FILE *fpIn,
 			   */
 		}
 		else {
-			/* Only use unique sequences on the same contig and strand */
+			/* Only use found sequences on the same contig and strand */
 			if(1 == a.numEntriesOne &&
 					1 == a.numEntriesTwo &&
 					a.entriesOne[0].contig == a.entriesTwo[0].contig &&
@@ -202,9 +227,9 @@ void PrintDistributionFromBAF(FILE *fpIn,
 				posOne = a.entriesOne[0].position;
 				posTwo = a.entriesTwo[0].position;
 				difference = posTwo - posOne;
-				fprintf(fpOut, "%lld\n",
-						(long long int)difference);
-				numUnique++;
+				if(1==BinsInsert(b, difference)) {
+					numFound++;
+				}
 			}
 		}
 		counter++;
@@ -215,8 +240,39 @@ void PrintDistributionFromBAF(FILE *fpIn,
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);
 
-	fprintf(stderr, "number unique was %lld out of %lld.\n",
-			(long long int)numUnique,
+	fprintf(stderr, "number found was %lld out of %lld.\n",
+			(long long int)numFound,
 			(long long int)counter);
 
+}
+
+int BinsInsert(Bins *b,
+		int32_t difference)
+{
+	int32_t index;
+
+	if(b->minDistance <= difference &&
+			difference <= b->maxDistance) {
+		index = (difference - b->minDistance); 
+		index -= (difference % b->binSize);
+		index /= b->binSize;
+		assert(0 <= index &&
+				index < b->numCounts);
+		b->counts[index]++;
+		return 1;
+	}
+	return 0;
+}
+
+void BinsPrint(Bins *b,
+		FILE *fpOut)
+{
+	int32_t i;
+
+	for(i=0;i<b->numCounts;i++) {
+		fprintf(fpOut, "%10d\t%10d\t%10d\n",
+				b->minDistance + i*b->binSize,
+				MIN(b->minDistance + (i+1)*b->binSize-1, b->maxDistance),
+				b->counts[i]);
+	}
 }

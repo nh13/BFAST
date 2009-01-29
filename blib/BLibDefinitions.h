@@ -77,6 +77,7 @@ enum {IgnoreExons, UseExons};
 enum {BothStrands, ForwardStrand, ReverseStrand};
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
 enum {RGBinaryPacked, RGBinaryUnPacked};
+enum {NoMirroring, MirrorForward, MirrorReverse, MirrorBoth};
 
 /************************************/
 /* 		Data structures 			*/

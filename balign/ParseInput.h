@@ -21,6 +21,7 @@ struct arguments
 	int pairedEnd;                          /* -2 */
 	int numThreads;                         /* -n */
 	int usePairedEndLength;					/* -l - companion to pairedEndLength */
+	int mirroringType;						/* -L */
 	int forceMirroring;						/* -f */
 	int pairedEndLength;					/* -l */
 	char *outputID;							/* -o */

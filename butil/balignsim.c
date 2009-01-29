@@ -380,11 +380,9 @@ void Run(RGBinary *rg,
 		m.readNameLength = strlen((char*)m.readName);
 		m.matchOne.numEntries = 1;
 		m.matchTwo.numEntries = 0;
-		m.matchOne.readLength = r.readLength;
-		if(ColorSpace == space) {
-			m.matchOne.readLength++;
-		}
-		m.matchOne.read = malloc(sizeof(int8_t)*(r.readLength+1));
+		m.matchOne.readLength = (int)strlen(r.readOne);
+		assert(r.readLength > 0);
+		m.matchOne.read = malloc(sizeof(int8_t)*(m.matchOne.readLength+1));
 		if(NULL==m.matchOne.read) {
 			PrintError(FnName,
 					"m.matchOne.read",
@@ -392,6 +390,7 @@ void Run(RGBinary *rg,
 					Exit,
 					MallocMemory);
 		}
+		assert(m.matchOne.readLength > 0);
 		strcpy((char*)m.matchOne.read, r.readOne); 
 		m.matchOne.maxReached = 0;
 		m.matchOne.numEntries = 1;
@@ -438,6 +437,7 @@ void Run(RGBinary *rg,
 			SingleEnd,
 			BinaryInput,
 			numThreads,
+			0,
 			0,
 			0,
 			0,

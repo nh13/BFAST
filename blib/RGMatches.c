@@ -81,7 +81,7 @@ int32_t RGMatchesRead(FILE *fp,
 		}
 		/* Check paired end */
 		if(pairedEnd != PairedEndDoesNotMatter && 
-		m->pairedEnd != pairedEnd) {
+				m->pairedEnd != pairedEnd) {
 			PrintError(FnName,
 					"pairedEnd",
 					"Error.  Paired end did not match",
@@ -446,35 +446,70 @@ void RGMatchesInitialize(RGMatches *m)
 
 /* TODO */
 void RGMatchesMirrorPairedEnd(RGMatches *m,
+		RGBinary *rg,
 		int32_t pairedEndLength,
+		int32_t mirroringType,
 		int32_t forceMirroring)
 {
-	int i;
+	int i, tempNumEntries;
 	int numEntriesOne, numEntriesTwo;
 
 	if(m->pairedEnd == 1) {
 		numEntriesOne = m->matchOne.numEntries;
 		numEntriesTwo = m->matchTwo.numEntries;
+
 		/* Copy matches from first to second */
 		if(forceMirroring == 1 || 
 				(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0)) {
-			RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
-			for(i=0;i<numEntriesOne;i++) {
-				m->matchTwo.contigs[i+numEntriesTwo] = m->matchOne.contigs[i];
-				m->matchTwo.strands[i+numEntriesTwo] = m->matchOne.strands[i];
-				/* Adjust position */
-				m->matchTwo.positions[i+numEntriesTwo] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
+			/* Copy forward */
+			if(MirrorBoth == mirroringType ||
+					MirrorForward == mirroringType) {
+				RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
+				for(i=0;i<numEntriesOne;i++) {
+					m->matchTwo.contigs[i+numEntriesTwo] = m->matchOne.contigs[i];
+					m->matchTwo.strands[i+numEntriesTwo] = m->matchOne.strands[i];
+					/* Adjust position */
+					m->matchTwo.positions[i+numEntriesTwo] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
+				}
+			}
+			/* Copy reverse */
+			if(MirrorBoth == mirroringType || 
+					MirrorReverse == mirroringType) {
+				tempNumEntries = m->matchTwo.numEntries;
+				RGMatchReallocate(&m->matchTwo, numEntriesOne + tempNumEntries);
+				for(i=0;i<numEntriesOne;i++) {
+					m->matchTwo.contigs[i+tempNumEntries] = m->matchOne.contigs[i];
+					m->matchTwo.strands[i+tempNumEntries] = m->matchOne.strands[i];
+					/* Adjust position */
+					m->matchTwo.positions[i+tempNumEntries] = m->matchOne.positions[i] - m->matchOne.readLength - pairedEndLength;
+				}
 			}
 		}
 		/* Copy matches from second to first */
 		if(forceMirroring == 1 || 
 				(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0)) {
-			RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
-			for(i=0;i<numEntriesTwo;i++) {
-				m->matchOne.contigs[i+numEntriesOne] = m->matchTwo.contigs[i];
-				m->matchOne.strands[i+numEntriesOne] = m->matchTwo.strands[i];
-				/* Adjust position */
-				m->matchOne.positions[i+numEntriesOne] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
+			/* Copy forward */
+			if(MirrorBoth == mirroringType ||
+					MirrorForward == mirroringType) {
+				RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
+				for(i=0;i<numEntriesTwo;i++) {
+					m->matchOne.contigs[i+numEntriesOne] = m->matchTwo.contigs[i];
+					m->matchOne.strands[i+numEntriesOne] = m->matchTwo.strands[i];
+					/* Adjust position */
+					m->matchOne.positions[i+numEntriesOne] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
+				}
+			}
+			/* Copy reverse */
+			if(MirrorBoth == mirroringType || 
+					MirrorReverse == mirroringType) {
+				tempNumEntries = m->matchOne.numEntries;
+				RGMatchReallocate(&m->matchOne, tempNumEntries + numEntriesTwo);
+				for(i=0;i<numEntriesTwo;i++) {
+					m->matchOne.contigs[i+tempNumEntries] = m->matchTwo.contigs[i];
+					m->matchOne.strands[i+tempNumEntries] = m->matchTwo.strands[i];
+					/* Adjust position */
+					m->matchOne.positions[i+tempNumEntries] = m->matchTwo.positions[i] + m->matchOne.readLength + pairedEndLength;
+				}
 			}
 		}
 		/* Check m */
@@ -484,6 +519,13 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 		   }
 		   */
 		RGMatchesRemoveDuplicates(m, INT_MAX);
+		/* Adjust positions in case they trail off the end of the contigs */
+		for(i=0;i<m->matchOne.numEntries;i++) {
+			m->matchOne.positions[i] = MAX(1, MIN(m->matchOne.positions[i], rg->contigs[m->matchOne.contigs[i]-1].sequenceLength));
+		}
+		for(i=0;i<m->matchTwo.numEntries;i++) {
+			m->matchTwo.positions[i] = MAX(1, MIN(m->matchTwo.positions[i], rg->contigs[m->matchTwo.contigs[i]-1].sequenceLength));
+		}
 	}
 }
 
