@@ -1,5 +1,5 @@
-#ifndef BGETERRORDISTRIBUTION_H_
-#define BGETERRORDISTRIBUTION_H_
+#ifndef BERRORDISTRIBUTION_H_
+#define BERRORDISTRIBUTION_H_
 
 enum {CountOnly, CountTotal, CountBoth};
 
@@ -17,13 +17,15 @@ typedef struct {
 typedef struct {
 	int numReads;
 	int space;
+	int pairedEnd;
 	Count by[3]; /* nt errors by position and color errors by position */
 	Count across[3]; /* nt errors across reads and color errors across reads */
 } Errors;
 
-void GetErrorDistribution(char*, int32_t, int32_t, char*);
+void ErrorDistribution(char*, int32_t, int32_t, Errors*);
+void ErrorDistributionPrint(char*, int32_t, Errors*);
 
-void ErrorsPrint(Errors*, FILE**, int, int);
+void ErrorsPrint(Errors*, FILE**, int);
 void ErrorsUpdate(Errors*, AlignEntries *a, int32_t, int32_t);
 void ErrorsUpdateHelper(Errors*, AlignEntry *a, int, int, int, int, int);
 void ErrorsInitialize(Errors*);

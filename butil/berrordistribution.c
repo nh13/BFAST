@@ -9,9 +9,9 @@
 #include "../blib/BLib.h"
 #include "../blib/AlignEntries.h"
 #include "../blib/AlignEntry.h"
-#include "bgeterrordistribution.h"
+#include "berrordistribution.h"
 
-#define Name "bgeterrordistribution"
+#define Name "berrordistribution"
 #define ROTATE_NUM 100000
 
 /* Counts the number of errors at each position in the read
@@ -21,24 +21,30 @@
 
 int main(int argc, char *argv[])
 {
-	if(5 == argc) {
-		char inputFileName[MAX_FILENAME_LENGTH]="\0";
+	if(5 <= argc) {
+		int32_t i;
 		int32_t countGaps=0;
 		int32_t trimEndGaps=0;
 		char outputID[MAX_FILENAME_LENGTH]="\0";
+		char inputFileName[MAX_FILENAME_LENGTH]="\0";
+		Errors e;
 
 		/* Get arguments */
-		strcpy(inputFileName, argv[1]);
-		countGaps=atoi(argv[2]);
-		trimEndGaps=atoi(argv[3]);
-		strcpy(outputID, argv[4]);
+		countGaps=atoi(argv[1]);
+		trimEndGaps=atoi(argv[2]);
+		strcpy(outputID, argv[3]);
 
-		/* Run the program */
-		GetErrorDistribution(inputFileName,
-				countGaps,
-				trimEndGaps,
-				outputID);
-
+		fprintf(stderr, "%s", BREAK_LINE);
+		ErrorsInitialize(&e);
+		for(i=4;i<argc;i++) {
+			strcpy(inputFileName, argv[i]);
+			/* Run the program */
+			ErrorDistribution(inputFileName,
+					countGaps,
+					trimEndGaps,
+					&e);
+		}
+		ErrorDistributionPrint(outputID, countGaps, &e);
 		fprintf(stderr, "%s%s%s", 
 				BREAK_LINE, 
 				"Terminating successfully!\n",
@@ -46,27 +52,68 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<BFAST reported file>\n");
 		fprintf(stderr, "\t<count gaps as errors>\n");
 		fprintf(stderr, "\t<trim gaps at the end of the read>\n");
 		fprintf(stderr, "\t<output id>\n");
+		fprintf(stderr, "\t<BFAST reported files>\n");
 	}
 	return 0;
 }
 
-void GetErrorDistribution(char *inputFileName,
+void ErrorDistribution(char *inputFileName,
 		int32_t countGaps,
 		int32_t trimEndGaps,
-		char *outputID)
+		Errors *e)
 {
-	char *FnName="GetErrorDistribution";
-	int i, count;
+	char *FnName="ErrorDistribution";
+	int count;
 	FILE *FPin=NULL;
+	AlignEntries a;
+
+	fprintf(stderr, "Reading from %s.\n%s",
+			inputFileName,
+			BREAK_LINE);
+
+	/* Open the input file */
+	if(!(FPin = fopen(inputFileName, "rb"))) {
+		PrintError(FnName,
+				inputFileName,
+				"Could not open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
+	/* Go through the input file */
+	count=0;
+	AlignEntriesInitialize(&a);
+	fprintf(stderr, "Currently on:\n0");
+	while(EOF != AlignEntriesRead(&a, FPin, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+		if(PairedEnd == a.pairedEnd) {
+			e->pairedEnd = PairedEnd;
+		}
+		if(count % ROTATE_NUM == 0) {
+			fprintf(stderr, "\r%d", count);
+		}
+		/* Update */
+		ErrorsUpdate(e, &a, countGaps, trimEndGaps);
+		/* Free memory */
+		AlignEntriesFree(&a);
+		count++;
+	}
+	fprintf(stderr, "\r%d\n", count);
+
+	/* Close files */
+	fclose(FPin);
+}
+
+void ErrorDistributionPrint(char *outputID,
+		int32_t countGaps,
+		Errors *e)
+{
+	char *FnName="ErrorDistributionPrintAndClose";
+	int i;
 	FILE *FPsout[6]={NULL,NULL,NULL,NULL,NULL,NULL};
 	char outputFileNames[6][MAX_FILENAME_LENGTH]={"\0","\0","\0","\0","\0","\0"};
-	AlignEntries a;
-	Errors e;
-	int pairedEnd = SingleEnd;
 
 	/* Create output file names */
 	sprintf(outputFileNames[0], "%s.error.distribution.nt.by.position.%s.txt",
@@ -88,15 +135,6 @@ void GetErrorDistribution(char *inputFileName,
 			PROGRAM_NAME,
 			outputID);
 
-	/* Open the input file */
-	if(!(FPin = fopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
-	}
-
 	/* Open the output file */
 	for(i=0;i<3;i++) {
 		if(0 == countGaps || i != 2) {
@@ -117,29 +155,10 @@ void GetErrorDistribution(char *inputFileName,
 		}
 	}
 
-	/* Go through the input file */
-	count=0;
-	AlignEntriesInitialize(&a);
-	ErrorsInitialize(&e);
-	fprintf(stderr, "Currently on:\n0");
-	while(EOF != AlignEntriesRead(&a, FPin, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
-		pairedEnd = a.pairedEnd;
-		if(count % ROTATE_NUM == 0) {
-			fprintf(stderr, "\r%d", count);
-		}
-		/* Update */
-		ErrorsUpdate(&e, &a, countGaps, trimEndGaps);
-		/* Free memory */
-		AlignEntriesFree(&a);
-		count++;
-	}
-	fprintf(stderr, "\r%d\n", count);
-
 	/* Print output */
-	ErrorsPrint(&e, FPsout, countGaps, pairedEnd);
+	ErrorsPrint(e, FPsout, countGaps);
 
 	/* Close files */
-	fclose(FPin);
 	for(i=0;i<3;i++) {
 		if(0 == countGaps || i != 2) {
 			fclose(FPsout[i]);
@@ -148,10 +167,10 @@ void GetErrorDistribution(char *inputFileName,
 	}
 
 	/* Free memory */
-	ErrorsFree(&e);
+	ErrorsFree(e);
 }
 
-void ErrorsPrint(Errors *e, FILE **fps, int countGaps, int pairedEnd)
+void ErrorsPrint(Errors *e, FILE **fps, int countGaps)
 {
 	/* Print each out to a separate file */
 	assert(fps!=NULL);
@@ -165,23 +184,25 @@ void ErrorsPrint(Errors *e, FILE **fps, int countGaps, int pairedEnd)
 	}
 
 	/* Print out */
-	CountPrint(&e->by[0], fps[0], pairedEnd);
-	CountPrint(&e->by[1], fps[1], pairedEnd);
-	CountPrint(&e->across[0], fps[3], pairedEnd);
-	CountPrint(&e->across[1], fps[4], pairedEnd);
+	CountPrint(&e->by[0], fps[0], e->pairedEnd);
+	CountPrint(&e->by[1], fps[1], e->pairedEnd);
+	CountPrint(&e->across[0], fps[3], e->pairedEnd);
+	CountPrint(&e->across[1], fps[4], e->pairedEnd);
 	if(0 == countGaps) {
-		CountPrint(&e->by[2], fps[2], pairedEnd);
-		CountPrint(&e->across[2], fps[5], pairedEnd);
+		CountPrint(&e->by[2], fps[2], e->pairedEnd);
+		CountPrint(&e->across[2], fps[5], e->pairedEnd);
 	}
 }
 
 void ErrorsUpdate(Errors *e, AlignEntries *a, int32_t countGaps, int32_t trimEndGaps)
 {
-	assert(a->numEntriesOne == 1 &&
-			(a->pairedEnd == SingleEnd || a->numEntriesTwo == 1));
+	assert(a->numEntriesOne <= 1 &&
+			(a->pairedEnd == SingleEnd || a->numEntriesTwo <= 1));
 
-	ErrorsUpdateHelper(e, &a->entriesOne[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 0);
-	if(PairedEnd == a->pairedEnd) {
+	if(0 < a->numEntriesOne) {
+		ErrorsUpdateHelper(e, &a->entriesOne[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 0);
+	}
+	if(PairedEnd == a->pairedEnd && 0 <a->numEntriesTwo) {
 		ErrorsUpdateHelper(e, &a->entriesTwo[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 1);
 	}
 
