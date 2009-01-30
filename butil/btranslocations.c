@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 						numPrinted++;
 					}
 				}
+				AlignEntriesFree(&a);
 			}
 			fprintf(stderr, "\r%lld\n",
 					(long long int)numRead);
