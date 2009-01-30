@@ -22,24 +22,24 @@ int main(int argc, char *argv[])
 {
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputID[MAX_FILENAME_LENGTH]="\0";
+	char outputRange[2][MAX_FILENAME_LENGTH]={"\0","\0"};
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *inputFP=NULL;
 	FILE *outputFP=NULL;
 	AlignEntries a;
-	int64_t numRead, numPrinted;
+	int64_t numRead, numPrinted, i, numToSatisfy;
+	Range start, end;
 
-	if(argc == 3) {
-		strcpy(inputFileName, argv[1]);
-		strcpy(outputID, argv[2]);
+	if(argc == 6) {
+		strcpy(outputRange[0], argv[1]);
+		strcpy(outputRange[1], argv[2]);
+		numToSatisfy=atoi(argv[3]);
+		assert(0 == numToSatisfy || 1 == numToSatisfy);
+		strcpy(outputID, argv[4]);
 
-		if(!(inputFP = fopen(inputFileName, "rb"))) {
-			PrintError(Name,
-					inputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
-		}
-		
+		ParseRange(&start, outputRange[0]);
+		ParseRange(&end, outputRange[1]);
+
 		/* Create output file name 
 		 * TODO */
 		sprintf(outputFileName, "bfast.translocations.%s.baf",
@@ -51,37 +51,52 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
+		fprintf(stderr, "Outputting to %s.\n",
+				outputFileName);
 
 		numRead = numPrinted = 0;
-		AlignEntriesInitialize(&a);
-		fprintf(stderr, "Reading in from %s.\nOutputting to %s.\nCurrently on:\n0",
-				inputFileName,
-				outputFileName);
-		while(EOF != AlignEntriesRead(&a,
-					inputFP,
-					PairedEnd,
-					SpaceDoesNotMatter,
-					BinaryInput)) {
-			numRead++;
-			if(0 == numRead%BTRANSLOCATIONS_ROTATE_NUM) {
-				fprintf(stderr, "\r%lld",
-						(long long int)numRead);
+		for(i=5;i<argc;i++) {
+			strcpy(inputFileName, argv[i]);
+			if(!(inputFP = fopen(inputFileName, "rb"))) {
+				PrintError(Name,
+						inputFileName,
+						"Could not open file for reading",
+						Exit,
+						OpenFileError);
 			}
-			if(a.numEntriesOne == 1 &&
-					a.numEntriesTwo == 1 &&
-					a.entriesOne[0].contig != a.entriesTwo[0].contig) {
-				AlignEntriesPrint(&a,
-						outputFP,
-						BinaryOutput);
-				numPrinted++;
+
+			AlignEntriesInitialize(&a);
+			fprintf(stderr, "Reading in from %s.\nCurrently on:\n0",
+					inputFileName);
+			while(EOF != AlignEntriesRead(&a,
+						inputFP,
+						PairedEnd,
+						SpaceDoesNotMatter,
+						BinaryInput)) {
+				numRead++;
+				if(0 == numRead%BTRANSLOCATIONS_ROTATE_NUM) {
+					fprintf(stderr, "\r%lld",
+							(long long int)numRead);
+				}
+				if(a.numEntriesOne == 1 &&
+						a.numEntriesTwo == 1 &&
+						a.entriesOne[0].contig != a.entriesTwo[0].contig) {
+					if(numToSatisfy < CheckRange(&start, a.entriesOne[0].contig, a.entriesOne[0].position) + 
+							CheckRange(&end, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
+						AlignEntriesPrint(&a,
+								outputFP,
+								BinaryOutput);
+						numPrinted++;
+					}
+				}
 			}
+			fprintf(stderr, "\r%lld\n",
+					(long long int)numRead);
+			fclose(inputFP);
 		}
-				fprintf(stderr, "\r%lld\n",
-						(long long int)numRead);
 
 		/* Close files */
 		fclose(outputFP);
-		fclose(inputFP);
 
 		fprintf(stderr, "Read in %lld and outputted %lld paired end alignments.\n",
 				(long long int)numRead,
@@ -92,8 +107,42 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast report file name>\n");
+		fprintf(stderr, "\t<end one range (contig1-contig2:pos1-pos2)\n");
+		fprintf(stderr, "\t<end two range (contig1-contig2:pos1-pos2)\n");
+		fprintf(stderr, "\t<require both 0: require one range to be satisfied 1: required both ranges to be satisfied>\n");
 		fprintf(stderr, "\t<output ID>\n");
+		fprintf(stderr, "\t<bfast report file names>\n");
+	}
+	return 0;
+}
+
+void ParseRange(Range *r,
+		char *string)
+{
+	char *FnName="ParseRange";
+	if(4 != sscanf(string, "%d-%d:%d-%d\n",
+				&r->contigStart,
+				&r->contigEnd,
+				&r->positionStart,
+				&r->positionEnd)) {
+		PrintError(FnName,
+				string,
+				"Could not parse string.  Should be in %d-%d:%d-%d format",
+				Exit,
+				OutOfRange);
+	}
+}
+
+int32_t CheckRange(Range *r,
+		int32_t contig,
+		int32_t position)
+{
+	if(r->contigStart < contig ||
+			(r->contigStart == contig && r->positionStart <= position)) {
+		if(contig < r->contigEnd ||
+				(contig == r->contigEnd && position <= r->positionEnd)) {
+			return 1;
+		}
 	}
 	return 0;
 }
