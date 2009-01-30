@@ -640,18 +640,22 @@ int main(int argc, char *argv[])
 	char bedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *wigFP=NULL;
 	char wigFileName[MAX_FILENAME_LENGTH]="\0";
+	char outputID[MAX_FILENAME_LENGTH]="\0";
+	char outputDir[MAX_FILENAME_LENGTH]="\0";
 
-	if(5 <= argc) {
+	if(7 <= argc) {
 		strcpy(rgFileName, argv[1]);
 		maxNumEntries = atoi(argv[2]);
-		strcpy(tmpDir, argv[3]);
+		strcpy(outputID, argv[3]);
+		strcpy(outputDir, argv[4]);
+		strcpy(tmpDir, argv[5]);
 
 		/* Read in rg file */
 		RGBinaryReadBinary(&rg, rgFileName);
 
 		/* Split AlignEntries by contig */
 		fprintf(stderr, "%s", BREAK_LINE);
-		for(i=4;i<argc;i++) {
+		for(i=6;i<argc;i++) {
 			strcpy(inputFileName, argv[i]);
 			SplitIntoTmpFilesByContig(inputFileName,
 					&tmpFiles,
@@ -668,11 +672,13 @@ int main(int argc, char *argv[])
 			if(tmpFiles[i].numEntries > 0) {
 				fprintf(stderr, "%s", BREAK_LINE);
 				/* Create output file names */
-				sprintf(bedFileName, "%s.contig%d.bed",
-						inputFileName,
+				sprintf(bedFileName, "%sbfast.%s.contig%d.bed",
+						outputDir,
+						outputID,
 						tmpFiles[i].contig);
-				sprintf(wigFileName, "%s.contig%d.wig",
-						inputFileName,
+				sprintf(wigFileName, "%sbfast.%s.contig%d.wig",
+						outputDir,
+						outputID,
 						tmpFiles[i].contig);
 				/* Open output files */
 				if(!(bedFP = fopen(bedFileName, "wb"))) {
@@ -718,6 +724,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast reference genome file>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
+		fprintf(stderr, "\t<output ID>\n");
+		fprintf(stderr, "\t<output directory>\n");
 		fprintf(stderr, "\t<tmp file directory>\n");
 		fprintf(stderr, "\t<bfast report file names>\n");
 	}
