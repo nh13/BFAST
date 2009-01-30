@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	int64_t numRead, numPrinted, i, numToSatisfy;
 	Range start, end;
 
-	if(argc == 6) {
+	if(6 <= argc) {
 		strcpy(outputRange[0], argv[1]);
 		strcpy(outputRange[1], argv[2]);
 		numToSatisfy=atoi(argv[3]);
