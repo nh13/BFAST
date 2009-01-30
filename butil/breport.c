@@ -376,7 +376,9 @@ void SplitIntoTmpFilesByContig(char *inputFileName,
 		int *numFiles,
 		char *tmpDir,
 		int startContig,
-		int endContig)
+		int endContig,
+		int number,
+		int total)
 {
 	char *FnName="SplitIntoTmpFilesByContig";
 	int i;
@@ -403,7 +405,9 @@ void SplitIntoTmpFilesByContig(char *inputFileName,
 	}
 
 	/* Open the input file */
-	fprintf(stderr, "Splitting %s by contig.\n",
+	fprintf(stderr, "(%d/%d) Splitting %s by contig.\n",
+			number,
+			total,
 			inputFileName);
 	if(!(fpIn=fopen(inputFileName, "r"))) {
 		PrintError(Name,
@@ -662,7 +666,10 @@ int main(int argc, char *argv[])
 					&numTmpFiles,
 					tmpDir,
 					1,
-					rg.numContigs);
+					rg.numContigs,
+					i-5,
+					argc-6
+					);
 		}
 		fprintf(stderr, "%s", BREAK_LINE);
 
