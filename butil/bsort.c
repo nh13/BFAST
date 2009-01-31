@@ -149,6 +149,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	TmpFile belowTmpFile, aboveTmpFile;
 	int32_t belowMinPosition, belowMinContig, belowMaxPosition, belowMaxContig;
 	int32_t aboveMinPosition, aboveMinContig, aboveMaxPosition, aboveMaxContig;
+	int32_t endContig, endPos;
 	int64_t i;
 
 	if(tmpFile->numEntries <= 0) {
@@ -164,6 +165,8 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		PrintContigPos(stderr,
 				tmpFile->startContig,
 				tmpFile->startPos);
+		endContig = tmpFile->endContig;
+		endPos = tmpFile->endPos;
 		assert(0 < tmpFile->numEntries);
 		
 		/* Allocate memory for the entries */
@@ -222,6 +225,9 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		entriesPtr=NULL;
 		free(entries);
 		entries=NULL;
+		PrintContigPos(stderr,
+				endContig,
+				endPos);
 	}
 	else if(tmpFile->startContig == tmpFile->endContig && 
 			tmpFile->startPos == tmpFile->endPos) {
@@ -254,19 +260,19 @@ void SplitEntriesAndPrint(FILE *outputFP,
 			belowTmpFile.startContig = tmpFile->startContig;
 			belowTmpFile.startPos = tmpFile->startPos;
 			belowTmpFile.endContig = meanContig;
-			belowTmpFile.endPos = INT_MAX;
+			belowTmpFile.endPos = INT_MAX-1;
 			aboveTmpFile.startContig = meanContig + 1;
 			aboveTmpFile.startPos = 1;
 			aboveTmpFile.endContig = tmpFile->endContig;
 			aboveTmpFile.endPos = tmpFile->endPos;
 		}
 
-		belowMinPosition = INT_MAX;
-		belowMinContig = INT_MAX;
+		belowMinPosition = INT_MAX-1;
+		belowMinContig = INT_MAX-1;
 		belowMaxPosition = 0;
 		belowMaxContig = 0;
-		aboveMinPosition = INT_MAX;
-		aboveMinContig = INT_MAX;
+		aboveMinPosition = INT_MAX-1;
+		aboveMinContig = INT_MAX-1;
 		aboveMaxPosition = 0;
 		aboveMaxContig = 0;
 
@@ -368,9 +374,6 @@ int main(int argc, char *argv[])
 				&tmpFile,
 				tmpDir,
 				maxNumEntries);
-		PrintContigPos(stderr,
-				tmpFile.endContig,
-				tmpFile.endPos);
 		fprintf(stderr, "\n");
 
 		/* Close files */
