@@ -88,6 +88,13 @@ int main(int argc, char *argv[])
 								BinaryOutput);
 						numPrinted++;
 					}
+					else if(numToSatisfy < CheckRange(&end, a.entriesOne[0].contig, a.entriesOne[0].position) + 
+							CheckRange(&start, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
+						AlignEntriesPrint(&a,
+								outputFP,
+								BinaryOutput);
+						numPrinted++;
+					}
 				}
 				AlignEntriesFree(&a);
 			}
