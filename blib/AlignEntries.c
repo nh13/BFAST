@@ -627,6 +627,7 @@ int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
 		return AlignEntryCompareAtIndex(one->entriesOne, 0, two->entriesOne, 0, AlignEntrySortByContigPos);
 	}
 	else {
+		assert(one->pairedEnd == two->pairedEnd);
 		assert(one->numEntriesOne == 1 && two->numEntriesOne == 1);
 		assert(one->numEntriesTwo == 1 && two->numEntriesTwo == 1);
 	
@@ -660,7 +661,7 @@ int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
 
 		cmpOne = AlignEntryCompareAtIndex(oneA[0], 0, twoA[0], 0, AlignEntrySortByContigPos);
 		cmpTwo = AlignEntryCompareAtIndex(oneA[1], 0, twoA[1], 0, AlignEntrySortByContigPos);
-		if(cmpOne < 0||
+		if(cmpOne < 0 ||
 				(0 == cmpOne && cmpTwo < 0)) {
 			return -1;
 		}
