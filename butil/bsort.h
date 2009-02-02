@@ -4,11 +4,10 @@
 #include "../blib/AlignEntries.h"
 
 typedef struct {
-	int32_t startContig;
-	int32_t startPos;
-	int32_t endContig;
-	int32_t endPos;
-	int64_t memory; 
+	int64_t startContig;
+	int64_t startPos;
+	int64_t endContig;
+	int64_t endPos;
 	int64_t numEntries;
 	FILE *FP;
 	char *FileName;
