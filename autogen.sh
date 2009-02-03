@@ -1,4 +1,4 @@
 #!/bin/sh
 
-libtoolize --force
+libtoolize --force --automake
 autoreconf
