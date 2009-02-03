@@ -103,7 +103,7 @@ void MoveAllIntoTmpFile(char *inputFileName,
 
 		/* Store AlignEntries */
 		if(a.numEntriesOne != 1 ||
-				(a.pairedEnd == PairedEnd && a.numEntriesTwo != 1)) {
+				(a.pairedEnd == PairedEnd && 1 < a.numEntriesTwo )) {
 			PrintError(FnName,
 					a.readName,
 					"Read was not uniquely aligned",
@@ -111,7 +111,7 @@ void MoveAllIntoTmpFile(char *inputFileName,
 					OutOfRange);
 		}
 		else {
-			assert(a.numEntriesOne == 1 && (SingleEnd == a.pairedEnd || a.numEntriesTwo == 1));
+			assert(a.numEntriesOne == 1 && (SingleEnd == a.pairedEnd || a.numEntriesTwo <= 1));
 			AlignEntriesPrint(&a, 
 					tmpFile->FP,
 					BinaryOutput);
@@ -316,6 +316,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					BinaryInput)) {
 
 			if(SingleEnd == a.pairedEnd ||
+					0 == a.numEntriesTwo ||
 					AlignEntryCompareAtIndex(a.entriesOne, 0, a.entriesTwo, 0, AlignEntrySortByContigPos) < 0) {
 				tmpAlignEntry = &a.entriesOne[0];
 			}
