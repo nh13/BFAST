@@ -6,6 +6,8 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.3.2
+* Updated bsort to print more information while sorting.  Also,
+updated bsort to sort bpostprocess unpaired baf output.
 * Update berrordistribution and bpairedenddist to accept any
 number of input files.
 * Changed bgeterrordistribution to berrordistribution.

@@ -628,39 +628,58 @@ int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
 	}
 	else {
 		assert(one->pairedEnd == two->pairedEnd);
-		assert(one->numEntriesOne == 1 && two->numEntriesOne == 1);
-		assert(one->numEntriesTwo == 1 && two->numEntriesTwo == 1);
-	
-		cmpOne = AlignEntryCompareAtIndex(one->entriesOne, 0, one->entriesTwo, 0, AlignEntrySortByContigPos);
-		cmpTwo= AlignEntryCompareAtIndex(two->entriesOne, 0, two->entriesTwo, 0, AlignEntrySortByContigPos);
+		assert( (one->numEntriesOne == 1 && one->numEntriesTwo == 1) ||
+				(one->numEntriesOne == 0 && one->numEntriesTwo == 1) ||
+				(one->numEntriesOne == 1 && one->numEntriesTwo == 0));
+		assert( (two->numEntriesOne == 1 && two->numEntriesTwo == 1) ||
+				(two->numEntriesOne == 0 && two->numEntriesTwo == 1) ||
+				(two->numEntriesOne == 1 && two->numEntriesTwo == 0));
 
-		if(cmpOne <= 0 && cmpTwo <= 0) {
-			oneA[0] = one->entriesOne;
-			oneA[1] = one->entriesTwo;
-			twoA[0] = two->entriesOne;
-			twoA[1] = two->entriesTwo;
-		}
-		else if(cmpOne <= 0 && 0 < cmpTwo) {
-			oneA[0] = one->entriesOne;
-			oneA[1] = one->entriesTwo;
-			twoA[0] = two->entriesTwo;
-			twoA[1] = two->entriesOne;
-		}
-		else if(0 < cmpOne && cmpTwo <= 0) {
+		if(one->numEntriesOne == 0) {
 			oneA[0] = one->entriesTwo;
-			oneA[1] = one->entriesOne;
-			twoA[0] = two->entriesOne;
-			twoA[1] = two->entriesTwo;
+			oneA[1] = NULL;
+		}
+		else if(one->numEntriesTwo == 0) {
+			oneA[0] = one->entriesOne;
+			oneA[1] = NULL;
 		}
 		else {
-			oneA[0] = one->entriesTwo;
-			oneA[1] = one->entriesOne;
+			if(AlignEntryCompareAtIndex(one->entriesOne, 0, one->entriesTwo, 0, AlignEntrySortByContigPos) <= 0) {
+				oneA[0] = one->entriesOne;
+				oneA[1] = one->entriesTwo;
+			}
+			else {
+				oneA[0] = one->entriesTwo;
+				oneA[1] = one->entriesOne;
+			}
+		}
+		if(two->numEntriesOne == 0) {
 			twoA[0] = two->entriesTwo;
-			twoA[1] = two->entriesOne;
+			twoA[1] = NULL;
+		}
+		else if(two->numEntriesTwo == 0) {
+			twoA[0] = two->entriesOne;
+			twoA[1] = NULL;
+		}
+		else {
+			if(AlignEntryCompareAtIndex(two->entriesOne, 0, two->entriesTwo, 0, AlignEntrySortByContigPos) <= 0) {
+				twoA[0] = two->entriesOne;
+				twoA[1] = two->entriesTwo;
+			}
+			else {
+				twoA[0] = two->entriesTwo;
+				twoA[1] = two->entriesOne;
+			}
 		}
 
 		cmpOne = AlignEntryCompareAtIndex(oneA[0], 0, twoA[0], 0, AlignEntrySortByContigPos);
-		cmpTwo = AlignEntryCompareAtIndex(oneA[1], 0, twoA[1], 0, AlignEntrySortByContigPos);
+		if(oneA[1] == NULL || twoA[1] == NULL) {
+			cmpTwo = 0;
+		}
+		else {
+			cmpTwo = AlignEntryCompareAtIndex(oneA[1], 0, twoA[1], 0, AlignEntrySortByContigPos);
+		}
+
 		if(cmpOne < 0 ||
 				(0 == cmpOne && cmpTwo < 0)) {
 			return -1;
