@@ -9,8 +9,8 @@ bin_PROGRAMS = bafconvert \
 			   bheader \
 			   bindexdist \
 			   bindexhist \
-			   bmfconvert \
 			   bmergesorted \
+			   bmfconvert \
 			   bpairedenddist \
 			   brepeat \
 			   breport \
