@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
 						AlignEntriesPrint(&a,
 								outputFP,
 								BinaryOutput);
+						fflush(outputFP);
 						numPrinted++;
 					}
 					else if(numToSatisfy < CheckRange(&end, a.entriesOne[0].contig, a.entriesOne[0].position) + 
@@ -93,6 +94,7 @@ int main(int argc, char *argv[])
 						AlignEntriesPrint(&a,
 								outputFP,
 								BinaryOutput);
+						fflush(outputFP);
 						numPrinted++;
 					}
 				}

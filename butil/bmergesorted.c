@@ -54,7 +54,7 @@ void MergeFiles(FILE *fpOne,
 			}
 			else {
 				AlignEntriesPrint(&aTwo, fpOut, BinaryOutput);
-				fsetpos(fpTwo, &posOne);
+				fsetpos(fpOne, &posOne);
 			}
 		}
 		AlignEntriesFree(&aOne);
