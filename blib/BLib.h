@@ -46,6 +46,7 @@ void CheckPackageCompatibility(int8_t*, int);
 void KnuthMorrisPrattCreateTable(char*, int, int*);
 int32_t KnuthMorrisPratt(char*, int, char*, int);
 int32_t NaiveSubsequence(char*, int, char*, int);
+int CompareContigPos(int32_t, int32_t, int32_t, int32_t);
+int WithinRangeContigPos(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 
 #endif
-

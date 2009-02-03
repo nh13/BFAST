@@ -1346,3 +1346,39 @@ int NaiveSubsequence(char *read,
 	return -1;
 }
 
+/* TODO */
+/* Need to modify all code to use this function */
+int CompareContigPos(int32_t contigOne,
+		int32_t positionOne,
+		int32_t contigTwo,
+		int32_t positionTwo)
+{
+	if(contigOne < contigTwo ||
+			(contigOne == contigTwo && positionOne < positionTwo)) {
+		return -1;
+	}
+	else if(contigOne == contigTwo && positionOne == positionTwo) {
+		return 0;
+	}
+	else {
+		return 1;
+	}
+}
+
+/* TODO */
+/* Need to modify all code to use this function */
+int WithinRangeContigPos(int32_t contig,
+		int32_t position,
+		int32_t startContig,
+		int32_t startPosition,
+		int32_t endContig,
+		int32_t endPosition)
+{
+	if(CompareContigPos(startContig, startPosition, contig, position) <= 0 &&
+			0 <= CompareContigPos(contig, position, endContig, endPosition)) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
