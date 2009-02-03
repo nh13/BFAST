@@ -165,7 +165,7 @@ main (int argc, char **argv)
 			{
 				switch(arguments.programMode) {
 					case ExecuteGetOptHelp:
-						PrintProgramParameters(stderr, &arguments);
+						GetOptHelp();
 						break;
 					case ExecutePrintProgramParameters:
 						PrintProgramParameters(stderr, &arguments);
