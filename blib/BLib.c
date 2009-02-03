@@ -1375,7 +1375,7 @@ int WithinRangeContigPos(int32_t contig,
 		int32_t endPosition)
 {
 	if(CompareContigPos(startContig, startPosition, contig, position) <= 0 &&
-			0 <= CompareContigPos(contig, position, endContig, endPosition)) {
+			CompareContigPos(contig, position, endContig, endPosition) <= 0) {
 		return 1;
 	}
 	else {
