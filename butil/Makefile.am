@@ -10,6 +10,7 @@ bin_PROGRAMS = bafconvert \
 			   bindexdist \
 			   bindexhist \
 			   bmfconvert \
+			   bmergesorted \
 			   bpairedenddist \
 			   brepeat \
 			   breport \
@@ -169,6 +170,36 @@ bindexhist_SOURCES = \
 
 bindexhist_LDADD =
 
+bmergesorted_SOURCES = \
+						 ../blib/BError.c	../blib/BError.h \
+						 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+						 ../blib/RGIndex.c	../blib/RGIndex.h \
+						 ../blib/BLib.c	../blib/BLib.h \
+						 ../blib/RGBinary.c ../blib/RGBinary.h \
+						 ../blib/RGMatch.c ../blib/RGMatch.h \
+						 ../blib/RGMatches.c ../blib/RGMatches.h \
+						 ../blib/RGRanges.c ../blib/RGRanges.h \
+						 ../blib/RGReads.c	../blib/RGReads.h \
+						 ../blib/AlignEntries.c	../blib/AlignEntries.h \
+						 ../blib/AlignEntry.c	../blib/AlignEntry.h \
+						 bmergesorted.c	bmergesorted.h
+
+bmergesorted_LDADD =
+
+bmfconvert_SOURCES = \
+					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+					 ../blib/RGIndex.c	../blib/RGIndex.h \
+					 ../blib/BLib.c	../blib/BLib.h \
+					 ../blib/RGBinary.c ../blib/RGBinary.h \
+					 ../blib/RGMatch.c ../blib/RGMatch.h \
+					 ../blib/RGMatches.c ../blib/RGMatches.h \
+					 ../blib/RGRanges.c ../blib/RGRanges.h \
+					 ../blib/RGReads.c	../blib/RGReads.h \
+					 bmfconvert.c	bmfconvert.h
+
+bmfconvert_LDADD =
+
 bpairedenddist_SOURCES = \
 						 ../blib/BError.c	../blib/BError.h \
 						 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
@@ -184,20 +215,6 @@ bpairedenddist_SOURCES = \
 						 bpairedenddist.c	bpairedenddist.h
 
 bpairedenddist_LDADD =
-
-bmfconvert_SOURCES = \
-					 ../blib/BError.c	../blib/BError.h \
-					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-					 ../blib/RGIndex.c	../blib/RGIndex.h \
-					 ../blib/BLib.c	../blib/BLib.h \
-					 ../blib/RGBinary.c ../blib/RGBinary.h \
-					 ../blib/RGMatch.c ../blib/RGMatch.h \
-					 ../blib/RGMatches.c ../blib/RGMatches.h \
-					 ../blib/RGRanges.c ../blib/RGRanges.h \
-					 ../blib/RGReads.c	../blib/RGReads.h \
-					 bmfconvert.c	bmfconvert.h
-
-bmfconvert_LDADD =
 
 brepeat_SOURCES = \
 				  ../blib/BError.c	../blib/BError.h \
