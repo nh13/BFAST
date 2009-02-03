@@ -622,12 +622,12 @@ int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
 	int cmpOne, cmpTwo;
 	AlignEntry *oneA[2], *twoA[2];
 
+	assert(one->pairedEnd == two->pairedEnd);
 	if(SingleEnd == one->pairedEnd) {
 		assert(one->numEntriesOne == 1 && two->numEntriesOne == 1);
 		return AlignEntryCompareAtIndex(one->entriesOne, 0, two->entriesOne, 0, AlignEntrySortByContigPos);
 	}
 	else {
-		assert(one->pairedEnd == two->pairedEnd);
 		assert( (one->numEntriesOne == 1 && one->numEntriesTwo == 1) ||
 				(one->numEntriesOne == 0 && one->numEntriesTwo == 1) ||
 				(one->numEntriesOne == 1 && one->numEntriesTwo == 0));
