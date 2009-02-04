@@ -14,7 +14,7 @@
 #define Name "btranslocations"
 #define BSORT_ROTATE_NUM 100000
 
-/* Outputs unique paired end alignments for which each end is
+/* Outputs unique paired two alignments for which each two is
  * on a different contig.
  * */
 
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	FILE *outputFP=NULL;
 	AlignEntries a;
 	int64_t numRead, numPrinted, i, numToSatisfy;
-	Range start, end;
+	Range one, two;
 
 	if(6 <= argc) {
 		strcpy(outputRange[0], argv[1]);
@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
 		assert(0 == numToSatisfy || 1 == numToSatisfy);
 		strcpy(outputID, argv[4]);
 
-		ParseRange(&start, outputRange[0]);
-		ParseRange(&end, outputRange[1]);
+		ParseRange(&one, outputRange[0]);
+		ParseRange(&two, outputRange[1]);
 
 		/* Create output file name 
 		 * TODO */
@@ -81,18 +81,17 @@ int main(int argc, char *argv[])
 							(long long int)numRead);
 				}
 				if(a.numEntriesOne == 1 &&
-						a.numEntriesTwo == 1 &&
-						a.entriesOne[0].contig != a.entriesTwo[0].contig) {
-					if(numToSatisfy < CheckRange(&start, a.entriesOne[0].contig, a.entriesOne[0].position) + 
-							CheckRange(&end, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
+						a.numEntriesTwo == 1) {
+					if(numToSatisfy < CheckRange(&one, a.entriesOne[0].contig, a.entriesOne[0].position) + 
+							CheckRange(&two, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
 						AlignEntriesPrint(&a,
 								outputFP,
 								BinaryOutput);
 						fflush(outputFP);
 						numPrinted++;
 					}
-					else if(numToSatisfy < CheckRange(&end, a.entriesOne[0].contig, a.entriesOne[0].position) + 
-							CheckRange(&start, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
+					else if(numToSatisfy < CheckRange(&two, a.entriesOne[0].contig, a.entriesOne[0].position) + 
+							CheckRange(&one, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
 						AlignEntriesPrint(&a,
 								outputFP,
 								BinaryOutput);
@@ -110,7 +109,7 @@ int main(int argc, char *argv[])
 		/* Close files */
 		fclose(outputFP);
 
-		fprintf(stderr, "Read in %lld and outputted %lld paired end alignments.\n",
+		fprintf(stderr, "Read in %lld and outputted %lld paired two alignments.\n",
 				(long long int)numRead,
 				(long long int)numPrinted);
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -119,9 +118,9 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<end one range (contig1-contig2:pos1-pos2)\n");
-		fprintf(stderr, "\t<end two range (contig1-contig2:pos1-pos2)\n");
-		fprintf(stderr, "\t<require both 0: require one range to be satisfied 1: required both ranges to be satisfied>\n");
+		fprintf(stderr, "\t<two one range (contig1-contig2:pos1-pos2)\n");
+		fprintf(stderr, "\t<two two range (contig1-contig2:pos1-pos2)\n");
+		fprintf(stderr, "\t<0: require one range to be satisfied 1: required both ranges to be satisfied>\n");
 		fprintf(stderr, "\t<output ID>\n");
 		fprintf(stderr, "\t<bfast report file names>\n");
 	}
@@ -156,12 +155,13 @@ int32_t CheckRange(Range *r,
 		int32_t contig,
 		int32_t position)
 {
-	if(r->contigStart < contig ||
-			(r->contigStart == contig && r->positionStart <= position)) {
-		if(contig < r->contigEnd ||
-				(contig == r->contigEnd && position <= r->positionEnd)) {
-			return 1;
-		}
+	if(1==WithinRangeContigPos(contig,
+				position,
+				r->contigStart,
+				r->positionStart,
+				r->contigEnd,
+				r->positionEnd)) {
+		return 1;
 	}
 	return 0;
 }
