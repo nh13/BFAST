@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
 		/* Create output file name 
 		 * TODO */
-		sprintf(outputFileName, "bfast.translocations.%s.%s.%s.baf",
+		sprintf(outputFileName, "bfast.translocation.file.%s.%s.%s.baf",
 				outputID,
 				outputRange[0],
 				outputRange[1]);
