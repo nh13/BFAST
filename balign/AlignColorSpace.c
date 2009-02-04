@@ -28,26 +28,19 @@ void AlignColorSpaceMismatchesOnly(char *read,
 	int i, j, k, l;
 
 	int offset=-1;
-	int32_t prevScore[4];
-	int32_t prevScoreNT[4];
-	int prevNT[4][SEQUENCE_LENGTH];
+	int32_t prevScore[ALPHABET_SIZE+1];
+	int32_t prevScoreNT[ALPHABET_SIZE+1];
+	int prevNT[ALPHABET_SIZE+1][SEQUENCE_LENGTH];
 	int32_t maxScore = NEGATIVE_INFINITY;
 	int32_t maxScoreNT = NEGATIVE_INFINITY;
 	int maxNT[SEQUENCE_LENGTH];
-	char DNA[ALPHABET_SIZE] = "ACGT";
+	char DNA[ALPHABET_SIZE+1] = "ACGTN";
 
-	if(readLength > referenceLength) {
-		fprintf(stderr, "%s[%d]\n%s[%d]\n",
-				read,
-				readLength,
-				reference,
-				referenceLength);
-	}
 	assert(readLength <= referenceLength);
 
 	for(i=0;i<referenceLength-readLength+1;i++) { /* Starting position */
 		/* Initialize */
-		for(j=0;j<4;j++) {
+		for(j=0;j<ALPHABET_SIZE+1;j++) {
 			if(DNA[j] == COLOR_SPACE_START_NT) { 
 				prevScore[j] = prevScoreNT[j] = 0.0;
 			}
@@ -72,10 +65,10 @@ void AlignColorSpaceMismatchesOnly(char *read,
 						Exit,
 						OutOfRange);
 			}
-			int32_t nextScore[4];
-			int32_t nextScoreNT[4];
-			uint8_t nextNT[4];
-			for(k=0;k<ALPHABET_SIZE;k++) { /* To NT */
+			int32_t nextScore[ALPHABET_SIZE+1];
+			int32_t nextScoreNT[ALPHABET_SIZE+1];
+			uint8_t nextNT[ALPHABET_SIZE+1];
+			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
 
 				/* Get the best score to this NT */
 				int32_t bestScore = NEGATIVE_INFINITY;
@@ -83,7 +76,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 				int bestNT=-1;
 				uint8_t bestColor = 'X';
 
-				for(l=0;l<ALPHABET_SIZE;l++) { /* From NT */
+				for(l=0;l<ALPHABET_SIZE+1;l++) { /* From NT */
 					uint8_t convertedColor='X';
 					int32_t curScore = prevScore[l];
 					int32_t curScoreNT = prevScoreNT[l]; 
@@ -124,7 +117,8 @@ void AlignColorSpaceMismatchesOnly(char *read,
 				nextScoreNT[k] = bestScoreNT;
 				nextNT[k] = bestNT;
 			}
-			for(k=0;k<ALPHABET_SIZE;k++) { /* To NT */
+
+			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
 				prevScore[k] = nextScore[k];
 				prevScoreNT[k] = nextScoreNT[k];
 				prevNT[k][j] = nextNT[k];
@@ -139,7 +133,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 		}
 		/* Check if the score is better than the max */
 		k=0;
-		for(j=1;j<ALPHABET_SIZE;j++) { /* To NT */
+		for(j=0;j<ALPHABET_SIZE+1;j++) { /* To NT */
 			if(prevScore[k] < prevScore[j]) {
 				k=j;
 			}
@@ -198,7 +192,6 @@ void AlignColorSpaceMismatchesOnly(char *read,
 
 	/* Copy over */
 	for(i=0;i<a->length;i++) {
-
 		uint8_t c[2];
 		a->read[i] = DNA[maxNT[i]];
 		a->reference[i] = reference[i+offset];
@@ -606,7 +599,7 @@ void AlignColorSpaceFull(char *read,
 	}
 	free(matrix);
 	matrix=NULL;
-	
+
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
@@ -1033,39 +1026,39 @@ void AlignColorSpaceFullWithBound(char *read,
 
 	/* Debug code */
 	/*
-	AlignEntry tmp;
-	AlignEntryInitialize(&tmp);
-	AlignColorSpaceFull(read,
-			readLength,
-			reference,
-			referenceLength,
-			scoringType,
-			sm,
-			&tmp,
-			strand,
-			position);
-	if(a->score < tmp.score ||
-			tmp.score < a->score ||
-			!(a->length == tmp.length) ||
-			!(a->referenceLength == tmp.referenceLength)) {
-		fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
-		fprintf(stderr, "\nstrand=%c\n", strand);
-		AlignEntryPrint(a,
-				stderr,
-				ColorSpace,
-				TextOutput);
-		AlignEntryPrint(&tmp,
-				stderr,
-				ColorSpace,
-				TextOutput);
-		PrintError(FnName,
-				NULL,
-				"Alignments did not match",
-				Exit,
-				OutOfRange);
-	}
-	AlignEntryFree(&tmp);
-	*/
+	   AlignEntry tmp;
+	   AlignEntryInitialize(&tmp);
+	   AlignColorSpaceFull(read,
+	   readLength,
+	   reference,
+	   referenceLength,
+	   scoringType,
+	   sm,
+	   &tmp,
+	   strand,
+	   position);
+	   if(a->score < tmp.score ||
+	   tmp.score < a->score ||
+	   !(a->length == tmp.length) ||
+	   !(a->referenceLength == tmp.referenceLength)) {
+	   fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
+	   fprintf(stderr, "\nstrand=%c\n", strand);
+	   AlignEntryPrint(a,
+	   stderr,
+	   ColorSpace,
+	   TextOutput);
+	   AlignEntryPrint(&tmp,
+	   stderr,
+	   ColorSpace,
+	   TextOutput);
+	   PrintError(FnName,
+	   NULL,
+	   "Alignments did not match",
+	   Exit,
+	   OutOfRange);
+	   }
+	   AlignEntryFree(&tmp);
+	   */
 
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
