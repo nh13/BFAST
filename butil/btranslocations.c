@@ -42,8 +42,10 @@ int main(int argc, char *argv[])
 
 		/* Create output file name 
 		 * TODO */
-		sprintf(outputFileName, "bfast.translocations.%s.baf",
-				outputID);
+		sprintf(outputFileName, "bfast.translocations.%s.%s.%s.baf",
+				outputID,
+				outputRange[0],
+				outputRange[1]);
 		if(!(outputFP = fopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
@@ -138,6 +140,13 @@ void ParseRange(Range *r,
 		PrintError(FnName,
 				string,
 				"Could not parse string.  Should be in %d-%d:%d-%d format",
+				Exit,
+				OutOfRange);
+	}
+	if(CompareContigPos(r->contigEnd, r->positionEnd, r->contigStart, r->positionStart) < 0) {
+		PrintError(FnName,
+				string,
+				"End range was out of bounds",
 				Exit,
 				OutOfRange);
 	}

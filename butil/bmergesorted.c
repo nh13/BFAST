@@ -39,8 +39,12 @@ void MergeFiles(FILE *fpOne,
 
 		if(EOF == AlignEntriesRead(&aOne, fpOne, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput) ||
 				EOF == AlignEntriesRead(&aTwo, fpTwo, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
-			assert(0 == fsetpos(fpOne, &posOne));
-			assert(0 == fsetpos(fpTwo, &posTwo));
+			if(0 == feof(fpOne)) {
+				assert(0 == fsetpos(fpOne, &posOne));
+			}
+			if(0 == feof(fpTwo)) {
+				assert(0 == fsetpos(fpTwo, &posTwo));
+			}
 		}
 		else {
 			ctr++;
