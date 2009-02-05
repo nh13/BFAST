@@ -37,6 +37,8 @@ int AlignRGMatches(RGMatches *m,
 {
 	double bestScore;
 	int32_t numLocalAlignments = 0;
+	int32_t numAlignedOne=0;
+	int32_t numAlignedTwo=0;
 
 	/* Check to see if we should try to align one read with no candidate
 	 * locations if the other one has candidate locations.
@@ -59,7 +61,7 @@ int AlignRGMatches(RGMatches *m,
 			space);
 
 	/* Align each individually */
-	bestScore = AlignRGMatchesOneEnd(&m->matchOne,
+	AlignRGMatchesOneEnd(&m->matchOne,
 			rg,
 			a->entriesOne,
 			space,
@@ -67,17 +69,20 @@ int AlignRGMatches(RGMatches *m,
 			offsetLength,
 			sm,
 			alignmentType,
-			bestOnly);
+			bestOnly,
+			&bestScore,
+			&numAlignedOne
+			);
 	if(BestOnly == bestOnly) {
 		numLocalAlignments += AlignRGMatchesKeepBestScore(&a->entriesOne,
 				&a->numEntriesOne,
 				bestScore);
 	}
 	else {
-		numLocalAlignments += a->numEntriesOne;
+		numLocalAlignments += numAlignedOne;
 	}
 	if(PairedEnd == pairedEnd) {
-		bestScore = AlignRGMatchesOneEnd(&m->matchTwo,
+		AlignRGMatchesOneEnd(&m->matchTwo,
 				rg,
 				a->entriesTwo,
 				space,
@@ -85,21 +90,30 @@ int AlignRGMatches(RGMatches *m,
 				offsetLength,
 				sm,
 				alignmentType,
-				bestOnly);
+				bestOnly,
+				&bestScore,
+			&numAlignedTwo
+				);
 		if(BestOnly == bestOnly) {
 			numLocalAlignments += AlignRGMatchesKeepBestScore(&a->entriesTwo,
 					&a->numEntriesTwo,
 					bestScore);
 		}
 		else {
-			numLocalAlignments += a->numEntriesTwo;
+			numLocalAlignments += numAlignedTwo;
 		}
 	}
+	/* Reallocate */
+	AlignEntriesReallocate(a,
+			numAlignedOne,
+			numAlignedTwo,
+			pairedEnd,
+			space);
 	return numLocalAlignments;
 }
 
 /* TODO */
-double AlignRGMatchesOneEnd(RGMatch *m,
+void AlignRGMatchesOneEnd(RGMatch *m,
 		RGBinary *rg,
 		AlignEntry *entries,
 		int32_t space,
@@ -107,16 +121,20 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 		int32_t offsetLength,
 		ScoringMatrix *sm,
 		int32_t alignmentType,
-		int32_t bestOnly)
+		int32_t bestOnly,
+		double *bestScore,
+		int32_t *numAligned)
 {
 	char *FnName="AlignRGMatchOneEnd";
 	int32_t i;
 	char **references=NULL;
 	int32_t *referenceLengths=NULL;
 	int32_t *referencePositions=NULL;
-	double bestScore=DBL_MIN;
 	char read[SEQUENCE_LENGTH]="\0";
 	int32_t readLength;
+	int32_t ctr=0;
+
+	(*bestScore)=DBL_MIN;
 
 	strcpy(read, (char*)m->read);
 	if(NTSpace == space) {
@@ -150,7 +168,7 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 				Exit,
 				MallocMemory);
 	}
-	for(i=0;i<m->numEntries;i++) {
+	for((*numAligned)=0,i=0,ctr=0;i<m->numEntries;i++) {
 		references[i]=NULL; /* This is needed for RGBinaryGetReference */
 		/* Get references */
 		RGBinaryGetReference(rg,
@@ -164,45 +182,52 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 				&referencePositions[i]);
 		assert(referenceLengths[i] > 0);
 		/* Initialize entries */
-		entries[i].contigNameLength = rg->contigs[m->contigs[i]-1].contigNameLength;
-		entries[i].contigName = malloc(sizeof(char)*(entries[i].contigNameLength+1));
-		if(NULL==entries[i].contigName) {
-			PrintError(FnName,
-					"entries[i].contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+		if(readLength <= referenceLengths[i]) {
+			entries[ctr].contigNameLength = rg->contigs[m->contigs[i]-1].contigNameLength;
+			entries[ctr].contigName = malloc(sizeof(char)*(entries[ctr].contigNameLength+1));
+			if(NULL==entries[ctr].contigName) {
+				PrintError(FnName,
+						"entries[ctr].contigName",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+			strcpy(entries[ctr].contigName, rg->contigs[m->contigs[i]-1].contigName);
+			entries[ctr].contig = m->contigs[i];
+			entries[ctr].strand = m->strands[i];
+			/* The rest should be filled in later */
+			entries[ctr].position = -1; 
+			entries[ctr].score=DBL_MIN;
+			entries[ctr].length = 0;
+			entries[ctr].referenceLength = 0;
+			entries[ctr].read = entries[ctr].reference = entries[ctr].colorError = NULL;
+			(*numAligned)++;
+			ctr++;
 		}
-		strcpy(entries[i].contigName, rg->contigs[m->contigs[i]-1].contigName);
-		entries[i].contig = m->contigs[i];
-		entries[i].strand = m->strands[i];
-		/* The rest should be filled in later */
-		entries[i].position = -1; 
-		entries[i].score=DBL_MIN;
-		entries[i].length = 0;
-		entries[i].referenceLength = 0;
-		entries[i].read = entries[i].reference = entries[i].colorError = NULL;
 	}
 
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
 	int32_t foundExact;
 	foundExact = 0;
 	/* Try exact alignment */
-	for(i=0;i<m->numEntries;i++) {
-		if(1==AlignExact(read, 
-					readLength, 
-					references[i], 
-					referenceLengths[i],
-					scoringType,
-					sm,
-					&entries[i],
-					m->strands[i],
-					referencePositions[i],
-					space)) {
-			foundExact=1;
-			if(bestScore < entries[i].score) {
-				bestScore = entries[i].score;
+	for(i=0,ctr=0;i<m->numEntries;i++) {
+		if(readLength <= referenceLengths[i]) {
+			if(1==AlignExact(read, 
+						readLength, 
+						references[i], 
+						referenceLengths[i],
+						scoringType,
+						sm,
+						&entries[ctr],
+						m->strands[i],
+						referencePositions[i],
+						space)) {
+				foundExact=1;
+				if((*bestScore) < entries[ctr].score) {
+					(*bestScore) = entries[ctr].score;
+				}
 			}
+			ctr++;
 		}
 	}
 
@@ -214,29 +239,30 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 		free(references);
 		free(referenceLengths);
 		free(referencePositions);
-
-		return bestScore;
 	}
 #endif
 
 #ifdef UNOPTIMIZED_SMITH_WATERMAN
 	if(MismatchesOnly == alignmentType) {
 #endif
-		for(i=0;i<m->numEntries;i++) {
-			if(!(DBL_MIN < entries[i].score)) {
-				AlignMismatchesOnly(read,
-						readLength,
-						references[i],
-						referenceLengths[i],
-						scoringType,
-						sm,
-						&entries[i],
-						space,
-						m->strands[i],
-						referencePositions[i]);
-				if(bestScore < entries[i].score) {
-					bestScore = entries[i].score;
+		for(i=0,ctr=0;i<m->numEntries;i++) {
+			if(readLength <= referenceLengths[i]) {
+				if(!(DBL_MIN < entries[ctr].score)) {
+					AlignMismatchesOnly(read,
+							readLength,
+							references[i],
+							referenceLengths[i],
+							scoringType,
+							sm,
+							&entries[ctr],
+							space,
+							m->strands[i],
+							referencePositions[i]);
+					if((*bestScore) < entries[ctr].score) {
+						(*bestScore) = entries[ctr].score;
+					}
 				}
+				ctr++;
 			}
 		}
 
@@ -251,9 +277,7 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 			free(referenceLengths);
 			free(referencePositions);
 
-			return bestScore;
-			/* These compiler commands aren't necessary, but are here
-			 * for vim tab indenting */
+			/* These compiler commands aren't necessary, but are here for vim tab indenting */
 #ifdef UNOPTIMIZED_SMITH_WATERMAN
 		}
 #else 
@@ -261,20 +285,23 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 #endif
 
 	/* Run Full */
-	for(i=0;i<m->numEntries;i++) {
-		AlignFullWithBound(read,
-				readLength,
-				references[i],
-				referenceLengths[i],
-				scoringType,
-				sm,
-				&entries[i],
-				space,
-				m->strands[i],
-				referencePositions[i],
-				(BestOnly == bestOnly)?bestScore:entries[i].score);
-		if(bestScore < entries[i].score) {
-			bestScore = entries[i].score;
+	for(i=0,ctr=0;i<m->numEntries;i++) {
+		if(readLength <= referenceLengths[i]) {
+			AlignFullWithBound(read,
+					readLength,
+					references[i],
+					referenceLengths[i],
+					scoringType,
+					sm,
+					&entries[ctr],
+					space,
+					m->strands[i],
+					referencePositions[i],
+					(BestOnly == bestOnly)?(*bestScore):entries[ctr].score);
+			if((*bestScore) < entries[ctr].score) {
+				(*bestScore) = entries[ctr].score;
+			}
+			ctr++;
 		}
 	}
 
@@ -284,8 +311,6 @@ double AlignRGMatchesOneEnd(RGMatch *m,
 	free(references);
 	free(referenceLengths);
 	free(referencePositions);
-
-	return bestScore;
 }
 
 /* TODO */
