@@ -387,7 +387,7 @@ int32_t AlignExact(char *read,
 						curColor,
 						sm);
 
-				a->colorError[i] = '0';
+				a->colorError[i] = GAP;
 			}
 			assert(ToLower(read[i]) == ToLower(reference[i+offset]));
 			a->score += ScoringMatrixGetNTScore(read[i], read[i], sm);

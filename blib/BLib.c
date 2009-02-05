@@ -1020,6 +1020,36 @@ void ConvertColorsFromStorage(char *colors, int length)
 }
 
 /* TODO */
+char ConvertIntColorToCharColor(char c)
+{
+	switch(c) {
+		case 0:
+		case '0':
+			c = '0';
+			break;
+		case 1:
+		case '1':
+			c = '1';
+			break;
+		case 2:
+		case '2':
+			c = '2';
+			break;
+		case '3':
+		case 3:
+			c = '3';
+			break;
+		case GAP:
+			c = GAP;
+			break;
+		default:
+			c = '4';
+			break;
+	}
+	return c;
+}
+
+/* TODO */
 char ConvertColorFromStorage(char c)
 {
 	switch(c) {

@@ -498,8 +498,9 @@ void Run(RGBinary *rg,
 		}
 		else if(score < round(a.entriesOne[0].score)) {
 			numScoreGreaterThan++;
-			/*
+			/* HERE */
 			   AlignEntriesPrint(&a, stderr, TextOutput);
+			   /*
 			   PrintError(FnName,
 			   "numScoreGreaterThan",
 			   "The alignment score was greater than expected",
