@@ -264,7 +264,7 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 
 			/* color space */
 			if(ColorSpace == space) {
-				if('1' == a->colorError[i]) {
+				if(GAP != a->colorError[i]) {
 					CountUpdate(&e->by[1],
 							CountBoth,
 							ctr,
