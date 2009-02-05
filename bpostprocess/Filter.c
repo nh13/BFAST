@@ -373,10 +373,10 @@ int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space)
 		for(i=0;i<a->length;i++) {
 			/* Increment color errors */
 			switch(a->colorError[i]) {
-				case '1':
-					numColorErrors++;
+				case GAP:
 					break;
 				default:
+					numColorErrors++;
 					break;
 			}
 		}
