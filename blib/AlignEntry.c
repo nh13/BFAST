@@ -609,6 +609,7 @@ void AlignEntryCopy(AlignEntry *src, AlignEntry *dest)
 		strcpy(dest->reference, src->reference);
 		/* Color error, if necessary */
 		if(src->colorError != NULL) {
+			assert(src->length > 0);
 			dest->colorError = realloc(dest->colorError, sizeof(char)*(src->length+1));
 			if(NULL == dest->colorError) {
 				PrintError(FnName,

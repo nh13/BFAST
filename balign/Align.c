@@ -92,7 +92,7 @@ int AlignRGMatches(RGMatches *m,
 				alignmentType,
 				bestOnly,
 				&bestScore,
-			&numAlignedTwo
+				&numAlignedTwo
 				);
 		if(BestOnly == bestOnly) {
 			numLocalAlignments += AlignRGMatchesKeepBestScore(&a->entriesTwo,
@@ -362,13 +362,15 @@ int32_t AlignExact(char *read,
 					MallocMemory);
 		}
 		assert(NULL==a->colorError);
-		a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL==a->colorError) {
-			PrintError(FnName,
-					"a->colorError",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+		if(ColorSpace == space) {
+			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+			if(NULL==a->colorError) {
+				PrintError(FnName,
+						"a->colorError",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
 		}
 
 		for(i=0;i<readLength;i++) {
