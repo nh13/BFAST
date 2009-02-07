@@ -85,7 +85,7 @@ void RunAligner(RGBinary *rg,
 			outputID,
 			space,
 			pairedEnd,
-			BFAST_NOT_ALIGNED_FILE_EXTENSION);
+			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "wb"))==0) {

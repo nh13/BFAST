@@ -1412,3 +1412,17 @@ int WithinRangeContigPos(int32_t contig,
 		return 0;
 	}
 }
+
+char *StrStrGetLast(char * str1, 
+		const char * str2)
+{
+	char *ptr=str1;
+	char *prev=NULL;
+
+	while(ptr != NULL) {
+		prev = ptr;
+		ptr = strstr(ptr+1, str2);
+	}
+
+	return (prev != str1)?prev:NULL;
+}

@@ -1,7 +1,6 @@
 #ifndef DEFINITIONS_H_
 #define DEFINITIONS_H_
 
-enum {BAF, MAF, LastFileType};
 #define MIN_FILTER 0
 #define MAX_FILTER_SE 3
 #define MAX_FILTER_PE 3

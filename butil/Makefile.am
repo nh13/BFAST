@@ -27,6 +27,7 @@ bafconvert_SOURCES = \
 					 ../blib/RGMatch.c ../blib/RGMatch.h \
 					 ../blib/RGRanges.c ../blib/RGRanges.h \
 					 ../blib/AlignEntries.c	../blib/AlignEntries.h \
+					 ../blib/AlignEntriesConvert.c	../blib/AlignEntriesConvert.h \
 					 ../blib/AlignEntry.c	../blib/AlignEntry.h \
 					 bafconvert.c bafconvert.h
 

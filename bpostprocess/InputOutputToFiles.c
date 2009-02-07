@@ -5,6 +5,7 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignEntries.h"
+#include "../blib/AlignEntriesConvert.h"
 #include "Definitions.h"
 #include "Filter.h"
 #include "InputOutputToFiles.h"
@@ -115,7 +116,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		PrintHeader(fpContigAb, outputFormat);
+		AlignEntriesConvertPrintHeader(fpContigAb, outputFormat);
 	}
 	if(inversionsPaired == 1) {
 		assert(1==pairedEnd);
@@ -126,7 +127,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		PrintHeader(fpInversions, outputFormat);
+		AlignEntriesConvertPrintHeader(fpInversions, outputFormat);
 	}
 	if(unpaired == 1) {
 		assert(1==pairedEnd);
@@ -137,7 +138,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		PrintHeader(fpUnpaired, outputFormat);
+		AlignEntriesConvertPrintHeader(fpUnpaired, outputFormat);
 	}
 	if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
 		PrintError(FnName,
@@ -146,7 +147,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				Exit,
 				OpenFileError);
 	}
-	PrintHeader(fpNotReported, outputFormat);
+	AlignEntriesConvertPrintHeader(fpNotReported, outputFormat);
 	if(!(fpOut=fopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
@@ -154,7 +155,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				Exit,
 				OpenFileError);
 	}
-	PrintHeader(fpOut, outputFormat);
+	AlignEntriesConvertPrintHeader(fpOut, outputFormat);
 
 	/* Initialize */
 	AlignEntriesInitialize(&a);
@@ -192,19 +193,19 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		switch(foundType) {
 			case NoneFound:
 				/* Print to Not Reported file */
-				PrintAlignEntriesToOutputFormat(&a, rg, fpNotReported, outputFormat, binaryInput);
+				AlignEntriesConvertPrintOutputFormat(&a, rg, fpNotReported, outputFormat, binaryInput);
 				numNotReported++;
 				break;
 			case Found:
 				/* Print to Output file */
-				PrintAlignEntriesToOutputFormat(&a, rg, fpOut, outputFormat, binaryInput);
+				AlignEntriesConvertPrintOutputFormat(&a, rg, fpOut, outputFormat, binaryInput);
 				numReported++;
 				break;
 			case ContigAb:
 				assert(pairedEnd == 1);
 				if(contigAbPaired == 1) {
 					/* Print to Contig Abnormalities file */
-					PrintAlignEntriesToOutputFormat(&a, rg, fpContigAb, outputFormat, binaryInput);
+					AlignEntriesConvertPrintOutputFormat(&a, rg, fpContigAb, outputFormat, binaryInput);
 					numContigAb++;
 				}
 				break;
@@ -212,7 +213,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				assert(pairedEnd == 1);
 				if(unpaired == 1) {
 					/* Print to Unpaired file */
-					PrintAlignEntriesToOutputFormat(&a, rg, fpUnpaired, outputFormat, binaryInput);
+					AlignEntriesConvertPrintOutputFormat(&a, rg, fpUnpaired, outputFormat, binaryInput);
 					numUnpaired++;
 				}
 				break;
@@ -220,7 +221,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				assert(pairedEnd == 1);
 				if(inversionsPaired == 1) {
 					/* Print to Inversions file */
-					PrintAlignEntriesToOutputFormat(&a, rg, fpInversions, outputFormat, binaryInput);
+					AlignEntriesConvertPrintOutputFormat(&a, rg, fpInversions, outputFormat, binaryInput);
 					numInversions++;
 				}
 				break;
@@ -273,173 +274,4 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	/* Close the input file */
 	fclose(fp);
-}
-
-/* TODO */
-void PrintHeader(FILE *fp,
-		int outputFormat) 
-{
-	char *FnName = "PrintHeader";
-	switch(outputFormat) {
-		case BAF:
-			/* Do nothing */
-			break;
-		case MAF:
-			if(0>fprintf(fp, "##maf version=1 scoring=%s\n",
-						PROGRAM_NAME)) {
-				PrintError(FnName,
-						"header",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
-			break;
-		default:
-			PrintError(FnName,
-					"outputFormat",
-					"Could not understand outputFormat",
-					Exit,
-					OutOfRange);
-			break;
-	}
-}
-
-/* TODO */
-void PrintAlignEntriesToOutputFormat(AlignEntries *a, 
-		RGBinary *rg,
-		FILE *fp,
-		int outputFormat,
-		int binaryInput)
-{
-	char *FnName = "PrintAlignEntriesToOutputFormat";
-	switch(outputFormat) {
-		case BAF:
-			AlignEntriesPrint(a, fp, binaryInput);
-			break;
-		case MAF:
-			PrintAlignEntriesToMAF(a, rg, fp);
-			break;
-		default:
-			PrintError(FnName,
-					"outputFormat",
-					"Could not understand outputFormat",
-					Exit,
-					OutOfRange);
-			break;
-	}
-}
-
-/* TODO */
-void PrintAlignEntriesToMAF(AlignEntries *a,
-		RGBinary *rg,
-		FILE *fp)
-{
-	/*
-	   char *FnName="PrintAlignEntriesToMAF";
-	   */
-	int i;
-
-	/* Get Data */
-	if(0==a->pairedEnd) {
-		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], rg, a->readName, a->pairedEnd, a->space, 1, fp); 
-		}
-	}
-	else {
-		for(i=0;i<a->numEntriesOne;i++) {
-			PrintAlignEntryToMAF(&a->entriesOne[i], rg, a->readName, a->pairedEnd, a->space, 1, fp); 
-		}
-		for(i=0;i<a->numEntriesTwo;i++) {
-			PrintAlignEntryToMAF(&a->entriesTwo[i], rg, a->readName, a->pairedEnd, a->space, 2, fp); 
-		}
-	}
-
-}
-
-/* TODO */
-void PrintAlignEntryToMAF(AlignEntry *a,
-		RGBinary *rg,
-		char *readName,
-		int pairedEnd,
-		int space,
-		int readNum,
-		FILE *fp)
-{
-	char *FnName="PrintAlignEntryToMAF";
-	int i;
-	int originalReferenceLength=0;
-	int originalReadLength=0; 
-
-	/* Recover original lengths */
-	for(i=0;i<a->length;i++) {
-		if(a->reference[i] != GAP) {
-			originalReferenceLength++;
-		}
-		if(a->read[i] != GAP) {
-			originalReadLength++;
-		}
-	}
-	assert(originalReferenceLength == a->referenceLength);
-
-	/* Print the score */
-	if(space == ColorSpace) {
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d color-errors=%s contig-index=%d\n",
-					a->score,
-					pairedEnd,
-					readNum,
-					a->colorError,
-					a->contig)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
-		}
-	}
-	else {
-		assert(space == NTSpace);
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-index=%d\n",
-					a->score,
-					pairedEnd,
-					readNum,
-					a->contig)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
-		}
-	}
-
-	/* Make sure the contig reported is within bounds of the reference genome */
-	assert(1 <= a->contig && a->contig <= rg->numContigs);
-
-	/* Print the reference */
-	if(0>fprintf(fp, "s %s %u %d %c %d %s\n",
-				a->contigName,
-				a->position-1, /* zero based */
-				originalReferenceLength,
-				a->strand,
-				rg->contigs[a->contig-1].sequenceLength, /* original contig length */
-				a->reference)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
-	}
-	/* Print the read */
-	if(0>fprintf(fp, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
-				readName,
-				0,
-				originalReadLength, /* We align the full read */
-				a->strand,
-				originalReadLength, /* original read length */
-				a->read)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
-	}
 }

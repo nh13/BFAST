@@ -19,7 +19,11 @@ butil \- utilities for bfast (not supported)
 .
 bafconvert [OPTIONS]
 	<bfast aligned file name>
-	<input type: 0-text 1-binary>
+	<output type:
+			0-BAF text to BAF binary
+			1-BAF binary to BAF text
+			2-BAF binary to MAF
+	<bfast reference genome file (required only for MAF output)>
 
 balignsim [OPTIONS]
 	<bfast reference genome file name (must be in nt space)>

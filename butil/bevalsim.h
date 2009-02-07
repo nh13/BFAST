@@ -42,7 +42,6 @@ typedef struct {
 } Stats;
 
 enum {OriginalRead, AlignedRead};
-enum {BMF, BAF};
 
 void ReadTypeInitialize(ReadType*);
 void ReadTypeCopy(ReadType*, ReadType*);

@@ -27,6 +27,7 @@
 /* Default output */
 enum {TextOutput, BinaryOutput};
 enum {TextInput, BinaryInput};
+enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 #define BPREPROCESS_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 #define BMATCHES_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 #define BALIGN_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
@@ -37,7 +38,6 @@ enum {TextInput, BinaryInput};
 #define BFAST_MATCHES_FILE_EXTENSION "bmf"
 #define BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION "fa"
 #define BFAST_ALIGNED_FILE_EXTENSION "baf"
-#define BFAST_NOT_ALIGNED_FILE_EXTENSION "bnaf"
 #define BFAST_MAF_FILE_EXTENSION "maf"
 
 #define RGMATCH_MERGE_ROTATE_NUM 100000

@@ -425,6 +425,7 @@ int main(int argc, char *argv[])
 	TmpFile tmpFile;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *outputFP=NULL;
+	char *last=NULL;
 
 	if(argc == 4) {
 		strcpy(inputFileName, argv[1]);
@@ -436,9 +437,19 @@ int main(int argc, char *argv[])
 		MoveAllIntoTmpFile(inputFileName, &tmpFile, tmpDir);
 		fprintf(stderr, "%s", BREAK_LINE);
 
-		/* Create output file name */ 
-		strcpy(outputFileName, inputFileName);
-		strcat(outputFileName, ".sorted");
+		/* Create output file name */
+		last = StrStrGetLast(inputFileName,
+				BFAST_ALIGNED_FILE_EXTENSION);
+		if(NULL == last) {
+			PrintError(Name,
+					inputFileName,
+					"Could not recognize file extension",
+					Exit,
+					OutOfRange);
+		}
+		strncpy(outputFileName, inputFileName, (last - inputFileName));
+		strcat(outputFileName, "sorted.");
+		strcat(outputFileName, BFAST_ALIGNED_FILE_EXTENSION);
 
 		if(!(outputFP = fopen(outputFileName, "wb"))) {
 			PrintError(Name,

@@ -366,7 +366,12 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->outputFormat < 0 || args->outputFormat > 1) {
+	if(!(args->outputFormat == BAF ||
+				args->outputFormat == MAF)) {
+		fprintf(stderr, "%d[%d,%d]\n",
+				args->outputFormat,
+				BAF,
+				MAF);
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -427,7 +432,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->outputDir!=0);
 	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
-	args->outputFormat=0;
+	args->outputFormat=BAF;
 
 	args->timing = 0;
 
@@ -581,7 +586,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'M':
 						arguments->minScoreReadsPaired = atoi(OPTARG);break;
 					case 'O':
-						arguments->outputFormat=atoi(OPTARG);break;
+						switch(atoi(OPTARG)) {
+							case 0:
+								arguments->outputFormat = BAF;
+								break;
+							case 1:
+								arguments->outputFormat = MAF;
+								break;
+							default:
+								/* Let someone else handle this! */
+								break;
+						}
+						break;
 					case 'S':
 						arguments->startPos=atoi(OPTARG);break;
 					case 'U':

@@ -5,6 +5,7 @@
 #include "../blib/RGMatches.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
 #include "bmfconvert.h"
 
 #define Name "bmfconvert"
@@ -21,6 +22,7 @@ int main(int argc, char *argv[])
 	long long int counter;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
+	char *last;
 	RGMatches m;
 
 	if(argc == 3) {
@@ -29,13 +31,30 @@ int main(int argc, char *argv[])
 
 		assert(TextInput==binaryInput || BinaryInput==binaryInput);
 
-		/* Creat output file name */
-		sprintf(outputFileName, "%s.converted",
-				inputFileName);
-
 		/* Set binary for output */
 		binaryOutput = (binaryInput==TextInput)?BinaryOutput:TextOutput;
 		assert(binaryInput!=binaryOutput);
+
+		/* Create output file name */
+		last = StrStrGetLast(inputFileName,
+				BFAST_MATCHES_FILE_EXTENSION);
+		if(NULL == last) {
+			PrintError(Name,
+					inputFileName,
+					"Could not recognize file extension",
+					Exit,
+					OutOfRange);
+		} 
+		if(TextOutput == binaryOutput) {
+			strncpy(outputFileName, inputFileName, (last - inputFileName));
+			strcat(outputFileName, "text.");
+			strcat(outputFileName, BFAST_MATCHES_FILE_EXTENSION);
+		}
+		else {
+			strncpy(outputFileName, inputFileName, (last - inputFileName));
+			strcat(outputFileName, "binary.");
+			strcat(outputFileName, BFAST_MATCHES_FILE_EXTENSION);
+		}
 
 		/* Open the input file */
 		if(!(fpIn=fopen(inputFileName, "rb"))) {
