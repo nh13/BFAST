@@ -34,9 +34,9 @@ do
 
 		# Find matches
 		if [ "$PAIRED_END" -eq "0" ]; then
-			CMD="../bmatches/bmatches -r $RG -i $MAIN -I $SECONDARY -O $OFFSETS -R $READS -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="valgrind --leak-check=yes --log-file=log ../bmatches/bmatches -r $RG -i $MAIN -I $SECONDARY -O $OFFSETS -R $READS -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		else
-			CMD="../bmatches/bmatches -r $RG -i $MAIN -I $SECONDARY -O $OFFSETS -R $READS -A $SPACE -2 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="valgrind --leak-check=yes --log-file=log ../bmatches/bmatches -r $RG -i $MAIN -I $SECONDARY -O $OFFSETS -R $READS -A $SPACE -2 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		fi
 		$CMD 2> /dev/null > /dev/null; 
 		# Get return code

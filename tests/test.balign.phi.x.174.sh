@@ -20,9 +20,9 @@ do
 
 		# Run local alignment
 		if [ "$PAIRED_END" -eq "0" ]; then
-			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -X $SPACE -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="valgrind --leak-check=yes --log-file=log ../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -X $SPACE -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		else
-			CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -X $SPACE -2 -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+			CMD="valgrind --leak-check=yes --log-file=log ../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -X $SPACE -2 -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 		fi
 		$CMD 2> /dev/null > /dev/null; 
 		# Get return code

@@ -1282,6 +1282,7 @@ void RGIndexDelete(RGIndex *index)
 	free(index->positions);
 	free(index->mask);
 	free(index->starts);
+	free(index->packageVersion);
 
 	RGIndexInitialize(index);
 }
