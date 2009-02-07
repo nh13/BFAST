@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.3.3
+* A quick fix to remove a memory leak that can causes crashes
+when aligning nt space data.
+
 Version 0.3.2
 * Updating how we report color errors in .baf files.
 * Added a new utility: bmergesorted that merges two files that
