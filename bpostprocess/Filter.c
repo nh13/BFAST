@@ -6,6 +6,7 @@
 #include "../blib/BError.h"
 #include "../blib/AlignEntry.h"
 #include "../blib/AlignEntries.h"
+#include "../blib/BLib.h"
 #include "Definitions.h"
 #include "Filter.h"
 
@@ -356,7 +357,7 @@ int GetNumMismatchesInAlignEntry(AlignEntry *a)
 		/* Increment mismatches */
 		if(GAP != a->read[i] && 
 				GAP != a->reference[i] && 
-				a->read[i] != a->reference[i]) {
+				ToLower(a->read[i]) != ToLower(a->reference[i])) {
 			numMismatches++;
 		}
 	}

@@ -72,6 +72,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		case MAF:
 			strcpy(fileExtension, BFAST_MAF_FILE_EXTENSION);
 			break;
+		case GFF:
+			strcpy(fileExtension, BFAST_GFF_FILE_EXTENSION);
+			break;
 		default:
 			PrintError(FnName,
 					"outputFormat",

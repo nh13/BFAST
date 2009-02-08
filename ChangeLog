@@ -7,6 +7,9 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.3.4
 * Updated balign, bmfconver, bafconvert, and bsort output file names.
+* Added gff output in bpostprocess and bafconvert.
+* Fixed bug in bpostprocess when specifying the maximum number of 
+nt errors.
 
 Version 0.3.3
 * A quick fix to remove a memory leak that can causes crashes

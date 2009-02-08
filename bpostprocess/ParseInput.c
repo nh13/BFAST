@@ -107,7 +107,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 5},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 5},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 5},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF", 5},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF", 5},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 5},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 6},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 6},
@@ -367,11 +367,8 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	if(!(args->outputFormat == BAF ||
-				args->outputFormat == MAF)) {
-		fprintf(stderr, "%d[%d,%d]\n",
-				args->outputFormat,
-				BAF,
-				MAF);
+				args->outputFormat == MAF ||
+				args->outputFormat == GFF)) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -593,8 +590,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 							case 1:
 								arguments->outputFormat = MAF;
 								break;
+							case 2:
+								arguments->outputFormat = GFF;
+								break;
 							default:
-								/* Let someone else handle this! */
+								arguments->outputFormat = -1;
+								/* Deal with this when we validate the input parameters */
 								break;
 						}
 						break;

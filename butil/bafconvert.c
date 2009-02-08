@@ -77,6 +77,12 @@ int main(int argc, char *argv[])
 				RGBinaryReadBinary(&rg,
 						rgFileName);
 				break;
+			case 3:
+				outputType=GFF;
+				inputType=BinaryInput;
+				outputSubType=TextOutput;
+				strcat(outputFileName, BFAST_GFF_FILE_EXTENSION);
+				break;
 			default:
 				PrintError(Name,
 						NULL,
