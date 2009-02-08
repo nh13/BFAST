@@ -245,14 +245,15 @@ void AlignEntriesConvertPrintAlignEntryToGFF(AlignEntry *a,
 	assert(originalReferenceLength == a->referenceLength);
 
 	/* Write fields */
-	if(0>fprintf(fp, "%s\t%s\t%s\t%d\t%d\t%lf\t%c\t.\t",
+	if(0>fprintf(fp, "%s\t%s\t%s\t%d\t%d\t%lf\t%c\t.\twhich_end=%d;",
 				readName,
 				PROGRAM_NAME,
 				"read",
 				a->position, /* one based */
 				a->position + a->referenceLength-1,
 				a->score,
-				a->strand)) {
+				a->strand,
+				readNum)) {
 		PrintError(FnName,
 				NULL,
 				"Could not write to file",

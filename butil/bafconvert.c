@@ -148,9 +148,7 @@ int main(int argc, char *argv[])
 				"\t\t0-BAF text to BAF binary\n"
 				"\t\t1-BAF binary to BAF text\n"
 				"\t\t2-BAF binary to MAF\n"
-				/*
-				   "\t\t3-BAF binary to GFF (v?)\n"
-				   */
+				"\t\t3-BAF binary to GFF (v2)\n"
 			   );
 		fprintf(stderr, "\t<bfast reference genome file (required only for MAF output)>\n");
 	}
