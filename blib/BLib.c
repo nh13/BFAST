@@ -1426,3 +1426,66 @@ char *StrStrGetLast(char * str1,
 
 	return (prev != str1)?prev:NULL;
 }
+
+/* TODO */
+void ParseRange(Range *r,
+		char *string)
+{
+	char *FnName="ParseRange";
+	if(4 != sscanf(string, "%d-%d:%d-%d\n",
+				&r->contigStart,
+				&r->contigEnd,
+				&r->positionStart,
+				&r->positionEnd)) {
+		PrintError(FnName,
+				string,
+				"Could not parse string.  Should be in %d-%d:%d-%d format",
+				Exit,
+				OutOfRange);
+	}
+	if(CompareContigPos(r->contigEnd, r->positionEnd, r->contigStart, r->positionStart) < 0) {
+		PrintError(FnName,
+				string,
+				"End range was out of bounds",
+				Exit,
+				OutOfRange);
+	}
+}
+
+/* TODO */
+int32_t CheckRange(Range *r,
+		int32_t contig,
+		int32_t position)
+{
+	if(1==WithinRangeContigPos(contig,
+				position,
+				r->contigStart,
+				r->positionStart,
+				r->contigEnd,
+				r->positionEnd)) {
+		return 1;
+	}
+	return 0;
+}
+
+int32_t CheckRangeWithinRange(Range *outside,
+		Range *inside){
+	if(1==CheckRange(outside,
+				inside->contigStart,
+				inside->positionStart) &&
+			1==CheckRange(outside,
+				inside->contigEnd,
+				inside->positionEnd)) {
+		return 1;
+	}
+	return 0;
+}
+
+void RangeCopy(Range *dest,
+		Range *src) 
+{
+	dest->contigStart = src->contigStart; 
+	dest->contigEnd = src->contigEnd; 
+	dest->positionStart = src->positionStart; 
+	dest->positionEnd = src->positionEnd; 
+}

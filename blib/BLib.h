@@ -50,5 +50,9 @@ int32_t NaiveSubsequence(char*, int, char*, int);
 int CompareContigPos(int32_t, int32_t, int32_t, int32_t);
 int WithinRangeContigPos(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 char *StrStrGetLast(char*, const char*);
+void ParseRange(Range*, char*);
+int32_t CheckRange(Range*, int32_t, int32_t);
+int32_t CheckRangeWithinRange(Range*, Range*);
+void RangeCopy(Range*, Range*);
 
 #endif

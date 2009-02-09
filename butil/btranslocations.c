@@ -118,50 +118,11 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<two one range (contig1-contig2:pos1-pos2)\n");
-		fprintf(stderr, "\t<two two range (contig1-contig2:pos1-pos2)\n");
+		fprintf(stderr, "\t<range one (contig1-contig2:pos1-pos2)\n");
+		fprintf(stderr, "\t<range two (contig1-contig2:pos1-pos2)\n");
 		fprintf(stderr, "\t<0: require one range to be satisfied 1: required both ranges to be satisfied>\n");
 		fprintf(stderr, "\t<output ID>\n");
 		fprintf(stderr, "\t<bfast report file names>\n");
-	}
-	return 0;
-}
-
-void ParseRange(Range *r,
-		char *string)
-{
-	char *FnName="ParseRange";
-	if(4 != sscanf(string, "%d-%d:%d-%d\n",
-				&r->contigStart,
-				&r->contigEnd,
-				&r->positionStart,
-				&r->positionEnd)) {
-		PrintError(FnName,
-				string,
-				"Could not parse string.  Should be in %d-%d:%d-%d format",
-				Exit,
-				OutOfRange);
-	}
-	if(CompareContigPos(r->contigEnd, r->positionEnd, r->contigStart, r->positionStart) < 0) {
-		PrintError(FnName,
-				string,
-				"End range was out of bounds",
-				Exit,
-				OutOfRange);
-	}
-}
-
-int32_t CheckRange(Range *r,
-		int32_t contig,
-		int32_t position)
-{
-	if(1==WithinRangeContigPos(contig,
-				position,
-				r->contigStart,
-				r->positionStart,
-				r->contigEnd,
-				r->positionEnd)) {
-		return 1;
 	}
 	return 0;
 }

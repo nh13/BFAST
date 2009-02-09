@@ -50,6 +50,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 #define PARTITION_MATCHES_ROTATE_NUM 100000
 #define ALIGNENTRIES_READ_ROTATE_NUM 10000
 #define BFAST_TMP_TEMPLATE ".bfast.tmp.XXXXXX"
+#define DEFAULT_RANGE "1-1:2147483647-2147483647"
 
 /* For printing to stderr */
 #define VERBOSE 0
@@ -250,5 +251,13 @@ typedef struct {
 	int64_t mergeMemoryLimit;
 	char *tmpDir;
 } ThreadRGIndexMergeData;
+
+/* TODO */
+typedef struct {
+	int32_t contigStart;
+	int32_t contigEnd;
+	int32_t positionStart;
+	int32_t positionEnd;
+} Range;
 
 #endif
