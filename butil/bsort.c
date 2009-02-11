@@ -162,13 +162,13 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	int32_t aboveMinPos, aboveMinContig, aboveMaxPos, aboveMaxContig;
 	AlignEntry *tmpAlignEntry=NULL;
 	int64_t i, j, numPrinted;
-			ThreadSortData *sortData=NULL;
-			ThreadSortData *mergeData=NULL;
-			pthread_t *threads=NULL;
-			int errCode;
-			void *status;
-			int32_t curNumThreads = numThreads;
-			int32_t curMergeIteration, curThread;
+	ThreadSortData *sortData=NULL;
+	ThreadSortData *mergeData=NULL;
+	pthread_t *threads=NULL;
+	int errCode;
+	void *status;
+	int32_t curNumThreads = numThreads;
+	int32_t curMergeIteration, curThread;
 
 
 	assert(tmpFile->startContig < tmpFile->endContig ||
