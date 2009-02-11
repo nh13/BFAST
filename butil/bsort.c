@@ -4,6 +4,10 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
+#include <pthread.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include "../blib/AlignEntry.h"
 #include "../blib/AlignEntries.h"
 #include "../blib/BLibDefinitions.h"
@@ -142,7 +146,8 @@ void MoveAllIntoTmpFile(char *inputFileName,
 void SplitEntriesAndPrint(FILE *outputFP,
 		TmpFile *tmpFile, 
 		char *tmpDir,
-		int32_t maxNumEntries)
+		int32_t maxNumEntries,
+		int32_t numThreads)
 {
 	char *FnName="SplitEntriesAndPrint";
 	int64_t meanPos;
@@ -156,7 +161,15 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	int32_t belowMinPos, belowMinContig, belowMaxPos, belowMaxContig;
 	int32_t aboveMinPos, aboveMinContig, aboveMaxPos, aboveMaxContig;
 	AlignEntry *tmpAlignEntry=NULL;
-	int64_t i, numPrinted;
+	int64_t i, j, numPrinted;
+			ThreadSortData *sortData=NULL;
+			ThreadSortData *mergeData=NULL;
+			pthread_t *threads=NULL;
+			int errCode;
+			void *status;
+			int32_t curNumThreads = numThreads;
+			int32_t curMergeIteration, curThread;
+
 
 	assert(tmpFile->startContig < tmpFile->endContig ||
 			(tmpFile->startContig == tmpFile->endContig && tmpFile->startPos <= tmpFile->endPos));
@@ -225,9 +238,175 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		/* Close the file */
 		TmpFileClose(tmpFile);
 		/* Sort */
-		AlignEntriesMergeSortAll(entriesPtr, 
-				0,
-				numEntries-1);
+		if(numEntries < BSORT_THREADED_SORT_MIN ||
+				numThreads <= 1) {
+			/* Ignore threading */
+			AlignEntriesMergeSortAll(entriesPtr, 
+					0,
+					numEntries-1);
+		}
+		else {
+			/* Should check that the number of threads is a power of 4 since we split
+			 * in half in both sorts. */
+			assert(IsAPowerOfTwo(numThreads)==1);
+
+			/* Allocate memory for the thread arguments */
+			sortData = malloc(sizeof(ThreadSortData)*numThreads);
+			if(NULL==sortData) {
+				PrintError(FnName,
+						"sortData",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+			/* Allocate memory for the thread point32_ters */
+			threads = malloc(sizeof(pthread_t)*numThreads);
+			if(NULL==threads) {
+				PrintError(FnName,
+						"threads",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+
+			/* Initialize sortData */
+			for(i=0;i<numThreads;i++) {
+				sortData[i].entriesPtr=entriesPtr;
+				sortData[i].threadID = i;
+				sortData[i].low = i*(numEntries/numThreads);
+				sortData[i].high = (i+1)*(numEntries/numThreads)-1;
+				assert(sortData[i].low >= 0 && sortData[i].high < numEntries);
+			}
+			sortData[0].low = 0;
+			sortData[numThreads-1].high = numEntries-1;
+
+			/* Check that we split correctly */
+			for(i=1;i<numThreads;i++) {
+				assert(sortData[i-1].high < sortData[i].low);
+			}
+			/* Create threads */
+			for(i=0;i<numThreads;i++) {
+				/* Start thread */
+				errCode = pthread_create(&threads[i], /* thread struct */
+						NULL, /* default thread attributes */
+						SortAlignEntriesHelper, /* start routine */
+						(void*)(&sortData[i])); /* sortData to routine */
+				if(0!=errCode) {
+					PrintError(FnName,
+							"pthread_create: errCode",
+							"Could not start thread",
+							Exit,
+							ThreadError);
+				}
+			}
+
+			/* Wait for the threads to finish */
+			for(i=0;i<numThreads;i++) {
+				/* Wait for the given thread to return */
+				errCode = pthread_join(threads[i],
+						&status);
+				/* Check the return code of the thread */
+				if(0!=errCode) {
+					PrintError(FnName,
+							"pthread_join: errCode",
+							"Thread returned an error",
+							Exit,
+							ThreadError);
+				}
+			}
+			/* Free memory for the threads */
+			free(threads);
+			threads=NULL;
+
+			/* Now we must merge the results from the threads */
+			/* Merge intelligently i.e. merge recursively so 
+			 * there are only nlogn merges where n is the 
+			 * number of threads. */
+			curNumThreads = numThreads;
+			for(i=1, curMergeIteration=1;i<numThreads;i=i*2, curMergeIteration++) { /* The number of merge iterations */
+				curNumThreads /= 2; /* The number of threads to spawn */
+				/* Allocate memory for the thread arguments */
+				mergeData = malloc(sizeof(ThreadRGIndexMergeData)*curNumThreads);
+				if(NULL==mergeData) {
+					PrintError(FnName,
+							"mergeData",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				/* Allocate memory for the thread point32_ters */
+				threads = malloc(sizeof(pthread_t)*curNumThreads);
+				if(NULL==threads) {
+					PrintError(FnName,
+							"threads",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				/* Initialize data for threads */
+				for(j=0,curThread=0;j<numThreads;j+=2*i,curThread++) {
+					mergeData[curThread].entriesPtr = entriesPtr;
+					mergeData[curThread].threadID = curThread;
+					/* Use the same bounds as was used in the sort */
+					mergeData[curThread].low = sortData[j].low;
+					mergeData[curThread].mid = sortData[i+j].low-1;
+					mergeData[curThread].high = sortData[j+2*i-1].high;
+				}
+				/* Check that we split correctly */
+				for(j=1;j<curNumThreads;j++) {
+					if(mergeData[j-1].high >= mergeData[j].low) {
+						PrintError(FnName,
+								NULL,
+								"mergeData[j-1].high >= mergeData[j].low",
+								Exit,
+								OutOfRange);
+					}
+				}
+				/* Create threads */
+				for(j=0;j<curNumThreads;j++) {
+					/* Start thread */
+					errCode = pthread_create(&threads[j], /* thread struct */
+							NULL, /* default thread attributes */
+							MergeAlignEntriesHelper, /* start routine */
+							(void*)(&mergeData[j])); /* sortData to routine */
+					if(0!=errCode) {
+						PrintError(FnName,
+								"pthread_create: errCode",
+								"Could not start thread",
+								Exit,
+								ThreadError);
+					}
+				}
+
+				/* Wait for the threads to finish */
+				for(j=0;j<curNumThreads;j++) {
+					/* Wait for the given thread to return */
+					errCode = pthread_join(threads[j],
+							&status);
+					/* Check the return code of the thread */
+					if(0!=errCode) {
+						PrintError(FnName,
+								"pthread_join: errCode",
+								"Thread returned an error",
+								Exit,
+								ThreadError);
+					}
+				}
+
+				/* Free memory for the merge data */
+				free(mergeData);
+				mergeData=NULL;
+				/* Free memory for the threads */
+				free(threads);
+				threads=NULL;
+			}
+
+			/* Free memory for sort data */
+			free(sortData);
+			sortData=NULL;
+
+		}
+
 		/* Print and Free memory */
 		for(i=0;i<numEntries;i++) {
 			/* Print */
@@ -406,31 +585,71 @@ void SplitEntriesAndPrint(FILE *outputFP,
 			SplitEntriesAndPrint(outputFP,
 					&belowTmpFile,
 					tmpDir,
-					maxNumEntries);
+					maxNumEntries,
+					numThreads);
 		}
 		if(0 < aboveTmpFile.numEntries) {
 			SplitEntriesAndPrint(outputFP,
 					&aboveTmpFile,
 					tmpDir,
-					maxNumEntries);
+					maxNumEntries,
+					numThreads);
 		}
 	}
+}
+
+void *SortAlignEntriesHelper(void *arg)
+{
+	ThreadSortData *data = (ThreadSortData*)arg;
+	AlignEntries **entriesPtr = data->entriesPtr;
+	int64_t low = data->low;
+	int64_t high = data->high;
+
+	AlignEntriesMergeSortAll(entriesPtr, 
+			low,
+			high);
+	return arg;
+}
+
+void *MergeAlignEntriesHelper(void *arg)
+{
+	ThreadSortData *data = (ThreadSortData*)arg;
+	AlignEntries **entriesPtr = data->entriesPtr;
+	int64_t low = data->low;
+	int64_t mid = data->mid;
+	int64_t high = data->high;
+
+	AlignEntriesMergeAll(entriesPtr, 
+			low,
+			mid,
+			high);
+	return arg;
 }
 
 int main(int argc, char *argv[])
 {
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	int32_t maxNumEntries=0;
+	int32_t numThreads=0;
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
 	TmpFile tmpFile;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *outputFP=NULL;
 	char *last=NULL;
 
-	if(argc == 4) {
+	if(argc == 5) {
 		strcpy(inputFileName, argv[1]);
 		maxNumEntries = atoi(argv[2]);
-		strcpy(tmpDir, argv[3]);
+		numThreads=atoi(argv[3]);
+		strcpy(tmpDir, argv[4]);
+
+		assert(1 < maxNumEntries);
+		assert(1 <= numThreads);
+		if(1 < numThreads) {
+			/* Should check that the number of threads is a power of 4 since we split
+			 * in half in both sorts. */
+			assert(IsAPowerOfTwo(numThreads)==1);
+		}
 
 		/* Move all into a tmp file */
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -464,7 +683,8 @@ int main(int argc, char *argv[])
 		SplitEntriesAndPrint(outputFP,
 				&tmpFile,
 				tmpDir,
-				maxNumEntries);
+				maxNumEntries,
+				numThreads);
 		fprintf(stderr, "\n");
 
 		/* Close files */
@@ -478,6 +698,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast report file name>\n");
 		fprintf(stderr, "\t<maximum number of entries when sorting>\n");
+		fprintf(stderr, "\t<number of threads>\n");
 		fprintf(stderr, "\t<tmp directory>\n");
 	}
 	return 0;

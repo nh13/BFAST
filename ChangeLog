@@ -6,10 +6,12 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.3.4
-* Updated balign, bmfconver, bafconvert, and bsort output file names.
+* Updated balign, bmfconvert, bafconvert, and bsort output file names.
 * Added gff output in bpostprocess and bafconvert.
 * Fixed bug in bpostprocess when specifying the maximum number of 
 nt errors.
+* bsort now performs a threaded sort if the maximum number of entries
+is large.
 
 Version 0.3.3
 * A quick fix to remove a memory leak that can causes crashes

@@ -551,14 +551,7 @@ void AlignEntriesMergeSortAll(AlignEntries **a,
 		int64_t low, 
 		int64_t high)
 {
-	char *FnName="AlignEntriesMergeSortAll";
 	int64_t mid = (low + high)/2;
-	int64_t startLower = low;
-	int64_t endLower = mid;
-	int64_t startUpper = mid+1;
-	int64_t endUpper = high;
-	int64_t ctr, i;
-	AlignEntries **tmp=NULL;
 
 	if(low >= high) {
 		return;
@@ -571,6 +564,25 @@ void AlignEntriesMergeSortAll(AlignEntries **a,
 	AlignEntriesMergeSortAll(a,
 			mid+1,
 			high);
+
+	AlignEntriesMergeAll(a,
+			low,
+			mid,
+			high);
+}
+
+void AlignEntriesMergeAll(AlignEntries **a,
+		int64_t low, 
+		int64_t mid,
+		int64_t high)
+{
+	char *FnName="AlignEntriesMergeAll";
+	int64_t startLower = low;
+	int64_t endLower = mid;
+	int64_t startUpper = mid+1;
+	int64_t endUpper = high;
+	int64_t ctr, i;
+	AlignEntries **tmp=NULL;
 
 	/* Merge */
 	tmp = malloc(sizeof(AlignEntries*)*(high-low+1));

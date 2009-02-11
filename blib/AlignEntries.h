@@ -18,6 +18,7 @@ void AlignEntriesKeepOnly(AlignEntries*, int, int, int, int);
 void AlignEntriesCopy(AlignEntries*, AlignEntries*);
 int64_t AlignEntriesGetSize(AlignEntries*);
 void AlignEntriesMergeSortAll(AlignEntries**, int64_t, int64_t);
+void AlignEntriesMergeAll(AlignEntries**, int64_t, int64_t, int64_t);
 int32_t AlignEntriesCompareAll(AlignEntries*, AlignEntries*);
 #endif
 
