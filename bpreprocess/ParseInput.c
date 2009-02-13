@@ -248,14 +248,12 @@ main (int argc, char **argv)
 							seconds -= hours*3600;
 							int minutes = seconds/60;
 							seconds -= minutes*60;
-
 							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
 									hours,
 									minutes,
 									seconds
 								   );
 						}
-
 						fprintf(stderr, "Terminating successfully!\n");
 						fprintf(stderr, "%s", BREAK_LINE);
 						break;

@@ -208,14 +208,13 @@ main (int argc, char **argv)
 								arguments.tmpDir,
 								arguments.timing);
 
-						endTime = time(NULL);
-						int seconds = endTime - startTime;
-						int hours = seconds/3600;
-						seconds -= hours*3600;
-						int minutes = seconds/60;
-						seconds -= minutes*60;
-
 						if(arguments.timing == 1) {
+							endTime = time(NULL);
+							int seconds = endTime - startTime;
+							int hours = seconds/3600;
+							seconds -= hours*3600;
+							int minutes = seconds/60;
+							seconds -= minutes*60;
 							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
 									hours,
 									minutes,
@@ -224,7 +223,6 @@ main (int argc, char **argv)
 						}
 						fprintf(stderr, "Terminating successfully!\n");
 						fprintf(stderr, "%s", BREAK_LINE);
-
 						break;
 					default:
 						PrintError("PrintError",
@@ -334,7 +332,7 @@ int ValidateInputs(struct arguments *args) {
 	if(args->maxNumMatches < 0) {
 		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
-			
+
 	if(!(args->whichStrand == BothStrands || 
 				args->whichStrand == ForwardStrand || 
 				args->whichStrand == ReverseStrand)) {

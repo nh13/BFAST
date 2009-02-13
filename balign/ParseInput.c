@@ -190,8 +190,8 @@ main (int argc, char **argv)
 								arguments.rgFileName);
 						/* Unpack */
 						/*
-						RGBinaryUnPack(&rg);
-						*/
+						   RGBinaryUnPack(&rg);
+						   */
 						endTime = time(NULL);
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
@@ -223,6 +223,59 @@ main (int argc, char **argv)
 								&totalFileHandlingTime);
 						/* Free the Reference Genome */
 						RGBinaryDelete(&rg);
+
+						if(arguments.timing == 1) {
+							/* Output loading reference genome time */
+							seconds = totalReferenceGenomeTime;
+							hours = seconds/3600;
+							seconds -= hours*3600;
+							minutes = seconds/60;
+							seconds -= minutes*60;
+							fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+
+							/* Output aligning time */
+							seconds = totalAlignTime;
+							hours = seconds/3600;
+							seconds -= hours*3600;
+							minutes = seconds/60;
+							seconds -= minutes*60;
+							fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+
+							/* Output file handling time */
+							seconds = totalFileHandlingTime;
+							hours = seconds/3600;
+							seconds -= hours*3600;
+							minutes = seconds/60;
+							seconds -= minutes*60;
+							fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+
+							/* Output total time */
+							endTotalTime = time(NULL);
+							seconds = endTotalTime - startTotalTime;
+							hours = seconds/3600;
+							seconds -= hours*3600;
+							minutes = seconds/60;
+							seconds -= minutes*60;
+							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
+						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
 						break;
 					default:
 						PrintError("PrintError",
@@ -231,61 +284,6 @@ main (int argc, char **argv)
 								Exit,
 								OutOfRange);
 				}
-
-				if(arguments.timing == 1) {
-					/* Output loading reference genome time */
-					seconds = totalReferenceGenomeTime;
-					hours = seconds/3600;
-					seconds -= hours*3600;
-					minutes = seconds/60;
-					seconds -= minutes*60;
-					fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n",
-							hours,
-							minutes,
-							seconds
-						   );
-
-					/* Output aligning time */
-					seconds = totalAlignTime;
-					hours = seconds/3600;
-					seconds -= hours*3600;
-					minutes = seconds/60;
-					seconds -= minutes*60;
-					fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
-							hours,
-							minutes,
-							seconds
-						   );
-
-					/* Output file handling time */
-					seconds = totalFileHandlingTime;
-					hours = seconds/3600;
-					seconds -= hours*3600;
-					minutes = seconds/60;
-					seconds -= minutes*60;
-					fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
-							hours,
-							minutes,
-							seconds
-						   );
-
-					/* Output total time */
-					endTotalTime = time(NULL);
-					seconds = endTotalTime - startTotalTime;
-					hours = seconds/3600;
-					seconds -= hours*3600;
-					minutes = seconds/60;
-					seconds -= minutes*60;
-					fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
-							hours,
-							minutes,
-							seconds
-						   );
-				}
-
-				fprintf(stderr, "Terminating successfully!\n");
-				fprintf(stderr, "%s", BREAK_LINE);
-
 			}
 			else {
 				PrintError("PrintError",
