@@ -13,13 +13,9 @@ int FilterAlignEntries(AlignEntries *a,
 		int maxMismatches,
 		int maxColorErrors,
 		int pairedEnd,
-		int algorithmReadsPaired,
-		int unpaired,
-		int minScoreReadsPaired,
 		int minDistancePaired,
 		int maxDistancePaired,
-		int maxMismatchesPaired,
-		int maxColorErrorsPaired);
+		int unpaired);
 
 int FilterAlignEntry(AlignEntry *a,
 		int space,
@@ -34,13 +30,5 @@ int FilterAlignEntry(AlignEntry *a,
 int GetNumMismatchesInAlignEntry(AlignEntry *a);
 
 int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space);
-
-int FilterPairedEnd(AlignEntries *a,
-		int algorithmReadsPaired,
-		int minScoreReadsPaired,
-		int minDistancePaired,
-		int maxDistancePaired,
-		int maxMismatchesPaired,
-		int maxColorErrorsPaired);
 
 #endif

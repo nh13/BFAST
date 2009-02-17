@@ -57,9 +57,9 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescAlgorithmReadsPaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
+	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, 
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
-	DescPairedEndTitle, DescMinScoreReadsPaired, DescMinDistancePaired, DescMaxDistancePaired, DescMaxMismatchesPaired, DescMaxColorErrorsPaired, 
+	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -77,33 +77,27 @@ static struct argp_option options[] = {
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
-	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each single-end read after filtering:"
-		"\n\t\t0: Specifies no filtering will occur"
-			"\n\t\t1: Specifies that all alignments that pass the filters will be outputted"
-			"\n\t\t2: Specifies to only consider reads that have been aligned uniquely"
-			"\n\t\t3: Specifies to choose the alignment with the best score", 2},
-	{"algorithmReadsPaired", 'A', "algorithmReadsPaired", 0, "Specifies the algorithm to choose the alignment for each paired-end read after filtering:"
-		"\n\t\t0: Specifies no filtering will occur"
-			"\n\t\t1: Specifies that all alignments for either end that pass the general filters will be outputted"
-			"\n\t\t2: Specifies to only consider paired reads where both reads have been aligned uniquely"
-			"\n\t\t3: Specifies to choose the alignment with the best score when the alignment score from either end is combined", 2},
-	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the same strand (paired end only)", 2},
-	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the specified distance but are on the opposite strands (paired end only)", 2},
-	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that have one end pass the filters and have that end unambiguously chosen", 2},
+	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
+		"\n\t\t\t0: Specifies no filtering will occur"
+			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
+			"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
+			"\n\t\t\t3: Specifies to choose the alignment with the best score", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
-	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for single-end reads", 3},
-	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for single-end reads", 3},
-	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for single-end reads", 3},
+	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for a given end of a read", 3},
+	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for a given end of a read", 3},
+	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for a given end of a read", 3},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
-	{"minScoreReadsPaired", 'M', "minScoreReadsPaired", 0, "Specifies the minimum score to consider for the combination of the two paired reads", 4},
 	{"minDistancePaired", 'X', "minDistancePaired", 0, "Specifies the minimum allowable distance between the paired ends for filtering", 4},
 	{"maxDistancePaired", 'Y', "maxDistancePaired", 0, "Specifies the maximum allowable distance between the paired ends for filtering", 4},
-	{"maxMismatchesPaired", 'J', "maxMismatchesPaired", 0, "Specifies the maximum number of mismatches to consider in total for the two paired reads", 4},
-	{"maxColorErrorsPaired", 'K', "maxColorErrorsPaired", 0, "Specifies the maximum number of color errors to consider in total for the two paired reads", 4},
+	{"contigAbPaired", 'C', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the\n"
+		"\t\t\tspecified distance but are on the same strand (paired end only)", 2},
+	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the\n"
+		"\t\t\tspecified distance but are on the opposite strands (paired end only)", 2},
+	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that have one end pass the filters and have that have only one end unambiguously chosen", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 5},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 5},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 5},
@@ -133,7 +127,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:A:E:I:J:K:M:O:P:S:T:X:Y:2hptCIU";
+"a:d:e:i:j:k:m:o:r:s:E:I:O:P:S:T:X:Y:2hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -199,12 +193,8 @@ main (int argc, char **argv)
 								arguments.minScoreReads,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
-								arguments.algorithmReadsPaired,
-								arguments.minScoreReadsPaired,
 								arguments.minDistancePaired,
 								arguments.maxDistancePaired,
-								arguments.maxMismatchesPaired,
-								arguments.maxColorErrorsPaired,
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.unpaired,
@@ -307,26 +297,12 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 
-	/* This should internally hold */
-	if(args->algorithmReadsPaired < MIN_FILTER || 
-			args->algorithmReadsPaired > MAX_FILTER_PE) {
-		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
-	}
-
 	if(args->maxMismatches < 0) {
 		PrintError(FnName, "maxMismatches < 0", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->maxColorErrors < 0) {
 		PrintError(FnName, "maxColorErrors < 0", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->maxMismatchesPaired < 0) {
-		PrintError(FnName, "maxMismatchesPaired < 0", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->maxColorErrorsPaired < 0) {
-		PrintError(FnName, "maxColorErrorsPaired < 0", "Command line argument", Exit, OutOfRange);
 	}
 
 	/* Check that the min distance is less than or equal to the max distance */
@@ -408,12 +384,8 @@ AssignDefaultValues(struct arguments *args)
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
 
-	args->algorithmReadsPaired=0;
-	args->minScoreReadsPaired=INT_MIN;
 	args->minDistancePaired=INT_MIN;
 	args->maxDistancePaired=INT_MAX;
-	args->maxMismatchesPaired=INT_MAX;
-	args->maxColorErrorsPaired=INT_MAX;
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 	args->unpaired=0;
@@ -451,9 +423,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   */
 	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
-	fprintf(fp, "algorithmReadsPaired:\t%d\t[%s]\n", args->algorithmReadsPaired, algorithm[args->algorithmReadsPaired]);
-	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
-	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
@@ -462,11 +431,10 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
 	fprintf(fp, "maxMismatches:\t\t%d\n", args->maxMismatches);
 	fprintf(fp, "maxColorErrors:\t\t%d\n", args->maxColorErrors);
-	fprintf(fp, "minScoreReadsPaired:\t%d\n", args->minScoreReadsPaired);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
 	fprintf(fp, "maxDistancePaired:\t%d\n", args->maxDistancePaired);
-	fprintf(fp, "maxMismatchesPaired:\t%d\n", args->maxMismatchesPaired);
-	fprintf(fp, "maxColorErrorsPaired:\t%d\n", args->maxColorErrorsPaired);
+	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
+	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -567,20 +535,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
-					case 'A':
-						arguments->algorithmReadsPaired = atoi(OPTARG);break;
 					case 'C':
 						arguments->contigAbPaired = 1;break;
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'I':
 						arguments->inversionsPaired = 1;break;
-					case 'J':
-						arguments->maxMismatchesPaired=atoi(OPTARG);break;
-					case 'K':
-						arguments->maxColorErrorsPaired=atoi(OPTARG);break;
-					case 'M':
-						arguments->minScoreReadsPaired = atoi(OPTARG);break;
 					case 'O':
 						switch(atoi(OPTARG)) {
 							case 0:

@@ -23,12 +23,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int minScoreReads,
 		int maxMismatches,
 		int maxColorErrors,
-		int algorithmReadsPaired,
-		int minScoreReadsPaired,
 		int minDistancePaired,
 		int maxDistancePaired,
-		int maxMismatchesPaired,
-		int maxColorErrorsPaired,
 		int contigAbPaired,
 		int inversionsPaired,
 		int unpaired,
@@ -184,13 +180,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				maxMismatches,
 				maxColorErrors,
 				pairedEnd,        
-				algorithmReadsPaired,
-				unpaired,
-				minScoreReadsPaired,
 				minDistancePaired,          
 				maxDistancePaired,
-				maxMismatchesPaired,
-				maxColorErrorsPaired);
+				unpaired);
 
 		/* Print the apporiate files based on the return type */
 		switch(foundType) {

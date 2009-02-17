@@ -15,12 +15,8 @@ struct arguments
 	int minScoreReads;						/* -m */
 	int maxMismatches;						/* -j */
 	int maxColorErrors;						/* -k */
-	int algorithmReadsPaired;				/* -A */
-	int minScoreReadsPaired;				/* -M */
 	int minDistancePaired;					/* -X */
 	int maxDistancePaired;					/* -Y */
-	int maxMismatchesPaired;				/* -j */
-	int maxColorErrorsPaired;				/* -k */
 	int contigAbPaired;						/* -C */
 	int inversionsPaired;					/* -I */
 	int unpaired;							/* -U */
