@@ -12,6 +12,8 @@ Version 0.3.4
 nt errors.
 * bsort now performs a threaded sort if the maximum number of entries
 is large.
+* removed some options in bpostprocess, since they are easily 
+misinterpreted.
 
 Version 0.3.3
 * A quick fix to remove a memory leak that can causes crashes
