@@ -222,7 +222,7 @@ void AlignColorSpaceFull(char *read,
 		int32_t position)
 {
 	/* read goes on the rows, reference on the columns */
-	char *FnName = "AlignColorSpaceFull2";
+	char *FnName = "AlignColorSpaceFull";
 	AlignMatrixCS **matrix=NULL;
 	int offset = 0;
 	int i, j, k, l;
@@ -617,10 +617,13 @@ void AlignColorSpaceFullWithBound(char *read,
 		int32_t maxH,
 		int32_t maxV)
 {
-	char *FnName = "AlignColorSpaceFullOptWithBound";
+	char *FnName = "AlignColorSpaceFullWithBound";
 	AlignMatrixCS **matrix=NULL;
 	int i, j, k, l;
 	int32_t offset;
+
+	assert(0 < readLength);
+	assert(0 < referenceLength);
 
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixCS*)*(readLength+1));

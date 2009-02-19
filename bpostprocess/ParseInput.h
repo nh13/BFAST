@@ -7,16 +7,19 @@ struct arguments
 	char *rgFileName;						/* -r */
 	int binaryInput;                        /* -b - not used */
 	int pairedEnd;							/* -2 */
+	int algorithmReads;						/* -a */
+	int uniquenessScore;					/* -u */
+	int minUniquenessScore;					/* -z */
 	int startContig;                        /* -s */
 	int startPos;                           /* -S */
 	int endContig;                          /* -e */
 	int endPos;                             /* -E */
-	int algorithmReads;						/* -a */
 	int minScoreReads;						/* -m */
 	int maxMismatches;						/* -j */
 	int maxColorErrors;						/* -k */
 	int minDistancePaired;					/* -X */
 	int maxDistancePaired;					/* -Y */
+	int useDistancePaired;					/* -X -Y */
 	int contigAbPaired;						/* -C */
 	int inversionsPaired;					/* -I */
 	int unpaired;							/* -U */

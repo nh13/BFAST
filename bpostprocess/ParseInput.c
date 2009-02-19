@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, 
+	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescUniquenessScore, DescMinUniquenessScore, 
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
@@ -82,6 +82,9 @@ static struct argp_option options[] = {
 			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
 			"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
 			"\n\t\t\t3: Specifies to choose the alignment with the best score", 2},
+	{"uniquenessScore", 'u', 0, OPTION_NO_USAGE, "Specifies to output a uniqueness score instead of the alignment score when\n"
+		"\t\t\tchoosing the alignment with the best score (-a 3)", 2},
+	{"minUniquenessScore", 'z', "minUniquenessScore", 0, "Specifies the minimum uniqueness score to allow when using -a 3 and -u", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
@@ -127,7 +130,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:E:I:O:P:S:T:X:Y:2hptCIU";
+"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:2hptuCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -190,11 +193,14 @@ main (int argc, char **argv)
 								arguments.endContig,
 								arguments.endPos,
 								arguments.algorithmReads,
+								arguments.uniquenessScore,
+								arguments.minUniquenessScore,
 								arguments.minScoreReads,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
 								arguments.minDistancePaired,
 								arguments.maxDistancePaired,
+								arguments.useDistancePaired,
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.unpaired,
@@ -297,6 +303,12 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 
+	assert(0 == args->uniquenessScore || 1 == args->uniquenessScore);
+
+	if(args->minUniquenessScore < 0 || 1 < args->minUniquenessScore) {
+		PrintError(FnName, "minUniquenessScore", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->maxMismatches < 0) {
 		PrintError(FnName, "maxMismatches < 0", "Command line argument", Exit, OutOfRange);
 	}
@@ -311,6 +323,7 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	/* This must hold internally */
+	assert(0 == args->useDistancePaired || 1 == args->useDistancePaired);
 	assert(args->contigAbPaired == 0 || args->contigAbPaired == 1);
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
 	assert(args->unpaired == 0 || args->unpaired == 1);
@@ -380,12 +393,15 @@ AssignDefaultValues(struct arguments *args)
 	args->endPos=0;
 
 	args->algorithmReads=0;
+	args->uniquenessScore=0;
+	args->minUniquenessScore=0;
 	args->minScoreReads=INT_MIN;
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
 
 	args->minDistancePaired=INT_MIN;
 	args->maxDistancePaired=INT_MAX;
+	args->useDistancePaired=0;
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 	args->unpaired=0;
@@ -423,7 +439,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   */
 	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
-	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
+	fprintf(fp, "uniquenessScore:\t\t%d\n", args->uniquenessScore);
+	fprintf(fp, "minUniquenessScore:\t\t%d\n", args->minUniquenessScore);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
@@ -435,6 +452,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "maxDistancePaired:\t%d\n", args->maxDistancePaired);
 	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
 	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
+	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -535,6 +553,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
+					case 'u':
+						arguments->uniquenessScore = 1;break;
+					case 'z':
+						arguments->minUniquenessScore = atof(OPTARG);break;
 					case 'C':
 						arguments->contigAbPaired = 1;break;
 					case 'E':
@@ -563,8 +585,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'U':
 						arguments->unpaired = 1;break;
 					case 'X':
+						arguments->useDistancePaired = 1;
 						arguments->minDistancePaired = atoi(OPTARG);break;
 					case 'Y':
+						arguments->useDistancePaired = 1;
 						arguments->maxDistancePaired = atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H

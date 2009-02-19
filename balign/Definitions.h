@@ -27,6 +27,8 @@ typedef struct {
 	int32_t **ColorScores;
 	int32_t maxNTScore;
 	int32_t maxColorScore;
+	int32_t minNTScore;
+	int32_t minColorScore;
 } ScoringMatrix;
 
 /* TODO */

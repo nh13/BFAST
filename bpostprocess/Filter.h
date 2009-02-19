@@ -5,6 +5,8 @@
 
 int FilterAlignEntries(AlignEntries *a,
 		int algorithmReads,
+		int uniquenessScore,
+		int minUniquenessScore,
 		int minScoreReads,
 		int startChr,
 		int startPos,
@@ -15,6 +17,9 @@ int FilterAlignEntries(AlignEntries *a,
 		int pairedEnd,
 		int minDistancePaired,
 		int maxDistancePaired,
+		int useDistancePaired,
+		int contigAbPaired,
+		int inversionsPaired,
 		int unpaired);
 
 int FilterAlignEntry(AlignEntry *a,
@@ -30,5 +35,9 @@ int FilterAlignEntry(AlignEntry *a,
 int GetNumMismatchesInAlignEntry(AlignEntry *a);
 
 int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space);
+
+double GetUniquenessScore(AlignEntry *a,
+		int32_t numEntries,
+		int32_t bestScoreIndex);
 
 #endif

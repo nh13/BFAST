@@ -239,6 +239,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		free(references);
 		free(referenceLengths);
 		free(referencePositions);
+		return;
 	}
 #endif
 
@@ -277,6 +278,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			free(referenceLengths);
 			free(referencePositions);
 
+			return;
 			/* These compiler commands aren't necessary, but are here for vim tab indenting */
 #ifdef UNOPTIMIZED_SMITH_WATERMAN
 		}

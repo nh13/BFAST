@@ -12,8 +12,11 @@ Version 0.3.4
 nt errors.
 * bsort now performs a threaded sort if the maximum number of entries
 is large.
-* removed some options in bpostprocess, since they are easily 
-misinterpreted.
+* removed some options to do with choosing paired end reads in 
+bpostprocess, since they are easily misinterpreted.
+* added a uniqueness score option in bpostprocess, which will replace
+the alignment score with a ratio of the chosen alignment score versus
+all other alignments' scores.
 
 Version 0.3.3
 * A quick fix to remove a memory leak that can causes crashes

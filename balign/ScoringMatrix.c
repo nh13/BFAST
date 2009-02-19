@@ -87,6 +87,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 	}
 	/* Read in the score matrix */
 	sm->maxNTScore = INT_MIN;
+	sm->minNTScore = INT_MAX;
 	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 		for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 			if(fscanf(fp, "%d", &tempInt)==EOF) {
@@ -99,6 +100,9 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 			sm->NTScores[i][j]= tempInt;
 			if(sm->maxNTScore < sm->NTScores[i][j]) {
 				sm->maxNTScore = sm->NTScores[i][j];
+			}
+			if(sm->NTScores[i][j] < sm->minNTScore) {
+				sm->minNTScore = sm->NTScores[i][j];
 			}
 		}
 	}
@@ -144,6 +148,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		}
 		/* Read in the score matrix */
 		sm->maxColorScore = INT_MIN;
+		sm->minColorScore = INT_MAX;
 		for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
 			for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
 				if(fscanf(fp, "%d", &tempInt)==EOF) {
@@ -156,6 +161,9 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 				sm->ColorScores[i][j] = tempInt;
 				if(sm->maxColorScore < sm->ColorScores[i][j]) {
 					sm->maxColorScore = sm->ColorScores[i][j];
+				}
+				if(sm->ColorScores[i][j] < sm->minColorScore) {
+					sm->minColorScore = sm->ColorScores[i][j];
 				}
 			}
 		}
