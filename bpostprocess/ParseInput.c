@@ -82,8 +82,7 @@ static struct argp_option options[] = {
 			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
 			"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
 			"\n\t\t\t3: Specifies to choose the alignment with the best score", 2},
-	{"uniquenessScore", 'u', 0, OPTION_NO_USAGE, "Specifies to output a uniqueness score instead of the alignment score when\n"
-		"\t\t\tchoosing the alignment with the best score (-a 3)", 2},
+	{"uniquenessScore", 'u', 0, OPTION_NO_USAGE, "Specifies to output a uniqueness score instead of the alignment score", 2},
 	{"minUniquenessScore", 'z', "minUniquenessScore", 0, "Specifies the minimum uniqueness score to allow when using -a 3 and -u", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},

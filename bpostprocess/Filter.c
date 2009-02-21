@@ -32,7 +32,7 @@ int FilterAlignEntries(AlignEntries *a,
 {
 	char *FnName="FilterAlignEntries";
 	int foundType, foundTypeOne, foundTypeTwo;
-	AlignEntries tmpA;
+	AlignEntries tmpA, tmpB;
 	int32_t i;
 	int32_t bestScoreOne, bestScoreIndexOne, numBestScoreOne;
 	int32_t bestScoreTwo, bestScoreIndexTwo, numBestScoreTwo;
@@ -42,8 +42,21 @@ int FilterAlignEntries(AlignEntries *a,
 
 	AlignEntriesInitialize(&tmpA);
 
-
 	if(NoFiltering == algorithmReads) {
+		if(1==uniquenessScore) {
+			AlignEntriesCopy(a, &tmpA);
+			for(i=0;i<tmpA.numEntriesOne;i++) {
+				a->entriesOne[i].score=GetUniquenessScore(tmpA.entriesOne,
+						tmpA.numEntriesOne,
+						i);
+			}
+			for(i=0;i<tmpA.numEntriesTwo;i++) {
+				a->entriesTwo[i].score=GetUniquenessScore(tmpA.entriesTwo,
+						tmpA.numEntriesTwo,
+						i);
+			}
+			AlignEntriesFree(&tmpA);
+		}
 		return Found;
 	}
 
@@ -102,10 +115,32 @@ int FilterAlignEntries(AlignEntries *a,
 		case AllNotFiltered:
 			foundTypeOne=(0<tmpA.numEntriesOne)?Found:NoneFound;
 			foundTypeTwo=(0<tmpA.numEntriesTwo)?Found:NoneFound;
+			if(1==uniquenessScore) {
+				AlignEntriesCopy(a, &tmpB);
+				for(i=0;i<tmpB.numEntriesOne;i++) {
+					tmpA.entriesOne[i].score=GetUniquenessScore(tmpB.entriesOne,
+							tmpB.numEntriesOne,
+							i);
+				}
+				for(i=0;i<tmpB.numEntriesTwo;i++) {
+					tmpA.entriesTwo[i].score=GetUniquenessScore(tmpB.entriesTwo,
+							tmpB.numEntriesTwo,
+							i);
+				}
+				AlignEntriesFree(&tmpB);
+			}
 			break;
 		case Unique:
 			foundTypeOne=(1==tmpA.numEntriesOne)?Found:NoneFound;
 			foundTypeTwo=(1==tmpA.numEntriesTwo)?Found:NoneFound;
+			if(1==uniquenessScore) {
+				if(Found == foundTypeOne) {
+					tmpA.entriesOne[i].score = 1;
+				}
+				if(Found == foundTypeTwo) {
+					tmpA.entriesTwo[i].score = 1;
+				}
+			}
 			break;
 		case BestScore:
 			bestScoreOne = bestScoreTwo = INT_MIN;
@@ -188,8 +223,8 @@ int FilterAlignEntries(AlignEntries *a,
 	}
 	else {
 		foundType=(Found==foundTypeOne && Found==foundTypeTwo)?Found:NoneFound;
-		if(Found == foundType) {
 
+		if(Found == foundType) {
 			if(1 == useDistancePaired) {
 				curContigDistance = a->entriesTwo[0].contig - a->entriesOne[0].contig;
 				curPositionDistance = a->entriesTwo[0].position - a->entriesOne[0].position;
@@ -222,10 +257,12 @@ int FilterAlignEntries(AlignEntries *a,
 			if(Found == foundTypeOne) {
 				assert(NoneFound==foundTypeTwo);
 				foundType = Unpaired;
+				AlignEntriesReallocate(&tmpA, 1, 0, tmpA.pairedEnd, tmpA.space);
 			}
 			else if(Found == foundTypeTwo) {
 				assert(NoneFound==foundTypeOne);
 				foundType = Unpaired;
+				AlignEntriesReallocate(&tmpA, 0, 1, tmpA.pairedEnd, tmpA.space);
 			}
 		}
 	}
