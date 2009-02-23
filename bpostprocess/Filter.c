@@ -119,10 +119,10 @@ int FilterAlignEntries(AlignEntries *a,
 			foundTypeTwo=(1==tmpA.numEntriesTwo)?Found:NoneFound;
 			if(1==uniquenessScore) {
 				if(Found == foundTypeOne) {
-					tmpA.entriesOne[i].score = 1;
+					tmpA.entriesOne[0].score = 1;
 				}
 				if(Found == foundTypeTwo) {
-					tmpA.entriesTwo[i].score = 1;
+					tmpA.entriesTwo[0].score = 1;
 				}
 			}
 			break;
