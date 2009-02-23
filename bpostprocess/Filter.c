@@ -42,53 +42,15 @@ int FilterAlignEntries(AlignEntries *a,
 
 	AlignEntriesInitialize(&tmpA);
 
-	if(NoFiltering == algorithmReads) {
-		if(1==uniquenessScore) {
-			AlignEntriesCopy(a, &tmpA);
-			for(i=0;i<tmpA.numEntriesOne;i++) {
-				a->entriesOne[i].score=GetUniquenessScore(tmpA.entriesOne,
-						tmpA.numEntriesOne,
-						i);
-			}
-			for(i=0;i<tmpA.numEntriesTwo;i++) {
-				a->entriesTwo[i].score=GetUniquenessScore(tmpA.entriesTwo,
-						tmpA.numEntriesTwo,
-						i);
-			}
-			AlignEntriesFree(&tmpA);
-		}
-		return Found;
-	}
-
 	/* We should only modify "a" if it is going to be reported */ 
 	/* Copy in case we do not find anything to report */
 	AlignEntriesCopy(a, &tmpA);
 
-	/* Filter each read individually */
-	for(i=0;i<tmpA.numEntriesOne;i++) {
-		/* Check if we should filter */
-		if(0<FilterAlignEntry(&tmpA.entriesOne[i],
-					tmpA.space,
-					minScoreReads,
-					startContig,
-					startPos,
-					endContig,
-					endPos,
-					maxMismatches,
-					maxColorErrors)) {
-			/* Copy end here */
-			if(i < tmpA.numEntriesOne-1) {
-				AlignEntryCopy(&tmpA.entriesOne[tmpA.numEntriesOne-1], &tmpA.entriesOne[i]);
-			}
-			AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne-1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
-			/* Since we removed, do not incrememt */
-			i--;
-		}
-	}
-	if(PairedEnd == tmpA.pairedEnd) {
-		for(i=0;i<tmpA.numEntriesTwo;i++) {
+	if(NoFiltering != algorithmReads) {
+		/* Filter each read individually */
+		for(i=0;i<tmpA.numEntriesOne;i++) {
 			/* Check if we should filter */
-			if(0<FilterAlignEntry(&tmpA.entriesTwo[i],
+			if(0<FilterAlignEntry(&tmpA.entriesOne[i],
 						tmpA.space,
 						minScoreReads,
 						startContig,
@@ -98,20 +60,42 @@ int FilterAlignEntries(AlignEntries *a,
 						maxMismatches,
 						maxColorErrors)) {
 				/* Copy end here */
-				if(i < tmpA.numEntriesTwo-1) {
-					AlignEntryCopy(&tmpA.entriesTwo[tmpA.numEntriesTwo-1], &tmpA.entriesTwo[i]);
+				if(i < tmpA.numEntriesOne-1) {
+					AlignEntryCopy(&tmpA.entriesOne[tmpA.numEntriesOne-1], &tmpA.entriesOne[i]);
 				}
-				AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, tmpA.numEntriesTwo-1, tmpA.pairedEnd, tmpA.space);
+				AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne-1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
 				/* Since we removed, do not incrememt */
 				i--;
 			}
 		}
+		if(PairedEnd == tmpA.pairedEnd) {
+			for(i=0;i<tmpA.numEntriesTwo;i++) {
+				/* Check if we should filter */
+				if(0<FilterAlignEntry(&tmpA.entriesTwo[i],
+							tmpA.space,
+							minScoreReads,
+							startContig,
+							startPos,
+							endContig,
+							endPos,
+							maxMismatches,
+							maxColorErrors)) {
+					/* Copy end here */
+					if(i < tmpA.numEntriesTwo-1) {
+						AlignEntryCopy(&tmpA.entriesTwo[tmpA.numEntriesTwo-1], &tmpA.entriesTwo[i]);
+					}
+					AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, tmpA.numEntriesTwo-1, tmpA.pairedEnd, tmpA.space);
+					/* Since we removed, do not incrememt */
+					i--;
+				}
+			}
+		}
 	}
-
 	foundType=foundTypeOne=foundTypeTwo=NoneFound;
 
 	/* Pick alignment */
 	switch(algorithmReads) {
+		case NoFiltering:
 		case AllNotFiltered:
 			foundTypeOne=(0<tmpA.numEntriesOne)?Found:NoneFound;
 			foundTypeTwo=(0<tmpA.numEntriesTwo)?Found:NoneFound;
@@ -231,7 +215,7 @@ int FilterAlignEntries(AlignEntries *a,
 
 				if(0 != curContigDistance ||
 						curPositionDistance < minDistancePaired ||
-						maxDistancePaired <curPositionDistance) {
+						maxDistancePaired < curPositionDistance) {
 					if(a->entriesOne[0].strand == a->entriesTwo[0].strand) {
 						if(1 == contigAbPaired) {
 							/* Same strand - contig abnormality */
