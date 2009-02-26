@@ -54,5 +54,7 @@ void ParseRange(Range*, char*);
 int32_t CheckRange(Range*, int32_t, int32_t);
 int32_t CheckRangeWithinRange(Range*, Range*);
 void RangeCopy(Range*, Range*);
+int GetNumMismatchesInAlignEntry(AlignEntry *a);
+int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space);
 
 #endif

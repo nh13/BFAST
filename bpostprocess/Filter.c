@@ -300,44 +300,6 @@ int FilterAlignEntry(AlignEntry *a,
 }
 
 /* TODO */
-int GetNumMismatchesInAlignEntry(AlignEntry *a)
-{
-	int32_t i, numMismatches;
-	/* Check mismatches */
-	numMismatches=0;
-	for(i=0;i<a->length;i++) {
-		/* Increment mismatches */
-		if(GAP != a->read[i] && 
-				GAP != a->reference[i] && 
-				ToLower(a->read[i]) != ToLower(a->reference[i])) {
-			numMismatches++;
-		}
-	}
-	return numMismatches;
-}
-
-/* TODO */
-int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space)
-{
-	int32_t i, numColorErrors;
-	/* Check color errors */
-	numColorErrors=0;
-	if(ColorSpace == space) {
-		for(i=0;i<a->length;i++) {
-			/* Increment color errors */
-			switch(a->colorError[i]) {
-				case GAP:
-					break;
-				default:
-					numColorErrors++;
-					break;
-			}
-		}
-	}
-	return numColorErrors;
-}
-
-/* TODO */
 double GetUniquenessScore(AlignEntry *a,
 		int32_t numEntries,
 		int32_t bestScoreIndex) 

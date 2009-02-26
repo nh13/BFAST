@@ -206,6 +206,10 @@ main (int argc, char **argv)
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.outputFormat);
+						if(MAF == arguments.outputFormat) {
+							/* Free rg binary */
+							RGBinaryDelete(&rg);
+						}
 
 						if(arguments.timing == 1) {
 							/* Get the time information */

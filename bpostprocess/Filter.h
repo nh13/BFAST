@@ -32,10 +32,6 @@ int FilterAlignEntry(AlignEntry *a,
 		int maxMismatches,
 		int maxColorErrors);
 
-int GetNumMismatchesInAlignEntry(AlignEntry *a);
-
-int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space);
-
 double GetUniquenessScore(AlignEntry *a,
 		int32_t numEntries,
 		int32_t bestScoreIndex);
