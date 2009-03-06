@@ -8,22 +8,15 @@
 #include "AlignedEntry.h"
 
 /* TODO */
-int AlignedEntryPrint(AlignedEntry *a,
+int32_t AlignedEntryPrint(AlignedEntry *a,
 		FILE *outputFP,
-		int space,
-		int binaryOutput)
+		int32_t space,
+		int32_t binaryOutput)
 {
 	assert(NULL != a->read);
 	assert(NULL != a->reference);
 	assert(space == NTSpace ||
 			(space == ColorSpace && NULL != a->colorError));
-
-	/*
-	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
-	   assert(((int)strlen(a->read)) == a->length);
-	   assert(strlen(a->reference) == a->length);
-	   assert((int)strlen(a->colorError) == a->length);
-	   */
 
 	if(binaryOutput == TextOutput) {
 
@@ -38,14 +31,14 @@ int AlignedEntryPrint(AlignedEntry *a,
 			return EOF;
 		}
 
-		/* Print the reference and read alignment */
+		/* Print32_t the reference and read alignment */
 		if(fprintf(outputFP, "%s\n%s\n",
 					a->reference,
 					a->read) < 0) {
 			return EOF;
 		}
 
-		/* Print the color errors if necessary */
+		/* Print32_t the color errors if necessary */
 		if(space == ColorSpace) {
 			if(fprintf(outputFP, "%s\n",
 						a->colorError) < 0) {
@@ -77,10 +70,10 @@ int AlignedEntryPrint(AlignedEntry *a,
 }
 
 /* TODO */
-int AlignedEntryRead(AlignedEntry *a,
+int32_t AlignedEntryRead(AlignedEntry *a,
 		FILE *inputFP,
-		int space,
-		int binaryInput)
+		int32_t space,
+		int32_t binaryInput)
 {
 	char *FnName = "AlignedEntryRead";
 	char tempContigName[MAX_CONTIG_NAME_LENGTH]="\0";
@@ -240,11 +233,12 @@ int AlignedEntryRead(AlignedEntry *a,
 }
 
 /* TODO */
-int AlignedEntryRemoveDuplicates(AlignedEntry **a,
-		int length,
-		int sortOrder)
+int32_t AlignedEntryRemoveDuplicates(AlignedEntry **a,
+		int32_t length,
+		int32_t sortOrder)
 {
-	int i, prevIndex;
+	char *FnName="AlignedEntryRemoveDuplicates";
+	int32_t i, prevIndex;
 
 	if(length > 0) {
 		/* Sort the array */
@@ -283,7 +277,7 @@ int AlignedEntryRemoveDuplicates(AlignedEntry **a,
 		/* Reallocate based on new length */
 		(*a) = realloc((*a), sizeof(AlignedEntry)*length);
 		if(NULL == (*a)) {
-			PrintError("AlignedEntryRemoveDuplicates",
+			PrintError(FnName,
 					"(*a)",
 					"Could not reallocate Aligned Entries while removing duplicates",
 					Exit,
@@ -297,16 +291,16 @@ int AlignedEntryRemoveDuplicates(AlignedEntry **a,
 /* Log-n space */
 /* Do not use, since it is buggy and has not been updated lately */  
 void AlignedEntryQuickSort(AlignedEntry **a,
-		int low,
-		int high,
-		int sortOrder,
-		int showPercentComplete,
+		int32_t low,
+		int32_t high,
+		int32_t sortOrder,
+		int32_t showPercentComplete,
 		double *curPercent,
-		int total)
+		int32_t total)
 {
 	char *FnName = "AlignedEntryQuickSort";
-	int i;
-	int pivot=-1;
+	int32_t i;
+	int32_t pivot=-1;
 	AlignedEntry *temp=NULL;
 
 	if(low < high) {
@@ -335,25 +329,25 @@ void AlignedEntryQuickSort(AlignedEntry **a,
 			}
 		}
 
-		AlignedEntryCopyAtIndex((*a), pivot, temp, 0);
-		AlignedEntryCopyAtIndex((*a), high, (*a), pivot);
-		AlignedEntryCopyAtIndex(temp, 0, (*a), high);
+		AlignedEntryCopyAtIndex(temp, 0, (*a), pivot);
+		AlignedEntryCopyAtIndex((*a), pivot, (*a), high);
+		AlignedEntryCopyAtIndex((*a), high, temp, 0);
 
 		pivot = low;
 
 		for(i=low;i<high;i++) {
 			if(AlignedEntryCompareAtIndex((*a), i, (*a), high, sortOrder) <= 0) {
 				if(i!=pivot) {
-					AlignedEntryCopyAtIndex((*a), i, temp, 0);
-					AlignedEntryCopyAtIndex((*a), pivot, (*a), i);
-					AlignedEntryCopyAtIndex(temp, 0, (*a), pivot);
+					AlignedEntryCopyAtIndex(temp, 0, (*a), i);
+					AlignedEntryCopyAtIndex((*a), i, (*a), pivot);
+					AlignedEntryCopyAtIndex((*a), pivot, temp, 0);
 				}
 				pivot++;
 			}
 		}
-		AlignedEntryCopyAtIndex((*a), pivot, temp, 0);
-		AlignedEntryCopyAtIndex((*a), high, (*a), pivot);
-		AlignedEntryCopyAtIndex(temp, 0, (*a), high);
+		AlignedEntryCopyAtIndex(temp, 0, (*a), pivot);
+		AlignedEntryCopyAtIndex((*a), pivot, (*a), high);
+		AlignedEntryCopyAtIndex((*a), high, temp, 0);
 
 		/* Free temp before the recursive call, otherwise we have a worst
 		 * case of O(n) space (NOT IN PLACE) 
@@ -388,20 +382,20 @@ void AlignedEntryQuickSort(AlignedEntry **a,
 /* TODO */
 /* O(n) space, but really double */
 void AlignedEntryMergeSort(AlignedEntry **a,
-		int low,
-		int high,
-		int sortOrder,
-		int showPercentComplete,
+		int32_t low,
+		int32_t high,
+		int32_t sortOrder,
+		int32_t showPercentComplete,
 		double *curPercent,
-		int total)
+		int32_t total)
 {
 	char *FnName = "AlignedEntryMergeSort";
-	int i, ctr;
-	int mid = (low + high)/2;
-	int startLower =  low;
-	int endLower = mid;
-	int startUpper = mid + 1;
-	int endUpper = high;
+	int32_t i, ctr;
+	int32_t mid = (low + high)/2;
+	int32_t startLower =  low;
+	int32_t endLower = mid;
+	int32_t startUpper = mid + 1;
+	int32_t endUpper = high;
 	AlignedEntry *tempEntries=NULL;
 
 	if(low >= high) {
@@ -453,22 +447,22 @@ void AlignedEntryMergeSort(AlignedEntry **a,
 	ctr=0;
 	while( (startLower <= endLower) && (startUpper <= endUpper)) {
 		if(AlignedEntryCompareAtIndex((*a), startLower, (*a), startUpper, sortOrder) <= 0) {
-			AlignedEntryCopyAtIndex((*a), startLower, tempEntries, ctr);
+			AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startLower);
 			startLower++;
 		}
 		else {
-			AlignedEntryCopyAtIndex((*a), startUpper, tempEntries, ctr);
+			AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startUpper);
 			startUpper++;
 		}
 		ctr++;
 	}
 	while(startLower <= endLower) {
-		AlignedEntryCopyAtIndex((*a), startLower, tempEntries, ctr);
+		AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startLower);
 		startLower++;
 		ctr++;
 	}
 	while(startUpper <= endUpper) {
-		AlignedEntryCopyAtIndex((*a), startUpper, tempEntries, ctr);
+		AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startUpper);
 		startUpper++;
 		ctr++;
 	}
@@ -476,7 +470,7 @@ void AlignedEntryMergeSort(AlignedEntry **a,
 	for(i=low, ctr=0;
 			i<=high;
 			i++, ctr++) {
-		AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), i);
+		AlignedEntryCopyAtIndex((*a), i, tempEntries, ctr);
 	}
 
 	/* Free memory */
@@ -495,56 +489,36 @@ void AlignedEntryMergeSort(AlignedEntry **a,
 }
 
 /* TODO */
-int AlignedEntryCompareAtIndex(AlignedEntry *a, int indexA, AlignedEntry *b, int indexB, int sortOrder)
+int32_t AlignedEntryCompareAtIndex(AlignedEntry *a, int32_t indexA, AlignedEntry *b, int32_t indexB, int32_t sortOrder)
 {
-	int cmp[5];
-	int i;
-	int top;
+	return AlignedEntryCompare(&(a[indexA]), &(b[indexB]), sortOrder);
+}
+
+/* TODO */
+int32_t AlignedEntryCompare(AlignedEntry *a, AlignedEntry *b, int32_t sortOrder)
+{
+	int32_t cmp[5];
+	int32_t i;
+	int32_t top;
 
 	if(sortOrder == AlignedEntrySortByAll) {
-
-		/* Old 
-		   cmp[0] = strcmp(a[indexA].read, b[indexB].read);
-		   cmp[1] = strcmp(a[indexA].reference, b[indexB].reference);
-		   cmp[2] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
-		   cmp[3] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		   cmp[4] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
-		   */
 
 		/* If there are multiple alignments to the same starting chr/pos/strand with the same score,
 		 * this will pick ensure that we will only pick one of them.
 		 * */
-		cmp[0] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
-		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
-		cmp[2] = (a[indexA].strand <= b[indexB].strand)?((a[indexA].strand<b[indexB].strand)?-1:0):1;
-		cmp[3] = (a[indexA].score <= b[indexB].score)?((a[indexA].score<b[indexB].score)?-1:0):1;
+		cmp[0] = (a->contig <= b->contig)?((a->contig<b->contig)?-1:0):1;
+		cmp[1] = (a->position <= b->position)?((a->position<b->position)?-1:0):1;
+		cmp[2] = (a->strand <= b->strand)?((a->strand<b->strand)?-1:0):1;
+		cmp[3] = (a->score <= b->score)?((a->score<b->score)?-1:0):1;
 
 		top = 4;
 	}
 	else {
 		assert(sortOrder == AlignedEntrySortByContigPos);
-		cmp[0] = (a[indexA].contig <= b[indexB].contig)?((a[indexA].contig<b[indexB].contig)?-1:0):1;
-		cmp[1] = (a[indexA].position <= b[indexB].position)?((a[indexA].position<b[indexB].position)?-1:0):1;
+		cmp[0] = (a->contig <= b->contig)?((a->contig<b->contig)?-1:0):1;
+		cmp[1] = (a->position <= b->position)?((a->position<b->position)?-1:0):1;
 
 		top = 2;
-
-		/*
-		   fprintf(stderr, "a[%d].contig=%d\ta[%d].position=%d\n",
-		   indexA,
-		   a[indexA].contig,
-		   indexA,
-		   a[indexA].position);
-		   fprintf(stderr, "a[%d].contig=%d\ta[%d].position=%d\n",
-		   indexB,
-		   a[indexB].contig,
-		   indexB,
-		   a[indexB].position);
-		   fprintf(stderr, "cmp[%d]=%d\ncmp[%d]=%d\n",
-		   0,
-		   cmp[0],
-		   1,
-		   cmp[1]);
-		   */
 	}
 
 	/* ingenious */
@@ -558,15 +532,15 @@ int AlignedEntryCompareAtIndex(AlignedEntry *a, int indexA, AlignedEntry *b, int
 }
 
 /* TODO */
-void AlignedEntryCopyAtIndex(AlignedEntry *src, int srcIndex, AlignedEntry *dest, int destIndex)
+void AlignedEntryCopyAtIndex(AlignedEntry *dest, int32_t destIndex, AlignedEntry *src, int32_t srcIndex)
 {
 	if(dest != src || srcIndex != destIndex) {
-		AlignedEntryCopy(&(src[srcIndex]), &(dest[destIndex]));
+		AlignedEntryCopy(&(dest[destIndex]), &(src[srcIndex]));
 	}
 }
 
 /* TODO */
-void AlignedEntryCopy(AlignedEntry *src, AlignedEntry *dest)
+void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 {
 	char *FnName = "AlignedEntryCopy";
 	if(src != dest) {
@@ -657,11 +631,11 @@ void AlignedEntryInitialize(AlignedEntry *a)
 
 /* TODO */
 /* Debugging function */
-void AlignedEntryCheckReference(AlignedEntry *a, RGBinary *rg, int space)
+void AlignedEntryCheckReference(AlignedEntry *a, RGBinary *rg, int32_t space)
 {
 	char *FnName = "AlignedEntryCheckReference";
-	int i;
-	int curPos;
+	int32_t i;
+	int32_t curPos;
 	char rgBase;
 	char reference[SEQUENCE_LENGTH]="\0";
 
@@ -694,13 +668,13 @@ void AlignedEntryCheckReference(AlignedEntry *a, RGBinary *rg, int space)
 	}
 }
 
-int AlignedEntryGetPivot(AlignedEntry *a,
-		int sortOrder,
-		int low,
-		int high) 
+int32_t AlignedEntryGetPivot(AlignedEntry *a,
+		int32_t sortOrder,
+		int32_t low,
+		int32_t high) 
 {
-	int cmp[3];
-	int pivot = (low + high)/2;
+	int32_t cmp[3];
+	int32_t pivot = (low + high)/2;
 	cmp[0] = AlignedEntryCompareAtIndex(a, low, a, pivot, sortOrder); 
 	cmp[1] = AlignedEntryCompareAtIndex(a, low, a, high, sortOrder); 
 	cmp[2] = AlignedEntryCompareAtIndex(a, pivot, a, high, sortOrder); 
@@ -748,23 +722,4 @@ int AlignedEntryGetPivot(AlignedEntry *a,
 		}
 	}
 	return pivot;
-}
-
-int64_t AlignedEntryGetSize(AlignedEntry *a)
-{
-	int64_t size = 0;
-
-	size += sizeof(AlignedEntry);
-
-	if(0 < a->contigNameLength) {
-		size += sizeof(char)*(a->contigNameLength+1);
-	}
-	if(0 < a->length) {
-		size += 2*sizeof(char)*(a->length+1); /* Read and reference */
-		if(NULL != a->colorError) {
-			size += sizeof(char)*(a->length+1); /* Color error */
-		}
-	}
-
-	return size;
 }

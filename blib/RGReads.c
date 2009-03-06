@@ -14,8 +14,6 @@
 #include "RGReads.h"
 
 /* TODO 
- * remove directionality in RGReads
- * remove directionality in generating reads.
  * */
 
 char ALPHABET[ALPHABET_SIZE] = "acgt";
@@ -61,7 +59,7 @@ void RGReadsFindMatches(RGIndex *index,
 	else {
 		assert(space==NTSpace);
 		/* Copy over */
-		strcpy(read, (char*)match->read);
+		strcpy(read, match->read);
 		readLength = match->readLength;
 	}
 
@@ -70,7 +68,6 @@ void RGReadsFindMatches(RGIndex *index,
 			readLength,
 			index,
 			&reads,
-			FORWARD,
 			offsets,
 			numOffsets,
 			space,
@@ -144,7 +141,6 @@ void RGReadsGenerateReads(char *read,
 		int readLength,
 		RGIndex *index,
 		RGReads *reads,
-		char direction,
 		int *offsets,
 		int numOffsets,
 		int space,
@@ -162,7 +158,6 @@ void RGReadsGenerateReads(char *read,
 		/* Insert the perfect match */
 		RGReadsGeneratePerfectMatch(read,
 				readLength,
-				direction,
 				offsets[i],
 				index,
 				reads);
@@ -174,7 +169,6 @@ void RGReadsGenerateReads(char *read,
 		if(numMismatches > 0) {
 			RGReadsGenerateMismatches(read,
 					readLength,
-					direction,
 					offsets[i],
 					numMismatches,
 					index,
@@ -190,7 +184,6 @@ void RGReadsGenerateReads(char *read,
 		if(numDeletions > 0) {
 			RGReadsGenerateDeletions(read,
 					readLength,
-					direction,
 					offsets[i],
 					numDeletions,
 					index,
@@ -208,7 +201,6 @@ void RGReadsGenerateReads(char *read,
 			/* Forward */
 			RGReadsGenerateInsertions(read,
 					readLength,
-					direction,
 					offsets[i],
 					numInsertions,
 					index,
@@ -222,7 +214,6 @@ void RGReadsGenerateReads(char *read,
 		if(numGapInsertions > 0) {
 			RGReadsGenerateGapInsertions(read,
 					readLength,
-					direction,
 					offsets[i],
 					numGapInsertions,
 					index,
@@ -237,7 +228,6 @@ void RGReadsGenerateReads(char *read,
 			/* Forward */
 			RGReadsGenerateGapDeletions(read,
 					readLength,
-					direction,
 					offsets[i],
 					numGapDeletions,
 					index,
@@ -250,7 +240,6 @@ void RGReadsGenerateReads(char *read,
 /* TODO */
 void RGReadsGeneratePerfectMatch(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		RGIndex *index,
 		RGReads *reads)
@@ -278,7 +267,7 @@ void RGReadsGeneratePerfectMatch(char *read,
 	curRead[index->width]='\0';
 
 	/* Append */
-	RGReadsAppend(reads, curRead, index->width, direction, offset);
+	RGReadsAppend(reads, curRead, index->width, offset);
 
 	free(curRead);
 	curRead = NULL;
@@ -287,7 +276,6 @@ void RGReadsGeneratePerfectMatch(char *read,
 /* TODO */
 void RGReadsGenerateMismatches(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numMismatches,
 		RGIndex *index,
@@ -312,7 +300,6 @@ void RGReadsGenerateMismatches(char *read,
 
 	RGReadsGenerateMismatchesHelper(read,
 			readLength,
-			direction,
 			offset,
 			numMismatches,
 			curRead,
@@ -327,7 +314,6 @@ void RGReadsGenerateMismatches(char *read,
 /* TODO */
 void RGReadsGenerateMismatchesHelper(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numMismatchesLeft,
 		char *curRead,
@@ -346,7 +332,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		/* No more to print */
 		if(curReadIndex == index->width) {
 			curRead[index->width]='\0';
-			RGReadsAppend(reads, curRead, index->width, direction, offset);
+			RGReadsAppend(reads, curRead, index->width, offset);
 			return;
 		}
 		else {
@@ -369,7 +355,6 @@ void RGReadsGenerateMismatchesHelper(char *read,
 					/* Keep going */
 					RGReadsGenerateMismatchesHelper(read,
 							readLength,
-							direction,
 							offset,
 							numMismatchesLeft,
 							curRead,
@@ -383,7 +368,6 @@ void RGReadsGenerateMismatchesHelper(char *read,
 					/* Keep going */
 					RGReadsGenerateMismatchesHelper(read,
 							readLength,
-							direction,
 							offset,
 							numMismatchesLeft-1,
 							curRead,
@@ -404,7 +388,7 @@ void RGReadsGenerateMismatchesHelper(char *read,
 		assert(curReadIndex == index->width);
 		curRead[index->width]='\0';
 		/* Append */
-		RGReadsAppend(reads, curRead, index->width, direction, offset);
+		RGReadsAppend(reads, curRead, index->width, offset);
 	}
 }
 
@@ -412,7 +396,6 @@ void RGReadsGenerateMismatchesHelper(char *read,
 /* Note: Deletions have occured, so insert bases */
 void RGReadsGenerateDeletions(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numDeletions,
 		RGIndex *index,
@@ -434,7 +417,6 @@ void RGReadsGenerateDeletions(char *read,
 	for(i=1;i<=numDeletions;i++) {
 		RGReadsGenerateDeletionsHelper(read,
 				readLength,
-				direction,
 				offset,
 				i,
 				i,
@@ -454,7 +436,6 @@ void RGReadsGenerateDeletions(char *read,
 /* Deletion occured, so insert bases */
 void RGReadsGenerateDeletionsHelper(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numDeletionsLeft,
 		int numDeletions,
@@ -476,7 +457,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 			if(numDeletionsLeft != numDeletions) {
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				RGReadsAppend(reads, curRead, index->width, offset);
 			}
 			return;
 		}
@@ -499,7 +480,6 @@ void RGReadsGenerateDeletionsHelper(char *read,
 					/* Use on first read */
 					RGReadsGenerateDeletionsHelper(read,
 							readLength,
-							direction,
 							offset,
 							numDeletionsLeft-1,
 							numDeletions,
@@ -516,7 +496,6 @@ void RGReadsGenerateDeletionsHelper(char *read,
 				curRead[curReadIndex] = read[offset+curReadIndex-deletionOffset];
 				RGReadsGenerateDeletionsHelper(read,
 						readLength,
-						direction,
 						offset,
 						numDeletionsLeft,
 						numDeletions,
@@ -537,7 +516,7 @@ void RGReadsGenerateDeletionsHelper(char *read,
 		curRead[index->width]='\0';
 		assert(curReadIndex == index->width);
 		/* Append */
-		RGReadsAppend(reads, curRead, index->width, direction, offset);
+		RGReadsAppend(reads, curRead, index->width, offset);
 		return;
 
 	}
@@ -547,7 +526,6 @@ void RGReadsGenerateDeletionsHelper(char *read,
 /* Note: Insertions have occured, so delete bases */
 void RGReadsGenerateInsertions(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numInsertions,
 		RGIndex *index,
@@ -583,7 +561,6 @@ void RGReadsGenerateInsertions(char *read,
 	for(i=1;i<=numInsertions;i++) {
 		RGReadsGenerateInsertionsHelper(read,
 				readLength,
-				direction,
 				offset,
 				i,
 				i,
@@ -603,7 +580,6 @@ void RGReadsGenerateInsertions(char *read,
 /* Try deleting bases from the read */
 void RGReadsGenerateInsertionsHelper(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numInsertionsLeft,
 		int numInsertions,
@@ -623,7 +599,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 			if(numInsertionsLeft != numInsertions) {
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				RGReadsAppend(reads, curRead, index->width, offset);
 			}
 			return;
 		}
@@ -632,7 +608,6 @@ void RGReadsGenerateInsertionsHelper(char *read,
 				read[curReadIndex-1] != read[curReadIndex]) {
 			RGReadsGenerateInsertionsHelper(read,
 					readLength,
-					direction,
 					offset,
 					numInsertionsLeft-1,
 					numInsertions,
@@ -658,7 +633,6 @@ void RGReadsGenerateInsertionsHelper(char *read,
 			curRead[tempReadIndex] = read[offset+tempReadIndex+insertionOffset];
 			RGReadsGenerateInsertionsHelper(read,
 					readLength,
-					direction,
 					offset,
 					numInsertionsLeft,
 					numInsertions,
@@ -678,7 +652,7 @@ void RGReadsGenerateInsertionsHelper(char *read,
 		curRead[index->width]='\0';
 		assert(curReadIndex == index->width);
 		/* Append */
-		RGReadsAppend(reads, curRead, index->width, direction, offset);
+		RGReadsAppend(reads, curRead, index->width, offset);
 		return;
 	}
 }
@@ -687,7 +661,6 @@ void RGReadsGenerateInsertionsHelper(char *read,
 /* Note: Deletions have occured, so insert bases in the gaps */
 void RGReadsGenerateGapDeletions(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numGapDeletions,
 		RGIndex *index,
@@ -709,7 +682,6 @@ void RGReadsGenerateGapDeletions(char *read,
 	}
 	RGReadsGenerateGapDeletionsHelper(read,
 			readLength,
-			direction,
 			offset,
 			numGapDeletions,
 			curRead,
@@ -725,7 +697,6 @@ void RGReadsGenerateGapDeletions(char *read,
 /* We assume that all insertions in the gap are grouped together */
 void RGReadsGenerateGapDeletionsHelper(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numGapDeletions,
 		char *curRead,
@@ -776,7 +747,7 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 				assert(tempCurReadPos == index->width);
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				RGReadsAppend(reads, curRead, index->width, offset);
 			}
 		}
 		/* Copy base */
@@ -791,7 +762,6 @@ void RGReadsGenerateGapDeletionsHelper(char *read,
 /* Note: Insertions have occured, so delete bases */
 void RGReadsGenerateGapInsertions(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numGapInsertions,
 		RGIndex *index,
@@ -816,7 +786,6 @@ void RGReadsGenerateGapInsertions(char *read,
 
 	RGReadsGenerateGapInsertionsHelper(read,
 			readLength,
-			direction,
 			offset,
 			numGapInsertions,
 			curRead,
@@ -832,7 +801,6 @@ void RGReadsGenerateGapInsertions(char *read,
 /* Delete bases in the gaps */
 void RGReadsGenerateGapInsertionsHelper(char *read,
 		int readLength,
-		char direction,
 		int offset,
 		int numGapInsertions,
 		char *curRead,
@@ -880,7 +848,7 @@ void RGReadsGenerateGapInsertionsHelper(char *read,
 				assert(tempCurReadPos == index->width);
 				curRead[index->width]='\0';
 				/* Append */
-				RGReadsAppend(reads, curRead, index->width, direction, offset);
+				RGReadsAppend(reads, curRead, index->width, offset);
 			}
 		}
 		/* Copy base */
@@ -1108,7 +1076,6 @@ void RGReadsInitialize(RGReads *reads)
 void RGReadsAppend(RGReads *reads, 
 		char *read,
 		int32_t readLength,
-		int8_t direction,
 		int32_t offset) 
 {
 	char *FnName = "RGReadsAppend";

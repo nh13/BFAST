@@ -11,8 +11,9 @@ balign_SOURCES = \
 	../blib/RGBinary.c	../blib/RGBinary.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
     ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-	../blib/AlignEntry.c	../blib/AlignEntry.h \
-	../blib/AlignEntries.c	../blib/AlignEntries.h \
+	../blib/AlignedRead.c	../blib/AlignedRead.h \
+	../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+	../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 	ScoringMatrix.c	ScoringMatrix.h \
 	AlignNTSpace.c	AlignNTSpace.h \
 	AlignColorSpace.c	AlignColorSpace.h \

@@ -6,7 +6,7 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGMatches.h"
-#include "../blib/AlignEntry.h"
+#include "../blib/AlignedEntry.h"
 #include "ScoringMatrix.h"
 #include "Align.h"
 #include "AlignNTSpace.h"
@@ -17,7 +17,7 @@ void AlignNTSpaceMismatchesOnly(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *a,
+		AlignedEntry *a,
 		char strand,
 		int32_t position)
 {
@@ -91,7 +91,7 @@ void AlignNTSpaceFull(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *a,
+		AlignedEntry *a,
 		char strand,
 		int32_t position)
 {
@@ -188,7 +188,7 @@ void AlignNTSpaceFull(char *read,
 		}
 	}
 
-	offset = FillAlignEntryFromMatrixNTSpace(a,
+	offset = FillAlignedEntryFromMatrixNTSpace(a,
 			matrix,
 			read,
 			readLength,
@@ -214,7 +214,7 @@ void AlignNTSpaceFullWithBound(char *read,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
-		AlignEntry *a,
+		AlignedEntry *a,
 		char strand,
 		int32_t position,
 		int32_t maxH,
@@ -333,7 +333,7 @@ void AlignNTSpaceFullWithBound(char *read,
 		}
 	}
 
-	offset = FillAlignEntryFromMatrixNTSpace(a,
+	offset = FillAlignedEntryFromMatrixNTSpace(a,
 			matrix,
 			read,
 			readLength,
@@ -352,8 +352,8 @@ void AlignNTSpaceFullWithBound(char *read,
 
 	/* Debug code */
 	/*
-	AlignEntry tmp;
-	AlignEntryInitialize(&tmp);
+	AlignedEntry tmp;
+	AlignedEntryInitialize(&tmp);
 	AlignNTSpaceFull(read,
 			readLength,
 			reference,
@@ -368,11 +368,11 @@ void AlignNTSpaceFullWithBound(char *read,
 			!(a->referenceLength == tmp.referenceLength)) {
 		fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
 		fprintf(stderr, "\nstrand=%c\n", strand);
-		AlignEntryPrint(a,
+		AlignedEntryPrint(a,
 				stderr,
 				ColorSpace,
 				TextOutput);
-		AlignEntryPrint(&tmp,
+		AlignedEntryPrint(&tmp,
 				stderr,
 				ColorSpace,
 				TextOutput);
@@ -382,14 +382,14 @@ void AlignNTSpaceFullWithBound(char *read,
 				Exit,
 				OutOfRange);
 	}
-	AlignEntryFree(&tmp);
+	AlignedEntryFree(&tmp);
 	*/
 
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
 /* TODO */
-int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
+int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 		AlignMatrixNT **matrix,
 		char *read,
 		int readLength,
@@ -398,7 +398,7 @@ int FillAlignEntryFromMatrixNTSpace(AlignEntry *a,
 		int toExclude,
 		int debug)
 {
-	char *FnName="FillAlignEntryFromMatrixNTSpace";
+	char *FnName="FillAlignedEntryFromMatrixNTSpace";
 	int curRow, curCol, startRow, startCol;
 	char curReadBase;
 	int nextRow, nextCol;

@@ -1,24 +1,22 @@
-#ifndef ALIGNENTRIES_H_
-#define ALIGNENTRIES_H_
+#ifndef ALIGNEDREAD_H_
+#define ALIGNEDREAD_H_
 
 #include <stdio.h>
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-void AlignEntriesPrint(AlignEntries*, FILE*, int);
-int AlignEntriesRead(AlignEntries*, FILE*, int, int, int);
-void AlignEntriesRemoveDuplicates(AlignEntries*, int);
-void AlignEntriesQuickSort(AlignEntries*, int, int);
-void AlignEntriesMergeSort(AlignEntries*, int, int);
-void AlignEntriesAllocate(AlignEntries*, char*, int, int, int, int);
-void AlignEntriesReallocate(AlignEntries*, int, int, int, int);
-void AlignEntriesFree(AlignEntries*);
-void AlignEntriesInitialize(AlignEntries*);
-void AlignEntriesKeepOnly(AlignEntries*, int, int, int, int);
-void AlignEntriesCopy(AlignEntries*, AlignEntries*);
-int64_t AlignEntriesGetSize(AlignEntries*);
-void AlignEntriesMergeSortAll(AlignEntries**, int64_t, int64_t);
-void AlignEntriesMergeAll(AlignEntries**, int64_t, int64_t, int64_t);
-int32_t AlignEntriesCompareAll(AlignEntries*, AlignEntries*);
+void AlignedReadPrint(AlignedRead*, FILE*, int32_t);
+int AlignedReadRead(AlignedRead*, FILE*, int32_t);
+void AlignedReadRemoveDuplicates(AlignedRead*, int32_t);
+void AlignedReadQuickSort(AlignedRead*, int32_t, int32_t);
+void AlignedReadMergeSort(AlignedRead*, int32_t, int32_t);
+void AlignedReadReallocate(AlignedRead*, int32_t);
+void AlignedReadAllocate(AlignedRead*, char*, int32_t, int32_t);
+void AlignedReadFree(AlignedRead*);
+void AlignedReadInitialize(AlignedRead*);
+void AlignedReadCopy(AlignedRead*, AlignedRead*);
+void AlignedReadMergeSortAll(AlignedRead**, int64_t, int64_t);
+void AlignedReadMergeAll(AlignedRead**, int64_t, int64_t, int64_t);
+int32_t AlignedReadCompareAll(AlignedRead*, AlignedRead*);
 #endif
 

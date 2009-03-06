@@ -4,14 +4,15 @@
 #include <limits.h>
 #include <float.h>
 #include "../blib/BError.h"
-#include "../blib/AlignEntry.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedEntry.h"
+#include "../blib/AlignedEnd.h"
+#include "../blib/AlignedRead.h"
 #include "../blib/BLib.h"
 #include "Definitions.h"
 #include "Filter.h"
 
 /* TODO */
-int FilterAlignEntries(AlignEntries *a,
+int FilterAlignedRead(AlignedRead *a,
 		int algorithmReads,
 		int uniquenessScore,
 		int minUniquenessScore,
@@ -22,7 +23,6 @@ int FilterAlignEntries(AlignEntries *a,
 		int endPos,
 		int maxMismatches,
 		int maxColorErrors,
-		int pairedEnd,
 		int minDistancePaired,
 		int maxDistancePaired,
 		int useDistancePaired,
@@ -30,48 +30,28 @@ int FilterAlignEntries(AlignEntries *a,
 		int inversionsPaired,
 		int unpaired)
 {
-	char *FnName="FilterAlignEntries";
-	int foundType, foundTypeOne, foundTypeTwo;
-	AlignEntries tmpA, tmpB;
-	int32_t i;
-	int32_t bestScoreOne, bestScoreIndexOne, numBestScoreOne;
-	int32_t bestScoreTwo, bestScoreIndexTwo, numBestScoreTwo;
+	char *FnName="FilterAlignedRead";
+	int foundType;
+	int32_t *foundTypes=NULL;
+	AlignedRead tmpA;
+	AlignedEnd tmpEnd;
+	int32_t i, j;
+	int32_t bestScore, bestScoreIndex, numBestScore;
 	int32_t curContigDistance, curPositionDistance;
-	double uniquenessScoreOne, uniquenessScoreTwo;
-	assert(a->pairedEnd == pairedEnd);
+	double curUniquenessScore;
 
-	AlignEntriesInitialize(&tmpA);
+	AlignedReadInitialize(&tmpA);
 
 	/* We should only modify "a" if it is going to be reported */ 
 	/* Copy in case we do not find anything to report */
-	AlignEntriesCopy(a, &tmpA);
+	AlignedReadCopy(a, &tmpA);
 
 	if(NoFiltering != algorithmReads) {
-		/* Filter each read individually */
-		for(i=0;i<tmpA.numEntriesOne;i++) {
-			/* Check if we should filter */
-			if(0<FilterAlignEntry(&tmpA.entriesOne[i],
-						tmpA.space,
-						minScoreReads,
-						startContig,
-						startPos,
-						endContig,
-						endPos,
-						maxMismatches,
-						maxColorErrors)) {
-				/* Copy end here */
-				if(i < tmpA.numEntriesOne-1) {
-					AlignEntryCopy(&tmpA.entriesOne[tmpA.numEntriesOne-1], &tmpA.entriesOne[i]);
-				}
-				AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne-1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
-				/* Since we removed, do not incrememt */
-				i--;
-			}
-		}
-		if(PairedEnd == tmpA.pairedEnd) {
-			for(i=0;i<tmpA.numEntriesTwo;i++) {
+		/* Filter each alignment individually */
+		for(i=0;i<tmpA.numEnds;i++) {
+			for(j=0;j<tmpA.ends[i].numEntries;j++) {
 				/* Check if we should filter */
-				if(0<FilterAlignEntry(&tmpA.entriesTwo[i],
+				if(0<FilterAlignedEntry(&tmpA.ends[i].entries[j],
 							tmpA.space,
 							minScoreReads,
 							startContig,
@@ -81,142 +61,113 @@ int FilterAlignEntries(AlignEntries *a,
 							maxMismatches,
 							maxColorErrors)) {
 					/* Copy end here */
-					if(i < tmpA.numEntriesTwo-1) {
-						AlignEntryCopy(&tmpA.entriesTwo[tmpA.numEntriesTwo-1], &tmpA.entriesTwo[i]);
+					if(i < tmpA.ends[i].numEntries-1) {
+						AlignedEntryCopy(&tmpA.ends[i].entries[j], 
+								&tmpA.ends[i].entries[tmpA.ends[i].numEntries-1]);
 					}
-					AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, tmpA.numEntriesTwo-1, tmpA.pairedEnd, tmpA.space);
+					AlignedEndReallocate(&tmpA.ends[i], tmpA.ends[i].numEntries-1);
 					/* Since we removed, do not incrememt */
-					i--;
+					j--;
 				}
 			}
 		}
 	}
-	foundType=foundTypeOne=foundTypeTwo=NoneFound;
+	foundType=NoneFound;
+	foundTypes=malloc(sizeof(int32_t)*tmpA.numEnds);
+	if(NULL == foundTypes) {
+		PrintError(FnName,
+				"foundTypes",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	for(i=0;i<tmpA.numEnds;i++) {
+		foundTypes[i]=NoneFound;
+	}
 
-	/* Pick alignment */
-	switch(algorithmReads) {
-		case NoFiltering:
-		case AllNotFiltered:
-			foundTypeOne=(0<tmpA.numEntriesOne)?Found:NoneFound;
-			foundTypeTwo=(0<tmpA.numEntriesTwo)?Found:NoneFound;
-			if(1==uniquenessScore) {
-				AlignEntriesCopy(a, &tmpB);
-				for(i=0;i<tmpB.numEntriesOne;i++) {
-					tmpA.entriesOne[i].score=GetUniquenessScore(tmpB.entriesOne,
-							tmpB.numEntriesOne,
-							i);
-				}
-				for(i=0;i<tmpB.numEntriesTwo;i++) {
-					tmpA.entriesTwo[i].score=GetUniquenessScore(tmpB.entriesTwo,
-							tmpB.numEntriesTwo,
-							i);
-				}
-				AlignEntriesFree(&tmpB);
-			}
-			break;
-		case Unique:
-			foundTypeOne=(1==tmpA.numEntriesOne)?Found:NoneFound;
-			foundTypeTwo=(1==tmpA.numEntriesTwo)?Found:NoneFound;
-			if(1==uniquenessScore) {
-				if(Found == foundTypeOne) {
-					tmpA.entriesOne[0].score = 1;
-				}
-				if(Found == foundTypeTwo) {
-					tmpA.entriesTwo[0].score = 1;
-				}
-			}
-			break;
-		case BestScore:
-			bestScoreOne = bestScoreTwo = INT_MIN;
-			bestScoreIndexOne = bestScoreIndexTwo = -1;
-			numBestScoreOne = numBestScoreTwo = 0;
-			/* One */
-			for(i=0;i<tmpA.numEntriesOne;i++) {
-				if(bestScoreOne < tmpA.entriesOne[i].score) {
-					bestScoreOne = tmpA.entriesOne[i].score;
-					bestScoreIndexOne = i;
-					numBestScoreOne = 1;
-				}
-				else if(bestScoreOne == tmpA.entriesOne[i].score) {
-					numBestScoreOne++;
-				}
-			}
-			if(1==numBestScoreOne) {
-				foundTypeOne = Found;
+	/* Pick alignment for each end individually (is this a good idea?) */
+	for(i=0;i<tmpA.numEnds;i++) {
+		switch(algorithmReads) {
+			case NoFiltering:
+			case AllNotFiltered:
+				foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
 				if(1==uniquenessScore) {
-					/* Calculate uniqueness score */
-					uniquenessScoreOne=GetUniquenessScore(tmpA.entriesOne,
-							tmpA.numEntriesOne,
-							bestScoreIndexOne);
-					if(uniquenessScoreOne < minUniquenessScore) {
-						foundTypeOne = NoneFound;
+					AlignedEndInitialize(&tmpEnd);
+					AlignedEndCopy(&tmpEnd, &tmpA.ends[i]);
+					for(j=0;j<tmpEnd.numEntries;j++) {
+						tmpA.ends[i].entries[j].score=GetUniquenessScore(&tmpEnd,
+								j);
 					}
-					else {
-						tmpA.entriesOne[bestScoreIndexOne].score = uniquenessScoreOne;
+					AlignedEndFree(&tmpEnd);
+				}
+				break;
+			case Unique:
+				foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
+				if(1==uniquenessScore) {
+					if(Found == foundTypes[i]) {
+						tmpA.ends[i].entries[0].score = 1;
 					}
 				}
-				if(Found == foundTypeOne) {
-					AlignEntryCopy(&tmpA.entriesOne[bestScoreIndexOne], &tmpA.entriesOne[0]);
-					AlignEntriesReallocate(&tmpA, 1, tmpA.numEntriesTwo, tmpA.pairedEnd, tmpA.space);
-				}
-			}
-			/* Two */
-			if(PairedEnd == tmpA.pairedEnd) {
-				for(i=0;i<tmpA.numEntriesTwo;i++) {
-					if(bestScoreTwo < tmpA.entriesTwo[i].score) {
-						bestScoreTwo = tmpA.entriesTwo[i].score;
-						bestScoreIndexTwo = i;
-						numBestScoreTwo = 1;
+				break;
+			case BestScore:
+				bestScore = INT_MIN;
+				bestScoreIndex = -1;
+				numBestScore = 0;
+				for(j=0;j<tmpA.ends[i].numEntries;j++) {
+					if(bestScore < tmpA.ends[i].entries[j].score) {
+						bestScore = tmpA.ends[i].entries[j].score;
+						bestScoreIndex = i;
+						numBestScore = 1;
 					}
-					else if(bestScoreTwo == tmpA.entriesTwo[i].score) {
-						numBestScoreTwo++;
+					else if(bestScore == tmpA.ends[i].entries[j].score) {
+						numBestScore++;
 					}
 				}
-				if(1==numBestScoreTwo) {
-					foundTypeTwo = Found;
+				if(1==numBestScore) {
+					foundTypes[i] = Found;
 					if(1==uniquenessScore) {
 						/* Calculate uniqueness score */
-						uniquenessScoreTwo=GetUniquenessScore(tmpA.entriesTwo,
-								tmpA.numEntriesTwo,
-								bestScoreIndexTwo);
-						if(uniquenessScoreTwo < minUniquenessScore) {
-							foundTypeTwo = NoneFound;
+						curUniquenessScore=GetUniquenessScore(&tmpA.ends[i],
+								bestScoreIndex);
+						if(curUniquenessScore < minUniquenessScore) {
+							foundTypes[i] = NoneFound;
 						}
 						else {
-							tmpA.entriesTwo[bestScoreIndexTwo].score = uniquenessScoreTwo;
+							tmpA.ends[i].entries[bestScoreIndex].score = curUniquenessScore;
 						}
 					}
-					if(Found == foundTypeTwo) {
-						AlignEntryCopy(&tmpA.entriesTwo[bestScoreIndexTwo], &tmpA.entriesTwo[0]);
-						AlignEntriesReallocate(&tmpA, tmpA.numEntriesOne, 1, tmpA.pairedEnd, tmpA.space);
+					if(Found == foundTypes[i]) {
+						AlignedEntryCopy(&tmpA.ends[i].entries[0], 
+								&tmpA.ends[i].entries[bestScoreIndex]);
+						AlignedEndReallocate(&tmpA.ends[i], 1);
 					}
 				}
-			}
-			break;
-		default:
-			PrintError(FnName,
-					"algorithmReadsPaired",
-					"Could not understand algorithmReads",
-					Exit,
-					OutOfRange);
-			break;
+				break;
+			default:
+				PrintError(FnName,
+						"algorithmReads",
+						"Could not understand algorithmReads",
+						Exit,
+						OutOfRange);
+				break;
+		}
 	}
 
-	if(SingleEnd == tmpA.pairedEnd) {
-		foundType=foundTypeOne;
+	if(1 == tmpA.numEnds) {
+		foundType=foundTypes[0];
 	}
-	else {
-		foundType=(Found==foundTypeOne && Found==foundTypeTwo)?Found:NoneFound;
+	else if(2 == tmpA.numEnds) {
+		foundType=(Found==foundTypes[0] && Found==foundTypes[1])?Found:NoneFound;
 
 		if(Found == foundType) {
 			if(1 == useDistancePaired) {
-				curContigDistance = a->entriesTwo[0].contig - a->entriesOne[0].contig;
-				curPositionDistance = a->entriesTwo[0].position - a->entriesOne[0].position;
+				curContigDistance = a->ends[1].entries[0].contig - a->ends[0].entries[0].contig;
+				curPositionDistance = a->ends[1].entries[0].position - a->ends[0].entries[0].position;
 
 				if(0 != curContigDistance ||
 						curPositionDistance < minDistancePaired ||
 						maxDistancePaired < curPositionDistance) {
-					if(a->entriesOne[0].strand == a->entriesTwo[0].strand) {
+					if(a->ends[0].entries[0].strand == a->ends[1].entries[0].strand) {
 						if(1 == contigAbPaired) {
 							/* Same strand - contig abnormality */
 							foundType = ContigAb;
@@ -237,31 +188,43 @@ int FilterAlignEntries(AlignEntries *a,
 				}
 			}
 		}
-		else if(1 == unpaired) {
-			if(Found == foundTypeOne) {
-				assert(NoneFound==foundTypeTwo);
-				foundType = Unpaired;
-				AlignEntriesReallocate(&tmpA, 1, 0, tmpA.pairedEnd, tmpA.space);
-			}
-			else if(Found == foundTypeTwo) {
-				assert(NoneFound==foundTypeOne);
-				foundType = Unpaired;
-				AlignEntriesReallocate(&tmpA, 0, 1, tmpA.pairedEnd, tmpA.space);
+	}
+	else {
+		/* Call found if all have been found */
+		foundType=Found;
+		for(i=0;Found==foundType && i<tmpA.numEnds;i++) {
+			if(NoneFound == foundTypes[i]) {
+				foundType=NoneFound;
 			}
 		}
 	}
+	/* See if we should check for unpaired alignments */
+	if(1 == unpaired && NoneFound == foundType) {
+		/* Call unpaired if at least one is found */
+		foundType=NoneFound;
+		for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
+			if(Found == foundTypes[i]) {
+				foundType=Found;
+			}
+		}
+		if(Found == foundType) {
+			foundType = Unpaired;
+		}
+	}
+
 	/* If we found, then copy back */
 	if(NoneFound != foundType) {
-		AlignEntriesFree(a);
-		AlignEntriesCopy(&tmpA, a);
+		AlignedReadFree(a);
+		AlignedReadCopy(&tmpA, a);
 	}
-	AlignEntriesFree(&tmpA);
+	AlignedReadFree(&tmpA);
+	free(foundTypes);
 
 	return foundType;
 }
 
 /* TODO */
-int FilterAlignEntry(AlignEntry *a,
+int FilterAlignedEntry(AlignedEntry *a,
 		int space,
 		int minScoreReads,
 		int startContig,
@@ -285,9 +248,9 @@ int FilterAlignEntry(AlignEntry *a,
 		return 2;
 	}
 	/* Check mismatches */
-	numMismatches = GetNumMismatchesInAlignEntry(a);
+	numMismatches = GetNumMismatchesInAlignedEntry(a);
 	/* Check color errors */
-	numColorErrors = GetNumColorErrorsInAlignEntry(a, space);
+	numColorErrors = GetNumColorErrorsInAlignedEntry(a, space);
 	if(maxMismatches < numMismatches) {
 		return 3;
 	}
@@ -300,8 +263,7 @@ int FilterAlignEntry(AlignEntry *a,
 }
 
 /* TODO */
-double GetUniquenessScore(AlignEntry *a,
-		int32_t numEntries,
+double GetUniquenessScore(AlignedEnd *end,
 		int32_t bestScoreIndex) 
 {
 	int32_t nextBestScore, numNextBestScore;
@@ -310,21 +272,21 @@ double GetUniquenessScore(AlignEntry *a,
 	nextBestScore = INT_MIN;
 	numNextBestScore = 0;
 
-	for(i=0;i<numEntries;i++) {
+	for(i=0;i<end->numEntries;i++) {
 		if(i != bestScoreIndex) {
-			if(nextBestScore < a[i].score) {
-				nextBestScore = a[i].score;
+			if(nextBestScore < end->entries[i].score) {
+				nextBestScore = end->entries[i].score;
 				numNextBestScore = 1;
 			}
-			else if(nextBestScore == a[i].score) {
+			else if(nextBestScore == end->entries[i].score) {
 				numNextBestScore++;
 			}
 		}
 	}
 
 	if(0 < numNextBestScore && 0 < nextBestScore) {
-		return (a[bestScoreIndex].score
-				/ (a[bestScoreIndex].score + numNextBestScore*nextBestScore));
+		return (end->entries[bestScoreIndex].score
+				/ (end->entries[bestScoreIndex].score + numNextBestScore*nextBestScore));
 	}
 	else {
 		return 1.0;

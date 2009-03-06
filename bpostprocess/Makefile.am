@@ -8,9 +8,10 @@ bpostprocess_SOURCES = \
 					   ../blib/RGBinary.c ../blib/RGBinary.h \
 					   ../blib/RGMatch.c ../blib/RGMatch.h \
 					   ../blib/RGRanges.c ../blib/RGRanges.h \
-					   ../blib/AlignEntries.c	../blib/AlignEntries.h \
-					   ../blib/AlignEntriesConvert.c	../blib/AlignEntriesConvert.h \
-					   ../blib/AlignEntry.c	../blib/AlignEntry.h \
+					   ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
+					   ../blib/AlignedRead.c   ../blib/AlignedRead.h \
+					   ../blib/AlignedEnd.c    ../blib/AlignedEnd.h \
+					   ../blib/AlignedEntry.c  ../blib/AlignedEntry.h \
 					   Filter.c	Filter.h \
 					   InputOutputToFiles.c	InputOutputToFiles.h \
 					   ParseInput.c	ParseInput.h \

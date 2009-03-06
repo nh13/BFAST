@@ -285,8 +285,8 @@ int32_t ScoringMatrixGetNTScore(char a,
 }
 
 /* TODO */
-int32_t ScoringMatrixGetColorScore(uint8_t a,
-		uint8_t b,
+int32_t ScoringMatrixGetColorScore(char a,
+		char b,
 		ScoringMatrix *sm)
 {
 	char *FnName="ScoringMatrixGetColorScore";

@@ -68,7 +68,7 @@ void RGIndexCreate(RGIndex *index,
 	/* Copy over other metadata */
 	index->id = BFAST_ID;
 	index->packageVersionLength = (int)strlen(PACKAGE_VERSION);
-	index->packageVersion = malloc(sizeof(int8_t)*(index->packageVersionLength+1));
+	index->packageVersion = malloc(sizeof(char)*(index->packageVersionLength+1));
 	if(NULL==index->packageVersion) {
 		PrintError(FnName,
 				"index->packageVersion",
@@ -76,7 +76,7 @@ void RGIndexCreate(RGIndex *index,
 				Exit,
 				MallocMemory);
 	}
-	strcpy((char*)index->packageVersion, PACKAGE_VERSION);
+	strcpy(index->packageVersion, PACKAGE_VERSION);
 	index->repeatMasker = repeatMasker;
 	index->space = space;
 
@@ -166,7 +166,7 @@ void RGIndexCreateHelper(RGIndex *index,
 		int32_t includeNs)
 {
 	/* For storing the bases */
-	int8_t bases[SEQUENCE_LENGTH]="\0";
+	char bases[SEQUENCE_LENGTH]="\0";
 	int32_t basesLength=0;
 	int32_t basesIndex=0;
 	int32_t curBasesPos=0; 
@@ -1543,7 +1543,7 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index)
 	/* Print Header */
 	if(fwrite(&index->id, sizeof(int32_t), 1, fp) != 1 ||
 			fwrite(&index->packageVersionLength, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(index->packageVersion, sizeof(int8_t), index->packageVersionLength, fp) != index->packageVersionLength ||
+			fwrite(index->packageVersion, sizeof(char), index->packageVersionLength, fp) != index->packageVersionLength ||
 			fwrite(&index->length, sizeof(int64_t), 1, fp) != 1 || 
 			fwrite(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
 			fwrite(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
@@ -1578,7 +1578,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 				Exit,
 				ReadFileError);
 	}
-	index->packageVersion = malloc(sizeof(int8_t)*(index->packageVersionLength+1));
+	index->packageVersion = malloc(sizeof(char)*(index->packageVersionLength+1));
 	if(NULL==index->packageVersion) {
 		PrintError(FnName,
 				"index->packageVersion",
@@ -1587,7 +1587,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 				MallocMemory);
 	}
 
-	if(fread(index->packageVersion, sizeof(int8_t), index->packageVersionLength, fp) != index->packageVersionLength ||
+	if(fread(index->packageVersion, sizeof(char), index->packageVersionLength, fp) != index->packageVersionLength ||
 			fread(&index->length, sizeof(int64_t), 1, fp) != 1 || 
 			fread(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
 			fread(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
@@ -1971,8 +1971,8 @@ int32_t RGIndexCompareContigPos(RGIndex *index,
 {
 	char *FnName="RGIndexCompareContigPos";
 	int64_t i;
-	uint8_t aBase;
-	uint8_t bBase;
+	char aBase;
+	char bBase;
 
 	if(!(aContig >= index->startContig && aContig <= index->endContig)) {
 	}
@@ -2073,8 +2073,8 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	uint32_t aContig = (index->contigType==Contig_8)?index->contigs_8[a]:index->contigs_32[a];
 	uint32_t aPos = index->positions[a];
 
-	uint8_t aBase;
-	uint8_t readBase;
+	char aBase;
+	char readBase;
 
 	if(debug > 0) {
 		fprintf(stderr, "%d\n%s", 
@@ -2131,7 +2131,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 	int32_t i;
 	uint32_t aContig = (index->contigType==Contig_8)?index->contigs_8[a]:index->contigs_32[a];
 	uint32_t aPos = index->positions[a];
-	uint8_t aBase;
+	char aBase;
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
 	assert(ALPHABET_SIZE == 4);
@@ -2198,7 +2198,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
-	uint8_t readBase;
+	char readBase;
 
 	/* Go across the mask */
 	for(i=0;cur >= 0 && i<index->width;i++) {

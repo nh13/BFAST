@@ -9,8 +9,8 @@
 #include "../blib/RGBinary.h"
 #include "../blib/RGMatch.h" 
 #include "../blib/RGMatches.h" 
-#include "../blib/AlignEntries.h"
-#include "../blib/AlignEntry.h" 
+#include "../blib/AlignedRead.h"
+#include "../blib/AlignedEntry.h" 
 #include "Align.h"
 #include "ScoringMatrix.h"
 #include "Definitions.h"
@@ -30,7 +30,6 @@ void RunAligner(RGBinary *rg,
 		int endPos,
 		int offsetLength,
 		int maxNumMatches,
-		int pairedEnd,
 		int binaryInput,
 		int numThreads,
 		int usePairedEndLength,
@@ -41,7 +40,7 @@ void RunAligner(RGBinary *rg,
 		char *outputDir,
 		char *tmpDir,
 		int binaryOutput,
-		int *totalAlignTime,
+		int *totalAlignedTime,
 		int *totalFileHandlingTime)
 {
 	char *FnName = "RunAligner";
@@ -71,20 +70,18 @@ void RunAligner(RGBinary *rg,
 			&endPos);
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%d.%s",
+	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
-			pairedEnd,
 			BFAST_ALIGNED_FILE_EXTENSION);
 	/* Create not aligned file name */
-	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%d.%s",
+	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
-			pairedEnd,
 			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Open output file */
@@ -139,7 +136,6 @@ void RunAligner(RGBinary *rg,
 			endPos,
 			offsetLength,
 			maxNumMatches,
-			pairedEnd,
 			binaryInput,
 			numThreads,
 			usePairedEndLength,
@@ -150,7 +146,7 @@ void RunAligner(RGBinary *rg,
 			outputFP,
 			notAlignedFP,
 			binaryOutput,
-			totalAlignTime,
+			totalAlignedTime,
 			totalFileHandlingTime);
 
 	if(VERBOSE >= 0) {
@@ -181,7 +177,6 @@ void RunDynamicProgramming(FILE *matchFP,
 		int endPos,
 		int offsetLength,
 		int maxNumMatches,
-		int pairedEnd,
 		int binaryInput,
 		int numThreads,
 		int usePairedEndLength,
@@ -192,20 +187,22 @@ void RunDynamicProgramming(FILE *matchFP,
 		FILE *outputFP,
 		FILE *notAlignedFP,
 		int binaryOutput,
-		int *totalAlignTime,
+		int *totalAlignedTime,
 		int *totalFileHandlingTime)
 {
 	/* local variables */
 	ScoringMatrix sm;
 	RGMatches m;
-	int i;
+	int32_t i, j;
+		
+	int32_t toAligned, wasAligned;
 	int continueReading=0;
 	int numMatches=0;
 	int numAligned=0;
 	int numNotAligned=0;
 	int startTime, endTime;
 	int64_t numLocalAlignments=0;
-	AlignEntries aEntries;
+	AlignedRead aEntries;
 	/* Thread specific data */
 	ThreadData *data;
 	pthread_t *threads=NULL;
@@ -260,7 +257,6 @@ void RunDynamicProgramming(FILE *matchFP,
 	i=0;
 	while(EOF!=RGMatchesRead(matchFP, 
 				&m,
-				pairedEnd,
 				binaryInput) 
 		 ) {
 
@@ -280,11 +276,14 @@ void RunDynamicProgramming(FILE *matchFP,
 				maxNumMatches);
 
 		/* Filter those reads we will not be able to align */
-		/* line 1 - if both were found to have too many alignments in bmatches */
-		/* line 3 - if both do not have any possible matches */
-		if( (m.matchOne.maxReached == 1 && (pairedEnd == 0 || m.matchTwo.maxReached == 1)) ||
-				(m.matchOne.numEntries <= 0 && (pairedEnd == 0 || m.matchTwo.numEntries <= 0))
-		  )	{
+		/* line 1 - if an end reached its maximum match limit or there are no
+		 * candidate alignment locations */
+		for(j=toAligned=0;0==toAligned && j<m.numEnds;j++) {
+			if(1 != m.ends[j].maxReached && 0 < m.ends[j].numEntries) {
+				toAligned = 1;
+			}
+		}
+		if(0 == toAligned) {
 			/* Print to the not aligned file */
 			numNotAligned++;
 			RGMatchesPrint(notAlignedFP,
@@ -322,7 +321,6 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].space=space;
 		data[i].scoringType=scoringType;
 		data[i].offsetLength=offsetLength;
-		data[i].pairedEnd=pairedEnd;
 		data[i].usePairedEndLength = usePairedEndLength;
 		data[i].pairedEndLength = pairedEndLength;
 		data[i].mirroringType = mirroringType;
@@ -397,7 +395,7 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* End align timer */
 	endTime = time(NULL);
-	(*totalAlignTime) += endTime - startTime;
+	(*totalAlignedTime) += endTime - startTime;
 
 	/* Start file handling timer */
 	startTime = time(NULL);
@@ -412,7 +410,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Merging and outputting aligned reads from threads...\n[0]");
 	}
-	AlignEntriesInitialize(&aEntries);
+	AlignedReadInitialize(&aEntries);
 	numAligned=0;
 	continueReading=1;
 	while(continueReading==1) {
@@ -420,21 +418,26 @@ void RunDynamicProgramming(FILE *matchFP,
 		continueReading=0;
 		for(i=0;i<numThreads;i++) {
 			/* Read in the align entries */
-			if(EOF != AlignEntriesRead(&aEntries, data[i].outputFP, pairedEnd, space, binaryOutput)) {
+			if(EOF != AlignedReadRead(&aEntries, data[i].outputFP, binaryOutput)) {
 				if(VERBOSE >=0 && numAligned%ALIGN_ROTATE_NUM == 0) {
 					fprintf(stderr, "\r[%d]", numAligned);
 				}
 				continueReading=1;
 				/* Update the number that were aligned */
-				assert(aEntries.numEntriesOne > 0 ||
-						(aEntries.pairedEnd == PairedEnd && aEntries.numEntriesTwo > 0));
-				numAligned++;
+				for(j=wasAligned=0;0==wasAligned && j<aEntries.numEnds;j++) {
+					if(0 < aEntries.ends[j].numEntries) {
+						wasAligned = 1;
+					}
+				}
+				if(1 == wasAligned) {
+					numAligned++;
+				}
 				/* Print it out */
-				AlignEntriesPrint(&aEntries,
+				AlignedReadPrint(&aEntries,
 						outputFP,
 						binaryOutput);
 			}
-			AlignEntriesFree(&aEntries);
+			AlignedReadFree(&aEntries);
 		}
 	}
 	if(VERBOSE >=0) {
@@ -453,7 +456,6 @@ void RunDynamicProgramming(FILE *matchFP,
 			RGMatchesInitialize(&m);
 			if(RGMatchesRead(data[i].notAlignedFP,
 						&m,
-						pairedEnd,
 						binaryInput) == EOF) {
 				continueReading = 0;
 			}
@@ -495,7 +497,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	/* Free memory */
 	free(data);
 	free(threads);
-	AlignEntriesFree(&aEntries);
+	AlignedReadFree(&aEntries);
 	/* Free scores */
 	ScoringMatrixFree(&sm);
 }
@@ -512,7 +514,6 @@ void *RunDynamicProgrammingThread(void *arg)
 	int space=data->space;
 	int scoringType=data->scoringType;
 	int offsetLength=data->offsetLength;
-	int pairedEnd=data->pairedEnd;
 	int usePairedEndLength=data->usePairedEndLength;
 	int pairedEndLength=data->pairedEndLength;
 	int mirroringType=data->mirroringType;
@@ -527,8 +528,9 @@ void *RunDynamicProgrammingThread(void *arg)
 	/*
 	   char *FnName = "RunDynamicProgrammingThread";
 	   */
-	AlignEntries aEntries;
-	int numAlignEntries=0;
+	AlignedRead aEntries;
+	int32_t i, wasAligned;
+	int numAlignedRead=0;
 	RGMatches m;
 	int numMatches=0;
 	int ctrOne=0;
@@ -536,15 +538,14 @@ void *RunDynamicProgrammingThread(void *arg)
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
-	AlignEntriesInitialize(&aEntries);
+	AlignedReadInitialize(&aEntries);
 
 	/* Go through each read in the match file */
 	while(EOF!=RGMatchesRead(inputFP, 
 				&m,
-				pairedEnd,
 				binaryInput)) {
 		numMatches++;
-		numAlignEntries = 0;
+		numAlignedRead = 0;
 		ctrOne=ctrTwo=0;
 
 		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
@@ -556,7 +557,6 @@ void *RunDynamicProgrammingThread(void *arg)
 				rg,
 				&aEntries,
 				space,
-				pairedEnd,
 				scoringType,
 				offsetLength,
 				sm,
@@ -567,19 +567,19 @@ void *RunDynamicProgrammingThread(void *arg)
 				mirroringType,
 				forceMirroring);
 
-		if(0 < aEntries.numEntriesOne ||
-				(pairedEnd == 1 && 0 < aEntries.numEntriesTwo)) {
-			/* Remove duplicates */
-			AlignEntriesRemoveDuplicates(&aEntries,
-					AlignEntrySortByAll);
-		}
-
 		/* Output alignment */
-		if(0 < aEntries.numEntriesOne || 
-				(PairedEnd == aEntries.pairedEnd && 0 < aEntries.numEntriesTwo)) {
-			AlignEntriesPrint(&aEntries,
+		for(i=wasAligned=0;0==wasAligned && i<aEntries.numEnds;i++) {
+			if(0 < aEntries.ends[i].numEntries) {
+				wasAligned = 1;
+			}
+		}
+		if(1 == wasAligned) {
+			AlignedReadPrint(&aEntries,
 					outputFP,
 					binaryOutput);
+			/* Remove duplicates */
+			AlignedReadRemoveDuplicates(&aEntries,
+					AlignedEntrySortByAll);
 		}
 		else {
 			RGMatchesPrint(notAlignedFP,
@@ -588,7 +588,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 
 		/* Free memory */
-		AlignEntriesFree(&aEntries);
+		AlignedReadFree(&aEntries);
 		RGMatchesFree(&m);
 	}
 	if(VERBOSE >= 0) {

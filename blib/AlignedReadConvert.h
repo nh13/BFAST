@@ -1,17 +1,17 @@
-#ifndef ALIGNENTRIESCONVERT_H_
-#define ALIGNENTRIESCONVERT_H_
+#ifndef ALIGNEDREADCONVERT_H_
+#define ALIGNEDREADCONVERT_H_
 
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "AlignEntries.h"
-#include "AlignEntry.h"
+#include "AlignedRead.h"
+#include "AlignedEntry.h"
 #include "BError.h"
 
-void AlignEntriesConvertPrintHeader(FILE*, int);
-void AlignEntriesConvertPrintOutputFormat(AlignEntries*, RGBinary*, FILE*, int, int);
-void AlignEntriesConvertPrintMAF(AlignEntries*, RGBinary*, FILE*);
-void AlignEntriesConvertPrintAlignEntryToMAF(AlignEntry*, RGBinary*, char*, int, int, int, FILE*);
-void AlignEntriesConvertPrintGFF(AlignEntries*, FILE*);
-void AlignEntriesConvertPrintAlignEntryToGFF(AlignEntry*, char*, int, int, int, FILE*);
+void AlignedReadConvertPrintHeader(FILE*, int);
+void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, int, int);
+void AlignedReadConvertPrintMAF(AlignedRead*, RGBinary*, FILE*);
+void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry*, RGBinary*, char*, char*, int, int, int, FILE*);
+void AlignedReadConvertPrintGFF(AlignedRead*, FILE*);
+void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry*, char*, char*, int, int, int, FILE*);
 #endif

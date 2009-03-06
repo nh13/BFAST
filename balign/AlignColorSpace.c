@@ -7,7 +7,7 @@
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/RGMatches.h"
-#include "../blib/AlignEntry.h"
+#include "../blib/AlignedEntry.h"
 #include "ScoringMatrix.h"
 #include "Align.h"
 #include "AlignColorSpace.h"
@@ -19,7 +19,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 		int referenceLength,
 		int scoringType,
 		ScoringMatrix *sm,
-		AlignEntry *a,
+		AlignedEntry *a,
 		char strand,
 		int32_t position)
 {
@@ -49,9 +49,9 @@ void AlignColorSpaceMismatchesOnly(char *read,
 			}
 		}
 		for(j=0;j<readLength;j++) { /* Position in the alignment */
-			uint8_t curColor;
-			uint8_t curReadBase = read[j];
-			uint8_t prevReadBase = (j==0)?COLOR_SPACE_START_NT:read[j-1];
+			char curColor;
+			char curReadBase = read[j];
+			char prevReadBase = (j==0)?COLOR_SPACE_START_NT:read[j-1];
 
 			/* Get the current color for the read */
 			if(0 == ConvertBaseToColorSpace(prevReadBase, curReadBase, &curColor)) {
@@ -67,17 +67,17 @@ void AlignColorSpaceMismatchesOnly(char *read,
 			}
 			int32_t nextScore[ALPHABET_SIZE+1];
 			int32_t nextScoreNT[ALPHABET_SIZE+1];
-			uint8_t nextNT[ALPHABET_SIZE+1];
+			char nextNT[ALPHABET_SIZE+1];
 			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
 
 				/* Get the best score to this NT */
 				int32_t bestScore = NEGATIVE_INFINITY;
 				int32_t bestScoreNT = NEGATIVE_INFINITY;
 				int bestNT=-1;
-				uint8_t bestColor = 'X';
+				char bestColor = 'X';
 
 				for(l=0;l<ALPHABET_SIZE+1;l++) { /* From NT */
-					uint8_t convertedColor='X';
+					char convertedColor='X';
 					int32_t curScore = prevScore[l];
 					int32_t curScoreNT = prevScoreNT[l]; 
 					/* Get color */
@@ -192,7 +192,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 
 	/* Copy over */
 	for(i=0;i<a->length;i++) {
-		uint8_t c[2];
+		char c[2];
 		a->read[i] = DNA[maxNT[i]];
 		a->reference[i] = reference[i+offset];
 		ConvertBaseToColorSpace((i==0)?COLOR_SPACE_START_NT:read[i-1],
@@ -217,7 +217,7 @@ void AlignColorSpaceFull(char *read,
 		int referenceLength,
 		int scoringType,
 		ScoringMatrix *sm,
-		AlignEntry *a,
+		AlignedEntry *a,
 		char strand,
 		int32_t position)
 {
@@ -306,7 +306,7 @@ void AlignColorSpaceFull(char *read,
 	/* Fill in the matrix according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
 		/* Get the current color */
-		uint8_t curColor;
+		char curColor;
 		char curReadBase, prevReadBase;
 		/* In color space, the first color is determined by the adapter NT */
 		curReadBase = read[i];
@@ -400,7 +400,7 @@ void AlignColorSpaceFull(char *read,
 					int32_t curScore=NEGATIVE_INFINITY;
 					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
-					uint8_t convertedColor='X';
+					char convertedColor='X';
 					int32_t scoreNT, scoreColor;
 
 					/* Get color */
@@ -498,7 +498,7 @@ void AlignColorSpaceFull(char *read,
 				int32_t curScore=NEGATIVE_INFINITY;
 				int32_t curScoreNT=NEGATIVE_INFINITY;
 				int curLength=-1;
-				uint8_t B;
+				char B;
 				int fromNT=-1;
 
 				/* Get from base for extending an insertion */
@@ -583,7 +583,7 @@ void AlignColorSpaceFull(char *read,
 		}
 	}
 
-	offset = FillAlignEntryFromMatrixColorSpace(a,
+	offset = FillAlignedEntryFromMatrixColorSpace(a,
 			matrix,
 			read,
 			readLength,
@@ -611,7 +611,7 @@ void AlignColorSpaceFullWithBound(char *read,
 		int referenceLength,
 		int scoringType,
 		ScoringMatrix *sm,
-		AlignEntry *a,
+		AlignedEntry *a,
 		char strand,
 		int32_t position,
 		int32_t maxH,
@@ -704,7 +704,7 @@ void AlignColorSpaceFullWithBound(char *read,
 	/* Fill in the matrix according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
 		/* Get the current color */
-		uint8_t curColor;
+		char curColor;
 		char curReadBase, prevReadBase;
 		/* In color space, the first color is determined by the adapter NT */
 		curReadBase = read[i];
@@ -814,7 +814,7 @@ void AlignColorSpaceFullWithBound(char *read,
 					int32_t curScore=NEGATIVE_INFINITY;
 					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
-					uint8_t convertedColor='X';
+					char convertedColor='X';
 					int32_t scoreNT, scoreColor;
 
 					/* Get color */
@@ -924,7 +924,7 @@ void AlignColorSpaceFullWithBound(char *read,
 					int32_t curScore=NEGATIVE_INFINITY;
 					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
-					uint8_t B;
+					char B;
 					int fromNT=-1;
 
 					/* Get from base for extending an insertion */
@@ -1010,7 +1010,7 @@ void AlignColorSpaceFullWithBound(char *read,
 		}
 	}
 
-	offset = FillAlignEntryFromMatrixColorSpace(a,
+	offset = FillAlignedEntryFromMatrixColorSpace(a,
 			matrix,
 			read,
 			readLength,
@@ -1030,8 +1030,8 @@ void AlignColorSpaceFullWithBound(char *read,
 
 	/* Debug code */
 	/*
-	   AlignEntry tmp;
-	   AlignEntryInitialize(&tmp);
+	   AlignedEntry tmp;
+	   AlignedEntryInitialize(&tmp);
 	   AlignColorSpaceFull(read,
 	   readLength,
 	   reference,
@@ -1047,11 +1047,11 @@ void AlignColorSpaceFullWithBound(char *read,
 	   !(a->referenceLength == tmp.referenceLength)) {
 	   fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
 	   fprintf(stderr, "\nstrand=%c\n", strand);
-	   AlignEntryPrint(a,
+	   AlignedEntryPrint(a,
 	   stderr,
 	   ColorSpace,
 	   TextOutput);
-	   AlignEntryPrint(&tmp,
+	   AlignedEntryPrint(&tmp,
 	   stderr,
 	   ColorSpace,
 	   TextOutput);
@@ -1061,13 +1061,13 @@ void AlignColorSpaceFullWithBound(char *read,
 	   Exit,
 	   OutOfRange);
 	   }
-	   AlignEntryFree(&tmp);
+	   AlignedEntryFree(&tmp);
 	   */
 
 	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
-int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
+int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 		AlignMatrixCS **matrix,
 		char *read,
 		int readLength,
@@ -1077,7 +1077,7 @@ int FillAlignEntryFromMatrixColorSpace(AlignEntry *a,
 		int toExclude,
 		int debug)
 {
-	char *FnName="FillAlignEntryFromMatrixColorSpace";
+	char *FnName="FillAlignedEntryFromMatrixColorSpace";
 	int curRow, curCol, startRow, startCol, startCell;
 	char curReadBase;
 	int nextRow, nextCol, nextCell, nextFrom;

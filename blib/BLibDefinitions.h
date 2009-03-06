@@ -70,12 +70,17 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 /* Macro functions */
 #define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define MAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
+#define QUAL_TO_MAF_QUAL(_X)  (MIN( (int)floor(_X/5), 9))
+#define CHAR2QUAL(c) \
+	    ((isdigit(c))? ((c)-'0') : ((islower(c))? ((c)-'a'+10) : ((isupper(c))? ((c)-'A'+36) : 0)))
+#define QUAL2CHAR(q) \
+	    (((q)<10)? ((q)+'0') : (((q)<36)? ((q)-10+'a') : (((q)<62)? ((q)-36+'A') : 'Z')))
 
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 enum {Contig_8, Contig_32};
 enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
 enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
-enum {AlignEntrySortByAll, AlignEntrySortByContigPos};
+enum {AlignedEntrySortByAll, AlignedEntrySortByContigPos};
 enum {IgnoreExons, UseExons};
 enum {BothStrands, ForwardStrand, ReverseStrand};
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
@@ -89,19 +94,20 @@ enum {NoMirroring, MirrorForward, MirrorReverse, MirrorBoth};
 /* TODO */
 typedef struct {
 	int32_t readLength;
-	int8_t *read;
-	int8_t *qual;
+	char *read;
+	int32_t qualLength;
+	char *qual;
 	int32_t maxReached;
 	int32_t numEntries;
 	uint32_t *contigs;
 	int32_t *positions;
-	int8_t *strands;
+	char *strands;
 } RGMatch;
 
 /* TODO */
 typedef struct {
 	int32_t readNameLength;
-	int8_t *readName;
+	char *readName;
 	int32_t numEnds;
 	RGMatch *ends;
 } RGMatches;
@@ -110,7 +116,7 @@ typedef struct {
 typedef struct { 
 	int64_t *startIndex;
 	int64_t *endIndex;
-	int8_t *strand;
+	char *strand;
 	int32_t *offset;
 	int32_t numEntries;
 } RGRanges;
@@ -129,7 +135,7 @@ typedef struct {
 	int32_t contigNameLength;
 	char *contigName;
 	/* Metadata */
-	uint8_t *sequence; 
+	char *sequence; 
 	int32_t sequenceLength;
 	uint32_t numBytes;
 } RGBinaryContig;
@@ -139,7 +145,7 @@ typedef struct {
 	/* Storage type */
 	int32_t id;
 	int32_t packageVersionLength;
-	int8_t *packageVersion;
+	char *packageVersion;
 	int32_t packed;
 	/* RG storage */
 	RGBinaryContig *contigs;
@@ -153,7 +159,7 @@ typedef struct {
 	/* Storage type */
 	int32_t id;
 	int32_t packageVersionLength;
-	int8_t *packageVersion;
+	char *packageVersion;
 	/* Index storage */
 	uint8_t *contigs_8;
 	uint32_t *contigs_32;
@@ -213,15 +219,17 @@ typedef struct {
 	uint32_t length; /* The length of the alignment */
 	char *read; /* The read */
 	char *reference;
-	char *colorError;:
+	char *colorError;
 } AlignedEntry;
 
 /* TODO */
 typedef struct {
+	int32_t readLength;
 	char *read; /* Original read */
-	int8_t *qual; /* Original quality */
+	int32_t qualLength;
+	char *qual; /* Original quality */
 	int32_t numEntries;
-	AlignEntry *entries;
+	AlignedEntry *entries;
 } AlignedEnd;
 
 /* TODO */

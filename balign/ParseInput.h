@@ -18,7 +18,6 @@ struct arguments
 	int endPos;                             /* -E */
 	int offsetLength;						/* -O */
 	int maxNumMatches;						/* -M */
-	int pairedEnd;                          /* -2 */
 	int numThreads;                         /* -n */
 	int usePairedEndLength;					/* -l - companion to pairedEndLength */
 	int mirroringType;						/* -L */

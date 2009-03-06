@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "RGIndex.h"
+#include "BLibDefinitions.h"
 
 extern char DNA[5];
 
@@ -27,8 +28,8 @@ int PrintContigPos(FILE*, int32_t, int32_t);
 int UpdateRead(char*, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);
-int ConvertBaseToColorSpace(uint8_t, uint8_t, uint8_t*);
-int ConvertBaseAndColor(uint8_t, uint8_t, uint8_t*);
+int ConvertBaseToColorSpace(char, char, char*);
+int ConvertBaseAndColor(char, char, char*);
 int ConvertReadFromColorSpace(char*, int);
 void ConvertReadToColorSpace(char**, int*);
 void NormalizeRead(char**, int*, char);
@@ -43,7 +44,7 @@ int ValidateFileName(char*);
 void StringCopyAndReallocate(char**, const char*);
 int StringTrimWhiteSpace(char*);
 int IsWhiteSpace(char);
-void CheckPackageCompatibility(int8_t*, int);
+void CheckPackageCompatibility(char*, int);
 void KnuthMorrisPrattCreateTable(char*, int, int*);
 int32_t KnuthMorrisPratt(char*, int, char*, int);
 int32_t NaiveSubsequence(char*, int, char*, int);
@@ -54,7 +55,7 @@ void ParseRange(Range*, char*);
 int32_t CheckRange(Range*, int32_t, int32_t);
 int32_t CheckRangeWithinRange(Range*, Range*);
 void RangeCopy(Range*, Range*);
-int GetNumMismatchesInAlignEntry(AlignEntry *a);
-int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space);
+int GetNumMismatchesInAlignedEntry(AlignedEntry *a);
+int GetNumColorErrorsInAlignedEntry(AlignedEntry *a, int space);
 
 #endif

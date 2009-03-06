@@ -7,11 +7,10 @@
 int32_t RGMatchesRead(FILE*, RGMatches*, int32_t);
 void RGMatchesPrint(FILE*, RGMatches*, int32_t);
 void RGMatchesRemoveDuplicates(RGMatches*, int32_t);
-int32_t RGMatchesMergeFilesAndOutput(FILE**, int32_t, FILE*, int32_t, int32_t, int32_t);
-int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE**, int32_t, FILE*, int32_t, int32_t);
+int32_t RGMatchesMergeFilesAndOutput(FILE**, int32_t, FILE*, int32_t, int32_t);
+int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE**, int32_t, FILE*, int32_t);
 int32_t RGMatchesCompareAtIndex(RGMatches*, int32_t, RGMatches*, int32_t);
 void RGMatchesAppend(RGMatches*, RGMatches*);
-void RGMatchesCopyAtIndex(RGMatches*, int32_t, RGMatches*, int32_t);
 void RGMatchesAllocate(RGMatches*, int32_t);
 void RGMatchesReallocate(RGMatches*, int32_t);
 void RGMatchesFree(RGMatches*);

@@ -34,7 +34,7 @@ int RGRangesRemoveDuplicates(RGRanges *r)
 			else {
 				prevIndex++;
 				/* Copy to prevIndex (incremented) */
-				RGRangesCopyAtIndex(r, i, r, prevIndex);
+				RGRangesCopyAtIndex(r, prevIndex, r, i);
 				numEntries += r->endIndex[i] - r->startIndex[i] + 1; 
 			}
 		}
@@ -115,25 +115,25 @@ void RGRangesQuickSort(RGRanges *r, int32_t low, int32_t high)
 
 		pivot = (low+high)/2;
 
-		RGRangesCopyAtIndex(r, pivot, temp, 0);
-		RGRangesCopyAtIndex(r, high, r, pivot);
-		RGRangesCopyAtIndex(temp, 0, r, high);
+		RGRangesCopyAtIndex(temp, 0, r, pivot);
+		RGRangesCopyAtIndex(r, pivot, r, high);
+		RGRangesCopyAtIndex(r, high, temp, 0);
 
 		pivot = low;
 
 		for(i=low;i<high;i++) {
 			if(RGRangesCompareAtIndex(r, i, r, high) <= 0) {
 				if(i!=pivot) {
-					RGRangesCopyAtIndex(r, i, temp, 0);
-					RGRangesCopyAtIndex(r, pivot, r, i);
-					RGRangesCopyAtIndex(temp, 0, r, pivot);
+					RGRangesCopyAtIndex(temp, 0, r, i);
+					RGRangesCopyAtIndex(r, i, r, pivot);
+					RGRangesCopyAtIndex(r, pivot, temp, 0);
 				}
 				pivot++;
 			}
 		}
-		RGRangesCopyAtIndex(r, pivot, temp, 0);
-		RGRangesCopyAtIndex(r, high, r, pivot);
-		RGRangesCopyAtIndex(temp, 0, r, high);
+		RGRangesCopyAtIndex(temp, 0, r, pivot);
+		RGRangesCopyAtIndex(r, pivot, r, high);
+		RGRangesCopyAtIndex(r, high, temp, 0);
 
 		/* Free temp before the recursive call, otherwise we have a worst
 		 * case of O(n) space (NOT IN PLACE) 
@@ -185,12 +185,12 @@ void RGRangesAppend(RGRanges *src, RGRanges *dest)
 	assert(dest->numEntries == start + src->numEntries);
 	assert(start <= dest->numEntries);
 	for(i=start;i<dest->numEntries;i++) {
-		RGRangesCopyAtIndex(src, i-start, dest, i);
+		RGRangesCopyAtIndex(dest, i, src, i-start);
 	}
 }
 
 /* TODO */
-void RGRangesCopyAtIndex(RGRanges *src, int32_t srcIndex, RGRanges *dest, int32_t destIndex)
+void RGRangesCopyAtIndex(RGRanges *dest, int32_t destIndex, RGRanges *src, int32_t srcIndex)
 {
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
@@ -226,7 +226,7 @@ void RGRangesAllocate(RGRanges *r, int32_t numEntries)
 				MallocMemory);
 	}
 	assert(r->strand==NULL);
-	r->strand = malloc(sizeof(int8_t)*numEntries); 
+	r->strand = malloc(sizeof(char)*numEntries); 
 	if(NULL == r->strand) {
 		PrintError("RGRangesAllocate",
 				"r->strand",
@@ -265,7 +265,7 @@ void RGRangesReallocate(RGRanges *r, int32_t numEntries)
 					Exit,
 					ReallocMemory);
 		}
-		r->strand = realloc(r->strand, sizeof(int8_t)*numEntries); 
+		r->strand = realloc(r->strand, sizeof(char)*numEntries); 
 		if(numEntries > 0 && NULL == r->strand) {
 			PrintError("RGRangesReallocate",
 					"r->strand",

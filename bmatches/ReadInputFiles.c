@@ -14,31 +14,23 @@
 /* Read the next read from the stream */
 int GetNextRead(FILE *fp, 
 		RGMatches *m,
-		int pairedEnd)
+		int space)
 {
 	char *FnName = "GetNextRead";
+	fpos_t curPos;
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
-	char readOne[SEQUENCE_LENGTH]="\0";
-	char readTwo[SEQUENCE_LENGTH]="\0";
+	char read[SEQUENCE_LENGTH]="\0";
+	char qual[SEQUENCE_LENGTH]="\0";
+	int32_t readLength, qualLength;
 
-	m->pairedEnd = pairedEnd;
-
-	/* Read in read name and read */
-	if(NULL==fgets(readName, SEQUENCE_NAME_LENGTH-1, fp)) {
-		return EOF;
-	}
-	if(NULL==fgets(readOne, SEQUENCE_LENGTH-1, fp)) {
-		PrintError(FnName,
-				"readOne",
-				"Could not read from file",
-				Exit,
-				ReadFileError);
-	}
-
-	/* Trim leading and following whitespaces */
-	m->readNameLength = StringTrimWhiteSpace(readName);
-	m->matchOne.readLength = StringTrimWhiteSpace(readOne);
-
+	/* Read in read name */
+	do {
+		if(NULL==fgets(readName, SEQUENCE_NAME_LENGTH-1, fp)) {
+			return EOF;
+		}
+		/* Trim leading and following whitespaces */
+		m->readNameLength = StringTrimWhiteSpace(readName);
+	} while(0 == strlen(readName));
 	/* Allocate memory */
 	m->readName = malloc(sizeof(int8_t)*(m->readNameLength+1));
 	if(NULL == m->readName) {
@@ -48,64 +40,91 @@ int GetNextRead(FILE *fp,
 				Exit,
 				MallocMemory);
 	}
-	m->matchOne.read = malloc(sizeof(int8_t)*(m->matchOne.readLength+1));
-	if(NULL == m->matchOne.read) {
+	strcpy(m->readName, readName);
+
+	/* Read in */
+	int32_t foundEnd = 0;
+	m->numEnds=0;
+	m->ends=NULL;
+	while(0 == foundEnd && 
+			0 != feof(fp)) {
+		assert(0 == fgetpos(fp, &curPos));
+		if(NULL != fgets(read, SEQUENCE_LENGTH-1, fp) && 
+				NULL != fgets(qual, SEQUENCE_LENGTH-1, fp)) {
+			readLength = StringTrimWhiteSpace(read);
+			qualLength = StringTrimWhiteSpace(qual);
+			/* Check if it is a new read */
+			if('>' == read[0]) {
+				foundEnd = 1;
+				/* Reset position */
+				assert(0 == fsetpos(fp, &curPos));
+			}
+			else {
+				/* Reallocate */
+				m->numEnds++;
+				m->ends = realloc(m->ends, sizeof(RGMatch)*m->numEnds);
+				if(NULL == m->ends) {
+					PrintError(FnName,
+							"m->ends",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
+				RGMatchInitialize(&m->ends[m->numEnds-1]);
+				m->ends[m->numEnds-1].readLength = readLength;
+				m->ends[m->numEnds-1].qualLength = qualLength;
+				m->ends[m->numEnds-1].read = malloc(sizeof(int8_t)*(m->ends[m->numEnds-1].readLength+1));
+				if(NULL == m->ends[m->numEnds-1].read) {
+					PrintError(FnName,
+							"m->ends[m->numEnds-1].read",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				strcpy(m->ends[m->numEnds-1].read, read);
+				m->ends[m->numEnds-1].qual = malloc(sizeof(int8_t)*(m->ends[m->numEnds-1].qualLength+1));
+				if(NULL == m->ends[m->numEnds-1].qual) {
+					PrintError(FnName,
+							"m->ends[m->numEnds-1].qual",
+							"Could not allocate memory",
+							Exit,
+							MallocMemory);
+				}
+				strcpy(m->ends[m->numEnds-1].qual, qual);
+				/* In color space, there is one less quality value since the adaptor is included */
+				if(ColorSpace == space) {
+					assert(readLength - 1 == qualLength);
+				}
+			}
+		}
+		else {
+			foundEnd = 1;
+		}
+	}
+
+	if(0 == m->numEnds) {
 		PrintError(FnName,
-				"m->matchOne.read",
-				"Could not allocate memory",
+				"0 == m->numEnds",
+				"Did not find any reads and qualities",
 				Exit,
-				MallocMemory);
+				ReadFileError);
 	}
 
-	/* Copy over */
-	strcpy((char*)m->readName, readName);
-	strcpy((char*)m->matchOne.read, readOne);
-
-	/* Read in paired end if necessary */
-	if(pairedEnd == 1) {
-		/* Read in read number two */
-		if(NULL==fgets(readTwo, SEQUENCE_LENGTH-1, fp)) {
-			PrintError(FnName,
-					"readTwo",
-					"Could not read from file",
-					Exit,
-					ReadFileError);
-		}
-		/* Copy over read two length as well as adjusting the 
-		 * read to get rid of the "\n" character. */
-		m->matchTwo.readLength = strlen(readTwo)-1;
-		readTwo[m->matchTwo.readLength]='\0';
-		/* Allocate memory */
-		m->matchTwo.read = malloc(sizeof(int8_t)*(m->matchTwo.readLength+1));
-		if(NULL == m->matchTwo.read) {
-			PrintError(FnName,
-					"m->matchTwo.read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		/* Copy over */
-		strcpy((char*)m->matchTwo.read, readTwo);
-	}
 	return 1;
 }
 
 /* TODO */
-int WriteRead(FILE *fp, RGMatches *m, int pairedEnd) 
+int WriteRead(FILE *fp, RGMatches *m, int space)
 {
-	assert(m->pairedEnd == pairedEnd);
+	int32_t i;
 
-	/* Print read */
+	/* Print read name */
 	if(fprintf(fp, "%s\n", m->readName) < 0) {
 		return EOF;
 	}
-	/* Print read */
-	if(fprintf(fp, "%s\n", m->matchOne.read) < 0) {
-		return EOF;
-	}
-	/* Print paired read */
-	if(pairedEnd==1) {
-		if(fprintf(fp, "%s\n", m->matchTwo.read) < 0) {
+	for(i=0;i<m->numEnds;i++) {
+		/* Print read */
+		if(fprintf(fp, "%s\n%s\n", m->ends[i].read, m->ends[i].qual) < 0) {
 			return EOF;
 		}
 	}
@@ -119,7 +138,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 		char ***tempSeqFileNames,
 		int startReadNum, 
 		int endReadNum, 
-		int pairedEnd,
+		int space,
 		int numThreads,
 		char *tmpDir,
 		int *numWritten,
@@ -129,6 +148,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 	int i;
 	int curSeqFPIndex=0;
 	int curReadNum = 1;
+	int32_t isValidRead = 0;
 	RGMatches m;
 	char curLine[MAX_HEADER_LENGTH]="\0";
 	fpos_t curFilePos;
@@ -166,28 +186,37 @@ void WriteReadsToTempFile(FILE *seqFP,
 	}
 
 	while((endReadNum<=0 || endReadNum >= curReadNum) && 
-			EOF != GetNextRead(seqFP, &m, pairedEnd)) {
+			EOF != GetNextRead(seqFP, &m, space)) {
 		/* Get which tmp file to put the read in */
 		curSeqFPIndex = (curReadNum-1)%numThreads;
-			
+
 		/* Print only if we are within the desired limit and the read checks out */
-		if( (startReadNum<=0 || curReadNum >= startReadNum)  /* Only if we are within the bounds for the reads */
-				&& (1 == UpdateRead((char*)m.matchOne.read, m.matchOne.readLength)) /* The first read is valid */
-				&& (0 == pairedEnd || 1 == UpdateRead((char*)m.matchTwo.read, m.matchTwo.readLength))) { /* The second read is valid */
-			/* Print */
-			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m, pairedEnd)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write read",
-						Exit,
-						WriteFileError);
+		if(startReadNum<=0 || curReadNum >= startReadNum) {/* Only if we are within the bounds for the reads */
+
+			for(i=0,isValidRead=1;1==isValidRead && i<m.numEnds;i++) {
+				if(0 == UpdateRead(m.ends[i].read,
+							m.ends[i].readLength)) {
+					isValidRead= 0;
+				}
 			}
-			(*numWritten)++;
+
+			if(1 == isValidRead) {
+
+				/* Print */
+				if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m, space)) {
+					PrintError(FnName,
+							NULL,
+							"Could not write read",
+							Exit,
+							WriteFileError);
+				}
+				(*numWritten)++;
+			}
 		}
 		else {
 			assert(seqFilteredFP != NULL);
 			/* Write to filtered read file */
-			if(EOF == WriteRead(seqFilteredFP, &m, pairedEnd)) {
+			if(EOF == WriteRead(seqFilteredFP, &m, space)) {
 				PrintError(FnName,
 						NULL,
 						"Could not write read",
@@ -216,13 +245,15 @@ void WriteReadsToTempFile(FILE *seqFP,
 int ReadTempReadsAndOutput(FILE *tempOutputFP,
 		FILE *outputFP,
 		FILE *tempSeqFP,
-		int pairedEnd,
+		int space,
 		int binaryOutput)
 {
 	char *FnName = "ReadTempReadsAndOutput";
 	RGMatches m;
+	int32_t i;
 	int numReads = 0;
 	int numOutputted=0;
+	int hasEntries=0;
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
@@ -232,11 +263,14 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 
 	while(RGMatchesRead(tempOutputFP, 
 				&m,
-				pairedEnd,
 				binaryOutput)!=EOF) {
-		/* Output if either pair has more than one entry */
-		if(m.matchOne.numEntries > 0 ||
-				m.matchTwo.numEntries > 0) {
+		/* Output if any end has more than one entry */
+		for(i=hasEntries=0;0==hasEntries && i<m.numEnds;i++) {
+			if(0 < m.ends[i].numEntries) {
+				hasEntries=1;
+			}
+		}
+		if(1 == hasEntries) {
 			/* Output to final output file */
 			RGMatchesPrint(outputFP,
 					&m,
@@ -245,7 +279,7 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 		}
 		else {
 			/* Put back in the read file */
-			if(EOF == WriteRead(tempSeqFP, &m, pairedEnd)) {
+			if(EOF == WriteRead(tempSeqFP, &m, space)) {
 				PrintError(FnName,
 						NULL,
 						"Could not write read.",

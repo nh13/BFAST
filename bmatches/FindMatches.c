@@ -34,7 +34,6 @@ void FindMatches(
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
-		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
@@ -80,12 +79,11 @@ void FindMatches(
 	int startChr, startPos, endChr, endPos;
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%d.%s",
+	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
-			pairedEnd,
 			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Read in the main RGIndex File Names */
@@ -134,12 +132,11 @@ void FindMatches(
 	 * source read read file for each index. 
 	 * */
 	/* Create filtered reads file name */
-	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%d.%d.%s",
+	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%d.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			space,
-			pairedEnd,
 			BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
 	/* open read file */
 	if((seqFP=fopen(readFileName, "r"))==0) {
@@ -190,7 +187,7 @@ void FindMatches(
 			&tempSeqFileNames,
 			startReadNum,
 			endReadNum,
-			pairedEnd,
+			space,
 			numThreads,
 			tmpDir,
 			&numReads,
@@ -240,7 +237,6 @@ void FindMatches(
 			numDeletions,
 			numGapInsertions,
 			numGapDeletions,
-			pairedEnd,
 			maxKeyMatches,
 			maxNumMatches,
 			whichStrand,
@@ -284,7 +280,6 @@ void FindMatches(
 					numDeletions,
 					numGapInsertions,
 					numGapDeletions,
-					pairedEnd,
 					maxKeyMatches,
 					maxNumMatches,
 					whichStrand,
@@ -314,7 +309,7 @@ void FindMatches(
 				/* Read in the reads */
 				while(EOF!=GetNextRead(tempSeqFPs[i],
 							&tempMatches,
-							pairedEnd)) {
+							space)) {
 					/* Print the match to the output file */
 					RGMatchesPrint(outputFP,
 							&tempMatches,
@@ -419,7 +414,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
-		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
@@ -515,7 +509,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numDeletions,
 				numGapInsertions,
 				numGapDeletions,
-				pairedEnd,
 				maxKeyMatches,
 				maxNumMatches,
 				whichStrand,
@@ -545,7 +538,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 		numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
 				numIndexes,
 				tempOutputFP,
-				pairedEnd,
 				binaryOutput,
 				maxNumMatches);
 		endTime=time(NULL);
@@ -599,7 +591,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		numWritten=ReadTempReadsAndOutput(tempOutputFP,
 				outputFP,
 				tempSeqFP,
-				pairedEnd,
+				space,
 				binaryOutput);
 		endTime=time(NULL);
 		(*totalOutputTime)+=endTime-startTime;
@@ -619,7 +611,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				tempSeqFileNames,
 				0,
 				0,
-				pairedEnd,
+				space,
 				numThreads,
 				tmpDir,
 				&numReads,
@@ -664,7 +656,6 @@ int FindMatchesInIndex(char *indexFileName,
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
-		int pairedEnd,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
@@ -772,7 +763,6 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].numDeletions = numDeletions;
 		data[i].numGapInsertions = numGapInsertions;
 		data[i].numGapDeletions = numGapDeletions;
-		data[i].pairedEnd = pairedEnd;
 		data[i].maxKeyMatches = maxKeyMatches;
 		data[i].maxNumMatches = maxNumMatches;
 		data[i].whichStrand = whichStrand;
@@ -830,7 +820,6 @@ int FindMatchesInIndex(char *indexFileName,
 		i=RGMatchesMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
 				numThreads,
 				indexFP,
-				pairedEnd,
 				binaryOutput);
 		endTime = time(NULL);
 		if(VERBOSE >= 0 && timing == 1) {
@@ -885,7 +874,9 @@ void *FindMatchesInIndexThread(void *arg)
 	   char *FnName="FindMatchesInIndex";
 	   */
 	RGMatches m;
+	int32_t i;
 	int numRead = 0;
+	int foundMatch = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
 	/* Function arguments */
 	FILE *tempSeqFP = data->tempSeqFP;
@@ -901,7 +892,6 @@ void *FindMatchesInIndexThread(void *arg)
 	int numGapInsertions = data->numGapInsertions;
 	int numGapDeletions = data->numGapDeletions;
 	int binaryOutput = data->binaryOutput;
-	int pairedEnd = data->pairedEnd;
 	int maxKeyMatches = data->maxKeyMatches;
 	int maxNumMatches = data->maxNumMatches;
 	int whichStrand = data->whichStrand;
@@ -919,7 +909,7 @@ void *FindMatchesInIndexThread(void *arg)
 	}
 	while(EOF!=GetNextRead(tempSeqFP, 
 				&m,
-				pairedEnd)) {
+				space)) {
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
@@ -929,24 +919,11 @@ void *FindMatchesInIndexThread(void *arg)
 		}
 
 		/* Read one */
-		RGReadsFindMatches(index,
-				rg,
-				&m.matchOne,
-				offsets,
-				numOffsets,
-				space,
-				numMismatches,
-				numInsertions,
-				numDeletions,
-				numGapInsertions,
-				numGapDeletions,
-				maxKeyMatches,
-				maxNumMatches,
-				whichStrand);
-		if(pairedEnd==1) {
+		foundMatch = 0;
+		for(i=0;i<m.numEnds;i++) {
 			RGReadsFindMatches(index,
 					rg,
-					&m.matchTwo,
+					&m.ends[i],
 					offsets,
 					numOffsets,
 					space,
@@ -958,11 +935,9 @@ void *FindMatchesInIndexThread(void *arg)
 					maxKeyMatches,
 					maxNumMatches,
 					whichStrand);
-		}
-
-		if((0 < m.matchOne.numEntries && 1 != m.matchOne.maxReached ) ||
-				(0 < m.matchTwo.numEntries && 1 != m.matchTwo.maxReached)) {
-			data->numMatches++;
+			if(0 < m.ends[i].numEntries && 1 != m.ends[i].maxReached) {
+				foundMatch = 1;
+			}
 		}
 
 		/* Output to file */

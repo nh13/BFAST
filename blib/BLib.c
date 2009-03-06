@@ -713,9 +713,9 @@ int CheckReadBase(char base)
 /* Two bases */
 /* If either of the two bases is an "N" or an "n", then
  * we return the color code 4 */
-int ConvertBaseToColorSpace(uint8_t A, 
-		uint8_t B,
-		uint8_t *C)
+int ConvertBaseToColorSpace(char A, 
+		char B,
+		char *C)
 {
 	/* 
 	   char *FnName = "ConvertBaseToColorSpace";
@@ -793,10 +793,10 @@ int ConvertBaseToColorSpace(uint8_t A,
 
 /* TODO */
 /* color must be an integer, and a base a character */
-int ConvertBaseAndColor(uint8_t base, uint8_t color, uint8_t *B)
+int ConvertBaseAndColor(char base, char color, char *B)
 {
 	/* sneaky */
-	uint8_t C;
+	char C;
 
 	if(0==ConvertBaseToColorSpace(base, DNA[(int)color], &C)) {
 		return 0;
@@ -847,14 +847,7 @@ int ConvertReadFromColorSpace(char *read,
 		else {
 			index = i-1; 
 		}
-		if(0 == ConvertBaseAndColor(read[index], read[i+1], (uint8_t*)(&read[i]))) {
-			fprintf(stderr, "read[index]=%c\tread[i+1]=%c\tread[i]=%c\nread=%s\n",
-					read[index],
-					read[i+1],
-					read[i],
-					read);
-			fprintf(stderr, "read=[%s]\n",
-					read);
+		if(0 == ConvertBaseAndColor(read[index], read[i+1], &read[i])) {
 			PrintError(FnName,
 					"read",
 					"Could not convert base and color",
@@ -876,7 +869,7 @@ void ConvertReadToColorSpace(char **read,
 {
 	char *FnName="ConvertReadToColorSpace";
 	int i;
-	uint8_t tempRead[SEQUENCE_LENGTH]="\0";
+	char tempRead[SEQUENCE_LENGTH]="\0";
 
 	assert((*readLength) < SEQUENCE_LENGTH);
 
@@ -925,7 +918,7 @@ void ConvertReadToColorSpace(char **read,
 				MallocMemory);
 	}
 
-	strcpy((*read), (char*)tempRead);
+	strcpy((*read), tempRead);
 	(*readLength)++;
 }
 
@@ -939,7 +932,7 @@ void NormalizeRead(char **read,
 {
 	int i;
 	char prevOldBase, prevNewBase;
-	uint8_t tempColor=0;
+	char tempColor=0;
 	char *FnName = "NormalizeRead";
 
 	prevOldBase = startNT;
@@ -959,7 +952,7 @@ void NormalizeRead(char **read,
 		}
 		prevOldBase = (*read)[i];
 		/* Convert to NT space but using the new previous NT and current color */
-		if(0 == ConvertBaseAndColor(prevNewBase, tempColor, (uint8_t*)&((read)[i]))) {
+		if(0 == ConvertBaseAndColor(prevNewBase, tempColor, &(*read)[i])) {
 			fprintf(stderr, "prevNewBase=%c\t(*read)[i]=%c\n(*read)=%s\n",
 					prevNewBase,
 					(*read)[i],
@@ -1250,19 +1243,19 @@ int IsWhiteSpace(char c)
 }
 
 /* TODO */
-void CheckPackageCompatibility(int8_t *packageVersion, int fileType) 
+void CheckPackageCompatibility(char *packageVersion, int fileType) 
 {
 	char *FnName="CheckPackageCompatibility";
 	int version[3]={0, 0, 0};
 
 	assert(NULL != packageVersion);
 
-	if(3 != sscanf((char*)packageVersion, "%d.%d.%d",
+	if(3 != sscanf(packageVersion, "%d.%d.%d",
 				&version[0],
 				&version[1],
 				&version[2])) {
 		PrintError(FnName,
-				(char*)packageVersion,
+				packageVersion,
 				"Could not parse package version",
 				Exit,
 				OutOfRange);
@@ -1277,7 +1270,7 @@ void CheckPackageCompatibility(int8_t *packageVersion, int fileType)
 						version[1],
 						version[2]);
 				PrintError(FnName,
-						(char*)packageVersion,
+						packageVersion,
 						"File was created using too old of a package",
 						Exit,
 						OutOfRange);
@@ -1287,7 +1280,7 @@ void CheckPackageCompatibility(int8_t *packageVersion, int fileType)
 			if(version[0] < 0 ||
 					version[1] < 2) {
 				PrintError(FnName,
-						(char*)packageVersion,
+						packageVersion,
 						"File was created using too old of a package",
 						Exit,
 						OutOfRange);
@@ -1491,7 +1484,7 @@ void RangeCopy(Range *dest,
 }
 
 /* TODO */
-int GetNumMismatchesInAlignEntry(AlignEntry *a)
+int GetNumMismatchesInAlignedEntry(AlignedEntry *a)
 {
 	int32_t i, numMismatches;
 	/* Check mismatches */
@@ -1508,7 +1501,7 @@ int GetNumMismatchesInAlignEntry(AlignEntry *a)
 }
 
 /* TODO */
-int GetNumColorErrorsInAlignEntry(AlignEntry *a, int space)
+int GetNumColorErrorsInAlignedEntry(AlignedEntry *a, int space)
 {       
 	int32_t i, numColorErrors;
 	/* Check color errors */

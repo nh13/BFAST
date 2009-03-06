@@ -30,7 +30,7 @@ int32_t RGMatchesRead(FILE *fp,
 		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
 		assert(m->readNameLength > 0);
 		/* Allocate memory for the read name */
-		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
+		m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
 		if(NULL == m->readName) {
 			PrintError(FnName,
 					"m->readName",
@@ -69,7 +69,7 @@ int32_t RGMatchesRead(FILE *fp,
 		assert(m->readNameLength > 0);
 
 		/* Allocate memory for the read name */
-		m->readName = malloc(sizeof(int8_t)*(m->readNameLength + 1));
+		m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
 		if(NULL == m->readName) {
 			PrintError(FnName,
 					"m->readName",
@@ -79,7 +79,7 @@ int32_t RGMatchesRead(FILE *fp,
 		}
 
 		/* Read in read name */
-		if(fread(m->readName, sizeof(int8_t), m->readNameLength, fp)!=m->readNameLength) {
+		if(fread(m->readName, sizeof(char), m->readNameLength, fp)!=m->readNameLength) {
 			PrintError(FnName,
 					"m->readName",
 					"Could not read in read name",
@@ -131,6 +131,7 @@ void RGMatchesPrint(FILE *fp,
 		int32_t binaryOutput)
 {
 	char *FnName = "RGMatchesPrint";
+	int32_t i;
 	assert(fp!=NULL);
 
 	/* Check m */
@@ -142,8 +143,8 @@ void RGMatchesPrint(FILE *fp,
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextInput) {
-		/* Print num ends, read name length, and read name */
-		if(0 > fprintf(fp, "%d %d %s\n",
+		/* Print read name length, read name, and num ends*/
+		if(0 > fprintf(fp, "%d %s %d\n",
 					m->readNameLength,
 					m->readName,
 					m->numEnds)) {
@@ -157,7 +158,7 @@ void RGMatchesPrint(FILE *fp,
 	else {
 		/* Print num ends, read name length, and read name */
 		if(fwrite(&m->readNameLength, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(m->readName, sizeof(int8_t), m->readNameLength, fp) != m->readNameLength ||
+				fwrite(m->readName, sizeof(char), m->readNameLength, fp) != m->readNameLength ||
 				fwrite(&m->numEnds, sizeof(int32_t), 1, fp) != 1) {
 			PrintError(FnName,
 					NULL,
@@ -182,7 +183,7 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 	int32_t i;
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchRemoveDuplicates(&m->ends[i], maxNumMatches);
-		assert(m->ends[i]<= maxNumMatches);
+		assert(m->ends[i].numEntries <= maxNumMatches);
 	}
 }
 
@@ -232,7 +233,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 			}
 			else {
 				if(matches.readName != NULL &&
-						strcmp((char*)matches.readName, (char*)tempMatches.readName)!=0) {
+						strcmp(matches.readName, tempMatches.readName)!=0) {
 					PrintError(FnName,
 							NULL,
 							"Read names do not match",
@@ -254,10 +255,10 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 			RGMatchesRemoveDuplicates(&matches, maxNumMatches);
 
 			/* Print to output file */
-			for(i=0;foundMatch == 0 && i<m->numEnds;i++) {
+			for(i=0;foundMatch == 0 && i<matches.numEnds;i++) {
 				if(0 < matches.ends[i].numEntries) {
 					foundMatch = 1;
-					numMaches++;
+					numMatches++;
 				}
 			}
 			RGMatchesPrint(outputFP,
@@ -368,6 +369,7 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 {
 	char *FnName = "RGMatchesAppend";
+	int32_t i;
 	/* Check that we are not appending to ourselves */
 	assert(src != dest);
 
@@ -377,7 +379,7 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 		dest->readNameLength = src->readNameLength;
 
 		/* Allocate memory for the read name */
-		dest->readName = malloc(sizeof(int8_t)*(dest->readNameLength+1));
+		dest->readName = malloc(sizeof(char)*(dest->readNameLength+1));
 		if(NULL==dest->readName) {
 			PrintError(FnName,
 					"dest->readName",
@@ -385,7 +387,7 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 					Exit,
 					MallocMemory);
 		}
-		strcpy((char*)dest->readName, (char*)src->readName);
+		strcpy(dest->readName, src->readName);
 		dest->numEnds = src->numEnds;
 	}
 	assert(src->numEnds == dest->numEnds);
@@ -420,6 +422,7 @@ void RGMatchesInitialize(RGMatches *m)
 /* TODO */
 void RGMatchesMirrorPairedEnd(RGMatches *m,
 		RGBinary *rg,
+		int32_t pairedEndLength,
 		int32_t mirroringType,
 		int32_t forceMirroring)
 {
@@ -442,7 +445,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 					m->ends[1].contigs[i+numEntriesTwo] = m->ends[0].contigs[i];
 					m->ends[1].strands[i+numEntriesTwo] = m->ends[0].strands[i];
 					/* Adjust position */
-					m->ends[1].positions[i+numEntriesTwo] = m->ends[0].positions[i] + m->ends[0].readLength + numEndsLength;
+					m->ends[1].positions[i+numEntriesTwo] = m->ends[0].positions[i] + m->ends[0].readLength + pairedEndLength;
 				}
 			}
 			/* Copy reverse */
@@ -454,7 +457,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 					m->ends[1].contigs[i+tempNumEntries] = m->ends[0].contigs[i];
 					m->ends[1].strands[i+tempNumEntries] = m->ends[0].strands[i];
 					/* Adjust position */
-					m->ends[1].positions[i+tempNumEntries] = m->ends[0].positions[i] - m->ends[0].readLength - numEndsLength;
+					m->ends[1].positions[i+tempNumEntries] = m->ends[0].positions[i] - m->ends[0].readLength - pairedEndLength;
 				}
 			}
 		}
@@ -469,7 +472,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 					m->ends[0].contigs[i+numEntriesOne] = m->ends[1].contigs[i];
 					m->ends[0].strands[i+numEntriesOne] = m->ends[1].strands[i];
 					/* Adjust position */
-					m->ends[0].positions[i+numEntriesOne] = m->ends[1].positions[i] - m->ends[0].readLength - numEndsLength;
+					m->ends[0].positions[i+numEntriesOne] = m->ends[1].positions[i] - m->ends[0].readLength - pairedEndLength;
 				}
 			}
 			/* Copy reverse */
@@ -481,7 +484,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 					m->ends[0].contigs[i+tempNumEntries] = m->ends[1].contigs[i];
 					m->ends[0].strands[i+tempNumEntries] = m->ends[1].strands[i];
 					/* Adjust position */
-					m->ends[0].positions[i+tempNumEntries] = m->ends[1].positions[i] + m->ends[0].readLength + numEndsLength;
+					m->ends[0].positions[i+tempNumEntries] = m->ends[1].positions[i] + m->ends[0].readLength + pairedEndLength;
 				}
 			}
 		}
@@ -506,10 +509,11 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 void RGMatchesCheck(RGMatches *m) 
 {
 	char *FnName="RGMatchesCheck";
+	int32_t i;
 	/* Basic asserts */
 	assert(m->numEnds == 0 || m->numEnds == 1);
 	/* Check that the read name length is the same as the length of the read name */
-	if(((int)strlen((char*)m->readName)) != m->readNameLength) {
+	if(((int)strlen(m->readName)) != m->readNameLength) {
 		PrintError(FnName,
 				NULL,
 				"strlen(m->readName)) != m->readNameLength",

@@ -13,7 +13,6 @@
 #endif
 
 #include "../blib/BLibDefinitions.h"
-#include "../blib/AlignEntry.h"
 #include "Definitions.h"
 
 typedef struct {
@@ -27,7 +26,6 @@ typedef struct {
 	int space;
 	int scoringType;
 	int offsetLength;
-	int pairedEnd;
 	int usePairedEndLength;
 	int pairedEndLength;
 	int mirroringType;
@@ -41,7 +39,7 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 #endif

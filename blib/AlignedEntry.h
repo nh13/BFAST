@@ -5,19 +5,20 @@
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-int AlignedEntryPrint(AlignedEntry*, FILE*, int, int);
-int AlignedEntryRead(AlignedEntry*, FILE*, int, int);
-int AlignedEntryRemoveDuplicates(AlignedEntry**, int, int);
-void AlignedEntryQuickSort(AlignedEntry**, int, int, int, int, double*, int);
-void AlignedEntryMergeSort(AlignedEntry**, int, int, int, int, double*, int);
-void AlignedEntryCopyAtIndex(AlignedEntry*, int, AlignedEntry*, int);
-int AlignedEntryCompareAtIndex(AlignedEntry*, int, AlignedEntry*, int, int);
-int AlignedEntryGetOneRead(AlignedEntry**, FILE*);
-int AlignedEntryGetAll(AlignedEntry**, FILE*);
+int32_t AlignedEntryPrint(AlignedEntry*, FILE*, int32_t, int32_t);
+int32_t AlignedEntryRead(AlignedEntry*, FILE*, int32_t, int32_t);
+int32_t AlignedEntryRemoveDuplicates(AlignedEntry**, int32_t, int32_t);
+void AlignedEntryQuickSort(AlignedEntry**, int32_t, int32_t, int32_t, int32_t, double*, int32_t);
+void AlignedEntryMergeSort(AlignedEntry**, int32_t, int32_t, int32_t, int32_t, double*, int32_t);
+void AlignedEntryCopyAtIndex(AlignedEntry*, int32_t, AlignedEntry*, int32_t);
+int32_t AlignedEntryCompareAtIndex(AlignedEntry*, int32_t, AlignedEntry*, int32_t, int32_t);
+int32_t AlignedEntryCompare(AlignedEntry*, AlignedEntry*, int32_t);
+int32_t AlignedEntryGetOneRead(AlignedEntry**, FILE*);
+int32_t AlignedEntryGetAll(AlignedEntry**, FILE*);
 void AlignedEntryCopy(AlignedEntry*, AlignedEntry*);
 void AlignedEntryFree(AlignedEntry*);
 void AlignedEntryInitialize(AlignedEntry*);
-void AlignedEntryCheckReference(AlignedEntry*, RGBinary*, int);
-int AlignedEntryGetPivot(AlignedEntry*, int, int, int);
-int64_t AlignedEntryGetSize(AlignedEntry*);
+void AlignedEntryCheckReference(AlignedEntry*, RGBinary*, int32_t);
+int32_t AlignedEntryGetPivot(AlignedEntry*, int32_t, int32_t, int32_t);
+
 #endif

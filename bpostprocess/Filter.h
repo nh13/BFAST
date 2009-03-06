@@ -1,9 +1,9 @@
 #ifndef FILTER_H_
 #define FILTER_H_
 
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedRead.h"
 
-int FilterAlignEntries(AlignEntries *a,
+int FilterAlignedRead(AlignedRead *a,
 		int algorithmReads,
 		int uniquenessScore,
 		int minUniquenessScore,
@@ -14,7 +14,6 @@ int FilterAlignEntries(AlignEntries *a,
 		int endPos,
 		int maxMismatches,
 		int maxColorErrors,
-		int pairedEnd,
 		int minDistancePaired,
 		int maxDistancePaired,
 		int useDistancePaired,
@@ -22,7 +21,7 @@ int FilterAlignEntries(AlignEntries *a,
 		int inversionsPaired,
 		int unpaired);
 
-int FilterAlignEntry(AlignEntry *a,
+int FilterAlignedEntry(AlignedEntry *a,
 		int space,
 		int minScoreReads,
 		int startChr,
@@ -32,8 +31,7 @@ int FilterAlignEntry(AlignEntry *a,
 		int maxMismatches,
 		int maxColorErrors);
 
-double GetUniquenessScore(AlignEntry *a,
-		int32_t numEntries,
+double GetUniquenessScore(AlignedEnd *end,
 		int32_t bestScoreIndex);
 
 #endif

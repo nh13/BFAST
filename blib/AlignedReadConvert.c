@@ -2,20 +2,23 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <math.h>
+#include <ctype.h>
 
 #include "config.h"
-#include "AlignEntries.h"
-#include "AlignEntry.h"
+#include "AlignedRead.h"
+#include "AlignedEnd.h"
+#include "AlignedEntry.h"
 #include "BLib.h"
 #include "BLibDefinitions.h"
 #include "BError.h"
-#include "AlignEntriesConvert.h"
+#include "AlignedReadConvert.h"
 
 /* TODO */
-void AlignEntriesConvertPrintHeader(FILE *fp,
-		int outputFormat) 
+void AlignedReadConvertPrintHeader(FILE *fp,
+		int32_t outputFormat) 
 {
-	char *FnName = "AlignEntriesConvertPrintHeader";
+	char *FnName = "AlignedReadConvertPrintHeader";
 	switch(outputFormat) {
 		case BAF:
 			/* Do nothing */
@@ -53,22 +56,22 @@ void AlignEntriesConvertPrintHeader(FILE *fp,
 }
 
 /* TODO */
-void AlignEntriesConvertPrintOutputFormat(AlignEntries *a, 
+void AlignedReadConvertPrintOutputFormat(AlignedRead *a, 
 		RGBinary *rg,
 		FILE *fp,
-		int outputFormat,
-		int binaryInput)
+		int32_t outputFormat,
+		int32_t binaryInput)
 {
-	char *FnName = "AlignEntriesConvertPrintOutputFormat";
+	char *FnName = "AlignedReadConvertPrintOutputFormat";
 	switch(outputFormat) {
 		case BAF:
-			AlignEntriesPrint(a, fp, binaryInput);
+			AlignedReadPrint(a, fp, binaryInput);
 			break;
 		case MAF:
-			AlignEntriesConvertPrintMAF(a, rg, fp);
+			AlignedReadConvertPrintMAF(a, rg, fp);
 			break;
 		case GFF:
-			AlignEntriesConvertPrintGFF(a, fp);
+			AlignedReadConvertPrintGFF(a, fp);
 			break;
 		default:
 			PrintError(FnName,
@@ -81,42 +84,41 @@ void AlignEntriesConvertPrintOutputFormat(AlignEntries *a,
 }
 
 /* TODO */
-void AlignEntriesConvertPrintMAF(AlignEntries *a,
+void AlignedReadConvertPrintMAF(AlignedRead *a,
 		RGBinary *rg,
 		FILE *fp)
 {
-	int i;
+	int32_t i, j;
 
 	/* Get Data */
-	if(0==a->pairedEnd) {
-		for(i=0;i<a->numEntriesOne;i++) {
-			AlignEntriesConvertPrintAlignEntryToMAF(&a->entriesOne[i], rg, a->readName, a->pairedEnd, a->space, 1, fp); 
+	for(i=0;i<a->numEnds;i++) {
+		for(j=0;j<a->ends[i].numEntries;j++) {
+			AlignedReadConvertPrintAlignedEntryToMAF(&a->ends[i].entries[j], 
+					rg, 
+					a->readName, 
+					a->ends[i].qual,
+					i+1,
+					a->space, 
+					j+1,
+					fp); 
 		}
 	}
-	else {
-		for(i=0;i<a->numEntriesOne;i++) {
-			AlignEntriesConvertPrintAlignEntryToMAF(&a->entriesOne[i], rg, a->readName, a->pairedEnd, a->space, 1, fp); 
-		}
-		for(i=0;i<a->numEntriesTwo;i++) {
-			AlignEntriesConvertPrintAlignEntryToMAF(&a->entriesTwo[i], rg, a->readName, a->pairedEnd, a->space, 2, fp); 
-		}
-	}
-
 }
 
 /* TODO */
-void AlignEntriesConvertPrintAlignEntryToMAF(AlignEntry *a,
+void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry *a,
 		RGBinary *rg,
 		char *readName,
-		int pairedEnd,
-		int space,
-		int readNum,
+		char *qual,
+		int32_t whichEnd,
+		int32_t space,
+		int32_t alignmentNum,
 		FILE *fp)
 {
-	char *FnName="AlignEntriesConvertPrintAlignEntryToMAF";
-	int i;
-	int originalReferenceLength=0;
-	int originalReadLength=0; 
+	char *FnName="AlignedReadConvertPrintAlignedEntryToMAF";
+	int32_t i;
+	int32_t originalReferenceLength=0;
+	int32_t originalReadLength=0; 
 
 	/* Recover original lengths */
 	for(i=0;i<a->length;i++) {
@@ -131,10 +133,10 @@ void AlignEntriesConvertPrintAlignEntryToMAF(AlignEntry *a,
 
 	/* Print the score */
 	if(space == ColorSpace) {
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d color-errors=%s contig-index=%d\n",
+		if(0>fprintf(fp, "a score=%lf which-end=%d alignment-num=%d color-errors=%s contig-index=%d\n",
 					a->score,
-					pairedEnd,
-					readNum,
+					whichEnd,
+					alignmentNum,
 					a->colorError,
 					a->contig)) {
 			PrintError(FnName,
@@ -146,10 +148,10 @@ void AlignEntriesConvertPrintAlignEntryToMAF(AlignEntry *a,
 	}
 	else {
 		assert(space == NTSpace);
-		if(0>fprintf(fp, "a score=%lf paired-end=%d read=%d contig-index=%d\n",
+		if(0>fprintf(fp, "a score=%lf which-end=%d alignment-num=%d contig-index=%d\n",
 					a->score,
-					pairedEnd,
-					readNum,
+					whichEnd,
+					alignmentNum,
 					a->contig)) {
 			PrintError(FnName,
 					NULL,
@@ -190,47 +192,72 @@ void AlignEntriesConvertPrintAlignEntryToMAF(AlignEntry *a,
 				Exit,
 				WriteFileError);
 	}
+	/* Print the qualities */
+	if(0>fprintf(fp, "q %s ",
+				a->contigName)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	for(i=0;i<strlen(qual);i++) {
+		if(0>fprintf(fp, "%1d",
+					QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	if(0>fprintf(fp, "\n")) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
 }
 
 /* TODO */
-void AlignEntriesConvertPrintGFF(AlignEntries *a,
+void AlignedReadConvertPrintGFF(AlignedRead *a,
 		FILE *fp)
 {
-	int i;
+	int32_t i, j;
 
 	/* Get Data */
-	if(0==a->pairedEnd) {
-		for(i=0;i<a->numEntriesOne;i++) {
-			AlignEntriesConvertPrintAlignEntryToGFF(&a->entriesOne[i], a->readName, a->pairedEnd, a->space, 1, fp); 
+	for(i=0;i<a->numEnds;i++) {
+		for(j=0;j<a->ends[i].numEntries;j++) {
+			/* Get Data */
+			AlignedReadConvertPrintAlignedEntryToGFF(&a->ends[i].entries[j], 
+					a->readName, 
+					a->ends[i].qual,
+					i+1,
+					a->space, 
+					j+1,
+					fp); 
 		}
 	}
-	else {
-		for(i=0;i<a->numEntriesOne;i++) {
-			AlignEntriesConvertPrintAlignEntryToGFF(&a->entriesOne[i], a->readName, a->pairedEnd, a->space, 1, fp); 
-		}
-		for(i=0;i<a->numEntriesTwo;i++) {
-			AlignEntriesConvertPrintAlignEntryToGFF(&a->entriesTwo[i], a->readName, a->pairedEnd, a->space, 2, fp); 
-		}
-	}
-
 }
 
 /* TODO */
-void AlignEntriesConvertPrintAlignEntryToGFF(AlignEntry *a,
+void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 		char *readName,
-		int pairedEnd,
-		int space,
-		int readNum,
+		char *qual,
+		int32_t whichEnd,
+		int32_t space,
+		int32_t alignmentNum,
 		FILE *fp)
 {
-	char *FnName="AlignEntriesConvertPrintAlignEntryToGFF";
-	int i;
-	int originalReferenceLength=0;
-	int originalReadLength=0; 
-	int initialized=0;
+	char *FnName="AlignedReadConvertPrintAlignedEntryToGFF";
+	int32_t i;
+	int32_t originalReferenceLength=0;
+	int32_t originalReadLength=0; 
+	int32_t initialized=0;
 	char string[SEQUENCE_LENGTH]="\0";
 	char tempString[SEQUENCE_LENGTH]="\0";
-	uint8_t color;
+	char color;
 	char prevBase;
 
 	/* Recover original lengths */
@@ -253,7 +280,7 @@ void AlignEntriesConvertPrintAlignEntryToGFF(AlignEntry *a,
 				a->position + a->referenceLength-1,
 				a->score,
 				a->strand,
-				readNum)) {
+				alignmentNum)) {
 		PrintError(FnName,
 				NULL,
 				"Could not write to file",
@@ -273,6 +300,33 @@ void AlignEntriesConvertPrintAlignEntryToGFF(AlignEntry *a,
 					"Could not write to file",
 					Exit,
 					WriteFileError);
+		}
+		/* Print the qualities */
+		if(0>fprintf(fp, ";q=")) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+		for(i=0;i<strlen(qual);i++) {
+			if(0>fprintf(fp, "%d",
+						QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			if(i<strlen(qual)-1) {
+				if(0>fprintf(fp, ",")) {
+					PrintError(FnName,
+							NULL,
+							"Could not write to file",
+							Exit,
+							WriteFileError);
+				}
+			}
 		}
 	}
 	else {
@@ -335,7 +389,33 @@ void AlignEntriesConvertPrintAlignEntryToGFF(AlignEntry *a,
 
 		/* p - ignore, since we do not define the mappability */
 
-		/* q - ignore, since we do not keep track of quality values */
+		/* q - qualities */
+		if(0>fprintf(fp, ";q=")) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+		for(i=0;i<strlen(qual);i++) {
+			if(0>fprintf(fp, "%d",
+						QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			if(i<strlen(qual)-1) {
+				if(0>fprintf(fp, ",")) {
+					PrintError(FnName,
+							NULL,
+							"Could not write to file",
+							Exit,
+							WriteFileError);
+				}
+			}
+		}
 
 		/* r - a comma separated list of {position}_{ref_color} for all of the color
 		 * calls in the read sequence that differ from the reference sequence. The position

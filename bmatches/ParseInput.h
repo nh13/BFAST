@@ -21,7 +21,6 @@ struct arguments
 	int maxKeyMatches;						/* -K */
 	int maxNumMatches;						/* -M */
 	int whichStrand;						/* -w */
-	int pairedEnd;							/* -2 */
 	int numThreads;							/* -n */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */

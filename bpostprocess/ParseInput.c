@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescPairedEnd, DescAlgorithmReads, DescUniquenessScore, DescMinUniquenessScore, 
+	DescAlgoTitle, DescAlgorithmReads, DescUniquenessScore, DescMinUniquenessScore, 
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
@@ -76,7 +76,6 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
-	{"pairedEnd", '2', 0, OPTION_NO_USAGE, "Specifies that paired end data is to be expected", 2},
 	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
 		"\n\t\t\t0: Specifies no filtering will occur"
 			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
@@ -99,7 +98,7 @@ static struct argp_option options[] = {
 		"\t\t\tspecified distance but are on the same strand (paired end only)", 2},
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the\n"
 		"\t\t\tspecified distance but are on the opposite strands (paired end only)", 2},
-	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that have one end pass the filters and have that have only one end unambiguously chosen", 2},
+	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads for which one end could not be unambiguously chosen", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 5},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 5},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 5},
@@ -129,7 +128,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:2hptuCIU";
+"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:hptuCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -186,7 +185,6 @@ main (int argc, char **argv)
 						ReadInputFilterAndOutput(&rg,
 								arguments.alignFileName,
 								arguments.binaryInput,
-								arguments.pairedEnd,
 								arguments.startContig,
 								arguments.startPos,
 								arguments.endContig,
@@ -282,9 +280,6 @@ int ValidateInputs(struct arguments *args) {
 
 	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
 
-	/* This should hold internally */
-	assert(args->pairedEnd == 0 || args->pairedEnd == 1);
-
 	if(args->startContig < 0) {
 		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
 	}
@@ -331,18 +326,6 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
 	assert(args->unpaired == 0 || args->unpaired == 1);
 
-	if(args->pairedEnd == 0 && args->contigAbPaired == 1) {
-		PrintError(FnName, "Cannot use contigAbPaired without paired end", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->pairedEnd == 0 && args->inversionsPaired == 1) {
-		PrintError(FnName, "Cannot use inversionsPaired without paired end", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->unpaired == 0 && args->unpaired == 1) {
-		PrintError(FnName, "Cannot use unpaired without paired end", "Command line argument", Exit, OutOfRange);
-	}
-
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
@@ -387,8 +370,6 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->alignFileName, DEFAULT_FILENAME);
 
 	args->binaryInput = BALIGN_DEFAULT_OUTPUT;
-
-	args->pairedEnd=0;
 
 	args->startContig=0;
 	args->startPos=0;
@@ -440,7 +421,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
-	fprintf(fp, "pairedEnd:\t\t%d\n", args->pairedEnd);
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
 	fprintf(fp, "uniquenessScore:\t\t%d\n", args->uniquenessScore);
 	fprintf(fp, "minUniquenessScore:\t\t%d\n", args->minUniquenessScore);
@@ -521,8 +501,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				   */
 #endif
 				switch (key) {
-					case '2':
-						arguments->pairedEnd = 1;break;
 					case 'a':
 						arguments->algorithmReads = atoi(OPTARG);break;
 						/*

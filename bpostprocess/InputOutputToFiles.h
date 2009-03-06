@@ -1,12 +1,11 @@
 #ifndef INPUTOUTPUTTOFILES_H_
 #define INPUTOUTPUTTOFILES_H_
 
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedRead.h"
 
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int binaryInput,
-		int pairedEnd,
 		int startChr,
 		int startPos,
 		int endChr,
@@ -29,23 +28,5 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 void PrintHeader(FILE *fp,
 		int outputFormat);
-
-void PrintAlignEntriesToOutputFormat(AlignEntries *a,
-		RGBinary *rg,
-		FILE *fp,
-		int outputFormat,
-		int outputBinary);
-
-void PrintAlignEntriesToMAF(AlignEntries *a,
-		RGBinary *rg,
-		FILE *fp);
-
-void PrintAlignEntryToMAF(AlignEntry *a,
-		RGBinary *rg,
-		char *readName,
-		int pairedEnd,
-		int colorSpace,
-		int readNum,
-		FILE *fp);
 
 #endif

@@ -19,8 +19,8 @@ void RGBinaryRead(char *rgFileName,
 {
 	char *FnName="RGBinaryRead";
 	FILE *fpRG=NULL;
-	int8_t c;
-	int8_t original;
+	char c;
+	char original;
 	int64_t numPosRead=0;
 	int32_t continueReadingContig;
 	int32_t byteIndex;
@@ -37,7 +37,7 @@ void RGBinaryRead(char *rgFileName,
 	/* Initialize the data structure for holding the rg */
 	rg->id=BFAST_ID;
 	rg->packageVersionLength = (int)strlen(PACKAGE_VERSION);
-	rg->packageVersion = malloc(sizeof(int8_t)*(rg->packageVersionLength+1));
+	rg->packageVersion = malloc(sizeof(char)*(rg->packageVersionLength+1));
 	if(NULL==rg->packageVersion) {
 		PrintError(FnName,
 				"rg->packageVersion",
@@ -45,7 +45,7 @@ void RGBinaryRead(char *rgFileName,
 				Exit,
 				MallocMemory);
 	}
-	strcpy((char*)rg->packageVersion, PACKAGE_VERSION);
+	strcpy(rg->packageVersion, PACKAGE_VERSION);
 	rg->packed=RGBinaryPacked;
 	rg->contigs=NULL;
 	rg->numContigs=0;
@@ -144,7 +144,7 @@ void RGBinaryRead(char *rgFileName,
 				if(ColorSpace==space) {
 					/* Convert to color space */
 					/* Convert color space to A,C,G,T */
-					if(0 == ConvertBaseToColorSpace(prevBase, original, (uint8_t*)&c)) {
+					if(0 == ConvertBaseToColorSpace(prevBase, original, &c)) {
 						fprintf(stderr, "prevBase=%c\toriginal=%c\n",
 								prevBase,
 								original);
@@ -197,7 +197,7 @@ void RGBinaryRead(char *rgFileName,
 					/* Update the number of bytes */
 					rg->contigs[rg->numContigs-1].numBytes++;
 					/* Reallocate a new byte */
-					rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(uint8_t)*(rg->contigs[rg->numContigs-1].numBytes));
+					rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(char)*(rg->contigs[rg->numContigs-1].numBytes));
 					if(NULL == rg->contigs[rg->numContigs-1].sequence) {
 						PrintError(FnName,
 								"rg->contigs[rg->numContigs-1].sequence",
@@ -241,7 +241,7 @@ void RGBinaryRead(char *rgFileName,
 		/* Reallocate to reduce memory (fit exactly) */
 		assert(numCharsPerByte==2);
 		/* we must add one since there could be an odd number of positions */
-		rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(int8_t)*(rg->contigs[rg->numContigs-1].numBytes));
+		rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(char)*(rg->contigs[rg->numContigs-1].numBytes));
 		if(NULL == rg->contigs[rg->numContigs-1].sequence) {
 			PrintError(FnName,
 					"rg->contigs[numContigs-1].sequence",
@@ -307,7 +307,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 				ReadFileError);
 	}
 	assert(0<rg->packageVersionLength);
-	rg->packageVersion = malloc(sizeof(int8_t)*(rg->packageVersionLength+1));
+	rg->packageVersion = malloc(sizeof(char)*(rg->packageVersionLength+1));
 	if(NULL==rg->packageVersion) {
 		PrintError(FnName,
 				"rg->packageVersion",
@@ -315,7 +315,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 				Exit,
 				MallocMemory);
 	}
-	if(fread(rg->packageVersion, sizeof(int8_t), rg->packageVersionLength, fpRG)!=rg->packageVersionLength ||
+	if(fread(rg->packageVersion, sizeof(char), rg->packageVersionLength, fpRG)!=rg->packageVersionLength ||
 			fread(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
 			fread(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
@@ -363,7 +363,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 		}
 		assert(rg->contigs[i].contigNameLength > 0);
 		/* Allocate memory */
-		rg->contigs[i].contigName = malloc(sizeof(int8_t)*(rg->contigs[i].contigNameLength+1));
+		rg->contigs[i].contigName = malloc(sizeof(char)*(rg->contigs[i].contigNameLength+1));
 		if(NULL==rg->contigs[i].contigName) {
 			PrintError(FnName,
 					"contigName",
@@ -372,7 +372,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read RGContig information */
-		if(fread(rg->contigs[i].contigName, sizeof(int8_t), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
+		if(fread(rg->contigs[i].contigName, sizeof(char), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
 				fread(&rg->contigs[i].sequenceLength, sizeof(int32_t), 1, fpRG)!=1 ||
 				fread(&rg->contigs[i].numBytes, sizeof(uint32_t), 1, fpRG)!=1) {
 			PrintError(FnName,
@@ -386,7 +386,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 		/* Add null terminator */
 		rg->contigs[i].contigName[rg->contigs[i].contigNameLength]='\0';
 		/* Allocate memory for the sequence */
-		rg->contigs[i].sequence = malloc(sizeof(uint8_t)*rg->contigs[i].numBytes);
+		rg->contigs[i].sequence = malloc(sizeof(char)*rg->contigs[i].numBytes);
 		if(NULL==rg->contigs[i].sequence) {
 			PrintError(FnName,
 					"rg->contigs[i].sequence",
@@ -395,7 +395,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read sequence */
-		if(fread(rg->contigs[i].sequence, sizeof(uint8_t), rg->contigs[i].numBytes, fpRG)!=rg->contigs[i].numBytes) {
+		if(fread(rg->contigs[i].sequence, sizeof(char), rg->contigs[i].numBytes, fpRG)!=rg->contigs[i].numBytes) {
 			PrintError(FnName,
 					NULL,
 					"Could not read sequence",
@@ -444,7 +444,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	/* Output RGBinary information */
 	if(fwrite(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
 			fwrite(&rg->packageVersionLength, sizeof(int32_t), 1, fpRG)!=1 ||
-			fwrite(rg->packageVersion, sizeof(int8_t), rg->packageVersionLength, fpRG)!=rg->packageVersionLength || 
+			fwrite(rg->packageVersion, sizeof(char), rg->packageVersionLength, fpRG)!=rg->packageVersionLength || 
 			fwrite(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
 			fwrite(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
 		PrintError(FnName,
@@ -458,11 +458,11 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	for(i=0;i<rg->numContigs;i++) {
 		/* Output RGContig information */
 		if(fwrite(&rg->contigs[i].contigNameLength, sizeof(int32_t), 1, fpRG) != 1 ||
-				fwrite(rg->contigs[i].contigName, sizeof(int8_t), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
+				fwrite(rg->contigs[i].contigName, sizeof(char), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
 				fwrite(&rg->contigs[i].sequenceLength, sizeof(int32_t), 1, fpRG) != 1 ||
 				fwrite(&rg->contigs[i].numBytes, sizeof(uint32_t), 1, fpRG) != 1 ||
 				/* Output sequence */
-				fwrite(rg->contigs[i].sequence, sizeof(uint8_t), rg->contigs[i].numBytes, fpRG) != rg->contigs[i].numBytes) {
+				fwrite(rg->contigs[i].sequence, sizeof(char), rg->contigs[i].numBytes, fpRG) != rg->contigs[i].numBytes) {
 			PrintError(FnName,
 					NULL,
 					"Could not output rg contig",
@@ -504,9 +504,9 @@ void RGBinaryDelete(RGBinary *rg)
 }
 
 /* TODO */
-void RGBinaryInsertBase(uint8_t *dest,
+void RGBinaryInsertBase(char *dest,
 		int32_t byteIndex,
-		int8_t base)
+		char base)
 {
 	/*********************************
 	 * Packed Version:
@@ -660,7 +660,7 @@ void RGBinaryInsertBase(uint8_t *dest,
 int32_t RGBinaryGetSequence(RGBinary *rg,
 		int32_t contig,
 		int32_t position,
-		int8_t strand,
+		char strand,
 		char **sequence,
 		int32_t sequenceLength)
 {
@@ -733,7 +733,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 void RGBinaryGetReference(RGBinary *rg,
 		int32_t contig,
 		int32_t position,
-		int8_t strand,
+		char strand,
 		int32_t offsetLength,
 		char **reference,
 		int32_t readLength,
@@ -810,13 +810,13 @@ void RGBinaryGetReference(RGBinary *rg,
 }
 
 /* TODO */
-int8_t RGBinaryGetBase(RGBinary *rg,
+char RGBinaryGetBase(RGBinary *rg,
 		int32_t contig,
 		int32_t position) 
 {
 	char *FnName = "RGBinaryGetBase";
 	int32_t numCharsPerByte=ALPHABET_SIZE/2;
-	uint8_t curByte, curChar;
+	char curByte, curChar;
 	int32_t repeat;
 
 	curChar = 0;
@@ -950,11 +950,11 @@ int8_t RGBinaryGetBase(RGBinary *rg,
 				/* ignore, not a repeat */
 				break;
 			case 1:
-				/* repeat, convert int8_t to upper */
+				/* repeat, convert char to upper */
 				curChar=ToUpper(curChar);
 				break;
 			case 2:
-				/* N int8_tacter */
+				/* N character */
 				curChar='N';
 				break;
 			default:
@@ -993,14 +993,14 @@ int32_t RGBinaryIsRepeat(RGBinary *rg,
 		int32_t contig,
 		int32_t position)
 {
-	int8_t curBase = RGBinaryGetBase(rg,
+	char curBase = RGBinaryGetBase(rg,
 			contig,
 			position);
 
 	return RGBinaryIsBaseRepeat(curBase);
 }
 
-int32_t RGBinaryIsBaseRepeat(int8_t curBase)
+int32_t RGBinaryIsBaseRepeat(char curBase)
 {
 	switch(curBase) {
 		/* Lower case is repat */
@@ -1025,7 +1025,7 @@ int32_t RGBinaryIsN(RGBinary *rg,
 		int32_t contig, 
 		int32_t position) 
 {
-	int8_t curBase = RGBinaryGetBase(rg,
+	char curBase = RGBinaryGetBase(rg,
 			contig,
 			position);
 
@@ -1033,7 +1033,7 @@ int32_t RGBinaryIsN(RGBinary *rg,
 }
 
 /* TODO */
-int32_t RGBinaryIsBaseN(int8_t curBase)
+int32_t RGBinaryIsBaseN(char curBase)
 {
 	return ( (curBase == 'n' || curBase == 'N')?1:0);
 }
@@ -1065,14 +1065,14 @@ void RGBinaryUnPack(RGBinary *rg)
 {
 	char *FnName="RGBinaryUnPack";
 	int32_t i, j;
-	int8_t *tempSequence=NULL;
+	char *tempSequence=NULL;
 
 	if(RGBinaryUnPacked == rg->packed) {
 		return;
 	}
 
 	for(i=0;i<rg->numContigs;i++) {
-		tempSequence = malloc(sizeof(uint8_t)*rg->contigs[i].sequenceLength);
+		tempSequence = malloc(sizeof(char)*rg->contigs[i].sequenceLength);
 		if(NULL==tempSequence) {
 			PrintError(FnName,
 					"tempSequence",
@@ -1086,7 +1086,7 @@ void RGBinaryUnPack(RGBinary *rg)
 		}
 		/* Free sequence and copy over */
 		free(rg->contigs[i].sequence);
-		rg->contigs[i].sequence=(uint8_t*)tempSequence;
+		rg->contigs[i].sequence=tempSequence;
 		tempSequence=NULL;
 		rg->contigs[i].numBytes = rg->contigs[i].sequenceLength;
 	}

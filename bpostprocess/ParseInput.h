@@ -6,7 +6,6 @@ struct arguments
 	char *alignFileName;					/* -i */
 	char *rgFileName;						/* -r */
 	int binaryInput;                        /* -b - not used */
-	int pairedEnd;							/* -2 */
 	int algorithmReads;						/* -a */
 	int uniquenessScore;					/* -u */
 	int minUniquenessScore;					/* -z */

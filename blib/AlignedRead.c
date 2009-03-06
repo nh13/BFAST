@@ -5,27 +5,23 @@
 #include <assert.h>
 #include "BError.h"
 #include "BLib.h"
-#include "AlignEntry.h"
-#include "AlignEntries.h"
+#include "AlignedEnd.h"
+#include "AlignedRead.h"
 
 /* TODO */
-void AlignEntriesPrint(AlignEntries *a,
+void AlignedReadPrint(AlignedRead *a,
 		FILE *outputFP,
-		int binaryOutput)
+		int32_t binaryOutput)
 {
-	char *FnName = "AlignEntriesPrint";
-	int i;
-
-	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
+	char *FnName = "AlignedReadPrint";
+	int32_t i;
 
 	if(binaryOutput == TextOutput) {
-		/* Print the read name and paired end flag */
-		if(fprintf(outputFP, "%s\t%d\t%d\t%d\t%d\n",
+		/* Print32_t the read name and paired end flag */
+		if(fprintf(outputFP, "%s\t%d\t%d\n",
 					a->readName,
-					a->pairedEnd,
 					a->space,
-					a->numEntriesOne,
-					a->numEntriesTwo) < 0) {
+					a->numEnds) < 0) {
 			PrintError(FnName,
 					NULL,
 					"Could not write to file",
@@ -38,10 +34,8 @@ void AlignEntriesPrint(AlignEntries *a,
 		a->readNameLength = (int)strlen(a->readName);
 		if(fwrite(&a->readNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(a->readName, sizeof(char), a->readNameLength, outputFP) != a->readNameLength ||
-				fwrite(&a->pairedEnd, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->space, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(&a->numEntriesOne, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(&a->numEntriesTwo, sizeof(int32_t), 1, outputFP) != 1) {
+				fwrite(&a->numEnds, sizeof(int32_t), 1, outputFP) != 1) {
 			PrintError(FnName,
 					NULL,
 					"Could not write to file",
@@ -50,44 +44,27 @@ void AlignEntriesPrint(AlignEntries *a,
 		}
 	}
 
-	for(i=0;i<a->numEntriesOne;i++) {
-		if(EOF == AlignEntryPrint(&a->entriesOne[i],
+	for(i=0;i<a->numEnds;i++) {
+		if(EOF == AlignedEndPrint(&a->ends[i],
 					outputFP,
 					a->space,
 					binaryOutput)) {
 			PrintError(FnName,
-					"entriesOne",
+					"a->ends[i]",
 					"Could not write to file",
 					Exit,
 					WriteFileError);
 		}
 	}
-
-	if(a->pairedEnd==1) {
-		for(i=0;i<a->numEntriesTwo;i++) {
-			if(EOF == AlignEntryPrint(&a->entriesTwo[i],
-						outputFP,
-						a->space,
-						binaryOutput)) {
-				PrintError(FnName,
-						"entriesTwo",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
-		}
-	}
 }
 
 /* TODO */
-int AlignEntriesRead(AlignEntries *a,
+int32_t AlignedReadRead(AlignedRead *a,
 		FILE *inputFP,
-		int pairedEnd,
-		int space,
-		int binaryInput)
+		int32_t binaryInput)
 {
-	char *FnName = "AlignEntriesRead";
-	int i;
+	char *FnName = "AlignedReadRead";
+	int32_t i;
 
 	assert(a != NULL);
 
@@ -105,12 +82,10 @@ int AlignEntriesRead(AlignEntries *a,
 
 	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
 	if(binaryInput == TextInput) {
-		if(fscanf(inputFP, "%s %d %d %d %d",
+		if(fscanf(inputFP, "%s %d %d",
 					a->readName,
-					&a->pairedEnd,
 					&a->space,
-					&a->numEntriesOne,
-					&a->numEntriesTwo)==EOF) {
+					&a->numEnds)==EOF) {
 			/* Free read name before leaving */
 			free(a->readName);
 			a->readName=NULL;
@@ -126,10 +101,8 @@ int AlignEntriesRead(AlignEntries *a,
 			return EOF;
 		}
 		if(fread(a->readName, sizeof(char), a->readNameLength, inputFP) != a->readNameLength ||
-				fread(&a->pairedEnd, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->space, sizeof(int32_t), 1, inputFP) != 1 ||
-				fread(&a->numEntriesOne, sizeof(int32_t), 1, inputFP) != 1 ||
-				fread(&a->numEntriesTwo, sizeof(int32_t), 1, inputFP) != 1) {
+				fread(&a->numEnds, sizeof(int32_t), 1, inputFP) != 1) {
 			PrintError(FnName,
 					NULL,
 					"Could not read from file",
@@ -156,81 +129,28 @@ int AlignEntriesRead(AlignEntries *a,
 		a->readName=NULL;
 	}
 
-	if(a->pairedEnd == 0 && a->numEntriesTwo > 0) {
-		PrintError(FnName,
-				"a->pairedEnd == 0 && a->numEntriesTwo > 0",
-				"Expecting single end data",
-				Exit,
-				OutOfRange);
-	}
-	if(pairedEnd != PairedEndDoesNotMatter &&
-			a->pairedEnd != pairedEnd) {
-		PrintError(FnName,
-				"a->pairedEnd != pairedEnd",
-				"Paired end does not match",
-				Exit,
-				OutOfRange);
-	}
-	if(space != SpaceDoesNotMatter &&
-			a->space != space) {
-		PrintError(FnName,
-				"a->space != space",
-				"Space does not match",
-				Exit,
-				OutOfRange);
-	}
-
 	/* Allocate memory for the first entry */ 
-	a->entriesOne = malloc(sizeof(AlignEntry)*a->numEntriesOne);
-	if(a->numEntriesOne > 0 && NULL==a->entriesOne) {
-		if(NULL == a->entriesOne) {
-			PrintError(FnName,
-					"a->entriesOne",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	/* Allocate memory for the second entry */
-	a->entriesTwo = malloc(sizeof(AlignEntry)*a->numEntriesTwo);
-	if(a->numEntriesTwo > 0 && NULL==a->entriesTwo) {
-		assert(a->pairedEnd == 1);
-		if(NULL == a->entriesTwo) {
-			PrintError(FnName,
-					"a->entriesTwo",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+	a->ends = malloc(sizeof(AlignedEnd)*a->numEnds);
+	if(NULL==a->ends) {
+		PrintError(FnName,
+				"a->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
 
 	/* Read the alignment */
-	for(i=0;i<a->numEntriesOne;i++) {
-		AlignEntryInitialize(&a->entriesOne[i]);
-		if(EOF==AlignEntryRead(&a->entriesOne[i],
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndInitialize(&a->ends[i]);
+		if(EOF==AlignedEndRead(&a->ends[i],
 					inputFP,
 					a->space,
 					binaryInput)) {
 			PrintError(FnName, 
 					NULL, 
-					"Could not read entriesOne",
+					"Could not read a->ends[i]",
 					Exit,
 					EndOfFile);
-		}
-	}
-	if(a->pairedEnd == 1) {
-		for(i=0;i<a->numEntriesTwo;i++) {
-			AlignEntryInitialize(&a->entriesTwo[i]);
-			if(EOF==AlignEntryRead(&a->entriesTwo[i],
-						inputFP,
-						a->space,
-						binaryInput)) {
-				PrintError(FnName, 
-						NULL, 
-						"Could not read entriesTwo",
-						Exit,
-						EndOfFile);
-			}
 		}
 	}
 
@@ -238,122 +158,70 @@ int AlignEntriesRead(AlignEntries *a,
 }
 
 /* TODO */
-void AlignEntriesRemoveDuplicates(AlignEntries *a,
-		int sortOrder)
+void AlignedReadRemoveDuplicates(AlignedRead *a,
+		int32_t sortOrder)
 {
+	int32_t i;
 	/* First entry */
-	a->numEntriesOne = AlignEntryRemoveDuplicates(&a->entriesOne,
-			a->numEntriesOne,
-			sortOrder);
-	/* Second entry */
-	a->numEntriesTwo = AlignEntryRemoveDuplicates(&a->entriesTwo,
-			a->numEntriesTwo,
-			sortOrder);
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndRemoveDuplicates(&a->ends[i],
+				sortOrder);
+	}
 }
 
 /* TODO */
 /* Log-n space */
 /* Do not use, since it is buggy and has not been updated lately */  
-void AlignEntriesQuickSort(AlignEntries *a,
-		int sortOrder,
-		int showPercentComplete)
+void AlignedReadQuickSort(AlignedRead *a,
+		int32_t sortOrder,
+		int32_t showPercentComplete)
 {
-	double percentComplete;
-	/* Sort the first entry */
-	percentComplete=0.0;
-	AlignEntryQuickSort(&a->entriesOne,
-			0,
-			a->numEntriesOne-1,
-			sortOrder,
-			showPercentComplete,
-			&percentComplete,
-			a->numEntriesOne-1);
-	/* Sort the second entry */
-	percentComplete=0.0;
-	AlignEntryQuickSort(&a->entriesTwo,
-			0,
-			a->numEntriesTwo-1,
-			sortOrder,
-			showPercentComplete,
-			&percentComplete,
-			a->numEntriesTwo-1);
+	int32_t i;
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndQuickSort(&a->ends[i],
+				sortOrder,
+				showPercentComplete);
+	}
 }
 
 /* TODO */
 /* O(n) space, but really double */
-void AlignEntriesMergeSort(AlignEntries *a,
-		int sortOrder,
-		int showPercentComplete)
+void AlignedReadMergeSort(AlignedRead *a,
+		int32_t sortOrder,
+		int32_t showPercentComplete)
 {
 	double percentComplete;
+	int32_t i;
 	/* Sort the first entry */
-	percentComplete=0.0;
-	AlignEntryMergeSort(&a->entriesOne,
-			0,
-			a->numEntriesOne-1,
-			sortOrder,
-			showPercentComplete,
-			&percentComplete,
-			a->numEntriesOne-1);
-	/* Sort the second entry */
-	percentComplete=0.0;
-	AlignEntryMergeSort(&a->entriesTwo,
-			0,
-			a->numEntriesTwo-1,
-			sortOrder,
-			showPercentComplete,
-			&percentComplete,
-			a->numEntriesTwo-1);
+	for(i=0;i<a->numEnds;i++) {
+		percentComplete=0.0;
+		AlignedEndMergeSort(&a->ends[i],
+				0,
+				showPercentComplete);
+	}
 }
 
 /* TODO */
-void AlignEntriesReallocate(AlignEntries *a,
-		int numEntriesOne,
-		int numEntriesTwo,
-		int pairedEnd,
-		int space)
+void AlignedReadReallocate(AlignedRead *a,
+		int32_t numEnds)
 {
-	char *FnName = "AlignEntriesReallocate";
-	int i;
+	char *FnName = "AlignedReadReallocate";
+	int32_t i;
 
 	/* we have to free if we are reducing the number of entries */
-	if(numEntriesOne < a->numEntriesOne) {
-		for(i=numEntriesOne;i<a->numEntriesOne;i++) {
-			AlignEntryFree(&a->entriesOne[i]);
+	if(numEnds < a->numEnds) {
+		for(i=numEnds;i<a->numEnds;i++) {
+			AlignedEndFree(&a->ends[i]);
 		}
 	}
-	if(numEntriesTwo < a->numEntriesTwo) {
-		for(i=numEntriesTwo;i<a->numEntriesTwo;i++) {
-			AlignEntryFree(&a->entriesTwo[i]);
-		}
-	}
-
-	a->numEntriesOne = numEntriesOne;
-	a->numEntriesTwo = numEntriesTwo;
-	a->pairedEnd = pairedEnd;
-	a->space = space;
-
-	/* Don't change read name */
-
-	assert(a->pairedEnd == SingleEnd || a->pairedEnd == PairedEnd);
+	a->numEnds = numEnds;
 
 	/* Allocate memory for the entries */ 
-	a->entriesOne = realloc(a->entriesOne, sizeof(AlignEntry)*a->numEntriesOne);
-	if(a->numEntriesOne > 0 && NULL==a->entriesOne) {
-		if(NULL == a->entriesOne) {
+	a->ends = realloc(a->ends, sizeof(AlignedEnd)*a->numEnds);
+	if(a->numEnds > 0 && NULL==a->ends) {
+		if(NULL == a->ends) {
 			PrintError(FnName,
-					"a->entriesOne",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	a->entriesTwo = realloc(a->entriesTwo, sizeof(AlignEntry)*a->numEntriesTwo);
-	if(a->numEntriesTwo > 0 && NULL==a->entriesTwo) {
-		assert(a->pairedEnd == 1);
-		if(NULL == a->entriesTwo) {
-			PrintError(FnName,
-					"a->entriesTwo",
+					"a->ends",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
@@ -362,22 +230,17 @@ void AlignEntriesReallocate(AlignEntries *a,
 }
 
 /* TODO */
-void AlignEntriesAllocate(AlignEntries *a,
+void AlignedReadAllocate(AlignedRead *a,
 		char *readName,
-		int numEntriesOne,
-		int numEntriesTwo,
-		int pairedEnd,
-		int space)
+		int32_t numEnds,
+		int32_t space)
 {
-	char *FnName = "AlignEntriesAllocate";
-	int i;
+	char *FnName = "AlignedReadAllocate";
+	int32_t i;
 
-	a->numEntriesOne = numEntriesOne;
-	a->numEntriesTwo = numEntriesTwo;
-	a->pairedEnd = pairedEnd;
+	a->numEnds = numEnds;
 	a->space = space;
 	a->readNameLength = (int)strlen(readName);
-
 	a->readName = malloc(sizeof(char)*(a->readNameLength+1));
 	if(a->readName == NULL) {
 		if(NULL == a->readName) {
@@ -391,163 +254,62 @@ void AlignEntriesAllocate(AlignEntries *a,
 	/* Copy over */
 	strcpy(a->readName, readName);
 
-	assert(a->pairedEnd == 1 || a->numEntriesTwo == 0);
-
 	/* Allocate memory for the entries */ 
-	if(a->numEntriesOne > 0) {
-		a->entriesOne = malloc(sizeof(AlignEntry)*a->numEntriesOne);
-		if(NULL==a->entriesOne) {
-			if(NULL == a->entriesOne) {
-				PrintError(FnName,
-						"a->entriesOne",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		/* Initialize */
-		for(i=0;i<a->numEntriesOne;i++) {
-			AlignEntryInitialize(&a->entriesOne[i]);
-		}
+	a->ends = malloc(sizeof(AlignedEnd)*a->numEnds);
+	if(0 < a->numEnds && a->ends == NULL) {
+
+		PrintError(FnName,
+				"a->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
-	else {
-		a->entriesOne = NULL;
-	}
-	if(a->numEntriesTwo > 0) {
-		a->entriesTwo = malloc(sizeof(AlignEntry)*a->numEntriesTwo);
-		if(NULL==a->entriesTwo) {
-			assert(a->pairedEnd == 1);
-			if(NULL == a->entriesTwo) {
-				PrintError(FnName,
-						"a->entriesTwo",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		/* Initialize */
-		for(i=0;i<a->numEntriesTwo;i++) {
-			AlignEntryInitialize(&a->entriesTwo[i]);
-		}
-	}
-	else {
-		a->entriesTwo = NULL;
+	/* Initialize */
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndInitialize(&a->ends[i]);
 	}
 }
 
 /* TODO */
-void AlignEntriesFree(AlignEntries *a)
+void AlignedReadFree(AlignedRead *a)
 {
-	int i;
-	for(i=0;i<a->numEntriesOne;i++) {
-		AlignEntryFree(&a->entriesOne[i]);
-	}
-	for(i=0;i<a->numEntriesTwo;i++) {
-		AlignEntryFree(&a->entriesTwo[i]);
+	int32_t i;
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndFree(&a->ends[i]);
 	}
 	free(a->readName);
-	free(a->entriesOne);
-	free(a->entriesTwo);
-	AlignEntriesInitialize(a);
+	AlignedReadInitialize(a);
 }
 
 /* TODO */
-void AlignEntriesInitialize(AlignEntries *a) 
+void AlignedReadInitialize(AlignedRead *a) 
 {
 	a->readNameLength=0;
 	a->readName=NULL;
-	a->entriesOne=NULL;
-	a->numEntriesOne=0;
-	a->entriesTwo=NULL;
-	a->numEntriesTwo=0;
-	a->pairedEnd=0;
+	a->numEnds=0;
+	a->ends=NULL;
 	a->space=NTSpace;
 }
 
-/* TODO */
-void AlignEntriesKeepOnly(AlignEntries *a,
-		int indexOne,
-		int indexTwo,
-		int pairedEnd,
-		int space)
-{
-	assert(pairedEnd == a->pairedEnd);
-
-	/* First read */
-	assert(0 <= indexOne && indexOne < a->numEntriesOne);
-	/* Copy to the front */
-	if(indexOne > 0) {
-		AlignEntryCopy(&a->entriesOne[indexOne], &a->entriesOne[0]);
-	}
-
-	/* Only for paired end */
-	if(PairedEnd==pairedEnd) {
-		/* Second read */
-		assert(0 <= indexTwo && indexTwo < a->numEntriesTwo);
-		if(indexTwo > 0) {
-			AlignEntryCopy(&a->entriesTwo[indexTwo], &a->entriesTwo[0]);
-		}
-		/* Reallocate */
-		AlignEntriesReallocate(a,
-				1,
-				1,
-				PairedEnd,
-				space);
-	}
-	else {
-		AlignEntriesReallocate(a,
-				1,
-				0,
-				SingleEnd,
-				space);
-	}
-}
-
-void AlignEntriesCopy(AlignEntries *src, AlignEntries *dst) 
-{
-	int i;
-
-	/* Free and Allocate destination */
-	AlignEntriesFree(dst);
-	AlignEntriesAllocate(dst,
-			src->readName,
-			src->numEntriesOne,
-			src->numEntriesTwo,
-			src->pairedEnd,
-			src->space);
-	/* Copy over */
-	for(i=0;i<src->numEntriesOne;i++) {
-		AlignEntryCopy(&src->entriesOne[i], &dst->entriesOne[i]);
-	}
-	for(i=0;i<src->numEntriesTwo;i++) {
-		AlignEntryCopy(&src->entriesTwo[i], &dst->entriesTwo[i]);
-	}
-}
-
-int64_t AlignEntriesGetSize(AlignEntries *a)
+void AlignedReadCopy(AlignedRead *dest, AlignedRead *src) 
 {
 	int32_t i;
-	int64_t size = 0;
 
-	for(i=0;i<a->numEntriesOne;i++) {
-		size += AlignEntryGetSize(&a->entriesOne[i]);
+	/* Free and Allocate destination */
+	AlignedReadFree(dest);
+	AlignedReadAllocate(dest,
+			src->readName,
+			src->numEnds,
+			src->space);
+	/* Copy over */
+	for(i=0;i<src->numEnds;i++) {
+		AlignedEndCopy(&dest->ends[i], &src->ends[i]);
 	}
-	for(i=0;i<a->numEntriesTwo;i++) {
-		size += AlignEntryGetSize(&a->entriesTwo[i]);
-	}
-
-	size += sizeof(AlignEntries);
-	if(0 < a->readNameLength) {
-		size += sizeof(char)*(a->readNameLength+1);
-	}
-	size += sizeof(AlignEntry*)*(a->numEntriesOne + a->numEntriesTwo);
-
-	return size;
 }
 
 /* O(n) space, but really double */
-/* Should be a list of pointers to individual AlignEntries */
-void AlignEntriesMergeSortAll(AlignEntries **a,
+/* Should be a list of pointers to individual AlignedRead */
+void AlignedReadMergeSortAll(AlignedRead **a,
 		int64_t low, 
 		int64_t high)
 {
@@ -558,34 +320,34 @@ void AlignEntriesMergeSortAll(AlignEntries **a,
 	}
 
 	/* Split */
-	AlignEntriesMergeSortAll(a,
+	AlignedReadMergeSortAll(a,
 			low,
 			mid);
-	AlignEntriesMergeSortAll(a,
+	AlignedReadMergeSortAll(a,
 			mid+1,
 			high);
 
-	AlignEntriesMergeAll(a,
+	AlignedReadMergeAll(a,
 			low,
 			mid,
 			high);
 }
 
-void AlignEntriesMergeAll(AlignEntries **a,
+void AlignedReadMergeAll(AlignedRead **a,
 		int64_t low, 
 		int64_t mid,
 		int64_t high)
 {
-	char *FnName="AlignEntriesMergeAll";
+	char *FnName="AlignedReadMergeAll";
 	int64_t startLower = low;
 	int64_t endLower = mid;
 	int64_t startUpper = mid+1;
 	int64_t endUpper = high;
 	int64_t ctr, i;
-	AlignEntries **tmp=NULL;
+	AlignedRead **tmp=NULL;
 
 	/* Merge */
-	tmp = malloc(sizeof(AlignEntries*)*(high-low+1));
+	tmp = malloc(sizeof(AlignedRead*)*(high-low+1));
 	if(NULL == tmp) {
 		PrintError(FnName,
 				"tmp",
@@ -596,7 +358,7 @@ void AlignEntriesMergeAll(AlignEntries **a,
 	/* Merge the two lists */
 	ctr=0;
 	while( (startLower <= endLower) && (startUpper <= endUpper)) {
-		if(AlignEntriesCompareAll(a[startLower], a[startUpper]) <= 0) {
+		if(AlignedReadCompareAll(a[startLower], a[startUpper]) <= 0) {
 			tmp[ctr] = a[startLower];
 			startLower++;
 		}
@@ -628,79 +390,89 @@ void AlignEntriesMergeAll(AlignEntries **a,
 }
 
 /* TODO */
-int32_t AlignEntriesCompareAll(AlignEntries *one, AlignEntries *two)
+int32_t AlignedReadCompareAll(AlignedRead *one, AlignedRead *two)
 {
+	char *FnName="AlignedReadCompareAll";
 	/* Compare by chr/pos */ 
-	int cmpOne, cmpTwo;
-	AlignEntry *oneA[2], *twoA[2];
+	int32_t cmp=0;
+	int32_t numLeft, i;
+	int32_t minIndexOne, minIndexTwo;
+	AlignedEnd **oneA=NULL;
+	AlignedEnd **twoA=NULL;
 
-	assert(one->pairedEnd == two->pairedEnd);
-	if(SingleEnd == one->pairedEnd) {
-		assert(one->numEntriesOne == 1 && two->numEntriesOne == 1);
-		return AlignEntryCompareAtIndex(one->entriesOne, 0, two->entriesOne, 0, AlignEntrySortByContigPos);
+	if(1 == one->numEnds &&
+			1 == two->numEnds) {
+		assert(1 == one->ends[0].numEntries);
+		assert(1 == two->ends[0].numEntries);
+
+		return AlignedEndCompare(&one->ends[0], &two->ends[0], AlignedEntrySortByContigPos);
 	}
 	else {
-		assert( (one->numEntriesOne == 1 && one->numEntriesTwo == 1) ||
-				(one->numEntriesOne == 0 && one->numEntriesTwo == 1) ||
-				(one->numEntriesOne == 1 && one->numEntriesTwo == 0));
-		assert( (two->numEntriesOne == 1 && two->numEntriesTwo == 1) ||
-				(two->numEntriesOne == 0 && two->numEntriesTwo == 1) ||
-				(two->numEntriesOne == 1 && two->numEntriesTwo == 0));
+		assert(one->numEnds == two->numEnds);
+		oneA = malloc(sizeof(AlignedEnd*)*one->numEnds);
+		if(NULL == oneA) {
+			PrintError(FnName,
+					"oneA",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<one->numEnds;i++) {
+			assert(1 == one->ends[i].numEntries);
+			oneA[i] = &one->ends[i];
+		}
+		twoA = malloc(sizeof(AlignedEnd*)*two->numEnds);
+		if(NULL == twoA) {
+			PrintError(FnName,
+					"twoA",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(i=0;i<two->numEnds;i++) {
+			assert(1 == two->ends[i].numEntries);
+			twoA[i] = &two->ends[i];
+		}
 
-		if(one->numEntriesOne == 0) {
-			oneA[0] = one->entriesTwo;
-			oneA[1] = NULL;
-		}
-		else if(one->numEntriesTwo == 0) {
-			oneA[0] = one->entriesOne;
-			oneA[1] = NULL;
-		}
-		else {
-			if(AlignEntryCompareAtIndex(one->entriesOne, 0, one->entriesTwo, 0, AlignEntrySortByContigPos) <= 0) {
-				oneA[0] = one->entriesOne;
-				oneA[1] = one->entriesTwo;
+		numLeft = one->numEnds;
+		while(0 < numLeft) {
+			/* Get min on one */
+			minIndexOne=0;
+			for(i=1;i<numLeft;i++) {
+				if(0 < AlignedEndCompare(oneA[i], oneA[minIndexOne], AlignedEntrySortByContigPos)) {
+					minIndexOne = i;
+				}
+			}
+			/* Get min on two */
+			minIndexTwo=0;
+			for(i=1;i<numLeft;i++) {
+				if(0 < AlignedEndCompare(twoA[i], twoA[minIndexTwo], AlignedEntrySortByContigPos)) {
+					minIndexTwo = i;
+				}
+			}
+			/* Compare */
+			cmp = AlignedEndCompare(oneA[minIndexOne], twoA[minIndexTwo], AlignedEntrySortByContigPos);
+			if(cmp != 0) {
+				/* Exit out of the loop */
+				numLeft=0;
 			}
 			else {
-				oneA[0] = one->entriesTwo;
-				oneA[1] = one->entriesOne;
+				numLeft--;
 			}
-		}
-		if(two->numEntriesOne == 0) {
-			twoA[0] = two->entriesTwo;
-			twoA[1] = NULL;
-		}
-		else if(two->numEntriesTwo == 0) {
-			twoA[0] = two->entriesOne;
-			twoA[1] = NULL;
-		}
-		else {
-			if(AlignEntryCompareAtIndex(two->entriesOne, 0, two->entriesTwo, 0, AlignEntrySortByContigPos) <= 0) {
-				twoA[0] = two->entriesOne;
-				twoA[1] = two->entriesTwo;
+			/* Remove */
+			if(numLeft != minIndexOne) {
+				oneA[minIndexOne] = oneA[numLeft];
+				oneA[numLeft]=NULL;
 			}
-			else {
-				twoA[0] = two->entriesTwo;
-				twoA[1] = two->entriesOne;
+			if(numLeft != minIndexTwo) {
+				twoA[minIndexTwo] = twoA[numLeft];
+				twoA[numLeft]=NULL;
 			}
 		}
 
-		cmpOne = AlignEntryCompareAtIndex(oneA[0], 0, twoA[0], 0, AlignEntrySortByContigPos);
-		if(oneA[1] == NULL || twoA[1] == NULL) {
-			cmpTwo = 0;
-		}
-		else {
-			cmpTwo = AlignEntryCompareAtIndex(oneA[1], 0, twoA[1], 0, AlignEntrySortByContigPos);
-		}
+		free(oneA);
+		free(twoA);
 
-		if(cmpOne < 0 ||
-				(0 == cmpOne && cmpTwo < 0)) {
-			return -1;
-		}
-		else if(0 == cmpOne && 0 == cmpTwo) {
-			return 0;
-		}
-		else {
-			return 1;
-		}
+		return cmp;
 	}
 }

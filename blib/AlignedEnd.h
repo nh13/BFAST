@@ -5,19 +5,16 @@
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-int AlignedEndPrint(AlignedEnd*, FILE*, int, int);
-int AlignedEndRead(AlignedEnd*, FILE*, int, int);
-int AlignedEndRemoveDuplicates(AlignedEnd**, int, int);
-void AlignedEndQuickSort(AlignedEnd**, int, int, int, int, double*, int);
-void AlignedEndMergeSort(AlignedEnd**, int, int, int, int, double*, int);
-void AlignedEndCopyAtIndex(AlignedEnd*, int, AlignedEnd*, int);
-int AlignedEndCompareAtIndex(AlignedEnd*, int, AlignedEnd*, int, int);
-int AlignedEndGetOneRead(AlignedEnd**, FILE*);
-int AlignedEndGetAll(AlignedEnd**, FILE*);
+int32_t AlignedEndPrint(AlignedEnd*, FILE*, int32_t, int32_t);
+int32_t AlignedEndRead(AlignedEnd*, FILE*, int32_t, int32_t);
+int32_t AlignedEndRemoveDuplicates(AlignedEnd*, int32_t);
+void AlignedEndQuickSort(AlignedEnd*, int32_t, int32_t);
+void AlignedEndMergeSort(AlignedEnd*, int32_t, int32_t);
+int32_t AlignedEndCompare(AlignedEnd*, AlignedEnd*, int32_t);
+void AlignedEndCopyAtIndex(AlignedEnd*, int32_t, AlignedEnd*, int32_t);
 void AlignedEndCopy(AlignedEnd*, AlignedEnd*);
+void AlignedEndReallocate(AlignedEnd*, int32_t);
 void AlignedEndFree(AlignedEnd*);
 void AlignedEndInitialize(AlignedEnd*);
-void AlignedEndCheckReference(AlignedEnd*, RGBinary*, int);
-int AlignedEndGetPivot(AlignedEnd*, int, int, int);
-int64_t AlignedEndGetSize(AlignedEnd*);
+
 #endif

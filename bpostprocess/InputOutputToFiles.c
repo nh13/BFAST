@@ -4,8 +4,8 @@
 #include <string.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
-#include "../blib/AlignEntries.h"
-#include "../blib/AlignEntriesConvert.h"
+#include "../blib/AlignedRead.h"
+#include "../blib/AlignedReadConvert.h"
 #include "Definitions.h"
 #include "Filter.h"
 #include "InputOutputToFiles.h"
@@ -14,7 +14,6 @@
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int binaryInput,
-		int pairedEnd,
 		int startContig,
 		int startPos,
 		int endContig,
@@ -38,7 +37,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	char *FnName="ReadInputFilterAndOutput";
 	FILE *fp=NULL;
 	int64_t counter, foundType, numContigAb, numUnpaired, numInversions, numNotReported, numReported;
-	AlignEntries a;
+	AlignedRead a;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpOut=NULL;
 	char contigAbFileName[MAX_FILENAME_LENGTH]="\0";
@@ -110,7 +109,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	/* Open output files, if necessary */
 	if(contigAbPaired == 1) {
-		assert(1==pairedEnd);
 		if(!(fpContigAb=fopen(contigAbFileName, "wb"))) {
 			PrintError(FnName,
 					contigAbFileName,
@@ -118,10 +116,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		AlignEntriesConvertPrintHeader(fpContigAb, outputFormat);
+		AlignedReadConvertPrintHeader(fpContigAb, outputFormat);
 	}
 	if(inversionsPaired == 1) {
-		assert(1==pairedEnd);
 		if(!(fpInversions=fopen(inversionsFileName, "wb"))) {
 			PrintError(FnName,
 					inversionsFileName,
@@ -129,10 +126,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		AlignEntriesConvertPrintHeader(fpInversions, outputFormat);
+		AlignedReadConvertPrintHeader(fpInversions, outputFormat);
 	}
 	if(unpaired == 1) {
-		assert(1==pairedEnd);
 		if(!(fpUnpaired=fopen(unpairedFileName, "wb"))) {
 			PrintError(FnName,
 					unpairedFileName,
@@ -140,7 +136,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		AlignEntriesConvertPrintHeader(fpUnpaired, outputFormat);
+		AlignedReadConvertPrintHeader(fpUnpaired, outputFormat);
 	}
 	if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
 		PrintError(FnName,
@@ -149,7 +145,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				Exit,
 				OpenFileError);
 	}
-	AlignEntriesConvertPrintHeader(fpNotReported, outputFormat);
+	AlignedReadConvertPrintHeader(fpNotReported, outputFormat);
 	if(!(fpOut=fopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
@@ -157,23 +153,23 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				Exit,
 				OpenFileError);
 	}
-	AlignEntriesConvertPrintHeader(fpOut, outputFormat);
+	AlignedReadConvertPrintHeader(fpOut, outputFormat);
 
 	/* Initialize */
-	AlignEntriesInitialize(&a);
+	AlignedReadInitialize(&a);
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
 	counter = numReported = numNotReported = numContigAb = numUnpaired = numInversions = 0;
-	while(EOF != AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter, binaryInput)) {
+	while(EOF != AlignedReadRead(&a, fp, binaryInput)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
 		/* Filter */
-		foundType=FilterAlignEntries(&a,
+		foundType=FilterAlignedRead(&a,
 				algorithmReads,
 				uniquenessScore,
 				minUniquenessScore,
@@ -184,7 +180,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				endPos,
 				maxMismatches,
 				maxColorErrors,
-				pairedEnd,        
 				minDistancePaired,          
 				maxDistancePaired,
 				useDistancePaired,
@@ -196,35 +191,32 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		switch(foundType) {
 			case NoneFound:
 				/* Print to Not Reported file */
-				AlignEntriesConvertPrintOutputFormat(&a, rg, fpNotReported, outputFormat, binaryInput);
+				AlignedReadConvertPrintOutputFormat(&a, rg, fpNotReported, outputFormat, binaryInput);
 				numNotReported++;
 				break;
 			case Found:
 				/* Print to Output file */
-				AlignEntriesConvertPrintOutputFormat(&a, rg, fpOut, outputFormat, binaryInput);
+				AlignedReadConvertPrintOutputFormat(&a, rg, fpOut, outputFormat, binaryInput);
 				numReported++;
 				break;
 			case ContigAb:
-				assert(pairedEnd == 1);
 				if(contigAbPaired == 1) {
 					/* Print to Contig Abnormalities file */
-					AlignEntriesConvertPrintOutputFormat(&a, rg, fpContigAb, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpContigAb, outputFormat, binaryInput);
 					numContigAb++;
 				}
 				break;
 			case Unpaired:
-				assert(pairedEnd == 1);
 				if(unpaired == 1) {
 					/* Print to Unpaired file */
-					AlignEntriesConvertPrintOutputFormat(&a, rg, fpUnpaired, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpUnpaired, outputFormat, binaryInput);
 					numUnpaired++;
 				}
 				break;
 			case Inversion:
-				assert(pairedEnd == 1);
 				if(inversionsPaired == 1) {
 					/* Print to Inversions file */
-					AlignEntriesConvertPrintOutputFormat(&a, rg, fpInversions, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpInversions, outputFormat, binaryInput);
 					numInversions++;
 				}
 				break;
@@ -238,7 +230,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		}
 
 		/* Free memory */
-		AlignEntriesFree(&a);
+		AlignedReadFree(&a);
 		/* Increment counter */
 		counter++;
 	}
@@ -263,15 +255,12 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	fclose(fpOut);
 	fclose(fpNotReported);
 	if(inversionsPaired == 1) {
-		assert(1==pairedEnd);
 		fclose(fpInversions);
 	}
 	if(contigAbPaired == 1) {
-		assert(1==pairedEnd);
 		fclose(fpContigAb);
 	}
 	if(unpaired == 1) {
-		assert(1==pairedEnd);
 		fclose(fpUnpaired);
 	}
 
