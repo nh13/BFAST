@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 				numSNPs,
 				numErrors,
 				readLength,
-				pairedEnd,
+				(0 == pairedEnd)?1:2,
 				pairedEndLength,
 				numReads);
 
@@ -112,7 +112,7 @@ void GenerateReads(RGBinary *rg,
 		int numSNPs,
 		int numErrors,
 		int readLength,
-		int pairedEnd,
+		int numEnds,
 		int pairedEndLength,
 		int numReads)
 {
@@ -148,7 +148,7 @@ void GenerateReads(RGBinary *rg,
 			numSNPs,
 			numErrors,
 			readLength,
-			pairedEnd,
+			numEnds,
 			pairedEndLength,
 			numReads);
 
@@ -167,7 +167,7 @@ void GenerateReads(RGBinary *rg,
 	fprintf(stderr, "%s", BREAK_LINE);
 
 	/* Initialize */
-	r.pairedEnd = pairedEnd;
+	r.numEnds = numEnds;
 	r.pairedEndLength = pairedEndLength;
 	SimReadInitialize(&r);
 
@@ -190,7 +190,7 @@ void GenerateReads(RGBinary *rg,
 			numSNPs,
 			numErrors,
 			readLength,
-			pairedEnd,
+			numEnds,
 			pairedEndLength);
 		/* Output */
 		r.readNum = i+1;

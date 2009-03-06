@@ -257,6 +257,30 @@ void AlignedEndCopy(AlignedEnd *dest, AlignedEnd *src)
 	}
 }
 
+void AlignedEndAllocate(AlignedEnd *a,
+		int32_t numEntries)
+{
+	char *FnName="AlignedEndAllocate";
+	int32_t i;
+
+	/* Allocate */
+	a->entries = malloc(sizeof(AlignedEntry)*numEntries);
+	if(NULL == a->entries && 0 < numEntries) {
+		PrintError(FnName,
+				"a->entries",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+
+	for(i=0;i<numEntries;i++) {
+		AlignedEntryInitialize(&a->entries[i]);
+	}
+
+	a->numEntries = numEntries;
+
+}
+
 void AlignedEndReallocate(AlignedEnd *a,
 		int32_t numEntries)
 {

@@ -16,7 +16,7 @@ typedef struct {
 	int whichReadVariants;
 	int startIndel;
 	int readLength;
-	int pairedEnd;
+	int numEnds;
 	int pairedEndLength;
 	int indelLength;
 } SimRead;

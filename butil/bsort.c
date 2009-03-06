@@ -8,8 +8,9 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include "../blib/AlignEntry.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedEntry.h"
+#include "../blib/AlignedRead.h"
+#include "../blib/AlignedEnd.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
@@ -47,21 +48,30 @@ void TmpFileInitialize(TmpFile *tmpFile)
 }
 
 void TmpFileUpdateMetaData(TmpFile *tmpFile,
-		AlignEntries *a)
+		AlignedRead *a)
 {
-	if(SingleEnd == a->pairedEnd ||
-			(1 == a->numEntriesOne && 0 == a->numEntriesTwo) ||
-			(1 == a->numEntriesOne && 1 == a->numEntriesTwo && AlignEntryCompareAtIndex(a->entriesOne, 0, a->entriesTwo, 0, AlignEntrySortByContigPos) < 0)) {
-		TmpFileUpdateMetaDataHelper(tmpFile, &a->entriesOne[0]);
+	int32_t minIndex=INT_MIN;
+	int32_t i;
+
+	for(i=0;i<a->numEnds;i++) {
+		if(0 < a->ends[i].numEntries) {
+			assert(1 == a->ends[i].numEntries);
+			if(minIndex < 0 ||
+					AlignedEntryCompare(&a->ends[i].entries[0], 
+						&a->ends[minIndex].entries[0], 
+						AlignedEntrySortByContigPos) < 0) {
+				minIndex = i;
+			}
+		}
 	}
-	else {
-		TmpFileUpdateMetaDataHelper(tmpFile, &a->entriesTwo[0]);
-	}
+	assert(0 <= minIndex);
+
+	TmpFileUpdateMetaDataHelper(tmpFile, &a->ends[minIndex].entries[0]);
 	tmpFile->numEntries++;
 }
 
 void TmpFileUpdateMetaDataHelper(TmpFile *tmpFile,
-		AlignEntry *a)
+		AlignedEntry *a)
 {
 	if(a->contig < tmpFile->startContig || 
 			(a->contig == tmpFile->startContig && a->position < tmpFile->startPos)) {
@@ -80,9 +90,10 @@ void MoveAllIntoTmpFile(char *inputFileName,
 		char *tmpDir)
 {
 	char *FnName="MoveAllIntoTmpFile";
+	int32_t i;
 	int64_t counter=0;
 	FILE *fpIn;
-	AlignEntries a;
+	AlignedRead a;
 
 	/* Open tmp file */
 	TmpFileOpen(tmpFile, tmpDir);
@@ -98,37 +109,31 @@ void MoveAllIntoTmpFile(char *inputFileName,
 
 	/* Move all entries into the tmp file */
 	fprintf(stderr, "Moving all entries into a tmp file.  Currently on read:\n0");
-	AlignEntriesInitialize(&a);
-	while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+	AlignedReadInitialize(&a);
+	while(EOF != AlignedReadRead(&a, fpIn, BinaryInput)) {
 		if(counter%BSORT_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
 		counter++;
 
-		/* Store AlignEntries */
-		if((SingleEnd == a.pairedEnd && 1 != a.numEntriesOne) ||
-				(PairedEnd == a.pairedEnd && 
-				 !(1 == a.numEntriesOne && 1 == a.numEntriesTwo) &&
-				 !(0 == a.numEntriesOne && 1 == a.numEntriesTwo) &&
-				 !(1 == a.numEntriesOne && 0 == a.numEntriesTwo ))) {
-			fprintf(stderr, "\n%d\t%d\n",
-					a.numEntriesOne,
-					a.numEntriesTwo);
-			PrintError(FnName,
-					a.readName,
-					"Read was not uniquely aligned",
-					Exit,
-					OutOfRange);
+		/* Store AlignedRead */
+		for(i=0;i<a.numEnds;i++) {
+			if(0 != a.ends[i].numEntries &&
+					1 != a.ends[i].numEntries) {
+				PrintError(FnName,
+						a.readName,
+						"Read was not uniquely aligned",
+						Exit,
+						OutOfRange);
+			}
 		}
-		else {
-			AlignEntriesPrint(&a, 
-					tmpFile->FP,
-					BinaryOutput);
-			TmpFileUpdateMetaData(tmpFile, 
-					&a);
-		}
-		AlignEntriesFree(&a);
+		AlignedReadPrint(&a, 
+				tmpFile->FP,
+				BinaryOutput);
+		TmpFileUpdateMetaData(tmpFile, 
+				&a);
+		AlignedReadFree(&a);
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);
@@ -152,15 +157,15 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	char *FnName="SplitEntriesAndPrint";
 	int64_t meanPos;
 	int32_t meanContig;
-	AlignEntries *entries=NULL;
-	AlignEntries **entriesPtr=NULL;
-	AlignEntries a;
+	AlignedRead *entries=NULL;
+	AlignedRead **entriesPtr=NULL;
+	AlignedRead a;
 	int64_t numEntries=0;
 	TmpFile belowTmpFile, aboveTmpFile;
 	int32_t endContig, endPos;
 	int32_t belowMinPos, belowMinContig, belowMaxPos, belowMaxContig;
 	int32_t aboveMinPos, aboveMinContig, aboveMaxPos, aboveMaxContig;
-	AlignEntry *tmpAlignEntry=NULL;
+	AlignedEntry *tmpAlignedEntry=NULL;
 	int64_t i, j, numPrinted;
 	ThreadSortData *sortData=NULL;
 	ThreadSortData *mergeData=NULL;
@@ -169,7 +174,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	void *status;
 	int32_t curNumThreads = numThreads;
 	int32_t curMergeIteration, curThread;
-
+	int32_t minIndex=INT_MIN;
 
 	assert(tmpFile->startContig < tmpFile->endContig ||
 			(tmpFile->startContig == tmpFile->endContig && tmpFile->startPos <= tmpFile->endPos));
@@ -200,7 +205,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		assert(0 < tmpFile->numEntries);
 
 		/* Allocate memory for the entries */
-		entriesPtr = malloc(sizeof(AlignEntries*)*tmpFile->numEntries);
+		entriesPtr = malloc(sizeof(AlignedRead*)*tmpFile->numEntries);
 		if(NULL == entriesPtr) {
 			PrintError(FnName,
 					"entriesPtr",
@@ -208,7 +213,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					Exit,
 					MallocMemory);
 		}
-		entries = malloc(sizeof(AlignEntries)*tmpFile->numEntries);
+		entries = malloc(sizeof(AlignedRead)*tmpFile->numEntries);
 		if(NULL == entries) {
 			PrintError(FnName,
 					"entries",
@@ -219,16 +224,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		/* Initialize */
 		for(i=0;i<tmpFile->numEntries;i++) {
 			entriesPtr[i] = &entries[i];
-			AlignEntriesInitialize(entriesPtr[i]);
+			AlignedReadInitialize(entriesPtr[i]);
 		}
 
 		/* Read in, sort, and print */
 		numEntries = 0;
 		while(numEntries < tmpFile->numEntries &&
-				EOF != AlignEntriesRead(entriesPtr[numEntries],
+				EOF != AlignedReadRead(entriesPtr[numEntries],
 					tmpFile->FP,
-					PairedEndDoesNotMatter,
-					SpaceDoesNotMatter,
 					BinaryInput)) {
 			assert(numEntries < tmpFile->numEntries);
 			numEntries++;
@@ -241,7 +244,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		if(numEntries < BSORT_THREADED_SORT_MIN ||
 				numThreads <= 1) {
 			/* Ignore threading */
-			AlignEntriesMergeSortAll(entriesPtr, 
+			AlignedReadMergeSortAll(entriesPtr, 
 					0,
 					numEntries-1);
 		}
@@ -289,7 +292,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 				/* Start thread */
 				errCode = pthread_create(&threads[i], /* thread struct */
 						NULL, /* default thread attributes */
-						SortAlignEntriesHelper, /* start routine */
+						SortAlignedReadHelper, /* start routine */
 						(void*)(&sortData[i])); /* sortData to routine */
 				if(0!=errCode) {
 					PrintError(FnName,
@@ -367,7 +370,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					/* Start thread */
 					errCode = pthread_create(&threads[j], /* thread struct */
 							NULL, /* default thread attributes */
-							MergeAlignEntriesHelper, /* start routine */
+							MergeAlignedReadHelper, /* start routine */
 							(void*)(&mergeData[j])); /* sortData to routine */
 					if(0!=errCode) {
 						PrintError(FnName,
@@ -410,11 +413,11 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		/* Print and Free memory */
 		for(i=0;i<numEntries;i++) {
 			/* Print */
-			AlignEntriesPrint(entriesPtr[i],
+			AlignedReadPrint(entriesPtr[i],
 					outputFP,
 					BinaryOutput);
 			/* Free memory */
-			AlignEntriesFree(entriesPtr[i]);
+			AlignedReadFree(entriesPtr[i]);
 			entriesPtr[i]=NULL;
 		}
 		free(entriesPtr);
@@ -438,7 +441,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		   */
 
 		/* Initialize */
-		AlignEntriesInitialize(&a);
+		AlignedReadInitialize(&a);
 		TmpFileOpen(&belowTmpFile, tmpDir);
 		TmpFileOpen(&aboveTmpFile, tmpDir);
 		if(tmpFile->startContig == tmpFile->endContig) {
@@ -494,62 +497,65 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		aboveMaxContig = 0;
 
 		/* Split */
-		while(EOF != AlignEntriesRead(&a,
+		while(EOF != AlignedReadRead(&a,
 					tmpFile->FP,
-					PairedEndDoesNotMatter,
-					SpaceDoesNotMatter,
 					BinaryInput)) {
 
-			if(SingleEnd == a.pairedEnd ||
-					(1 == a.numEntriesOne && 0 == a.numEntriesTwo) ||
-					(1 == a.numEntriesOne && 1 == a.numEntriesTwo && AlignEntryCompareAtIndex(a.entriesOne, 0, a.entriesTwo, 0, AlignEntrySortByContigPos) < 0)) {
-				tmpAlignEntry = &a.entriesOne[0];
+			for(i=0;i<a.numEnds;i++) {
+				if(0 < a.ends[i].numEntries) {
+					assert(1 == a.ends[i].numEntries);
+					if(minIndex < 0 ||
+							AlignedEntryCompare(&a.ends[i].entries[0], 
+								&a.ends[minIndex].entries[0], 
+								AlignedEntrySortByContigPos) < 0) {
+						minIndex = i;
+					}
+				}
 			}
-			else {
-				tmpAlignEntry = &a.entriesTwo[0];
-			}
+			assert(0 <= minIndex);
+			tmpAlignedEntry = &a.ends[minIndex].entries[0];
 
 			/* Print to the appropriate file */
-			if(tmpAlignEntry->contig < belowTmpFile.endContig ||
-					(tmpAlignEntry->contig == belowTmpFile.endContig && tmpAlignEntry->position < belowTmpFile.endPos)) {
+			if(tmpAlignedEntry->contig < belowTmpFile.endContig ||
+					(tmpAlignedEntry->contig == belowTmpFile.endContig && tmpAlignedEntry->position < belowTmpFile.endPos)) {
 				/* Print */
-				AlignEntriesPrint(&a,
+				AlignedReadPrint(&a,
 						belowTmpFile.FP, 
 						BinaryOutput);
 				belowTmpFile.numEntries++;
 
 				/* Update bounds */
-				if(tmpAlignEntry->contig < belowMinContig ||
-						(tmpAlignEntry->contig == belowMinContig && tmpAlignEntry->position < belowMinPos)) {
-					belowMinContig = tmpAlignEntry->contig;
-					belowMinPos = tmpAlignEntry->position;
+				if(tmpAlignedEntry->contig < belowMinContig ||
+						(tmpAlignedEntry->contig == belowMinContig && tmpAlignedEntry->position < belowMinPos)) {
+					belowMinContig = tmpAlignedEntry->contig;
+					belowMinPos = tmpAlignedEntry->position;
 				}
-				if(belowMaxContig < tmpAlignEntry->contig || 
-						(belowMaxContig == tmpAlignEntry->contig && belowMaxPos < tmpAlignEntry->position)) {
-					belowMaxContig = tmpAlignEntry->contig;
-					belowMaxPos = tmpAlignEntry->position;
+				if(belowMaxContig < tmpAlignedEntry->contig || 
+						(belowMaxContig == tmpAlignedEntry->contig && belowMaxPos < tmpAlignedEntry->position)) {
+					belowMaxContig = tmpAlignedEntry->contig;
+					belowMaxPos = tmpAlignedEntry->position;
 				}
 			}
 			else {
 				/* Print */
-				AlignEntriesPrint(&a,
+				AlignedReadPrint(&a,
 						aboveTmpFile.FP, 
 						BinaryOutput);
 				aboveTmpFile.numEntries++;
 
 				/* Update bounds */
-				if(tmpAlignEntry->contig < aboveMinContig ||
-						(tmpAlignEntry->contig == aboveMinContig && tmpAlignEntry->position < aboveMinPos)) {
-					aboveMinContig = tmpAlignEntry->contig;
-					aboveMinPos = tmpAlignEntry->position;
+				if(tmpAlignedEntry->contig < aboveMinContig ||
+						(tmpAlignedEntry->contig == aboveMinContig && tmpAlignedEntry->position < aboveMinPos)) {
+					aboveMinContig = tmpAlignedEntry->contig;
+					aboveMinPos = tmpAlignedEntry->position;
 				}
-				if(aboveMaxContig < tmpAlignEntry->contig || 
-						(aboveMaxContig == tmpAlignEntry->contig && aboveMaxPos < tmpAlignEntry->position)) {
-					aboveMaxContig = tmpAlignEntry->contig;
-					aboveMaxPos = tmpAlignEntry->position;
+				if(aboveMaxContig < tmpAlignedEntry->contig || 
+						(aboveMaxContig == tmpAlignedEntry->contig && aboveMaxPos < tmpAlignedEntry->position)) {
+					aboveMaxContig = tmpAlignedEntry->contig;
+					aboveMaxPos = tmpAlignedEntry->position;
 				}
 			}
-			AlignEntriesFree(&a);
+			AlignedReadFree(&a);
 		}
 
 		/* Close tmp file */
@@ -598,28 +604,28 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	}
 }
 
-void *SortAlignEntriesHelper(void *arg)
+void *SortAlignedReadHelper(void *arg)
 {
 	ThreadSortData *data = (ThreadSortData*)arg;
-	AlignEntries **entriesPtr = data->entriesPtr;
+	AlignedRead **entriesPtr = data->entriesPtr;
 	int64_t low = data->low;
 	int64_t high = data->high;
 
-	AlignEntriesMergeSortAll(entriesPtr, 
+	AlignedReadMergeSortAll(entriesPtr, 
 			low,
 			high);
 	return arg;
 }
 
-void *MergeAlignEntriesHelper(void *arg)
+void *MergeAlignedReadHelper(void *arg)
 {
 	ThreadSortData *data = (ThreadSortData*)arg;
-	AlignEntries **entriesPtr = data->entriesPtr;
+	AlignedRead **entriesPtr = data->entriesPtr;
 	int64_t low = data->low;
 	int64_t mid = data->mid;
 	int64_t high = data->high;
 
-	AlignEntriesMergeAll(entriesPtr, 
+	AlignedReadMergeAll(entriesPtr, 
 			low,
 			mid,
 			high);

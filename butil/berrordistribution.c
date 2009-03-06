@@ -3,12 +3,13 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <limits.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
-#include "../blib/AlignEntries.h"
-#include "../blib/AlignEntry.h"
+#include "../blib/AlignedRead.h"
+#include "../blib/AlignedEntry.h"
 #include "berrordistribution.h"
 
 #define Name "berrordistribution"
@@ -21,13 +22,14 @@
 
 int main(int argc, char *argv[])
 {
+	int32_t i;
+	int32_t countGaps=0;
+	int32_t trimEndGaps=0;
+	char outputID[MAX_FILENAME_LENGTH]="\0";
+	char inputFileName[MAX_FILENAME_LENGTH]="\0";
+	Errors e;
+
 	if(5 <= argc) {
-		int32_t i;
-		int32_t countGaps=0;
-		int32_t trimEndGaps=0;
-		char outputID[MAX_FILENAME_LENGTH]="\0";
-		char inputFileName[MAX_FILENAME_LENGTH]="\0";
-		Errors e;
 
 		/* Get arguments */
 		countGaps=atoi(argv[1]);
@@ -68,7 +70,7 @@ void ErrorDistribution(char *inputFileName,
 	char *FnName="ErrorDistribution";
 	int count;
 	FILE *FPin=NULL;
-	AlignEntries a;
+	AlignedRead a;
 
 	fprintf(stderr, "Reading from %s.\n%s",
 			inputFileName,
@@ -85,11 +87,11 @@ void ErrorDistribution(char *inputFileName,
 
 	/* Go through the input file */
 	count=0;
-	AlignEntriesInitialize(&a);
+	AlignedReadInitialize(&a);
 	fprintf(stderr, "Currently on:\n0");
-	while(EOF != AlignEntriesRead(&a, FPin, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
-		if(PairedEnd == a.pairedEnd) {
-			e->pairedEnd = PairedEnd;
+	while(EOF != AlignedReadRead(&a, FPin, BinaryInput)) {
+		if(e->numEnds < a.numEnds) {
+			e->numEnds = a.numEnds;
 		}
 		if(count % ROTATE_NUM == 0) {
 			fprintf(stderr, "\r%d", count);
@@ -97,7 +99,7 @@ void ErrorDistribution(char *inputFileName,
 		/* Update */
 		ErrorsUpdate(e, &a, countGaps, trimEndGaps);
 		/* Free memory */
-		AlignEntriesFree(&a);
+		AlignedReadFree(&a);
 		count++;
 	}
 	fprintf(stderr, "\r%d\n", count);
@@ -184,36 +186,34 @@ void ErrorsPrint(Errors *e, FILE **fps, int countGaps)
 	}
 
 	/* Print out */
-	CountPrint(&e->by[0], fps[0], e->pairedEnd);
-	CountPrint(&e->by[1], fps[1], e->pairedEnd);
-	CountPrint(&e->across[0], fps[3], e->pairedEnd);
-	CountPrint(&e->across[1], fps[4], e->pairedEnd);
+	CountPrint(&e->by[0], fps[0]);
+	CountPrint(&e->by[1], fps[1]);
+	CountPrint(&e->across[0], fps[3]);
+	CountPrint(&e->across[1], fps[4]);
 	if(0 == countGaps) {
-		CountPrint(&e->by[2], fps[2], e->pairedEnd);
-		CountPrint(&e->across[2], fps[5], e->pairedEnd);
+		CountPrint(&e->by[2], fps[2]);
+		CountPrint(&e->across[2], fps[5]);
 	}
 }
 
-void ErrorsUpdate(Errors *e, AlignEntries *a, int32_t countGaps, int32_t trimEndGaps)
+void ErrorsUpdate(Errors *e, AlignedRead *a, int32_t countGaps, int32_t trimEndGaps)
 {
-	assert(a->numEntriesOne <= 1 &&
-			(a->pairedEnd == SingleEnd || a->numEntriesTwo <= 1));
+	int32_t i;
 
-	if(0 < a->numEntriesOne) {
-		ErrorsUpdateHelper(e, &a->entriesOne[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 0);
-	}
-	if(PairedEnd == a->pairedEnd && 0 <a->numEntriesTwo) {
-		ErrorsUpdateHelper(e, &a->entriesTwo[0], countGaps, trimEndGaps, a->space, a->pairedEnd, 1);
+	for(i=0;i<a->numEnds;i++) {
+		if(1 == a->ends[i].numEntries) {
+			ErrorsUpdateHelper(e, &a->ends[i].entries[0], countGaps, trimEndGaps, a->space, i+1);
+		}
 	}
 
 	e->numReads++;
 }
 
-void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps, int space, int pairedEnd, int which) 
+void ErrorsUpdateHelper(Errors *e, AlignedEntry *a, int countGaps, int trimEndGaps, int space, int which) 
 {
 	int i, ctr;
 	int numNT, numColor, numGap;
-	assert(which == 0 || which == 1);
+	assert(0 < which);
 	assert(ColorSpace == space || NTSpace == space);
 	int32_t length;
 
@@ -239,7 +239,6 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 				CountUpdate(&e->by[2],
 						CountOnly,
 						ctr,
-						pairedEnd,
 						which);
 				numGap++;
 			}
@@ -247,19 +246,16 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 				CountUpdate(&e->by[0],
 						CountOnly,
 						ctr,
-						pairedEnd,
 						which);
 				numNT++;
 			}
 			CountUpdate(&e->by[2],
 					CountTotal,
 					ctr,
-					pairedEnd,
 					which);
 			CountUpdate(&e->by[0],
 					CountTotal,
 					ctr,
-					pairedEnd,
 					which);
 
 			/* color space */
@@ -268,7 +264,6 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 					CountUpdate(&e->by[1],
 							CountBoth,
 							ctr,
-							pairedEnd,
 							which);
 					numColor++;
 				}
@@ -276,7 +271,6 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 					CountUpdate(&e->by[1],
 							CountTotal,
 							ctr,
-							pairedEnd,
 							which);
 				}
 
@@ -291,14 +285,12 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 	CountUpdate(&e->across[0],
 			CountBoth,
 			numNT,
-			pairedEnd,
 			which);
 	/* color space */
 	if(ColorSpace == space) {
 		CountUpdate(&e->across[1],
 				CountBoth,
 				numColor,
-				pairedEnd,
 				which);
 	}
 	/* gaps */
@@ -306,7 +298,6 @@ void ErrorsUpdateHelper(Errors *e, AlignEntry *a, int countGaps, int trimEndGaps
 		CountUpdate(&e->across[2],
 				CountBoth,
 				numGap,
-				pairedEnd,
 				which);
 	}
 }
@@ -332,23 +323,28 @@ void ErrorsFree(Errors *e)
 	CountFree(&e->across[2]);
 }
 
-void CountPrint(Count *c, FILE *fp, int pairedEnd)
+void CountPrint(Count *c, FILE *fp)
 {
-	int i;
-
-	if(SingleEnd == pairedEnd) {
-		for(i=0;i<c->length;i++) {
-			fprintf(fp, "%d\t%d\t%d\n", i, c->countOne[i], c->totalOne[i]);
+	int i, j, maxLength;
+	
+	maxLength = INT_MIN;
+	for(i=0;i<c->numEnds;i++) {
+		if(maxLength < c->lengths[i]) {
+			maxLength = c->lengths[i];
 		}
 	}
-	else {
-		for(i=0;i<c->length;i++) {
-			fprintf(fp, "%d\t%d\t%d\t%d\t%d\n", 
-					i, 
-					c->countOne[i],
-					c->totalOne[i],
-					c->countTwo[i],
-					c->totalTwo[i]);
+
+	for(i=0;i<maxLength;i++) {
+		/* Index - 0-based */
+		fprintf(fp, "%d", i);
+		/* Counts and totals */
+		for(j=0;j<c->numEnds;j++) {
+			if(i < c->lengths[j]) {
+				fprintf(fp, "\t%d\t%d", c->counts[j][i], c->totals[j][i]);
+			}
+			else {
+				fprintf(fp, "\t%d\t%d", 0, 0);
+			}
 		}
 	}
 }
@@ -356,121 +352,114 @@ void CountPrint(Count *c, FILE *fp, int pairedEnd)
 void CountUpdate(Count *c,
 		int type,
 		int index,
-		int pairedEnd,
 		int which)
 {
 	char *FnName="CountUpdate";
 	assert(0<=index);
 	int prev, i;
 
-	/* Reallocate if necessary */
-	if(index >= c->length) {
-		prev = c->length;
-		c->length = index+1;
+	assert(0 < which);
 
-		c->countOne = realloc(c->countOne, sizeof(int)*(c->length));
-		if(NULL==c->countOne) {
+	/* Reallocate if necessary based on the number of ends */
+	if(c->numEnds < which) {
+		prev = c->numEnds;
+		c->numEnds = which;
+		c->lengths = realloc(c->lengths, sizeof(int)*c->numEnds);
+		if(NULL==c->lengths) {
 			PrintError(FnName,
-					"c->countOne",
+					"c->lengths",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		c->counts = realloc(c->counts, sizeof(int*)*c->numEnds);
+		if(NULL==c->counts) {
+			PrintError(FnName,
+					"c->counts",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		c->totals = realloc(c->totals, sizeof(int*)*c->numEnds);
+		if(NULL==c->totals) {
+			PrintError(FnName,
+					"c->totals",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+		/* Initialize */
+		for(i=prev;i<c->numEnds;i++) {
+			c->lengths[i] = 0;
+			c->counts[i] = c->totals[i] = NULL;
+		}
+	}
+	/* Reallocate if necessary based on the length of the end */
+	if(c->lengths[which-1] <= index) {
+		prev = c->lengths[which-1];
+		c->lengths[which-1] = index+1;
+
+		c->counts[which-1] = realloc(c->counts[which-1], sizeof(int)*(c->lengths[which-1]));
+		if(NULL==c->counts[which-1]) {
+			PrintError(FnName,
+					"c->counts[which-1]",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		for(i=prev;i<c->length;i++) {
-			c->countOne[i] = 0;
+		for(i=prev;i<c->lengths[which-1];i++) {
+			c->counts[which-1][i] = 0;
 		}
-		c->totalOne = realloc(c->totalOne, sizeof(int)*(c->length));
-		if(NULL==c->totalOne) {
+		c->totals[which-1] = realloc(c->totals[which-1], sizeof(int)*(c->lengths[which-1]));
+		if(NULL==c->totals[which-1]) {
 			PrintError(FnName,
-					"c->totalOne",
+					"c->totals[which-1]",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		for(i=prev;i<c->length;i++) {
-			c->totalOne[i] = 0;
-		}
-
-		if(PairedEnd == pairedEnd) {
-			c->countTwo = realloc(c->countTwo, sizeof(int)*(c->length));
-			if(NULL==c->countTwo) {
-				PrintError(FnName,
-						"c->countTwo",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-			for(i=prev;i<c->length;i++) {
-				c->countTwo[i] = 0;
-			}
-			c->totalTwo = realloc(c->totalTwo, sizeof(int)*(c->length));
-			if(NULL==c->totalTwo) {
-				PrintError(FnName,
-						"c->totalTwo",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-			for(i=prev;i<c->length;i++) {
-				c->totalTwo[i] = 0;
-			}
+		for(i=prev;i<c->lengths[which-1];i++) {
+			c->totals[which-1][i] = 0;
 		}
 	}
 
 	/* Increment */
-	if(0 == which) {
-		switch(type) {
-			case CountOnly:
-				c->countOne[index]++;
-				break;
-			case CountTotal:
-				c->totalOne[index]++;
-				break;
-			case CountBoth:
-				c->countOne[index]++;
-				c->totalOne[index]++;
-				break;
-			default:
-				PrintError(FnName,
-						"type",
-						"Could not understand type",
-						Exit,
-						OutOfRange);
-		}
-	}
-	else {
-		switch(type) {
-			case CountOnly:
-				c->countTwo[index]++;
-				break;
-			case CountTotal:
-				c->totalTwo[index]++;
-				break;
-			case CountBoth:
-				c->countTwo[index]++;
-				c->totalTwo[index]++;
-				break;
-			default:
-				PrintError(FnName,
-						"type",
-						"Could not understand type",
-						Exit,
-						OutOfRange);
-		}
+	switch(type) {
+		case CountOnly:
+			c->counts[which-1][index]++;
+			break;
+		case CountTotal:
+			c->totals[which-1][index]++;
+			break;
+		case CountBoth:
+			c->counts[which-1][index]++;
+			c->totals[which-1][index]++;
+			break;
+		default:
+			PrintError(FnName,
+					"type",
+					"Could not understand type",
+					Exit,
+					OutOfRange);
 	}
 }
 
 void CountInitialize(Count *c)
 {
-	c->length=0;
-	c->countOne=c->totalOne=c->countTwo=c->totalTwo=NULL;
+	c->numEnds=0;
+	c->lengths=NULL;
+	c->counts=c->totals=NULL;
 }
 
 void CountFree(Count *c)
 {
-	free(c->countOne);
-	free(c->totalOne);
-	free(c->countTwo);
-	free(c->totalTwo);
+	int32_t i;
+	for(i=0;i<c->numEnds;i++) {
+		free(c->counts[i]);
+		free(c->totals[i]);
+	}
+	free(c->counts);
+	free(c->totals);
+	free(c->lengths);
 	CountInitialize(c);
 }

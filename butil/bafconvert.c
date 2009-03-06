@@ -3,8 +3,8 @@
 #include <string.h>
 #include <assert.h>
 #include "../blib/BLibDefinitions.h"
-#include "../blib/AlignEntries.h"
-#include "../blib/AlignEntriesConvert.h"
+#include "../blib/AlignedRead.h"
+#include "../blib/AlignedReadConvert.h"
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
 #include "bafconvert.h"
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	int outputType;
 	int outputSubType=TextOutput;
 	int inputType=BinaryInput;
-	AlignEntries a;
+	AlignedRead a;
 	RGBinary rg;
 
 	if(argc == 3 ||
@@ -109,25 +109,25 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Print Header */
-		AlignEntriesConvertPrintHeader(fpOut, outputType);
+		AlignedReadConvertPrintHeader(fpOut, outputType);
 		/* Initialize */
-		AlignEntriesInitialize(&a);
+		AlignedReadInitialize(&a);
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, inputType)) {
+		while(EOF != AlignedReadRead(&a, fpIn, inputType)) {
 			if(counter%BAFCONVERT_ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						counter);
 			}
 			counter++;
 			/* Print each match */
-			AlignEntriesConvertPrintOutputFormat(&a,
+			AlignedReadConvertPrintOutputFormat(&a,
 					&rg,
 					fpOut,
 					outputType,
 					outputSubType);
-			AlignEntriesFree(&a);
+			AlignedReadFree(&a);
 		}
 		fprintf(stderr, "\r%lld\n",
 				counter);

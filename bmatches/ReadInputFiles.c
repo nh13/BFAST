@@ -18,6 +18,7 @@ int GetNextRead(FILE *fp,
 {
 	char *FnName = "GetNextRead";
 	fpos_t curPos;
+	char prevReadName[SEQUENCE_NAME_LENGTH]="\0";
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
@@ -31,6 +32,7 @@ int GetNextRead(FILE *fp,
 		/* Trim leading and following whitespaces */
 		m->readNameLength = StringTrimWhiteSpace(readName);
 	} while(0 == strlen(readName));
+
 	/* Allocate memory */
 	m->readName = malloc(sizeof(int8_t)*(m->readNameLength+1));
 	if(NULL == m->readName) {

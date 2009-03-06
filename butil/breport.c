@@ -3,8 +3,9 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-#include "../blib/AlignEntry.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedEntry.h"
+#include "../blib/AlignedEnd.h"
+#include "../blib/AlignedRead.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
@@ -50,7 +51,7 @@ void TmpFileInitialize(TmpFile *tmpFile)
 	tmpFile->numEntries = 0;
 }
 
-void PrintEntriesToBedAndWig(AlignEntries *a,
+void PrintEntriesToBedAndWig(AlignedEnd *a,
 		RGBinary *rg,
 		int contig,
 		int64_t startPos,
@@ -69,7 +70,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 	int rCounts[6] = {0,0,0,0,0,0};
 	int total, totalF, totalR;
 	int32_t start, cur, i, j, tempJ;
-	int numEntries = a->numEntriesOne;
+	int numEntries = a->numEntries;
 
 	if(numEntries <= 0) {
 		return;
@@ -85,34 +86,34 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 		rCounts[0] = rCounts[1] = rCounts[2] = rCounts[3] = rCounts[4] = fCounts[5] = 0;
 		total = totalF = totalR = 0;
 
-		if(curPos < a->entriesOne[start].position) {
-			curPos = a->entriesOne[start].position;
+		if(curPos < a->entries[start].position) {
+			curPos = a->entries[start].position;
 		}
-		assert(a->entriesOne[start].position <= curPos &&
-				curPos <= a->entriesOne[start].position + a->entriesOne[start].referenceLength -1);
+		assert(a->entries[start].position <= curPos &&
+				curPos <= a->entries[start].position + a->entries[start].referenceLength -1);
 
 		/* Go through every entry at that overlaps this position */
 		for(cur = start;
 				cur < numEntries &&
-				a->entriesOne[cur].position <= curPos;
+				a->entries[cur].position <= curPos;
 				cur++) {
 			/* Only use if it is within bounds */ 
-			if(a->entriesOne[cur].position <= curPos &&
-					curPos <= a->entriesOne[cur].position + a->entriesOne[cur].referenceLength - 1) {
-				assert(a->entriesOne[cur].contig == contig);
+			if(a->entries[cur].position <= curPos &&
+					curPos <= a->entries[cur].position + a->entries[cur].referenceLength - 1) {
+				assert(a->entries[cur].contig == contig);
 				/* Copy over reference and read.  Adjust if they are on the - strand */
-				switch(a->entriesOne[cur].strand) {
+				switch(a->entries[cur].strand) {
 					case FORWARD:
-						strcpy(reference, a->entriesOne[cur].reference);
-						strcpy(read, a->entriesOne[cur].read);
+						strcpy(reference, a->entries[cur].reference);
+						strcpy(read, a->entries[cur].read);
 						break;
 					case REVERSE:
-						GetReverseComplimentAnyCase(a->entriesOne[cur].reference, reference, a->entriesOne[cur].length);
-						GetReverseComplimentAnyCase(a->entriesOne[cur].read, read, a->entriesOne[cur].length);
+						GetReverseComplimentAnyCase(a->entries[cur].reference, reference, a->entries[cur].length);
+						GetReverseComplimentAnyCase(a->entries[cur].read, read, a->entries[cur].length);
 						break;
 					default:
 						PrintError(FnName,
-								"a->entriesOne[cur].strand",
+								"a->entries[cur].strand",
 								"Could not understand strand",
 								Exit,
 								OutOfRange);
@@ -121,8 +122,8 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 				/* Move to correct position */
 				i=0;
 				j=0;
-				while(a->entriesOne[cur].position + i < curPos) {
-					assert(j < a->entriesOne[cur].length);
+				while(a->entries[cur].position + i < curPos) {
+					assert(j < a->entries[cur].length);
 					/* Only move our position if there is not gap */
 					if(reference[j] != GAP) {
 						i++;
@@ -130,20 +131,20 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 					j++;
 				}
 				tempJ = j; /* Save this for bed */
-				assert(a->entriesOne[cur].position + i == curPos);
+				assert(a->entries[cur].position + i == curPos);
 				/************/
 				/* WIG FILE */
 				/************/
 				/* Skip over gaps in the reference */
-				while(j < a->entriesOne[cur].length &&
+				while(j < a->entries[cur].length &&
 						reference[j] == GAP) {
 					j++;
 				}
 				/* We should not end with a gap so this should be true */
-				assert(j < a->entriesOne[cur].length);
+				assert(j < a->entries[cur].length);
 				assert(reference[j] != GAP);
 				/* Update counts */
-				switch(a->entriesOne[cur].strand) {
+				switch(a->entries[cur].strand) {
 					case FORWARD:
 						totalF++;
 						total++;
@@ -216,7 +217,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						break;
 					default:
 						PrintError(FnName,
-								"a->entriesOne[cur].strand",
+								"a->entries[cur].strand",
 								"Could not understand strand",
 								Exit,
 								OutOfRange);
@@ -228,7 +229,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 				j = tempJ;
 				/* Don't output if we are on the last letter */
 				/* Don't output if we are in a gap already in either the reference or the read */
-				if(j < a->entriesOne[cur].length - 1 &&
+				if(j < a->entries[cur].length - 1 &&
 						reference[j] != GAP &&
 						read[j] != GAP) { 
 					/* The indel starts after the current base */
@@ -236,7 +237,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 					i=0;
 					type='N';
 					/* Check gap in reference */
-					while(j<a->entriesOne[cur].length && 
+					while(j<a->entries[cur].length && 
 							reference[j] == GAP) {
 						/* Get the insertion in the read */
 						indel[i] = read[j];
@@ -245,7 +246,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						j++;
 					}
 					/* Check gap in read */
-					while(j<a->entriesOne[cur].length && 
+					while(j<a->entries[cur].length && 
 							read[j] == GAP) {
 						/* Get the deletion from the read */
 						indel[i] = reference[j];
@@ -263,10 +264,10 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 						case 'D':
 							assert(i>0);
 							if(0>fprintf(bedFP, "contig%d %lld %lld %c %c %s\n",
-										a->entriesOne[cur].contig,
+										a->entries[cur].contig,
 										(long long int)(curPos-SUBTRACT+2),
 										(long long int)(curPos+i-SUBTRACT+1),
-										a->entriesOne[cur].strand,
+										a->entries[cur].strand,
 										type,
 										indel)) {
 								PrintError(FnName,
@@ -365,7 +366,7 @@ void PrintEntriesToBedAndWig(AlignEntries *a,
 		}
 		/* Update next start index */
 		while(start < numEntries && 
-				a->entriesOne[start].position + a->entriesOne[start].referenceLength - 1 < curPos + 1) {
+				a->entries[start].position + a->entries[start].referenceLength - 1 < curPos + 1) {
 			start++;
 		}
 	}
@@ -381,10 +382,10 @@ void SplitIntoTmpFilesByContig(char *inputFileName,
 		int total)
 {
 	char *FnName="SplitIntoTmpFilesByContig";
-	int i;
+	int32_t i;
 	int64_t counter=0;
 	FILE *fpIn;
-	AlignEntries a;
+	AlignedRead a;
 
 	/* Create tmp files */
 	if((*numFiles) <= 0) {
@@ -419,8 +420,8 @@ void SplitIntoTmpFilesByContig(char *inputFileName,
 
 	/* Split into temporary files */
 	fprintf(stderr, "Currently on read:\n0");
-	AlignEntriesInitialize(&a);
-	while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+	AlignedReadInitialize(&a);
+	while(EOF != AlignedReadRead(&a, fpIn, BinaryInput)) {
 		if(counter%BREPORT_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -428,72 +429,37 @@ void SplitIntoTmpFilesByContig(char *inputFileName,
 		counter++;
 
 		/* Print to the appropriate file both end.  We store
-		 * "AlignEntry"s not "AlignEntries" because we split 
+		 * "AlignedEntry"s not "AlignedRead" because we split 
 		 * the paired end */
-		/* Print read one */
-		if(a.numEntriesOne > 1) {
-			PrintError(FnName,
-					a.readName,
-					"Read one was not uniquely aligned",
-					Exit,
-					OutOfRange);
-		}
-		else if(a.numEntriesOne == 1) {
-			if(!(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= (*numFiles))) {
-				fprintf(stderr, "\n");
-				fprintf(stderr, "%d:%d\n",
-						startContig,
-						endContig);
-				fprintf(stderr, "0 < %d < %d\n",
-						a.entriesOne[0].contig,
-						(*numFiles));
-			} 
-			assert(a.entriesOne[0].contig > 0 && a.entriesOne[0].contig <= (*numFiles));
-			AlignEntryPrint(&a.entriesOne[0], 
-					(*tmpFiles)[a.entriesOne[0].contig-1].FP,
-					NTSpace, /* Dont print color space information */
-					BinaryOutput);
-			/* Update meta-data */
-			(*tmpFiles)[a.entriesOne[0].contig-1].numEntries++;
-			if(a.entriesOne[0].position < (*tmpFiles)[a.entriesOne[0].contig-1].minPos) {
-				(*tmpFiles)[a.entriesOne[0].contig-1].minPos = a.entriesOne[0].position;
-			}
-			if(a.entriesOne[0].position + a.entriesOne[0].referenceLength - 1 > (*tmpFiles)[a.entriesOne[0].contig-1].maxPos) {
-				(*tmpFiles)[a.entriesOne[0].contig-1].maxPos = a.entriesOne[0].position + a.entriesOne[0].referenceLength - 1;
-			}
-		}
-		else {
-			/* Ignore */
-		}
-		/* Print read two */
-		if(a.pairedEnd == PairedEnd) {
-			if(a.numEntriesTwo > 1) {
+		/* Print each end */
+		for(i=0;i<a.numEnds;i++) {
+			if(a.ends[i].numEntries > 1) {
 				PrintError(FnName,
 						a.readName,
-						"Read two was not uniquely aligned",
+						"Read i was not uniquely aligned",
 						Exit,
 						OutOfRange);
 			}
-			else if(a.numEntriesTwo == 1) {
-				assert(a.entriesTwo[0].contig > 0 && a.entriesTwo[0].contig <= (*numFiles));
-				AlignEntryPrint(&a.entriesTwo[0], 
-						(*tmpFiles)[a.entriesTwo[0].contig-1].FP,
+			else if(a.ends[i].numEntries == 1) {
+				assert(a.ends[i].entries[0].contig > 0 && a.ends[i].entries[0].contig <= (*numFiles));
+				AlignedEntryPrint(&a.ends[i].entries[0], 
+						(*tmpFiles)[a.ends[i].entries[0].contig-1].FP,
 						NTSpace, /* Dont print color space information */
 						BinaryOutput);
 				/* Update meta-data */
-				(*tmpFiles)[a.entriesTwo[0].contig-1].numEntries++;
-				if(a.entriesTwo[0].position < (*tmpFiles)[a.entriesTwo[0].contig-1].minPos) {
-					(*tmpFiles)[a.entriesTwo[0].contig-1].minPos = a.entriesTwo[0].position;
+				(*tmpFiles)[a.ends[i].entries[0].contig-1].numEntries++;
+				if(a.ends[i].entries[0].position < (*tmpFiles)[a.ends[i].entries[0].contig-1].minPos) {
+					(*tmpFiles)[a.ends[i].entries[0].contig-1].minPos = a.ends[i].entries[0].position;
 				}
-				if(a.entriesTwo[0].position + a.entriesTwo[0].referenceLength - 1 > (*tmpFiles)[a.entriesTwo[0].contig-1].maxPos) {
-					(*tmpFiles)[a.entriesTwo[0].contig-1].maxPos = a.entriesTwo[0].position + a.entriesTwo[0].referenceLength - 1;
+				if(a.ends[i].entries[0].position + a.ends[i].entries[0].referenceLength - 1 > (*tmpFiles)[a.ends[i].entries[0].contig-1].maxPos) {
+					(*tmpFiles)[a.ends[i].entries[0].contig-1].maxPos = a.ends[i].entries[0].position + a.ends[i].entries[0].referenceLength - 1;
 				}
 			}
 			else {
 				/* Ignore */
 			}
 		}
-		AlignEntriesFree(&a);
+		AlignedReadFree(&a);
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);
@@ -513,8 +479,8 @@ void SplitEntriesAndPrint(RGBinary *rg,
 	   char *FnName="SplitEntriesAndPrint";
 	   */
 	int meanPos;
-	AlignEntry a;;
-	AlignEntries entries;
+	AlignedEntry a;
+	AlignedEnd entries;
 	int numEntries=0;
 	TmpFile belowTmpFile, aboveTmpFile;
 
@@ -532,18 +498,14 @@ void SplitEntriesAndPrint(RGBinary *rg,
 				tmpFile->maxPos);
 		assert(tmpFile->numEntries > 0);
 		/* Initialize */
-		AlignEntriesInitialize(&entries);
+		AlignedEndInitialize(&entries);
 		/* Allocate memory for the entries */
-		AlignEntriesAllocate(&entries, 
-				"DUMMY",
-				tmpFile->numEntries,
-				0,
-				SingleEnd,
-				SpaceDoesNotMatter);
+		AlignedEndAllocate(&entries, 
+				tmpFile->numEntries);
 
 		/* Read in, sort, and print */
 		numEntries = 0;
-		while(EOF != AlignEntryRead(&entries.entriesOne[numEntries], 
+		while(EOF != AlignedEntryRead(&entries.entries[numEntries], 
 					tmpFile->FP, 
 					NTSpace,
 					BinaryInput)) {
@@ -551,8 +513,8 @@ void SplitEntriesAndPrint(RGBinary *rg,
 		}
 		assert(numEntries == tmpFile->numEntries);
 		/* Sort */
-		AlignEntriesMergeSort(&entries, 
-				AlignEntrySortByContigPos,
+		AlignedEndMergeSort(&entries, 
+				AlignedEntrySortByContigPos,
 				0);
 		/* Print Out */
 		PrintEntriesToBedAndWig(&entries, 
@@ -563,13 +525,13 @@ void SplitEntriesAndPrint(RGBinary *rg,
 				bedFP, 
 				wigFP);
 		/* Free memory */
-		AlignEntriesFree(&entries);
+		AlignedEndFree(&entries);
 	}
 	else {
 		/* Split and recurse */
 
 		/* Initialize */
-		AlignEntryInitialize(&a);
+		AlignedEntryInitialize(&a);
 		TmpFileOpen(&belowTmpFile, tmpDir, tmpFile->contig);
 		TmpFileOpen(&aboveTmpFile, tmpDir, tmpFile->contig);
 
@@ -583,7 +545,7 @@ void SplitEntriesAndPrint(RGBinary *rg,
 		aboveTmpFile.maxPos = tmpFile->maxPos; 
 
 		/* Split */
-		while(EOF != AlignEntryRead(&a,
+		while(EOF != AlignedEntryRead(&a,
 					tmpFile->FP,
 					SpaceDoesNotMatter,
 					BinaryInput)) {
@@ -592,7 +554,7 @@ void SplitEntriesAndPrint(RGBinary *rg,
 
 			/* Print */
 			if(a.position < meanPos) {
-				AlignEntryPrint(&a, 
+				AlignedEntryPrint(&a, 
 						belowTmpFile.FP, 
 						NTSpace,
 						BinaryOutput);
@@ -600,13 +562,13 @@ void SplitEntriesAndPrint(RGBinary *rg,
 			}
 			if(meanPos <= a.position ||
 					meanPos <= a.position + a.referenceLength - 1 ) {
-				AlignEntryPrint(&a,
+				AlignedEntryPrint(&a,
 						aboveTmpFile.FP, 
 						NTSpace,
 						BinaryOutput);
 				aboveTmpFile.numEntries++;
 			}
-			AlignEntryFree(&a);
+			AlignedEntryFree(&a);
 		}
 
 		/* Recurse on the two */
@@ -657,7 +619,7 @@ int main(int argc, char *argv[])
 		/* Read in rg file */
 		RGBinaryReadBinary(&rg, rgFileName);
 
-		/* Split AlignEntries by contig */
+		/* Split AlignedRead by contig */
 		fprintf(stderr, "%s", BREAK_LINE);
 		for(i=6;i<argc;i++) {
 			strcpy(inputFileName, argv[i]);

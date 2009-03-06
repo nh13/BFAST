@@ -7,7 +7,7 @@ typedef struct {
 	char strand;
 	int contig;
 	int pos;
-	int pairedEnd;
+	int numEnds;
 	int pairedEndLength;
 	int readLength;
 	int whichReadVariants;
@@ -41,14 +41,14 @@ typedef struct {
 	int numStats;
 } Stats;
 
-enum {OriginalRead, AlignedRead};
+enum {OriginalRead, ReadAligned};
 
 void ReadTypeInitialize(ReadType*);
 void ReadTypeCopy(ReadType*, ReadType*);
 void ReadTypePrint(ReadType*, FILE*);
 int ReadTypeCompare(ReadType*, ReadType*);
-int ReadTypeRead(ReadType*, int, FILE*, int);
-void ReadTypeParseReadName(ReadType*, int, char*);
+int ReadTypeRead(ReadType*, FILE*, int);
+void ReadTypeParseReadName(ReadType*, char*);
 void ReadTypeDelete(ReadType*);
 
 void StatsInitialize(Stats*);
@@ -58,7 +58,7 @@ void StatsAdd(Stats*, ReadType*, int);
 int StatCompare(Stat*, ReadType*, int, int, char, int, int, char, int*);
 void StatsDelete(Stats*);
 
-void Evaluate(char*, char*, int, char*, int);
-void ReadInReads(char*, int, Stats*);
+void Evaluate(char*, char*, char*, int);
+void ReadInReads(char*, Stats*);
 
 #endif

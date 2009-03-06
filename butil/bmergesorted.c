@@ -4,12 +4,12 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
-#include "../blib/AlignEntry.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedEntry.h"
+#include "../blib/AlignedRead.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
-#include "bsort.h"
+#include "bmergesorted.h"
 
 #define Name "bmergesorted"
 #define BMERGESORTED_ROTATE_NUM 100000
@@ -25,20 +25,20 @@ void MergeFiles(FILE *fpOne,
 	int64_t ctr=0;
 	fpos_t posOne;
 	fpos_t posTwo;
-	AlignEntries aOne, aTwo;
+	AlignedRead aOne, aTwo;
 
 
 	fprintf(stderr, "Currently on:\n0");
-	AlignEntriesInitialize(&aOne);
-	AlignEntriesInitialize(&aTwo);
+	AlignedReadInitialize(&aOne);
+	AlignedReadInitialize(&aTwo);
 	while(0 == feof(fpOne) &&
 			0 == feof(fpTwo)) {
 
 		assert(0 == fgetpos(fpOne, &posOne));
 		assert(0 == fgetpos(fpTwo, &posTwo));
 
-		if(EOF == AlignEntriesRead(&aOne, fpOne, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput) ||
-				EOF == AlignEntriesRead(&aTwo, fpTwo, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+		if(EOF == AlignedReadRead(&aOne, fpOne, BinaryInput) ||
+				EOF == AlignedReadRead(&aTwo, fpTwo, BinaryInput)) {
 			if(0 == feof(fpOne)) {
 				assert(0 == fsetpos(fpOne, &posOne));
 			}
@@ -52,35 +52,35 @@ void MergeFiles(FILE *fpOne,
 				fprintf(stderr, "\r%lld",
 						(long long int)ctr);
 			}
-			if(AlignEntriesCompareAll(&aOne, &aTwo) <= 0) {
-				AlignEntriesPrint(&aOne, fpOut, BinaryOutput);
+			if(AlignedReadCompareAll(&aOne, &aTwo) <= 0) {
+				AlignedReadPrint(&aOne, fpOut, BinaryOutput);
 				fsetpos(fpTwo, &posTwo);
 			}
 			else {
-				AlignEntriesPrint(&aTwo, fpOut, BinaryOutput);
+				AlignedReadPrint(&aTwo, fpOut, BinaryOutput);
 				fsetpos(fpOne, &posOne);
 			}
 		}
-		AlignEntriesFree(&aOne);
-		AlignEntriesFree(&aTwo);
+		AlignedReadFree(&aOne);
+		AlignedReadFree(&aTwo);
 	}
-	while(EOF != AlignEntriesRead(&aOne, fpOne, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+	while(EOF != AlignedReadRead(&aOne, fpOne, BinaryInput)) {
 		ctr++;
 		if(0 == ctr % BMERGESORTED_ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)ctr);
 		}
-		AlignEntriesPrint(&aOne, fpOut, BinaryOutput);
-		AlignEntriesFree(&aOne);
+		AlignedReadPrint(&aOne, fpOut, BinaryOutput);
+		AlignedReadFree(&aOne);
 	}
-	while(EOF != AlignEntriesRead(&aTwo, fpTwo, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+	while(EOF != AlignedReadRead(&aTwo, fpTwo, BinaryInput)) {
 		ctr++;
 		if(0 == ctr % BMERGESORTED_ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)ctr);
 		}
-		AlignEntriesPrint(&aTwo, fpOut, BinaryOutput);
-		AlignEntriesFree(&aTwo);
+		AlignedReadPrint(&aTwo, fpOut, BinaryOutput);
+		AlignedReadFree(&aTwo);
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)ctr);

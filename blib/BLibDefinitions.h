@@ -78,7 +78,6 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 enum {Contig_8, Contig_32};
-enum {SingleEnd, PairedEnd, PairedEndDoesNotMatter};
 enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
 enum {AlignedEntrySortByAll, AlignedEntrySortByContigPos};
 enum {IgnoreExons, UseExons};

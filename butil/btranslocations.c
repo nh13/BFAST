@@ -4,8 +4,8 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
-#include "../blib/AlignEntry.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedEntry.h"
+#include "../blib/AlignedRead.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
 #include "../blib/BError.h"
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *inputFP=NULL;
 	FILE *outputFP=NULL;
-	AlignEntries a;
+	AlignedRead a;
 	int64_t numRead, numPrinted, i, numToSatisfy;
 	Range one, two;
 
@@ -67,39 +67,38 @@ int main(int argc, char *argv[])
 						OpenFileError);
 			}
 
-			AlignEntriesInitialize(&a);
+			AlignedReadInitialize(&a);
 			fprintf(stderr, "Reading in from %s.\nCurrently on:\n0",
 					inputFileName);
-			while(EOF != AlignEntriesRead(&a,
+			while(EOF != AlignedReadRead(&a,
 						inputFP,
-						PairedEnd,
-						SpaceDoesNotMatter,
 						BinaryInput)) {
 				numRead++;
 				if(0 == numRead%BTRANSLOCATIONS_ROTATE_NUM) {
 					fprintf(stderr, "\r%lld",
 							(long long int)numRead);
 				}
-				if(a.numEntriesOne == 1 &&
-						a.numEntriesTwo == 1) {
-					if(numToSatisfy < CheckRange(&one, a.entriesOne[0].contig, a.entriesOne[0].position) + 
-							CheckRange(&two, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
-						AlignEntriesPrint(&a,
+				if(2 == a.numEnds &&
+						1 == a.ends[0].numEntries &&
+						1 == a.ends[1].numEntries) {
+					if(numToSatisfy < CheckRange(&one, a.ends[0].entries[0].contig, a.ends[0].entries[0].position) + 
+							CheckRange(&two, a.ends[1].entries[0].contig, a.ends[1].entries[0].position)) {
+						AlignedReadPrint(&a,
 								outputFP,
 								BinaryOutput);
 						fflush(outputFP);
 						numPrinted++;
 					}
-					else if(numToSatisfy < CheckRange(&two, a.entriesOne[0].contig, a.entriesOne[0].position) + 
-							CheckRange(&one, a.entriesTwo[0].contig, a.entriesTwo[0].position)) {
-						AlignEntriesPrint(&a,
+					else if(numToSatisfy < CheckRange(&two, a.ends[0].entries[0].contig, a.ends[0].entries[0].position) + 
+							CheckRange(&one, a.ends[1].entries[0].contig, a.ends[1].entries[0].position)) {
+						AlignedReadPrint(&a,
 								outputFP,
 								BinaryOutput);
 						fflush(outputFP);
 						numPrinted++;
 					}
 				}
-				AlignEntriesFree(&a);
+				AlignedReadFree(&a);
 			}
 			fprintf(stderr, "\r%lld\n",
 					(long long int)numRead);

@@ -10,7 +10,7 @@
 #include "../blib/BError.h"
 #include "../blib/RGMatch.h"
 #include "../blib/RGMatches.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedRead.h"
 #include "bpairedenddist.h"
 
 #define Name "bpairedenddist"
@@ -130,6 +130,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 	RGMatches m;
 	int64_t posOne, posTwo, difference;
 	int64_t counter=0, numFound=0;
+	int32_t warnUnpaired=0;
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
@@ -137,37 +138,39 @@ void PrintDistributionFromBMF(FILE *fpIn,
 	fprintf(stderr, "Currently on:\n0");
 	while(EOF != RGMatchesRead(fpIn,
 				&m,
-				PairedEndDoesNotMatter,
 				BinaryInput)) {
 		if(0==counter%ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
-		if(m.pairedEnd != PairedEnd) {
+		if(2 != m.numEnds && 0 == warnUnpaired) {
+			warnUnpaired=1;
 			PrintError(FnName,
-					"m.pairedEnd",
-					"Data was not paired end",
-					Exit,
+					"m.numEnds",
+					"Data includes non paired end",
+					Warn,
 					OutOfRange);
 		}
-		/* Only use found sequences on the same contig and strand */
-		if(1 == m.matchOne.numEntries &&
-				1 == m.matchTwo.numEntries &&
-				m.matchOne.contigs[0] == m.matchTwo.contigs[0] &&
-				m.matchOne.strands[0] == m.matchTwo.strands[0]) {
-			/* Simple way to avoid overflow */
-			posOne = m.matchOne.positions[0];
-			posTwo = m.matchTwo.positions[0];
-			difference = posTwo - posOne;
-			/* Print */
-			/*
-			   fprintf(fpOut, "%lld\t%lld\t%lld\n",
-			   (long long int)posOne,
-			   (long long int)posTwo,
-			   (long long int)difference);
-			   */
-			if(1==BinsInsert(b, difference)) {
-				numFound++;
+		else {
+			/* Only use found sequences on the same contig and strand */
+			if(1 == m.ends[0].numEntries &&
+					1 == m.ends[1].numEntries &&
+					m.ends[0].contigs[0] == m.ends[1].contigs[0] &&
+					m.ends[0].strands[0] == m.ends[1].strands[0]) {
+				/* Simple way to avoid overflow */
+				posOne = m.ends[0].positions[0];
+				posTwo = m.ends[1].positions[0];
+				difference = posTwo - posOne;
+				/* Print */
+				/*
+				   fprintf(fpOut, "%lld\t%lld\t%lld\n",
+				   (long long int)posOne,
+				   (long long int)posTwo,
+				   (long long int)difference);
+				   */
+				if(1==BinsInsert(b, difference)) {
+					numFound++;
+				}
 			}
 		}
 		counter++;
@@ -186,46 +189,40 @@ void PrintDistributionFromBMF(FILE *fpIn,
 void PrintDistributionFromBAF(FILE *fpIn,
 		Bins *b)
 {
-	/*
-	   char *FnName = "PrintDistributionFromBAF";
-	   */
-	AlignEntries a;
+	char *FnName = "PrintDistributionFromBAF";
+	AlignedRead a;
 	int64_t posOne, posTwo, difference;
 	int64_t counter=0, numFound=0;
 	int32_t warnUnpaired=0;
 
 	/* Initialize */
-	AlignEntriesInitialize(&a);
+	AlignedReadInitialize(&a);
 
 	fprintf(stderr, "Currently on:\n0");
-	while(EOF != AlignEntriesRead(&a,
+	while(EOF != AlignedReadRead(&a,
 				fpIn,
-				PairedEndDoesNotMatter,
-				SpaceDoesNotMatter,
 				BinaryInput)) {
 		if(0==counter%ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
 		}
-		if(a.pairedEnd != PairedEnd) {
+		if(2 != a.numEnds && 0 == warnUnpaired) {
 			warnUnpaired = 1;
-			/*
-			   PrintError(FnName,
-			   "a.pairedEnd",
-			   "Data was not paired end",
-			   Exit,
-			   OutOfRange);
-			   */
+			PrintError(FnName,
+					"a.numEnds",
+					"Data includes non paired end",
+					Exit,
+					OutOfRange);
 		}
 		else {
 			/* Only use found sequences on the same contig and strand */
-			if(1 == a.numEntriesOne &&
-					1 == a.numEntriesTwo &&
-					a.entriesOne[0].contig == a.entriesTwo[0].contig &&
-					a.entriesOne[0].strand == a.entriesTwo[0].strand) {
+			if(1 == a.ends[0].numEntries &&
+					1 == a.ends[1].numEntries &&
+					a.ends[0].entries[0].contig == a.ends[1].entries[0].contig &&
+					a.ends[0].entries[0].strand == a.ends[1].entries[0].strand) {
 				/* Simple way to avoid overflow */
-				posOne = a.entriesOne[0].position;
-				posTwo = a.entriesTwo[0].position;
+				posOne = a.ends[0].entries[0].position;
+				posTwo = a.ends[1].entries[0].position;
 				difference = posTwo - posOne;
 				if(1==BinsInsert(b, difference)) {
 					numFound++;
@@ -235,7 +232,7 @@ void PrintDistributionFromBAF(FILE *fpIn,
 		counter++;
 
 		/* Free memory */
-		AlignEntriesFree(&a);
+		AlignedReadFree(&a);
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);

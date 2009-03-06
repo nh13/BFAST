@@ -6,7 +6,7 @@
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedRead.h"
 #include "../blib/RGMatches.h"
 #include "../blib/RGMatch.h"
 #include "bevalsim.h"
@@ -22,20 +22,17 @@ int main(int argc, char *argv[])
 {
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char readsFile[MAX_FILENAME_LENGTH]="\0";
-	int pairedEnd = -1;
 	char outputID[MAX_FILENAME_LENGTH]="\0";
 	int type;
 
-	if(argc == 5) {
+	if(argc == 4) {
 
 		/* Get cmd line options */
 		strcpy(inputFileName, argv[1]);
 		strcpy(readsFile, argv[2]);
-		pairedEnd = atoi(argv[3]);
-		strcpy(outputID, argv[4]);
+		strcpy(outputID, argv[3]);
 
 		/* Check cmd line options */
-		assert(SingleEnd == pairedEnd || PairedEnd == pairedEnd);
 		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
 			type=BMF;
 		}
@@ -55,7 +52,6 @@ int main(int argc, char *argv[])
 		/* Run program */
 		Evaluate(inputFileName, 
 				readsFile, 
-				pairedEnd, 
 				outputID,
 				type
 				);
@@ -69,7 +65,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast matches file or bfast aligned file>\n");
 		fprintf(stderr, "\t<reads file>\n");
-		fprintf(stderr, "\t<paired end 0: false 1: true>\n");
 		fprintf(stderr, "\t<output id>\n");
 	}
 	return 0;
@@ -81,7 +76,7 @@ void ReadTypeInitialize(ReadType *r)
 	r->strand=0;
 	r->contig=0;
 	r->pos=0;
-	r->pairedEnd=0;
+	r->numEnds=0;
 	r->pairedEndLength=0;
 	r->readLength=0;
 	r->whichReadVariants=0;
@@ -109,7 +104,7 @@ void ReadTypeCopy(ReadType *dest,
 	dest->strand=src->strand;
 	dest->contig=src->contig;
 	dest->pos=src->pos;
-	dest->pairedEnd=src->pairedEnd;
+	dest->numEnds=src->numEnds;
 	dest->pairedEndLength=src->pairedEndLength;
 	dest->readLength=src->readLength;
 	dest->whichReadVariants=src->whichReadVariants;
@@ -127,7 +122,7 @@ void ReadTypePrint(ReadType *r, FILE *fp)
 	fprintf(fp, "strand=%c\n", r->strand);
 	fprintf(fp, "contig=%d\n", r->contig);
 	fprintf(fp, "pos=%d\n", r->pos);
-	fprintf(fp, "pairedEnd=%d\n", r->pairedEnd);
+	fprintf(fp, "numEnds=%d\n", r->numEnds);
 	fprintf(fp, "pairedEndLength=%d\n", r->pairedEndLength);
 	fprintf(fp, "readLength=%d\n", r->readLength);
 	fprintf(fp, "whichReadVariants=%d\n", r->whichReadVariants);
@@ -144,8 +139,8 @@ int ReadTypeCompare(ReadType *a,
 {
 	/* Only compare meta data */ 
 	/* Nice use of if, else if, and else statements */
-	if(a->pairedEnd != b->pairedEnd) {
-		return (a->pairedEnd < b->pairedEnd)?-1:1;
+	if(a->numEnds != b->numEnds) {
+		return (a->numEnds < b->numEnds)?-1:1;
 	}
 	else if(a->pairedEndLength != b->pairedEndLength) {
 		return (a->pairedEndLength < b->pairedEndLength)?-1:1;
@@ -174,40 +169,42 @@ int ReadTypeCompare(ReadType *a,
 }
 
 int ReadTypeRead(ReadType *r, 
-		int pairedEnd,
 		FILE *fp,
 		int type)
 {
 	char *FnName = "ReadTypeRead";
-	AlignEntries a;
+	AlignedRead a;
 	RGMatches m;
 	int i;
 	char *readName=NULL;
 
 	/* Initialize */
-	AlignEntriesInitialize(&a);
+	AlignedReadInitialize(&a);
 	RGMatchesInitialize(&m);
 
 	/* Read in align entries */
 	if(BMF==type) {
-		if(EOF==RGMatchesRead(fp, &m, pairedEnd, BMATCHES_DEFAULT_OUTPUT)) {
+		if(EOF==RGMatchesRead(fp, &m, BMATCHES_DEFAULT_OUTPUT)) {
 			return EOF;
 		}
-		assert(m.pairedEnd == pairedEnd);
 		readName = (char*)m.readName;
 		/* Update the number of entries */
-		r->numOne = m.matchOne.numEntries;
-		r->numTwo = m.matchTwo.numEntries;
+		r->numOne = m.ends[0].numEntries;
+		r->numTwo = 0;
+		if(1 < m.numEnds) {
+			r->numTwo = m.ends[1].numEntries;
+		}
 	}
 	else if(BAF==type) {
-		if(EOF==AlignEntriesRead(&a, fp, pairedEnd, SpaceDoesNotMatter, BALIGN_DEFAULT_OUTPUT)) {
+		if(EOF==AlignedReadRead(&a, fp, BALIGN_DEFAULT_OUTPUT)) {
 			return EOF;
 		}
-		assert(a.pairedEnd == pairedEnd);
 		readName = a.readName;
 		/* Update the number of entries */
-		r->numOne = a.numEntriesOne;
-		r->numTwo = a.numEntriesTwo;
+		r->numOne = a.ends[0].numEntries;
+		if(1 < a.numEnds) {
+			r->numTwo = a.ends[1].numEntries;
+		}
 	}
 	else {
 		PrintError(FnName,
@@ -273,26 +270,26 @@ int ReadTypeRead(ReadType *r,
 	/* Copy over */
 	if(BMF==type) {
 		for(i=0;i<r->numOne;i++) {
-			r->aContigOne[i] = m.matchOne.contigs[i];
-			r->aPosOne[i] = m.matchOne.positions[i];
-			r->aStrandOne[i] = m.matchOne.strands[i];
+			r->aContigOne[i] = m.ends[0].contigs[i];
+			r->aPosOne[i] = m.ends[0].positions[i];
+			r->aStrandOne[i] = m.ends[0].strands[i];
 		}
 		for(i=0;i<r->numTwo;i++) {
-			r->aContigTwo[i] = m.matchTwo.contigs[i];
-			r->aPosTwo[i] = m.matchTwo.positions[i];
-			r->aStrandTwo[i] = m.matchTwo.strands[i];
+			r->aContigTwo[i] = m.ends[1].contigs[i];
+			r->aPosTwo[i] = m.ends[1].positions[i];
+			r->aStrandTwo[i] = m.ends[1].strands[i];
 		}
 	}
 	else if(BAF==type) {
 		for(i=0;i<r->numOne;i++) {
-			r->aContigOne[i] = a.entriesOne[i].contig;
-			r->aPosOne[i] = a.entriesOne[i].position;
-			r->aStrandOne[i] = a.entriesOne[i].strand;
+			r->aContigOne[i] = a.ends[0].entries[i].contig;
+			r->aPosOne[i] = a.ends[0].entries[i].position;
+			r->aStrandOne[i] = a.ends[0].entries[i].strand;
 		}
 		for(i=0;i<r->numTwo;i++) {
-			r->aContigTwo[i] = a.entriesTwo[i].contig;
-			r->aPosTwo[i] = a.entriesTwo[i].position;
-			r->aStrandTwo[i] = a.entriesTwo[i].strand;
+			r->aContigTwo[i] = a.ends[1].entries[i].contig;
+			r->aPosTwo[i] = a.ends[1].entries[i].position;
+			r->aStrandTwo[i] = a.ends[1].entries[i].strand;
 		}
 	}
 	else {
@@ -304,16 +301,16 @@ int ReadTypeRead(ReadType *r,
 	}
 
 	/* Convert into read type */
-	ReadTypeParseReadName(r, pairedEnd, readName);
+	ReadTypeParseReadName(r, readName);
 	readName=NULL;
 
 	/* Delete align entries */
-	AlignEntriesFree(&a);
+	AlignedReadFree(&a);
 
 	return 1;
 }
 
-void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
+void ReadTypeParseReadName(ReadType *r, char *readName)
 {
 	char *FnName="ReadTypeParseR1R2";
 	char r1[SEQUENCE_LENGTH]="\0";
@@ -324,12 +321,12 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 	int state;
 
 	if(EOF == sscanf(readName, 
-				">readNum=%d_strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
+				">readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
 				&r->readNum,
 				&r->strand,
 				&r->contig,
 				&r->pos,
-				&r->pairedEnd,
+				&r->numEnds,
 				&r->pairedEndLength,
 				&r->readLength,
 				&r->whichReadVariants,
@@ -342,10 +339,10 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 				Exit,
 				OutOfRange);
 	}
-	if(SingleEnd == pairedEnd) {
+	if(1 == r->numEnds) {
 		strcpy(r1, tempString);
 	}
-	else {
+	else if(2 == r->numEnds) {
 		/* Parse tempString */
 		i=j=0;
 		state = 0;
@@ -405,12 +402,17 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 		   */
 		assert(state == 2);
 	}
-
-	assert(r->pairedEnd == pairedEnd);
+	else {
+		PrintError(FnName,
+				"numEnds",
+				"Found more than two ends for a read",
+				Exit,
+				OutOfRange);
+	}
 
 	/* Parse r1 and r2 */
 	assert(r->readLength == (int)strlen(r1));
-	assert(r->pairedEnd == 0 || r->readLength == (int)strlen(r2));
+	assert(r->numEnds == 1 || r->readLength == (int)strlen(r2));
 	r->numSNPs = 0;
 	r->numErrors = 0;
 	r->deletionLength = 0;
@@ -460,7 +462,7 @@ void ReadTypeParseReadName(ReadType *r, int pairedEnd, char *readName)
 						Exit,
 						OutOfRange);
 		}
-		if(r->pairedEnd == 1) {
+		if(2 == r->numEnds) {
 			switch(r2[i]) {
 				case '0':
 					/* Default */
@@ -546,8 +548,8 @@ void StatPrint(Stat *s, FILE *fp)
 			s->numCorrectlyAligned[2],
 			s->numCorrectlyAligned[3],
 			s->numCorrectlyAligned[4]);
-	fprintf(fp, "%1d %6d %6d %6d %3d %3d %3d %3d\n",
-			s->r.pairedEnd,
+	fprintf(fp, "%d %6d %6d %6d %3d %3d %3d %3d\n",
+			s->r.numEnds,
 			s->r.pairedEndLength,
 			s->r.readLength,
 			s->r.indelLength,
@@ -563,13 +565,13 @@ void StatAdd(Stat *s, ReadType *r, int readType)
 	int found[5]={0,0,0,0,0};
 	int foundAll=0;
 
-	assert(OriginalRead == readType || AlignedRead == readType);
+	assert(OriginalRead == readType || ReadAligned == readType);
 
 	if(OriginalRead == readType) {
 		s->numReads++;
 	}
 	else {
-		if(PairedEnd == r->pairedEnd) {
+		if(2 == r->numEnds) {
 			for(i=0;i<r->numOne && 0==foundAll;i++) {
 				for(j=0;j<r->numTwo && 0==foundAll;j++) {
 					foundAll = StatCompare(s, 
@@ -602,7 +604,7 @@ void StatAdd(Stat *s, ReadType *r, int readType)
 				s->numCorrectlyAligned[i]++;
 			}
 		}
-		if(r->numOne > 0 || (PairedEnd == r->pairedEnd && r->numTwo > 0)) {
+		if(r->numOne > 0 || (2 == r->numEnds && r->numTwo > 0)) {
 			s->numAligned++;
 		}
 	}
@@ -628,10 +630,10 @@ int StatCompare(Stat *s,
 
 	/* Must be on the same strand and contig */
 	if(r->strand == strandOne && r->contig == contigOne &&
-			(SingleEnd == r->pairedEnd || (r->strand == strandTwo && r->contig == contigTwo))) {
+			(1 == r->numEnds || (r->strand == strandTwo && r->contig == contigTwo))) {
 		diffOne = (r->pos > posOne)?(r->pos - posOne):(posOne - r->pos);
 		diffTwo = 0;
-		if(PairedEnd == r->pairedEnd) {
+		if(2 == r->numEnds) {
 			diffTwo = (r->pos + r->readLength + r->pairedEndLength > posTwo)?(r->pos + r->readLength + r->pairedEndLength - posTwo):(posTwo - (r->pos + r->readLength + r->pairedEndLength)); 
 		}
 
@@ -696,7 +698,7 @@ void StatsAdd(Stats *s, ReadType *r, int readType)
 	int32_t i;
 	char *FnName="StatsAdd";
 
-	assert(OriginalRead == readType || AlignedRead == readType);
+	assert(OriginalRead == readType || ReadAligned == readType);
 
 	/* Check if it fits somewhere */
 	for(i=0;i<s->numStats;i++) {
@@ -706,7 +708,7 @@ void StatsAdd(Stats *s, ReadType *r, int readType)
 			return; /* Get out of here */
 		}
 	}
-	if(AlignedRead == readType) {
+	if(ReadAligned == readType) {
 		ReadTypePrint(r, stderr);
 		PrintError(FnName,
 				NULL,
@@ -741,7 +743,6 @@ void StatsDelete(Stats *s)
 
 void Evaluate(char *inputFileName,
 		char *readsFile,
-		int pairedEnd,
 		char *outputID,
 		int type)
 {
@@ -756,7 +757,7 @@ void Evaluate(char *inputFileName,
 	StatsInitialize(&s);
 
 	/* Get the number of reads for each class */
-	ReadInReads(readsFile, pairedEnd, &s);
+	ReadInReads(readsFile, &s);
 
 	ReadTypeInitialize(&r);
 
@@ -771,7 +772,7 @@ void Evaluate(char *inputFileName,
 
 	count = 0;
 	fprintf(stderr, "Reading in from %s.\nCurrently on:\n%d", inputFileName, 0);
-	while(EOF != ReadTypeRead(&r, pairedEnd, fpIn, type)) {
+	while(EOF != ReadTypeRead(&r, fpIn, type)) {
 		count++;
 		if(count % COUNT_ROTATE_NUM == 0) {
 			fprintf(stderr, "\r%d", 
@@ -779,7 +780,7 @@ void Evaluate(char *inputFileName,
 		}
 
 		/* Process the read */
-		StatsAdd(&s, &r, AlignedRead);
+		StatsAdd(&s, &r, ReadAligned);
 
 		/* Reinitialize */
 		ReadTypeInitialize(&r);
@@ -814,7 +815,7 @@ void Evaluate(char *inputFileName,
 	fclose(fpOut);
 }
 
-void ReadInReads(char *readsFile, int pairedEnd, Stats *s)
+void ReadInReads(char *readsFile, Stats *s)
 {
 	char *FnName="ReadInReads";
 	FILE *fpIn=NULL;
@@ -823,8 +824,6 @@ void ReadInReads(char *readsFile, int pairedEnd, Stats *s)
 	char readName[SEQUENCE_NAME_LENGTH]="\0";
 	char r1[SEQUENCE_LENGTH]="\0";
 	char r2[SEQUENCE_LENGTH]="\0";
-
-	assert(PairedEnd == pairedEnd || SingleEnd == pairedEnd);
 
 	/* Open the reads file */
 	if(!(fpIn=fopen(readsFile, "rb"))) {
@@ -840,7 +839,10 @@ void ReadInReads(char *readsFile, int pairedEnd, Stats *s)
 	/* Read in read name and read(s) */
 	while(EOF != fscanf(fpIn, "%s", readName) &&
 			EOF != fscanf(fpIn, "%s", r1) &&
-			(SingleEnd == pairedEnd || EOF != fscanf(fpIn, "%s", r2))) {
+			(NULL != strpbrk("numends=1", readName) || EOF != fscanf(fpIn, "%s", r2))) {
+		/* Only accepting 1 or 2 ends currently */
+		assert(NULL != strpbrk("numends=1", readName) ||
+				NULL != strpbrk("numends=2", readName));
 		ReadTypeInitialize(&r);
 
 		count++;
@@ -850,7 +852,7 @@ void ReadInReads(char *readsFile, int pairedEnd, Stats *s)
 					s->numStats
 				   );
 		}
-		ReadTypeParseReadName(&r, pairedEnd, readName);
+		ReadTypeParseReadName(&r, readName);
 
 		/* Add to Stats */
 		StatsAdd(s, &r, OriginalRead);

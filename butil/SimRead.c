@@ -51,12 +51,12 @@ char *SimReadGetName(SimRead *r)
 				Exit,
 				MallocMemory);
 	}
-	if(sprintf(name, ">readNum=%d_strand=%c_contig=%d_pos=%d_pe=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
+	if(sprintf(name, ">readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
 				r->readNum,
 				r->strand,
 				r->contig,
 				r->pos,
-				r->pairedEnd,
+				r->numEnds,
 				r->pairedEndLength,
 				r->readLength,
 				r->whichReadVariants,
@@ -74,7 +74,7 @@ char *SimReadGetName(SimRead *r)
 		tmp[1]='\0';
 		strcat(name, tmp);
 	}
-	if(r->pairedEnd==1) {
+	if(r->numEnds==2) {
 		strcat(name, "_r2=");
 		for(i=0;i<r->readLength;i++) {
 			sprintf(tmp, "%1d", r->readTwoType[i]);
@@ -99,7 +99,7 @@ void SimReadPrint(SimRead *r,
 	fprintf(fp, "%s\n", r->readOne);
 
 	/* read two */
-	if(r->pairedEnd==1) {
+	if(2 == r->numEnds) {
 		StringTrimWhiteSpace(r->readTwo);
 		fprintf(fp, "%s\n", r->readTwo);
 	}
@@ -120,7 +120,7 @@ void SimReadGetRandom(RGBinary *rg,
 		int numSNPs,
 		int numErrors,
 		int readLength,
-		int pairedEnd,
+		int numEnds,
 		int pairedEndLength)
 {
 	char *FnName="SimReadGetRandom";
@@ -132,9 +132,10 @@ void SimReadGetRandom(RGBinary *rg,
 	int64_t ctr=0;
 	int success;
 
+	assert(1 <= numEnds && numEnds <= 2);
 	r->indelLength = indelLength;
 	r->readLength = readLength;
-	r->pairedEnd = pairedEnd;
+	r->numEnds = numEnds;
 	r->pairedEndLength = pairedEndLength;
 
 	for(ctr=0, success=0;0 == success && ctr < SIM_READ_MAX_MODIFY_FAILURES;ctr++) { 
@@ -161,7 +162,7 @@ void SimReadGetRandom(RGBinary *rg,
 					&r->pos,
 					&r->strand);
 
-			if(r->pairedEnd == PairedEnd) {
+			if(2 == r->numEnds) {
 				/* Get the sequence for the first read */
 				readOneSuccess = RGBinaryGetSequence(rg,
 						r->contig,
@@ -196,7 +197,7 @@ void SimReadGetRandom(RGBinary *rg,
 					}
 				}
 			}
-			if(r->pairedEnd == 1 && 1==readTwoSuccess) {
+			if(2 == r->numEnds && 1==readTwoSuccess) {
 				for(i=0;0==hasNs && i<r->readLength;i++) {
 					if(RGBinaryIsBaseN(r->readTwo[i]) == 1) {
 						hasNs = 1;
@@ -206,13 +207,13 @@ void SimReadGetRandom(RGBinary *rg,
 
 		} while(
 				(readOneSuccess == 0) || /* read one was successfully read */
-				(r->pairedEnd == 1 && readTwoSuccess == 0) || /* read two was successfully read */
+				(2 == r-> numEnds && readTwoSuccess == 0) || /* read two was successfully read */
 				(hasNs == 1) /* Either read end has an "N" */
 			   );
 		/* Move to upper case */
 		for(i=0;i<r->readLength;i++) {
 			r->readOne[i] = ToUpper(r->readOne[i]);
-			if(r->pairedEnd == 1) {
+			if(2 == r->numEnds) {
 				r->readTwo[i] = ToUpper(r->readTwo[i]);
 			}
 		}
@@ -322,7 +323,7 @@ int SimReadModify(RGBinary *rg,
 	int curInsertionLength=0;
 
 	/* Which read should the variants be contained within */
-	r->whichReadVariants= (r->pairedEnd == 0)?0:(rand()%2); 
+	r->whichReadVariants= (1 == r->numEnds)?0:(rand()%2); 
 
 	/* 1. Insert an indel based on the indel length */
 	switch(indel) {
@@ -364,7 +365,7 @@ int SimReadModify(RGBinary *rg,
 		ConvertReadToColorSpace(&r->readOne,
 				&tempReadLength);
 		assert(tempReadLength == r->readLength+1);
-		if(1==r->pairedEnd) {
+		if(2==r->numEnds) {
 			tempReadLength = r->readLength;
 			ConvertReadToColorSpace(&r->readTwo,
 					&tempReadLength);
@@ -387,13 +388,13 @@ int SimReadModify(RGBinary *rg,
 	/* Check reads */
 	if(space == ColorSpace) {
 		assert(strlen(r->readOne) == r->readLength + 1);
-		if(r->pairedEnd==1) {
+		if(2==r->numEnds) {
 			assert(strlen(r->readTwo) == r->readLength + 1);
 		}
 	}
 	else {
 		assert(strlen(r->readOne) == r->readLength);
-		if(r->pairedEnd==1) {
+		if(2==r->numEnds) {
 			assert(strlen(r->readTwo) == r->readLength);
 		}
 	}
@@ -439,7 +440,7 @@ int SimReadModify(RGBinary *rg,
 						OutOfRange);
 		}
 		/* read two */
-		if(PairedEnd == r->pairedEnd) {
+		if(2 == r->numEnds) {
 			switch(r->readTwoType[i]) {
 				case Default:
 					break;
@@ -635,7 +636,7 @@ void SimReadInsertMismatches(SimRead *r,
 		case Error:
 			/* Insert errors one at a time randomly selecting which read */
 			for(i=numMismatches;i>0;i--) {
-				if(r->pairedEnd == 0 || 
+				if(1 == r->numEnds || 
 						0==(rand()%2)) {
 					SimReadInsertMismatchesHelper(r->readOne,
 							r->readLength,
@@ -754,7 +755,7 @@ void SimReadInsertColorErrors(SimRead *r,
 
 	while(numErrorsLeft > 0) {
 		/* Pick a read */
-		which = (r->pairedEnd == 0)?0:(rand()%2);
+		which = (1 == r->numEnds)?0:(rand()%2);
 		/* Pick a color to modify */
 		index = (rand()%(r->readLength) )+ 1;
 		assert(index >= 1 && index < r->readLength + 1);

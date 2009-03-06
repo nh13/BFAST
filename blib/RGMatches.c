@@ -399,6 +399,34 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 }
 
 /* TODO */
+void RGMatchesReallocate(RGMatches *m,
+		int32_t numEnds)
+{
+	char *FnName="RGMatchesReallocate";
+	int32_t i;
+
+	if(numEnds < m->numEnds) {
+		for(i=numEnds;i<m->numEnds;i++) {
+			RGMatchFree(&m->ends[i]);
+		}
+	}
+
+	m->ends = realloc(m->ends, sizeof(RGMatch)*numEnds);
+	if(NULL == m->ends) {
+		PrintError(FnName,
+				"m->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	for(i=m->numEnds;i<numEnds;i++) {
+		RGMatchInitialize(&m->ends[i]);
+	}
+	m->numEnds = numEnds;
+}
+
+/* TODO */
 void RGMatchesFree(RGMatches *m) 
 {
 	int32_t i;

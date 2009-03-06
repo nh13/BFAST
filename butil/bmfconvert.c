@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != RGMatchesRead(fpIn, &m, PairedEndDoesNotMatter, binaryInput)) {
+		while(EOF != RGMatchesRead(fpIn, &m, binaryInput)) {
 			if(counter%BMFCONVERT_ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						counter);

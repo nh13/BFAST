@@ -3,8 +3,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "../blib/AlignEntries.h"
-#include "../blib/AlignEntry.h"
+#include "../blib/AlignedRead.h"
+#include "../blib/AlignedEntry.h"
 #include "../blib/BError.h"
 #include "balignmentscoredistribution.h"
 
@@ -17,8 +17,8 @@ int main(int argc, char *argv[])
 {
 	FILE *fpIn=NULL;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
-	AlignEntries a;
-	int64_t counter;
+	AlignedRead a;
+	int64_t counter, i;
 	double from, by, to;
 	Dist dist;
 
@@ -38,23 +38,22 @@ int main(int argc, char *argv[])
 		}
 
 		DistInitialize(&dist);
-		AlignEntriesInitialize(&a);
+		AlignedReadInitialize(&a);
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != AlignEntriesRead(&a, fpIn, PairedEndDoesNotMatter, SpaceDoesNotMatter, BinaryInput)) {
+		while(EOF != AlignedReadRead(&a, fpIn, BinaryInput)) {
 			if(counter%ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						(long long int)counter);
 			}
 			counter++;
 			/* Add */
-			DistAdd(&dist, a.entriesOne, a.numEntriesOne, from, by, to);
-			if(PairedEnd == a.pairedEnd) {
-				DistAdd(&dist, a.entriesTwo, a.numEntriesTwo, from, by, to);
+			for(i=0;i<a.numEnds;i++) {
+				DistAdd(&dist, &a.ends[i], from, by, to);
 			}
 			/* Free */
-			AlignEntriesFree(&a);
+			AlignedReadFree(&a);
 		}
 		fprintf(stderr, "\r%lld\n",
 				(long long int)counter);
@@ -87,8 +86,7 @@ void DistInitialize(Dist *dist)
 }
 
 int32_t DistAdd(Dist *dist, 
-		AlignEntry *a,
-		int32_t numEntries,
+		AlignedEnd *a,
 		double from,
 		double by,
 		double to)
@@ -96,14 +94,14 @@ int32_t DistAdd(Dist *dist,
 	char *FnName="DistAdd";
 	int32_t i, prev;
 
-	if(numEntries <= 0) {
+	if(a->numEntries <= 0) {
 		return 0;
 	}
 
 	/* Check if we need to reallocate */
-	if(dist->max_cals < numEntries) {
+	if(dist->max_cals < a->numEntries) {
 		prev = dist->max_cals;
-		dist->cals = realloc(dist->cals, sizeof(CAL)*numEntries);
+		dist->cals = realloc(dist->cals, sizeof(CAL)*a->numEntries);
 		if(NULL == dist->cals) {
 			PrintError(FnName,
 					"dist->cals",
@@ -111,13 +109,13 @@ int32_t DistAdd(Dist *dist,
 					Exit,
 					OutOfRange);
 		}
-		for(i=prev;i<numEntries;i++) {
+		for(i=prev;i<a->numEntries;i++) {
 			CALInitialize(&dist->cals[i], i+1, from, by, to);
 		}
-		dist->max_cals = numEntries;
+		dist->max_cals = a->numEntries;
 	}
 	/* Copy over */
-	return CALAdd(&dist->cals[numEntries-1], a);
+	return CALAdd(&dist->cals[a->numEntries-1], a);
 }
 
 void DistPrint(Dist *dist,
@@ -174,15 +172,16 @@ void CALInitialize(CAL *c, int32_t num_cal, double from, double by, double to)
 }
 
 int32_t CALAdd(CAL *c, 
-		AlignEntry *a)
+		AlignedEnd *a)
 {
 	int32_t i, index;
 	int32_t numOmitted=0;
 
+	assert(c->num_cal == a->numEntries);
 	for(i=0;i<c->num_cal;i++) {
 		/* Check if we should reallocate */
 		/* Add in */
-		index = (int32_t)((a[i].score - c->from)/c->by);
+		index = (int32_t)((a->entries[i].score - c->from)/c->by);
 		if(0 <= index && index < c->length) {
 			c->hist[index]++;
 			numOmitted++;

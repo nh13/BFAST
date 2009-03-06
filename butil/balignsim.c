@@ -10,7 +10,7 @@
 #include "../blib/BLib.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/RGMatches.h"
-#include "../blib/AlignEntries.h"
+#include "../blib/AlignedRead.h"
 #include "../balign/RunAligner.h"
 #include "../balign/ScoringMatrix.h"
 #include "SimRead.h"
@@ -149,7 +149,7 @@ void Run(RGBinary *rg,
 	ScoringMatrix sm;
 	SimRead r;
 	RGMatches m;
-	AlignEntries a;
+	AlignedRead a;
 	int32_t score, prev, score_m, score_mm, score_cm, score_ce, wasInsertion;
 	int32_t numScoreLessThan, numScoreEqual, numScoreGreaterThan;
 	int insertionLength = (2==indel)?indelLength:0;
@@ -274,13 +274,13 @@ void Run(RGBinary *rg,
 				numSNPs,
 				numErrors,
 				readLength,
-				SingleEnd,
+				1,
 				0);
 		r.readNum = i+1;
 
 		/* Convert into RGMatches */
 		RGMatchesInitialize(&m);
-		m.pairedEnd = SingleEnd;
+		RGMatchesReallocate(&m, 1);
 		/* Get score for proper alignment and store in read name */
 		score = 0;
 		prev = Default;
@@ -362,7 +362,7 @@ void Run(RGBinary *rg,
 			score += sm.gapOpenPenalty;
 			score += (r.indelLength-1)*sm.gapExtensionPenalty;
 		}
-		m.readName = (int8_t*)SimReadGetName(&r);
+		m.readName = SimReadGetName(&r);
 		sprintf(string, "_score=%d", score);
 		strcat((char*)m.readName, string);
 		/*
@@ -378,31 +378,30 @@ void Run(RGBinary *rg,
 		   assert(0 <= sprintf((char*)m.readName, ">%d", score));
 		   */
 		m.readNameLength = strlen((char*)m.readName);
-		m.matchOne.numEntries = 1;
-		m.matchTwo.numEntries = 0;
-		m.matchOne.readLength = (int)strlen(r.readOne);
+		m.ends[0].numEntries = 1;
+		m.ends[0].readLength = (int)strlen(r.readOne);
 		assert(r.readLength > 0);
-		m.matchOne.read = malloc(sizeof(int8_t)*(m.matchOne.readLength+1));
-		if(NULL==m.matchOne.read) {
+		m.ends[0].read = malloc(sizeof(int8_t)*(m.ends[0].readLength+1));
+		if(NULL==m.ends[0].read) {
 			PrintError(FnName,
-					"m.matchOne.read",
+					"m.ends[0].read",
 					"Could not allocate memory",
 					Exit,
 					MallocMemory);
 		}
-		assert(m.matchOne.readLength > 0);
-		strcpy((char*)m.matchOne.read, r.readOne); 
-		m.matchOne.maxReached = 0;
-		m.matchOne.numEntries = 1;
-		m.matchOne.contigs = malloc(sizeof(uint32_t));
-		assert(NULL != m.matchOne.contigs);
-		m.matchOne.positions = malloc(sizeof(int32_t));
-		assert(NULL != m.matchOne.positions);
-		m.matchOne.strands= malloc(sizeof(int8_t));
-		assert(NULL != m.matchOne.strands);
-		m.matchOne.contigs[0] = r.contig;
-		m.matchOne.positions[0] = r.pos;
-		m.matchOne.strands[0] = r.strand;
+		assert(m.ends[0].readLength > 0);
+		strcpy((char*)m.ends[0].read, r.readOne); 
+		m.ends[0].maxReached = 0;
+		m.ends[0].numEntries = 1;
+		m.ends[0].contigs = malloc(sizeof(uint32_t));
+		assert(NULL != m.ends[0].contigs);
+		m.ends[0].positions = malloc(sizeof(int32_t));
+		assert(NULL != m.ends[0].positions);
+		m.ends[0].strands= malloc(sizeof(int8_t));
+		assert(NULL != m.ends[0].strands);
+		m.ends[0].contigs[0] = r.contig;
+		m.ends[0].positions[0] = r.pos;
+		m.ends[0].strands[0] = r.strand;
 
 
 		/* Output */
@@ -434,7 +433,6 @@ void Run(RGBinary *rg,
 			rg->contigs[rg->numContigs-1].sequenceLength,
 			readLength, 
 			INT_MAX,
-			SingleEnd,
 			BinaryInput,
 			numThreads,
 			0,
@@ -453,12 +451,10 @@ void Run(RGBinary *rg,
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Summing up totals.\n");
 	fseek(alignFP, 0, SEEK_SET);
-	AlignEntriesInitialize(&a);
+	AlignedReadInitialize(&a);
 	numScoreLessThan = numScoreEqual = numScoreGreaterThan = 0;
-	while(EOF != AlignEntriesRead(&a,
+	while(EOF != AlignedReadRead(&a,
 				alignFP,
-				SingleEnd,
-				space,
 				BinaryInput)) {
 		/* Get substring */
 		s = strstr(a.readName, "score=");
@@ -481,14 +477,14 @@ void Run(RGBinary *rg,
 					OutOfRange);
 		}
 
-		if(round(a.entriesOne[0].score) < score) {
+		if(round(a.ends[0].entries[0].score) < score) {
 			numScoreLessThan++;
 			if(FullAlignment == alignmentType) {
 				fprintf(stderr, "a.readName=%s\n", a.readName);
 				fprintf(stderr, "found=%d\nexpected=%d\n",
-						round(a.entriesOne[0].score),
+						round(a.ends[0].entries[0].score),
 						score);
-				AlignEntriesPrint(&a, stderr, TextOutput);
+				AlignedReadPrint(&a, stderr, TextOutput);
 				PrintError(FnName,
 						"numScoreLessThan",
 						"The alignment score should not be less than expected",
@@ -496,10 +492,10 @@ void Run(RGBinary *rg,
 						OutOfRange);
 			}
 		}
-		else if(score < round(a.entriesOne[0].score)) {
+		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;
 			/* HERE */
-			   AlignEntriesPrint(&a, stderr, TextOutput);
+			   AlignedReadPrint(&a, stderr, TextOutput);
 			   /*
 			   PrintError(FnName,
 			   "numScoreGreaterThan",
@@ -512,7 +508,7 @@ void Run(RGBinary *rg,
 			numScoreEqual++;
 		}
 		/* Free */
-		AlignEntriesFree(&a);
+		AlignedReadFree(&a);
 	}
 	fprintf(stderr, "%s", BREAK_LINE);
 

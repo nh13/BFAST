@@ -16,11 +16,11 @@ typedef struct {
 } Dist;
 
 void DistInitialize(Dist*);
-int32_t DistAdd(Dist*, AlignEntry*, int32_t, double, double, double);
+int32_t DistAdd(Dist*, AlignedEnd*, double, double, double);
 void DistPrint(Dist*, FILE*);
 void DistFree(Dist*);
 void CALInitialize(CAL*, int32_t, double, double, double);
-int32_t CALAdd(CAL*, AlignEntry*);
+int32_t CALAdd(CAL*, AlignedEnd*);
 void CALPrint(CAL*, FILE*);
 void CALFree(CAL*);
 
