@@ -62,6 +62,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 #define FORWARD '+'
 #define REVERSE '-'
 #define GAP '-'
+#define GAP_QUALITY -1
 #define NULL_LETTER 'N'
 #define COLOR_SPACE_START_NT 'A'
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
@@ -89,6 +90,7 @@ enum {NoMirroring, MirrorForward, MirrorReverse, MirrorBoth};
 typedef struct {
 	int32_t readLength;
 	int8_t *read;
+	int8_t *qual;
 	int32_t maxReached;
 	int32_t numEntries;
 	uint32_t *contigs;
@@ -98,11 +100,10 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	int32_t pairedEnd;
 	int32_t readNameLength;
 	int8_t *readName;
-	RGMatch matchOne;
-	RGMatch matchTwo;
+	int32_t numEnds;
+	RGMatch *ends;
 } RGMatches;
 
 /* TODO */
@@ -212,20 +213,25 @@ typedef struct {
 	uint32_t length; /* The length of the alignment */
 	char *read; /* The read */
 	char *reference;
-	char *colorError;
-} AlignEntry;
+	char *colorError;:
+} AlignedEntry;
+
+/* TODO */
+typedef struct {
+	char *read; /* Original read */
+	int8_t *qual; /* Original quality */
+	int32_t numEntries;
+	AlignEntry *entries;
+} AlignedEnd;
 
 /* TODO */
 typedef struct {
 	int32_t readNameLength;
 	char *readName;
-	int32_t pairedEnd;
 	int32_t space;
-	int32_t numEntriesOne;
-	int32_t numEntriesTwo;
-	AlignEntry *entriesOne;
-	AlignEntry *entriesTwo;
-} AlignEntries;
+	int32_t numEnds;
+	AlignedEnd *ends;
+} AlignedRead;
 
 /* TODO */
 typedef struct {

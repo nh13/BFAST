@@ -16,33 +16,16 @@
 /* TODO */
 int32_t RGMatchesRead(FILE *fp,
 		RGMatches *m,
-		int32_t pairedEnd,
 		int32_t binaryInput)
 {
 	char *FnName = "RGMatchesRead";
+	int32_t i;
 
 	/* Read the matches from the input file */
 	if(binaryInput == TextInput) {
-		/* Read paired end */
-		if(fscanf(fp, "%d", &m->pairedEnd)==EOF) {
-			return EOF;
-		}
-		/* Check paired end */
-		if(pairedEnd != PairedEndDoesNotMatter && 
-				m->pairedEnd != pairedEnd) {
-			PrintError(FnName,
-					"pairedEnd",
-					"Error.  Paired end did not match",
-					Exit,
-					OutOfRange);
-		}
 		/* Read read name length */
 		if(fscanf(fp, "%d", &m->readNameLength)==EOF) {
-			PrintError(FnName,
-					"m->readNameLength",
-					"Could not read name length",
-					Exit,
-					ReadFileError);
+			return EOF;
 		}
 		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
 		assert(m->readNameLength > 0);
@@ -55,7 +38,6 @@ int32_t RGMatchesRead(FILE *fp,
 					Exit,
 					MallocMemory);
 		}
-
 		/* Read read name */
 		if(EOF==fscanf(fp, "%s", m->readName)) {
 			PrintError(FnName,
@@ -64,31 +46,17 @@ int32_t RGMatchesRead(FILE *fp,
 					Exit,
 					ReadFileError);
 		}
+
+		/* Read num ends */
+		if(fscanf(fp, "%d", &m->numEnds)==EOF) {
+			PrintError(FnName,
+					"m->numEnds",
+					"Could not read in the number of ends",
+					Exit,
+					ReadFileError);
+		}
 	}
 	else {
-		/* Read paired end */
-		if(fread(&m->pairedEnd, sizeof(int32_t), 1, fp)!=1) {
-			if(feof(fp) != 0) {
-				return EOF;
-			}
-			else {
-				PrintError(FnName,
-						"paired end",
-						"Could not read in paired end",
-						Exit,
-						ReadFileError);
-			}
-		}
-		/* Check paired end */
-		if(pairedEnd != PairedEndDoesNotMatter && 
-				m->pairedEnd != pairedEnd) {
-			PrintError(FnName,
-					"pairedEnd",
-					"Error.  Paired end did not match",
-					Exit,
-					OutOfRange);
-		}
-
 		/* Read read name length */
 		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp)!=1) {
 			PrintError(FnName,
@@ -119,16 +87,33 @@ int32_t RGMatchesRead(FILE *fp,
 					ReadFileError);
 		}
 		m->readName[m->readNameLength]='\0';
+		/* Read numEnds */
+		if(fread(&m->numEnds, sizeof(int32_t), 1, fp)!=1) {
+			PrintError(FnName,
+					"numEnds",
+					"Could not read in numEnds",
+					Exit,
+					ReadFileError);
+		}
+	}
+	
+	/* Allocate the ends */
+	m->ends = malloc(sizeof(RGMatch)*m->numEnds);
+	if(NULL == m->ends) {
+		PrintError(FnName,
+				"m->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
 	}
 
-	/* Read match one */
-	RGMatchRead(fp,
-			&m->matchOne,
-			binaryInput);
-	if(1==m->pairedEnd) {
-		/* Read match two if necessary */
+	/* Read each end */
+	for(i=0;i<m->numEnds;i++) {
+		/* Initialize */
+		RGMatchInitialize(&m->ends[i]);
+		/* Read */
 		RGMatchRead(fp,
-				&m->matchTwo,
+				&m->ends[i],
 				binaryInput);
 	}
 
@@ -157,39 +142,35 @@ void RGMatchesPrint(FILE *fp,
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextInput) {
-		/* Print paired end, read name length, and read name */
+		/* Print num ends, read name length, and read name */
 		if(0 > fprintf(fp, "%d %d %s\n",
-					m->pairedEnd,
 					m->readNameLength,
-					m->readName)) {
+					m->readName,
+					m->numEnds)) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->pairedEnd, m->readNameLength, and m->readName",
+					"Could not write m->readNameLength, m->readName, and m->numEnds",
 					Exit,
 					WriteFileError);
 		}
 	}
 	else {
-		/* Print paired end, read name length, and read name */
-		if(fwrite(&m->pairedEnd, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&m->readNameLength, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(m->readName, sizeof(int8_t), m->readNameLength, fp) != m->readNameLength) {
+		/* Print num ends, read name length, and read name */
+		if(fwrite(&m->readNameLength, sizeof(int32_t), 1, fp) != 1 ||
+				fwrite(m->readName, sizeof(int8_t), m->readNameLength, fp) != m->readNameLength ||
+				fwrite(&m->numEnds, sizeof(int32_t), 1, fp) != 1) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->pairedEnd, m->readNameLength, and m->readName",
+					"Could not write m->readNameLength, m->readName, and m->numEnds",
 					Exit,
 					WriteFileError);
 		}
 	}
 
-	/* Print match one */
-	RGMatchPrint(fp,
-			&m->matchOne,
-			binaryOutput);
-	/* Print match two if necessary */
-	if(m->pairedEnd == 1) {
+	/* Print each end */
+	for(i=0;i<m->numEnds;i++) {
 		RGMatchPrint(fp,
-				&m->matchTwo,
+				&m->ends[i],
 				binaryOutput);
 	}
 }
@@ -198,19 +179,11 @@ void RGMatchesPrint(FILE *fp,
 void RGMatchesRemoveDuplicates(RGMatches *m,
 		int32_t maxNumMatches)
 {
-	RGMatchRemoveDuplicates(&m->matchOne, maxNumMatches);
-	assert(m->matchOne.numEntries <= maxNumMatches);
-	if(1 == m->pairedEnd) {
-		RGMatchRemoveDuplicates(&m->matchTwo, maxNumMatches);
-		assert(m->matchTwo.numEntries <= maxNumMatches);
+	int32_t i;
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchRemoveDuplicates(&m->ends[i], maxNumMatches);
+		assert(m->ends[i]<= maxNumMatches);
 	}
-
-	/* Check m */
-	/*
-	   if(1==RGMATCHES_CHECK) {
-	   RGMatchesCheck(m);
-	   }
-	   */
 }
 
 /* TODO */
@@ -218,12 +191,12 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 		int32_t numFiles,
 		FILE *outputFP,
-		int32_t pairedEnd,
 		int32_t binaryOutput,
 		int32_t maxNumMatches)
 {
 	char *FnName="RGMatchesMergeFilesAndOutput";
 	int32_t i;
+	int32_t foundMatch;
 	int32_t counter;
 	RGMatches matches;
 	RGMatches tempMatches;
@@ -254,7 +227,6 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 		for(i=0;i<numFiles;i++) {
 			if(RGMatchesRead(tempFPs[i],
 						&tempMatches,
-						pairedEnd,
 						binaryOutput)==EOF) {
 				numFinished++;
 			}
@@ -282,9 +254,11 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 			RGMatchesRemoveDuplicates(&matches, maxNumMatches);
 
 			/* Print to output file */
-			if(matches.matchOne.numEntries > 0 ||
-					(1==pairedEnd && matches.matchTwo.numEntries > 0)) {
-				numMatches++;
+			for(i=0;foundMatch == 0 && i<m->numEnds;i++) {
+				if(0 < matches.ends[i].numEntries) {
+					foundMatch = 1;
+					numMaches++;
+				}
 			}
 			RGMatchesPrint(outputFP,
 					&matches,
@@ -306,7 +280,6 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 		int32_t numThreads,
 		FILE *outputFP,
-		int32_t pairedEnd,
 		int32_t binaryOutput)
 {
 	char *FnName = "RGMatchesMergeThreadTempFilesIntoOutputTempFile";
@@ -350,7 +323,6 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 			if(0 == finished[i]) {
 				if(RGMatchesRead(threadFPs[i],
 							&matches,
-							pairedEnd,
 							binaryOutput)==EOF) {
 					finished[i] = 1;
 					numFinished++;
@@ -414,101 +386,102 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 					MallocMemory);
 		}
 		strcpy((char*)dest->readName, (char*)src->readName);
-		dest->pairedEnd = src->pairedEnd;
+		dest->numEnds = src->numEnds;
 	}
-	assert(src->pairedEnd == dest->pairedEnd);
+	assert(src->numEnds == dest->numEnds);
 
 	/* Append the matches */
-	RGMatchAppend(&src->matchOne, &dest->matchOne);
-	if(1==dest->pairedEnd) {
-		RGMatchAppend(&src->matchTwo, &dest->matchTwo);
+	for(i=0;i<dest->numEnds;i++) {
+		RGMatchAppend(&src->ends[i], &dest->ends[i]);
 	}
 }
 
 /* TODO */
 void RGMatchesFree(RGMatches *m) 
 {
+	int32_t i;
 	free(m->readName);
-	RGMatchFree(&m->matchOne);
-	RGMatchFree(&m->matchTwo);
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchFree(&m->ends[i]);
+	}
+	free(m->ends);
 	RGMatchesInitialize(m);
 }
 
 /* TODO */
 void RGMatchesInitialize(RGMatches *m)
 {
-	m->pairedEnd = 0;
 	m->readNameLength = 0;
 	m->readName = NULL;
-	RGMatchInitialize(&m->matchOne);
-	RGMatchInitialize(&m->matchTwo);
+	m->numEnds = 0;
+	m->ends=NULL;
 }
 
 /* TODO */
 void RGMatchesMirrorPairedEnd(RGMatches *m,
 		RGBinary *rg,
-		int32_t pairedEndLength,
 		int32_t mirroringType,
 		int32_t forceMirroring)
 {
 	int i, tempNumEntries;
 	int numEntriesOne, numEntriesTwo;
 
-	if(m->pairedEnd == 1) {
-		numEntriesOne = m->matchOne.numEntries;
-		numEntriesTwo = m->matchTwo.numEntries;
+	/* For paired end only */
+	if(2 == m->numEnds) { 
+		numEntriesOne = m->ends[0].numEntries;
+		numEntriesTwo = m->ends[1].numEntries;
 
 		/* Copy matches from first to second */
 		if(forceMirroring == 1 || 
-				(m->matchOne.numEntries > 0 && m->matchTwo.numEntries <= 0)) {
+				(m->ends[0].numEntries > 0 && m->ends[1].numEntries <= 0)) {
 			/* Copy forward */
 			if(MirrorBoth == mirroringType ||
 					MirrorForward == mirroringType) {
-				RGMatchReallocate(&m->matchTwo, numEntriesOne + numEntriesTwo);
+				RGMatchReallocate(&m->ends[1], numEntriesOne + numEntriesTwo);
 				for(i=0;i<numEntriesOne;i++) {
-					m->matchTwo.contigs[i+numEntriesTwo] = m->matchOne.contigs[i];
-					m->matchTwo.strands[i+numEntriesTwo] = m->matchOne.strands[i];
+					m->ends[1].contigs[i+numEntriesTwo] = m->ends[0].contigs[i];
+					m->ends[1].strands[i+numEntriesTwo] = m->ends[0].strands[i];
 					/* Adjust position */
-					m->matchTwo.positions[i+numEntriesTwo] = m->matchOne.positions[i] + m->matchOne.readLength + pairedEndLength;
+					m->ends[1].positions[i+numEntriesTwo] = m->ends[0].positions[i] + m->ends[0].readLength + numEndsLength;
 				}
 			}
 			/* Copy reverse */
 			if(MirrorBoth == mirroringType || 
 					MirrorReverse == mirroringType) {
-				tempNumEntries = m->matchTwo.numEntries;
-				RGMatchReallocate(&m->matchTwo, numEntriesOne + tempNumEntries);
+				tempNumEntries = m->ends[1].numEntries;
+				RGMatchReallocate(&m->ends[1], numEntriesOne + tempNumEntries);
 				for(i=0;i<numEntriesOne;i++) {
-					m->matchTwo.contigs[i+tempNumEntries] = m->matchOne.contigs[i];
-					m->matchTwo.strands[i+tempNumEntries] = m->matchOne.strands[i];
+					m->ends[1].contigs[i+tempNumEntries] = m->ends[0].contigs[i];
+					m->ends[1].strands[i+tempNumEntries] = m->ends[0].strands[i];
 					/* Adjust position */
-					m->matchTwo.positions[i+tempNumEntries] = m->matchOne.positions[i] - m->matchOne.readLength - pairedEndLength;
+					m->ends[1].positions[i+tempNumEntries] = m->ends[0].positions[i] - m->ends[0].readLength - numEndsLength;
 				}
 			}
 		}
 		/* Copy matches from second to first */
 		if(forceMirroring == 1 || 
-				(m->matchOne.numEntries <= 0 && m->matchTwo.numEntries > 0)) {
+				(m->ends[0].numEntries <= 0 && m->ends[1].numEntries > 0)) {
 			/* Copy forward */
 			if(MirrorBoth == mirroringType ||
 					MirrorForward == mirroringType) {
-				RGMatchReallocate(&m->matchOne, numEntriesOne + numEntriesTwo);
+				RGMatchReallocate(&m->ends[0], numEntriesOne + numEntriesTwo);
 				for(i=0;i<numEntriesTwo;i++) {
-					m->matchOne.contigs[i+numEntriesOne] = m->matchTwo.contigs[i];
-					m->matchOne.strands[i+numEntriesOne] = m->matchTwo.strands[i];
+					m->ends[0].contigs[i+numEntriesOne] = m->ends[1].contigs[i];
+					m->ends[0].strands[i+numEntriesOne] = m->ends[1].strands[i];
 					/* Adjust position */
-					m->matchOne.positions[i+numEntriesOne] = m->matchTwo.positions[i] - m->matchOne.readLength - pairedEndLength;
+					m->ends[0].positions[i+numEntriesOne] = m->ends[1].positions[i] - m->ends[0].readLength - numEndsLength;
 				}
 			}
 			/* Copy reverse */
 			if(MirrorBoth == mirroringType || 
 					MirrorReverse == mirroringType) {
-				tempNumEntries = m->matchOne.numEntries;
-				RGMatchReallocate(&m->matchOne, tempNumEntries + numEntriesTwo);
+				tempNumEntries = m->ends[0].numEntries;
+				RGMatchReallocate(&m->ends[0], tempNumEntries + numEntriesTwo);
 				for(i=0;i<numEntriesTwo;i++) {
-					m->matchOne.contigs[i+tempNumEntries] = m->matchTwo.contigs[i];
-					m->matchOne.strands[i+tempNumEntries] = m->matchTwo.strands[i];
+					m->ends[0].contigs[i+tempNumEntries] = m->ends[1].contigs[i];
+					m->ends[0].strands[i+tempNumEntries] = m->ends[1].strands[i];
 					/* Adjust position */
-					m->matchOne.positions[i+tempNumEntries] = m->matchTwo.positions[i] + m->matchOne.readLength + pairedEndLength;
+					m->ends[0].positions[i+tempNumEntries] = m->ends[1].positions[i] + m->ends[0].readLength + numEndsLength;
 				}
 			}
 		}
@@ -520,11 +493,11 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 		   */
 		RGMatchesRemoveDuplicates(m, INT_MAX);
 		/* Adjust positions in case they trail off the end of the contigs */
-		for(i=0;i<m->matchOne.numEntries;i++) {
-			m->matchOne.positions[i] = MAX(1, MIN(m->matchOne.positions[i], rg->contigs[m->matchOne.contigs[i]-1].sequenceLength));
+		for(i=0;i<m->ends[0].numEntries;i++) {
+			m->ends[0].positions[i] = MAX(1, MIN(m->ends[0].positions[i], rg->contigs[m->ends[0].contigs[i]-1].sequenceLength));
 		}
-		for(i=0;i<m->matchTwo.numEntries;i++) {
-			m->matchTwo.positions[i] = MAX(1, MIN(m->matchTwo.positions[i], rg->contigs[m->matchTwo.contigs[i]-1].sequenceLength));
+		for(i=0;i<m->ends[1].numEntries;i++) {
+			m->ends[1].positions[i] = MAX(1, MIN(m->ends[1].positions[i], rg->contigs[m->ends[1].contigs[i]-1].sequenceLength));
 		}
 	}
 }
@@ -534,7 +507,7 @@ void RGMatchesCheck(RGMatches *m)
 {
 	char *FnName="RGMatchesCheck";
 	/* Basic asserts */
-	assert(m->pairedEnd == 0 || m->pairedEnd == 1);
+	assert(m->numEnds == 0 || m->numEnds == 1);
 	/* Check that the read name length is the same as the length of the read name */
 	if(((int)strlen((char*)m->readName)) != m->readNameLength) {
 		PrintError(FnName,
@@ -543,22 +516,8 @@ void RGMatchesCheck(RGMatches *m)
 				Exit,
 				OutOfRange);
 	}
-	if(0 == m->pairedEnd) {
-		/* Check the first match */
-		RGMatchCheck(&m->matchOne);
-		/* Make sure the second match is nulled */
-		assert(m->matchTwo.readLength == 0);
-		assert(m->matchTwo.read == NULL);
-		assert(m->matchTwo.maxReached == 0);
-		assert(m->matchTwo.numEntries == 0);
-		assert(m->matchTwo.contigs == NULL);
-		assert(m->matchTwo.positions == NULL);
-		assert(m->matchTwo.strands == NULL);
-	}
-	else {
-		/* Check both matches */
-		RGMatchCheck(&m->matchOne);
-		RGMatchCheck(&m->matchTwo);
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchCheck(&m->ends[i]);
 	}
 }
 
@@ -570,14 +529,9 @@ void RGMatchesFilterOutOfRange(RGMatches *m,
 		int32_t endPos,
 		int32_t maxNumMatches)
 {
-	RGMatchFilterOutOfRange(&m->matchOne,
-			startChr,
-			startPos,
-			endChr,
-			endPos,
-			maxNumMatches);
-	if(m->pairedEnd == 1) {
-		RGMatchFilterOutOfRange(&m->matchTwo,
+	int32_t i;
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchFilterOutOfRange(&m->ends[i],
 				startChr,
 				startPos,
 				endChr,

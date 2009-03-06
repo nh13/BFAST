@@ -35,6 +35,14 @@ int32_t RGMatchRead(FILE *fp,
 					Exit,
 					MallocMemory);
 		}
+		m->qual = malloc(sizeof(int8_t)*m->readLength);
+		if(NULL==m->qual) {
+			PrintError(FnName,
+					"qual",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 		/* Read in the read */
 		if(fscanf(fp, "%s", m->read) ==EOF) {
 			PrintError(FnName,
@@ -42,6 +50,18 @@ int32_t RGMatchRead(FILE *fp,
 					"Could not read in the read",
 					Exit,
 					EndOfFile);
+		}
+
+		/* Read in the quality scores */
+		for(i=0;i<m->readLength;i++) {
+			if(fscanf(fp, "%d", &tempQual) == EOF) {
+				PrintError(FnName,
+						"m->read",
+						"Could not read in the read",
+						Exit,
+						EndOfFile);
+			}
+			m->qual[i] = tempQual;
 		}
 
 		/* Read in if we have reached the maximum number of matches */
@@ -107,12 +127,21 @@ int32_t RGMatchRead(FILE *fp,
 					Exit,
 					MallocMemory);
 		}
+		m->qual = malloc(sizeof(int8_t)*m->readLength);
+		if(NULL==m->qual) {
+			PrintError(FnName,
+					"qual",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
 
 		/* Read in the read */
-		if(fread(m->read, sizeof(int8_t), m->readLength, fp)!=m->readLength) {
+		if(fread(m->read, sizeof(int8_t), m->readLength, fp)!=m->readLength ||
+				fread(m->qual, sizeof(int8_t), m->readLength, fp)!=m->readLength) {
 			PrintError(FnName,
 					"m->read",
-					"Could not read in the read",
+					"Could not read in the read and qual",
 					Exit,
 					ReadFileError);
 		}
@@ -180,9 +209,33 @@ void RGMatchPrint(FILE *fp,
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextOutput) {
-		if(0 > fprintf(fp, "%d\t%s\t%d\t%d",
+		if(0 > fprintf(fp, "%d\t%s\n",
 					m->readLength,
-					m->read,
+					m->read)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write m->readLength, m->read",
+					Exit,
+					WriteFileError);
+		}
+		for(i=0;i<m->readLength;i++) {
+			if(0 > fprintf(fp, "%d",
+						(int32_t)m->qual[i])) {
+				PrintError(FnName,
+						NULL,
+						"Could not write m->qual",
+						Exit,
+						WriteFileError);
+			}
+			if(i<m->readLength-1 && 0 > fprintf(fp, "\t")) {
+				PrintError(FnName,
+						NULL,
+						"Could not write m->qual",
+						Exit,
+						WriteFileError);
+			}
+		}
+		if(0 > fprintf(fp, "\n%d\t%d",
 					m->maxReached,
 					m->numEntries)) {
 			PrintError(FnName,
@@ -194,7 +247,7 @@ void RGMatchPrint(FILE *fp,
 
 		for(i=0;i<m->numEntries;i++) {
 			assert(m->contigs[i] > 0);
-			if(0 > fprintf(fp, "\t%u\t%d\t%c", 
+			if(0 > fprintf(fp, "\t%u\t%d\t%c",
 						m->contigs[i],
 						m->positions[i],
 						m->strands[i])) {
@@ -217,11 +270,12 @@ void RGMatchPrint(FILE *fp,
 		/* Print read length, read, maximum reached, and number of entries. */
 		if(fwrite(&m->readLength, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(m->read, sizeof(int8_t), m->readLength, fp) != m->readLength ||
+				fwrite(m->qual, sizeof(int8_t), m->readLength, fp) != m->readLength ||
 				fwrite(&m->maxReached, sizeof(int32_t), 1, fp) != 1 ||
 				fwrite(&m->numEntries, sizeof(int32_t), 1, fp) != 1) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->readLength, m->read, m->maxReached, and m->numEntries",
+					"Could not write m->readLength, m->read, m->qual, m->maxReached, and m->numEntries",
 					Exit,
 					WriteFileError);
 		}
@@ -381,7 +435,20 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest)
 					Exit,
 					MallocMemory);
 		}   
+		assert(dest->qual == NULL);
+		dest->qual = malloc(sizeof(int8_t)*src->readLength);
+		if(NULL==dest->qual) {
+			PrintError(FnName,
+					"dest->qual",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		/* Copy over */
 		strcpy((char*)dest->read, (char*)src->read);
+		for(i=0;i<src->readLength;i++) {
+			dest->qual[i] = src->qual[i];
+		}
 	}
 
 	/* if the max has been reached by the start or dest, then ignore */
@@ -510,6 +577,7 @@ void RGMatchClearMatches(RGMatch *m)
 void RGMatchFree(RGMatch *m) 
 {
 	free(m->read);
+	free(m->qual);
 	free(m->contigs);
 	free(m->positions);
 	free(m->strands);
@@ -521,6 +589,7 @@ void RGMatchInitialize(RGMatch *m)
 {
 	m->readLength=0;
 	m->read=NULL;
+	m->qual=NULL;
 	m->maxReached=0;
 	m->numEntries=0;
 	m->contigs=NULL;
@@ -538,77 +607,76 @@ void RGMatchCheck(RGMatch *m)
 	assert(m->maxReached == 0 || m->numEntries == 0);
 	assert(m->numEntries >= 0);
 	/* Check that if the read length is greater than zero the read is not null */
-	if(m->readLength > 0 && m->read == NULL) {
+	if(m->readLength > 0 && m->read == NULL && m->qual == NULL) {
 		PrintError(FnName,
 				NULL,
-				"m->readLength > 0 && m->read == NULL",
+				"m->readLength > 0 && m->read == NULL && m->qual == NULL",
 				Exit,
 				OutOfRange);
-	}
-	/* Check that the read length matches the read */
-	if(((int)strlen((char*)m->read)) != m->readLength) {
-		PrintError(FnName,
-				NULL,
-				"m->readLength and strlen(m->read) do not match",
-				Exit,
-				OutOfRange);
-	}
-	/* Check that if the max has been reached then there are no entries */
-	if(1==m->maxReached && m->numEntries > 0) {
-		PrintError(FnName,
-				NULL,
-				"1==m->maxReached and m->numEntries>0",
-				Exit,
-				OutOfRange);
-	}
-	/* Check that if the number of entries is greater than zero that the entries are not null */
-	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)) {
-		PrintError(FnName,
-				NULL,
-				"m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)",
-				Exit,
-				OutOfRange);
-	}
-}
-
-/* TODO */
-void RGMatchFilterOutOfRange(RGMatch *m,
-		int32_t startContig,
-		int32_t startPos,
-		int32_t endContig,
-		int32_t endPos,
-		int32_t maxNumMatches)
-{
-	int32_t i, prevIndex;
-
-	/* Filter contig/pos */
-	/* Remove duplicates */
-	prevIndex = -1;
-	int filter;
-	for(i=0;i<m->numEntries;i++) {
-		filter = 0;
-		if(m->contigs[i] < startContig || 
-				(m->contigs[i] == startContig && (m->positions[i] + m->readLength - 1) < startPos) ||
-				(m->contigs[i] == endContig && m->positions[i] > endPos) ||
-				(m->contigs[i] > endContig)) {
-			/* ignore */
+		/* Check that the read length matches the read */
+		if(((int)strlen((char*)m->read)) != m->readLength) {
+			PrintError(FnName,
+					NULL,
+					"m->readLength and strlen(m->read) do not match",
+					Exit,
+					OutOfRange);
 		}
-		else {
-			/* Do not filter */
-			prevIndex++;
-			/* Copy contig/pos at i to contig/pos at prevIndex */
-			RGMatchCopyAtIndex(m, i, m, prevIndex);
+		/* Check that if the max has been reached then there are no entries */
+		if(1==m->maxReached && m->numEntries > 0) {
+			PrintError(FnName,
+					NULL,
+					"1==m->maxReached and m->numEntries>0",
+					Exit,
+					OutOfRange);
+		}
+		/* Check that if the number of entries is greater than zero that the entries are not null */
+		if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)) {
+			PrintError(FnName,
+					NULL,
+					"m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)",
+					Exit,
+					OutOfRange);
 		}
 	}
 
-	/* Reallocate pair */
-	RGMatchReallocate(m, prevIndex+1);
+	/* TODO */
+	void RGMatchFilterOutOfRange(RGMatch *m,
+			int32_t startContig,
+			int32_t startPos,
+			int32_t endContig,
+			int32_t endPos,
+			int32_t maxNumMatches)
+	{
+		int32_t i, prevIndex;
 
-	/* Filter based on the maximum number of matches */
-	if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
-		/* Do not align this one */
-		RGMatchClearMatches(m);
-		m->maxReached=1;
-		assert(m->readLength > 0);
+		/* Filter contig/pos */
+		/* Remove duplicates */
+		prevIndex = -1;
+		int filter;
+		for(i=0;i<m->numEntries;i++) {
+			filter = 0;
+			if(m->contigs[i] < startContig || 
+					(m->contigs[i] == startContig && (m->positions[i] + m->readLength - 1) < startPos) ||
+					(m->contigs[i] == endContig && m->positions[i] > endPos) ||
+					(m->contigs[i] > endContig)) {
+				/* ignore */
+			}
+			else {
+				/* Do not filter */
+				prevIndex++;
+				/* Copy contig/pos at i to contig/pos at prevIndex */
+				RGMatchCopyAtIndex(m, i, m, prevIndex);
+			}
+		}
+
+		/* Reallocate pair */
+		RGMatchReallocate(m, prevIndex+1);
+
+		/* Filter based on the maximum number of matches */
+		if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
+			/* Do not align this one */
+			RGMatchClearMatches(m);
+			m->maxReached=1;
+			assert(m->readLength > 0);
+		}
 	}
-}
