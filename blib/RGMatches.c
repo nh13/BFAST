@@ -240,7 +240,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 			RGMatchesRemoveDuplicates(&matches, maxNumMatches);
 
 			/* Print to output file */
-			for(i=0;foundMatch == 0 && i<matches.numEnds;i++) {
+			for(i=foundMatch=0;foundMatch == 0 && i<matches.numEnds;i++) {
 				if(0 < matches.ends[i].numEntries) {
 					foundMatch = 1;
 					numMatches++;
