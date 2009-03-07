@@ -116,7 +116,7 @@ int FilterAlignedRead(AlignedRead *a,
 				for(j=0;j<tmpA.ends[i].numEntries;j++) {
 					if(bestScore < tmpA.ends[i].entries[j].score) {
 						bestScore = tmpA.ends[i].entries[j].score;
-						bestScoreIndex = i;
+						bestScoreIndex = j;
 						numBestScore = 1;
 					}
 					else if(bestScore == tmpA.ends[i].entries[j].score) {
@@ -137,6 +137,7 @@ int FilterAlignedRead(AlignedRead *a,
 						}
 					}
 					if(Found == foundTypes[i]) {
+						/* Copy to front */
 						AlignedEntryCopy(&tmpA.ends[i].entries[0], 
 								&tmpA.ends[i].entries[bestScoreIndex]);
 						AlignedEndReallocate(&tmpA.ends[i], 1);

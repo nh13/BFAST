@@ -558,7 +558,7 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 					Exit,
 					ReallocMemory);
 		}
-		assert(src->contigName!= NULL);
+		assert(src->contigName != NULL);
 		strcpy(dest->contigName, src->contigName);
 		/* Read */
 		assert(src->length > 0);
