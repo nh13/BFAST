@@ -71,10 +71,8 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 #define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define MAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
 #define QUAL_TO_MAF_QUAL(_X)  (MIN( (int)floor(_X/5), 9))
-#define CHAR2QUAL(c) \
-	    ((isdigit(c))? ((c)-'0') : ((islower(c))? ((c)-'a'+10) : ((isupper(c))? ((c)-'A'+36) : 0)))
-#define QUAL2CHAR(q) \
-	    (((q)<10)? ((q)+'0') : (((q)<36)? ((q)-10+'a') : (((q)<62)? ((q)-36+'A') : 'Z')))
+#define CHAR2QUAL(c) ((uint8_t)c-33)
+#define QUAL2CHAR(q) (char)(((q<=93)?q:93)+33)
 
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 enum {Contig_8, Contig_32};

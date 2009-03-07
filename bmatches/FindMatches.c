@@ -187,7 +187,6 @@ void FindMatches(
 			&tempSeqFileNames,
 			startReadNum,
 			endReadNum,
-			space,
 			numThreads,
 			tmpDir,
 			&numReads,
@@ -307,9 +306,8 @@ void FindMatches(
 				RGMatchesInitialize(&tempMatches);
 
 				/* Read in the reads */
-				while(EOF!=GetNextRead(tempSeqFPs[i],
-							&tempMatches,
-							space)) {
+				while(EOF!=GetRead(tempSeqFPs[i],
+							&tempMatches)) {
 					/* Print the match to the output file */
 					RGMatchesPrint(outputFP,
 							&tempMatches,
@@ -591,7 +589,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 		numWritten=ReadTempReadsAndOutput(tempOutputFP,
 				outputFP,
 				tempSeqFP,
-				space,
 				binaryOutput);
 		endTime=time(NULL);
 		(*totalOutputTime)+=endTime-startTime;
@@ -611,7 +608,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 				tempSeqFileNames,
 				0,
 				0,
-				space,
 				numThreads,
 				tmpDir,
 				&numReads,
@@ -907,9 +903,8 @@ void *FindMatchesInIndexThread(void *arg)
 				threadID,
 				numRead);
 	}
-	while(EOF!=GetNextRead(tempSeqFP, 
-				&m,
-				space)) {
+	while(EOF!=GetRead(tempSeqFP, 
+				&m)) {
 		numRead++;
 
 		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
