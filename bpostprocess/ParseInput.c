@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithmReads, DescUniquenessScore, DescMinUniquenessScore, 
+	DescAlgoTitle, DescAlgorithmReads, DescMappingQuality, DescMinMappingQuality, 
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
@@ -78,11 +78,13 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
 		"\n\t\t\t0: Specifies no filtering will occur"
-			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
-			"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
-			"\n\t\t\t3: Specifies to choose the alignment with the best score", 2},
-	{"uniquenessScore", 'u', 0, OPTION_NO_USAGE, "Specifies to output a uniqueness score instead of the alignment score", 2},
-	{"minUniquenessScore", 'z', "minUniquenessScore", 0, "Specifies the minimum uniqueness score to allow when using -a 3 and -u", 2},
+		"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
+		"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
+		"\n\t\t\t3: Specifies to choose the alignment with the best score"
+		"\n\t\t\t4: Specifies to choose the alignment with the best mapping quality",
+		2},
+	{"mappingQuality", 'z', 0, OPTION_NO_USAGE, "Specifies to output a phred-like mapping quality instead of the alignment score after filtering and choosing the alignments", 2},
+	{"minMappingQuality", 'Z', "minMappingQuality", 0, "Specifies the minimum phred-like mapping quality to allow when using -a 3 and -u", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
@@ -128,7 +130,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:hptuCIU";
+"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:Z:hptzCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -190,8 +192,8 @@ main (int argc, char **argv)
 								arguments.endContig,
 								arguments.endPos,
 								arguments.algorithmReads,
-								arguments.uniquenessScore,
-								arguments.minUniquenessScore,
+								arguments.mappingQuality,
+								arguments.minMappingQuality,
 								arguments.minScoreReads,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
@@ -297,14 +299,20 @@ int ValidateInputs(struct arguments *args) {
 	}
 
 	if(args->algorithmReads < MIN_FILTER || 
-			args->algorithmReads > MAX_FILTER_SE) {
+			args->algorithmReads > MAX_FILTER) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
+	
+	assert(0 == args->mappingQuality || 1 == args->mappingQuality);
 
-	assert(0 == args->uniquenessScore || 1 == args->uniquenessScore);
-
-	if(args->minUniquenessScore < 0 || 1 < args->minUniquenessScore) {
-		PrintError(FnName, "minUniquenessScore", "Command line argument", Exit, OutOfRange);
+	if(args->algorithmReads == BestMappingQuality &&
+			1 == args->mappingQuality) {
+		PrintError(FnName, "mappingQuality", 
+				"Cannot use mappingQuality with BestMappingQuality", Exit, OutOfRange);
+	}
+	
+	if(args->minMappingQuality < 0) 
+		PrintError(FnName, "minMappingQuality", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->maxMismatches < 0) {
@@ -377,8 +385,8 @@ AssignDefaultValues(struct arguments *args)
 	args->endPos=0;
 
 	args->algorithmReads=0;
-	args->uniquenessScore=0;
-	args->minUniquenessScore=0;
+	args->mappingQuality=0;
+	args->minMappingQuality=0;
 	args->minScoreReads=INT_MIN;
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
@@ -422,8 +430,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
-	fprintf(fp, "uniquenessScore:\t\t%d\n", args->uniquenessScore);
-	fprintf(fp, "minUniquenessScore:\t\t%d\n", args->minUniquenessScore);
+	fprintf(fp, "mappingQuality:\t\t%d\n", args->mappingQuality);
+	fprintf(fp, "minMappingQuality:\t\t%d\n", args->minMappingQuality);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
@@ -534,10 +542,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
-					case 'u':
-						arguments->uniquenessScore = 1;break;
 					case 'z':
-						arguments->minUniquenessScore = atof(OPTARG);break;
+						arguments->mappingQuality = 1;break;
 					case 'C':
 						arguments->contigAbPaired = 1;break;
 					case 'E':
@@ -571,6 +577,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'Y':
 						arguments->useDistancePaired = 1;
 						arguments->maxDistancePaired = atoi(OPTARG);break;
+					case 'Z':
+						arguments->minMappingQuality = atof(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

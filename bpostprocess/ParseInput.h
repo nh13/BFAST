@@ -7,8 +7,8 @@ struct arguments
 	char *rgFileName;						/* -r */
 	int binaryInput;                        /* -b - not used */
 	int algorithmReads;						/* -a */
-	int uniquenessScore;					/* -u */
-	int minUniquenessScore;					/* -z */
+	int mappingQuality;						/* -z */
+	int minMappingQuality;					/* -Z */
 	int startContig;                        /* -s */
 	int startPos;                           /* -S */
 	int endContig;                          /* -e */

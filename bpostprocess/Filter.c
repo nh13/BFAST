@@ -14,8 +14,8 @@
 /* TODO */
 int FilterAlignedRead(AlignedRead *a,
 		int algorithmReads,
-		int uniquenessScore,
-		int minUniquenessScore,
+		int mappingQuality,
+		int minMappingQuality,
 		int minScoreReads,
 		int startContig,
 		int startPos,
@@ -36,7 +36,7 @@ int FilterAlignedRead(AlignedRead *a,
 	AlignedRead tmpA;
 	AlignedEnd tmpEnd;
 	int32_t i, j;
-	int32_t bestScore, bestScoreIndex, numBestScore;
+	int32_t best, bestIndex, numBest;
 	int32_t curContigDistance, curPositionDistance;
 	double curUniquenessScore;
 
@@ -61,7 +61,7 @@ int FilterAlignedRead(AlignedRead *a,
 							maxMismatches,
 							maxColorErrors)) {
 					/* Copy end here */
-					if(i < tmpA.ends[i].numEntries-1) {
+					if(j < tmpA.ends[i].numEntries-1) {
 						AlignedEntryCopy(&tmpA.ends[i].entries[j], 
 								&tmpA.ends[i].entries[tmpA.ends[i].numEntries-1]);
 					}
@@ -72,6 +72,7 @@ int FilterAlignedRead(AlignedRead *a,
 			}
 		}
 	}
+
 	foundType=NoneFound;
 	foundTypes=malloc(sizeof(int32_t)*tmpA.numEnds);
 	if(NULL == foundTypes) {
@@ -87,11 +88,12 @@ int FilterAlignedRead(AlignedRead *a,
 
 	/* Pick alignment for each end individually (is this a good idea?) */
 	for(i=0;i<tmpA.numEnds;i++) {
+		/* Choose each end */
 		switch(algorithmReads) {
 			case NoFiltering:
 			case AllNotFiltered:
 				foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
-				if(1==uniquenessScore) {
+				if(1==mappingQuality) {
 					AlignedEndInitialize(&tmpEnd);
 					AlignedEndCopy(&tmpEnd, &tmpA.ends[i]);
 					for(j=0;j<tmpEnd.numEntries;j++) {
@@ -103,43 +105,73 @@ int FilterAlignedRead(AlignedRead *a,
 				break;
 			case Unique:
 				foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
-				if(1==uniquenessScore) {
+				if(1==mappingQuality) {
 					if(Found == foundTypes[i]) {
 						tmpA.ends[i].entries[0].score = 1;
 					}
 				}
 				break;
-			case BestScore:
-				bestScore = INT_MIN;
-				bestScoreIndex = -1;
-				numBestScore = 0;
-				for(j=0;j<tmpA.ends[i].numEntries;j++) {
-					if(bestScore < tmpA.ends[i].entries[j].score) {
-						bestScore = tmpA.ends[i].entries[j].score;
-						bestScoreIndex = j;
-						numBestScore = 1;
+			case BestMappingQuality:
+				/* Replace score with uniqueness score if necessary */
+				assert(0 == mappingQuality); 
+				for(i=0;i<tmpA.numEnds;i++) {
+					AlignedEndInitialize(&tmpEnd);
+					AlignedEndCopy(&tmpEnd, &tmpA.ends[i]);
+					for(j=0;j<tmpEnd.numEntries;j++) {
+						tmpA.ends[i].entries[j].score=GetUniquenessScore(&tmpEnd,
+								j);
 					}
-					else if(bestScore == tmpA.ends[i].entries[j].score) {
-						numBestScore++;
+					AlignedEndFree(&tmpEnd);
+				}
+				/* Remove those that have to small of a uniqueness score */
+				for(j=0;j<tmpA.ends[i].numEntries;j++) {
+					if(tmA.ends[i].entries[j].score < minMappingQuality) {
+						/* Copy end here */
+						if(j < tmpA.ends[i].numEntries-1) {
+							AlignedEntryCopy(&tmpA.ends[i].entries[j], 
+									&tmpA.ends[i].entries[tmpA.ends[i].numEntries-1]);
+						}
+						AlignedEndReallocate(&tmpA.ends[i], tmpA.ends[i].numEntries-1);
+						/* Since we removed, do not incrememt */
+						j--;
 					}
 				}
-				if(1==numBestScore) {
+				/* Continue to find the best score, since the score
+				 * is now our mapping quality.  Note that we should have
+				 * mappingQuality == 0 */
+				assert(0 == mappingQuality);
+				/* NO BREAK */
+			case BestScore:
+				best = INT_MIN;
+				bestIndex = -1;
+				numBest = 0;
+				for(j=0;j<tmpA.ends[i].numEntries;j++) {
+					if(best < tmpA.ends[i].entries[j].score) {
+						best = tmpA.ends[i].entries[j].score;
+						bestIndex = j;
+						numBest = 1;
+					}
+					else if(best == tmpA.ends[i].entries[j].score) {
+						numBest++;
+					}
+				}
+				if(1==numBest) {
 					foundTypes[i] = Found;
-					if(1==uniquenessScore) {
+					if(1==mappingQuality) {
 						/* Calculate uniqueness score */
 						curUniquenessScore=GetUniquenessScore(&tmpA.ends[i],
-								bestScoreIndex);
-						if(curUniquenessScore < minUniquenessScore) {
+								bestIndex);
+						if(curUniquenessScore < minMappingQuality) {
 							foundTypes[i] = NoneFound;
 						}
 						else {
-							tmpA.ends[i].entries[bestScoreIndex].score = curUniquenessScore;
+							tmpA.ends[i].entries[bestIndex].score = curUniquenessScore;
 						}
 					}
 					if(Found == foundTypes[i]) {
 						/* Copy to front */
 						AlignedEntryCopy(&tmpA.ends[i].entries[0], 
-								&tmpA.ends[i].entries[bestScoreIndex]);
+								&tmpA.ends[i].entries[bestIndex]);
 						AlignedEndReallocate(&tmpA.ends[i], 1);
 					}
 				}
@@ -264,30 +296,30 @@ int FilterAlignedEntry(AlignedEntry *a,
 }
 
 /* TODO */
-double GetUniquenessScore(AlignedEnd *end,
-		int32_t bestScoreIndex) 
+double GetMappingQuality(AlignedEnd *end,
+		int32_t bestIndex) 
 {
-	int32_t nextBestScore, numNextBestScore;
+	int32_t nextBest, numNextBest;
 	int32_t i;
 
-	nextBestScore = INT_MIN;
-	numNextBestScore = 0;
+	nextBest = INT_MIN;
+	numNextBest = 0;
 
 	for(i=0;i<end->numEntries;i++) {
-		if(i != bestScoreIndex) {
-			if(nextBestScore < end->entries[i].score) {
-				nextBestScore = end->entries[i].score;
-				numNextBestScore = 1;
+		if(i != bestIndex) {
+			if(nextBest < end->entries[i].score) {
+				nextBest = end->entries[i].score;
+				numNextBest = 1;
 			}
-			else if(nextBestScore == end->entries[i].score) {
-				numNextBestScore++;
+			else if(nextBest == end->entries[i].score) {
+				numNextBest++;
 			}
 		}
 	}
 
-	if(0 < numNextBestScore && 0 < nextBestScore) {
-		return (end->entries[bestScoreIndex].score
-				/ (end->entries[bestScoreIndex].score + numNextBestScore*nextBestScore));
+	if(0 < numNextBest && 0 < nextBest) {
+		return (end->entries[bestIndex].score
+				/ (end->entries[bestIndex].score + numNextBest*nextBest));
 	}
 	else {
 		return 1.0;

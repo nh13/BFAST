@@ -5,8 +5,8 @@
 
 int FilterAlignedRead(AlignedRead *a,
 		int algorithmReads,
-		int uniquenessScore,
-		int minUniquenessScore,
+		int mappingQuality,
+		int minMappingQuality,
 		int minScoreReads,
 		int startChr,
 		int startPos,
@@ -31,7 +31,7 @@ int FilterAlignedEntry(AlignedEntry *a,
 		int maxMismatches,
 		int maxColorErrors);
 
-double GetUniquenessScore(AlignedEnd *end,
-		int32_t bestScoreIndex);
+double GetMappingQuality(AlignedEnd *end,
+		int32_t index);
 
 #endif
