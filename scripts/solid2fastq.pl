@@ -11,24 +11,38 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: solid2fastq.pl <list of .csfasta files> <list of .qual files>
+Usage: solid2fastq.pl <output prefix> <number of reads> <list of .csfasta files> <list of .qual files>
 
-Note: 	The list of .csfasta files should be in the same order as the
-		list of .qual files.  For example, if we have two .csfasta 
-		files named <prefix>F3.csfasta and <prefix>R3.csfasat with their
-		respecitive .qual files named <prefix>F3_QV.qual and 
-		<prefix>R3_QV.qual, then the command should be:
+  This script will convert ABI SOLiD output files (*csfasta and
+  *qual files) to the BFAST fastq multi-end format.  For read 
+  that do not have more than one end (neither mate-end nor
+  paired end), this corresponds to fastq format.
 
-		solid2fastq.pl <prefix>F3.csfasta <prefix>R3.csfasta \\
-			<prefix>.F3_QV.qual <prefix>.R3_QV.qual
-		
-		It is assumed that for multi-end data, the files are given in 
-		the same order as 5'->3'.
+  The script will split the reads into (possibly) multiple 
+  output files each containing at most the number of reads. For
+  multi-end data, one read is defined as all the ends originating
+  from the same DNA sequence.  The output files will all be named 
+  based on the output prefix and the group number.
+
+  The list of .csfasta files should be in the same order as 
+  the list of .qual files.  For example, if we have two .csfasta 
+  files named <prefix>F3.csfasta and <prefix>R3.csfasat with their
+  respecitive .qual files named <prefix>F3_QV.qual and 
+  <prefix>R3_QV.qual, then the command should be:
+
+    solid2fastq.pl <prefix>F3.csfasta <prefix>R3.csfasta \\
+      <prefix>.F3_QV.qual <prefix>.R3_QV.qual
+
+   It is assumed that for multi-end data, the files are given in 
+   the same order as 5'->3'.
 };
 my $ROTATE_NUM = 100000;
 
 getopts('', \%opts);
-die($usage) if (@ARGV < 2 || 0 != (@ARGV % 2));
+die($usage) if (@ARGV < 4 || 0 != (@ARGV % 2));
+
+my $output_prefix = shift @ARGV;
+my $output_maximum_reads = shift @ARGV;
 
 my @FHs = ();
 my $num_ends = @ARGV/2;
@@ -54,6 +68,10 @@ for(my $i=0;$i<scalar(@FHs);$i++) {
 
 # Read in and output 
 my $ctr = 0;
+my $output_file_num = 1;
+my $output_num_written = 0;
+local *FHout;
+open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
 printf(STDERR "Outputting, currently on:\n0");
 while(0 < scalar(@FHs)) {
 	# Get all with min read name
@@ -87,11 +105,12 @@ while(0 < scalar(@FHs)) {
 		}
 	}
 	# Print all with read names
-	for(my $j=0;$j<scalar(@min_read_name_indexes);$j++) {
-		print_fastq($FHs[$min_read_name_indexes[$j]],
-			$FHs[$min_read_name_indexes[$j]+$num_ends]);
-	}
 	if(0 < scalar(@min_read_name_indexes)) {
+		for(my $j=0;$j<scalar(@min_read_name_indexes);$j++) {
+			print_fastq(*FHout, $FHs[$min_read_name_indexes[$j]],
+				$FHs[$min_read_name_indexes[$j]+$num_ends]);
+		}
+		# Update counts 
 		my $key = scalar(@min_read_name_indexes);
 		if(!defined($end_counts{$key})) {
 			$end_counts{$key}=1;
@@ -99,12 +118,22 @@ while(0 < scalar(@FHs)) {
 		else {
 			$end_counts{$key}++;
 		}
+		# Increment counters
 		$ctr++;
+		$output_num_written++;
+		# Open new file if necessary 
+		if($output_maximum_reads <= $output_num_written) {
+			$output_file_num++;
+			close(FHout);
+			open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
+			$output_num_written=0;
+		}
 	}
 	if(0 == ($ctr % $ROTATE_NUM)) {
 		printf(STDERR "\r%d", $ctr);
 	}
 }
+close(FHout);
 printf(STDERR "\r%d\n", $ctr);
 
 printf(STDERR "Found\n%16s\t%16s\n",
@@ -122,6 +151,7 @@ foreach my $key (sort {$a <=> $b} (keys %end_counts)) {
 printf(STDERR "%16s\t%16d\n",
 	"total",
 	$number_of_reads);
+
 sub get_read_name {
 	my $FH_csfasta = shift;;
 	my $FH_qual = shift;
@@ -147,6 +177,7 @@ sub get_read_name {
 }
 
 sub print_fastq {
+	my $FH_out = shift;
 	my $FH_csfasta = shift;;
 	my $FH_qual = shift;
 
@@ -174,7 +205,7 @@ sub print_fastq {
 			$qual .= chr(($quals[$i]<=93? $quals[$i]: 93) + 33);
 		}
 		# Print to stdout
-		printf(STDOUT "@%s\n%s\n+\n%s\n",
+		printf($FH_out "@%s\n%s\n+\n%s\n",
 			$name_csfasta,
 			$read,
 			$qual);
