@@ -11,18 +11,24 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: solid2fastq.pl <output prefix> <number of reads> <list of .csfasta files> <list of .qual files>
+Usage: solid2fastq.pl <output prefix> <number of reads> \\
+          <list of .csfasta files> <list of .qual files>
 
   This script will convert ABI SOLiD output files (*csfasta and
-  *qual files) to the BFAST fastq multi-end format.  For read 
+  *qual files) to the BFAST fastq multi-end format.  For reads 
   that do not have more than one end (neither mate-end nor
-  paired end), this corresponds to fastq format.
+  paired end), the output format is strictly fastq format.
+  For multi-end data (mate-end, paired end ect.) each end is
+  outputted consecutively in 5'->3' ordering in fastq blocks.
+  Therefore, the output reamins strictly conforming to the 
+  fastq format, but keeps intact the relationships between
+  sequences that all originate from the same peice of DNA.
 
   The script will split the reads into (possibly) multiple 
-  output files each containing at most the number of reads. For
-  multi-end data, one read is defined as all the ends originating
-  from the same DNA sequence.  The output files will all be named 
-  based on the output prefix and the group number.
+  output files each containing at most the specified number of 
+  reads. For multi-end data, one read is defined as all the ends
+  originating from the same DNA sequence.  The output files will 
+  all be named based on the output prefix and the group number.
 
   The list of .csfasta files should be in the same order as 
   the list of .qual files.  For example, if we have two .csfasta 
