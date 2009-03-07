@@ -4,7 +4,7 @@
 
 echo "      Cleaning up files.";
 
-rm -r $OUTPUT_DIR $TMP_DIR $SAVE_DIR/bfast*
+rm -r $OUTPUT_DIR $TMP_DIR 
 
 # Get return code
 if [ "$?" -ne "0" ]; then
