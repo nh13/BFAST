@@ -18,18 +18,16 @@ int GetNextRead(FILE *fp,
 		char *qual)
 {
 	char *FnName = "GetNextRead";
-	char c;
-	int32_t i;
+	char comment[SEQUENCE_NAME_LENGTH]="\0";
 
 	/* Move to the beginning of the read name */
+	assert(0 == feof(fp));
 	while(0 == feof(fp)
 			&& '@' != fgetc(fp)) {
 	}
-	if(0 != feof) {
-		return EOF;
-	}
 	/* Read in read name */
-	if(NULL==fgets(readName, SEQUENCE_NAME_LENGTH-1, fp)) {
+	if(0 != feof(fp) ||
+			NULL==fgets(readName, SEQUENCE_NAME_LENGTH-1, fp)) {
 		return EOF;
 	}
 	StringTrimWhiteSpace(readName);
@@ -43,11 +41,13 @@ int GetNextRead(FILE *fp,
 	}
 	StringTrimWhiteSpace(read);
 	/* Read in comment line */
-	while(0 == feof(fp)
-			&& (c == fgetc(fp)) != '+'
-			&& c != '\r'
-			&& c != '\n') {
+	if(NULL==fgets(comment, SEQUENCE_LENGTH-1, fp)) {
 		/* Ignore */
+		PrintError(FnName, 
+				"comment",
+				"Could not read in comment",
+				Exit,
+				ReadFileError);
 	}
 	/* Read in qualities */
 	if(NULL==fgets(qual, SEQUENCE_LENGTH-1, fp)) {
@@ -58,13 +58,6 @@ int GetNextRead(FILE *fp,
 				ReadFileError);
 	}
 	StringTrimWhiteSpace(qual);
-	/* Update qualities */
-	for(i=0;i<strlen(qual);i++) {
-		if(33 <= (uint8_t)qual[i] && (uint8_t)qual[i] < 127) {
-			qual[i] = CHAR2QUAL(qual[i]);
-		}
-	}
-
 	return 1;
 }
 
@@ -93,7 +86,7 @@ int GetRead(FILE *fp,
 		/* Inset read name if this is the first end */
 		if(0 == m->numEnds) {
 			/* Allocate memory */
-			m->readName = malloc(sizeof(int8_t)*(m->readNameLength+1));
+			m->readName = malloc(sizeof(char)*(m->readNameLength+1));
 			if(NULL == m->readName) {
 				PrintError(FnName,
 						"m->readName",
@@ -102,6 +95,7 @@ int GetRead(FILE *fp,
 						MallocMemory);
 			}
 			strcpy(m->readName, readName);
+			m->readNameLength = strlen(readName);
 		}
 		/* Add end if necessary */
 		if(0 == strcmp(m->readName, readName)) {
@@ -120,7 +114,7 @@ int GetRead(FILE *fp,
 			RGMatchInitialize(&m->ends[m->numEnds-1]);
 			m->ends[m->numEnds-1].readLength = strlen(read);
 			m->ends[m->numEnds-1].qualLength = strlen(qual);
-			m->ends[m->numEnds-1].read = malloc(sizeof(int8_t)*(m->ends[m->numEnds-1].readLength+1));
+			m->ends[m->numEnds-1].read = malloc(sizeof(char)*(m->ends[m->numEnds-1].readLength+1));
 			if(NULL == m->ends[m->numEnds-1].read) {
 				PrintError(FnName,
 						"m->ends[m->numEnds-1].read",
@@ -129,7 +123,7 @@ int GetRead(FILE *fp,
 						MallocMemory);
 			}
 			strcpy(m->ends[m->numEnds-1].read, read);
-			m->ends[m->numEnds-1].qual = malloc(sizeof(int8_t)*(m->ends[m->numEnds-1].qualLength+1));
+			m->ends[m->numEnds-1].qual = malloc(sizeof(char)*(m->ends[m->numEnds-1].qualLength+1));
 			if(NULL == m->ends[m->numEnds-1].qual) {
 				PrintError(FnName,
 						"m->ends[m->numEnds-1].qual",
@@ -165,10 +159,10 @@ int WriteRead(FILE *fp, RGMatches *m)
 
 	/* Print read */
 	for(i=0;i<m->numEnds;i++) {
-		if(fprintf(fp, "%s\n%s\n+\n%s\n", 
+		if(fprintf(fp, "@%s\n%s\n+\n%s\n", 
 					m->readName,
-					m->ends[i].read, 
-					m->ends[i].qual) < 0) {
+					m->ends[i].read,
+					m->ends[i].qual) < 0) { 
 			return EOF;
 		}
 	}

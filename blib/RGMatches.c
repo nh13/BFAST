@@ -20,13 +20,19 @@ int32_t RGMatchesRead(FILE *fp,
 {
 	char *FnName = "RGMatchesRead";
 	int32_t i;
+	char readName[SEQUENCE_NAME_LENGTH]="\0";
 
 	/* Read the matches from the input file */
 	if(binaryInput == TextInput) {
-		/* Read read name length */
-		if(fscanf(fp, "%d", &m->readNameLength)==EOF) {
+		if(fscanf(fp, "%s %d", 
+					readName,
+					&m->numEnds) == EOF) {
 			return EOF;
 		}
+		for(i=0;i<strlen(readName);i++) {
+			readName[i] = readName[i+1];
+		}
+		m->readNameLength = strlen(readName);
 		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
 		assert(m->readNameLength > 0);
 		/* Allocate memory for the read name */
@@ -38,32 +44,12 @@ int32_t RGMatchesRead(FILE *fp,
 					Exit,
 					MallocMemory);
 		}
-		/* Read read name */
-		if(EOF==fscanf(fp, "%s", m->readName)) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not read in read name",
-					Exit,
-					ReadFileError);
-		}
-
-		/* Read num ends */
-		if(fscanf(fp, "%d", &m->numEnds)==EOF) {
-			PrintError(FnName,
-					"m->numEnds",
-					"Could not read in the number of ends",
-					Exit,
-					ReadFileError);
-		}
+		strcpy(m->readName, readName);
 	}
 	else {
 		/* Read read name length */
-		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp)!=1) {
-			PrintError(FnName,
-					"m->readNameLength",
-					"Could not read in read name length",
-					Exit,
-					ReadFileError);
+		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp) != 1) {
+			return EOF;
 		}
 		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
 		assert(m->readNameLength > 0);
@@ -96,7 +82,7 @@ int32_t RGMatchesRead(FILE *fp,
 					ReadFileError);
 		}
 	}
-	
+
 	/* Allocate the ends */
 	m->ends = malloc(sizeof(RGMatch)*m->numEnds);
 	if(NULL == m->ends) {
@@ -144,8 +130,7 @@ void RGMatchesPrint(FILE *fp,
 	/* Print the matches to the output file */
 	if(binaryOutput == TextInput) {
 		/* Print read name length, read name, and num ends*/
-		if(0 > fprintf(fp, "%d %s %d\n",
-					m->readNameLength,
+		if(0 > fprintf(fp, "@%s %d\n",
 					m->readName,
 					m->numEnds)) {
 			PrintError(FnName,
@@ -241,7 +226,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 							OutOfRange);
 				}
 				/* Append temp matches to matches */
-				RGMatchesAppend(&tempMatches, &matches);
+				RGMatchesAppend(&matches, &tempMatches);
 			}
 
 			/* Free temp matches */
@@ -366,12 +351,14 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 }
 
 /* TODO */
-void RGMatchesAppend(RGMatches *src, RGMatches *dest)
+void RGMatchesAppend(RGMatches *dest, RGMatches *src)
 {
 	char *FnName = "RGMatchesAppend";
 	int32_t i;
 	/* Check that we are not appending to ourselves */
 	assert(src != dest);
+	assert(NULL != src);
+	assert(NULL != dest);
 
 	/* Check to see if we need to add in the read name */
 	if(dest->readNameLength <= 0) {
@@ -388,13 +375,29 @@ void RGMatchesAppend(RGMatches *src, RGMatches *dest)
 					MallocMemory);
 		}
 		strcpy(dest->readName, src->readName);
-		dest->numEnds = src->numEnds;
+
+		assert(dest->numEnds <= src->numEnds);
+		if(dest->numEnds < src->numEnds) {
+			dest->ends = realloc(dest->ends, sizeof(RGMatch)*src->numEnds);
+			if(NULL==dest->ends) {
+				PrintError(FnName,
+						"dest->ends",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			for(i=dest->numEnds;i<src->numEnds;i++) {
+				RGMatchInitialize(&dest->ends[i]);
+			}
+			dest->numEnds = src->numEnds;
+		}
 	}
 	assert(src->numEnds == dest->numEnds);
 
 	/* Append the matches */
+	assert(src->numEnds == dest->numEnds);
 	for(i=0;i<dest->numEnds;i++) {
-		RGMatchAppend(&src->ends[i], &dest->ends[i]);
+		RGMatchAppend(&dest->ends[i], &src->ends[i]);
 	}
 }
 

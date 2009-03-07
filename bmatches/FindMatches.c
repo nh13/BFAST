@@ -79,11 +79,10 @@ void FindMatches(
 	int startChr, startPos, endChr, endPos;
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.matches.file.%s.%d.%s",
+	sprintf(outputFileName, "%s%s.matches.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			space,
 			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Read in the main RGIndex File Names */
@@ -132,11 +131,10 @@ void FindMatches(
 	 * source read read file for each index. 
 	 * */
 	/* Create filtered reads file name */
-	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%d.%s",
+	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			space,
 			BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
 	/* open read file */
 	if((seqFP=fopen(readFileName, "r"))==0) {
@@ -913,7 +911,7 @@ void *FindMatchesInIndexThread(void *arg)
 					numRead);
 		}
 
-		/* Read one */
+		/* Read */
 		foundMatch = 0;
 		for(i=0;i<m.numEnds;i++) {
 			RGReadsFindMatches(index,
@@ -933,6 +931,10 @@ void *FindMatchesInIndexThread(void *arg)
 			if(0 < m.ends[i].numEntries && 1 != m.ends[i].maxReached) {
 				foundMatch = 1;
 			}
+		}
+
+		if(1 == foundMatch) {
+			data->numMatches++;
 		}
 
 		/* Output to file */

@@ -78,6 +78,8 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	char *FnName = "AlignedEntryRead";
 	char tempContigName[MAX_CONTIG_NAME_LENGTH]="\0";
 
+	assert(NULL != a);
+
 	/* Allocate memory for the alignment */
 	if(a->read == NULL) {
 		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
@@ -264,7 +266,7 @@ int32_t AlignedEntryRemoveDuplicates(AlignedEntry **a,
 				/* Increment prevIndex */
 				prevIndex++;
 				/* Copy to prevIndex (incremented) */
-				AlignedEntryCopyAtIndex((*a), i, (*a), prevIndex);
+				AlignedEntryCopyAtIndex((*a), prevIndex, (*a), i);
 			}
 		}
 

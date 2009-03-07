@@ -70,18 +70,16 @@ void RunAligner(RGBinary *rg,
 			&endPos);
 
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.aligned.file.%s.%d.%s",
+	sprintf(outputFileName, "%s%s.aligned.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			space,
 			BFAST_ALIGNED_FILE_EXTENSION);
 	/* Create not aligned file name */
-	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%d.%s",
+	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			space,
 			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Open output file */

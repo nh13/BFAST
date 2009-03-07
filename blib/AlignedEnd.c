@@ -134,7 +134,12 @@ int32_t AlignedEndRead(AlignedEnd *a,
 		a->qual[a->qualLength]='\0';
 	}
 
+	/* Allocate room for the the entries */
+	AlignedEndAllocate(a,
+			a->numEntries);
+
 	for(i=0;i<a->numEntries;i++) {
+		AlignedEntryInitialize(&a->entries[i]);
 		if(EOF == AlignedEntryRead(&a->entries[i],
 					inputFP,
 					space,
@@ -245,11 +250,10 @@ void AlignedEndCopy(AlignedEnd *dest, AlignedEnd *src)
 		}
 		assert(src->qual != NULL);
 		strcpy(dest->qual, src->qual);
+		/* Reallocate */
+		AlignedEndReallocate(dest,
+				src->numEntries);
 		/* Copy entries */
-		for(i=dest->numEntries;i<src->numEntries;i++) { /* Free */
-			AlignedEntryFree(&dest->entries[i]);
-		}
-		dest->numEntries = src->numEntries;
 		for(i=0;i<dest->numEntries;i++) {
 			AlignedEntryCopy(&dest->entries[i], 
 					&src->entries[i]);
@@ -273,11 +277,10 @@ void AlignedEndAllocate(AlignedEnd *a,
 				ReallocMemory);
 	}
 
-	for(i=0;i<numEntries;i++) {
+	a->numEntries = numEntries;
+	for(i=0;i<a->numEntries;i++) {
 		AlignedEntryInitialize(&a->entries[i]);
 	}
-
-	a->numEntries = numEntries;
 
 }
 

@@ -881,7 +881,7 @@ void RGReadsRemoveDuplicates(RGReads *s)
 		else {
 			prevIndex++;
 			/* Copy over to temporary pair */
-			RGReadsCopyAtIndex(s, i, s, prevIndex);
+			RGReadsCopyAtIndex(s, prevIndex, s, i);
 		}
 	}
 
@@ -922,25 +922,25 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 
 		pivot = (low + high)/2;
 
-		RGReadsCopyAtIndex(s, pivot, temp, 0);
-		RGReadsCopyAtIndex(s, high, s, pivot);
-		RGReadsCopyAtIndex(temp, 0, s, high);
+		RGReadsCopyAtIndex(temp, 0, s, pivot);
+		RGReadsCopyAtIndex(s, pivot, s, high);
+		RGReadsCopyAtIndex(s, high, temp, 0);
 
 		pivot = low;
 
 		for(i=low;i<high;i++) {
 			if(RGReadsCompareAtIndex(s, i, s, high) <= 0) {
 				if(i!=pivot) {
-					RGReadsCopyAtIndex(s, i, temp, 0);
-					RGReadsCopyAtIndex(s, pivot, s, i);
-					RGReadsCopyAtIndex(temp, 0, s, pivot);
+					RGReadsCopyAtIndex(temp, 0, s, i);
+					RGReadsCopyAtIndex(s, i, s, pivot);
+					RGReadsCopyAtIndex(s, pivot, temp, 0);
 				}
 				pivot++;
 			}
 		}
-		RGReadsCopyAtIndex(s, pivot, temp, 0);
-		RGReadsCopyAtIndex(s, high, s, pivot);
-		RGReadsCopyAtIndex(temp, 0, s, high);
+		RGReadsCopyAtIndex(temp, 0, s, pivot);
+		RGReadsCopyAtIndex(s, pivot, s, high);
+		RGReadsCopyAtIndex(s, high, temp, 0);
 
 		/* Free memory before recursive call */
 		assert(temp->numReads == 1);
@@ -970,7 +970,7 @@ int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo)
 	}
 }
 
-void RGReadsCopyAtIndex(RGReads *src, int srcIndex, RGReads *dest, int destIndex)
+void RGReadsCopyAtIndex(RGReads *dest, int destIndex, RGReads *src, int srcIndex)
 {
 	if(dest != src || srcIndex != destIndex) {
 		strcpy(dest->reads[destIndex], src->reads[srcIndex]);

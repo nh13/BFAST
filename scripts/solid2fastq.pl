@@ -32,6 +32,7 @@ die($usage) if (@ARGV < 2 || 0 != (@ARGV % 2));
 
 my @FHs = ();
 my $num_ends = @ARGV/2;
+my %end_counts = ();
 
 # Open file handles
 foreach my $file (@ARGV) {
@@ -69,18 +70,21 @@ while(0 < scalar(@FHs)) {
 			# Shift down filehandles
 			splice(@FHs, $i+$num_ends, 1); # shift qual first
 			splice(@FHs, $i, 1); # next shift csfasta
+			$num_ends = scalar(@FHs)/2;
 		}
-		if(0 == length($min_read_name) || 0 == cmp_read_names($read_name, $min_read_name)) {
-			push(@min_read_name_indexes, $i);
-			$min_read_name = $read_name;
+		else {
+			if(0 == length($min_read_name) || 0 == cmp_read_names($read_name, $min_read_name)) {
+				push(@min_read_name_indexes, $i);
+				$min_read_name = $read_name;
+			}
+			elsif(cmp_read_names($read_name, $min_read_name) < 0) {
+				@min_read_name_indexes = ();
+				push(@min_read_name_indexes, $i);
+			}
+			# Seek back
+			seek($FHs[$i], $pos_csfasta, 0);
+			seek($FHs[$i+$num_ends], $pos_qual, 0);
 		}
-		elsif(cmp_read_names($read_name, $min_read_name) < 0) {
-			@min_read_name_indexes = ();
-			push(@min_read_name_indexes, $i);
-		}
-		# Seek back
-		seek($FHs[$i], $pos_csfasta, 0);
-		seek($FHs[$i+$num_ends], $pos_qual, 0);
 	}
 	# Print all with read names
 	for(my $j=0;$j<scalar(@min_read_name_indexes);$j++) {
@@ -88,6 +92,13 @@ while(0 < scalar(@FHs)) {
 			$FHs[$min_read_name_indexes[$j]+$num_ends]);
 	}
 	if(0 < scalar(@min_read_name_indexes)) {
+		my $key = scalar(@min_read_name_indexes);
+		if(!defined($end_counts{$key})) {
+			$end_counts{$key}=1;
+		}
+		else {
+			$end_counts{$key}++;
+		}
 		$ctr++;
 	}
 	if(0 == ($ctr % $ROTATE_NUM)) {
@@ -96,6 +107,21 @@ while(0 < scalar(@FHs)) {
 }
 printf(STDERR "\r%d\n", $ctr);
 
+printf(STDERR "Found\n%16s\t%16s\n",
+	"number_of_ends",
+	"number_of_reads");
+my $number_of_ends = 0;
+my $number_of_reads = 0;
+foreach my $key (sort {$a <=> $b} (keys %end_counts)) {
+	printf(STDERR "%16d\t%16d\n",
+		$key,
+		$end_counts{$key});
+	$number_of_ends+=$key*$end_counts{$key};
+	$number_of_reads+=$end_counts{$key};
+}
+printf(STDERR "%16s\t%16d\n",
+	"total",
+	$number_of_reads);
 sub get_read_name {
 	my $FH_csfasta = shift;;
 	my $FH_qual = shift;
@@ -200,7 +226,7 @@ sub cmp_read_names {
 
 	return (length($a) <=> length($b));
 }
-	
+
 sub read_name_trim {
 	my $a = shift;
 	# Trim last _R3 or _F3 or _whatever

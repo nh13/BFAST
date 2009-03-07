@@ -175,7 +175,7 @@ int32_t RGRangesCompareAtIndex(RGRanges *rOne, int32_t indexOne, RGRanges *rTwo,
 }
 
 /* TODO */
-void RGRangesAppend(RGRanges *src, RGRanges *dest)
+void RGRangesAppend(RGRanges *dest, RGRanges *src)
 {
 	int32_t i, start;
 

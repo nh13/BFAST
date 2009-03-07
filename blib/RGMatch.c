@@ -196,6 +196,7 @@ void RGMatchPrint(FILE *fp,
 	int32_t i;
 	assert(fp!=NULL);
 	assert(m->readLength > 0);
+	assert(m->qualLength > 0);
 
 	/* Print the matches to the output file */
 	if(binaryOutput == TextOutput) {
@@ -206,7 +207,7 @@ void RGMatchPrint(FILE *fp,
 					m->numEntries)) {
 			PrintError(FnName,
 					NULL,
-					"Could not write m->read, m->qualm->maxReached, and m->numEntries",
+					"Could not write m->read, m->qual, m->maxReached, and m->numEntries",
 					Exit,
 					WriteFileError);
 		}
@@ -288,7 +289,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 			else {
 				prevIndex++;
 				/* Copy to prevIndex (incremented) */
-				RGMatchCopyAtIndex(m, i, m, prevIndex);
+				RGMatchCopyAtIndex(m, prevIndex, m, i);
 			}
 		}
 
@@ -381,13 +382,15 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 }
 
 /* TODO */
-void RGMatchAppend(RGMatch *src, RGMatch *dest)
+void RGMatchAppend(RGMatch *dest, RGMatch *src)
 {
 	char *FnName = "RGMatchAppend";
 	int32_t i, start;
 
 	/* Make sure we are not appending to ourselves */
 	assert(src != dest);
+	assert(NULL != dest);
+	assert(NULL != src);
 
 	/* Check to see if we need to copy over the read as well */
 	if(dest->readLength <= 0) {
@@ -404,7 +407,7 @@ void RGMatchAppend(RGMatch *src, RGMatch *dest)
 					MallocMemory);
 		}   
 		assert(dest->qual == NULL);
-		dest->qual = malloc(sizeof(char)*(src->qualLength+1));
+		dest->qual = malloc(sizeof(char)*(dest->qualLength+1));
 		if(NULL==dest->qual) {
 			PrintError(FnName,
 					"dest->qual",

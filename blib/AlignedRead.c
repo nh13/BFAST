@@ -18,7 +18,7 @@ void AlignedReadPrint(AlignedRead *a,
 
 	if(binaryOutput == TextOutput) {
 		/* Print32_t the read name and paired end flag */
-		if(fprintf(outputFP, "%s\t%d\t%d\n",
+		if(fprintf(outputFP, "@%s\t%d\t%d\n",
 					a->readName,
 					a->space,
 					a->numEnds) < 0) {
@@ -82,7 +82,7 @@ int32_t AlignedReadRead(AlignedRead *a,
 
 	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
 	if(binaryInput == TextInput) {
-		if(fscanf(inputFP, "%s %d %d",
+		if(fscanf(inputFP, "@%s %d %d",
 					a->readName,
 					&a->space,
 					&a->numEnds)==EOF) {
@@ -129,7 +129,7 @@ int32_t AlignedReadRead(AlignedRead *a,
 		a->readName=NULL;
 	}
 
-	/* Allocate memory for the first entry */ 
+	/* Allocate memory for the ends */ 
 	a->ends = malloc(sizeof(AlignedEnd)*a->numEnds);
 	if(NULL==a->ends) {
 		PrintError(FnName,
@@ -238,8 +238,8 @@ void AlignedReadAllocate(AlignedRead *a,
 	char *FnName = "AlignedReadAllocate";
 	int32_t i;
 
-	a->numEnds = numEnds;
 	a->space = space;
+	a->numEnds = numEnds;
 	a->readNameLength = (int)strlen(readName);
 	a->readName = malloc(sizeof(char)*(a->readNameLength+1));
 	if(a->readName == NULL) {

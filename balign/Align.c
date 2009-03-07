@@ -14,6 +14,7 @@
 #include "../blib/BError.h"
 #include "../blib/RGMatches.h"
 #include "../blib/AlignedRead.h"
+#include "../blib/AlignedEnd.h"
 #include "../blib/AlignedEntry.h"
 #include "ScoringMatrix.h"
 #include "AlignNTSpace.h"
@@ -59,6 +60,7 @@ int AlignRGMatches(RGMatches *m,
 
 	/* Align each end individually */
 	for(i=0;i<m->numEnds;i++) {
+	/* Align an end */
 		AlignRGMatchesOneEnd(&m->ends[i],
 				rg,
 				&a->ends[i],
@@ -103,6 +105,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	char read[SEQUENCE_LENGTH]="\0";
 	int32_t readLength;
 	int32_t ctr=0;
+	
+	/* Allocate */
+	AlignedEndAllocate(end,
+			m->numEntries);
 
 	(*bestScore)=DBL_MIN;
 
@@ -137,7 +143,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				MallocMemory);
 	}
 
-	references = malloc(sizeof(char)*m->numEntries);
+	references = malloc(sizeof(char*)*m->numEntries);
 	if(NULL==references) {
 		PrintError(FnName,
 				"references",

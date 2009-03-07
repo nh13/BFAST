@@ -44,7 +44,7 @@ int FilterAlignedRead(AlignedRead *a,
 
 	/* We should only modify "a" if it is going to be reported */ 
 	/* Copy in case we do not find anything to report */
-	AlignedReadCopy(a, &tmpA);
+	AlignedReadCopy(&tmpA, a);
 
 	if(NoFiltering != algorithmReads) {
 		/* Filter each alignment individually */
@@ -215,7 +215,7 @@ int FilterAlignedRead(AlignedRead *a,
 	/* If we found, then copy back */
 	if(NoneFound != foundType) {
 		AlignedReadFree(a);
-		AlignedReadCopy(&tmpA, a);
+		AlignedReadCopy(a, &tmpA);
 	}
 	AlignedReadFree(&tmpA);
 	free(foundTypes);

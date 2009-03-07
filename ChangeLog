@@ -6,8 +6,11 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.4.1
-* Adding support for quality scores.
+* Adding support for quality scores.  The input reads now must be in
+fastq or multi-end fastq format.
 * Adding support for multi end reads.
+* The names of Output files of bmatches, balign, and subsequent 
+programs are changed.
 
 Version 0.3.4
 * Updated balign, bmfconvert, bafconvert, and bsort output file names.
