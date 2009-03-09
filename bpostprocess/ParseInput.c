@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithmReads, 
+	DescAlgoTitle, DescAlgorithm, 
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, escMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
@@ -76,7 +76,7 @@ static struct argp_option options[] = {
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
-	{"algorithmReads", 'a', "algorithmReads", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
+	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
 		"\n\t\t\t0: Specifies no filtering will occur"
 		"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
 		"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
@@ -188,7 +188,7 @@ main (int argc, char **argv)
 								arguments.startPos,
 								arguments.endContig,
 								arguments.endPos,
-								arguments.algorithmReads,
+								arguments.algorithm,
 								arguments.minScore,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
@@ -293,9 +293,9 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->algorithmReads < MIN_FILTER || 
-			args->algorithmReads > MAX_FILTER) {
-		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
+	if(args->algorithm < MIN_FILTER || 
+			args->algorithm > MAX_FILTER) {
+		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
 	
 	if(args->maxMismatches < 0) {
@@ -367,7 +367,7 @@ AssignDefaultValues(struct arguments *args)
 	args->endContig=0;
 	args->endPos=0;
 
-	args->algorithmReads=0;
+	args->algorithm=0;
 	args->minScore=INT_MIN;
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
@@ -410,7 +410,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
-	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
+	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
@@ -489,7 +489,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 #endif
 				switch (key) {
 					case 'a':
-						arguments->algorithmReads = atoi(OPTARG);break;
+						arguments->algorithm = atoi(OPTARG);break;
 						/*
 						   case 'b':
 						   arguments->binaryInput = 1;break;

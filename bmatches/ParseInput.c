@@ -59,7 +59,9 @@ PACKAGE_BUGREPORT;
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
+	/*
 	DescNumMismatches, DescNumDeletions, DescNumInsertions, DescNumGapDeletions, DescNumGapInsertions, 
+	*/
 	DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -83,6 +85,7 @@ static struct argp_option options[] = {
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
+	/*
 	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow in the mask when searching for candidates"
 		"\n\t\t\t(exponential enumeration: not recommended for use)"
 			"\n\t\t\t(SNPs in NT space and color errors in color space)", 2},
@@ -94,6 +97,7 @@ static struct argp_option options[] = {
 		"\n\t\t\t(enumeration: not recommended for use)", 2},
 	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gaps within the mask"
 		"\n\t\t\t(enumeration: not recommended for use)", 2},
+	*/
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
 	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse strand only", 2},
@@ -130,7 +134,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:w:x:y:z:A:I:K:M:O:R:T:Y:Z:hpt";
+"d:e:i:m:n:o:r:s:w:A:I:K:M:O:R:T:hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -456,11 +460,13 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
+						/*
 	fprintf(fp, "numMismatches:\t\t\t\t%d\n", args->numMismatches);
 	fprintf(fp, "numDeletions:\t\t\t\t%d\n", args->numDeletions);
 	fprintf(fp, "numInsertions:\t\t\t\t%d\n", args->numInsertions);
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
+	*/
 	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "whichStrand:\t\t\t\t%d\t[%s]\n", args->whichStrand, whichStrand[args->whichStrand]);
@@ -575,12 +581,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->timing = 1;break;
 					case 'w':
 						arguments->whichStrand = atoi(OPTARG);break;
+						/*
 					case 'x':
 						arguments->numMismatches=atoi(OPTARG);break;
+						*/
+						/*
 					case 'y':
 						arguments->numDeletions = atoi(OPTARG);break;
+						*/
+						/*
 					case 'z':
 						arguments->numInsertions=atoi(OPTARG);break;
+						*/
 						/*
 						   case 'B':
 						   arguments->binaryOutput = 1;break;
@@ -603,10 +615,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'T':
 						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						break;
+						/*
 					case 'Y':
 						arguments->numGapDeletions = atoi(OPTARG);break;
+						*/
+						/*
 					case 'Z':
 						arguments->numGapInsertions = atoi(OPTARG);break;
+						*/
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

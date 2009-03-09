@@ -13,7 +13,7 @@
 
 /* TODO */
 int FilterAlignedRead(AlignedRead *a,
-		int algorithmReads,
+		int algorithm,
 		int minScore,
 		int startContig,
 		int startPos,
@@ -42,7 +42,7 @@ int FilterAlignedRead(AlignedRead *a,
 	/* Copy in case we do not find anything to report */
 	AlignedReadCopy(&tmpA, a);
 
-	if(NoFiltering != algorithmReads) {
+	if(NoFiltering != algorithm) {
 		/* Filter each alignment individually */
 		for(i=0;i<tmpA.numEnds;i++) {
 			for(j=0;j<tmpA.ends[i].numEntries;j++) {
@@ -85,7 +85,7 @@ int FilterAlignedRead(AlignedRead *a,
 	/* Pick alignment for each end individually (is this a good idea?) */
 	for(i=0;i<tmpA.numEnds;i++) {
 		/* Choose each end */
-		switch(algorithmReads) {
+		switch(algorithm) {
 			case NoFiltering:
 			case AllNotFiltered:
 				foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
@@ -117,8 +117,8 @@ int FilterAlignedRead(AlignedRead *a,
 				break;
 			default:
 				PrintError(FnName,
-						"algorithmReads",
-						"Could not understand algorithmReads",
+						"algorithm",
+						"Could not understand algorithm",
 						Exit,
 						OutOfRange);
 				break;

@@ -4,7 +4,7 @@
 #include "../blib/AlignedRead.h"
 
 int FilterAlignedRead(AlignedRead *a,
-		int algorithmReads,
+		int algorithm,
 		int minScores,
 		int startChr,
 		int startPos,

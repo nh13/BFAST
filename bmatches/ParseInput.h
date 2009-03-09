@@ -13,11 +13,11 @@ struct arguments
 	int binaryInput;						/* -b - not used */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */
-	int numMismatches;						/* -x */
-	int numInsertions;						/* -y */
-	int numDeletions;						/* -z */
-	int numGapInsertions;					/* -Y */
-	int numGapDeletions;					/* -Z */
+	int numMismatches;						/* -x - not used */
+	int numInsertions;						/* -y - not used */
+	int numDeletions;						/* -z - not used */
+	int numGapInsertions;					/* -Y - not used */
+	int numGapDeletions;					/* -Z - not used */
 	int maxKeyMatches;						/* -K */
 	int maxNumMatches;						/* -M */
 	int whichStrand;						/* -w */

@@ -23,7 +23,14 @@ bafconvert [OPTIONS]
 			0-BAF text to BAF binary
 			1-BAF binary to BAF text
 			2-BAF binary to MAF
+			3-BAF binary to GFF (v2)
 	<bfast reference genome file (required only for MAF output)>
+
+balignmentscoredistribution [OPTIONS]
+	<bfast aligned file>
+	<bins: from>
+	<bins: by>
+	<bins: to>
 
 balignsim [OPTIONS]
 	<bfast reference genome file name (must be in nt space)>
@@ -49,7 +56,6 @@ bgeterrordistribution [OPTIONS]
 bevalsim [OPTIONS]
 	<bfast matches file or bfast aligned file>
 	<reads file>
-	<paired end 0: false 1: true>
 	<output id>
 
 bexonify [OPTIONS]

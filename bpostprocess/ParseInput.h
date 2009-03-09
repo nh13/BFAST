@@ -6,7 +6,7 @@ struct arguments
 	char *alignFileName;					/* -i */
 	char *rgFileName;						/* -r */
 	int binaryInput;                        /* -b - not used */
-	int algorithmReads;						/* -a */
+	int algorithm;							/* -a */
 	int startContig;                        /* -s */
 	int startPos;                           /* -S */
 	int endContig;                          /* -e */
