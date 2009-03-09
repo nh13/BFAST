@@ -355,6 +355,7 @@ void AlignedEndFree(AlignedEnd *a)
 	for(i=0;i<a->numEntries;i++) {
 		AlignedEntryFree(&a->entries[i]);
 	}
+	free(a->entries);
 	AlignedEndInitialize(a);
 }
 

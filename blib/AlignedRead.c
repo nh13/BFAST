@@ -277,6 +277,7 @@ void AlignedReadFree(AlignedRead *a)
 	for(i=0;i<a->numEnds;i++) {
 		AlignedEndFree(&a->ends[i]);
 	}
+	free(a->ends);
 	free(a->readName);
 	AlignedReadInitialize(a);
 }

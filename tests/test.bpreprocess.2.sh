@@ -16,7 +16,7 @@ do
 	RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.$SPACE.brg";
 
 	# Make an index
-	CMD="../bpreprocess/bpreprocess -r $RG -a 1 -A $SPACE -i $LAYOUT_FILE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+	CMD=$CMD_PREFIX"../bpreprocess/bpreprocess -r $RG -a 1 -A $SPACE -i $LAYOUT_FILE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 	$CMD 2> /dev/null > /dev/null; 
 
 	# Get return code
