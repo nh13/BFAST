@@ -13,7 +13,6 @@
 #include "../blib/AlignedEnd.h" 
 #include "../blib/AlignedEntry.h" 
 #include "../blib/ScoringMatrix.h"
-#include "../blib/QS.h"
 #include "Align.h"
 #include "Definitions.h"
 #include "RunAligner.h"
@@ -22,7 +21,6 @@
 void RunAligner(RGBinary *rg,
 		char *matchFileName,
 		char *scoringMatrixFileName,
-		char *indexesProfileFileName,
 		int alignmentType,
 		int bestOnly,
 		int space,
@@ -49,26 +47,8 @@ void RunAligner(RGBinary *rg,
 	FILE *outputFP=NULL;
 	FILE *notAlignedFP=NULL;
 	FILE *matchFP=NULL;
-	FILE *profileFP=NULL;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char notAlignedFileName[MAX_FILENAME_LENGTH]="\0";
-	RGIndexAccuracyMismatchProfile profile;
-
-	/* Initialize */
-	RGIndexAccuracyMismatchProfileInitialize(&profile);
-	/* Open indexes profile file */
-	if((profileFP=fopen(indexesProfileFileName, "r"))==0) {
-		PrintError("FindMatches",
-				indexesProfileFileName,
-				"Could not open indexes profile for reading",
-				Exit,
-				OpenFileError);
-	}
-	/* Read in profile */
-	RGIndexAccuracyMismatchProfileRead(profileFP, 
-			&profile);
-	/* Close indexes profile file */
-	fclose(profileFP);
 
 	assert(BinaryInput == binaryInput);
 	assert(BinaryOutput == binaryOutput);
@@ -144,7 +124,6 @@ void RunAligner(RGBinary *rg,
 	RunDynamicProgramming(matchFP,
 			rg,
 			scoringMatrixFileName,
-			&profile,
 			alignmentType,
 			bestOnly,
 			space,
@@ -179,16 +158,12 @@ void RunAligner(RGBinary *rg,
 
 	/* Close not aligned file */
 	fclose(notAlignedFP);
-
-	/* Free indexes profile */
-	RGIndexAccuracyMismatchProfileFree(&profile);
 }
 
 /* TODO */
 void RunDynamicProgramming(FILE *matchFP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
-		RGIndexAccuracyMismatchProfile *profile,
 		int alignmentType,
 		int bestOnly,
 		int space,
@@ -224,7 +199,6 @@ void RunDynamicProgramming(FILE *matchFP,
 	int startTime, endTime;
 	int64_t numLocalAlignments=0;
 	AlignedRead aEntries;
-	QS qs;
 	/* Thread specific data */
 	ThreadData *data;
 	pthread_t *threads=NULL;
@@ -259,18 +233,6 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Read in scoring matrix */
 	ScoringMatrixRead(scoringMatrixFileName, &sm, space); 
-
-	/* Initialize QS */
-	if(NTSpace == space) {
-		QSInitialize(&qs, 
-				profile->maxReadLength*sm.minNTScore,
-				profile->maxReadLength*sm.maxNTScore);
-	}
-	else {
-		QSInitialize(&qs, 
-				profile->maxReadLength*sm.minColorScore,
-				profile->maxReadLength*sm.maxColorScore);
-	}
 
 	/**/
 	/* Split the input file into equal temp files for each thread */
@@ -365,17 +327,6 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].bestOnly = bestOnly;
 		data[i].numLocalAlignments = 0;
 		data[i].threadID = i;
-		/* Initialize QS */
-		if(NTSpace == space) {
-			QSInitialize(&data[i].qs, 
-					profile->maxReadLength*sm.minNTScore,
-					profile->maxReadLength*sm.maxNTScore);
-		}
-		else {
-			QSInitialize(&data[i].qs, 
-					profile->maxReadLength*sm.minColorScore,
-					profile->maxReadLength*sm.maxColorScore);
-		}
 	}
 
 	if(VERBOSE >= 0) {
@@ -431,10 +382,6 @@ void RunDynamicProgramming(FILE *matchFP,
 		/* Reinitialize file pointer */
 		fseek(data[i].outputFP, 0, SEEK_SET);
 		assert(NULL!=data[i].outputFP);
-
-		/* Merge qs */
-		QSMerge(&qs, &data[i].qs);
-		QSFree(&data[i].qs);
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\n");
@@ -479,14 +426,6 @@ void RunDynamicProgramming(FILE *matchFP,
 				}
 				if(1 == wasAligned) {
 					numAligned++;
-					/* Update mapping quality */
-					for(j=0;j<aEntries.numEnds;j++) {
-						AlignedEndAssignMappingQualities(&aEntries.ends[j],
-								&sm,
-								&qs,
-								profile,
-								space);
-					}
 				}
 				/* Print it out */
 				AlignedReadPrint(&aEntries,
@@ -556,8 +495,6 @@ void RunDynamicProgramming(FILE *matchFP,
 	AlignedReadFree(&aEntries);
 	/* Free scores */
 	ScoringMatrixFree(&sm);
-	/* Free qs */
-	QSFree(&qs);
 }
 
 /* TODO */
@@ -581,7 +518,6 @@ void *RunDynamicProgrammingThread(void *arg)
 	int alignmentType=data->alignmentType;
 	int bestOnly=data->bestOnly;
 	int threadID=data->threadID;
-	QS *qs=&(data->qs);
 	/* Local variables */
 	/*
 	   char *FnName = "RunDynamicProgrammingThread";
@@ -634,11 +570,6 @@ void *RunDynamicProgrammingThread(void *arg)
 			/* Remove duplicates */
 			AlignedReadRemoveDuplicates(&aEntries,
 					AlignedEntrySortByAll);
-			/* Update the mapping quality */
-			for(i=0;i<aEntries.numEnds;i++) {
-				UpdateQS(&aEntries.ends[i],
-						qs);
-			}
 			/* Print */
 			AlignedReadPrint(&aEntries,
 					outputFP,

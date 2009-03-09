@@ -16,7 +16,6 @@
 #include "../blib/AlignedRead.h"
 #include "../blib/AlignedEnd.h"
 #include "../blib/AlignedEntry.h"
-#include "../blib/QS.h"
 #include "../blib/ScoringMatrix.h"
 #include "AlignNTSpace.h"
 #include "AlignColorSpace.h"
@@ -572,58 +571,4 @@ int32_t AlignRGMatchesKeepBestScore(AlignedEnd *end,
 	}
 
 	return numLocalAlignments;
-}
-
-/* TODO */
-void UpdateQS(AlignedEnd *end,
-		QS *qs) 
-{
-	int32_t bestScore, secondBestScore;
-	int32_t bestNum, secondBestNum;
-	int32_t bestNumMismatches, secondBestNumMismatches;
-	int32_t i;
-
-	if(end->numEntries <= 1) {
-		return;
-	}
-
-	bestScore = secondBestScore = INT_MIN;
-	bestNum = secondBestNum = 0;
-	bestNumMismatches = secondBestNumMismatches = 0;
-
-	for(i=0;i<end->numEntries;i++) {
-		if(bestScore < (int32_t)end->entries[i].score) {
-			bestScore = end->entries[i].score;
-			bestNum = 1;
-		}
-		else if(bestScore == (int32_t)end->entries[i].score) {
-			bestNum++;
-		}
-		else if(secondBestScore < (int32_t)end->entries[i].score) {
-			secondBestScore = end->entries[i].score;
-			secondBestNum = 1;
-		}
-		else if(secondBestScore == (int32_t)end->entries[i].score) {
-			secondBestNum++;
-		}
-	}
-
-	if(1 == bestNum &&
-			1 <= secondBestNum) {
-		/*
-		   fprintf(stderr, "bestNum=%d\tsecondBestNum=%d\tbestScore=%d\tsecondBestScore=%d\n",
-		   bestNum,
-		   secondBestNum,
-		   (int32_t)bestScore,
-		   (int32_t)secondBestScore);
-		   QSAdd(qs, (int32_t)(bestScore - secondBestScore)); 
-		   */
-	}
-	else {
-		/*
-		   fprintf(stderr, "bestNum=%d\tsecondBestNum=%d\n",
-		   bestNum,
-		   secondBestNum);
-		   */
-	}
 }

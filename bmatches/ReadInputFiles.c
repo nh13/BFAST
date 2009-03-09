@@ -5,7 +5,6 @@
 #include <time.h>
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
-#include "../blib/RGIndexAccuracy.h"
 #include "../blib/RGMatch.h"
 #include "../blib/RGMatches.h"
 #include "Definitions.h"
@@ -181,9 +180,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 		char *tmpDir,
 		int *numWritten,
 		int *numFiltered,
-		int32_t space,
-		RGIndexAccuracySet *set,
-		RGIndexAccuracyMismatchProfile *profile)
+		int32_t space)
 {
 	char *FnName = "WriteReadsToTempFile";
 	int i;
@@ -242,18 +239,6 @@ void WriteReadsToTempFile(FILE *seqFP,
 			}
 
 			if(1 == isValidRead) {
-
-				/* Evaluate profile */
-				if(NULL != set && 
-						NULL != profile) {
-					for(i=0;i<m.numEnds;i++) {
-						RGIndexAccuracyMismatchProfileAdd(profile, 
-								set,
-								m.ends[i].readLength,
-								space);
-					}
-				}
-
 				/* Print */
 				if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {
 					PrintError(FnName,

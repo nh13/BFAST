@@ -12,7 +12,6 @@ bpostprocess_SOURCES = \
 					   ../blib/AlignedRead.c   ../blib/AlignedRead.h \
 					   ../blib/AlignedEnd.c    ../blib/AlignedEnd.h \
 					   ../blib/AlignedEntry.c  ../blib/AlignedEntry.h \
-					   ../blib/QS.c	../blib/QS.h \
 					   Filter.c	Filter.h \
 					   InputOutputToFiles.c	InputOutputToFiles.h \
 					   ParseInput.c	ParseInput.h \

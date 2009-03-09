@@ -10,12 +10,10 @@ balign_SOURCES = \
 	../blib/RGRanges.c	../blib/RGRanges.h \
 	../blib/RGBinary.c	../blib/RGBinary.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
-	../blib/RGIndexAccuracy.c	../blib/RGIndexAccuracy.h \
     ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 	../blib/AlignedRead.c	../blib/AlignedRead.h \
 	../blib/AlignedEnd.c	../blib/AlignedEnd.h \
 	../blib/AlignedEntry.c	../blib/AlignedEntry.h \
-	../blib/QS.c	../blib/QS.h \
 	../blib/ScoringMatrix.c	../blib/ScoringMatrix.h \
 	AlignNTSpace.c	AlignNTSpace.h \
 	AlignColorSpace.c	AlignColorSpace.h \

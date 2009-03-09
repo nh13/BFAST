@@ -30,7 +30,6 @@ bafconvert_SOURCES = \
 					 ../blib/AlignedRead.c	../blib/AlignedRead.h \
 					 ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
 					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-					 ../blib/QS.c	../blib/QS.h \
 					 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 					 bafconvert.c bafconvert.h
 
@@ -47,7 +46,6 @@ balignmentscoredistribution_SOURCES = \
 									  ../blib/AlignedRead.c	../blib/AlignedRead.h \
 									  ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
 									  ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-									  ../blib/QS.c	../blib/QS.h \
 									  ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 									  balignmentscoredistribution.c balignmentscoredistribution.h
 
@@ -66,7 +64,6 @@ balignsim_SOURCES = \
 					../blib/AlignedRead.c	../blib/AlignedRead.h \
 					../blib/AlignedEnd.c	../blib/AlignedEnd.h \
 					../blib/RGIndexAccuracy.c	../blib/RGIndexAccuracy.h \
-					../blib/QS.c	../blib/QS.h \
 					../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 					../balign/RunAligner.c	../balign/RunAligner.h \
 					../blib/ScoringMatrix.c	../blib/ScoringMatrix.h \
@@ -89,7 +86,6 @@ bevalsim_SOURCES = \
 				   ../blib/RGMatch.c ../blib/RGMatch.h \
 				   ../blib/AlignedRead.c	../blib/AlignedRead.h \
 				   ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-				   ../blib/QS.c	../blib/QS.h \
 				   ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 				   bevalsim.c	bevalsim.h
 
@@ -146,7 +142,6 @@ bgeneratereads_LDADD =
 
 berrordistribution_SOURCES = \
 							 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-							 ../blib/QS.c	../blib/QS.h \
 							 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 							 ../blib/AlignedRead.c	../blib/AlignedRead.h \
 							 ../blib/BError.c	../blib/BError.h \
@@ -210,7 +205,6 @@ bmergesorted_SOURCES = \
 					   ../blib/RGReads.c	../blib/RGReads.h \
 					   ../blib/AlignedRead.c	../blib/AlignedRead.h \
 					   ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-					   ../blib/QS.c	../blib/QS.h \
 					   ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 					   bmergesorted.c	bmergesorted.h
 
@@ -242,7 +236,6 @@ bpairedenddist_SOURCES = \
 						 ../blib/RGReads.c	../blib/RGReads.h \
 						 ../blib/AlignedRead.c	../blib/AlignedRead.h \
 						 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-						 ../blib/QS.c	../blib/QS.h \
 						 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 						 bpairedenddist.c	bpairedenddist.h
 
@@ -262,7 +255,6 @@ brepeat_LDADD =
 
 breport_SOURCES = \
 				  ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-				  ../blib/QS.c	../blib/QS.h \
 				  ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 				  ../blib/AlignedRead.c	../blib/AlignedRead.h \
 				  ../blib/BError.c	../blib/BError.h \
@@ -280,7 +272,6 @@ breport_LDADD =
 
 bsort_SOURCES = \
 				../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-				../blib/QS.c	../blib/QS.h \
 				../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 				../blib/AlignedRead.c	../blib/AlignedRead.h \
 				../blib/BError.c	../blib/BError.h \
@@ -309,7 +300,6 @@ btestindexes_LDADD =
 
 btranslocations_SOURCES = \
 						  ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-						  ../blib/QS.c	../blib/QS.h \
 						  ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 						  ../blib/AlignedRead.c	../blib/AlignedRead.h \
 						  ../blib/BError.c	../blib/BError.h \

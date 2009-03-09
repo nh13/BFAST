@@ -12,7 +12,6 @@ struct arguments
 	int endContig;                          /* -e */
 	int endPos;                             /* -E */
 	int minScore;							/* -m */
-	int minMappingQuality;					/* -q */
 	int maxMismatches;						/* -j */
 	int maxColorErrors;						/* -k */
 	int minDistancePaired;					/* -X */

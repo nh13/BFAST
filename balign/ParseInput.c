@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, DescIndexesProfileFileName, 
+	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescScoringType, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
@@ -76,7 +76,6 @@ static struct argp_option options[] = {
 	/*
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
 	   */
-	{"indexesProfileFileName", 'i', "indexesProfileFileName", 0, "Specifies the bfast indexes profile file", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
 	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "If specified prompts to find only the best scoring alignment(s) across all matches."
@@ -128,7 +127,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:l:m:n:o:r:s:x:A:E:H:L:M:O:S:T:bfhpt";
+"a:d:e:l:m:n:o:r:s:x:A:E:H:L:M:O:S:T:bfhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -197,7 +196,6 @@ main (int argc, char **argv)
 						RunAligner(&rg,
 								arguments.matchFileName,
 								arguments.scoringMatrixFileName,
-								arguments.indexesProfileFileName,
 								arguments.alignmentType,
 								arguments.bestOnly,
 								arguments.space,
@@ -332,13 +330,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
 	
-	if(args->indexesProfileFileName!=0) {
-		fprintf(stderr, "Validating indexesProfileFileName path %s. \n",
-				args->indexesProfileFileName);
-		if(ValidateFileName(args->indexesProfileFileName)==0)
-			PrintError(FnName, "indexesProfileFileName", "Command line argument", Exit, IllegalFileName);
-	}
-
 	if(args->alignmentType != FullAlignment && args->alignmentType != MismatchesOnly) {
 		PrintError(FnName, "alignmentType", "Command line argument", Exit, OutOfRange);
 	}
@@ -439,11 +430,6 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 	
-	args->indexesProfileFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->indexesProfileFileName!=0);
-	strcpy(args->indexesProfileFileName, DEFAULT_FILENAME);
-
 	args->binaryInput = BMATCHES_DEFAULT_OUTPUT;
 	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
 
@@ -496,7 +482,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
-	fprintf(fp, "indexesProfileFileName:\t\t\t%s\n", args->indexesProfileFileName);
 	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
 	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
@@ -531,8 +516,6 @@ void FreeProgramParameters(struct arguments *args)
 	args->matchFileName=NULL;
 	free(args->scoringMatrixFileName);
 	args->scoringMatrixFileName=NULL;
-	free(args->indexesProfileFileName);
-	args->indexesProfileFileName=NULL;
 	free(args->outputID);
 	args->outputID=NULL;
 	free(args->outputDir);
@@ -604,8 +587,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->forceMirroring=1;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
-					case 'i':
-						StringCopyAndReallocate(&arguments->indexesProfileFileName, OPTARG);
 					case 'l':
 						arguments->usePairedEndLength=1;
 						arguments->pairedEndLength = atoi(OPTARG);break;

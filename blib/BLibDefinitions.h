@@ -216,7 +216,6 @@ typedef struct {
 	uint32_t position;
 	char strand;
 	double score;
-	int32_t mappingQuality;
 	uint32_t referenceLength; /* The length of the reference alignment substracting gaps */
 	uint32_t length; /* The length of the alignment */
 	char *read; /* The read */
@@ -295,13 +294,6 @@ typedef struct {
 	int32_t minNTScore;
 	int32_t minColorScore;
 } ScoringMatrix;
-
-/* Qs.c */
-typedef struct {
-	int *scores;
-	int maxDiff;
-	int total;
-} QS;
 
 /* RGIndexAccuracy.c */
 typedef struct {

@@ -151,7 +151,6 @@ void Run(RGBinary *rg,
 	SimRead r;
 	RGMatches m;
 	AlignedRead a;
-	RGIndexAccuracyMismatchProfile profile;
 	int32_t score, prev, score_m, score_mm, score_cm, score_ce, wasInsertion;
 	int32_t numScoreLessThan, numScoreEqual, numScoreGreaterThan;
 	int insertionLength = (2==indel)?indelLength:0;
@@ -159,21 +158,6 @@ void Run(RGBinary *rg,
 	char string[4096]="\0";
 	int ret=0;
 	char *s=NULL;
-
-	/* Initialize profile */
-	RGIndexAccuracyMismatchProfileInitialize(&profile);
-	profile.maxMismatches = malloc(sizeof(int32_t)*(readLength+1));
-	if(NULL == profile.maxMismatches) {
-		PrintError(FnName,
-				"profile.maxMismatches",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	for(i=0;i<=readLength;i++) {
-		profile.maxMismatches[i] = -1;
-	}
-	profile.maxMismatches[readLength] = 1; /* This is arbitrary */
 
 	if(ColorSpace == space &&
 			1 == withinInsertion && 
@@ -440,7 +424,6 @@ void Run(RGBinary *rg,
 	RunDynamicProgramming(matchesFP,
 			rg,
 			scoringMatrixFileName,
-			&profile,
 			alignmentType,
 			AllAlignments,
 			space,
@@ -536,7 +519,6 @@ void Run(RGBinary *rg,
 
 	/* Free */
 	ScoringMatrixFree(&sm);
-	RGIndexAccuracyMismatchProfileFree(&profile);
 
 	fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 			numReads,

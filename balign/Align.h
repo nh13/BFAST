@@ -9,6 +9,5 @@ int32_t AlignExact(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*
 void AlignMismatchesOnly(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, char, int32_t);
 void AlignFullWithBound(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, char, int32_t, double);
 int32_t AlignRGMatchesKeepBestScore(AlignedEnd*, double);
-void UpdateQS(AlignedEnd*, QS*);
 
 #endif

@@ -6,7 +6,6 @@ bmatches_SOURCES = \
 	../blib/BLib.c	../blib/BLib.h \
 	../blib/RGIndexExons.c	../blib/RGIndexExons.h \
 	../blib/RGIndex.c	../blib/RGIndex.h \
-	../blib/RGIndexAccuracy.c	../blib/RGIndexAccuracy.h \
 	../blib/RGBinary.c	../blib/RGBinary.h \
 	../blib/RGReads.c	../blib/RGReads.h \
 	../blib/RGMatches.c	../blib/RGMatches.h \

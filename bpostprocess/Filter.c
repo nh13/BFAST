@@ -15,7 +15,6 @@
 int FilterAlignedRead(AlignedRead *a,
 		int algorithmReads,
 		int minScore,
-		int minMappingQuality,
 		int startContig,
 		int startPos,
 		int endContig,
@@ -51,7 +50,6 @@ int FilterAlignedRead(AlignedRead *a,
 				if(0<FilterAlignedEntry(&tmpA.ends[i].entries[j],
 							tmpA.space,
 							minScore,
-							minMappingQuality,
 							startContig,
 							startPos,
 							endContig,
@@ -106,28 +104,6 @@ int FilterAlignedRead(AlignedRead *a,
 						numBest = 1;
 					}
 					else if(best == tmpA.ends[i].entries[j].score) {
-						numBest++;
-					}
-				}
-				if(1==numBest) {
-					foundTypes[i] = Found;
-					/* Copy to front */
-					AlignedEntryCopy(&tmpA.ends[i].entries[0], 
-							&tmpA.ends[i].entries[bestIndex]);
-					AlignedEndReallocate(&tmpA.ends[i], 1);
-				}
-				break;
-			case BestMappingQuality:
-				best = INT_MIN;
-				bestIndex = -1;
-				numBest = 0;
-				for(j=0;j<tmpA.ends[i].numEntries;j++) {
-					if(best < tmpA.ends[i].entries[j].mappingQuality) {
-						best = tmpA.ends[i].entries[j].mappingQuality;
-						bestIndex = j;
-						numBest = 1;
-					}
-					else if(best == tmpA.ends[i].entries[j].mappingQuality) {
 						numBest++;
 					}
 				}
@@ -223,7 +199,6 @@ int FilterAlignedRead(AlignedRead *a,
 int FilterAlignedEntry(AlignedEntry *a,
 		int space,
 		int minScore,
-		int minMappingQuality,
 		int startContig,
 		int startPos,
 		int endContig,
@@ -234,8 +209,7 @@ int FilterAlignedEntry(AlignedEntry *a,
 	int32_t numMismatches, numColorErrors;
 	numMismatches=numColorErrors=0;
 	/* Check if the alignment has at least the minimum score */
-	if(a->score < minScore &&
-			a->mappingQuality < minMappingQuality) {
+	if(a->score < minScore) {
 		return 1;
 	}
 	/* Check the genomic location */

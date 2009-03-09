@@ -57,8 +57,8 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithmReads, DescMappingQuality, 
-	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, DescMinMappingQuality, escMaxMismatches, DescMaxColorErrors, 
+	DescAlgoTitle, DescAlgorithmReads, 
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, escMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -80,8 +80,7 @@ static struct argp_option options[] = {
 		"\n\t\t\t0: Specifies no filtering will occur"
 		"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
 		"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
-		"\n\t\t\t3: Specifies to choose the alignment with the best score"
-		"\n\t\t\t4: Specifies to choose the alignment with the best mapping quality",
+		"\n\t\t\t3: Specifies to choose the alignment with the best score",
 		2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
@@ -89,7 +88,6 @@ static struct argp_option options[] = {
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
 	{"minScore", 'm', "minScore", 0, "Specifies the minimum score to consider for a given end of a read", 3},
-	{"minMappingQuality", 'q', "minMappingQuality", 0, "Specifies the minimum phred-like mapping quality to allow when using -a 3 and -u", 2},
 	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for a given end of a read", 3},
 	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for a given end of a read", 3},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
@@ -129,7 +127,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:q:r:s:z:E:I:O:P:S:T:X:Y:hptCIU";
+"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -192,7 +190,6 @@ main (int argc, char **argv)
 								arguments.endPos,
 								arguments.algorithmReads,
 								arguments.minScore,
-								arguments.minMappingQuality,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
 								arguments.minDistancePaired,
@@ -301,10 +298,6 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 	
-	if(args->minMappingQuality < 0) { 
-		PrintError(FnName, "minMappingQuality", "Command line argument", Exit, OutOfRange);
-	}
-
 	if(args->maxMismatches < 0) {
 		PrintError(FnName, "maxMismatches < 0", "Command line argument", Exit, OutOfRange);
 	}
@@ -376,7 +369,6 @@ AssignDefaultValues(struct arguments *args)
 
 	args->algorithmReads=0;
 	args->minScore=INT_MIN;
-	args->minMappingQuality=0;
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
 
@@ -424,7 +416,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
 	fprintf(fp, "minScore:\t\t%d\n", args->minScore);
-	fprintf(fp, "minMappingQuality:\t\t%d\n", args->minMappingQuality);
 	fprintf(fp, "maxMismatches:\t\t%d\n", args->maxMismatches);
 	fprintf(fp, "maxColorErrors:\t\t%d\n", args->maxColorErrors);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
@@ -524,8 +515,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
-					case 'q':
-						arguments->minMappingQuality = atoi(OPTARG);break;
 					case 'r':
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);break;
 					case 's':

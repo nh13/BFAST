@@ -7,7 +7,6 @@ struct arguments
 	char *rgFileName;                   	/* -r */
 	char *matchFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
-	char *indexesProfileFileName;			 /* -i */
 	int binaryInput;                        /* -b - not used */
 	int alignmentType;						/* -a */
 	int bestOnly;							/* -b */

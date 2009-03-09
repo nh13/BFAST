@@ -20,13 +20,12 @@ int32_t AlignedEntryPrint(AlignedEntry *a,
 
 	if(binaryOutput == TextOutput) {
 
-		if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
+		if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
 					a->contigName,
 					a->contig,
 					a->position,
 					a->strand,
 					a->score,
-					a->mappingQuality,
 					a->referenceLength,
 					a->length) < 0) {
 			return EOF;
@@ -54,7 +53,6 @@ int32_t AlignedEntryPrint(AlignedEntry *a,
 				fwrite(&a->position, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->strand, sizeof(char), 1, outputFP) != 1 ||
 				fwrite(&a->score, sizeof(double), 1, outputFP) != 1 ||
-				fwrite(&a->mappingQuality, sizeof(int32_t), 1, outputFP) != 1 ||
 				fwrite(&a->referenceLength, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(&a->length, sizeof(uint32_t), 1, outputFP) != 1 ||
 				fwrite(a->read, sizeof(char), a->length, outputFP) != a->length ||
@@ -118,13 +116,12 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 
 	if(binaryInput == TextInput) {
 
-		if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
+		if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%u\t%u\n",
 					tempContigName,
 					&a->contig,
 					&a->position,
 					&a->strand,
 					&a->score,
-					&a->mappingQuality,
 					&a->referenceLength,
 					&a->length) < 0) {
 			return EOF;
@@ -175,7 +172,6 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 				fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
 				fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
-				fread(&a->mappingQuality, sizeof(int32_t), 1, inputFP) != 1 ||
 				fread(&a->referenceLength, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1 ||
 				fread(a->read, sizeof(char), a->length, inputFP) != a->length ||
@@ -553,7 +549,6 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 		dest->position = src->position;
 		dest->strand = src->strand;
 		dest->score = src->score;
-		dest->mappingQuality = src->mappingQuality;
 	}
 }
 
@@ -574,7 +569,6 @@ void AlignedEntryInitialize(AlignedEntry *a)
 	a->position=0;
 	a->strand=0;
 	a->score=0.0;
-	a->mappingQuality=0;
 	a->referenceLength=0;
 	a->length=0;
 	a->read=NULL;
