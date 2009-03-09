@@ -18,18 +18,6 @@ enum {FullAlignment, MismatchesOnly};
 enum {AllAlignments, BestOnly};
 
 /* Align.c specific definitions */
-typedef struct {
-	int32_t gapOpenPenalty;
-	int32_t gapExtensionPenalty;
-	char *NTKeys;
-	int32_t **NTScores;
-	int32_t *ColorKeys;
-	int32_t **ColorScores;
-	int32_t maxNTScore;
-	int32_t maxColorScore;
-	int32_t minNTScore;
-	int32_t minColorScore;
-} ScoringMatrix;
 
 /* TODO */
 typedef struct {

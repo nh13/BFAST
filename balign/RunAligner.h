@@ -12,6 +12,7 @@
 #define _POSIX_SOURCE
 #endif
 
+#include "../blib/RGIndexAccuracy.h"
 #include "../blib/BLibDefinitions.h"
 #include "Definitions.h"
 
@@ -24,7 +25,6 @@ typedef struct {
 	char *notAlignedFileName;
 	RGBinary *rg;
 	int space;
-	int scoringType;
 	int offsetLength;
 	int usePairedEndLength;
 	int pairedEndLength;
@@ -36,10 +36,11 @@ typedef struct {
 	int alignmentType;
 	int bestOnly;
 	int64_t numLocalAlignments;
+	QS qs;
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
+void RunAligner(RGBinary*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, RGIndexAccuracyMismatchProfile*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 #endif

@@ -7,7 +7,7 @@
 #include "../blib/BError.h"
 #include "../blib/RGMatches.h"
 #include "../blib/AlignedEntry.h"
-#include "ScoringMatrix.h"
+#include "../blib/ScoringMatrix.h"
 #include "Align.h"
 #include "AlignNTSpace.h"
 

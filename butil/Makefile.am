@@ -30,24 +30,26 @@ bafconvert_SOURCES = \
 					 ../blib/AlignedRead.c	../blib/AlignedRead.h \
 					 ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
 					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+					 ../blib/QS.c	../blib/QS.h \
 					 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 					 bafconvert.c bafconvert.h
 
 bafconvert_LDADD =
 
 balignmentscoredistribution_SOURCES = \
-					 ../blib/BError.c	../blib/BError.h \
-					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-					 ../blib/RGIndex.c	../blib/RGIndex.h \
-					 ../blib/BLib.c	../blib/BLib.h \
-					 ../blib/RGBinary.c ../blib/RGBinary.h \
-					 ../blib/RGMatch.c ../blib/RGMatch.h \
-					 ../blib/RGRanges.c ../blib/RGRanges.h \
-					 ../blib/AlignedRead.c	../blib/AlignedRead.h \
-					 ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-					 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
-					 balignmentscoredistribution.c balignmentscoredistribution.h
+									  ../blib/BError.c	../blib/BError.h \
+									  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+									  ../blib/RGIndex.c	../blib/RGIndex.h \
+									  ../blib/BLib.c	../blib/BLib.h \
+									  ../blib/RGBinary.c ../blib/RGBinary.h \
+									  ../blib/RGMatch.c ../blib/RGMatch.h \
+									  ../blib/RGRanges.c ../blib/RGRanges.h \
+									  ../blib/AlignedRead.c	../blib/AlignedRead.h \
+									  ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
+									  ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+									  ../blib/QS.c	../blib/QS.h \
+									  ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
+									  balignmentscoredistribution.c balignmentscoredistribution.h
 
 balignmentscoredistribution_LDADD =
 
@@ -62,10 +64,12 @@ balignsim_SOURCES = \
 					../blib/RGMatches.c	../blib/RGMatches.h \
 					../blib/RGRanges.c ../blib/RGRanges.h \
 					../blib/AlignedRead.c	../blib/AlignedRead.h \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+					../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+					../blib/RGIndexAccuracy.c	../blib/RGIndexAccuracy.h \
+					../blib/QS.c	../blib/QS.h \
 					../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 					../balign/RunAligner.c	../balign/RunAligner.h \
-					../balign/ScoringMatrix.c	../balign/ScoringMatrix.h \
+					../blib/ScoringMatrix.c	../blib/ScoringMatrix.h \
 					../balign/Align.c	../balign/Align.h \
 					../balign/AlignColorSpace.c	../balign/AlignColorSpace.h \
 					../balign/AlignNTSpace.c	../balign/AlignNTSpace.h \
@@ -84,7 +88,8 @@ bevalsim_SOURCES = \
 				   ../blib/RGMatches.c ../blib/RGMatches.h \
 				   ../blib/RGMatch.c ../blib/RGMatch.h \
 				   ../blib/AlignedRead.c	../blib/AlignedRead.h \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+				   ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+				   ../blib/QS.c	../blib/QS.h \
 				   ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 				   bevalsim.c	bevalsim.h
 
@@ -140,17 +145,18 @@ bgeneratereads_SOURCES = \
 bgeneratereads_LDADD =  
 
 berrordistribution_SOURCES = \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-								../blib/AlignedEntry.c	../blib/AlignedEntry.h \
-								../blib/AlignedRead.c	../blib/AlignedRead.h \
-								../blib/BError.c	../blib/BError.h \
-								../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-								../blib/RGIndex.c	../blib/RGIndex.h \
-								../blib/BLib.c	../blib/BLib.h \
-								../blib/RGBinary.c ../blib/RGBinary.h \
-								../blib/RGMatch.c ../blib/RGMatch.h \
-								../blib/RGRanges.c ../blib/RGRanges.h \
-								berrordistribution.c	berrordistribution.h 
+							 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+							 ../blib/QS.c	../blib/QS.h \
+							 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
+							 ../blib/AlignedRead.c	../blib/AlignedRead.h \
+							 ../blib/BError.c	../blib/BError.h \
+							 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+							 ../blib/RGIndex.c	../blib/RGIndex.h \
+							 ../blib/BLib.c	../blib/BLib.h \
+							 ../blib/RGBinary.c ../blib/RGBinary.h \
+							 ../blib/RGMatch.c ../blib/RGMatch.h \
+							 ../blib/RGRanges.c ../blib/RGRanges.h \
+							 berrordistribution.c	berrordistribution.h 
 
 berrordistribution_LDADD =  
 
@@ -193,19 +199,20 @@ bindexhist_SOURCES = \
 bindexhist_LDADD =
 
 bmergesorted_SOURCES = \
-						 ../blib/BError.c	../blib/BError.h \
-						 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-						 ../blib/RGIndex.c	../blib/RGIndex.h \
-						 ../blib/BLib.c	../blib/BLib.h \
-						 ../blib/RGBinary.c ../blib/RGBinary.h \
-						 ../blib/RGMatch.c ../blib/RGMatch.h \
-						 ../blib/RGMatches.c ../blib/RGMatches.h \
-						 ../blib/RGRanges.c ../blib/RGRanges.h \
-						 ../blib/RGReads.c	../blib/RGReads.h \
-						 ../blib/AlignedRead.c	../blib/AlignedRead.h \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-						 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
-						 bmergesorted.c	bmergesorted.h
+					   ../blib/BError.c	../blib/BError.h \
+					   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+					   ../blib/RGIndex.c	../blib/RGIndex.h \
+					   ../blib/BLib.c	../blib/BLib.h \
+					   ../blib/RGBinary.c ../blib/RGBinary.h \
+					   ../blib/RGMatch.c ../blib/RGMatch.h \
+					   ../blib/RGMatches.c ../blib/RGMatches.h \
+					   ../blib/RGRanges.c ../blib/RGRanges.h \
+					   ../blib/RGReads.c	../blib/RGReads.h \
+					   ../blib/AlignedRead.c	../blib/AlignedRead.h \
+					   ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+					   ../blib/QS.c	../blib/QS.h \
+					   ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
+					   bmergesorted.c	bmergesorted.h
 
 bmergesorted_LDADD =
 
@@ -234,7 +241,8 @@ bpairedenddist_SOURCES = \
 						 ../blib/RGRanges.c ../blib/RGRanges.h \
 						 ../blib/RGReads.c	../blib/RGReads.h \
 						 ../blib/AlignedRead.c	../blib/AlignedRead.h \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+						 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+						 ../blib/QS.c	../blib/QS.h \
 						 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 						 bpairedenddist.c	bpairedenddist.h
 
@@ -253,7 +261,8 @@ brepeat_SOURCES = \
 brepeat_LDADD = 
 
 breport_SOURCES = \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+				  ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+				  ../blib/QS.c	../blib/QS.h \
 				  ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 				  ../blib/AlignedRead.c	../blib/AlignedRead.h \
 				  ../blib/BError.c	../blib/BError.h \
@@ -270,7 +279,8 @@ breport_SOURCES = \
 breport_LDADD =
 
 bsort_SOURCES = \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+				../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+				../blib/QS.c	../blib/QS.h \
 				../blib/AlignedEntry.c	../blib/AlignedEntry.h \
 				../blib/AlignedRead.c	../blib/AlignedRead.h \
 				../blib/BError.c	../blib/BError.h \
@@ -290,6 +300,7 @@ btestindexes_SOURCES = \
 					   ../blib/RGRanges.c ../blib/RGRanges.h \
 					   ../blib/RGBinary.c ../blib/RGBinary.h \
 					   ../blib/RGIndex.c	../blib/RGIndex.h \
+					   ../blib/RGIndexAccuracy.c	../blib/RGIndexAccuracy.h \
 					   ../blib/BError.c	../blib/BError.h \
 					   ../blib/BLib.c	../blib/BLib.h \
 					   btestindexes.c	btestindexes.h
@@ -297,18 +308,19 @@ btestindexes_SOURCES = \
 btestindexes_LDADD =
 
 btranslocations_SOURCES = \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-				../blib/AlignedEntry.c	../blib/AlignedEntry.h \
-				../blib/AlignedRead.c	../blib/AlignedRead.h \
-				../blib/BError.c	../blib/BError.h \
-				../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
-				../blib/RGIndex.c	../blib/RGIndex.h \
-				../blib/BLib.c	../blib/BLib.h \
-				../blib/RGBinary.c ../blib/RGBinary.h \
-				../blib/RGMatch.c ../blib/RGMatch.h \
-				../blib/RGMatches.c ../blib/RGMatches.h \
-				../blib/RGRanges.c ../blib/RGRanges.h \
-				../blib/RGReads.c	../blib/RGReads.h \
-				btranslocations.c btranslocations.h
+						  ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+						  ../blib/QS.c	../blib/QS.h \
+						  ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
+						  ../blib/AlignedRead.c	../blib/AlignedRead.h \
+						  ../blib/BError.c	../blib/BError.h \
+						  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+						  ../blib/RGIndex.c	../blib/RGIndex.h \
+						  ../blib/BLib.c	../blib/BLib.h \
+						  ../blib/RGBinary.c ../blib/RGBinary.h \
+						  ../blib/RGMatch.c ../blib/RGMatch.h \
+						  ../blib/RGMatches.c ../blib/RGMatches.h \
+						  ../blib/RGRanges.c ../blib/RGRanges.h \
+						  ../blib/RGReads.c	../blib/RGReads.h \
+						  btranslocations.c btranslocations.h
 
 btranslocations_LDADD = 

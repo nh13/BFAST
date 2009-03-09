@@ -1,7 +1,7 @@
 #ifndef SCORINGMATRIX_H_
 #define SCORINGMATRIX_H_
 
-#include "Definitions.h"
+#include "BLibDefinitions.h"
 
 int ScoringMatrixRead(char*, ScoringMatrix*, int);
 void ScoringMatrixInitialize(ScoringMatrix*);

@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
+	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, DescIndexesProfileFileName, 
 	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescScoringType, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
@@ -76,12 +76,12 @@ static struct argp_option options[] = {
 	/*
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
 	   */
+	{"indexesProfileFileName", 'i', "indexesProfileFileName", 0, "Specifies the bfast indexes profile file", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
 	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "If specified prompts to find only the best scoring alignment(s) across all matches."
 		"\n\t\t\tOtherwise, a best scoring alignment is output for each match.", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"scoringType", 'X', "scoringType", 0, "Final alignment score should by in 0: NT space 1: color space", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
 	{"endContig", 'e', "endContig", 0, "Specifies the end chromosome", 2},
@@ -128,7 +128,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:l:m:n:o:r:s:x:A:E:H:L:M:O:S:T:X:bfhpt";
+"a:d:e:i:l:m:n:o:r:s:x:A:E:H:L:M:O:S:T:bfhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -197,10 +197,10 @@ main (int argc, char **argv)
 						RunAligner(&rg,
 								arguments.matchFileName,
 								arguments.scoringMatrixFileName,
+								arguments.indexesProfileFileName,
 								arguments.alignmentType,
 								arguments.bestOnly,
 								arguments.space,
-								arguments.scoringType,
 								arguments.startContig,
 								arguments.startPos,
 								arguments.endContig,
@@ -331,6 +331,13 @@ int ValidateInputs(struct arguments *args) {
 		if(ValidateFileName(args->scoringMatrixFileName)==0)
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
 	}
+	
+	if(args->indexesProfileFileName!=0) {
+		fprintf(stderr, "Validating indexesProfileFileName path %s. \n",
+				args->indexesProfileFileName);
+		if(ValidateFileName(args->indexesProfileFileName)==0)
+			PrintError(FnName, "indexesProfileFileName", "Command line argument", Exit, IllegalFileName);
+	}
 
 	if(args->alignmentType != FullAlignment && args->alignmentType != MismatchesOnly) {
 		PrintError(FnName, "alignmentType", "Command line argument", Exit, OutOfRange);
@@ -342,10 +349,6 @@ int ValidateInputs(struct arguments *args) {
 
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->scoringType != NTSpace && args->scoringType != ColorSpace) {
-		PrintError(FnName, "scoringType", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startContig < 0) {
@@ -435,6 +438,11 @@ AssignDefaultValues(struct arguments *args)
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
+	
+	args->indexesProfileFileName =
+		(char*)malloc(sizeof(DEFAULT_FILENAME));
+	assert(args->indexesProfileFileName!=0);
+	strcpy(args->indexesProfileFileName, DEFAULT_FILENAME);
 
 	args->binaryInput = BMATCHES_DEFAULT_OUTPUT;
 	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
@@ -442,7 +450,6 @@ AssignDefaultValues(struct arguments *args)
 	args->alignmentType = FullAlignment;
 	args->bestOnly = AllAlignments;
 	args->space = NTSpace;
-	args->scoringType = NTSpace;
 	args->startContig=0;
 	args->startPos=0;
 	args->endContig=INT_MAX;
@@ -489,10 +496,10 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
+	fprintf(fp, "indexesProfileFileName:\t\t\t%s\n", args->indexesProfileFileName);
 	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
 	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "scoringType:\t\t\t\t%d\n", args->scoringType);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
@@ -524,6 +531,8 @@ void FreeProgramParameters(struct arguments *args)
 	args->matchFileName=NULL;
 	free(args->scoringMatrixFileName);
 	args->scoringMatrixFileName=NULL;
+	free(args->indexesProfileFileName);
+	args->indexesProfileFileName=NULL;
 	free(args->outputID);
 	args->outputID=NULL;
 	free(args->outputDir);
@@ -595,6 +604,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->forceMirroring=1;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
+					case 'i':
+						StringCopyAndReallocate(&arguments->indexesProfileFileName, OPTARG);
 					case 'l':
 						arguments->usePairedEndLength=1;
 						arguments->pairedEndLength = atoi(OPTARG);break;
@@ -637,8 +648,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'T':
 						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						break;
-					case 'X':
-						arguments->scoringType=atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

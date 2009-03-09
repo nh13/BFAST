@@ -17,7 +17,7 @@ void AlignedReadPrint(AlignedRead *a,
 	int32_t i;
 
 	if(binaryOutput == TextOutput) {
-		/* Print32_t the read name and paired end flag */
+		/* Print the read name and paired end flag */
 		if(fprintf(outputFP, "@%s\t%d\t%d\n",
 					a->readName,
 					a->space,

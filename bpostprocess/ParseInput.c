@@ -57,8 +57,8 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithmReads, DescMappingQuality, DescMinMappingQuality, 
-	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScoreReads, DescMaxMismatches, DescMaxColorErrors, 
+	DescAlgoTitle, DescAlgorithmReads, DescMappingQuality, 
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, DescMinMappingQuality, escMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -83,14 +83,13 @@ static struct argp_option options[] = {
 		"\n\t\t\t3: Specifies to choose the alignment with the best score"
 		"\n\t\t\t4: Specifies to choose the alignment with the best mapping quality",
 		2},
-	{"mappingQuality", 'z', 0, OPTION_NO_USAGE, "Specifies to output a phred-like mapping quality instead of the alignment score after filtering and choosing the alignments", 2},
-	{"minMappingQuality", 'Z', "minMappingQuality", 0, "Specifies the minimum phred-like mapping quality to allow when using -a 3 and -u", 2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
-	{"minScoreReads", 'm', "minScoreReads", 0, "Specifies the minimum score to consider for a given end of a read", 3},
+	{"minScore", 'm', "minScore", 0, "Specifies the minimum score to consider for a given end of a read", 3},
+	{"minMappingQuality", 'q', "minMappingQuality", 0, "Specifies the minimum phred-like mapping quality to allow when using -a 3 and -u", 2},
 	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for a given end of a read", 3},
 	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for a given end of a read", 3},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
@@ -130,7 +129,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:Z:hptzCIU";
+"a:d:e:i:j:k:m:o:q:r:s:z:E:I:O:P:S:T:X:Y:hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -192,9 +191,8 @@ main (int argc, char **argv)
 								arguments.endContig,
 								arguments.endPos,
 								arguments.algorithmReads,
-								arguments.mappingQuality,
+								arguments.minScore,
 								arguments.minMappingQuality,
-								arguments.minScoreReads,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
 								arguments.minDistancePaired,
@@ -303,15 +301,7 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithmReads", "Command line argument", Exit, OutOfRange);
 	}
 	
-	assert(0 == args->mappingQuality || 1 == args->mappingQuality);
-
-	if(args->algorithmReads == BestMappingQuality &&
-			1 == args->mappingQuality) {
-		PrintError(FnName, "mappingQuality", 
-				"Cannot use mappingQuality with BestMappingQuality", Exit, OutOfRange);
-	}
-	
-	if(args->minMappingQuality < 0) 
+	if(args->minMappingQuality < 0) { 
 		PrintError(FnName, "minMappingQuality", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -385,9 +375,8 @@ AssignDefaultValues(struct arguments *args)
 	args->endPos=0;
 
 	args->algorithmReads=0;
-	args->mappingQuality=0;
+	args->minScore=INT_MIN;
 	args->minMappingQuality=0;
-	args->minScoreReads=INT_MIN;
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
 
@@ -430,13 +419,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
 	fprintf(fp, "algorithmReads:\t\t%d\t[%s]\n", args->algorithmReads, algorithm[args->algorithmReads]);
-	fprintf(fp, "mappingQuality:\t\t%d\n", args->mappingQuality);
-	fprintf(fp, "minMappingQuality:\t\t%d\n", args->minMappingQuality);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
-	fprintf(fp, "minScoreReads:\t\t%d\n", args->minScoreReads);
+	fprintf(fp, "minScore:\t\t%d\n", args->minScore);
+	fprintf(fp, "minMappingQuality:\t\t%d\n", args->minMappingQuality);
 	fprintf(fp, "maxMismatches:\t\t%d\n", args->maxMismatches);
 	fprintf(fp, "maxColorErrors:\t\t%d\n", args->maxColorErrors);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
@@ -530,20 +518,20 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'k':
 						arguments->maxColorErrors=atoi(OPTARG);break;
 					case 'm':
-						arguments->minScoreReads = atoi(OPTARG);break;
+						arguments->minScore = atoi(OPTARG);break;
 					case 'o':
 						StringCopyAndReallocate(&arguments->outputID, OPTARG);
 						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'q':
+						arguments->minMappingQuality = atoi(OPTARG);break;
 					case 'r':
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);break;
 					case 's':
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
-					case 'z':
-						arguments->mappingQuality = 1;break;
 					case 'C':
 						arguments->contigAbPaired = 1;break;
 					case 'E':
@@ -577,8 +565,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'Y':
 						arguments->useDistancePaired = 1;
 						arguments->maxDistancePaired = atoi(OPTARG);break;
-					case 'Z':
-						arguments->minMappingQuality = atof(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

@@ -14,14 +14,16 @@ do
 	fi
 
 	RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";
+	PROFILE=$OUTPUT_DIR"bfast.indexes.profile.$OUTPUT_ID.txt";
 	SCORING=$OUTPUT_DIR"scoring.$SPACE.txt";
 	MATCHES=$OUTPUT_DIR"bfast.matches.file.$OUTPUT_ID.bmf";
 
 	# Run local alignment
-	CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -A $SPACE -X $SPACE -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+	CMD="../balign/balign -r $RG -m $MATCHES -x $SCORING -i $PROFILE -A $SPACE -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
 	$CMD 2> /dev/null > /dev/null; 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
+		echo $CMD;
 		# Run again without piping anything
 		$CMD;
 		exit 1

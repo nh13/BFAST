@@ -83,6 +83,10 @@ enum {BothStrands, ForwardStrand, ReverseStrand};
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
 enum {RGBinaryPacked, RGBinaryUnPacked};
 enum {NoMirroring, MirrorForward, MirrorReverse, MirrorBoth};
+/* For RGIndexAccuracy */
+enum {SearchForRGIndexAccuracies, EvaluateRGIndexAccuracies, ProgramParameters};
+enum {NO_EVENT, MISMATCH, INSERTION, DELETION};
+enum{NoIndelType, DeletionType, InsertionType};
 
 /************************************/
 /* 		Data structures 			*/
@@ -212,6 +216,7 @@ typedef struct {
 	uint32_t position;
 	char strand;
 	double score;
+	int32_t mappingQualiy;
 	uint32_t referenceLength; /* The length of the reference alignment substracting gaps */
 	uint32_t length; /* The length of the alignment */
 	char *read; /* The read */
@@ -270,5 +275,68 @@ typedef struct {
 	int32_t positionStart;
 	int32_t positionEnd;
 } Range;
+
+/* TODO */
+typedef struct {
+	int32_t *counts;
+	int32_t numCounts;
+} QualityScoreDifference;
+
+/* TODO */
+typedef struct {
+	int32_t gapOpenPenalty;
+	int32_t gapExtensionPenalty;
+	char *NTKeys;
+	int32_t **NTScores;
+	int32_t *ColorKeys;
+	int32_t **ColorScores;
+	int32_t maxNTScore;
+	int32_t maxColorScore;
+	int32_t minNTScore;
+	int32_t minColorScore;
+} ScoringMatrix;
+
+/* Qs.c */
+typedef struct {
+	int *scores;
+	int maxDiff;
+	int total;
+} QS;
+
+/* RGIndexAccuracy.c */
+typedef struct {
+	int32_t length;
+	int32_t *profile;
+} Read;
+
+/* RGIndexAccuracy.c */
+typedef struct {
+	int32_t numReads;
+	double *accuracy;
+	int32_t length; /* lenght of correct */
+	int32_t numSNPs;
+	int32_t numColorErrors;
+	int32_t numAboveThreshold; /* where to start comparisons */
+	int32_t accuracyThreshold;
+} AccuracyProfile;
+
+/* RGIndexAccuracy.c */
+typedef struct {
+	int32_t *mask;
+	int32_t keySize;
+	int32_t keyWidth;
+} RGIndexAccuracy;
+
+/* RGIndexAccuracy.c */
+typedef struct {
+	int32_t numRGIndexAccuracies;
+	RGIndexAccuracy *indexes;
+} RGIndexAccuracySet;
+
+/* RGIndexAccuracy.c */
+typedef struct {
+	int32_t maxReadLength;
+	int32_t *maxMismatches;
+} RGIndexAccuracyMismatchProfile;
 
 #endif

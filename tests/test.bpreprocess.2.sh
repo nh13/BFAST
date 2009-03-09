@@ -22,6 +22,7 @@ do
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
+		echo $CMD;
 		$CMD;
 		exit 1
 	fi

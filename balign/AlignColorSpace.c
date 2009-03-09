@@ -8,7 +8,7 @@
 #include "../blib/BError.h"
 #include "../blib/RGMatches.h"
 #include "../blib/AlignedEntry.h"
-#include "ScoringMatrix.h"
+#include "../blib/ScoringMatrix.h"
 #include "Align.h"
 #include "AlignColorSpace.h"
 
@@ -17,7 +17,6 @@ void AlignColorSpaceMismatchesOnly(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int scoringType,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		char strand,
@@ -154,12 +153,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 	a->referenceLength = readLength;
 	a->length = readLength;
 	/* Copy over score */
-	if(scoringType == NTSpace) {
-		a->score = maxScoreNT;
-	}
-	else {
-		a->score = maxScore;
-	}
+	a->score = maxScore;
 	/* Allocate memory */
 	assert(NULL==a->read);
 	a->read = malloc(sizeof(char)*(a->length+1));
@@ -215,7 +209,6 @@ void AlignColorSpaceFull(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int scoringType,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		char strand,
@@ -589,7 +582,6 @@ void AlignColorSpaceFull(char *read,
 			readLength,
 			reference,
 			referenceLength,
-			scoringType,
 			0,
 			0);
 
@@ -609,7 +601,6 @@ void AlignColorSpaceFullWithBound(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int scoringType,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		char strand,
@@ -1016,7 +1007,6 @@ void AlignColorSpaceFullWithBound(char *read,
 			readLength,
 			reference,
 			referenceLength,
-			scoringType,
 			readLength - maxV,
 			0);
 
@@ -1036,7 +1026,6 @@ void AlignColorSpaceFullWithBound(char *read,
 	   readLength,
 	   reference,
 	   referenceLength,
-	   scoringType,
 	   sm,
 	   &tmp,
 	   strand,
@@ -1073,7 +1062,6 @@ int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 		int readLength,
 		char *reference,
 		int referenceLength,
-		int scoringType,
 		int toExclude,
 		int debug)
 {
@@ -1151,12 +1139,7 @@ int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 	assert(readLength <= a->length);
 	i=a->length-1;
 	/* Copy over score */
-	if(scoringType == NTSpace) {
-		a->score = maxScoreNT;
-	}
-	else {
-		a->score = maxScore;
-	}
+	a->score = maxScore;
 
 	/* Allocate memory */
 	assert(NULL==a->read);

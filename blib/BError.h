@@ -1,5 +1,6 @@
 #ifndef BERROR_H_
 #define BERROR_H_
+
 /* Action */
 enum {Exit, Warn, LastActionType};
 

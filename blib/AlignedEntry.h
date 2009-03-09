@@ -7,7 +7,6 @@
 
 int32_t AlignedEntryPrint(AlignedEntry*, FILE*, int32_t, int32_t);
 int32_t AlignedEntryRead(AlignedEntry*, FILE*, int32_t, int32_t);
-int32_t AlignedEntryRemoveDuplicates(AlignedEntry**, int32_t, int32_t);
 void AlignedEntryQuickSort(AlignedEntry**, int32_t, int32_t, int32_t, int32_t, double*, int32_t);
 void AlignedEntryMergeSort(AlignedEntry**, int32_t, int32_t, int32_t, int32_t, double*, int32_t);
 void AlignedEntryCopyAtIndex(AlignedEntry*, int32_t, AlignedEntry*, int32_t);

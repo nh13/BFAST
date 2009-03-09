@@ -46,6 +46,7 @@ void FindMatches(
 {
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char readsFilteredFileName[MAX_FILENAME_LENGTH]="\0";
+	char indexesProfileFileName[MAX_FILENAME_LENGTH]="\0";
 
 	int numMainIndexes=0;
 	char **mainIndexFileNames=NULL;
@@ -77,6 +78,13 @@ void FindMatches(
 	RGMatches tempMatches;
 	RGBinary rg;
 	int startChr, startPos, endChr, endPos;
+	RGIndexAccuracySet set;
+	RGIndexAccuracyMismatchProfile profile;
+	FILE *profileFP=NULL;
+
+	/* Initialize */
+	RGIndexAccuracySetInitialize(&set);
+	RGIndexAccuracyMismatchProfileInitialize(&profile);
 
 	/* Create output file name */
 	sprintf(outputFileName, "%s%s.matches.file.%s.%s",
@@ -84,6 +92,20 @@ void FindMatches(
 			PROGRAM_NAME,
 			outputID,
 			BFAST_MATCHES_FILE_EXTENSION);
+
+	/* Create indexes profile file name */
+	sprintf(indexesProfileFileName, "%s%s.indexes.profile.%s.txt",
+			outputDir,
+			PROGRAM_NAME,
+			outputID);
+	/* open indexes profile file */
+	if((profileFP=fopen(indexesProfileFileName, "w"))==0) {
+		PrintError("FindMatches",
+			indexesProfileFileName,
+				"Could not open indexes profile for writing",
+				Exit,
+				OpenFileError);
+	}
 
 	/* Read in the main RGIndex File Names */
 	numMainIndexes=ReadFileNames(rgIndexMainListFileName, &mainIndexFileNames);
@@ -106,13 +128,19 @@ void FindMatches(
 				numMainIndexes,
 				secondaryIndexFileNames,
 				numSecondaryIndexes,
-				binaryInput,
 				&startChr,
 				&startPos,
 				&endChr,
 				&endPos,
 				space);
 	}
+
+	/* Convert indexes into set for profile evaluation */
+	RGIndexAccuracySetReadFromRGIndexes(&set,
+			mainIndexFileNames,
+			numMainIndexes,
+			secondaryIndexFileNames,
+			numSecondaryIndexes);
 
 	/* Read in the reference genome */
 	startTime = time(NULL);
@@ -175,7 +203,7 @@ void FindMatches(
 	}
 	/* Read the reads to the thread temp files */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading %s into temp files.\n",
+		fprintf(stderr, "Reading %s into temp files and creating accuracy profile for the index(es).\n",
 				readFileName);
 	}
 	/* This will close the reads file */
@@ -188,10 +216,18 @@ void FindMatches(
 			numThreads,
 			tmpDir,
 			&numReads,
-			&numReadsFiltered);
+			&numReadsFiltered,
+			space,
+			&set,
+			&profile);
 	/* Close the read file */
 	fclose(seqFP);
 	fclose(seqFilteredFP);
+	/* Free set and profile */
+	RGIndexAccuracyMismatchProfilePrint(profileFP, &profile);
+	fclose(profileFP);
+	RGIndexAccuracySetFree(&set);
+	RGIndexAccuracyMismatchProfileFree(&profile);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Out of %d reads, will process %d reads and omit %d reads due to filtering.\n",
 				numReads+numReadsFiltered,
@@ -609,7 +645,10 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numThreads,
 				tmpDir,
 				&numReads,
-				&numReadsFiltered);
+				&numReadsFiltered,
+				space,
+				NULL,
+				NULL);
 		/* In this case, all the reads should be valid so we should apportion all reads */
 		assert(numReadsFiltered == 0);
 		assert(numReads == numWritten);

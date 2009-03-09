@@ -8,7 +8,7 @@
 #include "../blib/BLib.h"
 #include "SimRead.h"
 
-char Colors[4] = "0123";
+static char *Colors = "01234";
 
 /* Do not change read length, paired end, or paired end length */
 void SimReadInitialize(SimRead *r)

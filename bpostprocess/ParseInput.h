@@ -7,13 +7,12 @@ struct arguments
 	char *rgFileName;						/* -r */
 	int binaryInput;                        /* -b - not used */
 	int algorithmReads;						/* -a */
-	int mappingQuality;						/* -z */
-	int minMappingQuality;					/* -Z */
 	int startContig;                        /* -s */
 	int startPos;                           /* -S */
 	int endContig;                          /* -e */
 	int endPos;                             /* -E */
-	int minScoreReads;						/* -m */
+	int minScore;							/* -m */
+	int minMappingQuality;					/* -q */
 	int maxMismatches;						/* -j */
 	int maxColorErrors;						/* -k */
 	int minDistancePaired;					/* -X */

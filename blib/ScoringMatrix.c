@@ -3,9 +3,9 @@
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
-#include "Definitions.h"
-#include "../blib/BError.h"
-#include "../blib/BLibDefinitions.h"
+
+#include "BError.h"
+#include "BLibDefinitions.h"
 #include "ScoringMatrix.h"
 
 /* TODO */

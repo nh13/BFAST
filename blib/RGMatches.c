@@ -24,7 +24,7 @@ int32_t RGMatchesRead(FILE *fp,
 
 	/* Read the matches from the input file */
 	if(binaryInput == TextInput) {
-		if(fscanf(fp, "%s %d", 
+		if(fscanf(fp, "@%s %d", 
 					readName,
 					&m->numEnds) == EOF) {
 			return EOF;

@@ -5,6 +5,7 @@
 #include <time.h>
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
+#include "../blib/RGIndexAccuracy.h"
 #include "../blib/RGMatch.h"
 #include "../blib/RGMatches.h"
 #include "Definitions.h"
@@ -86,6 +87,7 @@ int GetRead(FILE *fp,
 		/* Inset read name if this is the first end */
 		if(0 == m->numEnds) {
 			/* Allocate memory */
+			m->readNameLength = strlen(readName);
 			m->readName = malloc(sizeof(char)*(m->readNameLength+1));
 			if(NULL == m->readName) {
 				PrintError(FnName,
@@ -95,7 +97,6 @@ int GetRead(FILE *fp,
 						MallocMemory);
 			}
 			strcpy(m->readName, readName);
-			m->readNameLength = strlen(readName);
 		}
 		/* Add end if necessary */
 		if(0 == strcmp(m->readName, readName)) {
@@ -179,7 +180,10 @@ void WriteReadsToTempFile(FILE *seqFP,
 		int numThreads,
 		char *tmpDir,
 		int *numWritten,
-		int *numFiltered)
+		int *numFiltered,
+		int32_t space,
+		RGIndexAccuracySet *set,
+		RGIndexAccuracyMismatchProfile *profile)
 {
 	char *FnName = "WriteReadsToTempFile";
 	int i;
@@ -238,6 +242,17 @@ void WriteReadsToTempFile(FILE *seqFP,
 			}
 
 			if(1 == isValidRead) {
+
+				/* Evaluate profile */
+				if(NULL != set && 
+						NULL != profile) {
+					for(i=0;i<m.numEnds;i++) {
+						RGIndexAccuracyMismatchProfileAdd(profile, 
+								set,
+								m.ends[i].readLength,
+								space);
+					}
+				}
 
 				/* Print */
 				if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {

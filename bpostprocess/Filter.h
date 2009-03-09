@@ -5,9 +5,8 @@
 
 int FilterAlignedRead(AlignedRead *a,
 		int algorithmReads,
-		int mappingQuality,
+		int minScores,
 		int minMappingQuality,
-		int minScoreReads,
 		int startChr,
 		int startPos,
 		int endChr,
@@ -23,15 +22,13 @@ int FilterAlignedRead(AlignedRead *a,
 
 int FilterAlignedEntry(AlignedEntry *a,
 		int space,
-		int minScoreReads,
+		int minScores,
+		int minMappingQuality,
 		int startChr,
 		int startPos,
 		int endChr,
 		int endPos,
 		int maxMismatches,
 		int maxColorErrors);
-
-double GetMappingQuality(AlignedEnd *end,
-		int32_t index);
 
 #endif
