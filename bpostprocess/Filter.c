@@ -128,7 +128,9 @@ int FilterAlignedRead(AlignedRead *a,
 	if(1 == tmpA.numEnds) {
 		foundType=foundTypes[0];
 	}
-	else if(2 == tmpA.numEnds) {
+	else if(2 == tmpA.numEnds &&
+			1 == a->ends[0].numEntries &&
+			1 == a->ends[1].numEntries) {
 		foundType=(Found==foundTypes[0] && Found==foundTypes[1])?Found:NoneFound;
 
 		if(Found == foundType) {
