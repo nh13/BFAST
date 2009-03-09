@@ -90,18 +90,26 @@ void SimReadPrint(SimRead *r,
 		FILE *fp)
 {
 	char *name=NULL;
+	char quals[SEQUENCE_LENGTH]="\0";
+	int32_t i;
+	
+	/* create quality values */
+	for(i=0;i<r->readLength;i++) {
+		quals[i] = QUAL2CHAR(SIMREAD_DEFAULT_QUAL);
+	}
+	quals[r->readLength]='\0';
 
 	/* read name */
 	name = SimReadGetName(r);
-	fprintf(fp, "%s\n", name);
 
+	/* read one */
 	StringTrimWhiteSpace(r->readOne);
-	fprintf(fp, "%s\n", r->readOne);
+	fprintf(fp, "@%s\n%s\n+\n%s\n", name, r->readOne, quals);
 
 	/* read two */
 	if(2 == r->numEnds) {
 		StringTrimWhiteSpace(r->readTwo);
-		fprintf(fp, "%s\n", r->readTwo);
+		fprintf(fp, "@%s\n%s\n+\n%s\n", name, r->readTwo, quals);
 	}
 
 	/* Free memory */
@@ -138,11 +146,11 @@ void SimReadGetRandom(RGBinary *rg,
 	r->numEnds = numEnds;
 	r->pairedEndLength = pairedEndLength;
 
-	for(ctr=0, success=0;0 == success && ctr < SIM_READ_MAX_MODIFY_FAILURES;ctr++) { 
+	for(ctr=0, success=0;0 == success && ctr < SIMREAD_MAX_MODIFY_FAILURES;ctr++) { 
 		do {
 			/* Avoid infinite loop */
 			count++;
-			if(SIM_READ_MAX_GETRANDOM_FAILURES < count) {
+			if(SIMREAD_MAX_GETRANDOM_FAILURES < count) {
 				PrintError(FnName,
 						"count",
 						"Could not get a random read",
@@ -227,7 +235,7 @@ void SimReadGetRandom(RGBinary *rg,
 				numSNPs,
 				numErrors);
 	}
-	if(SIM_READ_MAX_MODIFY_FAILURES <= ctr) {
+	if(SIMREAD_MAX_MODIFY_FAILURES <= ctr) {
 		PrintError(FnName,
 				"SimReadModify",
 				"Could not modify read",
@@ -272,7 +280,7 @@ void SimReadGetRandomContigPos(RGBinary *rg,
 		}
 		/* To avoid an infinite loop */
 		count++;
-		if(count > SIM_READ_MAX_GETRANDOM_FAILURES) {
+		if(count > SIMREAD_MAX_GETRANDOM_FAILURES) {
 			PrintError(FnName,
 					"count",
 					"Could not get random contig and position",

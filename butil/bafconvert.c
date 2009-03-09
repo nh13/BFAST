@@ -12,7 +12,7 @@
 #define Name "bafconvert"
 #define BAFCONVERT_ROTATE_NUM 100000
 
-/* Converts a balign file from binary to plaintext or vice versa.
+/* Converts a balign file to the specified output format.
  * */
 
 int main(int argc, char *argv[])

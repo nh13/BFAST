@@ -13,6 +13,10 @@
 #define MAX_SCORE 2500
 #define ROTATE_NUM 100000
 
+/* Assess the alignment score distribution for reads 
+ * with a given number of CALs 
+ * */
+
 int main(int argc, char *argv[])
 {
 	FILE *fpIn=NULL;
