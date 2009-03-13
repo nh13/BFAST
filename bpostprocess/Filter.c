@@ -123,6 +123,11 @@ int FilterAlignedRead(AlignedRead *a,
 						OutOfRange);
 				break;
 		}
+		/* Free if not found */
+		if(NoneFound == foundTypes[i]) {
+			AlignedEndReallocate(&tmpA.ends[i],
+					0);
+		}
 	}
 
 	if(1 == tmpA.numEnds) {
