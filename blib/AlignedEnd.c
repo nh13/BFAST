@@ -140,7 +140,7 @@ int32_t AlignedEndRead(AlignedEnd *a,
 	}
 
 	/* Allocate room for the the entries */
-	AlignedEndAllocate(a,
+	AlignedEndReallocate(a,
 			a->numEntries);
 
 	for(i=0;i<a->numEntries;i++) {
@@ -165,16 +165,16 @@ int32_t AlignedEndRemoveDuplicates(AlignedEnd *end,
 		int32_t sortOrder)
 {
 	/*
-	char *FnName="AlignedEndRemoveDuplicates";
-	*/
+	   char *FnName="AlignedEndRemoveDuplicates";
+	   */
 	int32_t i, prevIndex;
 
 	if(end->numEntries > 1) {
 		/* Sort the entries */
 		AlignedEndQuickSort(end, sortOrder, 0);
 		/*
-		AlignedEndMergeSort(end, sortOrder, 0);
-		 */
+		   AlignedEndMergeSort(end, sortOrder, 0);
+		   */
 
 		/* Remove duplicates */
 		prevIndex=0;
@@ -294,13 +294,36 @@ void AlignedEndCopy(AlignedEnd *dest, AlignedEnd *src)
 }
 
 void AlignedEndAllocate(AlignedEnd *a,
+		char *read,
+		char *qual,
 		int32_t numEntries)
 {
 	char *FnName="AlignedEndAllocate";
 	int32_t i;
 
 	/* Allocate */
-	a->entries = malloc(sizeof(AlignedEntry)*numEntries);
+	assert(NULL != read);
+	a->readLength = strlen(read);
+	a->read = malloc(sizeof(char)*(1+a->readLength));
+	if(NULL == a->read) {
+		PrintError(FnName,
+				"a->read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	assert(NULL != qual);
+	a->qualLength = strlen(qual);
+	a->qual = malloc(sizeof(char)*(1+a->qualLength));
+	if(NULL == a->qual) {
+		PrintError(FnName,
+				"a->qual",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	a->numEntries = numEntries;
+	a->entries = malloc(sizeof(AlignedEntry)*a->numEntries);
 	if(NULL == a->entries && 0 < numEntries) {
 		PrintError(FnName,
 				"a->entries",
@@ -309,7 +332,11 @@ void AlignedEndAllocate(AlignedEnd *a,
 				ReallocMemory);
 	}
 
-	a->numEntries = numEntries;
+	/* Copy over */
+	strcpy(a->read, read);
+	strcpy(a->qual, qual);
+
+	/* Initialize */
 	for(i=0;i<a->numEntries;i++) {
 		AlignedEntryInitialize(&a->entries[i]);
 	}

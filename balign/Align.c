@@ -103,10 +103,6 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t readLength;
 	int32_t ctr=0;
 
-	/* Allocate */
-	AlignedEndAllocate(end,
-			m->numEntries);
-
 	(*bestScore)=DBL_MIN;
 
 	strcpy(read, m->read);
@@ -118,27 +114,11 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		readLength = ConvertReadFromColorSpace(read, m->readLength);
 	}
 
-	/* Copy read and quality scores */
-	end->readLength = m->readLength;
-	end->read = malloc(sizeof(char)*(1+m->readLength));
-	if(NULL==read) {
-		PrintError(FnName,
-				"read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	end->qualLength = m->qualLength;
-	end->qual= malloc(sizeof(char)*(1+m->readLength));
-	strcpy(end->read, m->read);
-	strcpy(end->qual, m->qual);
-	if(NULL==read) {
-		PrintError(FnName,
-				"read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
+	/* Allocate */
+	AlignedEndAllocate(end,
+			m->read,
+			m->qual,
+			m->numEntries);
 
 	references = malloc(sizeof(char*)*m->numEntries);
 	if(NULL==references) {

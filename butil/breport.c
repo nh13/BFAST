@@ -499,8 +499,8 @@ void SplitEntriesAndPrint(RGBinary *rg,
 		assert(tmpFile->numEntries > 0);
 		/* Initialize */
 		AlignedEndInitialize(&entries);
-		/* Allocate memory for the entries */
-		AlignedEndAllocate(&entries, 
+		/* Reallocate memory for the entries */
+		AlignedEndReallocate(&entries, 
 				tmpFile->numEntries);
 
 		/* Read in, sort, and print */
