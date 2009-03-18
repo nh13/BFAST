@@ -39,12 +39,12 @@
 #include "../blib/BError.h"
 #include "../blib/RGBinary.h"
 #include "../blib/BLib.h"
-#include "Definitions.h"
-#include "RunAligner.h"
+#include "../balign/Definitions.h"
+#include "RunRepair.h"
 #include "ParseInput.h"
 
 const char *argp_program_version =
-"balign "
+"brepair "
 PACKAGE_VERSION
 "\n"
 "Copyright 2008-2009.";
@@ -57,9 +57,9 @@ PACKAGE_BUGREPORT;
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescNumThreads,
-	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
+	DescInputFilesTitle, DescRGFileName, DescUnpairedFileName, DescScoringMatrixFileName, 
+	DescAlgoTitle, DescAlignmentType, DescSpace, DescNumThreads,
+	DescPairedEndOptionsTitle, DescMinPairedEndDistance, DescMaxPairedEndDistance, DescMirroringType, DescStrandedness, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
 };
@@ -71,31 +71,22 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file", 1},
-	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
+	{"unpairedFileName", 'u', "unpairedFileName", 0, "Specifies the bfast unpaired file", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	/*
-	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
+	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input unpairedes files will be in binary format", 1},
 	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
-	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "If specified prompts to find only the best scoring alignment(s) across all matches."
-		"\n\t\t\tOtherwise, a best scoring alignment is output for each match.", 2},
+	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: misunpairedes only", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
-	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
-	{"endContig", 'e', "endContig", 0, "Specifies the end chromosome", 2},
-	{"endPos", 'E', "endPos", 0, "Specifies the end position", 2},
-	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
-	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not,"
-		"\n\t\t\tthis distance will be used to infer the latter read's CALs", 3},
-	{"mirroringType", 'L', "mirroringType", 0, "0: No mirroring should occur"
-		"\n\t\t\t1: specifies that we assume that the first end is before the second end (5'->3')"
-		"\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3)"
-		"\n\t\t\t3: specifies that we mirror CALs in both directions", 3},
-	{"forceMirroring", 'f', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
+	{"minPairedEndDistance", 'l', "minPairedEndDistance", 0, "Specifies the minimum distance from the current to consider, where the distance is specified according to the mirroring type", 3},
+	{"maxPairedEndDistance", 'l', "maxPairedEndDistance", 0, "Specifies the maximum distance from the current to consider, where the distance is specified according to the mirroring type", 3},
+	 {"mirroringType", 'L', "mirroringType", 0, "1: specifies that we assume that the first end is before the second end (5'-3')"
+		 "\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3)"         
+			 "\n\t\t\t3: specifies that we mirror CALs in both directions", 3},
+	{"strandedness", 'S', "strandedness", 0, "0: Mirror on the same strand 1: Mirror on opposite strands 2: Mirror both strands", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
@@ -128,7 +119,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:l:m:n:o:r:s:x:A:E:L:M:O:S:T:bfhpt";
+"a:d:m:n:o:r:u:x:A:L:M:S:T:hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -149,7 +140,7 @@ main (int argc, char **argv)
 	time_t endTime;
 	int totalReferenceGenomeTime = 0; /* Total time to load and delete the reference genome */
 	int totalAlignTime = 0; /* Total time to align the reads */
-	int totalFileHandlingTime = 0; /* Total time partitioning and merging matches and alignments respectively */
+	int totalFileHandlingTime = 0; /* Total time partitioning and merging unpairedes and alignments respectively */
 	int seconds, minutes, hours;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
@@ -194,24 +185,17 @@ main (int argc, char **argv)
 						endTime = time(NULL);
 						totalReferenceGenomeTime = endTime - startTime;
 						/* Run the aligner */
-						RunAligner(&rg,
-								arguments.matchFileName,
+						RunRepair(&rg,
+								arguments.unpairedFileName,
 								arguments.scoringMatrixFileName,
 								arguments.alignmentType,
-								arguments.bestOnly,
 								arguments.space,
-								arguments.startContig,
-								arguments.startPos,
-								arguments.endContig,
-								arguments.endPos,
-								arguments.offsetLength,
-								arguments.maxNumMatches,
 								arguments.binaryInput,
 								arguments.numThreads,
-								arguments.usePairedEndLength,
-								arguments.pairedEndLength,
+								arguments.minPairedEndDistance,
+								arguments.maxPairedEndDistance,
 								arguments.mirroringType,
-								arguments.forceMirroring,
+								arguments.strandedness,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
@@ -317,11 +301,11 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "rgFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->matchFileName!=0) {
-		fprintf(stderr, "Validating matchFileName path %s. \n",
-				args->matchFileName);
-		if(ValidateFileName(args->matchFileName)==0)
-			PrintError(FnName, "matchFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->unpairedFileName!=0) {
+		fprintf(stderr, "Validating unpairedFileName path %s. \n",
+				args->unpairedFileName);
+		if(ValidateFileName(args->unpairedFileName)==0)
+			PrintError(FnName, "unpairedFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->scoringMatrixFileName!=0) {
@@ -335,36 +319,8 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "alignmentType", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->bestOnly != BestOnly && args->bestOnly != AllAlignments) {
-		PrintError(FnName, "bestOnly", "Command line argument", Exit, OutOfRange);
-	}
-
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->startContig < 0) {
-		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->startPos < 0) {
-		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->endContig < 0) {
-		PrintError(FnName, "endContig", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->endPos < 0) {
-		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->offsetLength < 0) {
-		PrintError(FnName, "offsetLength", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->maxNumMatches < 0) {
-		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->numThreads<=0) {
@@ -396,14 +352,10 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
 	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
-	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
-	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
-	assert(NoMirroring <= args->mirroringType && args->mirroringType <= MirrorBoth);
-	if(args->mirroringType != NoMirroring && args->usePairedEndLength == 0) {
-		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using mirroring", Exit, OutOfRange);
-	}
-	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {
-		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);
+	assert(MirrorForward <= args->mirroringType && args->mirroringType <= MirrorBoth);
+	assert(StrandSame <= args->strandedness && args->strandedness <= StrandBoth);
+	if(args->maxPairedEndDistance < args->minPairedEndDistance) {
+		PrintError(FnName, "args->maxPairedEndDistance < args->minPairedEndDistance", "Command line argument", Exit, OutOfRange);
 	}
 
 	return 1;
@@ -421,10 +373,10 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->rgFileName!=0);
 	strcpy(args->rgFileName, DEFAULT_FILENAME);
 
-	args->matchFileName =
+	args->unpairedFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->matchFileName!=0);
-	strcpy(args->matchFileName, DEFAULT_FILENAME);
+	assert(args->unpairedFileName!=0);
+	strcpy(args->unpairedFileName, DEFAULT_FILENAME);
 
 	args->scoringMatrixFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -435,19 +387,12 @@ AssignDefaultValues(struct arguments *args)
 	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
 
 	args->alignmentType = FullAlignment;
-	args->bestOnly = AllAlignments;
 	args->space = NTSpace;
-	args->startContig=0;
-	args->startPos=0;
-	args->endContig=INT_MAX;
-	args->endPos=INT_MAX;
-	args->offsetLength=0;
-	args->maxNumMatches=INT_MAX;
 	args->numThreads = 1;
-	args->usePairedEndLength = 0;
-	args->pairedEndLength = 0;
+	args->minPairedEndDistance = 0;
+	args->maxPairedEndDistance = 0;
 	args->mirroringType = NoMirroring;
-	args->forceMirroring = 0;
+	args->strandedness = ForwardStrand;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -473,29 +418,22 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char using[2][64] = {"Not using", "Using"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
-	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
+	fprintf(fp, "unpairedFileName:\t\t\t%s\n", args->unpairedFileName);
 	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
 	/*
 	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
 	   */
 	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
-	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
-	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
-	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
-	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
-	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
+	fprintf(fp, "minPairedEndDistance:\t\t\t%d\n", args->minPairedEndDistance);
+	fprintf(fp, "maxPairedEndDistance:\t\t\t%d\n", args->maxPairedEndDistance);
 	fprintf(fp, "mirroringType:\t\t\t\t%d\n", args->mirroringType);
-	fprintf(fp, "forceMirroring:\t\t\t\t%d\n", args->forceMirroring);
+	fprintf(fp, "strandedness:\t\t\t\t%d\n", args->strandedness);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -513,8 +451,8 @@ void FreeProgramParameters(struct arguments *args)
 {
 	free(args->rgFileName);
 	args->rgFileName=NULL;
-	free(args->matchFileName);
-	args->matchFileName=NULL;
+	free(args->unpairedFileName);
+	args->unpairedFileName=NULL;
 	free(args->scoringMatrixFileName);
 	args->scoringMatrixFileName=NULL;
 	free(args->outputID);
@@ -530,7 +468,7 @@ GetOptHelp() {
 
 	struct argp_option *a=options;
 	fprintf(stderr, "%s\n", argp_program_version);
-	fprintf(stderr, "\nUsage: balign [options]\n");
+	fprintf(stderr, "\nUsage: brepair [options]\n");
 	while((*a).group>0) {
 		switch((*a).key) {
 			case 0:
@@ -567,14 +505,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				   */
 #endif
 				switch (key) {
+					case 'a':
+						arguments->alignmentType=atoi(OPTARG);break;
 						/*
 						   case 'b':
 						   arguments->binaryInput = 1;break;
 						   */
-					case 'a':
-						arguments->alignmentType=atoi(OPTARG);break;
-					case 'b':
-						arguments->bestOnly=atoi(OPTARG);break;
 					case 'd':
 						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */
@@ -582,18 +518,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 							StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						}
 						break;
-					case 'e':
-						arguments->endContig=atoi(OPTARG);break;
-					case 'f':
-						arguments->forceMirroring=1;break;
 					case 'h':
 						arguments->programMode=ExecuteGetOptHelp; break;
-					case 'l':
-						arguments->usePairedEndLength=1;
-						arguments->pairedEndLength = atoi(OPTARG);break;
 					case 'm':
-						StringCopyAndReallocate(&arguments->matchFileName, OPTARG);
-						break;
+						arguments->minPairedEndDistance=atoi(OPTARG);break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG); break;
 					case 'o':
@@ -604,10 +532,11 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'r':
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);
 						break;
-					case 's':
-						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
+					case 'u':
+						StringCopyAndReallocate(&arguments->unpairedFileName, OPTARG);
+						break;
 					case 'x':
 						StringCopyAndReallocate(&arguments->scoringMatrixFileName, OPTARG);
 						break;
@@ -617,16 +546,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						   case 'B':
 						   arguments->binaryOutput = 1;break;
 						   */
-					case 'E':
-						arguments->endPos=atoi(OPTARG);break;
 					case 'L':
 						arguments->mirroringType=atoi(OPTARG);break;
 					case 'M':
-						arguments->maxNumMatches=atoi(OPTARG);break;
-					case 'O':
-						arguments->offsetLength=atoi(OPTARG);break;
+						arguments->maxPairedEndDistance=atoi(OPTARG);break;
 					case 'S':
-						arguments->startPos=atoi(OPTARG);break;
+						arguments->strandedness=atoi(OPTARG);break;
 					case 'T':
 						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						break;

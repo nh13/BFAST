@@ -80,6 +80,7 @@ enum {NTSpace, ColorSpace, SpaceDoesNotMatter};
 enum {AlignedEntrySortByAll, AlignedEntrySortByContigPos};
 enum {IgnoreExons, UseExons};
 enum {BothStrands, ForwardStrand, ReverseStrand};
+enum {StrandSame, StrandOpposite, StrandBoth}; /* brepair.c */
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
 enum {RGBinaryPacked, RGBinaryUnPacked};
 enum {NoMirroring, MirrorForward, MirrorReverse, MirrorBoth};

@@ -402,6 +402,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	char algorithm[4][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score"};
+	char arlgorithm[4][64] = {"BAF", "MAF", "GFF", "LastType"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);

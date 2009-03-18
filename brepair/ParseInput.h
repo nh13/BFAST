@@ -5,23 +5,16 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *rgFileName;                   	/* -r */
-	char *matchFileName;					/* -m */
+	char *unpairedFileName;					/* -u */
 	char *scoringMatrixFileName;			/* -x */
 	int binaryInput;                        /* -b - not used */
 	int alignmentType;						/* -a */
-	int bestOnly;							/* -b */
 	int space;								/* -A */
-	int startContig;                        /* -s */
-	int startPos;                           /* -S */
-	int endContig;                          /* -e */
-	int endPos;                             /* -E */
-	int offsetLength;						/* -O */
-	int maxNumMatches;						/* -M */
 	int numThreads;                         /* -n */
-	int usePairedEndLength;					/* -l - companion to pairedEndLength */
+	int minPairedEndDistance;				/* -m */
+	int maxPairedEndDistance;				/* -M */
 	int mirroringType;						/* -L */
-	int forceMirroring;						/* -f */
-	int pairedEndLength;					/* -l */
+	int strandedness;						/* -S */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	char *tmpDir;							/* -T */

@@ -106,6 +106,7 @@ AC_CONFIG_FILES([Makefile
 				 bmatches/Makefile
 				 balign/Makefile
 				 bpostprocess/Makefile
+				 brepair/Makefile
 				 butil/Makefile
 				 tests/Makefile
 				 ])

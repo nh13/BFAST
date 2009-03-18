@@ -12,4 +12,4 @@ EXTRA_DIST = LICENSE \
 			 tests/test.bpostprocess.phi.x.174.sh \
 			 tests/test.diff.phi.x.174.sh \
 			 tests/test.cleanup.sh
-SUBDIRS = bpreprocess bmatches balign bpostprocess butil doc tests 
+SUBDIRS = bpreprocess bmatches balign bpostprocess brepair butil doc tests 

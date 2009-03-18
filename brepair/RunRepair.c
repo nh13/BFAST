@@ -13,29 +13,23 @@
 #include "../blib/AlignedEnd.h" 
 #include "../blib/AlignedEntry.h" 
 #include "../blib/ScoringMatrix.h"
-#include "Align.h"
-#include "Definitions.h"
-#include "RunAligner.h"
+#include "../balign/Align.h"
+#include "../balign/Definitions.h"
+#include "Repair.h"
+#include "RunRepair.h"
 
 /* TODO */
-void RunAligner(RGBinary *rg,
-		char *matchFileName,
+void RunRepair(RGBinary *rg,
+		char *unpairedFileName,
 		char *scoringMatrixFileName,
 		int alignmentType,
-		int bestOnly,
 		int space,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
-		int offsetLength,
-		int maxNumMatches,
 		int binaryInput,
 		int numThreads,
-		int usePairedEndLength,
-		int pairedEndLength,
+		int minPairedEndDistance,
+		int maxPairedEndDistance,
 		int mirroringType,
-		int forceMirroring,
+		int strandedness,
 		char *outputID,
 		char *outputDir,
 		char *tmpDir,
@@ -43,12 +37,12 @@ void RunAligner(RGBinary *rg,
 		int *totalAlignedTime,
 		int *totalFileHandlingTime)
 {
-	char *FnName = "RunAligner";
+	char *FnName = "RunRepair";
 	FILE *outputFP=NULL;
-	FILE *notAlignedFP=NULL;
-	FILE *matchFP=NULL;
+	FILE *notRepairedFP=NULL;
+	FILE *unpairedFP=NULL;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	char notAlignedFileName[MAX_FILENAME_LENGTH]="\0";
+	char notRepairedFileName[MAX_FILENAME_LENGTH]="\0";
 
 	assert(BinaryInput == binaryInput);
 	assert(BinaryOutput == binaryOutput);
@@ -62,25 +56,18 @@ void RunAligner(RGBinary *rg,
 				OutOfRange);
 	}
 
-	/* Adjust start and end based on reference genome */
-	AdjustBounds(rg,
-			&startContig,
-			&startPos,
-			&endContig,
-			&endPos);
-
 	/* Create output file name */
-	sprintf(outputFileName, "%s%s.aligned.file.%s.%s",
+	sprintf(outputFileName, "%s%s.repaired.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
 			BFAST_ALIGNED_FILE_EXTENSION);
-	/* Create not aligned file name */
-	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%s",
+	/* Create not repaired file name */
+	sprintf(notRepairedFileName, "%s%s.not.repaired.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			BFAST_MATCHES_FILE_EXTENSION);
+			BFAST_ALIGNED_FILE_EXTENSION);
 
 	/* Open output file */
 	if((outputFP=fopen(outputFileName, "wb"))==0) {
@@ -91,57 +78,50 @@ void RunAligner(RGBinary *rg,
 				OpenFileError);
 	}
 
-	/* Open not aligned file */
-	if((notAlignedFP=fopen(notAlignedFileName, "wb"))==0) {
+	/* Open not repaired file */
+	if((notRepairedFP=fopen(notRepairedFileName, "wb"))==0) {
 		PrintError(FnName,
-				notAlignedFileName,
+				notRepairedFileName,
 				"Could not open file for writing",
 				Exit,
 				OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Will output aligned reads to %s.\n", outputFileName);
-		fprintf(stderr, "Will output unaligned reads to %s.\n", notAlignedFileName);
+		fprintf(stderr, "Will output repaired reads to %s.\n", outputFileName);
+		fprintf(stderr, "Will output unrepaired reads to %s.\n", notRepairedFileName);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Reading match file from %s.\n",
-				matchFileName);
+		fprintf(stderr, "Reading unpaired file from %s.\n",
+				unpairedFileName);
 	}
 
-	/* Open current match file */
-	if((matchFP=fopen(matchFileName, "rb"))==0) {
+	/* Open current unpaired file */
+	if((unpairedFP=fopen(unpairedFileName, "rb"))==0) {
 		PrintError(FnName,
-				matchFileName,
+				unpairedFileName,
 				"Could not open file for reading",
 				Exit,
 				OpenFileError);
 	}
 
-	RunDynamicProgramming(matchFP,
+	RunRepairHelper(unpairedFP,
 			rg,
 			scoringMatrixFileName,
 			alignmentType,
-			bestOnly,
 			space,
-			startContig,
-			startPos,
-			endContig,
-			endPos,
-			offsetLength,
-			maxNumMatches,
 			binaryInput,
 			numThreads,
-			usePairedEndLength,
-			pairedEndLength,
+			minPairedEndDistance,
+			maxPairedEndDistance,
 			mirroringType,
-			forceMirroring,
+			strandedness,
 			tmpDir,
 			outputFP,
-			notAlignedFP,
+			notRepairedFP,
 			binaryOutput,
 			totalAlignedTime,
 			totalFileHandlingTime);
@@ -150,68 +130,61 @@ void RunAligner(RGBinary *rg,
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
-	/* Close the match file */
-	fclose(matchFP);
+	/* Close the unpaired file */
+	fclose(unpairedFP);
 
 	/* Close output file */
 	fclose(outputFP);
 
-	/* Close not aligned file */
-	fclose(notAlignedFP);
+	/* Close not repaired file */
+	fclose(notRepairedFP);
 }
 
 /* TODO */
-void RunDynamicProgramming(FILE *matchFP,
+void RunRepairHelper(FILE *unpairedFP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
 		int alignmentType,
-		int bestOnly,
 		int space,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
-		int offsetLength,
-		int maxNumMatches,
 		int binaryInput,
 		int numThreads,
-		int usePairedEndLength,
-		int pairedEndLength,
+		int minPairedEndDistance,
+		int maxPairedEndDistance,
 		int mirroringType,
-		int forceMirroring,
+		int strandedness,
 		char *tmpDir,
 		FILE *outputFP,
-		FILE *notAlignedFP,
+		FILE *notRepairedFP,
 		int binaryOutput,
 		int *totalAlignedTime,
 		int *totalFileHandlingTime)
 {
-	char *FnName="RunDynamicProgramming";
+	char *FnName="RunRepairHelper";
 	/* local variables */
 	ScoringMatrix sm;
-	RGMatches m;
+	AlignedRead a;
 	int32_t i, j;
 
-	int32_t toAlign, wasAligned;
+	int32_t wasAligned;
 	int continueReading=0;
-	int numMatches=0;
-	int numAligned=0;
-	int numNotAligned=0;
+	int numUnpaired=0;
+	int numRepaired=0;
+	int numNotRepaired=0;
 	int startTime, endTime;
 	int64_t numLocalAlignments=0;
 	AlignedRead aEntries;
 	/* Thread specific data */
-	ThreadData *data;
+	RepairThreadData *data;
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status;
 
 	/* Initialize */
-	RGMatchesInitialize(&m);
+	AlignedReadInitialize(&a);
 	ScoringMatrixInitialize(&sm);
 
 	/* Allocate memory for thread arguments */
-	data = malloc(sizeof(ThreadData)*numThreads);
+	data = malloc(sizeof(RepairThreadData)*numThreads);
 	if(NULL==data) {
 		PrintError(FnName,
 				"data",
@@ -244,66 +217,32 @@ void RunDynamicProgramming(FILE *matchFP,
 	for(i=0;i<numThreads;i++) {
 		data[i].inputFP = OpenTmpFile(tmpDir, &data[i].inputFileName);
 		data[i].outputFP = OpenTmpFile(tmpDir, &data[i].outputFileName);
-		data[i].notAlignedFP = OpenTmpFile(tmpDir, &data[i].notAlignedFileName); 
+		data[i].notRepairedFP = OpenTmpFile(tmpDir, &data[i].notRepairedFileName); 
 	}
 
-	/* Go through each read in the match file and partition them for the threads */
+	/* Go through each read in the unpaired file and partition them for the threads */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Filtering and partitioning matches for threads...\n0");
+		fprintf(stderr, "Filtering and partitioning unpaired reads for threads...\n0");
 	}
 	i=0;
-	while(EOF!=RGMatchesRead(matchFP, 
-				&m,
-				binaryInput) 
-		 ) {
-
-		if(VERBOSE >= 0 && numMatches%PARTITION_MATCHES_ROTATE_NUM==0) {
-			fprintf(stderr, "\r[%d]", numMatches);
+	while(EOF!=AlignedReadRead(&a, unpairedFP, binaryInput)) {
+		if(VERBOSE >= 0 && numUnpaired%PARTITION_MATCHES_ROTATE_NUM==0) {
+			fprintf(stderr, "\r[%d]", numUnpaired);
 		}
-		/* increment */
-		numMatches++;
-
-		/* Filter the matches that are not within the bounds */
-		/* Filter one if it has too many entries */
-		RGMatchesFilterOutOfRange(&m,
-				startContig,
-				startPos,
-				endContig,
-				endPos,
-				maxNumMatches);
-
-		/* Filter those reads we will not be able to align */
-		/* line 1 - if an end reached its maximum match limit or there are no
-		 * candidate alignment locations */
-		for(j=toAlign=0;0==toAlign && j<m.numEnds;j++) {
-			if(1 != m.ends[j].maxReached && 0 < m.ends[j].numEntries) {
-				toAlign = 1;
-			}
-		}
-		if(0 == toAlign) {
-			/* Print to the not aligned file */
-			numNotAligned++;
-			RGMatchesPrint(notAlignedFP,
-					&m,
-					binaryOutput);
-		}
-		else {
-			/* Print match to temp file */
-			RGMatchesPrint(data[i].inputFP,
-					&m,
-					binaryInput);
-			/* Increment */
-			i = (i+1)%numThreads;
-		}
-
+		/* Print unpaired to temp file */
+		AlignedReadPrint(&a, data[i].inputFP, binaryInput);
+		/* Increment */
+		i = (i+1)%numThreads;
 		/* Free memory */
-		RGMatchesFree(&m);
+		AlignedReadFree(&a);
+		/* increment */
+		numUnpaired++;
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r[%d]\n", numMatches);
-		fprintf(stderr, "Initially filtered %d out of %d reads.\n",
-				numNotAligned,
-				numMatches);
+		fprintf(stderr, "\r[%d]\n", numUnpaired);
+		fprintf(stderr, "Initially filtered %d out of %d.\n",
+				numNotRepaired,
+				numUnpaired);
 	}
 
 	/* End file handling timer */
@@ -316,27 +255,25 @@ void RunDynamicProgramming(FILE *matchFP,
 		fseek(data[i].outputFP, 0, SEEK_SET);
 		data[i].rg=rg;
 		data[i].space=space;
-		data[i].offsetLength=offsetLength;
-		data[i].usePairedEndLength = usePairedEndLength;
-		data[i].pairedEndLength = pairedEndLength;
+		data[i].minPairedEndDistance = minPairedEndDistance;
+		data[i].maxPairedEndDistance = maxPairedEndDistance;
 		data[i].mirroringType = mirroringType;
-		data[i].forceMirroring = forceMirroring;
+		data[i].strandedness = strandedness;
 		data[i].binaryInput=binaryInput;
 		data[i].binaryOutput=binaryOutput;
 		data[i].sm = &sm;
 		data[i].alignmentType = alignmentType;
-		data[i].bestOnly = bestOnly;
 		data[i].numLocalAlignments = 0;
 		data[i].threadID = i;
 	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Processing %d reads.\n",
-				numMatches - numNotAligned
+		fprintf(stderr, "Processing %d unpaired reads.\n",
+				numUnpaired - numNotRepaired
 			   );
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Performing alignment...\n");
+		fprintf(stderr, "Performing repair...\n");
 		fprintf(stderr, "Currently on:\n0");
 	}
 
@@ -348,7 +285,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		/* Start thread */
 		errCode = pthread_create(&threads[i], /* thread struct */
 				NULL, /* default thread attributes */
-				RunDynamicProgrammingThread, /* start routine */
+				RunRepairHelperThread, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
 			PrintError(FnName,
@@ -386,7 +323,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\n");
-		fprintf(stderr, "Alignment complete.\n");
+		fprintf(stderr, "Repair complete.\n");
 	}
 
 	/* End align timer */
@@ -404,10 +341,10 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Merge all the aligned reads from the threads */
 	if(VERBOSE >=0) {
-		fprintf(stderr, "Merging and outputting aligned reads from threads...\n[0]");
+		fprintf(stderr, "Merging and outputting repaired reads from threads...\n[0]");
 	}
 	AlignedReadInitialize(&aEntries);
-	numAligned=0;
+	numRepaired=0;
 	continueReading=1;
 	while(continueReading==1) {
 		/* Get an align from a thread */
@@ -415,8 +352,8 @@ void RunDynamicProgramming(FILE *matchFP,
 		for(i=0;i<numThreads;i++) {
 			/* Read in the align entries */
 			if(EOF != AlignedReadRead(&aEntries, data[i].outputFP, binaryOutput)) {
-				if(VERBOSE >=0 && numAligned%ALIGN_ROTATE_NUM == 0) {
-					fprintf(stderr, "\r[%d]", numAligned);
+				if(VERBOSE >=0 && numRepaired%ALIGN_ROTATE_NUM == 0) {
+					fprintf(stderr, "\r[%d]", numRepaired);
 				}
 				continueReading=1;
 				/* Update the number that were aligned */
@@ -426,7 +363,7 @@ void RunDynamicProgramming(FILE *matchFP,
 					}
 				}
 				if(1 == wasAligned) {
-					numAligned++;
+					numRepaired++;
 				}
 				/* Print it out */
 				AlignedReadPrint(&aEntries,
@@ -437,45 +374,40 @@ void RunDynamicProgramming(FILE *matchFP,
 		}
 	}
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r[%d]\n", numAligned);
+		fprintf(stderr, "\r[%d]\n", numRepaired);
 	}
 
-	/* Merge the not aligned tmp files */
+	/* Merge the not repaired tmp files */
 	if(VERBOSE >=0) {
-		fprintf(stderr, "Merging and outputting unaligned reads from threads and initial filter...\n");
+		fprintf(stderr, "Merging and outputting unpaired reads from threads and initial filter...\n");
 	}
 	for(i=0;i<numThreads;i++) {
-		fseek(data[i].notAlignedFP, 0, SEEK_SET);
+		fseek(data[i].notRepairedFP, 0, SEEK_SET);
 
 		continueReading=1;
 		while(continueReading==1) {
-			RGMatchesInitialize(&m);
-			if(RGMatchesRead(data[i].notAlignedFP,
-						&m,
-						binaryInput) == EOF) {
+			AlignedReadInitialize(&a);
+			if(EOF == AlignedReadRead(&a, data[i].notRepairedFP, binaryInput)) {
 				continueReading = 0;
 			}
 			else {
-				if(VERBOSE >= 0 && numNotAligned%ALIGN_ROTATE_NUM==0) {
-					fprintf(stderr, "\r[%d]", numNotAligned);
+				if(VERBOSE >= 0 && numNotRepaired%ALIGN_ROTATE_NUM==0) {
+					fprintf(stderr, "\r[%d]", numNotRepaired);
 				}
-				numNotAligned++;
-				RGMatchesPrint(notAlignedFP,
-						&m,
-						binaryOutput);
-
-				RGMatchesFree(&m);
+				numNotRepaired++;
+				AlignedReadPrint(&a, notRepairedFP, binaryOutput);
+				AlignedReadFree(&a);
 			}
 		}
 	}
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r[%d]\n", numNotAligned);
+		fprintf(stderr, "\r[%d]\n", numNotRepaired);
 	}
 
 	/* Close tmp output files */
 	for(i=0;i<numThreads;i++) {
 		CloseTmpFile(&data[i].outputFP, &data[i].outputFileName);
-		CloseTmpFile(&data[i].notAlignedFP, &data[i].notAlignedFileName);
+		CloseTmpFile(&data[i].notRepairedFP, &data[i].notRepairedFileName);
 	}
 
 	/* Start file handling timer */
@@ -484,11 +416,11 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Performed %lld local alignments.\n", (long long int)numLocalAlignments);
-		fprintf(stderr, "Outputted alignments for %d reads.\n", numAligned);
-		fprintf(stderr, "Outputted %d reads for which there were no alignments.\n", numNotAligned); 
+		fprintf(stderr, "Repaired %d unpaired reads.\n", numRepaired);
+		fprintf(stderr, "Could not repair %d reads.\n", numNotRepaired); 
 		fprintf(stderr, "Outputting complete.\n");
 	}
-	assert(numAligned + numNotAligned == numMatches);
+	assert(numRepaired + numNotRepaired == numUnpaired);
 
 	/* Free memory */
 	free(data);
@@ -499,95 +431,89 @@ void RunDynamicProgramming(FILE *matchFP,
 }
 
 /* TODO */
-void *RunDynamicProgrammingThread(void *arg)
+void *RunRepairHelperThread(void *arg)
 {
 	/* Recover arguments */
-	ThreadData *data = (ThreadData *)(arg);
+	RepairThreadData *data = (RepairThreadData *)(arg);
 	FILE *inputFP=data->inputFP;
 	FILE *outputFP=data->outputFP;
-	FILE *notAlignedFP = data->notAlignedFP;
+	FILE *notRepairedFP = data->notRepairedFP;
 	RGBinary *rg=data->rg;
 	int space=data->space;
-	int offsetLength=data->offsetLength;
-	int usePairedEndLength=data->usePairedEndLength;
-	int pairedEndLength=data->pairedEndLength;
+	int minPairedEndDistance=data->minPairedEndDistance;
+	int maxPairedEndDistance=data->maxPairedEndDistance;
 	int mirroringType=data->mirroringType;
-	int forceMirroring=data->forceMirroring;
+	int strandedness=data->strandedness;
 	int binaryInput=data->binaryInput;
 	int binaryOutput=data->binaryOutput;
 	ScoringMatrix *sm = data->sm;
 	int alignmentType=data->alignmentType;
-	int bestOnly=data->bestOnly;
 	int threadID=data->threadID;
 	/* Local variables */
 	/*
 	   char *FnName = "RunDynamicProgrammingThread";
 	   */
-	AlignedRead aEntries;
+	AlignedRead src, dest;
 	int32_t i, wasAligned;
-	int numAlignedRead=0;
-	RGMatches m;
-	int numMatches=0;
+	int numRepairedRead=0;
+	int numUnpaired=0;
 	int ctrOne=0;
 	int ctrTwo=0;
 
 	/* Initialize */
-	RGMatchesInitialize(&m);
-	AlignedReadInitialize(&aEntries);
+	AlignedReadInitialize(&src);
+	AlignedReadInitialize(&dest);
 
-	/* Go through each read in the match file */
-	while(EOF!=RGMatchesRead(inputFP, 
-				&m,
-				binaryInput)) {
-		numMatches++;
-		numAlignedRead = 0;
+	/* Go through each read in the unpaired file */
+	while(EOF!=AlignedReadRead(&src, inputFP, binaryInput)) {
+		numUnpaired++;
+		numRepairedRead = 0;
 		ctrOne=ctrTwo=0;
 
-		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+		if(VERBOSE >= 0 && numUnpaired%ALIGN_ROTATE_NUM==0) {
+			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numUnpaired);
 		}
 
 		/* Update the number of local alignments performed */
-		data->numLocalAlignments += AlignRGMatches(&m,
+		data->numLocalAlignments += Repair(&src,
 				rg,
-				&aEntries,
+				&dest,
 				space,
-				offsetLength,
 				sm,
 				alignmentType,
-				bestOnly,
-				usePairedEndLength,
-				pairedEndLength,
+				minPairedEndDistance,
+				maxPairedEndDistance,
 				mirroringType,
-				forceMirroring);
+				strandedness);
 
 		/* Output alignment */
-		for(i=wasAligned=0;0==wasAligned && i<aEntries.numEnds;i++) {
-			if(0 < aEntries.ends[i].numEntries) {
-				wasAligned = 1;
+		wasAligned=1;
+		for(i=0;1==wasAligned && i<dest.numEnds;i++) {
+			if(0 == dest.ends[i].numEntries) {
+				wasAligned = 0;
 			}
 		}
 		if(1 == wasAligned) {
 			/* Remove duplicates */
-			AlignedReadRemoveDuplicates(&aEntries,
+			AlignedReadRemoveDuplicates(&dest,
 					AlignedEntrySortByAll);
 			/* Print */
-			AlignedReadPrint(&aEntries,
+			AlignedReadPrint(&dest,
 					outputFP,
 					binaryOutput);
 		}
 		else {
-			RGMatchesPrint(notAlignedFP,
-					&m,
+			AlignedReadPrint(&src,
+					notRepairedFP,
 					binaryOutput);
 		}
 
 		/* Free memory */
-		AlignedReadFree(&aEntries);
-		RGMatchesFree(&m);
+		AlignedReadFree(&src);
+		AlignedReadFree(&dest);
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numUnpaired);
 	}
 
 	return arg;
