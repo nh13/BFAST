@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.4.2
+* Added new utility brepair, which tries to align unpaired reads.
+
 Version 0.4.1
 * Adding support for quality scores.  The input reads now must be in
 fastq or multi-end fastq format.
