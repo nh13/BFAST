@@ -36,8 +36,6 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define BFAST_SAM_VERSION "0.1.2"
 #define BFAST_SAM_MAX_QNAME 254
 #define BFAST_SAM_MAX_QNAME_SEPARATOR ":"
-#define BFAST_SAM_CONTIG_EMPTY_NAME "contig_empty"
-#define BFAST_SAM_CONTIG_EMPTY_LENGTH 0
 
 /* File extensions */
 #define BFAST_RG_FILE_EXTENSION "brg"

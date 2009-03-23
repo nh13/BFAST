@@ -60,16 +60,6 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 						WriteFileError);
 			}
 			/* Sequence dictionary */
-			/* Inlcude 0 length contig for reads with both ends unmapped */ 
-			if(0>fprintf(fp, "@SN:%s\t%d\n",
-						BFAST_SAM_CONTIG_EMPTY_NAME,
-						BFAST_SAM_CONTIG_EMPTY_LENGTH)) {
-				PrintError(FnName,
-						"header",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
-			}
 			for(i=0;i<rg->numContigs;i++) {
 				if(0>fprintf(fp, "@SN:%s\t%d\n",
 							rg->contigs[i].contigName,
@@ -626,14 +616,27 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	/* RNAME and POS */
 	if(entriesIndex < 0) { /* Current is unmapped */
-		/* Use contig 0 */ 
-		if(0>fprintf(fp, "\t%s\t0",
-					BFAST_SAM_CONTIG_EMPTY_NAME)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+		/* Use mate */
+		if(0 <= mateEndIndex) {
+			if(0>fprintf(fp, "\t%s\t%d",
+						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
+						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+		}
+		else {
+			/* Make absent */ 
+			if(0>fprintf(fp, "\t*\t0")) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
 		}
 	}
 	else {
@@ -682,14 +685,27 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			}
 		}
 		else {
-			/* Use contig 0 */ 
-			if(0>fprintf(fp, "\t%s\t0",
-						BFAST_SAM_CONTIG_EMPTY_NAME)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+			/* Use contig current */ 
+			if(entriesIndex < 0) { /* Current is unmapped */
+				/* Make absent */ 
+				if(0>fprintf(fp, "\t*\t0")) {
+					PrintError(FnName,
+							NULL,
+							"Could not write to file",
+							Exit,
+							WriteFileError);
+				}
+			}
+			else { /* Current is mapped */
+				if(0>fprintf(fp, "\t%s\t%d",
+							a->ends[endIndex].entries[entriesIndex].contigName,
+							a->ends[endIndex].entries[entriesIndex].position)) {
+					PrintError(FnName,
+							NULL,
+							"Could not write to file",
+							Exit,
+							WriteFileError);
+				}
 			}
 		}
 	}
@@ -1032,7 +1048,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 				assert(0 <= curType && curType <= 2);
 				if(0>fprintf(fp, "%d%c",
 							numPrevType,
-							"MID"[curType])) {
+							"MID"[prevType])) {
 					PrintError(FnName,
 							NULL,
 							"Could not write to file",
