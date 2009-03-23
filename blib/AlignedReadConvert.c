@@ -553,7 +553,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		FILE *fp) 
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
-	int32_t i;
+	int32_t i, j;
 	uint64_t flag;
 	int32_t mateEndIndex, mateEntriesIndex;
 	char read[SEQUENCE_LENGTH]="\0";
@@ -760,31 +760,83 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	else {
 		/* Convert read to NT space */
-		strcpy(read, a->ends[endIndex].read);
-		assert(0 < ConvertReadFromColorSpace(read, strlen(read)));
-		/* Convert quals to NT Space */
-		for(i=0;i<strlen(a->ends[endIndex].qual);i++) {
-			if(0 == i) {
-				qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i]);
+		if(entriesIndex < 0) { /* Unmapped */
+			/* Just decode original color space read */
+			strcpy(read, a->ends[endIndex].read);
+			assert(0 < ConvertReadFromColorSpace(read, strlen(read)));
+			/* Convert quals to NT Space */
+			for(i=0;i<strlen(a->ends[endIndex].qual);i++) {
+				if(0 == i) {
+					qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i]);
+				}
+				else {
+					/* How do we determine this? This does not make sense but for now
+					 * SAM requires it. For now we will take the average */
+					qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(a->ends[endIndex].qual[i-1])/-10.0, 
+									CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
+					qual[i] = QUAL2CHAR(qual[i]);
+				}
+				if(qual[i] < 0) {
+					qual[i] = QUAL2CHAR(1);
+				}
+				else if(qual[i] > 63) {
+					qual[i] = QUAL2CHAR(63);
+				}
+				else {
+					qual[i] = QUAL2CHAR(qual[i]);
+				}
 			}
-			else {
-				/* How do we determine this? This does not make sense but for now
-				 * SAM requires it. For now we will take the average */
-				qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(a->ends[endIndex].qual[i-1])/-10.0, 
-								CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
-				qual[i] = QUAL2CHAR(qual[i]);
-			}
-			if(qual[i] < 0) {
-				qual[i] = QUAL2CHAR(1);
-			}
-			else if(qual[i] > 63) {
-				qual[i] = QUAL2CHAR(63);
-			}
-			else {
-				qual[i] = QUAL2CHAR(qual[i]);
-			}
+			qual[i]='\0';
 		}
-		qual[i]='\0';
+		else { /* Mapped */
+			/* Remove gaps from the read (deletions) */
+			for(i=j=0;i<strlen(a->ends[endIndex].entries[entriesIndex].read);i++) {
+				if(GAP != a->ends[endIndex].entries[entriesIndex].read[i]) {
+					read[j] = a->ends[endIndex].entries[entriesIndex].read[i];
+					j++;
+				}
+			}
+			read[j]='\0';
+			/* Convert quals to NT Space - use maq 0.7.1 conversion */
+			for(i=j=0;i<strlen(a->ends[endIndex].entries[entriesIndex].colorError);i++) {
+				if(GAP != a->ends[endIndex].entries[entriesIndex].read[i]) {
+					if(0 == i) {
+						assert(j==0);
+						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]);
+					}
+					else {
+						/* Use MAQ 0.7.1 conversion */
+						if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i-1] &&
+								GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
+							qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i-1]) + 
+								CHAR2QUAL(a->ends[endIndex].qual[i]) + 10;
+						}
+						else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i-1]) {
+							qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i-1]) - 
+								CHAR2QUAL(a->ends[endIndex].qual[i]);
+						}
+						else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
+							qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i]) - 
+								CHAR2QUAL(a->ends[endIndex].qual[i-1]);
+						}
+						else {
+							qual[j] = 0;
+						}
+					}
+					if(qual[i] <= 0) {
+						qual[i] = QUAL2CHAR(1);
+					}
+					else if(qual[i] > 63) {
+						qual[i] = QUAL2CHAR(63);
+					}
+					else {
+						qual[i] = QUAL2CHAR(qual[i]);
+					}
+					j++;
+				}
+			}
+			qual[i]='\0';
+		}
 		if(0 <= entriesIndex && /* Was mapped */
 				REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
 			/* Reverse compliment */
@@ -798,6 +850,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					strlen(qual));
 			strcpy(qual, qualRC);
 		}
+		assert(strlen(qual) == strlen(read));
 	}
 	if(0>fprintf(fp, "\t%s\t%s",
 				read,
