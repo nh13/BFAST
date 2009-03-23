@@ -27,10 +27,17 @@
 /* Default output */
 enum {TextOutput, BinaryOutput};
 enum {TextInput, BinaryInput};
-enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
+enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define BPREPROCESS_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 #define BMATCHES_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 #define BALIGN_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
+
+/* SAM specific */
+#define BFAST_SAM_VERSION "0.1.2"
+#define BFAST_SAM_MAX_QNAME 254
+#define BFAST_SAM_MAX_QNAME_SEPARATOR ":"
+#define BFAST_SAM_CONTIG_EMPTY_NAME "contig_empty"
+#define BFAST_SAM_CONTIG_EMPTY_LENGTH 0
 
 /* File extensions */
 #define BFAST_RG_FILE_EXTENSION "brg"
@@ -40,6 +47,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, LastFileType};
 #define BFAST_ALIGNED_FILE_EXTENSION "baf"
 #define BFAST_MAF_FILE_EXTENSION "maf"
 #define BFAST_GFF_FILE_EXTENSION "gff"
+#define BFAST_SAM_FILE_EXTENSION "sam"
 
 #define RGMATCH_MERGE_ROTATE_NUM 100000
 #define READ_ROTATE_NUM 1000000

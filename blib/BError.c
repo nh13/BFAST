@@ -12,8 +12,8 @@ PrintError(char* FunctionName, char *VariableName,
 		char* Message, int Action, int type)
 {
 
-	fprintf(stderr, "\nIn function \"%s\": %s[%s]. ", 
-			FunctionName, ActionType[Action], ErrorString[type]);
+	fprintf(stderr, "%s\rIn function \"%s\": %s[%s]. ", 
+			BREAK_LINE, FunctionName, ActionType[Action], ErrorString[type]);
 
 	/* Only print variable name if is available */
 	if(VariableName) {
@@ -31,12 +31,15 @@ PrintError(char* FunctionName, char *VariableName,
 	switch(Action) {
 		case Exit: 
 			fprintf(stderr, " ***** Exiting due to errors *****\n"); 
+			fprintf(stderr, "%s", BREAK_LINE);
 			exit(EXIT_FAILURE); 
 			break; /* Not necessary actually! */
 		case Warn:
 			fprintf(stderr, " ***** Warning *****\n");
-			return; break;
+			fprintf(stderr, "%s", BREAK_LINE);
+			break;
 		default:
 			fprintf(stderr, "Trouble!!!\n");
+			fprintf(stderr, "%s", BREAK_LINE);
 	}
 }

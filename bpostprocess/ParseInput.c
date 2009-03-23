@@ -70,7 +70,7 @@ enum {
    */
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file (required for MAF output)", 1},
+	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file (not required for BAF output)", 1},
 	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
 	/*
 	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
@@ -176,7 +176,7 @@ main (int argc, char **argv)
 						}
 						PrintProgramParameters(stderr, &arguments);
 						/* Execute program */
-						if(MAF == arguments.outputFormat) {
+						if(BAF != arguments.outputFormat) {
 							/* Read binary */
 							RGBinaryReadBinary(&rg,
 									arguments.rgFileName);
@@ -201,7 +201,7 @@ main (int argc, char **argv)
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.outputFormat);
-						if(MAF == arguments.outputFormat) {
+						if(BAF != arguments.outputFormat) {
 							/* Free rg binary */
 							RGBinaryDelete(&rg);
 						}
@@ -333,7 +333,8 @@ int ValidateInputs(struct arguments *args) {
 
 	if(!(args->outputFormat == BAF ||
 				args->outputFormat == MAF ||
-				args->outputFormat == GFF)) {
+				args->outputFormat == GFF ||
+				args->outputFormat == SAM)) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -402,7 +403,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	char algorithm[4][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score"};
-	char arlgorithm[4][64] = {"BAF", "MAF", "GFF", "LastType"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
@@ -538,6 +538,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 								break;
 							case 2:
 								arguments->outputFormat = GFF;
+								break;
+							case 3:
+								arguments->outputFormat = SAM;
 								break;
 							default:
 								arguments->outputFormat = -1;

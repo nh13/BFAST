@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include "config.h"
 #include "AlignedRead.h"
@@ -16,9 +17,12 @@
 
 /* TODO */
 void AlignedReadConvertPrintHeader(FILE *fp,
+		RGBinary *rg,
 		int32_t outputFormat) 
 {
 	char *FnName = "AlignedReadConvertPrintHeader";
+	int32_t i;
+
 	switch(outputFormat) {
 		case BAF:
 			/* Do nothing */
@@ -45,6 +49,50 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 						WriteFileError);
 			}
 			break;
+		case SAM:
+			/* Header */
+			if(0>fprintf(fp, "@VN:%s\n",
+						BFAST_SAM_VERSION)) {
+				PrintError(FnName,
+						"header",
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			/* Sequence dictionary */
+			/* Inlcude 0 length contig for reads with both ends unmapped */ 
+			if(0>fprintf(fp, "@SN:%s\t%d\n",
+						BFAST_SAM_CONTIG_EMPTY_NAME,
+						BFAST_SAM_CONTIG_EMPTY_LENGTH)) {
+				PrintError(FnName,
+						"header",
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			for(i=0;i<rg->numContigs;i++) {
+				if(0>fprintf(fp, "@SN:%s\t%d\n",
+							rg->contigs[i].contigName,
+							rg->contigs[i].sequenceLength)) {
+					PrintError(FnName,
+							"header",
+							"Could not write to file",
+							Exit,
+							WriteFileError);
+				}
+			}
+			/* Ignore read group */
+			/* Program */
+			if(0>fprintf(fp, "@ID:%s\t%s\n",
+						PACKAGE_NAME,
+						PACKAGE_VERSION)) {
+				PrintError(FnName,
+						"header",
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+			break;
 		default:
 			PrintError(FnName,
 					"outputFormat",
@@ -59,6 +107,7 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 void AlignedReadConvertPrintOutputFormat(AlignedRead *a, 
 		RGBinary *rg,
 		FILE *fp,
+		char *outputID,
 		int32_t outputFormat,
 		int32_t binaryInput)
 {
@@ -72,6 +121,9 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			break;
 		case GFF:
 			AlignedReadConvertPrintGFF(a, fp);
+			break;
+		case SAM:
+			AlignedReadConvertPrintSAM(a, outputID, fp);
 			break;
 		default:
 			PrintError(FnName,
@@ -461,5 +513,547 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 				"Could not write to file",
 				Exit,
 				WriteFileError);
+	}
+}
+
+/* TODO */
+void AlignedReadConvertPrintSAM(AlignedRead *a,
+		char *outputID,
+		FILE *fp)
+{
+	char *FnName="AlignedReadConvertPrintSAM";
+	int32_t i, j;
+	/* Assumes that one end is mapped */
+
+	/* SAM can't deal with generalized multi-end reads */
+	if(2 < a->numEnds) {
+		PrintError(FnName,
+				NULL,
+				"Outputting reads with greater than two ends to SAM format not supported",
+				Exit,
+				WriteFileError);
+	}
+
+	/* Get Data */
+	for(i=0;i<a->numEnds;i++) {
+		if(0 == a->ends[i].numEntries) { /* Unmapped read */
+			AlignedReadConvertPrintAlignedEntryToSAM(a,
+					i,
+					-1,
+					outputID,
+					fp);
+		}
+		else {
+			for(j=0;j<a->ends[i].numEntries;j++) {
+				AlignedReadConvertPrintAlignedEntryToSAM(a,
+						i,
+						j,
+						outputID,
+						fp);
+			}
+		}
+	}
+}
+
+/* TODO */
+void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
+		int32_t endIndex,
+		int32_t entriesIndex,
+		char *outputID,
+		FILE *fp) 
+{
+	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
+	int32_t i;
+	uint64_t flag;
+	int32_t mateEndIndex, mateEntriesIndex;
+	char read[SEQUENCE_LENGTH]="\0";
+	char readRC[SEQUENCE_LENGTH]="\0";
+	char qual[SEQUENCE_LENGTH]="\0";
+	char qualRC[SEQUENCE_LENGTH]="\0";
+
+	/* Get mate end and mate index if they exist */
+	mateEndIndex=mateEntriesIndex=-1;
+	for(i=0;mateEndIndex < 0 && i < a->numEnds;i++) { /* Try other ends */
+		if(endIndex != i && 0 <a->ends[i].numEntries) {
+			mateEndIndex=i;
+			mateEntriesIndex=0;
+		}
+	}
+
+	/* QNAME */
+	assert(strlen(outputID) + strlen(a->readName) < BFAST_SAM_MAX_QNAME); /* One less for separator */
+	if(0>fprintf(fp, "%s%s%s",
+				outputID,
+				BFAST_SAM_MAX_QNAME_SEPARATOR,
+				a->readName)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* FLAG */
+	flag = 0;
+	if(2 == a->numEnds) {
+		flag |= 0x0001; /* Paired end */
+		flag |= 0x0002; /* Always a proper pair */
+		if(entriesIndex < 0) { /* Unmapped */
+			flag |= 0x0004;
+		}
+		if(mateEndIndex < 0) {
+			/* Other end is unmapped */
+			flag |= 0x0008;
+		}
+		else {
+			/* Other end is mapped */
+			flag |= (REVERSE == a->ends[mateEndIndex].entries[mateEntriesIndex].strand)?0x0020:0x0000; /* Strand of the mate */
+		}
+	}
+	if(0 <entriesIndex ) {
+		flag |= 0x0100; /* This read is not primary */
+	}
+	if(0 <= entriesIndex) { /* Mapped */
+		flag |= (REVERSE==a->ends[endIndex].entries[mateEntriesIndex].strand)?0x0010:0x0000;
+		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
+	}
+	if(0>fprintf(fp, "\t%llu",
+				(unsigned long long int)flag)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* RNAME and POS */
+	if(entriesIndex < 0) { /* Current is unmapped */
+		/* Use contig 0 */ 
+		if(0>fprintf(fp, "\t%s\t0",
+					BFAST_SAM_CONTIG_EMPTY_NAME)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		if(0>fprintf(fp, "\t%s\t%d",
+					a->ends[endIndex].entries[entriesIndex].contigName,
+					a->ends[endIndex].entries[entriesIndex].position)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	/* MAPQ - I abhor this */
+	if(0>fprintf(fp, "\t255")) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* CIGAR - no alignment */
+	if(entriesIndex < 0) { /* Unmapped */
+		if(0>fprintf(fp, "\t*")) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], a->space, fp);
+	}
+	/* MRNM and MPOS */
+	if(2 == a->numEnds) {
+		if(0 <= mateEndIndex) {
+			if(0>fprintf(fp, "\t%s\t%d",
+						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
+						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+		}
+		else {
+			/* Use contig 0 */ 
+			if(0>fprintf(fp, "\t%s\t0",
+						BFAST_SAM_CONTIG_EMPTY_NAME)) {
+				PrintError(FnName,
+						NULL,
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
+		}
+	}
+	else {
+		if(0>fprintf(fp, "\t*\t0")) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	/* ISIZE */
+	if(entriesIndex < 0 || /* Unmapped */
+			mateEndIndex < 0 || /* Mate is unmapped */
+			a->ends[endIndex].entries[entriesIndex].contig != a->ends[mateEndIndex].entries[mateEntriesIndex].contig) {
+		if(0>fprintf(fp, "\t0")) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		if(0>fprintf(fp, "\t%d",
+					a->ends[mateEndIndex].entries[mateEntriesIndex].position -
+					a->ends[endIndex].entries[entriesIndex].position)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	/* SEQ and QUAL */
+	if(NTSpace == a->space) {
+		if(0 <= entriesIndex && /* Was mapped */
+				REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
+			/* Reverse compliment */
+			GetReverseComplimentAnyCase(a->ends[endIndex].read,
+					read,
+					strlen(a->ends[endIndex].read));
+			ReverseRead(a->ends[endIndex].qual,
+					qual,
+					strlen(a->ends[endIndex].qual));
+		}
+		else {
+			strcpy(read, a->ends[endIndex].read);
+			strcpy(qual, a->ends[endIndex].qual);
+		}
+	}
+	else {
+		/* Convert read to NT space */
+		strcpy(read, a->ends[endIndex].read);
+		assert(0 < ConvertReadFromColorSpace(read, strlen(read)));
+		/* Convert quals to NT Space */
+		for(i=0;i<strlen(a->ends[endIndex].qual);i++) {
+			if(0 == i) {
+				qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i]);
+			}
+			else {
+				/* How do we determine this? This does not make sense but for now
+				 * SAM requires it. For now we will take the average */
+				qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(a->ends[endIndex].qual[i-1])/-10.0, 
+								CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
+				qual[i] = QUAL2CHAR(qual[i]);
+			}
+			if(qual[i] < 0) {
+				qual[i] = QUAL2CHAR(1);
+			}
+			else if(qual[i] > 63) {
+				qual[i] = QUAL2CHAR(63);
+			}
+			else {
+				qual[i] = QUAL2CHAR(qual[i]);
+			}
+		}
+		qual[i]='\0';
+		if(0 <= entriesIndex && /* Was mapped */
+				REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
+			/* Reverse compliment */
+			GetReverseComplimentAnyCase(read, /* src */
+					readRC, /* dest */
+					strlen(read));
+			strcpy(read, readRC);
+			/* Reverse qual */
+			ReverseRead(qual,
+					qualRC,
+					strlen(qual));
+			strcpy(qual, qualRC);
+		}
+	}
+	if(0>fprintf(fp, "\t%s\t%s",
+				read,
+				qual)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* AS - optional field */
+	if(entriesIndex < 0) { /* Unmapped */
+		if(0>fprintf(fp, "\tAS:i:%d", INT_MIN)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		if(0>fprintf(fp, "\tAS:i:%d", (int32_t)a->ends[endIndex].entries[entriesIndex].score)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	/* NH - optional field */
+	if(0>fprintf(fp, "\tNH:i:%d",
+				(entriesIndex < 0)?1:a->ends[endIndex].numEntries)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* IH - optional field */
+	if(0>fprintf(fp, "\tIH:i:%d",
+				(entriesIndex < 0)?1:a->ends[endIndex].numEntries)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* HI - optional field */
+	if(0>fprintf(fp, "\tHI:i:%d",
+				(entriesIndex < 0)?1:(entriesIndex+1))) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+	/* CS and CQ - optional field */
+	if(ColorSpace == a->space) {
+		if(0>fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s",
+					a->ends[endIndex].read,
+					a->ends[endIndex].qual)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	/* CC - optional field */
+	/* CP - optional field */
+	if(entriesIndex < 0 || /* Unmapped */
+			entriesIndex == a->ends[endIndex].numEntries-1) { /* Last hit */
+		/* Leave empty */
+	}
+	else {
+		if(0>fprintf(fp, "\tCC:Z:%s\tCP:i:%d",
+					a->ends[endIndex].entries[entriesIndex+1].contigName,
+					a->ends[endIndex].entries[entriesIndex+1].position)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+
+	if(0>fprintf(fp, "\n")) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+}
+
+/* TODO */
+void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
+		int32_t space,
+		FILE *fp)
+{
+	char *FnName="AlignedReadConvertPrintAlignedEntryToCIGAR";
+	char read[SEQUENCE_LENGTH]="\0";
+	char reference[SEQUENCE_LENGTH]="\0";
+	char colorError[SEQUENCE_LENGTH]="\0";
+	int32_t i;
+	int32_t prevType=0;
+	int32_t numPrevType=0;
+	int32_t curType=0;
+	int32_t startDel, endDel, startIns, endIns, prevDel, prevIns;
+
+	if(0>fprintf(fp, "\t")) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+
+	if(REVERSE == a->strand) {
+		GetReverseComplimentAnyCase(a->read, read, a->length);
+		GetReverseComplimentAnyCase(a->reference, reference, a->length);
+		if(ColorSpace == space) {
+			ReverseRead(a->colorError, colorError, a->length);
+		}
+	}
+	else {
+		strcpy(read, a->read);
+		strcpy(reference, a->reference);
+		strcpy(colorError, a->colorError);
+	}
+
+	/* Move all insertions and deletions to the 5' end - cool*/
+	i=0;
+	prevDel = prevIns = 0;
+	startDel = endDel = startIns = endIns = -1;
+	while(i<a->length) {
+		assert(0 == prevIns || 0 == prevDel);
+
+		if(GAP == read[i]) {
+			if(0 == prevDel) {
+				startDel = i;
+			}
+			prevDel = 1;
+			endDel = i;
+			prevIns = 0;
+			startIns = -1;
+			endIns = -1;
+			i++;
+		}
+		else if(GAP == reference[i]) {
+			if(0 == prevIns) {
+				startIns = i;
+			}
+			prevIns = 1;
+			endIns = i;
+			prevDel = 0;
+			startDel = -1;
+			endDel = -1;
+			i++;
+		}
+		else {
+			if(1 == prevDel) {
+				assert(0 < startDel);
+				assert(startDel <= endDel);
+				startDel--;
+				while(0 <= startDel && /* Bases remaining to examine */
+						read[startDel] != GAP && /* Hit another deletion */
+						reference[startDel] != GAP && /* Hit an insertion */
+						reference[startDel] == reference[endDel]) { /* src ref base matches dest ref base */
+					assert(GAP != reference[startDel]);
+					assert(GAP != reference[endDel]);
+					assert(GAP != read[startDel]);
+					assert(GAP == read[endDel]);
+					read[endDel] = read[startDel];
+					read[startDel] = GAP;
+					if(ColorSpace == space) {
+						assert(GAP == colorError[endDel]); /* No color errors in the deletion */
+						colorError[endDel] = colorError[startDel];
+						colorError[startDel] = GAP;
+					}
+					startDel--;
+					endDel--;
+				}
+				endDel++; /* We decremented when we exited the loop */
+				i = endDel;
+				assert(GAP != read[i]);
+				assert(GAP != reference[i]);
+			}
+			else if(1 == prevIns) {
+				assert(startIns <= endIns);
+				startIns--;
+				while(0 <= startIns && /* Bases remaining to examine */
+						read[startIns] != GAP && /* Hit another deletion */
+						reference[startIns] != GAP && /* Hit an insertion */
+						read[startIns] == read[endIns]) { /* src read base matches dest read base */
+					assert(GAP != read[startIns]);
+					assert(GAP != read[endIns]);
+					assert(GAP != reference[startIns]);
+					assert(GAP == reference[endIns]);
+					reference[endIns] = reference[startIns];
+					reference[startIns] = GAP;
+					if(ColorSpace == space) {
+						assert(GAP == colorError[endIns]);
+						colorError[endIns] = colorError[startIns];
+						colorError[startIns] = GAP;
+					}
+					startIns--;
+					endIns--;
+				}
+				endIns++; /* We decremented when we exited the loop */
+				i = endIns;
+				assert(GAP != read[i]);
+				assert(GAP != reference[i]);
+			}
+			else {
+				i++;
+			}
+			prevDel = 0;
+			prevIns = 0;
+			startDel = -1;
+			endDel = -1;
+			startIns = -1;
+			endIns = -1;
+		}
+	}
+
+	/* Convert to cigar format */
+	prevType = 0; /* 0 - MM, 1 - I, 2 - D */
+	numPrevType = 0;
+	for(i=0;i<a->length;i++) {
+		assert(0 == prevIns || 0 == prevDel);
+
+		if(GAP == read[i]) {
+			curType = 2;
+		}
+		else if(GAP == reference[i]) {
+			curType = 1;
+		}
+		else {
+			curType = 0;
+		}
+
+		if(curType == prevType) {
+			numPrevType++;
+		}
+		else {
+			if(0 < numPrevType) {
+				assert(0 <= curType && curType <= 2);
+				if(0>fprintf(fp, "%d%c",
+							numPrevType,
+							"MID"[curType])) {
+					PrintError(FnName,
+							NULL,
+							"Could not write to file",
+							Exit,
+							WriteFileError);
+				}
+			}
+			prevType = curType;
+			numPrevType = 1;
+		}
+	}
+	if(0 < numPrevType) {
+		assert(0 <= prevType && prevType <= 2);
+		if(0>fprintf(fp, "%d%c",
+					numPrevType,
+					"MID"[prevType])) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
 	}
 }

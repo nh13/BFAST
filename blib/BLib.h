@@ -33,6 +33,7 @@ int ConvertBaseAndColor(char, char, char*);
 int ConvertReadFromColorSpace(char*, int);
 void ConvertReadToColorSpace(char**, int*);
 void NormalizeRead(char**, int*, char);
+void NormalizeColorSpaceRead(char *read, int, char);
 void ConvertColorsToStorage(char*, int);
 char ConvertColorToStorage(char);
 void ConvertColorsFromStorage(char*, int);
@@ -57,5 +58,6 @@ int32_t CheckRangeWithinRange(Range*, Range*);
 void RangeCopy(Range*, Range*);
 int GetNumMismatchesInAlignedEntry(AlignedEntry *a);
 int GetNumColorErrorsInAlignedEntry(AlignedEntry *a, int space);
+double AddLog10(double, double);
 
 #endif

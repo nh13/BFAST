@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
+	char outputID[MAX_FILENAME_LENGTH]="\0";
 	char *last;
 	int outputType;
 	int outputSubType=TextOutput;
@@ -29,8 +30,8 @@ int main(int argc, char *argv[])
 	AlignedRead a;
 	RGBinary rg;
 
-	if(argc == 3 ||
-			argc == 4) {
+	if(3 <= argc &&
+			argc <= 5) {
 		strcpy(inputFileName, argv[1]);
 		outputType = atoi(argv[2]);
 
@@ -73,6 +74,13 @@ int main(int argc, char *argv[])
 							Exit,
 							OutOfRange);
 				}
+				if(argc < 4) {
+					PrintError(Name,
+							"bfast reference genome file",
+							"Command line argument",
+							Exit,
+							OutOfRange);
+				}
 				strcpy(rgFileName, argv[3]);
 				RGBinaryReadBinary(&rg,
 						rgFileName);
@@ -82,6 +90,40 @@ int main(int argc, char *argv[])
 				inputType=BinaryInput;
 				outputSubType=TextOutput;
 				strcat(outputFileName, BFAST_GFF_FILE_EXTENSION);
+				if(argc < 4) {
+					PrintError(Name,
+							"bfast reference genome file",
+							"Command line argument",
+							Exit,
+							OutOfRange);
+				}
+				strcpy(rgFileName, argv[3]);
+				RGBinaryReadBinary(&rg,
+						rgFileName);
+				break;
+			case 4:
+				outputType=SAM;
+				inputType=BinaryInput;
+				outputSubType=TextOutput;
+				strcat(outputFileName, BFAST_SAM_FILE_EXTENSION);
+				if(argc < 4) {
+					PrintError(Name,
+							"bfast reference genome file",
+							"Command line argument",
+							Exit,
+							OutOfRange);
+				}
+				strcpy(rgFileName, argv[3]);
+				RGBinaryReadBinary(&rg,
+						rgFileName);
+				if(argc < 5) {
+					PrintError(Name,
+							"output ID",
+							"Command line argument",
+							Exit,
+							OutOfRange);
+				}
+				strcpy(outputID, argv[4]);
 				break;
 			default:
 				PrintError(Name,
@@ -109,7 +151,7 @@ int main(int argc, char *argv[])
 		}
 		
 		/* Print Header */
-		AlignedReadConvertPrintHeader(fpOut, outputType);
+		AlignedReadConvertPrintHeader(fpOut, &rg, outputType);
 		/* Initialize */
 		AlignedReadInitialize(&a);
 		counter = 0;
@@ -125,6 +167,7 @@ int main(int argc, char *argv[])
 			AlignedReadConvertPrintOutputFormat(&a,
 					&rg,
 					fpOut,
+					outputID,
 					outputType,
 					outputSubType);
 			AlignedReadFree(&a);
@@ -135,7 +178,8 @@ int main(int argc, char *argv[])
 		fclose(fpIn);
 		/* Close the output file */
 		fclose(fpOut);
-		if(MAF == outputType) {
+		if(MAF == outputType ||
+				SAM == outputType) {
 			RGBinaryDelete(&rg);
 		}
 
@@ -149,8 +193,11 @@ int main(int argc, char *argv[])
 				"\t\t1-BAF binary to BAF text\n"
 				"\t\t2-BAF binary to MAF\n"
 				"\t\t3-BAF binary to GFF (v2)\n"
+				"\t\t4-BAF binary to SAM (v.%s)\n",
+				BFAST_SAM_VERSION
 			   );
-		fprintf(stderr, "\t<bfast reference genome file (required only for MAF output)>\n");
+		fprintf(stderr, "\t<bfast reference genome file (not required for BAF output)\n");
+		fprintf(stderr, "\t<output ID (required only for SAM output)>\n");
 	}
 	return 0;
 }

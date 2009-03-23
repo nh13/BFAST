@@ -470,9 +470,7 @@ void *RunRepairHelperThread(void *arg)
 		numRepairedRead = 0;
 		ctrOne=ctrTwo=0;
 
-		if(VERBOSE >= 0 && numUnpaired%ALIGN_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numUnpaired);
-		}
+		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numUnpaired);
 
 		/* Update the number of local alignments performed */
 		data->numLocalAlignments += Repair(&src,

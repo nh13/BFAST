@@ -967,6 +967,72 @@ void NormalizeRead(char **read,
 }
 
 /* TODO */
+/* Takes in a Color space read, converts to nt space,
+ * and then converts back to Color space.
+ * Must include the start NT in the read.
+ * */
+void NormalizeColorSpaceRead(char *read,
+		int readLength,
+		char startNT)
+{
+	char *FnName="NormalizeColorSpaceRead";
+	char firstBase, firstColor;
+	firstBase = firstColor = 0;
+
+
+	if(readLength <= 1) {
+		return;
+	}
+
+	/* Note: we only need to update the start base and the first color */
+
+	/* Convert first color to integer */
+	switch(read[1]) {
+		case '0':
+			firstColor=0;
+			break;
+		case '1':
+			firstColor=1;
+			break;
+		case '2':
+			firstColor=2;
+			break;
+		case '3':
+			firstColor=3;
+			break;
+		case '4':
+			firstColor=4;
+			break;
+		default:
+			PrintError(FnName,
+					"read[1]",
+					"Could not recognize first color",
+					Exit,
+					OutOfRange);
+			break;
+	}
+
+	/* Get first base */
+	if(0 == ConvertBaseAndColor(read[0], firstColor, &firstBase)) {
+		PrintError(FnName,
+				NULL,
+				"Could not convert base and color",
+				Exit,
+				OutOfRange);
+	}
+	/* Now rencode first color */
+	read[0] = startNT; 
+	if(0 == ConvertBaseToColorSpace(read[0], firstBase, &firstColor)) {
+		PrintError(FnName,
+				NULL,
+				"Could not convert base to color space",
+				Exit,
+				OutOfRange);
+	}
+	read[1] = COLORS[(int)firstColor];
+}
+
+/* TODO */
 void ConvertColorsToStorage(char *colors, int length)
 {
 	int i;
@@ -1519,3 +1585,14 @@ int GetNumColorErrorsInAlignedEntry(AlignedEntry *a, int space)
 	}       
 	return numColorErrors;
 }
+
+double AddLog10(double a, double b)
+{
+	if(a < b) {
+		return AddLog10(b, a);
+	}
+	else {
+		return a + log10(1.0 + pow(10.0, b-a));
+	}
+}
+

@@ -71,6 +71,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		case GFF:
 			strcpy(fileExtension, BFAST_GFF_FILE_EXTENSION);
 			break;
+		case SAM:
+			strcpy(fileExtension, BFAST_SAM_FILE_EXTENSION);
+			break;
 		default:
 			PrintError(FnName,
 					"outputFormat",
@@ -114,7 +117,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		AlignedReadConvertPrintHeader(fpContigAb, outputFormat);
+		AlignedReadConvertPrintHeader(fpContigAb, rg, outputFormat);
 	}
 	if(inversionsPaired == 1) {
 		if(!(fpInversions=fopen(inversionsFileName, "wb"))) {
@@ -124,7 +127,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		AlignedReadConvertPrintHeader(fpInversions, outputFormat);
+		AlignedReadConvertPrintHeader(fpInversions, rg, outputFormat);
 	}
 	if(unpaired == 1) {
 		if(!(fpUnpaired=fopen(unpairedFileName, "wb"))) {
@@ -134,7 +137,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					Exit,
 					OpenFileError);
 		}
-		AlignedReadConvertPrintHeader(fpUnpaired, outputFormat);
+		AlignedReadConvertPrintHeader(fpUnpaired, rg, outputFormat);
 	}
 	if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
 		PrintError(FnName,
@@ -143,7 +146,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				Exit,
 				OpenFileError);
 	}
-	AlignedReadConvertPrintHeader(fpNotReported, outputFormat);
+	AlignedReadConvertPrintHeader(fpNotReported, rg, outputFormat);
 	if(!(fpOut=fopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
@@ -151,7 +154,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				Exit,
 				OpenFileError);
 	}
-	AlignedReadConvertPrintHeader(fpOut, outputFormat);
+	AlignedReadConvertPrintHeader(fpOut, rg, outputFormat);
 
 	/* Initialize */
 	AlignedReadInitialize(&a);
@@ -187,32 +190,32 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		switch(foundType) {
 			case NoneFound:
 				/* Print to Not Reported file */
-				AlignedReadConvertPrintOutputFormat(&a, rg, fpNotReported, outputFormat, binaryInput);
+				AlignedReadConvertPrintOutputFormat(&a, rg, fpNotReported, outputID, outputFormat, binaryInput);
 				numNotReported++;
 				break;
 			case Found:
 				/* Print to Output file */
-				AlignedReadConvertPrintOutputFormat(&a, rg, fpOut, outputFormat, binaryInput);
+				AlignedReadConvertPrintOutputFormat(&a, rg, fpOut, outputID, outputFormat, binaryInput);
 				numReported++;
 				break;
 			case ContigAb:
 				if(contigAbPaired == 1) {
 					/* Print to Contig Abnormalities file */
-					AlignedReadConvertPrintOutputFormat(&a, rg, fpContigAb, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpContigAb, outputID, outputFormat, binaryInput);
 					numContigAb++;
 				}
 				break;
 			case Unpaired:
 				if(unpaired == 1) {
 					/* Print to Unpaired file */
-					AlignedReadConvertPrintOutputFormat(&a, rg, fpUnpaired, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpUnpaired, outputID, outputFormat, binaryInput);
 					numUnpaired++;
 				}
 				break;
 			case Inversion:
 				if(inversionsPaired == 1) {
 					/* Print to Inversions file */
-					AlignedReadConvertPrintOutputFormat(&a, rg, fpInversions, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpInversions, outputID, outputFormat, binaryInput);
 					numInversions++;
 				}
 				break;

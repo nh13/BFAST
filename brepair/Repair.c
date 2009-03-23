@@ -55,6 +55,7 @@ int Repair(AlignedRead *src,
 
 	for(i=0;i<dest->numEnds;i++) {
 		if(1 == dest->ends[i].numEntries) {
+			RGMatchInitialize(&m);
 			/* Create an artificial RGMatches */
 			offsetLength = (int32_t)( (maxPairedEndDistance - minPairedEndDistance)/2.0 + 0.5);
 			RepairMirrorFromAlignedEndToRGMatch(&m,
@@ -78,6 +79,7 @@ int Repair(AlignedRead *src,
 					&numAligned
 					);
 			numLocalAlignments += numAligned;
+			RGMatchFree(&m);
 		}
 	}
 	return numLocalAlignments;
@@ -94,15 +96,16 @@ void RepairMirrorFromAlignedEndToRGMatch(RGMatch *dest,
 		int32_t strandedness)
 {
 	char *FnName="RepairMirrorFromAlignedEndToRGMatch";
-	int32_t i, ctr;
+	int32_t i, ctr, numEntries;
 
+	numEntries=0;
 	switch(mirroringType) {
 		case MirrorForward:
 		case MirrorReverse:
-			dest->numEntries = 1;
+			numEntries = 1;
 			break;
 		case MirrorBoth:
-			dest->numEntries = 2;
+			numEntries = 2;
 		default:
 			break;
 			PrintError(FnName,
@@ -116,7 +119,7 @@ void RepairMirrorFromAlignedEndToRGMatch(RGMatch *dest,
 		case StrandOpposite:
 			break;
 		case StrandBoth:
-			dest->numEntries *= 2;
+			numEntries *= 2;
 			break;
 		default:
 			PrintError(FnName,
@@ -126,7 +129,7 @@ void RepairMirrorFromAlignedEndToRGMatch(RGMatch *dest,
 					OutOfRange);
 	}
 	/* Reallocate */
-	RGMatchAllocate(dest, dest->numEntries);
+	RGMatchAllocate(dest, numEntries);
 	/* Copy over read and qual */
 	dest->readLength = ends[(2==whichEnd)?0:1].readLength;
 	dest->read = malloc(sizeof(char)*(1+dest->readLength));

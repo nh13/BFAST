@@ -81,8 +81,8 @@ static struct argp_option options[] = {
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"minPairedEndDistance", 'l', "minPairedEndDistance", 0, "Specifies the minimum distance from the current to consider, where the distance is specified according to the mirroring type", 3},
-	{"maxPairedEndDistance", 'l', "maxPairedEndDistance", 0, "Specifies the maximum distance from the current to consider, where the distance is specified according to the mirroring type", 3},
+	{"minPairedEndDistance", 'm', "minPairedEndDistance", 0, "Specifies the minimum distance from the current to consider, where the distance is specified according to the mirroring type", 3},
+	{"maxPairedEndDistance", 'M', "maxPairedEndDistance", 0, "Specifies the maximum distance from the current to consider, where the distance is specified according to the mirroring type", 3},
 	 {"mirroringType", 'L', "mirroringType", 0, "1: specifies that we assume that the first end is before the second end (5'-3')"
 		 "\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3)"         
 			 "\n\t\t\t3: specifies that we mirror CALs in both directions", 3},

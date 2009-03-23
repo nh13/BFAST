@@ -24,7 +24,4 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		char *outputDir,
 		int outputFormat);
 
-void PrintHeader(FILE *fp,
-		int outputFormat);
-
 #endif
