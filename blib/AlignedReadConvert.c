@@ -776,7 +776,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 									CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
 					qual[i] = QUAL2CHAR(qual[i]);
 				}
-				if(qual[i] < 0) {
+				if(qual[i] <= 0) {
 					qual[i] = QUAL2CHAR(1);
 				}
 				else if(qual[i] > 63) {
@@ -836,9 +836,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				}
 			}
 			qual[i]='\0';
-		}
-		if(0 <= entriesIndex && /* Was mapped */
-				REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
+			if(REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
 			/* Reverse compliment */
 			GetReverseComplimentAnyCase(read, /* src */
 					readRC, /* dest */
@@ -849,6 +847,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					qualRC,
 					strlen(qual));
 			strcpy(qual, qualRC);
+			}
 		}
 		assert(strlen(qual) == strlen(read));
 	}
