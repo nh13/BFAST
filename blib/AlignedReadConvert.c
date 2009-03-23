@@ -808,29 +808,29 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 						/* Use MAQ 0.7.1 conversion */
 						if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i-1] &&
 								GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
-							qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i-1]) + 
-								CHAR2QUAL(a->ends[endIndex].qual[i]) + 10;
+							qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j-1]) + 
+								CHAR2QUAL(a->ends[endIndex].qual[j]) + 10;
 						}
 						else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i-1]) {
-							qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i-1]) - 
-								CHAR2QUAL(a->ends[endIndex].qual[i]);
+							qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j-1]) - 
+								CHAR2QUAL(a->ends[endIndex].qual[j]);
 						}
 						else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
-							qual[i] = CHAR2QUAL(a->ends[endIndex].qual[i]) - 
-								CHAR2QUAL(a->ends[endIndex].qual[i-1]);
+							qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) - 
+								CHAR2QUAL(a->ends[endIndex].qual[j-1]);
 						}
 						else {
 							qual[j] = 0;
 						}
 					}
-					if(qual[i] <= 0) {
-						qual[i] = QUAL2CHAR(1);
+					if(qual[j] <= 0) {
+						qual[j] = QUAL2CHAR(1);
 					}
-					else if(qual[i] > 63) {
-						qual[i] = QUAL2CHAR(63);
+					else if(qual[j] > 63) {
+						qual[j] = QUAL2CHAR(63);
 					}
 					else {
-						qual[i] = QUAL2CHAR(qual[i]);
+						qual[j] = QUAL2CHAR(qual[j]);
 					}
 					j++;
 				}
@@ -848,6 +848,11 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					strlen(qual));
 			strcpy(qual, qualRC);
 			}
+		}
+		if(!(strlen(qual) == strlen(read))) {
+			fprintf(stderr, "\nread=[%s]\nqual=[%s]\n",
+					read,
+					qual);
 		}
 		assert(strlen(qual) == strlen(read));
 	}
