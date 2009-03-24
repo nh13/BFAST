@@ -18,7 +18,6 @@ brepair_SOURCES = \
 	../balign/AlignColorSpace.c	../balign/AlignColorSpace.h \
 	../balign/Align.c		../balign/Align.h \
 	RunRepair.c	RunRepair.h \
-	Repair.c	Repair.h \
-	Definitions.h
+	Repair.c	Repair.h 
 	
 brepair_LDADD = -lm 
