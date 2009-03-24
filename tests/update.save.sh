@@ -2,17 +2,22 @@
 
 . test.definitions.sh
 
-# We update the bfast reference genome and bfast inded files for each new package version
+# Run test suite 
 sh test.initialize.sh
-sh test.bpreprocess.1.$OUTPUT_ID.sh
-sh test.bpreprocess.2.$OUTPUT_ID.sh
-# Only copy over the reference genome and index files
-cp output/bfast.rg.file*brg $SAVE_DIR.
-cp output/bfast.index.file*bif $SAVE_DIR.
+sh test.bpreprocess.1.sh
+sh test.bpreprocess.2.sh
+sh test.bmatches.sh
+sh test.balign.sh
+sh test.bpostprocess.sh
+# Update md5sum
+md5sum $OUTPUT_DIR/bfast* > $OUTPUT_DIR/tests.md5
 # Archive
-cd $SAVE_DIR
-tar -cf save.tar bfast*
-gzip -9 --force save.tar
+cd $DATA_DIR
+tar -zxvf data.tar.gz
+rm data.tar.gz
+mv ../$OUTPUT_DIR/tests.md5 .
+tar -cf data.tar *
+gzip -9 --force data.tar
 cd ..
-# package
-#sh test.cleanup.sh
+#
+sh test.cleanup.sh
