@@ -9,30 +9,24 @@
 \" Turn off justification and hyphenation
 .na
 .hy 0
-.TH balign 1 "UCLA bfast"
+.TH brepair 1 "UCLA bfast"
 .SH NAME
-balign \- aligns candidate alignment locations to the reference genome.
+brepair \- tries to rescue unpaired reads.  This program should not be used and is meant for internal testing purposes only. 
 .SH SYNOPSIS
 .P
 .fam C
 .nf
-balign
+brepair
 	[\fB\-r\fR \fIFILENAME\fR]	[\fB\-\-rgFileName=\fIFILENAME\fR]
-	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-matchFileName=\fIFILENAME\fR]
+	[\fB\-m\fR \fIFILENAME\fR]	[\fB\-\-unpaired=\fIFILENAME\fR]
 	[\fB\-x\fR \fIFILENAME\fR]	[\fB\-\-scoringMatrixFileName=\fIFILENAME\fR]
 	[\fB\-a\fR \fIINTEGER\fR]	[\fB\-\-alignmentType=\fIINTEGER\fR]
-	[\fB\-b\fR] [\fB\-\-bestOnly\fR]
 	[\fB\-A\fR \fIINTEGER\fR]	[\fB\-\-space=\fIINTEGER\fR]
-	[\fB\-s\fR \fIINTEGER\fR]	[\fB\-\-startContig=\fIINTEGER\fR]
-	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-startPos=\fIINTEGER\fR]
-	[\fB\-e\fR \fIINTEGER\fR]	[\fB\-\-endContig=\fIINTEGER\fR]
-	[\fB\-E\fR \fIINTEGER\fR]	[\fB\-\-endPos=\fIINTEGER\fR]
-	[\fB\-O\fR \fIINTEGER\fR]	[\fB\-\-offset=\fIINTEGER\fR]
-	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxNumMatches=\fIINTEGER\fR]
 	[\fB\-n\fR \fIINTEGER\fR]	[\fB\-\-numThreads=\fIINTEGER\fR]
-	[\fB\-l\fR \fIINTEGER\fR]	[\fB\-\-pairedEndLength=\fIINTEGER\fR]
+	[\fB\-m\fR \fIINTEGER\fR]	[\fB\-\-minPairedEndDistance=\fIINTEGER\fR]
+	[\fB\-M\fR \fIINTEGER\fR]	[\fB\-\-maxPairedEndDistance=\fIINTEGER\fR]
 	[\fB\-L\fR \fIINTEGER\fR]	[\fB\-\-mirroringType=\fIINTEGER\fR]
-	[\fB\-f\fR]	[\fB\-\-forceMirroring\fR]
+	[\fB\-S\fR \fIINTEGER\fR]	[\fB\-\-strandedness=\fIINTEGER\fR]
 	[\fB\-o\fR \fISTRING\fR]	[\fB\-\-outputID=\fISTRING\fR]
 	[\fB\-d\fR \fIDIRECTORY\fR]	[\fB\-\-outputDir=\fIDIRECTORY\fR]
 	[\fB\-T\fR \fIDIRECTORY\fR] [\fB\-\-tmpDir=\fIDIRECTORY\fR]

@@ -82,10 +82,10 @@ AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
 AC_CHECK_FUNCS([floor pow strstr])
 
-
 # Check types
 AC_CHECK_TYPE([int64_t int32_t uint32_t int8_t uint8_t])
-																														# Set proprocessor SIZEOF_short_int, SIZEOF_int, SIZEOF_long_int
+																														
+# Set proprocessor SIZEOF_short_int, SIZEOF_int, SIZEOF_long_int
 AC_CHECK_SIZEOF([short int])
 AC_CHECK_SIZEOF([int])
 AC_CHECK_SIZEOF([long int])

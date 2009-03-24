@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 				"\t\t4-BAF binary to SAM (v.%s)\n",
 				BFAST_SAM_VERSION
 			   );
-		fprintf(stderr, "\t<bfast reference genome file (not required for BAF output)\n");
+		fprintf(stderr, "\t<bfast reference genome file (not required for BAF output)>\n");
 		fprintf(stderr, "\t<output ID (required only for SAM output)>\n");
 	}
 	return 0;
