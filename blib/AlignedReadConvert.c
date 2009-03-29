@@ -733,7 +733,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	else {
 		if(0>fprintf(fp, "\t%d",
 					a->ends[mateEndIndex].entries[mateEntriesIndex].position -
-					a->ends[endIndex].entries[entriesIndex].position)) {
+					a->ends[endIndex].entries[entriesIndex].position+1)) {
 			PrintError(FnName,
 					NULL,
 					"Could not write to file",
