@@ -368,7 +368,8 @@ int32_t AlignExact(char *read,
 			}
 			assert(ToLower(read[i]) == ToLower(reference[i+offset]));
 			a->score += ScoringMatrixGetNTScore(read[i], read[i], sm);
-			a->read[i] = a->reference[i] = read[i];
+			a->read[i] = read[i];
+			a->reference[i] = reference[i+offset];
 		}
 	}
 	a->read[a->length] = '\0';

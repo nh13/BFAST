@@ -1100,7 +1100,7 @@ int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 				startCell = j + 1 + (ALPHABET_SIZE + 1);
 			}
 
-			/* End with a Insertion */
+			/* End with an Insertion */
 			if(maxScore < matrix[readLength][i].v.score[j]) {
 				maxScore = matrix[readLength][i].v.score[j];
 				maxScoreNT = matrix[readLength][i].v.scoreNT[j];

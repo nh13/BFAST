@@ -348,7 +348,7 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r%lld\n", 
 				(long long int)i);
-		fprintf(stderr, "Pass 2 of 2.  Out of %lld, currentyl on:\n0",
+		fprintf(stderr, "Pass 2 of 2.  Out of %lld, currently on:\n0",
 				(long long int)index->hashLength);
 	}
 

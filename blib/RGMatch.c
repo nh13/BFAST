@@ -21,7 +21,7 @@ int32_t RGMatchRead(FILE *fp,
 
 	/* Read the matches from the input file */
 	if(binaryInput == TextInput) {
-		/* Read the read length */
+		/* Read the read and qual */
 		if(fscanf(fp, "%s %s",
 					read,
 					qual)==EOF) {

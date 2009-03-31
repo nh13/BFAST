@@ -947,7 +947,8 @@ char RGBinaryGetBase(RGBinary *rg,
 		/* Update based on repeat */
 		switch(repeat) {
 			case 0:
-				/* ignore, not a repeat */
+				/* not a repeat, convert char to lower */
+				curChar=ToLower(curChar);
 				break;
 			case 1:
 				/* repeat, convert char to upper */
