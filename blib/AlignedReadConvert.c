@@ -572,15 +572,27 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 
 	/* QNAME */
 	assert(strlen(outputID) + strlen(a->readName) < BFAST_SAM_MAX_QNAME); /* One less for separator */
-	if(0>fprintf(fp, "%s%s%s",
-				outputID,
-				BFAST_SAM_MAX_QNAME_SEPARATOR,
-				a->readName)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+	if(0 < strlen(outputID)) {
+		if(0>fprintf(fp, "%s%s%s",
+					outputID,
+					BFAST_SAM_MAX_QNAME_SEPARATOR,
+					a->readName)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+	else {
+		if(0>fprintf(fp, "%s",
+					a->readName)) {
+			PrintError(FnName,
+					NULL,
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
 	}
 	/* FLAG */
 	flag = 0;
@@ -837,16 +849,16 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			}
 			qual[i]='\0';
 			if(REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
-			/* Reverse compliment */
-			GetReverseComplimentAnyCase(read, /* src */
-					readRC, /* dest */
-					strlen(read));
-			strcpy(read, readRC);
-			/* Reverse qual */
-			ReverseRead(qual,
-					qualRC,
-					strlen(qual));
-			strcpy(qual, qualRC);
+				/* Reverse compliment */
+				GetReverseComplimentAnyCase(read, /* src */
+						readRC, /* dest */
+						strlen(read));
+				strcpy(read, readRC);
+				/* Reverse qual */
+				ReverseRead(qual,
+						qualRC,
+						strlen(qual));
+				strcpy(qual, qualRC);
 			}
 		}
 		if(!(strlen(qual) == strlen(read))) {
