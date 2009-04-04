@@ -85,7 +85,7 @@ int32_t AlignedReadRead(AlignedRead *a,
 		if(fscanf(inputFP, "@%s %d %d",
 					a->readName,
 					&a->space,
-					&a->numEnds)==EOF) {
+					&a->numEnds)<3) {
 			/* Free read name before leaving */
 			free(a->readName);
 			a->readName=NULL;
@@ -153,7 +153,7 @@ int32_t AlignedReadRead(AlignedRead *a,
 					EndOfFile);
 		}
 	}
-
+	
 	return 1;
 }
 

@@ -63,10 +63,10 @@ int32_t AlignedEndRead(AlignedEnd *a,
 	int32_t i;
 
 	if(binaryInput == TextInput) {
-		if(fscanf(inputFP, "%s\t%s\t%d",
+		if(fscanf(inputFP, "%s %s %d",
 					read,
 					qual,
-					&a->numEntries) < 0) {
+					&a->numEntries) < 3) {
 			return EOF;
 		}
 

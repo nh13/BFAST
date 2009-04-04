@@ -809,32 +809,30 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				}
 			}
 			read[j]='\0';
-			/* Convert quals to NT Space - use maq 0.7.1 conversion */
-			for(i=j=0;i<strlen(a->ends[endIndex].entries[entriesIndex].colorError);i++) {
-				if(GAP != a->ends[endIndex].entries[entriesIndex].read[i]) {
-					if(0 == i) {
-						assert(j==0);
+			/* Convert quals to NT Space - use MAQ 0.7.1 conversion */
+			for(i=j=0;i<a->ends[endIndex].entries[entriesIndex].length;i++) {
+				if(GAP != a->ends[endIndex].entries[entriesIndex].read[i]) { /* Not a deletion */
+					if(a->ends[endIndex].entries[entriesIndex].length - 1 == i) { /* At the end of the alignment */
+						assert(j==a->ends[endIndex].qualLength-1);
 						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]);
 					}
-					else {
-						/* Use MAQ 0.7.1 conversion */
-						if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i-1] &&
-								GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
-							qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j-1]) + 
-								CHAR2QUAL(a->ends[endIndex].qual[j]) + 10;
-						}
-						else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i-1]) {
-							qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j-1]) - 
-								CHAR2QUAL(a->ends[endIndex].qual[j]);
-						}
-						else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
-							qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) - 
-								CHAR2QUAL(a->ends[endIndex].qual[j-1]);
-						}
-						else {
-							qual[j] = 0;
-						}
+					else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i] &&
+							GAP == a->ends[endIndex].entries[entriesIndex].colorError[i+1]) {
+						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) + 
+							CHAR2QUAL(a->ends[endIndex].qual[j+1]) + 10;
 					}
+					else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
+						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) - 
+							CHAR2QUAL(a->ends[endIndex].qual[j+1]);
+					}
+					else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i+1]) {
+						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j+1]) - 
+							CHAR2QUAL(a->ends[endIndex].qual[j]);
+					}
+					else {
+						qual[j] = 0;
+					}
+					/* Round */
 					if(qual[j] <= 0) {
 						qual[j] = QUAL2CHAR(1);
 					}
@@ -847,16 +845,15 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					j++;
 				}
 			}
-			qual[i]='\0';
+			qual[j]='\0';
 			if(REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
 				/* Reverse compliment */
 				GetReverseComplimentAnyCase(read, /* src */
 						readRC, /* dest */
 						strlen(read));
 				strcpy(read, readRC);
-				/* Reverse qual */
-				ReverseRead(qual,
-						qualRC,
+				ReverseRead(qual, /* src */
+						qualRC, /* dest */
 						strlen(qual));
 				strcpy(qual, qualRC);
 			}
