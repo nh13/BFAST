@@ -992,7 +992,9 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	else {
 		strcpy(read, a->read);
 		strcpy(reference, a->reference);
-		strcpy(colorError, a->colorError);
+		if(ColorSpace == space) {
+			strcpy(colorError, a->colorError);
+		}
 	}
 
 	/* Move all insertions and deletions to the 5' end - cool*/
