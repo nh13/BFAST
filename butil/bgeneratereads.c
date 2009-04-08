@@ -140,7 +140,7 @@ void GenerateReads(RGBinary *rg,
 	}
 
 	/* Create output file name */
-	sprintf(outFileName, "reads.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.fa",
+	sprintf(outFileName, "reads.%d.%d.%d.%d.%d.%d.%d.%d.%d.%d.fastq",
 			space,
 			indel,
 			indelLength,

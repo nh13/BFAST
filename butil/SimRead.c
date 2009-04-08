@@ -51,7 +51,7 @@ char *SimReadGetName(SimRead *r)
 				Exit,
 				MallocMemory);
 	}
-	if(sprintf(name, ">readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
+	if(sprintf(name, "readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
 				r->readNum,
 				r->strand,
 				r->contig,
