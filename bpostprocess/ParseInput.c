@@ -80,7 +80,8 @@ static struct argp_option options[] = {
 		"\n\t\t\t0: Specifies no filtering will occur"
 		"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
 		"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
-		"\n\t\t\t3: Specifies to choose the alignment with the best score",
+		"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
+		"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
@@ -402,7 +403,7 @@ AssignDefaultValues(struct arguments *args)
 PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char algorithm[4][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score"};
+	char algorithm[5][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score", "Best Score All"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);

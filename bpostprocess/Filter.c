@@ -32,7 +32,7 @@ int FilterAlignedRead(AlignedRead *a,
 	int foundType;
 	int32_t *foundTypes=NULL;
 	AlignedRead tmpA;
-	int32_t i, j;
+	int32_t i, j, ctr;
 	int32_t best, bestIndex, numBest;
 	int32_t curContigDistance, curPositionDistance;
 
@@ -94,6 +94,7 @@ int FilterAlignedRead(AlignedRead *a,
 				foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
 				break;
 			case BestScore:
+			case BestScoreAll:
 				best = INT_MIN;
 				bestIndex = -1;
 				numBest = 0;
@@ -107,12 +108,28 @@ int FilterAlignedRead(AlignedRead *a,
 						numBest++;
 					}
 				}
-				if(1==numBest) {
+				if(BestScore == algorithm &&
+						1 == numBest) {
 					foundTypes[i] = Found;
 					/* Copy to front */
 					AlignedEntryCopy(&tmpA.ends[i].entries[0], 
 							&tmpA.ends[i].entries[bestIndex]);
 					AlignedEndReallocate(&tmpA.ends[i], 1);
+				}
+				else if(BestScoreAll) {
+					foundTypes[i] = Found;
+					ctr=0;
+					for(j=0;j<tmpA.ends[i].numEntries;j++) {
+						if(tmpA.ends[i].entries[j].score == best) {
+							if(ctr != j) {
+								AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
+										&tmpA.ends[i].entries[j]);
+							}
+							ctr++;
+						}
+					}
+					assert(ctr == numBest);
+					AlignedEndReallocate(&tmpA.ends[i], numBest);
 				}
 				break;
 			default:
