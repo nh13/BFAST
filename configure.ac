@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59)
-AC_INIT([bfast],[0.4.3],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
+AC_INIT([bfast],[0.4.4],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
 AC_COPYRIGHT([bfast is copyright 2008-2009 by The University of California - Los
 Angeles.  All rights reserved.  This License is limited to, and you
@@ -31,7 +31,6 @@ AC_PROG_CC
 
 AC_PROG_INSTALL
 AC_GNU_SOURCE
-AC_PROG_LIBTOOL
 
 # set CFLAGS and CXXFLAGS
 default_CFLAGS="-Wall -g -O3 -pthread"
@@ -80,7 +79,7 @@ AC_C_CONST
 AC_FUNC_MALLOC 
 AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
-AC_CHECK_FUNCS([floor pow strstr])
+AC_CHECK_FUNCS([floor pow strstr strpbrk])
 
 # Check types
 AC_CHECK_TYPE([int64_t int32_t uint32_t int8_t uint8_t])
