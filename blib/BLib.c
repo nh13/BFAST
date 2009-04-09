@@ -110,6 +110,15 @@ char ToUpper(char a)
 }
 
 /* TODO */
+void ToUpperRead(char *r, int readLength) 
+{
+	int i;
+	for(i=0;i<readLength;i++) {
+		r[i] = ToUpper(r[i]);
+	}
+}
+
+/* TODO */
 void ReverseRead(char *s,
 		char *r,
 		int length)

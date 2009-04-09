@@ -12,6 +12,7 @@ int GetFastaHeaderLine(FILE*, char*);
 char ToLower(char);
 void ToLowerRead(char*, int);
 char ToUpper(char);
+void ToUpperRead(char*, int);
 void ReverseRead(char*, char*, int);
 void GetReverseComplimentAnyCase(char*, char*, int);
 char GetReverseComplimentAnyCaseBase(char);
