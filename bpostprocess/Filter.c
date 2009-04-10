@@ -116,7 +116,7 @@ int FilterAlignedRead(AlignedRead *a,
 							&tmpA.ends[i].entries[bestIndex]);
 					AlignedEndReallocate(&tmpA.ends[i], 1);
 				}
-				else if(BestScoreAll) {
+				else if(BestScoreAll == algorithm) {
 					foundTypes[i] = Found;
 					ctr=0;
 					for(j=0;j<tmpA.ends[i].numEntries;j++) {
