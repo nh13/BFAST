@@ -615,7 +615,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		flag |= 0x0100; /* This read is not primary */
 	}
 	if(0 <= entriesIndex) { /* Mapped */
-		flag |= (REVERSE==a->ends[endIndex].entries[mateEntriesIndex].strand)?0x0010:0x0000;
+		flag |= (REVERSE==a->ends[endIndex].entries[entriesIndex].strand)?0x0010:0x0000;
 		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
 	}
 	if(0>fprintf(fp, "\t%llu",
