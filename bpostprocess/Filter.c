@@ -245,12 +245,12 @@ int FilterAlignedEntry(AlignedEntry *a,
 	}
 	/* Check mismatches */
 	numMismatches = GetNumMismatchesInAlignedEntry(a);
-	/* Check color errors */
-	numColorErrors = GetNumColorErrorsInAlignedEntry(a, space);
 	if(maxMismatches < numMismatches) {
 		return 3;
 	}
 	if(ColorSpace == space) {
+		/* Check color errors */
+		numColorErrors = GetNumColorErrorsInAlignedEntry(a, space);
 		if(maxColorErrors < numColorErrors) {
 			return 4;
 		}
