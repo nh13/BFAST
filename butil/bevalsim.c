@@ -321,7 +321,7 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 	int state;
 
 	if(EOF == sscanf(readName, 
-				">readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
+				"@readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
 				&r->readNum,
 				&r->strand,
 				&r->contig,
@@ -841,6 +841,10 @@ void ReadInReads(char *readsFile, Stats *s)
 			EOF != fscanf(fpIn, "%s", r1) &&
 			(NULL != strpbrk("numends=1", readName) || EOF != fscanf(fpIn, "%s", r2))) {
 		/* Only accepting 1 or 2 ends currently */
+		if(!(NULL != strpbrk("numends=1", readName) ||
+				NULL != strpbrk("numends=2", readName))) {
+			fprintf(stderr, "readName=%s\n", readName);
+		}
 		assert(NULL != strpbrk("numends=1", readName) ||
 				NULL != strpbrk("numends=2", readName));
 		ReadTypeInitialize(&r);

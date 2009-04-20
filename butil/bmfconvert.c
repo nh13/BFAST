@@ -124,6 +124,7 @@ int main(int argc, char *argv[])
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
 		fprintf(stderr, "\t<bfast matches file name>\n");
+		fprintf(stderr, "\t<output type:\n");
 		fprintf(stderr, "\t\t0-BMF text to BMF binary\n");
 		fprintf(stderr, "\t\t1-BMF binary to BMF text\n");
 		fprintf(stderr, "\t\t2-BMF binary to FASTQ\n");
