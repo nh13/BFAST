@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.4.4
+* Fixed bugs when outputting to SAM format.
+* Added bmf conversion to fastq.
+
 Version 0.4.3
 * Added an option to bpostprocess where all "best scoring" alignments
 can be returned.
