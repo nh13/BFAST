@@ -162,6 +162,25 @@ void RGMatchesPrint(FILE *fp,
 }
 
 /* TODO */
+void RGMatchesPrintFastq(FILE *fp,
+		RGMatches *m)
+{
+	/*
+	char *FnName = "RGMatchesPrintFastq";
+	*/
+	int32_t i;
+	assert(fp!=NULL);
+
+	/* Print the matches to the output file */
+		/* Print read name length, read name, and num ends*/
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchPrintFastq(fp,
+				m->readName,
+				&m->ends[i]);
+	}
+}
+
+/* TODO */
 void RGMatchesRemoveDuplicates(RGMatches *m,
 		int32_t maxNumMatches)
 {

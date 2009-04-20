@@ -769,6 +769,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			strcpy(read, a->ends[endIndex].read);
 			strcpy(qual, a->ends[endIndex].qual);
 		}
+		assert(strlen(qual) == strlen(read));
 	}
 	else {
 		/* Convert read to NT space */

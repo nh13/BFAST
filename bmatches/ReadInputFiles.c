@@ -58,6 +58,7 @@ int GetNextRead(FILE *fp,
 				ReadFileError);
 	}
 	StringTrimWhiteSpace(qual);
+
 	return 1;
 }
 

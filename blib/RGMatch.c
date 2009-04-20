@@ -262,6 +262,28 @@ void RGMatchPrint(FILE *fp,
 }
 
 /* TODO */
+void RGMatchPrintFastq(FILE *fp,
+		char *readName,
+		RGMatch *m)
+{
+	char *FnName = "RGMatchPrintFastq";
+	assert(fp!=NULL);
+	assert(m->readLength > 0);
+	assert(m->qualLength > 0);
+
+	if(0 > fprintf(fp, "@%s\n%s\n+\n%s\n",
+				readName,
+					m->read,
+					m->qual)) {
+			PrintError(FnName,
+					NULL,
+					"Could not to file",
+					Exit,
+					WriteFileError);
+	}
+}
+
+/* TODO */
 void RGMatchRemoveDuplicates(RGMatch *m,
 		int32_t maxNumMatches)
 {
