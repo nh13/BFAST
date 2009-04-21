@@ -616,7 +616,9 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	if(0 <= entriesIndex) { /* Mapped */
 		flag |= (REVERSE==a->ends[endIndex].entries[entriesIndex].strand)?0x0010:0x0000;
-		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
+		if(2 == a->numEnds) {
+			flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
+		}
 	}
 	if(0>fprintf(fp, "\t%llu",
 				(unsigned long long int)flag)) {
