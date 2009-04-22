@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
 		strcpy(tmpDir, argv[7]);
 		numThreads = atoi(argv[8]);
 		assert(whichStrand == BothStrands || whichStrand == ForwardStrand || whichStrand == ReverseStrand);
+		assert(0 == numMismatches);
 
 		/* Create the distribution file name */
 		sprintf(distributionFileName, "%s%s.dist.%d",
@@ -692,11 +693,14 @@ void GetMatchesFromContigPos(RGIndex *index,
 {
 	char *FnName = "GetMatchesFromContigPos";
 	int returnLength, returnPosition;
-	RGRanges r;
+	RGRanges ranges;
+	RGReads reads;
 	int readLength = index->width;
+	int32_t offsets[1] = {0};
+	int32_t i;
 
 	/* Initialize */
-	RGRangesInitialize(&r);
+	RGRangesInitialize(&ranges);
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -722,41 +726,54 @@ void GetMatchesFromContigPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	RGIndexGetRangesBothStrands(index, 
-			rg, 
-			(*read), 
-			readLength, 
-			0, 
-			INT_MAX, 
+	/* Generate reads */
+	RGReadsGenerateReads((*read),
+			readLength,
+			index,
+			&reads,
+			offsets,
+			1,
 			rg->space,
-			BothStrands,
-			&r);
+			numMismatches,
+			0,
+			0,
+			0,
+			0);
 
-	switch(r.numEntries) {
-		case 0:
-			PrintError(FnName,
-					"r.numEntries",
-					"There were no matches",
-					Exit,
-					OutOfRange);
-			break;
-		case 1:
-			assert(FORWARD == r.strand[0]);
-			(*numForward) = r.endIndex[0] - r.startIndex[0] + 1;
-			(*numReverse) = 0;
-			break;
-		case 2:
-			assert(FORWARD == r.strand[0]);
-			(*numForward) = r.endIndex[0] - r.startIndex[0] + 1;
-			(*numReverse) = r.endIndex[1] - r.startIndex[1] + 1;
-			break;
-		default:
-			PrintError(FnName,
-					"r.numEntries",
-					"There were more than two ranges",
-					Exit,
-					OutOfRange);
-			break;
+	/* Get the matches */
+	for(i=0;i<reads.numReads;i++) {
+		RGIndexGetRangesBothStrands(index,
+				rg,
+				reads.reads[i],
+				reads.readLength[i],
+				0,
+				INT_MAX,
+				rg->space,
+				BothStrands,
+				&ranges);
+	}
+
+	/* This exploits the fact that the ranges are non-overlapping */
+	RGRangesRemoveDuplicates(&ranges);
+
+	assert(0 < ranges.numEntries);
+	(*numForward) = (*numReverse) = 0;
+	for(i=0;i<ranges.numEntries;i++) {
+		switch(ranges.strand[i]) {
+			case FORWARD:
+				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				break;
+			case REVERSE:
+				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				break;
+			default:
+				PrintError(FnName,
+						NULL,
+						"Could not understand strand",
+						Exit,
+						OutOfRange);
+				break;
+		}
 	}
 
 	assert((*numForward)>0);
@@ -767,5 +784,6 @@ void GetMatchesFromContigPos(RGIndex *index,
 		ConvertColorsFromStorage((*reverseRead), readLength);
 	}
 
-	RGRangesFree(&r);
+	RGRangesFree(&ranges);
+	RGReadsFree(&reads);
 }

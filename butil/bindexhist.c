@@ -487,8 +487,8 @@ void *PrintHistogramThread(void *arg)
 					/* If the reverse compliment does not match the + strand then it will only match the - strand.
 					 * Count it as unique as well as the + strand read.
 					 * */
-					        if((BothStrands == whichStrand || ReverseStrand == whichStrand) &&
-									                numReverse == 0) {
+					if((BothStrands == whichStrand || ReverseStrand == whichStrand) &&
+							numReverse == 0) {
 						numDifferent+=2;
 						numReadsNoMismatches = 2;
 					}
@@ -564,11 +564,15 @@ int GetMatchesFromContigPos(RGIndex *index,
 	char *FnName = "GetMatchesFromContigPos";
 	int returnLength, returnPosition;
 	char *read=NULL;
-	RGRanges r;
+	RGRanges ranges;
+	RGReads reads;
 	int readLength = index->width;
+	int32_t offsets[1] = {0};
+	int32_t i;
 
 	/* Initialize */
-	RGRangesInitialize(&r);
+	RGRangesInitialize(&ranges);
+	RGReadsInitialize(&reads);
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -583,47 +587,61 @@ int GetMatchesFromContigPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	RGIndexGetRangesBothStrands(index,
-			rg,
-			read,
+	/* Generate reads */
+	RGReadsGenerateReads(read,
 			readLength,
-			0,
-			INT_MAX,
+			index,
+			&reads,
+			offsets,
+			1,
 			rg->space,
-			BothStrands,
-			&r);
+			numMismatches,
+			0,
+			0,
+			0,
+			0);
 
-	switch(r.numEntries) {
-		case 0:
-			PrintError(FnName,
-					"r.numEntries",
-					"There were no matches",
-					Exit,
-					OutOfRange);
-			break;
-		case 1:
-			assert(FORWARD == r.strand[0]);
-			(*numForward) = r.endIndex[0] - r.startIndex[0] + 1;
-			(*numReverse) = 0;
-			break;
-		case 2:
-			assert(FORWARD == r.strand[0]);
-			(*numForward) = r.endIndex[0] - r.startIndex[0] + 1;
-			(*numReverse) = r.endIndex[1] - r.startIndex[1] + 1;
-			break;
-		default:
-			PrintError(FnName,
-					"r.numEntries",
-					"There were more than two ranges",
-					Exit,
-					OutOfRange);
-			break;
+	/* Get the matches */
+	for(i=0;i<reads.numReads;i++) {
+		RGIndexGetRangesBothStrands(index,
+				rg,
+				reads.reads[i],
+				reads.readLength[i],
+				0,
+				INT_MAX,
+				rg->space,
+				BothStrands,
+				&ranges);
 	}
 
-	assert((*numForward)>0);
+	/* This exploits the fact that the ranges are non-overlapping */
+	RGRangesRemoveDuplicates(&ranges);
+
+	assert(0 < ranges.numEntries);
+	(*numForward) = (*numReverse) = 0;
+	for(i=0;i<ranges.numEntries;i++) {
+		switch(ranges.strand[i]) {
+			case FORWARD:
+				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				break;
+			case REVERSE:
+				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				break;
+			default:
+				PrintError(FnName,
+						NULL,
+						"Could not understand strand",
+						Exit,
+						OutOfRange);
+				break;
+		}
+	}
+
+	assert((*numForward) > 0); /* It should at least match itself ! */
 	assert((*numReverse) >= 0);
 
-	RGRangesFree(&r);
+	RGRangesFree(&ranges);
+	RGReadsFree(&reads);
 	free(read);
 	read=NULL;
 
