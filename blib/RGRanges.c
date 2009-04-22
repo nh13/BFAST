@@ -159,7 +159,7 @@ int32_t RGRangesCompareAtIndex(RGRanges *rOne, int32_t indexOne, RGRanges *rTwo,
 
 	cmp[0] = (rOne->startIndex[indexOne]<=rTwo->startIndex[indexTwo])?((rOne->startIndex[indexOne]<rTwo->startIndex[indexTwo])?-1:0):1;
 	cmp[1] = (rOne->endIndex[indexOne]<=rTwo->endIndex[indexTwo])?((rOne->endIndex[indexOne]<rTwo->endIndex[indexTwo])?-1:0):1;
-	cmp[2] = (rOne->strand[indexOne]<=rTwo->startIndex[indexTwo])?((rOne->startIndex[indexOne]<rTwo->startIndex[indexTwo])?-1:0):1;
+	cmp[2] = (rOne->strand[indexOne]<=rTwo->strand[indexTwo])?((rOne->strand[indexOne]<rTwo->strand[indexTwo])?-1:0):1;
 	cmp[3] = (rOne->offset[indexOne]<=rTwo->startIndex[indexTwo])?((rOne->startIndex[indexOne]<rTwo->startIndex[indexTwo])?-1:0):1;
 
 	for(i=0;i<top;i++) {
