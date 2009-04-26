@@ -18,6 +18,7 @@ struct arguments
 	int numDeletions;						/* -z - not used */
 	int numGapInsertions;					/* -Y - not used */
 	int numGapDeletions;					/* -Z - not used */
+	int keySize;							/* -k */
 	int maxKeyMatches;						/* -K */
 	int maxNumMatches;						/* -M */
 	int whichStrand;						/* -w */

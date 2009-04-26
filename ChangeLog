@@ -11,6 +11,7 @@ Version 0.4.4
 * Fixed bug in RGRanges, where pallindromic sequences were being removed
 from one strand.
 * Added new utility brg2fasta.
+* Added ability in bmatches to use masks that are prefixes of the mask (-k).
 
 Version 0.4.3
 * Added an option to bpostprocess where all "best scoring" alignments

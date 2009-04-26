@@ -62,7 +62,7 @@ enum {
 	/*
 	DescNumMismatches, DescNumDeletions, DescNumInsertions, DescNumGapDeletions, DescNumGapInsertions, 
 	*/
-	DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, 
+	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -98,6 +98,7 @@ static struct argp_option options[] = {
 	{"numGapInsertions", 'Z', "numGapInsertions", 0, "Specifies the number of insertions allowed in the gaps within the mask"
 		"\n\t\t\t(enumeration: not recommended for use)", 2},
 	*/
+	{"keySize", 'k', "keySize", 0, "Specifies to truncate all indexes to have the given key size (must be greater than the hash width)", 2},
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
 	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse strand only", 2},
@@ -134,7 +135,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:m:n:o:r:s:w:A:I:K:M:O:R:T:hpt";
+"d:e:i:k:m:n:o:r:s:w:A:I:K:M:O:R:T:hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -201,6 +202,7 @@ main (int argc, char **argv)
 								arguments.numDeletions,
 								arguments.numGapInsertions,
 								arguments.numGapDeletions,
+								arguments.keySize,
 								arguments.maxKeyMatches,
 								arguments.maxNumMatches,
 								arguments.whichStrand,
@@ -323,6 +325,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "numGapDeletions", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->keySize < 0) {
+		PrintError(FnName, "keySize", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->maxKeyMatches < 0) {
 		PrintError(FnName, "maxKeyMatches", "Command line argument", Exit, OutOfRange);
 	}
@@ -413,6 +419,7 @@ AssignDefaultValues(struct arguments *args)
 	args->numDeletions = 0;
 	args->numGapInsertions = 0;
 	args->numGapDeletions = 0;
+	args->keySize = 0;
 	args->maxKeyMatches = INT_MAX;
 	args->maxNumMatches = INT_MAX;
 	args->whichStrand = BothStrands;
@@ -467,6 +474,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "numGapDeletions:\t\t\t%d\n", args->numGapDeletions);
 	fprintf(fp, "numGapInsertions:\t\t\t%d\n", args->numGapInsertions);
 	*/
+	fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
 	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "whichStrand:\t\t\t\t%d\t[%s]\n", args->whichStrand, whichStrand[args->whichStrand]);
@@ -565,6 +573,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'i':
 						StringCopyAndReallocate(&arguments->bfastMainIndexesFileName, OPTARG);
 						break;
+					case 'k':
+						arguments->keySize = atoi(OPTARG);break;
 					case 'n':
 						arguments->numThreads=atoi(OPTARG);break;
 					case 'o':

@@ -34,6 +34,7 @@ void FindMatches(
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
+		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
@@ -234,6 +235,7 @@ void FindMatches(
 			numDeletions,
 			numGapInsertions,
 			numGapDeletions,
+			keySize,
 			maxKeyMatches,
 			maxNumMatches,
 			whichStrand,
@@ -277,6 +279,7 @@ void FindMatches(
 					numDeletions,
 					numGapInsertions,
 					numGapDeletions,
+					keySize,
 					maxKeyMatches,
 					maxNumMatches,
 					whichStrand,
@@ -410,6 +413,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
+		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
@@ -505,6 +509,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numDeletions,
 				numGapInsertions,
 				numGapDeletions,
+				keySize,
 				maxKeyMatches,
 				maxNumMatches,
 				whichStrand,
@@ -651,6 +656,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int numDeletions,
 		int numGapInsertions,
 		int numGapDeletions,
+		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
@@ -665,7 +671,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int *totalOutputTime)
 {
 	char *FnName = "FindMatchesInIndex";
-	int i;
+	int i, j;
 	FILE **tempOutputThreadFPs=NULL;
 	char **tempOutputThreadFileNames=NULL;
 	RGIndex index;
@@ -732,6 +738,17 @@ int FindMatchesInIndex(char *indexFileName,
 	/* Read in the RG Index */
 	startTime = time(NULL);
 	ReadRGIndex(indexFileName, &index, space);
+	/* Adjust if necessary */
+	if(0 < keySize &&
+			index.width < keySize &&
+			keySize < index.keysize) {
+		/* Adjust key size and width */
+		for(j=i=0;i<index.width && j<keySize;i++) {
+			if(1 == index.mask[i]) j++;
+		}
+		index.width = i;
+		index.keysize = keySize;
+	}
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
 
