@@ -8,6 +8,9 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 Version 0.4.4
 * Fixed bugs when outputting to SAM format.
 * Added bmf conversion to fastq.
+* Fixed bug in RGRanges, where pallindromic sequences were being removed
+from one strand.
+* Added new utility brg2fasta.
 
 Version 0.4.3
 * Added an option to bpostprocess where all "best scoring" alignments

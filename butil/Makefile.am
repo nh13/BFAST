@@ -15,6 +15,7 @@ bin_PROGRAMS = bafconvert \
 			   bpairedenddist \
 			   brepeat \
 			   breport \
+			   brg2fasta \
 			   bsort \
 			   btestindexes \
 			   btranslocations
@@ -269,6 +270,17 @@ breport_SOURCES = \
 				  breport.c	breport.h
 
 breport_LDADD =
+
+brg2fasta_SOURCES = \
+				  ../blib/BError.c	../blib/BError.h \
+				  ../blib/BLib.c	../blib/BLib.h \
+				  ../blib/RGIndex.c	../blib/RGIndex.h \
+				  ../blib/RGBinary.c ../blib/RGBinary.h \
+				  ../blib/RGMatch.c ../blib/RGMatch.h \
+				  ../blib/RGMatches.c ../blib/RGMatches.h \
+				  ../blib/RGRanges.c ../blib/RGRanges.h \
+				  ../blib/RGReads.c	../blib/RGReads.h \
+				  brg2fasta.c
 
 bsort_SOURCES = \
 				../blib/AlignedEnd.c	../blib/AlignedEnd.h \
