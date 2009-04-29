@@ -211,7 +211,7 @@ void PrintDistributionFromBAF(FILE *fpIn,
 			PrintError(FnName,
 					"a.numEnds",
 					"Data includes non paired end",
-					Exit,
+					Warn,
 					OutOfRange);
 		}
 		else {
