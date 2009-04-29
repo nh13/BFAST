@@ -346,6 +346,7 @@ void CountPrint(Count *c, FILE *fp)
 				fprintf(fp, "\t%d\t%d", 0, 0);
 			}
 		}
+		fprintf(fp, "\n");
 	}
 }
 
