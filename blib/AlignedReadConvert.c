@@ -664,8 +664,11 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					WriteFileError);
 		}
 	}
-	/* MAPQ - I abhor this */
-	if(0>fprintf(fp, "\t255")) {
+	/* MAPQ */
+	int32_t mapq = (int32_t)a->ends[endIndex].entries[entriesIndex].score;
+	if(mapq < 0) mapq = 0;
+	if(mapq > 255) mapq = 255;
+	if(0>fprintf(fp, "\t%d", mapq)) {
 		PrintError(FnName,
 				NULL,
 				"Could not write to file",

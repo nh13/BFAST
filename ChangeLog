@@ -12,6 +12,7 @@ Version 0.4.4
 from one strand.
 * Added new utility brg2fasta.
 * Added ability in bmatches to use masks that are prefixes of the mask (-k).
+* Now can output a very rudimentary mapping quality in bpostprocess.
 
 Version 0.4.3
 * Added an option to bpostprocess where all "best scoring" alignments
