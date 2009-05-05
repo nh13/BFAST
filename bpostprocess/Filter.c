@@ -8,6 +8,7 @@
 #include "../blib/AlignedEnd.h"
 #include "../blib/AlignedRead.h"
 #include "../blib/BLib.h"
+#include "../blib/ScoringMatrix.h"
 #include "Definitions.h"
 #include "Filter.h"
 
@@ -26,7 +27,10 @@ int FilterAlignedRead(AlignedRead *a,
 		int useDistancePaired,
 		int contigAbPaired,
 		int inversionsPaired,
-		int unpaired)
+		int unpaired,
+		double mismatchScore,
+		int avgMismatchQuality,
+		int space)
 {
 	char *FnName="FilterAlignedRead";
 	int foundType;
@@ -42,11 +46,22 @@ int FilterAlignedRead(AlignedRead *a,
 	/* Copy in case we do not find anything to report */
 	AlignedReadCopy(&tmpA, a);
 
+	/* Replace alignment score with mapping quality if necessary */
+	if(0 < mismatchScore) {
+		for(i=0;i<tmpA.numEnds;i++) {
+			FilterReplaceAlignmentScore(&tmpA.ends[i],
+					mismatchScore,
+					avgMismatchQuality,
+					space);
+		}
+	}
+
 	if(NoFiltering != algorithm) {
 		/* Filter each alignment individually */
 		for(i=0;i<tmpA.numEnds;i++) {
 			for(j=0;j<tmpA.ends[i].numEntries;j++) {
 				/* Check if we should filter */
+				assert(space == tmpA.space);
 				if(0<FilterAlignedEntry(&tmpA.ends[i].entries[j],
 							tmpA.space,
 							minScore,
@@ -256,4 +271,43 @@ int FilterAlignedEntry(AlignedEntry *a,
 		}
 	}
 	return 0;
+}
+			
+void FilterReplaceAlignmentScore(AlignedEnd *a,
+		double mismatchScore,
+		int avgMismatchQuality,
+		int space)
+{
+	int i;
+	double bestScore=INT_MIN, nextBestScore=INT_MIN;
+	double bestMappingQuality = 0.0;
+
+	/* Get best and next best score */
+	for(i=0;i<a->numEntries;i++) {
+		if(bestScore < a->entries[i].score) {
+			bestScore = a->entries[i].score;
+		}
+		else if(nextBestScore < a->entries[i].score) {
+			nextBestScore = a->entries[i].score;
+		}
+	}
+
+	if(bestScore < 0) {
+		bestScore = 0;
+	}
+	if(nextBestScore < 0) {
+		nextBestScore = 0;
+	}
+	assert(nextBestScore <= bestScore);
+
+	bestMappingQuality = ( (bestScore - nextBestScore)/mismatchScore )*avgMismatchQuality;
+	
+	for(i=0;i<a->numEntries;i++) {
+		if(a->entries[i].score < bestScore) {
+			a->entries[i].score = 0;
+		}
+		else {
+			a->entries[i].score = bestMappingQuality;
+		}
+	}
 }

@@ -17,7 +17,10 @@ int FilterAlignedRead(AlignedRead *a,
 		int useDistancePaired,
 		int contigAbPaired,
 		int inversionsPaired,
-		int unpaired);
+		int unpaired,
+		double mismatchScore,
+		int avgMismatchQuality,
+		int space);
 
 int FilterAlignedEntry(AlignedEntry *a,
 		int space,
@@ -28,5 +31,10 @@ int FilterAlignedEntry(AlignedEntry *a,
 		int endPos,
 		int maxMismatches,
 		int maxColorErrors);
+
+void FilterReplaceAlignmentScore(AlignedEnd *a,
+		double mismatchScore,
+		int avgMismatchQuality,
+		int space);
 
 #endif

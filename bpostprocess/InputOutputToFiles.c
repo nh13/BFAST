@@ -6,6 +6,7 @@
 #include "../blib/BError.h"
 #include "../blib/AlignedRead.h"
 #include "../blib/AlignedReadConvert.h"
+#include "../blib/ScoringMatrix.h"
 #include "Definitions.h"
 #include "Filter.h"
 #include "InputOutputToFiles.h"
@@ -28,6 +29,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int contigAbPaired,
 		int inversionsPaired,
 		int unpaired,
+		char *scoringMatrixFileName,
+		int avgMismatchQuality,
+		int space,
 		char *outputID,
 		char *outputDir,
 		int outputFormat)
@@ -47,9 +51,25 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpNotReported=NULL;
 	char fileExtension[256]="\0";
+	ScoringMatrix sm;
+	double mismatchScore = -1.0;
 
 	assert(binaryInput == BinaryInput ||
 			binaryInput == TextInput);
+
+	if(NULL != scoringMatrixFileName) {
+		ScoringMatrixInitialize(&sm);
+	    ScoringMatrixRead(scoringMatrixFileName, &sm, space);
+		/* Assumes all match scores are the same and all substitution scores are the same */
+		if(space == NTSpace) {
+			mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
+		}
+		else {
+			mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
+		}
+		/* Free */
+	    ScoringMatrixFree(&sm);
+	}
 
 	/* Open the input file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
@@ -184,7 +204,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				useDistancePaired,
 				contigAbPaired,
 				inversionsPaired,
-				unpaired);
+				unpaired,
+				mismatchScore,
+				avgMismatchQuality,
+				space
+				);
 
 		/* Print the apporiate files based on the return type */
 		switch(foundType) {

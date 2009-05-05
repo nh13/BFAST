@@ -60,6 +60,7 @@ enum {
 	DescAlgoTitle, DescAlgorithm, 
 	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, escMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
+	DescMappingQualityTitle, DescScoringMatrix, DescAvgMismatchQuality, DescSpace, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -78,10 +79,10 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
 		"\n\t\t\t0: Specifies no filtering will occur"
-		"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
-		"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
-		"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
-		"\n\t\t\t4: Specifies to choose all alignments with the best score",
+			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
+			"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
+			"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
+			"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
@@ -99,14 +100,20 @@ static struct argp_option options[] = {
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the\n"
 		"\t\t\tspecified distance but are on the opposite strands (paired end only)", 2},
 	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads for which one end could not be unambiguously chosen", 2},
-	{0, 0, 0, 0, "=========== Output Options ==========================================================", 5},
-	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 5},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 5},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 5},
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 5},
-	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 6},
-	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 6},
-	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 6},
+	{0, 0, 0, 0, "=========== Mapping Quality Options =================================================", 5},
+	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix\n"
+		"\t\t\tWhen used, this will replace the alignment score with the mapping quality", 5},
+	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 5},
+	{"space", 'A', "space", 0, "0: NT space 1: Color space.  This will determine in which space\n"
+		"\t\t\tmismatches are counted and in which format the scoring matrix is given.", 5},
+	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
+	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
+	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 6},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 6},
+	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 7},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 7},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 7},
 	{0, 0, 0, 0, 0, 0}
 };
 
@@ -128,7 +135,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:S:T:X:Y:hptCIU";
+"a:d:e:i:j:k:m:o:q:r:s:x:z:A:E:I:O:P:Q:S:T:X:Y:hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -199,6 +206,9 @@ main (int argc, char **argv)
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.unpaired,
+								arguments.scoringMatrixFileName,
+								arguments.avgMismatchQuality,
+								arguments.space,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.outputFormat);
@@ -298,7 +308,7 @@ int ValidateInputs(struct arguments *args) {
 			args->algorithm > MAX_FILTER) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
-	
+
 	if(args->maxMismatches < 0) {
 		PrintError(FnName, "maxMismatches < 0", "Command line argument", Exit, OutOfRange);
 	}
@@ -317,6 +327,19 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->contigAbPaired == 0 || args->contigAbPaired == 1);
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
 	assert(args->unpaired == 0 || args->unpaired == 1);
+
+	if(args->scoringMatrixFileName!=0) {
+		fprintf(stderr, "Validating scoringMatrixFileName %s. \n",
+				args->scoringMatrixFileName);
+		if(ValidateFileName(args->scoringMatrixFileName)==0)
+			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
+	}
+	if(args->avgMismatchQuality <= 0) {
+		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, IllegalFileName);
+	}
+	    if(args->space != NTSpace && args->space != ColorSpace) {
+			        PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
+					    }
 
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
@@ -368,6 +391,7 @@ AssignDefaultValues(struct arguments *args)
 	args->startPos=0;
 	args->endContig=0;
 	args->endPos=0;
+	args->space = NTSpace;
 
 	args->algorithm=0;
 	args->minScore=INT_MIN;
@@ -380,6 +404,9 @@ AssignDefaultValues(struct arguments *args)
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 	args->unpaired=0;
+
+	args->scoringMatrixFileName = NULL; 
+	args->avgMismatchQuality = 10;
 
 	args->outputID = 
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -425,6 +452,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
 	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
+	fprintf(fp, "scoringMatrixFileName:\t%s\n", args->scoringMatrixFileName);
+	fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
+	fprintf(fp, "space:\t\t\t%d\n", args->space); 
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -444,6 +474,8 @@ void FreeProgramParameters(struct arguments *args)
 	args->outputID=NULL;
 	free(args->outputDir);
 	args->outputDir=NULL;
+	free(args->scoringMatrixFileName);
+	args->scoringMatrixFileName=NULL;
 }
 
 /* TODO */
@@ -517,12 +549,18 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
+					case 'q':
+						arguments->avgMismatchQuality = atoi(OPTARG);break;
 					case 'r':
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);break;
 					case 's':
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
+					case 'x':
+						StringCopyAndReallocate(&arguments->scoringMatrixFileName, OPTARG);break;
+					case 'A':
+						arguments->space = atoi(OPTARG);break;
 					case 'C':
 						arguments->contigAbPaired = 1;break;
 					case 'E':
