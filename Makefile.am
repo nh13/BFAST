@@ -2,6 +2,8 @@ EXTRA_DIST = LICENSE \
 			 autogen.sh \
 			 doc/bfast.1 doc/bpreprocess.1 doc/bmatches.1 doc/balign.1 doc/bpostprocess.1 doc/butil.1 \
 			 blib/BLibDefinitions.h \
+			 scripts/solid2fastq.pl \
+			 scripts/qseq2fastq.pl \
 			 tests/test.definitions.sh \
 			 tests/data/data.tar.gz 
 			 tests/test.initialize.sh \
