@@ -84,6 +84,7 @@ static struct argp_option options[] = {
 			"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
 			"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
+	{"space", 'A', "space", 0, "0: NT space 1: Color space.\n", 5},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
@@ -104,8 +105,6 @@ static struct argp_option options[] = {
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix\n"
 		"\t\t\tWhen used, this will replace the alignment score with the mapping quality", 5},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 5},
-	{"space", 'A', "space", 0, "0: NT space 1: Color space.  This will determine in which space\n"
-		"\t\t\tmismatches are counted and in which format the scoring matrix is given.", 5},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
@@ -440,6 +439,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
+	fprintf(fp, "space:\t\t\t%d\n", args->space); 
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
@@ -454,7 +454,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
 	fprintf(fp, "scoringMatrixFileName:\t%s\n", args->scoringMatrixFileName);
 	fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
-	fprintf(fp, "space:\t\t\t%d\n", args->space); 
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
