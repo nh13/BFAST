@@ -27,7 +27,7 @@ Usage: qseq2fastq.pl <input .qseq prefix>
 
 	All .qseq files will be inferred from the specified directory 
 	and accompanying prefix.  For paired end data, reads in
-		<prefix>_1_XXXX_qseq.txt and <prefix>_1_XXXX_qseq.txt will be
+		<prefix>_1_XXXX_qseq.txt and <prefix>_2_XXXX_qseq.txt will be
 	paired.  For example, if we wish to create a paired end fastq
 	file the first lane, the command should be:
 
