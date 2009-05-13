@@ -141,10 +141,11 @@ sub GetDirContents {
 		$dir = "./";
 	}
 
+	print STDOUT "dir=$dir\n";
 	local *DIR;
 	opendir(DIR, "$dir") || die("Error.  Could not open $dir.  Terminating!\n");
 	@$dirs = grep !/^\.\.?$/, readdir DIR;
-	@$dirs = grep /^$prefix/, @$dirs;
+	@$dirs = grep /^$prefix.*qseq\.txt/, @$dirs;
 	for(my $i=0;$i<scalar(@$dirs);$i++) {
 		@$dirs[$i] = $dir."".@$dirs[$i];
 	}
@@ -164,7 +165,7 @@ sub parse_line {
 		$qual .= chr(($Q<=93? $Q : 93) + 33);
 	}
 
-	my $name = "@".$arr[0]."_".$arr[1]."_".$arr[2]."-".$arr[3]."_".$arr[4]."_".$arr[5]."_".$arr[6]."";
+	my $name = "@".$arr[0]."_".$arr[1]."_".$arr[2]."_".$arr[3]."_".$arr[4]."_".$arr[5]."_".$arr[6]."";
 	my $seq = $arr[8];
 
 	if(1 != $end) {
