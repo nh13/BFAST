@@ -69,7 +69,6 @@ if(0 == scalar(@files_two)) { # Single end
 else { # Paired end
 	while($FH_index < scalar(@files_one)) {
 		my $min_read_name = "";
-		print STDOUT "Opening $files_one[$FH_index]\n";
 		open(FH_one, "$files_one[$FH_index]") || die;
 		open(FH_two, "$files_two[$FH_index]") || die;
 		my %read_one = ();
@@ -141,7 +140,6 @@ sub GetDirContents {
 		$dir = "./";
 	}
 
-	print STDOUT "dir=$dir\n";
 	local *DIR;
 	opendir(DIR, "$dir") || die("Error.  Could not open $dir.  Terminating!\n");
 	@$dirs = grep !/^\.\.?$/, readdir DIR;
