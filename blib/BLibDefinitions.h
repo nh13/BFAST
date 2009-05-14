@@ -72,6 +72,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define NULL_LETTER 'N'
 #define COLOR_SPACE_START_NT 'A'
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
+#define AVG_MISMATCH_QUALITY 10
 
 /* Macro functions */
 #define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
@@ -223,6 +224,7 @@ typedef struct {
 	uint32_t position;
 	char strand;
 	double score;
+	int32_t mappingQuality;
 	uint32_t referenceLength; /* The length of the reference alignment substracting gaps */
 	uint32_t length; /* The length of the alignment */
 	char *read; /* The read */

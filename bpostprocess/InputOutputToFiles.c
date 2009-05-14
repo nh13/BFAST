@@ -20,7 +20,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int endContig,
 		int endPos,
 		int algorithm,
-		int minScores,
+		int minScore,
+		int minQual,
 		int maxMismatches,
 		int maxColorErrors,
 		int minDistancePaired,
@@ -29,9 +30,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int contigAbPaired,
 		int inversionsPaired,
 		int unpaired,
-		char *scoringMatrixFileName,
-		int avgMismatchQuality,
-		int space,
 		char *outputID,
 		char *outputDir,
 		int outputFormat)
@@ -51,25 +49,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpNotReported=NULL;
 	char fileExtension[256]="\0";
-	ScoringMatrix sm;
-	double mismatchScore = -1.0;
 
 	assert(binaryInput == BinaryInput ||
 			binaryInput == TextInput);
-
-	if(NULL != scoringMatrixFileName) {
-		ScoringMatrixInitialize(&sm);
-	    ScoringMatrixRead(scoringMatrixFileName, &sm, space);
-		/* Assumes all match scores are the same and all substitution scores are the same */
-		if(space == NTSpace) {
-			mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
-		}
-		else {
-			mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
-		}
-		/* Free */
-	    ScoringMatrixFree(&sm);
-	}
 
 	/* Open the input file */
 	if(!(fp=fopen(inputFileName, "rb"))) {
@@ -192,7 +174,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		/* Filter */
 		foundType=FilterAlignedRead(&a,
 				algorithm,
-				minScores,
+				minScore,
+				minQual,
 				startContig,        
 				startPos,
 				endContig,        
@@ -204,10 +187,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				useDistancePaired,
 				contigAbPaired,
 				inversionsPaired,
-				unpaired,
-				mismatchScore,
-				avgMismatchQuality,
-				space
+				unpaired
 				);
 
 		/* Print the apporiate files based on the return type */

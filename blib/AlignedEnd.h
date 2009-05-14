@@ -18,5 +18,6 @@ void AlignedEndAllocate(AlignedEnd*, char*, char*, int32_t);
 void AlignedEndReallocate(AlignedEnd*, int32_t);
 void AlignedEndFree(AlignedEnd*);
 void AlignedEndInitialize(AlignedEnd*);
+void AlignedEndUpdateMappingQuality(AlignedEnd*, double, int32_t);
 
 #endif

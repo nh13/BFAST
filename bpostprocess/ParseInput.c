@@ -58,9 +58,8 @@ PACKAGE_BUGREPORT;
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
 	DescAlgoTitle, DescAlgorithm, 
-	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, escMaxMismatches, DescMaxColorErrors, 
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, DescMinQual, escMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
-	DescMappingQualityTitle, DescScoringMatrix, DescAvgMismatchQuality, DescSpace, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -84,13 +83,13 @@ static struct argp_option options[] = {
 			"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
 			"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
-	{"space", 'A', "space", 0, "0: NT space 1: Color space.\n", 5},
 	{0, 0, 0, 0, "=========== General Filter Options ==================================================", 3},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig for filtering", 3},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position for filtering", 3},
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
 	{"minScore", 'm', "minScore", 0, "Specifies the minimum score to consider for a given end of a read", 3},
+	{"minQual", 'm', "minQual", 0, "Specifies the minimum quality to consider for a given end of a read", 3},
 	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for a given end of a read", 3},
 	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for a given end of a read", 3},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
@@ -101,10 +100,6 @@ static struct argp_option options[] = {
 	{"inversionsPaired", 'I', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads that do not fall within the\n"
 		"\t\t\tspecified distance but are on the opposite strands (paired end only)", 2},
 	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies to output separately those paired reads for which one end could not be unambiguously chosen", 2},
-	{0, 0, 0, 0, "=========== Mapping Quality Options =================================================", 5},
-	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix\n"
-		"\t\t\tWhen used, this will replace the alignment score with the mapping quality", 5},
-	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 5},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
@@ -134,7 +129,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:q:r:s:x:z:A:E:I:O:P:Q:S:T:X:Y:hptCIU";
+"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:Q:S:T:X:Y:hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -197,6 +192,7 @@ main (int argc, char **argv)
 								arguments.endPos,
 								arguments.algorithm,
 								arguments.minScore,
+								arguments.minQual,
 								arguments.maxMismatches,
 								arguments.maxColorErrors,
 								arguments.minDistancePaired,
@@ -205,9 +201,6 @@ main (int argc, char **argv)
 								arguments.contigAbPaired,
 								arguments.inversionsPaired,
 								arguments.unpaired,
-								arguments.scoringMatrixFileName,
-								arguments.avgMismatchQuality,
-								arguments.space,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.outputFormat);
@@ -327,19 +320,6 @@ int ValidateInputs(struct arguments *args) {
 	assert(args->inversionsPaired == 0 || args->inversionsPaired == 1);
 	assert(args->unpaired == 0 || args->unpaired == 1);
 
-	if(args->scoringMatrixFileName!=0) {
-		fprintf(stderr, "Validating scoringMatrixFileName %s. \n",
-				args->scoringMatrixFileName);
-		if(ValidateFileName(args->scoringMatrixFileName)==0)
-			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
-	}
-	if(args->avgMismatchQuality <= 0) {
-		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, IllegalFileName);
-	}
-	    if(args->space != NTSpace && args->space != ColorSpace) {
-			        PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
-					    }
-
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
@@ -390,10 +370,10 @@ AssignDefaultValues(struct arguments *args)
 	args->startPos=0;
 	args->endContig=0;
 	args->endPos=0;
-	args->space = NTSpace;
 
 	args->algorithm=0;
 	args->minScore=INT_MIN;
+	args->minQual=INT_MIN;
 	args->maxMismatches=INT_MAX;
 	args->maxColorErrors=INT_MAX;
 
@@ -403,9 +383,6 @@ AssignDefaultValues(struct arguments *args)
 	args->contigAbPaired=0;
 	args->inversionsPaired=0;
 	args->unpaired=0;
-
-	args->scoringMatrixFileName = NULL; 
-	args->avgMismatchQuality = 10;
 
 	args->outputID = 
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -439,12 +416,12 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
 	   */
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
-	fprintf(fp, "space:\t\t\t%d\n", args->space); 
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t%d\n", args->endPos);
 	fprintf(fp, "minScore:\t\t%d\n", args->minScore);
+	fprintf(fp, "minQual:\t\t%d\n", args->minQual);
 	fprintf(fp, "maxMismatches:\t\t%d\n", args->maxMismatches);
 	fprintf(fp, "maxColorErrors:\t\t%d\n", args->maxColorErrors);
 	fprintf(fp, "minDistancePaired:\t%d\n", args->minDistancePaired);
@@ -452,8 +429,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "contigAbPaired:\t\t%d\n", args->contigAbPaired);
 	fprintf(fp, "inversionsPaired:\t%d\n", args->inversionsPaired);
 	fprintf(fp, "unpaired:\t\t%d\n", args->unpaired);
-	fprintf(fp, "scoringMatrixFileName:\t%s\n", args->scoringMatrixFileName);
-	fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -473,8 +448,6 @@ void FreeProgramParameters(struct arguments *args)
 	args->outputID=NULL;
 	free(args->outputDir);
 	args->outputDir=NULL;
-	free(args->scoringMatrixFileName);
-	args->scoringMatrixFileName=NULL;
 }
 
 /* TODO */
@@ -549,17 +522,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 'q':
-						arguments->avgMismatchQuality = atoi(OPTARG);break;
+						arguments->minQual = atoi(OPTARG);break;
 					case 'r':
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);break;
 					case 's':
 						arguments->startContig=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
-					case 'x':
-						StringCopyAndReallocate(&arguments->scoringMatrixFileName, OPTARG);break;
-					case 'A':
-						arguments->space = atoi(OPTARG);break;
 					case 'C':
 						arguments->contigAbPaired = 1;break;
 					case 'E':

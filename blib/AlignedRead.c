@@ -477,3 +477,16 @@ int32_t AlignedReadCompareAll(AlignedRead *one, AlignedRead *two)
 		return cmp;
 	}
 }
+
+void AlignedReadUpdateMappingQuality(AlignedRead *a,
+		double mismatchScore,
+		int32_t avgMismatchQuality)
+{
+	int32_t i;
+
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndUpdateMappingQuality(&a->ends[i],
+				mismatchScore,
+				avgMismatchQuality);
+	}
+}

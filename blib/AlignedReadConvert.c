@@ -665,7 +665,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	/* MAPQ */
-	int32_t mapq = (int32_t)a->ends[endIndex].entries[entriesIndex].score;
+	int32_t mapq = (int32_t)a->ends[endIndex].entries[entriesIndex].mappingQuality;
 	if(mapq < 0) mapq = 0;
 	if(mapq > 255) mapq = 255;
 	if(0>fprintf(fp, "\t%d", mapq)) {

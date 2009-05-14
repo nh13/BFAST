@@ -395,3 +395,41 @@ void AlignedEndInitialize(AlignedEnd *a)
 	a->numEntries=0;
 	a->entries=NULL;
 }
+
+void AlignedEndUpdateMappingQuality(AlignedEnd *a,
+		double mismatchScore,
+		int avgMismatchQuality)
+{
+	double bestScore=INT_MIN, nextBestScore=INT_MIN;
+	double bestMappingQuality = 0.0;
+	int32_t i;
+
+	/* Get best and next best score */
+	for(i=0;i<a->numEntries;i++) {
+		if(bestScore < a->entries[i].score) {
+			bestScore = a->entries[i].score;
+		}
+		else if(nextBestScore < a->entries[i].score) {
+			nextBestScore = a->entries[i].score;
+		}
+	}
+
+	if(bestScore < 0) {
+		bestScore = 0;
+	}
+	if(nextBestScore < 0) {
+		nextBestScore = 0;
+	}
+	assert(nextBestScore <= bestScore);
+
+	bestMappingQuality = ( (bestScore - nextBestScore)/mismatchScore )*avgMismatchQuality;
+
+	for(i=0;i<a->numEntries;i++) {
+		if(a->entries[i].score < bestScore) {
+			a->entries[i].mappingQuality = 0;
+		}
+		else {
+			a->entries[i].mappingQuality = bestMappingQuality;
+		}
+	}
+}

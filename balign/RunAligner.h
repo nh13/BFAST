@@ -35,10 +35,12 @@ typedef struct {
 	int alignmentType;
 	int bestOnly;
 	int64_t numLocalAlignments;
+	int32_t avgMismatchQuality;
+	double mismatchScore;
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
+void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 #endif

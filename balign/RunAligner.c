@@ -31,6 +31,7 @@ void RunAligner(RGBinary *rg,
 		int offsetLength,
 		int maxNumMatches,
 		int binaryInput,
+		int avgMismatchQuality,
 		int numThreads,
 		int usePairedEndLength,
 		int pairedEndLength,
@@ -134,6 +135,7 @@ void RunAligner(RGBinary *rg,
 			offsetLength,
 			maxNumMatches,
 			binaryInput,
+			avgMismatchQuality,
 			numThreads,
 			usePairedEndLength,
 			pairedEndLength,
@@ -174,6 +176,7 @@ void RunDynamicProgramming(FILE *matchFP,
 		int offsetLength,
 		int maxNumMatches,
 		int binaryInput,
+		int avgMismatchQuality,
 		int numThreads,
 		int usePairedEndLength,
 		int pairedEndLength,
@@ -189,6 +192,7 @@ void RunDynamicProgramming(FILE *matchFP,
 	char *FnName="RunDynamicProgramming";
 	/* local variables */
 	ScoringMatrix sm;
+	double mismatchScore;
 	RGMatches m;
 	int32_t i, j;
 
@@ -234,6 +238,14 @@ void RunDynamicProgramming(FILE *matchFP,
 
 	/* Read in scoring matrix */
 	ScoringMatrixRead(scoringMatrixFileName, &sm, space); 
+	/* Calculate mismatch score */
+	/* Assumes all match scores are the same and all substitution scores are the same */
+	if(space == NTSpace) {
+		mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
+	}
+	else {
+		mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
+	}
 
 	/**/
 	/* Split the input file into equal temp files for each thread */
@@ -327,6 +339,8 @@ void RunDynamicProgramming(FILE *matchFP,
 		data[i].alignmentType = alignmentType;
 		data[i].bestOnly = bestOnly;
 		data[i].numLocalAlignments = 0;
+		data[i].avgMismatchQuality = avgMismatchQuality;
+		data[i].mismatchScore = mismatchScore;
 		data[i].threadID = i;
 	}
 
@@ -519,6 +533,8 @@ void *RunDynamicProgrammingThread(void *arg)
 	int alignmentType=data->alignmentType;
 	int bestOnly=data->bestOnly;
 	int threadID=data->threadID;
+	int avgMismatchQuality=data->avgMismatchQuality;
+	double mismatchScore=data->mismatchScore;
 	/* Local variables */
 	/*
 	   char *FnName = "RunDynamicProgrammingThread";
@@ -571,6 +587,10 @@ void *RunDynamicProgrammingThread(void *arg)
 			/* Remove duplicates */
 			AlignedReadRemoveDuplicates(&aEntries,
 					AlignedEntrySortByAll);
+			/* Updating mapping quality */
+			AlignedReadUpdateMappingQuality(&aEntries, 
+					mismatchScore, 
+					avgMismatchQuality);
 			/* Print */
 			AlignedReadPrint(&aEntries,
 					outputFP,

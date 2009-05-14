@@ -12,6 +12,7 @@ struct arguments
 	int endContig;                          /* -e */
 	int endPos;                             /* -E */
 	int minScore;							/* -m */
+	int minQual;							/* -q */
 	int maxMismatches;						/* -j */
 	int maxColorErrors;						/* -k */
 	int minDistancePaired;					/* -X */
@@ -20,9 +21,6 @@ struct arguments
 	int contigAbPaired;						/* -C */
 	int inversionsPaired;					/* -I */
 	int unpaired;							/* -U */
-	char *scoringMatrixFileName;			/* -x */
-	int avgMismatchQuality;					/* -q */
-	int space;								/* -A */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
 	int outputFormat;						/* -O */

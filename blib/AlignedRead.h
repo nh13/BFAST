@@ -18,5 +18,6 @@ void AlignedReadCopy(AlignedRead*, AlignedRead*);
 void AlignedReadMergeSortAll(AlignedRead**, int64_t, int64_t);
 void AlignedReadMergeAll(AlignedRead**, int64_t, int64_t, int64_t);
 int32_t AlignedReadCompareAll(AlignedRead*, AlignedRead*);
+void AlignedReadUpdateMappingQuality(AlignedRead*, double, int32_t);
 #endif
 

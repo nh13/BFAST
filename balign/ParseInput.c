@@ -58,7 +58,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescNumThreads,
+	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -87,6 +87,7 @@ static struct argp_option options[] = {
 	{"endPos", 'E', "endPos", 0, "Specifies the end position", 2},
 	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
+	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
 	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not,"
@@ -128,7 +129,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:l:m:n:o:r:s:x:A:E:L:M:O:S:T:bfhpt";
+"a:d:e:l:m:n:o:q:r:s:x:A:E:L:M:O:S:T:bfhpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -207,6 +208,7 @@ main (int argc, char **argv)
 								arguments.offsetLength,
 								arguments.maxNumMatches,
 								arguments.binaryInput,
+								arguments.avgMismatchQuality,
 								arguments.numThreads,
 								arguments.usePairedEndLength,
 								arguments.pairedEndLength,
@@ -367,6 +369,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
 
+	if(args->avgMismatchQuality <= 0) {
+		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->numThreads<=0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	} 
@@ -443,6 +449,7 @@ AssignDefaultValues(struct arguments *args)
 	args->endPos=INT_MAX;
 	args->offsetLength=0;
 	args->maxNumMatches=INT_MAX;
+	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads = 1;
 	args->usePairedEndLength = 0;
 	args->pairedEndLength = 0;
@@ -492,6 +499,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
+	fprintf(fp, "avgMismatchQuality:\t\t\t%d\n", args->avgMismatchQuality); 
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
 	fprintf(fp, "mirroringType:\t\t\t\t%d\n", args->mirroringType);
@@ -601,6 +609,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters; break;
+					case 'q':
+						arguments->avgMismatchQuality = atoi(OPTARG); break;
 					case 'r':
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);
 						break;

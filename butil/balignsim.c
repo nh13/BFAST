@@ -148,6 +148,7 @@ void Run(RGBinary *rg,
 	int32_t totalAlignTime = 0;
 	int32_t totalFileHandlingTime = 0;
 	ScoringMatrix sm;
+	double mismatchScore;
 	SimRead r;
 	RGMatches m;
 	AlignedRead a;
@@ -207,6 +208,12 @@ void Run(RGBinary *rg,
 	ScoringMatrixRead(scoringMatrixFileName,
 			&sm,
 			space);
+	if(space == NTSpace) {
+		mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
+	}
+	else {
+		mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
+	}
 	/* In these sims we want the scoring matrix to have certain constraints:
 	 * All scores for matches must be the same and all scores for mismatches 
 	 * must be the same */
@@ -434,6 +441,7 @@ void Run(RGBinary *rg,
 			readLength, 
 			INT_MAX,
 			BinaryInput,
+			AVG_MISMATCH_QUALITY,
 			numThreads,
 			0,
 			0,
@@ -495,8 +503,8 @@ void Run(RGBinary *rg,
 		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;
 			/* HERE */
-			   AlignedReadPrint(&a, stderr, TextOutput);
-			   /*
+			AlignedReadPrint(&a, stderr, TextOutput);
+			/*
 			   PrintError(FnName,
 			   "numScoreGreaterThan",
 			   "The alignment score was greater than expected",

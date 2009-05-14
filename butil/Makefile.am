@@ -3,7 +3,7 @@ bin_PROGRAMS = bafconvert \
 			   balignsim \
 			   bevalsim \
 			   bexonify \
-			   bfix \
+			   bfixbaf \
 			   bfixhash \
 			   bgeneratereads \
 			   berrordistribution \
@@ -104,7 +104,7 @@ bexonify_SOURCES = \
 
 bexonify_LDADD =
 
-bfix_SOURCES = \
+bfixbaf_SOURCES = \
 			   ../blib/BError.c	../blib/BError.h \
 			   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 			   ../blib/RGIndex.c	../blib/RGIndex.h \
@@ -112,9 +112,13 @@ bfix_SOURCES = \
 			   ../blib/RGBinary.c ../blib/RGBinary.h \
 			   ../blib/RGMatch.c ../blib/RGMatch.h \
 			   ../blib/RGRanges.c ../blib/RGRanges.h \
-			   bfix.c	bfix.h 
+			   ../blib/AlignedRead.c	../blib/AlignedRead.h \
+			   ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
+			   ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
+			   ../blib/ScoringMatrix.c	../blib/ScoringMatrix.h \
+			   bfixbaf.c	bfixbaf.h 
 
-bfix_LDADD =  
+bfixbaf_LDADD =  
 
 bfixhash_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
@@ -272,15 +276,15 @@ breport_SOURCES = \
 breport_LDADD =
 
 brg2fasta_SOURCES = \
-				  ../blib/BError.c	../blib/BError.h \
-				  ../blib/BLib.c	../blib/BLib.h \
-				  ../blib/RGIndex.c	../blib/RGIndex.h \
-				  ../blib/RGBinary.c ../blib/RGBinary.h \
-				  ../blib/RGMatch.c ../blib/RGMatch.h \
-				  ../blib/RGMatches.c ../blib/RGMatches.h \
-				  ../blib/RGRanges.c ../blib/RGRanges.h \
-				  ../blib/RGReads.c	../blib/RGReads.h \
-				  brg2fasta.c
+					../blib/BError.c	../blib/BError.h \
+					../blib/BLib.c	../blib/BLib.h \
+					../blib/RGIndex.c	../blib/RGIndex.h \
+					../blib/RGBinary.c ../blib/RGBinary.h \
+					../blib/RGMatch.c ../blib/RGMatch.h \
+					../blib/RGMatches.c ../blib/RGMatches.h \
+					../blib/RGRanges.c ../blib/RGRanges.h \
+					../blib/RGReads.c	../blib/RGReads.h \
+					brg2fasta.c
 
 bsort_SOURCES = \
 				../blib/AlignedEnd.c	../blib/AlignedEnd.h \
