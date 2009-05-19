@@ -491,7 +491,7 @@ void AlignColorSpaceFull(char *read,
 				int32_t curScore=NEGATIVE_INFINITY;
 				int32_t curScoreNT=NEGATIVE_INFINITY;
 				int curLength=-1;
-				char B, convertedColor;
+				char B;
 				int fromNT=-1;
 
 				/* Get from base for extending an insertion */
@@ -532,7 +532,7 @@ void AlignColorSpaceFull(char *read,
 				curLength = matrix[i][j+1].s.length[fromNT] + 1;
 				curScore = curScoreNT = matrix[i][j+1].s.score[fromNT] + sm->gapOpenPenalty;
 				curScore += ScoringMatrixGetColorScore(curColor,
-						convertedColor,
+						curColor,
 						sm);
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {

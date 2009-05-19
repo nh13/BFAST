@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include "../blib/BLibDefinitions.h"
+#include "../blib/BLib.h"
 #include "../blib/BError.h"
 #include "../blib/RGMatches.h"
 #include "../blib/AlignedEntry.h"
