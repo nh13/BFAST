@@ -209,53 +209,20 @@ void Run(RGBinary *rg,
 			&sm,
 			space);
 	if(space == NTSpace) {
-		mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
+		mismatchScore = sm.ntMatch - sm.ntMismatch;
 	}
 	else {
-		mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
+		mismatchScore = sm.colorMatch - sm.colorMismatch;
 	}
 	/* In these sims we want the scoring matrix to have certain constraints:
 	 * All scores for matches must be the same and all scores for mismatches 
 	 * must be the same */
-	score_m = ScoringMatrixGetNTScore('A', 'A', &sm);
-	score_mm = ScoringMatrixGetNTScore('A', 'C', &sm);
+
+	score_m = sm.ntMatch;
+	score_mm = sm.ntMismatch;
 	if(ColorSpace == space) {
-		score_cm = ScoringMatrixGetColorScore(0, 0, &sm);
-		score_ce = ScoringMatrixGetColorScore(0, 1, &sm);
-	}
-	for(i=0;i<=ALPHABET_SIZE;i++) {
-		for(j=0;j<=ALPHABET_SIZE;j++) {
-			if(i==j && ScoringMatrixGetNTScore(DNA[i], DNA[j], &sm) != score_m) {
-				PrintError(FnName,
-						"Scoring matrix",
-						"Match scores must be the same",
-						Exit,
-						OutOfRange);
-			}
-			else if(i!=j && ScoringMatrixGetNTScore(DNA[i], DNA[j], &sm) != score_mm) {
-				PrintError(FnName,
-						"Scoring matrix",
-						"Mismatch scores must be the same",
-						Exit,
-						OutOfRange);
-			}
-			if(ColorSpace == space) {
-				if(i==j && score_cm != ScoringMatrixGetColorScore(i, j, &sm)) {
-					PrintError(FnName,
-							"Scoring matrix",
-							"Color match scores must be the same",
-							Exit,
-							OutOfRange);
-				}
-				else if(i!=j && score_ce != ScoringMatrixGetColorScore(i, j, &sm)) {
-					PrintError(FnName,
-							"Scoring matrix",
-							"Color error scores must be the same",
-							Exit,
-							OutOfRange);
-				}
-			}
-		}
+		score_cm = sm.colorMatch;
+		score_ce = sm.colorMismatch;
 	}
 
 	/* Seed random number */
@@ -524,9 +491,6 @@ void Run(RGBinary *rg,
 	CloseTmpFile(&matchesFP, &matchesFileName);
 	CloseTmpFile(&alignFP, &alignFileName);
 	CloseTmpFile(&notAlignedFP, &notAlignedFileName);
-
-	/* Free */
-	ScoringMatrixFree(&sm);
 
 	fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 			numReads,

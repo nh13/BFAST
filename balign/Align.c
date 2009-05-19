@@ -445,9 +445,9 @@ void AlignFullWithBound(char *read,
 		/* p = gap open */
 		/* e = gap extend */
 		/* Find x such that (c + b)N + p + e(x - 1) < Bound */
-		maxH = MAX(0, (int32_t)ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
+		maxH = MAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
 		/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
-		maxV = MAX(0, ceil((lowerBound - (sm->maxColorScore + sm->maxNTScore)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->maxColorScore - sm->maxNTScore)));
+		maxV = MAX(0, ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
 		assert(maxH >= 0 && maxV >= 0);
 	}
 	else {

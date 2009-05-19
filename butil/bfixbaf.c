@@ -75,18 +75,17 @@ void ConvertBAF(char *inputFileName,
 	double mismatchScore;
 	ScoringMatrix sm;
 
-	    /* Read in scoring matrix */
-	    ScoringMatrixInitialize(&sm);
-	    ScoringMatrixRead(scoringMatrixFileName, &sm, space);
-		    /* Calculate mismatch score */
-		    /* Assumes all match scores are the same and all substitution scores are the same */
-		    if(space == NTSpace) {
-				        mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
-						    }
-			    else {
-					        mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
-							    }
-				    ScoringMatrixFree(&sm);
+	/* Read in scoring matrix */
+	ScoringMatrixInitialize(&sm);
+	ScoringMatrixRead(scoringMatrixFileName, &sm, space);
+	/* Calculate mismatch score */
+	/* Assumes all match scores are the same and all substitution scores are the same */
+	if(space == NTSpace) {
+		mismatchScore = sm.ntMatch - sm.ntMismatch;
+	}
+	else {
+		mismatchScore = sm.colorMatch - sm.colorMismatch;
+	}
 
 	strcpy(outputFileName, inputFileName);
 	strcat(outputFileName, ".new");

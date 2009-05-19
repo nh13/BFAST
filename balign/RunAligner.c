@@ -241,10 +241,10 @@ void RunDynamicProgramming(FILE *matchFP,
 	/* Calculate mismatch score */
 	/* Assumes all match scores are the same and all substitution scores are the same */
 	if(space == NTSpace) {
-		mismatchScore = ScoringMatrixGetNTScore('A', 'A', &sm) - ScoringMatrixGetNTScore('A', 'C', &sm);
+		mismatchScore = sm.ntMatch - sm.ntMismatch;
 	}
 	else {
-		mismatchScore = ScoringMatrixGetColorScore(0, 0, &sm) - ScoringMatrixGetColorScore(0, 1, &sm);
+		mismatchScore = sm.colorMatch - sm.colorMismatch;
 	}
 
 	/**/
@@ -508,8 +508,6 @@ void RunDynamicProgramming(FILE *matchFP,
 	free(data);
 	free(threads);
 	AlignedReadFree(&aEntries);
-	/* Free scores */
-	ScoringMatrixFree(&sm);
 }
 
 /* TODO */

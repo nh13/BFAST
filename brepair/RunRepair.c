@@ -426,8 +426,6 @@ void RunRepairHelper(FILE *unpairedFP,
 	free(data);
 	free(threads);
 	AlignedReadFree(&aEntries);
-	/* Free scores */
-	ScoringMatrixFree(&sm);
 }
 
 /* TODO */

@@ -14,8 +14,6 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 		int space)
 {
 	char *FnName="ScoringMatrixRead";
-	int i, j;
-	int32_t tempInt;
 	FILE *fp;
 
 	/* Open the scoring matrix file */
@@ -27,152 +25,32 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 				OpenFileError);
 	}
 
-	/* Read in the gap open penalty */
-	if(fscanf(fp, "%d", &tempInt)==EOF) {
+	/* Read in the gap open penalty,
+	 * gap extension penalty,
+	 * nt match score,
+	 * nt mismatch score */
+	if(fscanf(fp, "%d %d %d %d", &sm->gapOpenPenalty,
+				&sm->gapExtensionPenalty,
+				&sm->ntMatch,
+				&sm->ntMismatch) == EOF) {
 		PrintError(FnName,
 				scoringMatrixFileName,
-				"Could not read in the gap open penalty",
+				"Could not read in the gap open penalty, gap extension penalty, nt match score, and nt mismatch score",
 				Exit,
 				OutOfRange);
-	}
-	sm->gapOpenPenalty = tempInt;
-
-	/* Read in the gap close penalty */
-	if(fscanf(fp, "%d", &tempInt)==EOF) {
-		PrintError(FnName,
-				scoringMatrixFileName,
-				"Could not read in the gap extension penalty",
-				Exit,
-				OutOfRange);
-	}
-	sm->gapExtensionPenalty = tempInt;
-
-	/* Assume the NT key is acgt */
-	assert(ALPHABET_SIZE==4);
-	/* Allocate memory for the NT key */
-	sm->NTKeys = (char*)malloc(sizeof(char)*(ALPHABET_SIZE+1));
-	if(NULL == sm->NTKeys) {
-		PrintError(FnName,
-				"sm->NTKeys",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	/* Read in the NT key */
-	/* Assume the NT key is acgt */
-	sm->NTKeys[0] = 'a';
-	sm->NTKeys[1] = 'c';
-	sm->NTKeys[2] = 'g';
-	sm->NTKeys[3] = 't';
-	sm->NTKeys[4] = 'n';
-
-	/* Allocate memory for the scores */
-	sm->NTScores = (int32_t**)malloc(sizeof(int32_t*)*(ALPHABET_SIZE+1));
-	if(NULL==sm->NTScores) {
-		PrintError(FnName,
-				"sm->NTScores",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
-	}
-	for(i=0;i<ALPHABET_SIZE+1;i++) {
-		sm->NTScores[i] = (int32_t*)malloc(sizeof(int32_t)*(ALPHABET_SIZE+1));
-		if(NULL==sm->NTScores[i]) {
-			PrintError(FnName,
-					"sm->NTScores[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-	}
-	/* Read in the score matrix */
-	sm->maxNTScore = INT_MIN;
-	sm->minNTScore = INT_MAX;
-	for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
-		for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
-			if(fscanf(fp, "%d", &tempInt)==EOF) {
-				PrintError(FnName,
-						scoringMatrixFileName,
-						"Could not read in the scoring matrix (NTScores)",
-						Exit,
-						OutOfRange);
-			}
-			sm->NTScores[i][j]= tempInt;
-			if(sm->maxNTScore < sm->NTScores[i][j]) {
-				sm->maxNTScore = sm->NTScores[i][j];
-			}
-			if(sm->NTScores[i][j] < sm->minNTScore) {
-				sm->minNTScore = sm->NTScores[i][j];
-			}
-		}
 	}
 
 	if(space == 1) {
-		/* Assume the color key is 0123 */
-		assert(ALPHABET_SIZE==4);
-		/* Allocate memory for the color key */
-		sm->ColorKeys = malloc(sizeof(int)*(ALPHABET_SIZE+1));
-		if(NULL == sm->ColorKeys) {
+		if(fscanf(fp, "%d %d", &sm->colorMatch,
+					&sm->colorMismatch) == EOF) {
 			PrintError(FnName,
-					"sm->ColorKeys",
-					"Could not allocate memory",
+					scoringMatrixFileName,
+					"Could not read in the color match score and color mismatch score",
 					Exit,
-					MallocMemory);
+					OutOfRange);
 		}
-		/* Read in the color key */
-		/* Assume the color key is acgt */
-		sm->ColorKeys[0] = 0;
-		sm->ColorKeys[1] = 1;
-		sm->ColorKeys[2] = 2;
-		sm->ColorKeys[3] = 3;
-		sm->ColorKeys[4] = 4;
+	}
 
-		/* Allocate memory for the scores */
-		sm->ColorScores = (int32_t**)malloc(sizeof(int32_t*)*(ALPHABET_SIZE+1));
-		if(NULL==sm->ColorScores) {
-			PrintError(FnName,
-					"sm->ColorScores",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		for(i=0;i<ALPHABET_SIZE+1;i++) {
-			sm->ColorScores[i] = (int32_t*)malloc(sizeof(int32_t)*(ALPHABET_SIZE+1));
-			if(NULL==sm->ColorScores[i]) {
-				PrintError(FnName,
-						"sm->ColorScores[i]",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		/* Read in the score matrix */
-		sm->maxColorScore = INT_MIN;
-		sm->minColorScore = INT_MAX;
-		for(i=0;i<ALPHABET_SIZE+1;i++) { /* Read row */
-			for(j=0;j<ALPHABET_SIZE+1;j++) { /* Read column */
-				if(fscanf(fp, "%d", &tempInt)==EOF) {
-					PrintError(FnName,
-							scoringMatrixFileName,
-							"Could not read in the scoring matrix (ColorScores)",
-							Exit,
-							OutOfRange);
-				}
-				sm->ColorScores[i][j] = tempInt;
-				if(sm->maxColorScore < sm->ColorScores[i][j]) {
-					sm->maxColorScore = sm->ColorScores[i][j];
-				}
-				if(sm->ColorScores[i][j] < sm->minColorScore) {
-					sm->minColorScore = sm->ColorScores[i][j];
-				}
-			}
-		}
-	}
-	else {
-		sm->ColorKeys=NULL;
-		sm->ColorScores=NULL;
-	}
-	
 	ScoringMatrixCheck(sm, space);
 
 	/* Close the file */
@@ -184,132 +62,12 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 /* TODO */
 void ScoringMatrixInitialize(ScoringMatrix *sm)
 {
-	sm->gapOpenPenalty=0;
-	sm->gapExtensionPenalty=0;
-	sm->NTKeys=NULL;
-	sm->NTScores=NULL;
-	sm->maxNTScore=0;
-	sm->ColorKeys=NULL;
-	sm->ColorScores=NULL;
-	sm->maxColorScore=0;
-}
-
-/* TODO */
-void ScoringMatrixFree(ScoringMatrix *sm)
-{
-	int i;
-	free(sm->NTKeys);
-	free(sm->ColorKeys);
-	for(i=0;i<ALPHABET_SIZE+1;i++) {
-		free(sm->NTScores[i]);
-		if(NULL != sm->ColorScores) {
-			free(sm->ColorScores[i]);
-		}
-	}
-	free(sm->NTScores);
-	free(sm->ColorScores);
-	ScoringMatrixInitialize(sm);
-}
-
-/* TODO */
-int32_t ScoringMatrixGetNTScore(char a,
-		char b,
-		ScoringMatrix *sm)
-{
-	int indexA=-1;
-	int indexB=-1;
-
-	/* Get index for a */
-	switch(a) {
-		case 'A':
-		case 'a':
-			indexA=0;
-			break;
-		case 'C':
-		case 'c':
-			indexA=1;
-			break;
-		case 'G':
-		case 'g':
-			indexA=2;
-			break;
-		case 'T':
-		case 't':
-			indexA=3;
-			break;
-		case 'N':
-		case 'n':
-			indexA=4;
-			break;
-		default:
-			fprintf(stderr, "\n[%c]\n", a);
-			PrintError("GetNTScore",
-					NULL,
-					"Could not understand key",
-					Exit,
-					OutOfRange);
-	}
-	/* Get index for b */
-	switch(b) {
-		case 'A':
-		case 'a':
-			indexB=0;
-			break;
-		case 'C':
-		case 'c':
-			indexB=1;
-			break;
-		case 'G':
-		case 'g':
-			indexB=2;
-			break;
-		case 'T':
-		case 't':
-			indexB=3;
-			break;
-		case 'N':
-		case 'n':
-			indexB=4;
-			break;
-		default:
-			fprintf(stderr, "b key:[%c]\n", b);
-			PrintError("GetNTScore",
-					NULL,
-					"Could not understand 'b' key",
-					Exit,
-					OutOfRange);
-			break;
-	}
-
-	return sm->NTScores[indexA][indexB];
-}
-
-/* TODO */
-int32_t ScoringMatrixGetColorScore(char a,
-		char b,
-		ScoringMatrix *sm)
-{
-	char *FnName="ScoringMatrixGetColorScore";
-	int indexA=(int)a;
-	int indexB=(int)b;
-	if(indexA < 0 || indexA > 4) {
-		fprintf(stderr, "indexA=%d\n", indexA);
-		PrintError(FnName,
-				NULL,
-				"indexA out of range",
-				Exit,
-				OutOfRange);
-	}
-	if(indexB < 0 || indexB > 4) {
-		fprintf(stderr, "indexB=%d\n", indexB);
-		PrintError(FnName,
-				NULL,
-				"indexB out of range",
-				Exit,
-				OutOfRange);
-	}
-
-	return sm->ColorScores[indexA][indexB];
+	sm->gapOpenPenalty=SCORING_MATRIX_GAP_OPEN;
+	sm->gapExtensionPenalty=SCORING_MATRIX_GAP_EXTEND;
+	sm->ntMatch=SCORING_MATRIX_NT_MATCH;
+	sm->ntMatch=SCORING_MATRIX_NT_MISMATCH;
+	sm->colorMatch=SCORING_MATRIX_COLOR_MATCH;
+	sm->colorMatch=SCORING_MATRIX_COLOR_MISMATCH;
 }
 
 /* TODO */
@@ -317,7 +75,6 @@ int32_t ScoringMatrixGetColorScore(char a,
 int32_t ScoringMatrixCheck(ScoringMatrix *sm,
 		int space) {
 	char *FnName="ScoringMatrixCheck";
-	int i, j;
 
 	if(0 < sm->gapOpenPenalty) {
 		PrintError(FnName,
@@ -334,41 +91,33 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm,
 				OutOfRange);
 	}
 
-	for(i=0;i<ALPHABET_SIZE+1;i++) {
-		for(j=0;j<ALPHABET_SIZE+1;j++) {
-			if(i==j) {
-				if(sm->NTScores[i][i] < 0) {
-					PrintError(FnName,
-							"sm->NTScores[i][i]",
-							"Must be greater than or equal to zero",
-							Exit,
-							OutOfRange);
-				}
-				if(ColorSpace == space && sm->ColorScores[i][i] < 0) {
-					PrintError(FnName,
-							"sm->ColorScores[i][i]",
-							"Must be greater than or equal to zero",
-							Exit,
-							OutOfRange);
-				}
-			}
-			else {
-				if(0 < sm->NTScores[i][j]) {
-					PrintError(FnName,
-							"sm->NTScores[i][j]",
-							"Must be less than or equal to zero",
-							Exit,
-							OutOfRange);
-				}
-				if(ColorSpace == space && 0 < sm->ColorScores[i][j]) {
-					PrintError(FnName,
-							"sm->ColorScores[i][j]",
-							"Must be less than or equal to zero",
-							Exit,
-							OutOfRange);
-				}
-			}
-		}
+	if(sm->ntMatch < 0) {
+		PrintError(FnName,
+				"sm->ntMatch",
+				"Must be greater than or equal to zero",
+				Exit,
+				OutOfRange);
+	}
+	if(ColorSpace == space && sm->colorMatch < 0) {
+		PrintError(FnName,
+				"sm->colorMatch",
+				"Must be greater than or equal to zero",
+				Exit,
+				OutOfRange);
+	}
+	if(0 < sm->ntMismatch) {
+		PrintError(FnName,
+				"sm->ntMismatch",
+				"Must be less than or equal to zero",
+				Exit,
+				OutOfRange);
+	}
+	if(ColorSpace == space && 0 < sm->colorMismatch) {
+		PrintError(FnName,
+				"sm->colorMismatch",
+				"Must be less than or equal to zero",
+				Exit,
+				OutOfRange);
 	}
 	return 1;
 }

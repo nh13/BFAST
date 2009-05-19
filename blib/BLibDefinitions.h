@@ -74,6 +74,14 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
 
+/* Scoring matrix defaults */
+#define SCORING_MATRIX_GAP_OPEN -175
+#define SCORING_MATRIX_GAP_EXTEND -50
+#define SCORING_MATRIX_NT_MATCH 50
+#define SCORING_MATRIX_NT_MISMATCH -150 
+#define SCORING_MATRIX_COLOR_MATCH 0
+#define SCORING_MATRIX_COLOR_MISMATCH -125
+
 /* Macro functions */
 #define MIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define MAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
@@ -294,14 +302,10 @@ typedef struct {
 typedef struct {
 	int32_t gapOpenPenalty;
 	int32_t gapExtensionPenalty;
-	char *NTKeys;
-	int32_t **NTScores;
-	int32_t *ColorKeys;
-	int32_t **ColorScores;
-	int32_t maxNTScore;
-	int32_t maxColorScore;
-	int32_t minNTScore;
-	int32_t minColorScore;
+	int32_t ntMatch;
+	int32_t ntMismatch;
+	int32_t colorMatch;
+	int32_t colorMismatch;
 } ScoringMatrix;
 
 /* RGIndexAccuracy.c */
