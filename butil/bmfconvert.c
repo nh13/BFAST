@@ -45,14 +45,14 @@ int main(int argc, char *argv[])
 			case 0:
 				binaryInput = TextInput;
 				binaryOutput = BinaryOutput;
-				strcat(outputFileName, "text.");
+				strcat(outputFileName, "binary.");
 				strcat(outputFileName, BFAST_MATCHES_FILE_EXTENSION);
 				break;
 			case 1:
 				binaryInput = BinaryInput;
 				binaryOutput = TextOutput;
 				strncpy(outputFileName, inputFileName, (last - inputFileName));
-				strcat(outputFileName, "binary.");
+				strcat(outputFileName, "text.");
 				strcat(outputFileName, BFAST_MATCHES_FILE_EXTENSION);
 				break;
 			case 2:
