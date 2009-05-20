@@ -58,7 +58,7 @@ PACKAGE_BUGREPORT;
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
 	DescAlgoTitle, DescAlgorithm, 
-	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, DescMinQual, escMaxMismatches, DescMaxColorErrors, 
+	DescGenFiltTitle, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescMinScore, DescMinQual, DescMaxMismatches, DescMaxColorErrors, 
 	DescPairedEndTitle, DescMinDistancePaired, DescMaxDistancePaired, DescContigAbPaired, DescInversionsPaired, DescUnpaired,
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -89,7 +89,7 @@ static struct argp_option options[] = {
 	{"endContig", 'e', "endContig", 0, "Specifies the end contig for filtering", 3},
 	{"endPos", 'E', "endPos", 0, "Specifies the end postion for filtering", 3},
 	{"minScore", 'm', "minScore", 0, "Specifies the minimum score to consider for a given end of a read", 3},
-	{"minQual", 'm', "minQual", 0, "Specifies the minimum quality to consider for a given end of a read", 3},
+	{"minQual", 'q', "minQual", 0, "Specifies the minimum quality to consider for a given end of a read", 3},
 	{"maxMismatches", 'j', "maxMismatches", 0, "Specifies the maximum number of mismatches to consider for a given end of a read", 3},
 	{"maxColorErrors", 'k', "maxColorErrors", 0, "Specifies the maximum number of color errors to consider for a given end of a read", 3},
 	{0, 0, 0, 0, "=========== Paired End Filter Options ===============================================", 4},
@@ -129,7 +129,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"a:d:e:i:j:k:m:o:r:s:z:E:I:O:P:Q:S:T:X:Y:hptCIU";
+"a:d:e:i:j:k:m:o:q:r:s:z:E:I:O:P:S:T:X:Y:hptCIU";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
