@@ -553,6 +553,7 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 		dest->position = src->position;
 		dest->strand = src->strand;
 		dest->score = src->score;
+		dest->mappingQuality = src->mappingQuality;
 	}
 }
 
