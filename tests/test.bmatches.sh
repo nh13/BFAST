@@ -15,8 +15,8 @@ do
 	fi
 
 	RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.$SPACE.brg";
-	MAIN=$OUTPUT_DIR"main.indexes.$OUTPUT_ID..txt";
-	SECONDARY=$OUTPUT_DIR"secondary.indexes.$OUTPUT_ID..txt";
+	MAIN=$OUTPUT_DIR"main.indexes.$OUTPUT_ID.txt";
+	SECONDARY=$OUTPUT_DIR"secondary.indexes.$OUTPUT_ID.txt";
 	READS=$OUTPUT_DIR"reads.$OUTPUT_ID.fastq";
 
 	# Make files holding paths to index files
