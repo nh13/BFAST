@@ -412,6 +412,8 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	curReadBase = nextReadBase = 'X';
 	nextRow = nextCol = -1;
 
+	assert(0 <= toExclude);
+
 	/* Get the best alignment.  We can find the best score in the last row and then
 	 * trace back.  We choose the best score from the last row since we want to 
 	 * align the read completely and only locally to the reference. */
@@ -550,6 +552,7 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	} /* End Loop */
 	assert(-1==i);
 	assert(a->length >= a->referenceLength);
+	assert(a->length >= readLength);
 
 	a->read[a->length]='\0';
 	a->reference[a->length]='\0';

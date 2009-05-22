@@ -7,6 +7,7 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.4.7
 * Updated output file naming in bmfconvert.
+* Updated bug in balign regarding retrieving the substitutions scores.
 
 Version 0.4.6
 * Simplified the scoring matrix.  Now only match/mismatch is required for

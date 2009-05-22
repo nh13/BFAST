@@ -3,8 +3,8 @@
 
 #include "BLibDefinitions.h"
 
-#define ScoringMatrixGetNTScore(a, b, sm) (ToUpper(a) == ToUpper(b)) ? sm->ntMatch : sm->ntMismatch
-#define ScoringMatrixGetColorScore(a, b, sm) (a == b)  ? sm->colorMatch : sm->colorMismatch
+int32_t ScoringMatrixGetNTScore(char, char, ScoringMatrix*);
+int32_t ScoringMatrixGetColorScore(char, char, ScoringMatrix*);
 
 int ScoringMatrixRead(char*, ScoringMatrix*, int);
 void ScoringMatrixInitialize(ScoringMatrix*);
