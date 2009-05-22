@@ -28,7 +28,7 @@ void AlignNTSpaceMismatchesOnly(char *read,
 	int32_t maxScore = NEGATIVE_INFINITY;
 	int offset=-1;
 	int32_t curScore = 0.0;
-
+	
 	assert(readLength <= referenceLength);
 
 	for(i=0;i<referenceLength-readLength+1;i++) { /* Starting position */

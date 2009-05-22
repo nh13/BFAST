@@ -440,14 +440,31 @@ void AlignFullWithBound(char *read,
 	maxV = maxH = 0;
 	/* Get the maximum number of vertical and horizontal moves allowed */
 	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {
-		/* c = max color sub score */
-		/* b = max nt sub score */
-		/* p = gap open */
-		/* e = gap extend */
-		/* Find x such that (c + b)N + p + e(x - 1) < Bound */
-		maxH = MAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
-		/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
-		maxV = MAX(0, ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
+		if(NTSpace == space) {
+			/* b = nt match score */
+			/* p = gap open */
+			/* e = gap extend */
+			/* N = read length */
+			/* Find x such that b(N) + p + e(x - 1) < Bound */
+			/* x < (e + Bound - p - b(N)) / e */
+			maxH = MAX(0, (int32_t)ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
+			/* Find x such that b(N - x) + p + e(x - 1) < lowerBound */
+			/* b(N) - x(b) + p + e(x) - e < lowerBound */
+			/* - x(b) + e(x) < lowerBound + e -p - b(N) */
+			/* x < (lowerBound - e - p - b(N) ) / (e - b)*/
+			maxV = MAX(0, ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->ntMatch)));
+		}
+		else {
+			/* c = color match score */
+			/* b = nt match score */
+			/* p = gap open */
+			/* e = gap extend */
+			/* N = read length */
+			/* Find x such that (c + b)N + p + e(x - 1) < Bound */
+			maxH = MAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
+			/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
+			maxV = MAX(0, ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
+		}
 		assert(maxH >= 0 && maxV >= 0);
 	}
 	else {

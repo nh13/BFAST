@@ -975,6 +975,9 @@ void AlignColorSpaceFullWithBound(char *read,
 					curLength = matrix[i][j+1].v.length[fromNT] + 1;
 					/* Insertion - previous row */
 					curScore = curScoreNT = matrix[i][j+1].v.score[fromNT] + sm->gapExtensionPenalty;
+					curScore += ScoringMatrixGetColorScore(curColor,
+						curColor,
+						sm);
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
