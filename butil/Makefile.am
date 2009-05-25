@@ -4,6 +4,9 @@ bin_PROGRAMS = bafconvert \
 			   bevalsim \
 			   bexonify \
 			   bfixbaf \
+			   bfixbif \
+			   bfixbmf \
+			   bfixbrg \
 			   bfixhash \
 			   bgeneratereads \
 			   berrordistribution \
@@ -21,11 +24,9 @@ bin_PROGRAMS = bafconvert \
 
 bafconvert_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
-					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 					 ../blib/RGIndex.c	../blib/RGIndex.h \
 					 ../blib/BLib.c	../blib/BLib.h \
 					 ../blib/RGBinary.c ../blib/RGBinary.h \
-					 ../blib/RGMatch.c ../blib/RGMatch.h \
 					 ../blib/RGRanges.c ../blib/RGRanges.h \
 					 ../blib/AlignedRead.c	../blib/AlignedRead.h \
 					 ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
@@ -37,11 +38,9 @@ bafconvert_LDADD = -lz
 
 balignmentscoredistribution_SOURCES = \
 									  ../blib/BError.c	../blib/BError.h \
-									  ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
 									  ../blib/RGIndex.c	../blib/RGIndex.h \
 									  ../blib/BLib.c	../blib/BLib.h \
 									  ../blib/RGBinary.c ../blib/RGBinary.h \
-									  ../blib/RGMatch.c ../blib/RGMatch.h \
 									  ../blib/RGRanges.c ../blib/RGRanges.h \
 									  ../blib/AlignedRead.c	../blib/AlignedRead.h \
 									  ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
@@ -118,6 +117,42 @@ bfixbaf_SOURCES = \
 			   bfixbaf.c	bfixbaf.h 
 
 bfixbaf_LDADD = -lz  
+
+bfixbif_SOURCES = \
+			   ../blib/BError.c	../blib/BError.h \
+			   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+			   ../blib/RGIndex.c	../blib/RGIndex.h \
+			   ../blib/BLib.c	../blib/BLib.h \
+			   ../blib/RGBinary.c ../blib/RGBinary.h \
+			   ../blib/RGRanges.c ../blib/RGRanges.h \
+			   bfixbif.c	bfixbif.h
+
+bfixbif_LDADD = -lz
+
+bfixbmf_SOURCES = \
+			   ../blib/BError.c	../blib/BError.h \
+			   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+			   ../blib/RGIndex.c	../blib/RGIndex.h \
+			   ../blib/BLib.c	../blib/BLib.h \
+			   ../blib/RGBinary.c ../blib/RGBinary.h \
+			   ../blib/RGMatch.c ../blib/RGMatch.h \
+			   ../blib/RGMatches.c ../blib/RGMatches.h \
+			   ../blib/RGRanges.c ../blib/RGRanges.h \
+			   bfixbmf.c	bfixbmf.h 
+
+bfixbmf_LDADD = -lz  
+
+
+bfixbrg_SOURCES = \
+			   ../blib/BError.c	../blib/BError.h \
+			   ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+			   ../blib/RGIndex.c	../blib/RGIndex.h \
+			   ../blib/BLib.c	../blib/BLib.h \
+			   ../blib/RGBinary.c ../blib/RGBinary.h \
+			   ../blib/RGRanges.c ../blib/RGRanges.h \
+			   bfixbrg.c	bfixbrg.h 
+
+bfixbrg_LDADD = -lz  
 
 bfixhash_SOURCES = \
 				   ../blib/BError.c	../blib/BError.h \
