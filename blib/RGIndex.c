@@ -1465,16 +1465,7 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 	}
 
 	/* Read in starts */
-	int temp = gzread(fp, index->starts, sizeof(uint32_t)*index->hashLength);
-	fprintf(stderr, "HERE: %lld\t%lld\n",
-			(long long int)sizeof(uint32_t)*index->hashLength,
-			(long long int)temp);
-	fprintf(stderr, "%s\n",
-			index->packageVersion);
-	/*
 	if(gzread(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
-	*/
-	if(temp != sizeof(uint32_t)*index->hashLength) {
 		PrintError(FnName,
 				NULL,
 				"Could not read in starts",
