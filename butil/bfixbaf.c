@@ -6,7 +6,10 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <zlib.h>
+
 #include "../blib/BLibDefinitions.h"
+#include "../blib/BLib.h"
 #include "../blib/BError.h"
 #include "../blib/RGIndex.h"
 #include "../blib/AlignedRead.h"
@@ -17,7 +20,9 @@
 
 #define Name "bfixbaf"
 
-/* Updates a 0.4.1 to 0.4.4 BAF file to 0.4.5 */
+/* Updates a 0.4.1 to 0.4.7 BAF file to 0.5.0 */
+
+/* 0.4.1 - 0.4.5 will update MQ */
 
 int main(int argc, char *argv[]) 
 {
@@ -25,13 +30,34 @@ int main(int argc, char *argv[])
 	int avgMismatchQuality;
 	int space;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
+	char oldVersionString[MAX_FILENAME_LENGTH]="\0";
+	int oldVersion[3]={0,0,0};
 
-	if(5 <= argc) {
+	if(6 <= argc) {
 		int i;
-		strcpy(scoringMatrixFileName, argv[1]);
-		avgMismatchQuality = atoi(argv[2]);
-		space = atoi(argv[3]);
-		for(i=4;i<argc;i++) {
+		strcpy(oldVersionString, argv[1]);
+		strcpy(scoringMatrixFileName, argv[2]);
+		avgMismatchQuality = atoi(argv[3]);
+		space = atoi(argv[4]);
+
+		/* Check version */
+		ParsePackageVersion(oldVersionString, 
+				&oldVersion[0],
+				&oldVersion[1],
+				&oldVersion[2]);
+
+		if(0 != oldVersion[0] ||
+				4 != oldVersion[1] ||
+				oldVersion[2] < 1 ||
+				7 < oldVersion[2]) {
+			PrintError(Name,
+					oldVersionString,
+					"Version was out of range",
+					Exit,
+					OutOfRange);
+		}
+
+		for(i=5;i<argc;i++) {
 			strcpy(inputFileName, argv[i]);
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Updating %s.\n", inputFileName);
@@ -39,7 +65,8 @@ int main(int argc, char *argv[])
 				ConvertBAF(inputFileName,
 						scoringMatrixFileName,
 						avgMismatchQuality,
-						space);
+						space,
+						oldVersion[2]);
 			}
 			else {
 				PrintError(Name,
@@ -53,6 +80,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
+		fprintf(stderr, "\t<old version number (ex. 0.4.1)>\n");
 		fprintf(stderr, "\t<scoring matrix file name>\n");
 		fprintf(stderr, "\t<average mismatch quality>\n");
 		fprintf(stderr, "\t<space 0: NT Space 1: Color Space>\n");
@@ -65,12 +93,13 @@ int main(int argc, char *argv[])
 void ConvertBAF(char *inputFileName,
 		char*scoringMatrixFileName,
 		int32_t avgMismatchQuality,
-		int32_t space)
+		int32_t space,
+		int32_t minorVersionNumber)
 {
 	char *FnName="ConvertBAF";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	FILE *fpIn = NULL;
-	FILE *fpOut = NULL;
+	gzFile fpOut = NULL;
 	AlignedRead a;
 	double mismatchScore;
 	ScoringMatrix sm;
@@ -98,7 +127,7 @@ void ConvertBAF(char *inputFileName,
 				Exit,
 				OpenFileError);
 	}
-	if(!(fpOut = fopen(outputFileName, "wb"))) {
+	if(!(fpOut = gzopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
 				"Could not open file for writing",
@@ -107,15 +136,23 @@ void ConvertBAF(char *inputFileName,
 	}
 
 	AlignedReadInitialize(&a);
-	while(0 < AlignedReadReadOld(&a, fpIn)) {
-		AlignedReadUpdateMappingQuality(&a, 
-				mismatchScore,
-				avgMismatchQuality);
-		AlignedReadFree(&a);
+	if(1 <= minorVersionNumber && minorVersionNumber <= 5) {
+		while(0 < AlignedReadReadOld(&a, fpIn, 0)) {
+			AlignedReadUpdateMappingQuality(&a, 
+					mismatchScore,
+					avgMismatchQuality);
+			AlignedReadPrint(&a, fpOut);
+			AlignedReadFree(&a);
+		}
+	}
+	else {
+		while(0 < AlignedReadReadOld(&a, fpIn, 1)) {
+			AlignedReadPrint(&a, fpOut);
+		}
 	}
 
 	fclose(fpIn);
-	fclose(fpOut);
+	gzclose(fpOut);
 
 	fprintf(stderr, "Outputted to %s.\n",
 			outputFileName);
@@ -123,7 +160,8 @@ void ConvertBAF(char *inputFileName,
 
 /* TODO */
 int32_t AlignedReadReadOld(AlignedRead *a,
-		FILE *inputFP)
+		FILE *inputFP,
+		int32_t withMQ)
 {
 	char *FnName = "AlignedReadReadOld";
 	int32_t i;
@@ -191,7 +229,8 @@ int32_t AlignedReadReadOld(AlignedRead *a,
 		AlignedEndInitialize(&a->ends[i]);
 		if(EOF==AlignedEndReadOld(&a->ends[i],
 					inputFP,
-					a->space)) {
+					a->space,
+					withMQ)) {
 			PrintError(FnName,
 					NULL,
 					"Could not read a->ends[i]",
@@ -206,7 +245,8 @@ int32_t AlignedReadReadOld(AlignedRead *a,
 /* TODO */
 int32_t AlignedEndReadOld(AlignedEnd *a,
 		FILE *inputFP,
-		int32_t space)
+		int32_t space,
+		int32_t withMQ)
 {
 	char *FnName = "AlignedEndReadOld";
 	int32_t i;
@@ -256,7 +296,8 @@ int32_t AlignedEndReadOld(AlignedEnd *a,
 		AlignedEntryInitialize(&a->entries[i]);
 		if(EOF == AlignedEntryReadOld(&a->entries[i],
 					inputFP,
-					space)) {
+					space,
+					withMQ)) {
 			PrintError(FnName,
 					"a->entries[i]",
 					"Could not read from file",
@@ -271,7 +312,8 @@ int32_t AlignedEndReadOld(AlignedEnd *a,
 /* TODO */
 int32_t AlignedEntryReadOld(AlignedEntry *a,
 		FILE *inputFP,
-		int32_t space)
+		int32_t space,
+		int32_t withMQ)
 {
 	char *FnName = "AlignedEntryReadOld";
 
@@ -327,8 +369,17 @@ int32_t AlignedEntryReadOld(AlignedEntry *a,
 			fread(&a->contig, sizeof(uint32_t), 1, inputFP) != 1 ||
 			fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
 			fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
-			fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
-			fread(&a->referenceLength, sizeof(uint32_t), 1, inputFP) != 1 ||
+			fread(&a->score, sizeof(double), 1, inputFP) != 1) {
+		return EOF;
+	}
+
+	/* This is the only difference between 0.4.1-0.4.5 and 0.4.6-0.4.7 */
+	if(1 == withMQ &&
+			fread(&a->mappingQuality, sizeof(int32_t), 1, inputFP) != 1) {
+		return EOF;
+	}
+
+	if(fread(&a->referenceLength, sizeof(uint32_t), 1, inputFP) != 1 ||
 			fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1 ||
 			fread(a->read, sizeof(char), a->length, inputFP) != a->length ||
 			fread(a->reference, sizeof(char), a->length, inputFP) != a->length) {
