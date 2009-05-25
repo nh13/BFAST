@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <zlib.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 #include "../blib/AlignedRead.h"
@@ -14,7 +15,6 @@
 /* TODO */
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
-		int binaryInput,
 		int startContig,
 		int startPos,
 		int endContig,
@@ -35,26 +35,28 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int outputFormat)
 {
 	char *FnName="ReadInputFilterAndOutput";
-	FILE *fp=NULL;
+	gzFile fp=NULL;
 	int64_t counter, foundType, numContigAb, numUnpaired, numInversions, numNotReported, numReported;
 	AlignedRead a;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
+	gzFile fpOutGZ=NULL;
 	FILE *fpOut=NULL;
 	char contigAbFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *fpContigAb=NULL;
+	gzFile fpContigAbGZ=NULL;
+	FILE* fpContigAb=NULL;
 	char inversionsFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *fpInversions=NULL;
+	gzFile fpInversionsGZ=NULL;
+	FILE* fpInversions=NULL;
 	char unpairedFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *fpUnpaired=NULL;
+	gzFile fpUnpairedGZ=NULL;
+	FILE* fpUnpaired=NULL;
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
+	gzFile fpNotReportedGZ=NULL;
 	FILE *fpNotReported=NULL;
 	char fileExtension[256]="\0";
 
-	assert(binaryInput == BinaryInput ||
-			binaryInput == TextInput);
-
 	/* Open the input file */
-	if(!(fp=fopen(inputFileName, "rb"))) {
+	if(!(fp=gzopen(inputFileName, "rb"))) {
 		PrintError(FnName,
 				inputFileName,
 				"Could not open inputFileName for reading",
@@ -112,50 +114,106 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	/* Open output files, if necessary */
 	if(contigAbPaired == 1) {
-		if(!(fpContigAb=fopen(contigAbFileName, "wb"))) {
-			PrintError(FnName,
-					contigAbFileName,
-					"Could not open contigAbFileName for writing",
-					Exit,
-					OpenFileError);
+		if(BAF == outputFormat) { 
+			if(!(fpContigAbGZ=gzopen(contigAbFileName, "wb"))) {
+				PrintError(FnName,
+						contigAbFileName,
+						"Could not open contigAbFileName for writing",
+						Exit,
+						OpenFileError);
+			}
+		}
+		else {
+			if(!(fpContigAb=fopen(contigAbFileName, "wb"))) {
+				PrintError(FnName,
+						contigAbFileName,
+						"Could not open contigAbFileName for writing",
+						Exit,
+						OpenFileError);
+			}
 		}
 		AlignedReadConvertPrintHeader(fpContigAb, rg, outputFormat);
 	}
 	if(inversionsPaired == 1) {
-		if(!(fpInversions=fopen(inversionsFileName, "wb"))) {
-			PrintError(FnName,
-					inversionsFileName,
-					"Could not open inversionsFileName for writing",
-					Exit,
-					OpenFileError);
+		if(BAF == outputFormat) { 
+			if(!(fpInversionsGZ=gzopen(inversionsFileName, "wb"))) {
+				PrintError(FnName,
+						inversionsFileName,
+						"Could not open inversionsFileName for writing",
+						Exit,
+						OpenFileError);
+			}
+		}
+		else {
+			if(!(fpInversions=fopen(inversionsFileName, "wb"))) {
+				PrintError(FnName,
+						inversionsFileName,
+						"Could not open inversionsFileName for writing",
+						Exit,
+						OpenFileError);
+			}
 		}
 		AlignedReadConvertPrintHeader(fpInversions, rg, outputFormat);
 	}
 	if(unpaired == 1) {
-		if(!(fpUnpaired=fopen(unpairedFileName, "wb"))) {
-			PrintError(FnName,
-					unpairedFileName,
-					"Could not open unpairedFileName for writing",
-					Exit,
-					OpenFileError);
+		if(BAF == outputFormat) { 
+			if(!(fpUnpairedGZ=gzopen(unpairedFileName, "wb"))) {
+				PrintError(FnName,
+						unpairedFileName,
+						"Could not open unpairedFileName for writing",
+						Exit,
+						OpenFileError);
+			}
+		}
+		else {
+			if(!(fpUnpaired=fopen(unpairedFileName, "wb"))) {
+				PrintError(FnName,
+						unpairedFileName,
+						"Could not open unpairedFileName for writing",
+						Exit,
+						OpenFileError);
+			}
 		}
 		AlignedReadConvertPrintHeader(fpUnpaired, rg, outputFormat);
 	}
-	if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
-		PrintError(FnName,
-				notReportedFileName,
-				"Could not open notReportedFileName for writing",
-				Exit,
-				OpenFileError);
+	if(BAF == outputFormat) { 
+		if(!(fpNotReportedGZ=gzopen(notReportedFileName, "wb"))) {
+			PrintError(FnName,
+					notReportedFileName,
+					"Could not open notReportedFileName for writing",
+					Exit,
+					OpenFileError);
+		}
+	}
+	else {
+		if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
+			PrintError(FnName,
+					notReportedFileName,
+					"Could not open notReportedFileName for writing",
+					Exit,
+					OpenFileError);
+		}
 	}
 	AlignedReadConvertPrintHeader(fpNotReported, rg, outputFormat);
-	if(!(fpOut=fopen(outputFileName, "wb"))) {
-		PrintError(FnName,
-				outputFileName,
-				"Could not open outputFileName for writing",
-				Exit,
-				OpenFileError);
+	if(BAF == outputFormat) {
+		if(!(fpOutGZ=gzopen(outputFileName, "wb"))) {
+			PrintError(FnName,
+					outputFileName,
+					"Could not open outputFileName for writing",
+					Exit,
+					OpenFileError);
+		}
 	}
+	else {
+		if(!(fpOut=fopen(outputFileName, "wb"))) {
+			PrintError(FnName,
+					outputFileName,
+					"Could not open outputFileName for writing",
+					Exit,
+					OpenFileError);
+		}
+	}
+
 	AlignedReadConvertPrintHeader(fpOut, rg, outputFormat);
 
 	/* Initialize */
@@ -166,7 +224,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
 	counter = numReported = numNotReported = numContigAb = numUnpaired = numInversions = 0;
-	while(EOF != AlignedReadRead(&a, fp, binaryInput)) {
+	while(EOF != AlignedReadRead(&a, fp)) {
 		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -194,32 +252,32 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		switch(foundType) {
 			case NoneFound:
 				/* Print to Not Reported file */
-				AlignedReadConvertPrintOutputFormat(&a, rg, fpNotReported, outputID, outputFormat, binaryInput);
+				AlignedReadConvertPrintOutputFormat(&a, rg, fpNotReported, fpNotReportedGZ, outputID, outputFormat, BinaryOutput);
 				numNotReported++;
 				break;
 			case Found:
 				/* Print to Output file */
-				AlignedReadConvertPrintOutputFormat(&a, rg, fpOut, outputID, outputFormat, binaryInput);
+				AlignedReadConvertPrintOutputFormat(&a, rg, fpOut, fpOutGZ, outputID, outputFormat, BinaryOutput);
 				numReported++;
 				break;
 			case ContigAb:
 				if(contigAbPaired == 1) {
 					/* Print to Contig Abnormalities file */
-					AlignedReadConvertPrintOutputFormat(&a, rg, fpContigAb, outputID, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpContigAb, fpContigAbGZ, outputID, outputFormat, BinaryOutput);
 					numContigAb++;
 				}
 				break;
 			case Unpaired:
 				if(unpaired == 1) {
 					/* Print to Unpaired file */
-					AlignedReadConvertPrintOutputFormat(&a, rg, fpUnpaired, outputID, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpUnpaired, fpUnpairedGZ, outputID, outputFormat, BinaryOutput);
 					numUnpaired++;
 				}
 				break;
 			case Inversion:
 				if(inversionsPaired == 1) {
 					/* Print to Inversions file */
-					AlignedReadConvertPrintOutputFormat(&a, rg, fpInversions, outputID, outputFormat, binaryInput);
+					AlignedReadConvertPrintOutputFormat(&a, rg, fpInversions, fpInversionsGZ, outputID, outputFormat, BinaryOutput);
 					numInversions++;
 				}
 				break;
@@ -255,18 +313,32 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	}
 
 	/* Close output files, if necessary */
-	fclose(fpOut);
-	fclose(fpNotReported);
-	if(inversionsPaired == 1) {
-		fclose(fpInversions);
+	if(BAF == outputFormat) {
+		gzclose(fpOutGZ);
+		gzclose(fpNotReportedGZ);
+		if(inversionsPaired == 1) {
+			gzclose(fpInversionsGZ);
+		}
+		if(contigAbPaired == 1) {
+			gzclose(fpContigAbGZ);
+		}
+		if(unpaired == 1) {
+			gzclose(fpUnpairedGZ);
+		}
 	}
-	if(contigAbPaired == 1) {
-		fclose(fpContigAb);
+	else {
+		fclose(fpOut);
+		fclose(fpNotReported);
+		if(inversionsPaired == 1) {
+			fclose(fpInversions);
+		}
+		if(contigAbPaired == 1) {
+			fclose(fpContigAb);
+		}
+		if(unpaired == 1) {
+			fclose(fpUnpaired);
+		}
 	}
-	if(unpaired == 1) {
-		fclose(fpUnpaired);
-	}
-
 	/* Close the input file */
-	fclose(fp);
+	gzclose(fp);
 }

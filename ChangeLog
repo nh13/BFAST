@@ -5,6 +5,11 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.5.0
+* All output files now use the zlib for compression.  This includes brg,
+bif, bmf, and baf files.
+* Removed brepair and breport as they are now obsolete.
+
 Version 0.4.7
 * Updated output file naming in bmfconvert.
 * Updated bug in balign regarding retrieving the substitutions scores.

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <zlib.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -169,7 +170,7 @@ int ReadTypeCompare(ReadType *a,
 }
 
 int ReadTypeRead(ReadType *r, 
-		FILE *fp,
+		gzFile fp,
 		int type)
 {
 	char *FnName = "ReadTypeRead";
@@ -184,7 +185,8 @@ int ReadTypeRead(ReadType *r,
 
 	/* Read in align entries */
 	if(BMF==type) {
-		if(EOF==RGMatchesRead(fp, &m, BMATCHES_DEFAULT_OUTPUT)) {
+		if(EOF==RGMatchesRead(fp, &m)) {
+			
 			return EOF;
 		}
 		readName = (char*)m.readName;
@@ -196,7 +198,7 @@ int ReadTypeRead(ReadType *r,
 		}
 	}
 	else if(BAF==type) {
-		if(EOF==AlignedReadRead(&a, fp, BALIGN_DEFAULT_OUTPUT)) {
+		if(EOF==AlignedReadRead(&a, fp)) {
 			return EOF;
 		}
 		readName = a.readName;
@@ -747,8 +749,8 @@ void Evaluate(char *inputFileName,
 		int type)
 {
 	char *FnName="Evaluate";
-	FILE *fpIn;
-	FILE *fpOut;
+	gzFile fpIn;
+	gzFile fpOut;
 	ReadType r;
 	Stats s;
 	int32_t count;
@@ -762,7 +764,7 @@ void Evaluate(char *inputFileName,
 	ReadTypeInitialize(&r);
 
 	/* Open the inputFileName file */
-	if(!(fpIn=fopen(inputFileName, "rb"))) {
+	if(!(fpIn=gzopen(inputFileName, "rb"))) {
 		PrintError(FnName,
 				inputFileName,
 				"Could not open file for reading",
@@ -795,7 +797,7 @@ void Evaluate(char *inputFileName,
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Outputting to %s.\n",
 			outputFileName);
-	if(!(fpOut=fopen(outputFileName, "wb"))) {
+	if(!(fpOut=gzopen(outputFileName, "wb"))) {
 		PrintError(FnName,
 				outputFileName,
 				"Could not open file for writing",
@@ -811,8 +813,8 @@ void Evaluate(char *inputFileName,
 	StatsDelete(&s);
 
 	/* Close the files */
-	fclose(fpIn);
-	fclose(fpOut);
+	gzclose(fpIn);
+	gzclose(fpOut);
 }
 
 void ReadInReads(char *readsFile, Stats *s)

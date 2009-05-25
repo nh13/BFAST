@@ -17,8 +17,7 @@
 
 typedef struct {
 	FILE *tempSeqFP;
-	FILE *tempOutputFP;
-	int binaryOutput;
+	gzFile tempOutputFP;
 	RGIndex *index;
 	RGBinary *rg;
 	int *offsets;
@@ -36,9 +35,8 @@ typedef struct {
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(int, char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
+void FindMatches(char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
 int FindMatchesInIndexes(char **rgIndexFileNames,
-		int binaryInput,
 		RGBinary *rg,
 		int numRGIndexes,
 		int *offsets,
@@ -56,8 +54,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int numThreads,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
-		FILE *outputFP,
-		int binaryOutput,
+		gzFile outputFP,
 		int copyForNextSearch,
 		int indexesType,
 		char *tmpDir,
@@ -66,7 +63,6 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int *totalSearchTime,
 		int *totalOutputTime);
 int FindMatchesInIndex(char *indexFileName,
-		int binaryInput,
 		RGBinary *rg,
 		int *offsets,
 		int numOffsets,
@@ -82,8 +78,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int whichStrand,
 		int numThreads,
 		FILE ***tempSeqFPs,
-		FILE *indexFP,
-		int binaryOutput,
+		gzFile indexFP,
 		char *tmpDir,
 		int timing,
 		int *totalDataStructureTime,

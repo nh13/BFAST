@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <zlib.h>
 
 #include "../blib/AlignedRead.h"
 #include "../blib/AlignedEntry.h"
@@ -19,7 +20,7 @@
 
 int main(int argc, char *argv[])
 {
-	FILE *fpIn=NULL;
+	gzFile fpIn=NULL;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	AlignedRead a;
 	int64_t counter, i;
@@ -33,7 +34,7 @@ int main(int argc, char *argv[])
 		to=atof(argv[4]);
 
 		/* Open the input file */
-		if(!(fpIn=fopen(inputFileName, "rb"))) {
+		if(!(fpIn=gzopen(inputFileName, "rb"))) {
 			PrintError(Name,
 					inputFileName,
 					"Could not open file for reading",
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != AlignedReadRead(&a, fpIn, BinaryInput)) {
+		while(EOF != AlignedReadRead(&a, fpIn)) {
 			if(counter%ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						(long long int)counter);
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
 				(long long int)counter);
 
 		/* Close the input file */
-		fclose(fpIn);
+		gzclose(fpIn);
 
 		/* Print */
 		DistPrint(&dist, stdout);

@@ -14,4 +14,4 @@ bpreprocess_SOURCES = \
 	ParseInput.c	ParseInput.h \
 	Definitions.h
 	
-bpreprocess_LDADD = -lm
+bpreprocess_LDADD = -lm -lz

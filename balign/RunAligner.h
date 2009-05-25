@@ -16,11 +16,11 @@
 #include "Definitions.h"
 
 typedef struct {
-	FILE *inputFP;
+	gzFile inputFP;
 	char *inputFileName;
-	FILE *outputFP;
+	gzFile outputFP;
 	char *outputFileName;
-	FILE *notAlignedFP;
+	gzFile notAlignedFP;
 	char *notAlignedFileName;
 	RGBinary *rg;
 	int space;
@@ -29,8 +29,6 @@ typedef struct {
 	int pairedEndLength;
 	int mirroringType;
 	int forceMirroring;
-	int binaryInput;
-	int binaryOutput;
 	ScoringMatrix *sm;
 	int alignmentType;
 	int bestOnly;
@@ -40,7 +38,7 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int, int*, int*);
-void RunDynamicProgramming(FILE*, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, FILE*, FILE*, int, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
+void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, gzFile, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 #endif

@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <time.h>
 #include <math.h>
+#include <zlib.h>
 
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
@@ -139,11 +140,11 @@ void Run(RGBinary *rg,
 	char *FnName="Run";
 	int i, j;
 	int64_t rgLength=0;
-	FILE *matchesFP=NULL;
+	gzFile matchesFP=NULL;
 	char *matchesFileName=NULL;
-	FILE *alignFP=NULL;
+	gzFile alignFP=NULL;
 	char *alignFileName=NULL;
-	FILE *notAlignedFP=NULL;
+	gzFile notAlignedFP=NULL;
 	char *notAlignedFileName=NULL;
 	int32_t totalAlignTime = 0;
 	int32_t totalFileHandlingTime = 0;
@@ -199,9 +200,9 @@ void Run(RGBinary *rg,
 	}
 
 	/* Open tmp files */
-	matchesFP = OpenTmpFile(tmpDir, &matchesFileName);
-	alignFP = OpenTmpFile(tmpDir, &alignFileName);
-	notAlignedFP = OpenTmpFile(tmpDir, &notAlignedFileName);
+	matchesFP = OpenTmpGZFile(tmpDir, &matchesFileName);
+	alignFP = OpenTmpGZFile(tmpDir, &alignFileName);
+	notAlignedFP = OpenTmpGZFile(tmpDir, &notAlignedFileName);
 
 	/* Get scoring matrix */
 	ScoringMatrixInitialize(&sm);
@@ -378,11 +379,9 @@ void Run(RGBinary *rg,
 		m.ends[0].positions[0] = r.pos;
 		m.ends[0].strands[0] = r.strand;
 
-
 		/* Output */
 		RGMatchesPrint(matchesFP,
-				&m,
-				BinaryOutput);
+				&m);
 
 		/* Clean up */
 		SimReadDelete(&r);
@@ -391,10 +390,21 @@ void Run(RGBinary *rg,
 	fprintf(stderr, "\r%d\n", numReads);
 	fprintf(stderr, "%s", BREAK_LINE);
 
+	/* Re-initialize */
+	CloseTmpGZFile(&matchesFP,
+			&matchesFileName,
+			0);
+	if(!(matchesFP=gzopen(matchesFileName, "rb"))) {
+		PrintError(FnName,
+				matchesFileName,
+				"Could not re-open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
 	/* Run "RunDynamicProgramming" from balign */
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Running local alignment.\n");
-	fseek(matchesFP, 0, SEEK_SET);
 	RunDynamicProgramming(matchesFP,
 			rg,
 			scoringMatrixFileName,
@@ -407,7 +417,6 @@ void Run(RGBinary *rg,
 			rg->contigs[rg->numContigs-1].sequenceLength,
 			readLength, 
 			INT_MAX,
-			BinaryInput,
 			AVG_MISMATCH_QUALITY,
 			numThreads,
 			0,
@@ -417,20 +426,29 @@ void Run(RGBinary *rg,
 			tmpDir,
 			alignFP,
 			notAlignedFP,
-			BinaryOutput,
 			&totalAlignTime,
 			&totalFileHandlingTime);
 	fprintf(stderr, "%s", BREAK_LINE);
 
+	/* Re-initialize */
+	CloseTmpGZFile(&alignFP,
+			&alignFileName,
+			0);
+	if(!(alignFP=gzopen(alignFileName, "rb"))) {
+		PrintError(FnName,
+				alignFileName,
+				"Could not re-open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
 	/* Read in output and sum up accuracy */
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Summing up totals.\n");
-	fseek(alignFP, 0, SEEK_SET);
 	AlignedReadInitialize(&a);
 	numScoreLessThan = numScoreEqual = numScoreGreaterThan = 0;
 	while(EOF != AlignedReadRead(&a,
-				alignFP,
-				BinaryInput)) {
+				alignFP)) {
 		/* Get substring */
 		s = strstr(a.readName, "score=");
 		if(NULL == s) {
@@ -459,7 +477,7 @@ void Run(RGBinary *rg,
 				fprintf(stderr, "found=%d\nexpected=%d\n",
 						round(a.ends[0].entries[0].score),
 						score);
-				AlignedReadPrint(&a, stderr, TextOutput);
+				AlignedReadPrintText(&a, stderr);
 				PrintError(FnName,
 						"numScoreLessThan",
 						"The alignment score should not be less than expected",
@@ -470,7 +488,7 @@ void Run(RGBinary *rg,
 		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;
 			/* HERE */
-			AlignedReadPrint(&a, stderr, TextOutput);
+			AlignedReadPrintText(&a, stderr);
 			/*
 			   PrintError(FnName,
 			   "numScoreGreaterThan",
@@ -488,9 +506,9 @@ void Run(RGBinary *rg,
 	fprintf(stderr, "%s", BREAK_LINE);
 
 	/* Close matches file */
-	CloseTmpFile(&matchesFP, &matchesFileName);
-	CloseTmpFile(&alignFP, &alignFileName);
-	CloseTmpFile(&notAlignedFP, &notAlignedFileName);
+	CloseTmpGZFile(&matchesFP, &matchesFileName, 1);
+	CloseTmpGZFile(&alignFP, &alignFileName, 1);
+	CloseTmpGZFile(&notAlignedFP, &notAlignedFileName, 1);
 
 	fprintf(stdout, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
 			numReads,

@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
+#include <zlib.h>
+
 #include "../blib/AlignedEntry.h"
 #include "../blib/AlignedRead.h"
 #include "../blib/BLibDefinitions.h"
@@ -18,9 +20,9 @@
 /* Merges two sorted baf files
  * */
 
-void MergeFiles(FILE *fpOne,
-		FILE *fpTwo,
-		FILE *fpOut)
+void MergeFiles(gzFile fpOne,
+		gzFile fpTwo,
+		gzFile fpOut)
 {
 	int64_t ctr=0;
 	fpos_t posOne;
@@ -37,8 +39,8 @@ void MergeFiles(FILE *fpOne,
 		assert(0 == fgetpos(fpOne, &posOne));
 		assert(0 == fgetpos(fpTwo, &posTwo));
 
-		if(EOF == AlignedReadRead(&aOne, fpOne, BinaryInput) ||
-				EOF == AlignedReadRead(&aTwo, fpTwo, BinaryInput)) {
+		if(EOF == AlignedReadRead(&aOne, fpOne) ||
+				EOF == AlignedReadRead(&aTwo, fpTwo)) {
 			if(0 == feof(fpOne)) {
 				assert(0 == fsetpos(fpOne, &posOne));
 			}
@@ -53,46 +55,45 @@ void MergeFiles(FILE *fpOne,
 						(long long int)ctr);
 			}
 			if(AlignedReadCompareAll(&aOne, &aTwo) <= 0) {
-				AlignedReadPrint(&aOne, fpOut, BinaryOutput);
+				AlignedReadPrint(&aOne, fpOut);
 				fsetpos(fpTwo, &posTwo);
 			}
 			else {
-				AlignedReadPrint(&aTwo, fpOut, BinaryOutput);
+				AlignedReadPrint(&aTwo, fpOut);
 				fsetpos(fpOne, &posOne);
 			}
 		}
 		AlignedReadFree(&aOne);
 		AlignedReadFree(&aTwo);
 	}
-	while(EOF != AlignedReadRead(&aOne, fpOne, BinaryInput)) {
+	while(EOF != AlignedReadRead(&aOne, fpOne)) {
 		ctr++;
 		if(0 == ctr % BMERGESORTED_ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)ctr);
 		}
-		AlignedReadPrint(&aOne, fpOut, BinaryOutput);
+		AlignedReadPrint(&aOne, fpOut);
 		AlignedReadFree(&aOne);
 	}
-	while(EOF != AlignedReadRead(&aTwo, fpTwo, BinaryInput)) {
+	while(EOF != AlignedReadRead(&aTwo, fpTwo)) {
 		ctr++;
 		if(0 == ctr % BMERGESORTED_ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)ctr);
 		}
-		AlignedReadPrint(&aTwo, fpOut, BinaryOutput);
+		AlignedReadPrint(&aTwo, fpOut);
 		AlignedReadFree(&aTwo);
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)ctr);
 }
 
-
 int main(int argc, char *argv[])
 {
 	char inputFileName[2][MAX_FILENAME_LENGTH]={"\0","\0"};
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *inputFP[2]={NULL,NULL};
-	FILE *outputFP=NULL;
+	gzFile inputFP[2]={NULL,NULL};
+	gzFile outputFP=NULL;
 	int i;
 
 	if(argc == 4) {
@@ -103,7 +104,7 @@ int main(int argc, char *argv[])
 
 		/* Open input */
 		for(i=0;i<2;i++) {
-			if(!(inputFP[i] = fopen(inputFileName[i], "rb"))) {
+			if(!(inputFP[i] = gzopen(inputFileName[i], "rb"))) {
 				PrintError(Name,
 						inputFileName[i],
 						"Could not open file for reading",
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		/* Open output */
-		if(!(outputFP = fopen(outputFileName, "wb"))) {
+		if(!(outputFP = gzopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
 					"Could not open file for writing",
@@ -126,10 +127,10 @@ int main(int argc, char *argv[])
 				outputFP);
 
 		/* Close files */
-		fclose(outputFP);
+		gzclose(outputFP);
 		/* Close input */
 		for(i=0;i<2;i++) {
-			fclose(inputFP[i]);
+			gzclose(inputFP[i]);
 		}
 
 		fprintf(stderr, "%s", BREAK_LINE);

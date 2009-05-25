@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <zlib.h>
 #include "../blib/BError.h"
 #include "../blib/BLib.h"
 #include "../blib/RGMatch.h"
@@ -280,10 +281,9 @@ void WriteReadsToTempFile(FILE *seqFP,
  * at least one match to the final output file.  For those reads that have
  * zero matches, output them to the temporary read file *
  * */
-int ReadTempReadsAndOutput(FILE *tempOutputFP,
-		FILE *outputFP,
-		FILE *tempSeqFP,
-		int binaryOutput)
+int ReadTempReadsAndOutput(gzFile tempOutputFP,
+		gzFile outputFP,
+		FILE *tempSeqFP)
 {
 	char *FnName = "ReadTempReadsAndOutput";
 	RGMatches m;
@@ -296,11 +296,10 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 	RGMatchesInitialize(&m);
 
 	/* Go to the beginning of the temporary output file */
-	fseek(tempOutputFP, 0, SEEK_SET);
+	gzseek(tempOutputFP, 0, SEEK_SET);
 
 	while(RGMatchesRead(tempOutputFP, 
-				&m,
-				binaryOutput)!=EOF) {
+				&m)!=EOF) {
 		/* Output if any end has more than one entry */
 		for(i=hasEntries=0;0==hasEntries && i<m.numEnds;i++) {
 			if(0 < m.ends[i].numEntries) {
@@ -310,8 +309,7 @@ int ReadTempReadsAndOutput(FILE *tempOutputFP,
 		if(1 == hasEntries) {
 			/* Output to final output file */
 			RGMatchesPrint(outputFP,
-					&m,
-					binaryOutput);
+					&m);
 			numOutputted++;
 		}
 		else {

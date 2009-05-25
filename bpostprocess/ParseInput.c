@@ -72,9 +72,6 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file (not required for BAF output)", 1},
 	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
-	/*
-	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input files will be in binary format", 1},
-	   */
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
 		"\n\t\t\t0: Specifies no filtering will occur"
@@ -185,7 +182,6 @@ main (int argc, char **argv)
 						}
 						ReadInputFilterAndOutput(&rg,
 								arguments.alignFileName,
-								arguments.binaryInput,
 								arguments.startContig,
 								arguments.startPos,
 								arguments.endContig,
@@ -278,8 +274,6 @@ int ValidateInputs(struct arguments *args) {
 			PrintError(FnName, "alignFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
-	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
-
 	if(args->startContig < 0) {
 		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
 	}
@@ -364,8 +358,6 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->alignFileName!=0);
 	strcpy(args->alignFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = BALIGN_DEFAULT_OUTPUT;
-
 	args->startContig=0;
 	args->startPos=0;
 	args->endContig=0;
@@ -412,9 +404,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t%s\n", args->rgFileName);
 	fprintf(fp, "alignFileName:\t\t%s\n", args->alignFileName);
-	/*
-	   fprintf(fp, "binaryInput:\t\t%d\n", args->binaryInput);
-	   */
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
 	fprintf(fp, "startContig:\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t%d\n", args->startPos);
@@ -496,10 +485,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case 'a':
 						arguments->algorithm = atoi(OPTARG);break;
-						/*
-						   case 'b':
-						   arguments->binaryInput = 1;break;
-						   */
 					case 'd':
 						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						break;

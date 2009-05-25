@@ -5,6 +5,7 @@
 #include <limits.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+#include <zlib.h>
 #endif
 #include "BError.h"
 #include "BLib.h"
@@ -50,7 +51,7 @@ void RGBinaryRead(char *rgFileName,
 	rg->contigs=NULL;
 	rg->numContigs=0;
 	rg->space=space;
-
+	
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading from %s.\n",
@@ -275,7 +276,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 		char *rgFileName)
 {
 	char *FnName="RGBinaryReadBinary";
-	FILE *fpRG;
+	gzFile fpRG;
 	int32_t i;
 	int32_t numCharsPerByte;
 	int64_t numPosRead=0;
@@ -289,7 +290,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 
 	/* Open output file */
-	if((fpRG=fopen(rgFileName, "rb"))==0) {
+	if((fpRG=gzopen(rgFileName, "rb"))==0) {
 		PrintError(FnName,
 				rgFileName,
 				"Could not open rgFileName for reading",
@@ -298,8 +299,8 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 
 	/* Read RGBinary information */
-	if( fread(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
-			fread(&rg->packageVersionLength, sizeof(int32_t), 1, fpRG)!=1) {
+	if(gzread(fpRG, &rg->id, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fpRG, &rg->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
@@ -315,9 +316,9 @@ void RGBinaryReadBinary(RGBinary *rg,
 				Exit,
 				MallocMemory);
 	}
-	if(fread(rg->packageVersion, sizeof(char), rg->packageVersionLength, fpRG)!=rg->packageVersionLength ||
-			fread(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
-			fread(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
+	if(gzread(fpRG, rg->packageVersion, sizeof(char)*rg->packageVersionLength)!=sizeof(char)*rg->packageVersionLength ||
+			gzread(fpRG, &rg->numContigs, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fpRG, &rg->space, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
@@ -354,7 +355,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	/* Read each contig */
 	for(i=0;i<rg->numContigs;i++) {
 		/* Read contig name length */
-		if(fread(&rg->contigs[i].contigNameLength, sizeof(int32_t), 1, fpRG)!=1) {
+		if(gzread(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
 			PrintError(FnName,
 					NULL,
 					"Could not read contig name length",
@@ -372,9 +373,9 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read RGContig information */
-		if(fread(rg->contigs[i].contigName, sizeof(char), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
-				fread(&rg->contigs[i].sequenceLength, sizeof(int32_t), 1, fpRG)!=1 ||
-				fread(&rg->contigs[i].numBytes, sizeof(uint32_t), 1, fpRG)!=1) {
+		if(gzread(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
+				gzread(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t))!=sizeof(int32_t) ||
+				gzread(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t))!=sizeof(uint32_t)) {
 			PrintError(FnName,
 					NULL,
 					"Could not read RGContig information",
@@ -395,7 +396,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read sequence */
-		if(fread(rg->contigs[i].sequence, sizeof(char), rg->contigs[i].numBytes, fpRG)!=rg->contigs[i].numBytes) {
+		if(gzread(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes)!=sizeof(char)*rg->contigs[i].numBytes) {
 			PrintError(FnName,
 					NULL,
 					"Could not read sequence",
@@ -407,7 +408,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 
 	/* Close the output file */
-	fclose(fpRG);
+	gzclose(fpRG);
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "In total read %d contigs for a total of %lld bases\n",
@@ -421,7 +422,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 		char *rgFileName) 
 {
 	char *FnName="RGBinaryWriteBinary";
-	FILE *fpRG;
+	gzFile fpRG;
 	int i;
 	int32_t numCharsPerByte;
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
@@ -433,7 +434,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	fprintf(stderr, "Outputting to %s\n", rgFileName);
 
 	/* Open output file */
-	if((fpRG=fopen(rgFileName, "wb"))==0) {
+	if((fpRG=gzopen(rgFileName, "wb"))==0) {
 		PrintError(FnName,
 				rgFileName,
 				"Could not open rgFileName for writing",
@@ -442,11 +443,11 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	}
 
 	/* Output RGBinary information */
-	if(fwrite(&rg->id, sizeof(int32_t), 1, fpRG)!=1 ||
-			fwrite(&rg->packageVersionLength, sizeof(int32_t), 1, fpRG)!=1 ||
-			fwrite(rg->packageVersion, sizeof(char), rg->packageVersionLength, fpRG)!=rg->packageVersionLength || 
-			fwrite(&rg->numContigs, sizeof(int32_t), 1, fpRG)!=1 ||
-			fwrite(&rg->space, sizeof(int32_t), 1, fpRG)!=1) {
+	if(gzwrite(fpRG, &rg->id, sizeof(int32_t)) != sizeof(int32_t) ||
+		gzwrite(fpRG, &rg->packageVersionLength, sizeof(int32_t)) != sizeof(int32_t) ||
+		gzwrite(fpRG, rg->packageVersion, rg->packageVersionLength*sizeof(char)) != rg->packageVersionLength*sizeof(char) ||
+		gzwrite(fpRG, &rg->numContigs, sizeof(int32_t)) != sizeof(int32_t) ||
+		gzwrite(fpRG, &rg->space, sizeof(int32_t)) != sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not output rg header",
@@ -457,12 +458,11 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	/* Output each contig */
 	for(i=0;i<rg->numContigs;i++) {
 		/* Output RGContig information */
-		if(fwrite(&rg->contigs[i].contigNameLength, sizeof(int32_t), 1, fpRG) != 1 ||
-				fwrite(rg->contigs[i].contigName, sizeof(char), rg->contigs[i].contigNameLength, fpRG) != rg->contigs[i].contigNameLength ||
-				fwrite(&rg->contigs[i].sequenceLength, sizeof(int32_t), 1, fpRG) != 1 ||
-				fwrite(&rg->contigs[i].numBytes, sizeof(uint32_t), 1, fpRG) != 1 ||
-				/* Output sequence */
-				fwrite(rg->contigs[i].sequence, sizeof(char), rg->contigs[i].numBytes, fpRG) != rg->contigs[i].numBytes) {
+		if(gzwrite(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t)) != sizeof(int32_t) ||
+				gzwrite(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
+				gzwrite(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t)) != sizeof(int32_t) ||
+				gzwrite(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t)) != sizeof(uint32_t) ||
+				gzwrite(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes) != sizeof(char)*rg->contigs[i].numBytes) {
 			PrintError(FnName,
 					NULL,
 					"Could not output rg contig",
@@ -470,7 +470,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 					WriteFileError);
 		}
 	}
-	fclose(fpRG);
+	gzclose(fpRG);
 
 	fprintf(stderr, "Output complete.\n");
 	fprintf(stderr, "%s", BREAK_LINE);

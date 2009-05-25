@@ -73,9 +73,6 @@ static struct argp_option options[] = {
 	{"rgFileName", 'r', "rgFileName", 0, "Specifies the file name of the reference genome file", 1},
 	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
-	/*
-	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the input matches files will be in binary format", 1},
-	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
 	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "If specified prompts to find only the best scoring alignment(s) across all matches."
@@ -101,9 +98,6 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
 	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
-	/*
-	   {"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output aligned file will be in binary format", 4},
-	   */
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 5},
@@ -207,7 +201,6 @@ main (int argc, char **argv)
 								arguments.endPos,
 								arguments.offsetLength,
 								arguments.maxNumMatches,
-								arguments.binaryInput,
 								arguments.avgMismatchQuality,
 								arguments.numThreads,
 								arguments.usePairedEndLength,
@@ -217,7 +210,6 @@ main (int argc, char **argv)
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
-								arguments.binaryOutput,
 								&totalAlignTime,
 								&totalFileHandlingTime);
 						/* Free the Reference Genome */
@@ -400,8 +392,6 @@ int ValidateInputs(struct arguments *args) {
 
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
-	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
-	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
 	assert(NoMirroring <= args->mirroringType && args->mirroringType <= MirrorBoth);
@@ -437,9 +427,6 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->scoringMatrixFileName!=0);
 	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
 	
-	args->binaryInput = BMATCHES_DEFAULT_OUTPUT;
-	args->binaryOutput = BALIGN_DEFAULT_OUTPUT;
-
 	args->alignmentType = FullAlignment;
 	args->bestOnly = AllAlignments;
 	args->space = NTSpace;
@@ -487,9 +474,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
 	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
-	/*
-	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	   */
 	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
 	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
@@ -507,9 +491,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
-	/*
-	   fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
-	   */
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -575,10 +556,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				   */
 #endif
 				switch (key) {
-						/*
-						   case 'b':
-						   arguments->binaryInput = 1;break;
-						   */
 					case 'a':
 						arguments->alignmentType=atoi(OPTARG);break;
 					case 'b':
@@ -623,10 +600,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
-						/*
-						   case 'B':
-						   arguments->binaryOutput = 1;break;
-						   */
 					case 'E':
 						arguments->endPos=atoi(OPTARG);break;
 					case 'L':

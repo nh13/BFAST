@@ -2,11 +2,14 @@
 #define ALIGNEDREAD_H_
 
 #include <stdio.h>
+#include <zlib.h>
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-void AlignedReadPrint(AlignedRead*, FILE*, int32_t);
-int AlignedReadRead(AlignedRead*, FILE*, int32_t);
+void AlignedReadPrint(AlignedRead*, gzFile);
+void AlignedReadPrintText(AlignedRead*, FILE*);
+int AlignedReadRead(AlignedRead*, gzFile);
+int AlignedReadReadText(AlignedRead*, FILE*);
 void AlignedReadRemoveDuplicates(AlignedRead*, int32_t);
 void AlignedReadQuickSort(AlignedRead*, int32_t, int32_t);
 void AlignedReadMergeSort(AlignedRead*, int32_t, int32_t);

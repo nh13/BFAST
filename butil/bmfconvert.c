@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <zlib.h>
+
 #include "../blib/RGMatches.h"
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -18,7 +20,8 @@
 int main(int argc, char *argv[])
 {
 
-	FILE *fpIn, *fpOut;
+	FILE *fpIn=NULL, *fpOut=NULL;
+	gzFile fpInGZ=NULL, fpOutGZ=NULL; 
 	int binaryInput = 0, binaryOutput = 0;
 	long long int counter;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
@@ -68,27 +71,50 @@ int main(int argc, char *argv[])
 		}
 
 		/* Open the input file */
-		if(!(fpIn=fopen(inputFileName, "rb"))) {
-			PrintError(Name,
-					inputFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+		if(TextInput == binaryInput) {
+			if(!(fpIn=fopen(inputFileName, "rb"))) {
+				PrintError(Name,
+						inputFileName,
+						"Could not open file for reading",
+						Exit,
+						OpenFileError);
+			}
+		}
+		else {
+			if(!(fpInGZ=gzopen(inputFileName, "rb"))) {
+				PrintError(Name,
+						inputFileName,
+						"Could not open file for reading",
+						Exit,
+						OpenFileError);
+			}
 		}
 		/* Open the output file */
-		if(!(fpOut=fopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+		if(TextOutput == binaryOutput) {
+			if(!(fpOut=fopen(outputFileName, "wb"))) {
+				PrintError(Name,
+						outputFileName,
+						"Could not open file for writing",
+						Exit,
+						OpenFileError);
+			}
+		}
+		else {
+			if(!(fpOutGZ=gzopen(outputFileName, "wb"))) {
+				PrintError(Name,
+						outputFileName,
+						"Could not open file for writing",
+						Exit,
+						OpenFileError);
+			}
 		}
 		/* Initialize */
 		RGMatchesInitialize(&m);
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != RGMatchesRead(fpIn, &m, binaryInput)) {
+		while((TextInput == binaryInput && EOF != RGMatchesReadText(fpIn, &m)) ||
+				(BinaryInput == binaryInput && EOF != RGMatchesRead(fpInGZ, &m))) {
 			if(counter%BMFCONVERT_ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						counter);
@@ -97,8 +123,10 @@ int main(int argc, char *argv[])
 			/* Print each match */
 			switch(outputType) {
 				case 0:
+					RGMatchesPrint(fpOutGZ, &m);
+					break;
 				case 1:
-					RGMatchesPrint(fpOut, &m, binaryOutput);
+					RGMatchesPrintText(fpOut, &m);
 					break;
 				case 2:
 					RGMatchesPrintFastq(fpOut, &m);
@@ -115,9 +143,19 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\r%lld\n",
 				counter);
 		/* Close the input file */
-		fclose(fpIn);
+		if(TextInput == binaryInput) {
+			fclose(fpIn);
+		}
+		else {
+			gzclose(fpInGZ);
+		}
 		/* Close the output file */
-		fclose(fpOut);
+		if(TextOutput == binaryOutput) {
+			fclose(fpOut);
+		}
+		else {
+			gzclose(fpOutGZ);
+		}
 
 		fprintf(stderr, "Terminating successfully!\n");
 	}

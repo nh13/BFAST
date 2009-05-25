@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <float.h>
+#include <zlib.h>
 
 #include "BLibDefinitions.h"
 #include "ScoringMatrix.h"
@@ -15,35 +16,48 @@
 
 /* TODO */
 int32_t AlignedEndPrint(AlignedEnd *a,
-		FILE *outputFP,
-		int32_t space,
-		int32_t binaryOutput)
+		gzFile outputFP,
+		int32_t space)
 {
 	int32_t i;
 	assert(NULL != a->read);
-	if(binaryOutput == TextOutput) {
-		if(fprintf(outputFP, "%s\t%s\t%d\n",
-					a->read,
-					a->qual,
-					a->numEntries) < 0) {
-			return EOF;
-		}
-	}
-	else {
-		if(fwrite(&a->readLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(&a->qualLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(a->read, sizeof(char), a->readLength, outputFP) != a->readLength ||
-				fwrite(a->qual, sizeof(char), a->qualLength, outputFP) != a->qualLength ||
-				fwrite(&a->numEntries, sizeof(int32_t), 1, outputFP) != 1) {
-			return EOF;
-		}
+	if(gzwrite(outputFP, &a->readLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite(outputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite(outputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
+			gzwrite(outputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
+			gzwrite(outputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+		return EOF;
 	}
 
 	for(i=0;i<a->numEntries;i++) {
 		if(EOF == AlignedEntryPrint(&a->entries[i],
 					outputFP,
-					space,
-					binaryOutput)) {
+					space)) {
+			return EOF;
+		}
+	}
+
+	return 1;
+}
+
+/* TODO */
+int32_t AlignedEndPrintText(AlignedEnd *a,
+		FILE *outputFP,
+		int32_t space)
+{
+	int32_t i;
+	assert(NULL != a->read);
+	if(fprintf(outputFP, "%s\t%s\t%d\n",
+				a->read,
+				a->qual,
+				a->numEntries) < 0) {
+		return EOF;
+	}
+
+	for(i=0;i<a->numEntries;i++) {
+		if(EOF == AlignedEntryPrintText(&a->entries[i],
+					outputFP,
+					space)) {
 			return EOF;
 		}
 	}
@@ -53,91 +67,50 @@ int32_t AlignedEndPrint(AlignedEnd *a,
 
 /* TODO */
 int32_t AlignedEndRead(AlignedEnd *a,
-		FILE *inputFP,
-		int32_t space,
-		int32_t binaryInput)
+		gzFile inputFP,
+		int32_t space)
 {
 	char *FnName = "AlignedEndRead";
-	char read[SEQUENCE_LENGTH]="\0";
-	char qual[SEQUENCE_LENGTH]="\0";
 	int32_t i;
 
-	if(binaryInput == TextInput) {
-		if(fscanf(inputFP, "%s %s %d",
-					read,
-					qual,
-					&a->numEntries) < 3) {
-			return EOF;
-		}
-
-		a->readLength = strlen(read);
-		a->qualLength = strlen(qual);
-
-		/* Allocate memory for the alignment */
-		if(a->read == NULL) {
-			a->read = malloc(sizeof(char)*(1+a->readLength));
-			if(NULL == a->read) {
-				PrintError(FnName,
-						"a->read",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		if(a->qual == NULL) {
-			a->qual = malloc(sizeof(char)*(1+a->qualLength));
-			if(NULL == a->qual) {
-				PrintError(FnName,
-						"a->qual",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		/* Copy over */
-		strcpy(a->read, read);
-		strcpy(a->qual, qual);
+	if(gzread(inputFP, &a->readLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread(inputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)) {
+		return EOF;
 	}
-	else {
-		if(fread(&a->readLength, sizeof(int32_t), 1, inputFP) != 1 ||
-				fread(&a->qualLength, sizeof(int32_t), 1, inputFP) != 1) {
-			return EOF;
-		}
-		/* Allocate memory for the alignment */
-		if(a->read == NULL) {
-			a->read = malloc(sizeof(char)*(1+a->readLength));
-			if(NULL == a->read) {
-				PrintError(FnName,
-						"a->read",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-		if(a->qual == NULL) {
-			a->qual = malloc(sizeof(char)*(1+a->qualLength));
-			if(NULL == a->qual) {
-				PrintError(FnName,
-						"a->qual",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
-			}
-		}
-
-		if(fread(a->read, sizeof(char), a->readLength, inputFP) != a->readLength ||
-				fread(a->qual, sizeof(char), a->qualLength, inputFP) != a->qualLength ||
-				fread(&a->numEntries, sizeof(int32_t), 1, inputFP) != 1) {
+	/* Allocate memory for the alignment */
+	if(a->read == NULL) {
+		a->read = malloc(sizeof(char)*(1+a->readLength));
+		if(NULL == a->read) {
 			PrintError(FnName,
-					"a->reads, a->qual, and a->numEntries",
-					"Could not read from file",
+					"a->read",
+					"Could not allocate memory",
 					Exit,
-					ReadFileError);
+					MallocMemory);
 		}
-		/* Add the null terminator to strings */
-		a->read[a->readLength]='\0';
-		a->qual[a->qualLength]='\0';
 	}
+	if(a->qual == NULL) {
+		a->qual = malloc(sizeof(char)*(1+a->qualLength));
+		if(NULL == a->qual) {
+			PrintError(FnName,
+					"a->qual",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+
+	if(gzread(inputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
+			gzread(inputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
+			gzread(inputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				"a->reads, a->qual, and a->numEntries",
+				"Could not read from file",
+				Exit,
+				ReadFileError);
+	}
+	/* Add the null terminator to strings */
+	a->read[a->readLength]='\0';
+	a->qual[a->qualLength]='\0';
 
 	/* Allocate room for the the entries */
 	AlignedEndReallocate(a,
@@ -147,8 +120,72 @@ int32_t AlignedEndRead(AlignedEnd *a,
 		AlignedEntryInitialize(&a->entries[i]);
 		if(EOF == AlignedEntryRead(&a->entries[i],
 					inputFP,
-					space,
-					binaryInput)) {
+					space)) {
+			PrintError(FnName,
+					"a->entries[i]",
+					"Could not read from file",
+					Exit,
+					ReadFileError);
+		}
+	}
+
+	return 1;
+}
+
+/* TODO */
+int32_t AlignedEndReadText(AlignedEnd *a,
+		FILE *inputFP,
+		int32_t space)
+{
+	char *FnName = "AlignedEndReadText";
+	char read[SEQUENCE_LENGTH]="\0";
+	char qual[SEQUENCE_LENGTH]="\0";
+	int32_t i;
+
+	if(fscanf(inputFP, "%s %s %d",
+				read,
+				qual,
+				&a->numEntries) < 3) {
+		return EOF;
+	}
+
+	a->readLength = strlen(read);
+	a->qualLength = strlen(qual);
+
+	/* Allocate memory for the alignment */
+	if(a->read == NULL) {
+		a->read = malloc(sizeof(char)*(1+a->readLength));
+		if(NULL == a->read) {
+			PrintError(FnName,
+					"a->read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+	if(a->qual == NULL) {
+		a->qual = malloc(sizeof(char)*(1+a->qualLength));
+		if(NULL == a->qual) {
+			PrintError(FnName,
+					"a->qual",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+	/* Copy over */
+	strcpy(a->read, read);
+	strcpy(a->qual, qual);
+
+	/* Allocate room for the the entries */
+	AlignedEndReallocate(a,
+			a->numEntries);
+
+	for(i=0;i<a->numEntries;i++) {
+		AlignedEntryInitialize(&a->entries[i]);
+		if(EOF == AlignedEntryReadText(&a->entries[i],
+					inputFP,
+					space)) {
 			PrintError(FnName,
 					"a->entries[i]",
 					"Could not read from file",

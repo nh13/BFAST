@@ -15,4 +15,4 @@ bmatches_SOURCES = \
 	ParseInput.c	ParseInput.h \
 	Definitions.h
 	
-bmatches_LDADD = -lm 
+bmatches_LDADD = -lm -lz 

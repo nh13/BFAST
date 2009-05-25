@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <zlib.h>
 #include "RGIndex.h"
 #include "BLibDefinitions.h"
 
@@ -23,6 +24,8 @@ char TransformFromIUPAC(char);
 void CheckRGIndexes(char**, int, char**, int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t);
 FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
+gzFile OpenTmpGZFile(char*, char**);
+void CloseTmpGZFile(gzFile*, char**, int32_t);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
 int PrintContigPos(FILE*, int32_t, int32_t);

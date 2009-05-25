@@ -33,7 +33,6 @@ void GenerateIndex(RGBinary *rg,
 	*/
 	int32_t i;
 	char outputFileName[ MAX_FILENAME_LENGTH]="\0"; 
-	FILE *fp=NULL;
 	RGIndex index;
 
 	/* Adjust start and end based on reference genome */
@@ -89,22 +88,12 @@ void GenerateIndex(RGBinary *rg,
 				i+1,
 				BFAST_INDEX_FILE_EXTENSION);
 
-		/* Open the output file */
-		if(!(fp=fopen(outputFileName, "wb"))) {
-			PrintError("GenerateIndex",
-					outputFileName,
-					"Could not open outputFileName for writing",
-					Exit,
-					OpenFileError);
-		}   
-
 		/* Output the index to file */
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Outputting index to %s\n", outputFileName);
 		}
-		RGIndexPrint(fp, &index);
-		/* Close the output file */
-		fclose(fp);
+
+		RGIndexPrint(outputFileName, &index);
 
 		/* Free memory */
 		if(VERBOSE >= 0) {

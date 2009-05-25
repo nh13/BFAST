@@ -9,9 +9,111 @@
 #include "RGMatch.h"
 
 /* TODO */
-int32_t RGMatchRead(FILE *fp,
-		RGMatch *m,
-		int32_t binaryInput)
+int32_t RGMatchRead(gzFile fp,
+		RGMatch *m)
+{
+
+	char *FnName = "RGMatchRead";
+
+	/* Read in the read length */
+	if(gzread(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread(fp, &m->qualLength, sizeof(int32_t))!=sizeof(int32_t)) {
+		if(feof(fp) != 0) {
+			return EOF;
+		}
+		else {
+			PrintError(FnName,
+					"m->readLength",
+					"Could not read in read length",
+					Exit,
+					ReadFileError);
+		}
+	}
+	assert(m->readLength < SEQUENCE_LENGTH);
+	assert(m->readLength > 0);
+
+	/* Allocate memory for the read */
+	m->read = malloc(sizeof(char)*(m->readLength+1));
+	if(NULL==m->read) {
+		PrintError(FnName,
+				"read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	m->qual = malloc(sizeof(char)*(m->qualLength+1));
+	if(NULL==m->qual) {
+		PrintError(FnName,
+				"qual",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Read in the read */
+	if(gzread(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength||
+			gzread(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength) {
+		PrintError(FnName,
+				"m->read",
+				"Could not read in the read and qual",
+				Exit,
+				ReadFileError);
+	}
+	m->read[m->readLength]='\0';
+	m->qual[m->qualLength]='\0';
+
+	/* Read in if we have reached the maximum number of matches */
+	if(gzread(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				"m->maxReached",
+				"Could not read in m->maxReached",
+				Exit,
+				ReadFileError);
+	}
+	assert(0 == m->maxReached || 1 == m->maxReached);
+
+	/* Read in the number of matches */
+	if(gzread(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				"m->numEntries",
+				"Could not read in m->numEntries",
+				Exit,
+				ReadFileError);
+	}
+	assert(m->numEntries >= 0);
+
+	/* Allocate memory for the matches */
+	RGMatchReallocate(m, m->numEntries);
+
+	/* Read first sequence matches */
+	if(gzread(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
+		PrintError(FnName,
+				"m->contigs",
+				"Could not read in contigs",
+				Exit,
+				ReadFileError);
+	}
+	if(gzread(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
+		PrintError(FnName,
+				"m->positions",
+				"Could not read in positions",
+				Exit,
+				ReadFileError);
+	}
+	if(gzread(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
+		PrintError(FnName,
+				"m->strands",
+				"Could not read in strand",
+				Exit,
+				ReadFileError);
+	}
+
+	return 1;
+}
+
+/* TODO */
+int32_t RGMatchReadText(FILE *fp,
+		RGMatch *m)
 {
 
 	char *FnName = "RGMatchRead";
@@ -19,168 +121,71 @@ int32_t RGMatchRead(FILE *fp,
 	char read[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
 
-	/* Read the matches from the input file */
-	if(binaryInput == TextInput) {
-		/* Read the read and qual */
-		if(fscanf(fp, "%s %s",
-					read,
-					qual)==EOF) {
-			return EOF;
-		}
-		m->readLength = strlen(read);
-		m->qualLength = strlen(qual);
-		assert(m->readLength > 0);
-		assert(m->readLength < SEQUENCE_LENGTH);
-
-		/* Allocate memory for the read */
-		m->read = malloc(sizeof(char)*(m->readLength+1));
-		if(NULL==m->read) {
-			PrintError(FnName,
-					"read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		m->qual = malloc(sizeof(char)*(m->qualLength+1));
-		if(NULL==m->qual) {
-			PrintError(FnName,
-					"qual",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		strcpy(m->read, read);
-		strcpy(m->qual, qual);
-
-		/* Read in if we have reached the maximum number of matches */
-		if(fscanf(fp, "%d", &m->maxReached)==EOF) {
-			PrintError(FnName,
-					"m->maxReached",
-					"Could not read in m->maxReached",
-					Exit,
-					EndOfFile);
-		}
-		assert(1==m->maxReached || 0 == m->maxReached);
-
-		/* Read in the number of matches */
-		if(fscanf(fp, "%d", &m->numEntries)==EOF) {
-			PrintError(FnName,
-					"m->numEntries",
-					"Could not read in m->numEntries",
-					Exit,
-					EndOfFile);
-		}
-		assert(m->numEntries >= 0);
-
-		/* Allocate memory for the matches */
-		RGMatchReallocate(m, m->numEntries);
-
-		/* Read first sequence matches */
-		for(i=0;i<m->numEntries;i++) {
-			if(fscanf(fp, "%u %d %c", 
-						&m->contigs[i],
-						&m->positions[i],
-						&m->strands[i])==EOF) {
-				PrintError(FnName,
-						NULL,
-						"Could not read in match",
-						Exit,
-						EndOfFile);
-			}
-		}
+	/* Read the read and qual */
+	if(fscanf(fp, "%s %s",
+				read,
+				qual)==EOF) {
+		return EOF;
 	}
-	else {
-		/* Read in the read length */
-		if(fread(&m->readLength, sizeof(int32_t), 1, fp) != 1 ||
-				fread(&m->qualLength, sizeof(int32_t), 1, fp) != 1) {
-			if(feof(fp) != 0) {
-				return EOF;
-			}
-			else {
-				PrintError(FnName,
-						"m->readLength",
-						"Could not read in read length",
-						Exit,
-						ReadFileError);
-			}
-		}
-		assert(m->readLength < SEQUENCE_LENGTH);
-		assert(m->readLength > 0);
+	m->readLength = strlen(read);
+	m->qualLength = strlen(qual);
+	assert(m->readLength > 0);
+	assert(m->readLength < SEQUENCE_LENGTH);
 
-		/* Allocate memory for the read */
-		m->read = malloc(sizeof(char)*(m->readLength+1));
-		if(NULL==m->read) {
-			PrintError(FnName,
-					"read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		m->qual = malloc(sizeof(char)*(m->qualLength+1));
-		if(NULL==m->qual) {
-			PrintError(FnName,
-					"qual",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+	/* Allocate memory for the read */
+	m->read = malloc(sizeof(char)*(m->readLength+1));
+	if(NULL==m->read) {
+		PrintError(FnName,
+				"read",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	m->qual = malloc(sizeof(char)*(m->qualLength+1));
+	if(NULL==m->qual) {
+		PrintError(FnName,
+				"qual",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	strcpy(m->read, read);
+	strcpy(m->qual, qual);
 
-		/* Read in the read */
-		if(fread(m->read, sizeof(char), m->readLength, fp)!=m->readLength ||
-				fread(m->qual, sizeof(char), m->qualLength, fp)!=m->qualLength) {
-			PrintError(FnName,
-					"m->read",
-					"Could not read in the read and qual",
-					Exit,
-					ReadFileError);
-		}
-		m->read[m->readLength]='\0';
-		m->qual[m->qualLength]='\0';
+	/* Read in if we have reached the maximum number of matches */
+	if(fscanf(fp, "%d", &m->maxReached)==EOF) {
+		PrintError(FnName,
+				"m->maxReached",
+				"Could not read in m->maxReached",
+				Exit,
+				EndOfFile);
+	}
+	assert(1==m->maxReached || 0 == m->maxReached);
 
-		/* Read in if we have reached the maximum number of matches */
-		if(fread(&m->maxReached, sizeof(int32_t), 1, fp)!=1) {
-			PrintError(FnName,
-					"m->maxReached",
-					"Could not read in m->maxReached",
-					Exit,
-					ReadFileError);
-		}
-		assert(0 == m->maxReached || 1 == m->maxReached);
+	/* Read in the number of matches */
+	if(fscanf(fp, "%d", &m->numEntries)==EOF) {
+		PrintError(FnName,
+				"m->numEntries",
+				"Could not read in m->numEntries",
+				Exit,
+				EndOfFile);
+	}
+	assert(m->numEntries >= 0);
 
-		/* Read in the number of matches */
-		if(fread(&m->numEntries, sizeof(int32_t), 1, fp)!=1) {
-			PrintError(FnName,
-					"m->numEntries",
-					"Could not read in m->numEntries",
-					Exit,
-					ReadFileError);
-		}
-		assert(m->numEntries >= 0);
+	/* Allocate memory for the matches */
+	RGMatchReallocate(m, m->numEntries);
 
-		/* Allocate memory for the matches */
-		RGMatchReallocate(m, m->numEntries);
-
-		/* Read first sequence matches */
-		if(fread(m->contigs, sizeof(uint32_t), m->numEntries, fp)!=m->numEntries) {
+	/* Read first sequence matches */
+	for(i=0;i<m->numEntries;i++) {
+		if(fscanf(fp, "%u %d %c", 
+					&m->contigs[i],
+					&m->positions[i],
+					&m->strands[i])==EOF) {
 			PrintError(FnName,
-					"m->contigs",
-					"Could not read in contigs",
+					NULL,
+					"Could not read in match",
 					Exit,
-					ReadFileError);
-		}
-		if(fread(m->positions, sizeof(uint32_t), m->numEntries, fp)!=m->numEntries) {
-			PrintError(FnName,
-					"m->positions",
-					"Could not read in positions",
-					Exit,
-					ReadFileError);
-		}
-		if(fread(m->strands, sizeof(char), m->numEntries, fp)!=m->numEntries) {
-			PrintError(FnName,
-					"m->strands",
-					"Could not read in strand",
-					Exit,
-					ReadFileError);
+					EndOfFile);
 		}
 	}
 
@@ -188,9 +193,44 @@ int32_t RGMatchRead(FILE *fp,
 }
 
 /* TODO */
-void RGMatchPrint(FILE *fp,
-		RGMatch *m,
-		int32_t binaryOutput)
+void RGMatchPrint(gzFile fp,
+		RGMatch *m)
+{
+	char *FnName = "RGMatchPrint";
+	assert(fp!=NULL);
+	assert(m->readLength > 0);
+	assert(m->qualLength > 0);
+
+	/* Print the matches to the output file */
+	/* Print read length, read, maximum reached, and number of entries. */
+	if(gzwrite(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &m->qualLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength ||
+			gzwrite(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength ||
+			gzwrite(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write m->readLength, m->qualLength, m->read, m->qual, m->maxReached, and m->numEntries",
+				Exit,
+				WriteFileError);
+	}
+
+	/* Print the contigs, positions, and strands */
+	if(gzwrite(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
+			gzwrite(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
+			gzwrite(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
+		PrintError(FnName,
+				NULL,
+				"Could not write contigs, positions and strands",
+				Exit,
+				WriteFileError);
+	}
+}
+
+/* TODO */
+void RGMatchPrintText(FILE *fp,
+		RGMatch *m)
 {
 	char *FnName = "RGMatchPrint";
 	int32_t i;
@@ -199,65 +239,37 @@ void RGMatchPrint(FILE *fp,
 	assert(m->qualLength > 0);
 
 	/* Print the matches to the output file */
-	if(binaryOutput == TextOutput) {
-		if(0 > fprintf(fp, "%s\t%s\t%d\t%d",
-					m->read,
-					m->qual,
-					m->maxReached,
-					m->numEntries)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write m->read, m->qual, m->maxReached, and m->numEntries",
-					Exit,
-					WriteFileError);
-		}
+	if(0 > fprintf(fp, "%s\t%s\t%d\t%d",
+				m->read,
+				m->qual,
+				m->maxReached,
+				m->numEntries)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write m->read, m->qual, m->maxReached, and m->numEntries",
+				Exit,
+				WriteFileError);
+	}
 
-		for(i=0;i<m->numEntries;i++) {
-			assert(m->contigs[i] > 0);
-			if(0 > fprintf(fp, "\t%u\t%d\t%c",
-						m->contigs[i],
-						m->positions[i],
-						m->strands[i])) {
-				PrintError(FnName,
-						NULL,
-						"Could not write m->contigs[i], m->positions[i], and m->strands[i]",
-						Exit,
-						WriteFileError);
-			}
-		}
-		if(0 > fprintf(fp, "\n")) {
+	for(i=0;i<m->numEntries;i++) {
+		assert(m->contigs[i] > 0);
+		if(0 > fprintf(fp, "\t%u\t%d\t%c",
+					m->contigs[i],
+					m->positions[i],
+					m->strands[i])) {
 			PrintError(FnName,
 					NULL,
-					"Could not write newline",
+					"Could not write m->contigs[i], m->positions[i], and m->strands[i]",
 					Exit,
 					WriteFileError);
 		}
 	}
-	else {
-		/* Print read length, read, maximum reached, and number of entries. */
-		if(fwrite(&m->readLength, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(&m->qualLength, sizeof(int32_t), 1, fp) != 1 ||
-					fwrite(m->read, sizeof(char), m->readLength, fp) != m->readLength ||
-					fwrite(m->qual, sizeof(char), m->qualLength, fp) != m->qualLength ||
-					fwrite(&m->maxReached, sizeof(int32_t), 1, fp) != 1 ||
-					fwrite(&m->numEntries, sizeof(int32_t), 1, fp) != 1) {
-				PrintError(FnName,
-					NULL,
-					"Could not write m->readLength, m->qualLength, m->read, m->qual, m->maxReached, and m->numEntries",
-					Exit,
-					WriteFileError);
-				}
-
-				/* Print the contigs, positions, and strands */
-				if(fwrite(m->contigs, sizeof(uint32_t), m->numEntries, fp) != m->numEntries ||
-					fwrite(m->positions, sizeof(uint32_t), m->numEntries, fp) != m->numEntries ||
-					fwrite(m->strands, sizeof(char), m->numEntries, fp) != m->numEntries) {
-				PrintError(FnName,
-					NULL,
-					"Could not write contigs, positions and strands",
-					Exit,
-					WriteFileError);
-				}
+	if(0 > fprintf(fp, "\n")) {
+		PrintError(FnName,
+				NULL,
+				"Could not write newline",
+				Exit,
+				WriteFileError);
 	}
 }
 
@@ -273,13 +285,13 @@ void RGMatchPrintFastq(FILE *fp,
 
 	if(0 > fprintf(fp, "@%s\n%s\n+\n%s\n",
 				readName,
-					m->read,
-					m->qual)) {
-			PrintError(FnName,
-					NULL,
-					"Could not to file",
-					Exit,
-					WriteFileError);
+				m->read,
+				m->qual)) {
+		PrintError(FnName,
+				NULL,
+				"Could not to file",
+				Exit,
+				WriteFileError);
 	}
 }
 

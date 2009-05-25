@@ -2,11 +2,14 @@
 #define ALIGNEDENTRY_H_
 
 #include <stdio.h>
+#include <zlib.h>
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-int32_t AlignedEntryPrint(AlignedEntry*, FILE*, int32_t, int32_t);
-int32_t AlignedEntryRead(AlignedEntry*, FILE*, int32_t, int32_t);
+int32_t AlignedEntryPrint(AlignedEntry*, gzFile, int32_t);
+int32_t AlignedEntryPrintText(AlignedEntry*, FILE*, int32_t);
+int32_t AlignedEntryRead(AlignedEntry*, gzFile, int32_t);
+int32_t AlignedEntryReadText(AlignedEntry*, FILE*, int32_t);
 void AlignedEntryQuickSort(AlignedEntry**, int32_t, int32_t, int32_t, int32_t, double*, int32_t);
 void AlignedEntryMergeSort(AlignedEntry**, int32_t, int32_t, int32_t, int32_t, double*, int32_t);
 void AlignedEntryCopyAtIndex(AlignedEntry*, int32_t, AlignedEntry*, int32_t);

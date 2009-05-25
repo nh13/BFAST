@@ -18,4 +18,4 @@ bpostprocess_SOURCES = \
 					   ParseInput.c	ParseInput.h \
 					   Definitions.h
 
-bpostprocess_LDADD = -lm 
+bpostprocess_LDADD = -lm -lz 

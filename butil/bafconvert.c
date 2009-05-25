@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <zlib.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/AlignedRead.h"
 #include "../blib/AlignedReadConvert.h"
@@ -17,7 +18,8 @@
 
 int main(int argc, char *argv[])
 {
-	FILE *fpIn, *fpOut;
+	FILE *fpIn=NULL, *fpOut=NULL;
+	gzFile fpInGZ=NULL, fpOutGZ=NULL;
 	long long int counter;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
@@ -134,22 +136,44 @@ int main(int argc, char *argv[])
 		}
 
 		/* Open the input file */
-		if(!(fpIn=fopen(inputFileName, "rb"))) {
-			PrintError(Name,
-					inputFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+		if(BinaryInput == inputType) {
+			if(!(fpInGZ=gzopen(inputFileName, "rb"))) {
+				PrintError(Name,
+						inputFileName,
+						"Could not open file for reading",
+						Exit,
+						OpenFileError);
+			}
+		}
+		else {
+			if(!(fpIn=fopen(inputFileName, "rb"))) {
+				PrintError(Name,
+						inputFileName,
+						"Could not open file for reading",
+						Exit,
+						OpenFileError);
+			}
 		}
 		/* Open the output file */
-		if(!(fpOut=fopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+		if(BinaryOutput == outputSubType) {
+			if(!(fpOutGZ=gzopen(outputFileName, "wb"))) {
+				PrintError(Name,
+						outputFileName,
+						"Could not open file for writing",
+						Exit,
+						OpenFileError);
+			}
 		}
-		
+		else {
+			if(!(fpOut=fopen(outputFileName, "wb"))) {
+				PrintError(Name,
+						outputFileName,
+						"Could not open file for writing",
+						Exit,
+						OpenFileError);
+			}
+		}
+
 		/* Print Header */
 		AlignedReadConvertPrintHeader(fpOut, &rg, outputType);
 		/* Initialize */
@@ -157,7 +181,8 @@ int main(int argc, char *argv[])
 		counter = 0;
 		fprintf(stderr, "Currently on:\n0");
 		/* Read in each match */
-		while(EOF != AlignedReadRead(&a, fpIn, inputType)) {
+		while((TextInput == inputType && EOF != AlignedReadReadText(&a, fpIn)) ||
+				(BinaryInput == inputType && EOF != AlignedReadRead(&a, fpInGZ))) {
 			if(counter%BAFCONVERT_ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						counter);
@@ -167,6 +192,7 @@ int main(int argc, char *argv[])
 			AlignedReadConvertPrintOutputFormat(&a,
 					&rg,
 					fpOut,
+					fpOutGZ,
 					outputID,
 					outputType,
 					outputSubType);
@@ -175,9 +201,19 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\r%lld\n",
 				counter);
 		/* Close the input file */
-		fclose(fpIn);
+		if(TextInput == inputType) {
+			fclose(fpIn);
+		}
+		else {
+			gzclose(fpInGZ);
+		}
 		/* Close the output file */
-		fclose(fpOut);
+		if(TextOutput == outputSubType) {
+			fclose(fpOut);
+		}
+		else {
+			gzclose(fpOutGZ);
+		}
 		if(MAF == outputType ||
 				SAM == outputType) {
 			RGBinaryDelete(&rg);

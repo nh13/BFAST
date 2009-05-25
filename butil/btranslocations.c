@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
+#include <zlib.h>
+
 #include "../blib/AlignedEntry.h"
 #include "../blib/AlignedRead.h"
 #include "../blib/BLibDefinitions.h"
@@ -24,8 +26,8 @@ int main(int argc, char *argv[])
 	char outputID[MAX_FILENAME_LENGTH]="\0";
 	char outputRange[2][MAX_FILENAME_LENGTH]={"\0","\0"};
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *inputFP=NULL;
-	FILE *outputFP=NULL;
+	gzFile inputFP=NULL;
+	gzFile outputFP=NULL;
 	AlignedRead a;
 	int64_t numRead, numPrinted, i, numToSatisfy;
 	Range one, two;
@@ -46,7 +48,7 @@ int main(int argc, char *argv[])
 				outputID,
 				outputRange[0],
 				outputRange[1]);
-		if(!(outputFP = fopen(outputFileName, "wb"))) {
+		if(!(outputFP = gzopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
 					"Could not open file for writing",
@@ -59,7 +61,7 @@ int main(int argc, char *argv[])
 		numRead = numPrinted = 0;
 		for(i=5;i<argc;i++) {
 			strcpy(inputFileName, argv[i]);
-			if(!(inputFP = fopen(inputFileName, "rb"))) {
+			if(!(inputFP = gzopen(inputFileName, "rb"))) {
 				PrintError(Name,
 						inputFileName,
 						"Could not open file for reading",
@@ -71,8 +73,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Reading in from %s.\nCurrently on:\n0",
 					inputFileName);
 			while(EOF != AlignedReadRead(&a,
-						inputFP,
-						BinaryInput)) {
+						inputFP)) {
 				numRead++;
 				if(0 == numRead%BTRANSLOCATIONS_ROTATE_NUM) {
 					fprintf(stderr, "\r%lld",
@@ -84,16 +85,14 @@ int main(int argc, char *argv[])
 					if(numToSatisfy < CheckRange(&one, a.ends[0].entries[0].contig, a.ends[0].entries[0].position) + 
 							CheckRange(&two, a.ends[1].entries[0].contig, a.ends[1].entries[0].position)) {
 						AlignedReadPrint(&a,
-								outputFP,
-								BinaryOutput);
+								outputFP);
 						fflush(outputFP);
 						numPrinted++;
 					}
 					else if(numToSatisfy < CheckRange(&two, a.ends[0].entries[0].contig, a.ends[0].entries[0].position) + 
 							CheckRange(&one, a.ends[1].entries[0].contig, a.ends[1].entries[0].position)) {
 						AlignedReadPrint(&a,
-								outputFP,
-								BinaryOutput);
+								outputFP);
 						fflush(outputFP);
 						numPrinted++;
 					}
@@ -102,11 +101,11 @@ int main(int argc, char *argv[])
 			}
 			fprintf(stderr, "\r%lld\n",
 					(long long int)numRead);
-			fclose(inputFP);
+			gzclose(inputFP);
 		}
 
 		/* Close files */
-		fclose(outputFP);
+		gzclose(outputFP);
 
 		fprintf(stderr, "Read in %lld and outputted %lld paired two alignments.\n",
 				(long long int)numRead,

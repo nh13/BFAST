@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <time.h>
 #include <limits.h>
+#include <zlib.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -69,7 +70,7 @@ void ErrorDistribution(char *inputFileName,
 {
 	char *FnName="ErrorDistribution";
 	int count;
-	FILE *FPin=NULL;
+	gzFile FPin=NULL;
 	AlignedRead a;
 
 	fprintf(stderr, "Reading from %s.\n%s",
@@ -77,7 +78,7 @@ void ErrorDistribution(char *inputFileName,
 			BREAK_LINE);
 
 	/* Open the input file */
-	if(!(FPin = fopen(inputFileName, "rb"))) {
+	if(!(FPin = gzopen(inputFileName, "rb"))) {
 		PrintError(FnName,
 				inputFileName,
 				"Could not open file for reading",
@@ -89,7 +90,7 @@ void ErrorDistribution(char *inputFileName,
 	count=0;
 	AlignedReadInitialize(&a);
 	fprintf(stderr, "Currently on:\n0");
-	while(EOF != AlignedReadRead(&a, FPin, BinaryInput)) {
+	while(EOF != AlignedReadRead(&a, FPin)) {
 		if(e->numEnds < a.numEnds) {
 			e->numEnds = a.numEnds;
 		}
@@ -105,7 +106,7 @@ void ErrorDistribution(char *inputFileName,
 	fprintf(stderr, "\r%d\n", count);
 
 	/* Close files */
-	fclose(FPin);
+	gzclose(FPin);
 }
 
 void ErrorDistributionPrint(char *outputID,

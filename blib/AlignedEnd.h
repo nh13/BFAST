@@ -2,12 +2,15 @@
 #define ALIGNEDEND_H_
 
 #include <stdio.h>
+#include <zlib.h>
 
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-int32_t AlignedEndPrint(AlignedEnd*, FILE*, int32_t, int32_t);
-int32_t AlignedEndRead(AlignedEnd*, FILE*, int32_t, int32_t);
+int32_t AlignedEndPrint(AlignedEnd*, gzFile, int32_t);
+int32_t AlignedEndPrintText(AlignedEnd*, FILE*, int32_t);
+int32_t AlignedEndRead(AlignedEnd*, gzFile, int32_t);
+int32_t AlignedEndReadText(AlignedEnd*, FILE*, int32_t);
 int32_t AlignedEndRemoveDuplicates(AlignedEnd*, int32_t);
 void AlignedEndQuickSort(AlignedEnd*, int32_t, int32_t);
 void AlignedEndMergeSort(AlignedEnd*, int32_t, int32_t);

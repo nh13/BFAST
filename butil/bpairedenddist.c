@@ -4,6 +4,7 @@
 #include <string.h>
 #include <limits.h>
 #include <pthread.h>
+#include <zlib.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BLib.h"
@@ -23,7 +24,7 @@
 
 int main(int argc, char *argv[]) 
 {
-	FILE *fpIn=NULL;
+	gzFile fpIn=NULL;
 	FILE *fpOut=NULL;
 	char inputFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputID[MAX_FILENAME_LENGTH]="\0";
@@ -57,7 +58,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Reading in from %s.\n",
 					inputFileName);
-			if(!(fpIn=fopen(inputFileName, "rb"))) {
+			if(!(fpIn=gzopen(inputFileName, "rb"))) {
 				PrintError(Name,
 						inputFileName,
 						"Could not open file for reading",
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s", BREAK_LINE);
 
 			/* Close the file */
-			fclose(fpIn);
+			gzclose(fpIn);
 		}
 
 		/* Output */
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-void PrintDistributionFromBMF(FILE *fpIn,
+void PrintDistributionFromBMF(gzFile fpIn,
 		Bins *b)
 {
 	char *FnName = "PrintDistributionFromBMF";
@@ -137,8 +138,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 
 	fprintf(stderr, "Currently on:\n0");
 	while(EOF != RGMatchesRead(fpIn,
-				&m,
-				BinaryInput)) {
+				&m)) {
 		if(0==counter%ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -186,7 +186,7 @@ void PrintDistributionFromBMF(FILE *fpIn,
 			(long long int)counter);
 }
 
-void PrintDistributionFromBAF(FILE *fpIn,
+void PrintDistributionFromBAF(gzFile fpIn,
 		Bins *b)
 {
 	char *FnName = "PrintDistributionFromBAF";
@@ -200,8 +200,7 @@ void PrintDistributionFromBAF(FILE *fpIn,
 
 	fprintf(stderr, "Currently on:\n0");
 	while(EOF != AlignedReadRead(&a,
-				fpIn,
-				BinaryInput)) {
+				fpIn)) {
 		if(0==counter%ROTATE_NUM) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);

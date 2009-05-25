@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <ctype.h>
+#include <zlib.h>
 #include "BLibDefinitions.h"
 #include "RGIndex.h"
 #include "BError.h"
@@ -539,6 +540,84 @@ void CloseTmpFile(FILE **fp,
 	/* Free file name */
 	free((*tmpFileName));
 	(*tmpFileName) = NULL;
+}
+
+/* TODO */
+gzFile OpenTmpGZFile(char *tmpDir,
+		char **tmpFileName)
+{
+	char *FnName = "OpenTmpFile";
+	int fd;
+	gzFile fp = NULL;
+
+	/* Allocate memory */
+	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+	if(NULL == (*tmpFileName)) {
+		PrintError(FnName,
+				"tmpFileName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Create the templated */
+	/* Copy over tmp directory */
+	strcpy((*tmpFileName), tmpDir);
+	/* Copy over the tmp name */
+	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
+
+	if(-1 == (fd = mkstemp((*tmpFileName))) ||
+			NULL == (fp = gzdopen(fd, "wb+"))) {
+		/* Check if the fd was open */ 
+		if(-1 != fd) {
+			/* Remove the file and close */
+			unlink((*tmpFileName));
+			close(fd);
+			PrintError(FnName,
+					(*tmpFileName),
+					"Could not open temporary file",
+					Exit,
+					OpenFileError);
+		}
+		else {
+			PrintError(FnName,
+					(*tmpFileName),
+					"Could not create a tmp file name",
+					Exit,
+					IllegalFileName);
+		}
+	}
+
+	return fp;
+}
+
+/* TODO */
+void CloseTmpGZFile(gzFile *fp,
+		char **tmpFileName,
+		int32_t removeFile)
+{
+	char *FnName="CloseTmpFile";
+
+	/* Close the file */
+	assert((*fp)!=NULL);
+	gzclose((*fp));
+	(*fp)=NULL;
+
+	if(1 == removeFile) {
+		/* Remove the file */
+		assert((*tmpFileName)!=NULL);
+		if(0!=remove((*tmpFileName))) {
+			PrintError(FnName,
+					(*tmpFileName),
+					"Could not delete temporary file",
+					Exit,
+					DeleteFileError);
+		}
+
+		/* Free file name */
+		free((*tmpFileName));
+		(*tmpFileName) = NULL;
+	}
 }
 
 /* TODO */

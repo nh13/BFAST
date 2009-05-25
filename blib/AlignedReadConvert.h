@@ -3,13 +3,14 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <zlib.h>
 
 #include "AlignedRead.h"
 #include "AlignedEntry.h"
 #include "BError.h"
 
 void AlignedReadConvertPrintHeader(FILE*, RGBinary*, int);
-void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, char*, int, int);
+void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, gzFile, char*, int, int);
 void AlignedReadConvertPrintMAF(AlignedRead*, RGBinary*, FILE*);
 void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry*, RGBinary*, char*, char*, int, int, int, FILE*);
 void AlignedReadConvertPrintGFF(AlignedRead*, FILE*);

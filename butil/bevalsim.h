@@ -47,7 +47,7 @@ void ReadTypeInitialize(ReadType*);
 void ReadTypeCopy(ReadType*, ReadType*);
 void ReadTypePrint(ReadType*, FILE*);
 int ReadTypeCompare(ReadType*, ReadType*);
-int ReadTypeRead(ReadType*, FILE*, int);
+int ReadTypeRead(ReadType*, gzFile, int);
 void ReadTypeParseReadName(ReadType*, char*);
 void ReadTypeDelete(ReadType*);
 

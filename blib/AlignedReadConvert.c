@@ -97,14 +97,20 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 void AlignedReadConvertPrintOutputFormat(AlignedRead *a, 
 		RGBinary *rg,
 		FILE *fp,
+		gzFile fpGZ,
 		char *outputID,
 		int32_t outputFormat,
-		int32_t binaryInput)
+		int32_t binaryOutput)
 {
 	char *FnName = "AlignedReadConvertPrintOutputFormat";
 	switch(outputFormat) {
 		case BAF:
-			AlignedReadPrint(a, fp, binaryInput);
+			if(BinaryOutput == binaryOutput) {
+				AlignedReadPrint(a, fpGZ);
+			}
+			else {
+				AlignedReadPrintText(a, fp);
+			}
 			break;
 		case MAF:
 			AlignedReadConvertPrintMAF(a, rg, fp);

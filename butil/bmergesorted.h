@@ -1,6 +1,8 @@
 #ifndef BMERGESORTED_H_
 #define BMERGESORTED_H_
 
-void MergeFiles(FILE*, FILE*, FILE*);
+#include <zlib.h>
+
+void MergeFiles(gzFile, gzFile, gzFile);
 
 #endif

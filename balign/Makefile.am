@@ -20,4 +20,4 @@ balign_SOURCES = \
 	Align.c		Align.h \
 	Definitions.h
 	
-balign_LDADD = -lm 
+balign_LDADD = -lm -lz 

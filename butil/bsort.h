@@ -1,6 +1,7 @@
 #ifndef BSORT_H_
 #define BSORT_H_
 
+#include <zlib.h>
 #include "../blib/BLibDefinitions.h"
 
 #define BSORT_THREADED_SORT_MIN 100000
@@ -11,9 +12,9 @@ typedef struct {
 	int64_t endContig;
 	int64_t endPos;
 	int64_t numEntries;
-	FILE *FP;
+	gzFile FP;
 	char *FileName;
-} TmpFile;
+} TmpGZFile;
 
 typedef struct {
 	AlignedRead **entriesPtr;
@@ -23,14 +24,14 @@ typedef struct {
 	int32_t threadID;
 } ThreadSortData;
 
-void TmpFileOpen(TmpFile*, char*);
-void TmpFileClose(TmpFile*);
-void TmpFileInitialize(TmpFile*);
-void TmpFileUpdateMetaData(TmpFile*, AlignedRead*);
-void TmpFileUpdateMetaDataHelper(TmpFile*, AlignedEntry*);
+void TmpGZFileOpen(TmpGZFile*, char*);
+void TmpGZFileClose(TmpGZFile*);
+void TmpGZFileInitialize(TmpGZFile*);
+void TmpGZFileUpdateMetaData(TmpGZFile*, AlignedRead*);
+void TmpGZFileUpdateMetaDataHelper(TmpGZFile*, AlignedEntry*);
 
-void MoveAllIntoTmpFile(char*, TmpFile*, char*);
-void SplitEntriesAndPrint(FILE*, TmpFile*, char*, int32_t, int32_t);
+void MoveAllIntoTmpGZFile(char*, TmpGZFile*, char*);
+void SplitEntriesAndPrint(gzFile, TmpGZFile*, char*, int32_t, int32_t);
 void *SortAlignedReadHelper(void*);
 void *MergeAlignedReadHelper(void*);
 

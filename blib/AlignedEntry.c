@@ -3,68 +3,77 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include <zlib.h>
 #include "BError.h"
 #include "BLib.h"
 #include "AlignedEntry.h"
 
 /* TODO */
 int32_t AlignedEntryPrint(AlignedEntry *a,
-		FILE *outputFP,
-		int32_t space,
-		int32_t binaryOutput)
+		gzFile outputFP,
+		int32_t space)
 {
 	assert(NULL != a->read);
 	assert(NULL != a->reference);
 	assert(space == NTSpace ||
 			(space == ColorSpace && NULL != a->colorError));
 
-	if(binaryOutput == TextOutput) {
-
-		if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
-					a->contigName,
-					a->contig,
-					a->position,
-					a->strand,
-					a->score,
-					a->mappingQuality,
-					a->referenceLength,
-					a->length) < 0) {
+	if(gzwrite(outputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite(outputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
+			gzwrite(outputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite(outputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite(outputFP, &a->strand, sizeof(char))!=sizeof(char)||
+			gzwrite(outputFP, &a->score, sizeof(double))!=sizeof(double)||
+			gzwrite(outputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite(outputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite(outputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite(outputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
+			gzwrite(outputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+		return EOF;
+	}
+	if(ColorSpace==space) {
+		if(gzwrite(outputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
 			return EOF;
-		}
-
-		/* Print32_t the reference and read alignment */
-		if(fprintf(outputFP, "%s\n%s\n",
-					a->reference,
-					a->read) < 0) {
-			return EOF;
-		}
-
-		/* Print32_t the color errors if necessary */
-		if(space == ColorSpace) {
-			if(fprintf(outputFP, "%s\n",
-						a->colorError) < 0) {
-				return EOF;
-			}
 		}
 	}
-	else {
-		if(fwrite(&a->contigNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(a->contigName, sizeof(char), a->contigNameLength, outputFP) != a->contigNameLength ||
-				fwrite(&a->contig, sizeof(uint32_t), 1, outputFP) != 1 ||
-				fwrite(&a->position, sizeof(uint32_t), 1, outputFP) != 1 ||
-				fwrite(&a->strand, sizeof(char), 1, outputFP) != 1 ||
-				fwrite(&a->score, sizeof(double), 1, outputFP) != 1 ||
-				fwrite(&a->mappingQuality, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(&a->referenceLength, sizeof(uint32_t), 1, outputFP) != 1 ||
-				fwrite(&a->length, sizeof(uint32_t), 1, outputFP) != 1 ||
-				fwrite(a->read, sizeof(char), a->length, outputFP) != a->length ||
-				fwrite(a->reference, sizeof(char), a->length, outputFP) != a->length) {
+
+	return 1;
+}
+
+/* TODO */
+int32_t AlignedEntryPrintText(AlignedEntry *a,
+		FILE *outputFP,
+		int32_t space)
+{
+	assert(NULL != a->read);
+	assert(NULL != a->reference);
+	assert(space == NTSpace ||
+			(space == ColorSpace && NULL != a->colorError));
+
+	if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
+				a->contigName,
+				a->contig,
+				a->position,
+				a->strand,
+				a->score,
+				a->mappingQuality,
+				a->referenceLength,
+				a->length) < 0) {
+		return EOF;
+	}
+
+	/* Print32_t the reference and read alignment */
+	if(fprintf(outputFP, "%s\n%s\n",
+				a->reference,
+				a->read) < 0) {
+		return EOF;
+	}
+
+	/* Print32_t the color errors if necessary */
+	if(space == ColorSpace) {
+		if(fprintf(outputFP, "%s\n",
+					a->colorError) < 0) {
 			return EOF;
-		}
-		if(ColorSpace==space) {
-			if(fwrite(a->colorError, sizeof(char), a->length, outputFP) != a->length) {
-				return EOF;
-			}
 		}
 	}
 
@@ -73,11 +82,132 @@ int32_t AlignedEntryPrint(AlignedEntry *a,
 
 /* TODO */
 int32_t AlignedEntryRead(AlignedEntry *a,
-		FILE *inputFP,
-		int32_t space,
-		int32_t binaryInput)
+		gzFile inputFP,
+		int32_t space)
 {
 	char *FnName = "AlignedEntryRead";
+
+	assert(NULL != a);
+
+	/* Allocate memory for the alignment */
+	if(a->read == NULL) {
+		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == a->read) {
+			PrintError(FnName,
+					"a->read",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+	if(a->reference == NULL) {
+		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
+		if(NULL == a->reference) {
+			PrintError(FnName,
+					"a->reference",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+	if(space == ColorSpace) {
+		if(a->colorError == NULL) {
+			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
+			if(NULL == a->colorError) {
+				PrintError(FnName,
+						"a->colorError",
+						"Could not allocate memory",
+						Exit,
+						MallocMemory);
+			}
+		}
+	}
+
+	if(gzread(inputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+		return EOF;
+	}
+	/* Copy over contig name */
+	a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
+	if(NULL==a->contigName) {
+		PrintError(FnName,
+				"a->contigName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	if(gzread(inputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
+			gzread(inputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread(inputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread(inputFP, &a->strand, sizeof(char))!=sizeof(char)||
+			gzread(inputFP, &a->score, sizeof(double))!=sizeof(double)||
+			gzread(inputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread(inputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread(inputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread(inputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
+			gzread(inputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+		return EOF;
+	}
+	/* Add the null terminator to strings */
+	a->contigName[a->contigNameLength]='\0';
+	a->read[a->length]='\0';
+	a->reference[a->length]='\0';
+	if(ColorSpace==space) {
+		if(gzread(inputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+			return EOF;
+		}
+		a->colorError[a->length]='\0';
+	}
+
+	/* Reallocate to conserve memory */
+	assert(a->length > 0);
+	a->read = realloc(a->read, sizeof(char)*(a->length+1));
+	if(NULL == a->read) {
+		PrintError(FnName,
+				"a->read",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	/* Reference */
+	a->reference = realloc(a->reference, sizeof(char)*(a->length+1));
+	if(NULL == a->reference) {
+		PrintError(FnName,
+				"a->reference",
+				"Could not reallocate memory",
+				Exit,
+				ReallocMemory);
+	}
+	/* Color error, if necessary */
+	if(space == ColorSpace) {
+		a->colorError = realloc(a->colorError, sizeof(char)*(a->length+1));
+		if(NULL == a->colorError) {
+			PrintError(FnName,
+					"a->colorError",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+	}
+	else {
+		assert(NULL == a->colorError);
+	}
+
+	/*
+	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
+	   assert(((int)strlen(a->read)) == a->length);
+	   assert(strlen(a->reference) == a->length);
+	   assert((int)strlen(a->colorError) == a->length);
+	   */
+
+	return 1;
+}
+
+/* TODO */
+int32_t AlignedEntryReadText(AlignedEntry *a,
+		FILE *inputFP,
+		int32_t space)
+{
+	char *FnName = "AlignedEntryReadText";
 	char tempContigName[MAX_CONTIG_NAME_LENGTH]="\0";
 
 	assert(NULL != a);
@@ -116,81 +246,42 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 		}
 	}
 
-	if(binaryInput == TextInput) {
-
-		if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
-					tempContigName,
-					&a->contig,
-					&a->position,
-					&a->strand,
-					&a->score,
-					&a->mappingQuality,
-					&a->referenceLength,
-					&a->length) < 0) {
-			return EOF;
-		}
-
-		/* Copy over contig name */
-		a->contigNameLength = (int)strlen(tempContigName);
-		a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
-		if(NULL==a->contigName) {
-			PrintError(FnName,
-					"a->contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		strcpy(a->contigName, tempContigName);
-
-		/* Read the reference and read alignment */
-		if(fscanf(inputFP, "%s %s", 
-					a->reference,
-					a->read)==EOF) {
-			return EOF;
-		}
-
-		/* Read the color errors if necessary */
-		if(space == ColorSpace) {
-			if(fscanf(inputFP, "%s",
-						a->colorError)==EOF) {
-				return EOF;
-			}
-		}
+	if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
+				tempContigName,
+				&a->contig,
+				&a->position,
+				&a->strand,
+				&a->score,
+				&a->mappingQuality,
+				&a->referenceLength,
+				&a->length) < 0) {
+		return EOF;
 	}
-	else {
-		if(fread(&a->contigNameLength, sizeof(int32_t), 1, inputFP) != 1) {
+
+	/* Copy over contig name */
+	a->contigNameLength = (int)strlen(tempContigName);
+	a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
+	if(NULL==a->contigName) {
+		PrintError(FnName,
+				"a->contigName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	strcpy(a->contigName, tempContigName);
+
+	/* Read the reference and read alignment */
+	if(fscanf(inputFP, "%s %s", 
+				a->reference,
+				a->read)==EOF) {
+		return EOF;
+	}
+
+	/* Read the color errors if necessary */
+	if(space == ColorSpace) {
+		if(fscanf(inputFP, "%s",
+					a->colorError)==EOF) {
 			return EOF;
-		}
-		/* Copy over contig name */
-		a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
-		if(NULL==a->contigName) {
-			PrintError(FnName,
-					"a->contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		if(fread(a->contigName, sizeof(char), a->contigNameLength, inputFP) != a->contigNameLength ||
-				fread(&a->contig, sizeof(uint32_t), 1, inputFP) != 1 ||
-				fread(&a->position, sizeof(uint32_t), 1, inputFP) != 1 ||
-				fread(&a->strand, sizeof(char), 1, inputFP) != 1 ||
-				fread(&a->score, sizeof(double), 1, inputFP) != 1 ||
-				fread(&a->mappingQuality, sizeof(int32_t), 1, inputFP) != 1 ||
-				fread(&a->referenceLength, sizeof(uint32_t), 1, inputFP) != 1 ||
-				fread(&a->length, sizeof(uint32_t), 1, inputFP) != 1 ||
-				fread(a->read, sizeof(char), a->length, inputFP) != a->length ||
-				fread(a->reference, sizeof(char), a->length, inputFP) != a->length) {
-			return EOF;
-		}
-		/* Add the null terminator to strings */
-		a->contigName[a->contigNameLength]='\0';
-		a->read[a->length]='\0';
-		a->reference[a->length]='\0';
-		if(ColorSpace==space) {
-			if(fread(a->colorError, sizeof(char), a->length, inputFP) != a->length) {
-				return EOF;
-			}
-			a->colorError[a->length]='\0';
 		}
 	}
 
@@ -609,7 +700,7 @@ void AlignedEntryCheckReference(AlignedEntry *a, RGBinary *rg, int32_t space)
 						reference[i],
 						rgBase,
 						reference);
-				AlignedEntryPrint(a, stderr, space, 0);
+				AlignedEntryPrintText(a, stderr, space);
 				PrintError(FnName,
 						NULL,
 						"Reference in the align entry does not match the reference genome",

@@ -7,6 +7,8 @@
 #include <pthread.h>
 #ifdef HAVE_CONFIG_H
 #include <config.h>
+#include <zlib.h>
+
 #endif
 #include "../blib/AlignedEntry.h"
 #include "../blib/AlignedRead.h"
@@ -23,20 +25,20 @@
 /* Sorts a bfast report file.
  * */
 
-void TmpFileOpen(TmpFile *tmpFile,
+void TmpGZFileOpen(TmpGZFile *tmpFile,
 		char *tmpDir)
 {
-	TmpFileInitialize(tmpFile);
-	tmpFile->FP = OpenTmpFile(tmpDir, &tmpFile->FileName);
+	TmpGZFileInitialize(tmpFile);
+	tmpFile->FP = OpenTmpGZFile(tmpDir, &tmpFile->FileName);
 }
 
-void TmpFileClose(TmpFile *tmpFile) 
+void TmpGZFileClose(TmpGZFile *tmpFile) 
 {
-	CloseTmpFile(&tmpFile->FP, &tmpFile->FileName);
-	TmpFileInitialize(tmpFile);
+	CloseTmpGZFile(&tmpFile->FP, &tmpFile->FileName, 1);
+	TmpGZFileInitialize(tmpFile);
 }
 
-void TmpFileInitialize(TmpFile *tmpFile)
+void TmpGZFileInitialize(TmpGZFile *tmpFile)
 {
 	tmpFile->FP = NULL;
 	tmpFile->FileName = NULL;
@@ -47,7 +49,7 @@ void TmpFileInitialize(TmpFile *tmpFile)
 	tmpFile->numEntries = 0;
 }
 
-void TmpFileUpdateMetaData(TmpFile *tmpFile,
+void TmpGZFileUpdateMetaData(TmpGZFile *tmpFile,
 		AlignedRead *a)
 {
 	int32_t minIndex=INT_MIN;
@@ -66,11 +68,11 @@ void TmpFileUpdateMetaData(TmpFile *tmpFile,
 	}
 	assert(0 <= minIndex);
 
-	TmpFileUpdateMetaDataHelper(tmpFile, &a->ends[minIndex].entries[0]);
+	TmpGZFileUpdateMetaDataHelper(tmpFile, &a->ends[minIndex].entries[0]);
 	tmpFile->numEntries++;
 }
 
-void TmpFileUpdateMetaDataHelper(TmpFile *tmpFile,
+void TmpGZFileUpdateMetaDataHelper(TmpGZFile *tmpFile,
 		AlignedEntry *a)
 {
 	if(a->contig < tmpFile->startContig || 
@@ -85,21 +87,21 @@ void TmpFileUpdateMetaDataHelper(TmpFile *tmpFile,
 	}
 }
 
-void MoveAllIntoTmpFile(char *inputFileName, 
-		TmpFile *tmpFile,
+void MoveAllIntoTmpGZFile(char *inputFileName, 
+		TmpGZFile *tmpFile,
 		char *tmpDir)
 {
-	char *FnName="MoveAllIntoTmpFile";
+	char *FnName="MoveAllIntoTmpGZFile";
 	int32_t i;
 	int64_t counter=0;
-	FILE *fpIn;
+	gzFile fpIn;
 	AlignedRead a;
 
 	/* Open tmp file */
-	TmpFileOpen(tmpFile, tmpDir);
+	TmpGZFileOpen(tmpFile, tmpDir);
 
 	/* Open the input file */
-	if(!(fpIn=fopen(inputFileName, "rb"))) {
+	if(!(fpIn=gzopen(inputFileName, "rb"))) {
 		PrintError(Name,
 				inputFileName,
 				"Could not open file for reading",
@@ -110,7 +112,7 @@ void MoveAllIntoTmpFile(char *inputFileName,
 	/* Move all entries into the tmp file */
 	fprintf(stderr, "Moving all entries into a tmp file.  Currently on read:\n0");
 	AlignedReadInitialize(&a);
-	while(EOF != AlignedReadRead(&a, fpIn, BinaryInput)) {
+	while(EOF != AlignedReadRead(&a, fpIn)) {
 		if(counter%BSORT_ROTATE_NUM==0) {
 			fprintf(stderr, "\r%lld",
 					(long long int)counter);
@@ -129,9 +131,8 @@ void MoveAllIntoTmpFile(char *inputFileName,
 			}
 		}
 		AlignedReadPrint(&a, 
-				tmpFile->FP,
-				BinaryOutput);
-		TmpFileUpdateMetaData(tmpFile, 
+				tmpFile->FP);
+		TmpGZFileUpdateMetaData(tmpFile, 
 				&a);
 		AlignedReadFree(&a);
 	}
@@ -145,11 +146,11 @@ void MoveAllIntoTmpFile(char *inputFileName,
 		   );
 
 	/* Close the input file */
-	fclose(fpIn);
+	gzclose(fpIn);
 }
 
-void SplitEntriesAndPrint(FILE *outputFP,
-		TmpFile *tmpFile, 
+void SplitEntriesAndPrint(gzFile outputFP,
+		TmpGZFile *tmpFile, 
 		char *tmpDir,
 		int32_t maxNumEntries,
 		int32_t numThreads)
@@ -161,7 +162,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	AlignedRead **entriesPtr=NULL;
 	AlignedRead a;
 	int64_t numEntries=0;
-	TmpFile belowTmpFile, aboveTmpFile;
+	TmpGZFile belowTmpGZFile, aboveTmpGZFile;
 	int32_t endContig, endPos;
 	int32_t belowMinPos, belowMinContig, belowMaxPos, belowMaxContig;
 	int32_t aboveMinPos, aboveMinContig, aboveMaxPos, aboveMaxContig;
@@ -186,7 +187,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 	   */
 
 	/* Move to the beginning of the tmp file */
-	fseek(tmpFile->FP, 0, SEEK_SET);
+	CloseTmpGZFile(&tmpFile->FP, &tmpFile->FileName, 0);
+	if(!(tmpFile->FP=gzopen(tmpFile->FileName, "rb"))) {
+		PrintError(FnName,
+				tmpFile->FileName,
+				"Could not re-open file for reading",
+				Exit,
+				OpenFileError);
+	}
 
 	/* Check if we should print or split */
 	if(tmpFile->numEntries <= maxNumEntries) {
@@ -231,15 +239,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		numEntries = 0;
 		while(numEntries < tmpFile->numEntries &&
 				EOF != AlignedReadRead(entriesPtr[numEntries],
-					tmpFile->FP,
-					BinaryInput)) {
+					tmpFile->FP)) {
 			assert(numEntries < tmpFile->numEntries);
 			numEntries++;
 		}
 		assert(numEntries == tmpFile->numEntries);
 
 		/* Close the file */
-		TmpFileClose(tmpFile);
+		TmpGZFileClose(tmpFile);
 		/* Sort */
 		if(numEntries < BSORT_THREADED_SORT_MIN ||
 				numThreads <= 1) {
@@ -414,8 +421,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		for(i=0;i<numEntries;i++) {
 			/* Print */
 			AlignedReadPrint(entriesPtr[i],
-					outputFP,
-					BinaryOutput);
+					outputFP);
 			/* Free memory */
 			AlignedReadFree(entriesPtr[i]);
 			entriesPtr[i]=NULL;
@@ -442,8 +448,8 @@ void SplitEntriesAndPrint(FILE *outputFP,
 
 		/* Initialize */
 		AlignedReadInitialize(&a);
-		TmpFileOpen(&belowTmpFile, tmpDir);
-		TmpFileOpen(&aboveTmpFile, tmpDir);
+		TmpGZFileOpen(&belowTmpGZFile, tmpDir);
+		TmpGZFileOpen(&aboveTmpGZFile, tmpDir);
 		if(tmpFile->startContig == tmpFile->endContig) {
 			meanPos = (tmpFile->startPos + tmpFile->endPos)/2;
 			numPrinted=PrintContigPos(stderr,
@@ -454,14 +460,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					(long long int)meanPos,
 					(long long int)tmpFile->startContig
 					);
-			belowTmpFile.startContig = tmpFile->startContig;
-			belowTmpFile.startPos = tmpFile->startPos;
-			belowTmpFile.endContig = tmpFile->endContig;
-			belowTmpFile.endPos = meanPos;
-			aboveTmpFile.startContig = tmpFile->startContig;
-			aboveTmpFile.startPos = meanPos + 1;
-			aboveTmpFile.endContig = tmpFile->endContig;
-			aboveTmpFile.endPos = tmpFile->endPos;
+			belowTmpGZFile.startContig = tmpFile->startContig;
+			belowTmpGZFile.startPos = tmpFile->startPos;
+			belowTmpGZFile.endContig = tmpFile->endContig;
+			belowTmpGZFile.endPos = meanPos;
+			aboveTmpGZFile.startContig = tmpFile->startContig;
+			aboveTmpGZFile.startPos = meanPos + 1;
+			aboveTmpGZFile.endContig = tmpFile->endContig;
+			aboveTmpGZFile.endPos = tmpFile->endPos;
 		}
 		else {
 			meanContig = (tmpFile->startContig + tmpFile->endContig)/2;
@@ -472,14 +478,14 @@ void SplitEntriesAndPrint(FILE *outputFP,
 					(long long int)tmpFile->numEntries,
 					meanContig
 					);
-			belowTmpFile.startContig = tmpFile->startContig;
-			belowTmpFile.startPos = tmpFile->startPos;
-			belowTmpFile.endContig = meanContig;
-			belowTmpFile.endPos = INT_MAX-1;
-			aboveTmpFile.startContig = meanContig + 1;
-			aboveTmpFile.startPos = 1;
-			aboveTmpFile.endContig = tmpFile->endContig;
-			aboveTmpFile.endPos = tmpFile->endPos;
+			belowTmpGZFile.startContig = tmpFile->startContig;
+			belowTmpGZFile.startPos = tmpFile->startPos;
+			belowTmpGZFile.endContig = meanContig;
+			belowTmpGZFile.endPos = INT_MAX-1;
+			aboveTmpGZFile.startContig = meanContig + 1;
+			aboveTmpGZFile.startPos = 1;
+			aboveTmpGZFile.endContig = tmpFile->endContig;
+			aboveTmpGZFile.endPos = tmpFile->endPos;
 		}
 		assert(numPrinted<=BSORT_MAX_LINE_LENGTH);
 		while(numPrinted<=BSORT_MAX_LINE_LENGTH) {
@@ -498,8 +504,7 @@ void SplitEntriesAndPrint(FILE *outputFP,
 
 		/* Split */
 		while(EOF != AlignedReadRead(&a,
-					tmpFile->FP,
-					BinaryInput)) {
+					tmpFile->FP)) {
 
 			for(i=0;i<a.numEnds;i++) {
 				if(0 < a.ends[i].numEntries) {
@@ -516,13 +521,12 @@ void SplitEntriesAndPrint(FILE *outputFP,
 			tmpAlignedEntry = &a.ends[minIndex].entries[0];
 
 			/* Print to the appropriate file */
-			if(tmpAlignedEntry->contig < belowTmpFile.endContig ||
-					(tmpAlignedEntry->contig == belowTmpFile.endContig && tmpAlignedEntry->position < belowTmpFile.endPos)) {
+			if(tmpAlignedEntry->contig < belowTmpGZFile.endContig ||
+					(tmpAlignedEntry->contig == belowTmpGZFile.endContig && tmpAlignedEntry->position < belowTmpGZFile.endPos)) {
 				/* Print */
 				AlignedReadPrint(&a,
-						belowTmpFile.FP, 
-						BinaryOutput);
-				belowTmpFile.numEntries++;
+						belowTmpGZFile.FP);
+				belowTmpGZFile.numEntries++;
 
 				/* Update bounds */
 				if(tmpAlignedEntry->contig < belowMinContig ||
@@ -539,9 +543,8 @@ void SplitEntriesAndPrint(FILE *outputFP,
 			else {
 				/* Print */
 				AlignedReadPrint(&a,
-						aboveTmpFile.FP, 
-						BinaryOutput);
-				aboveTmpFile.numEntries++;
+						aboveTmpGZFile.FP);
+				aboveTmpGZFile.numEntries++;
 
 				/* Update bounds */
 				if(tmpAlignedEntry->contig < aboveMinContig ||
@@ -559,44 +562,44 @@ void SplitEntriesAndPrint(FILE *outputFP,
 		}
 
 		/* Close tmp file */
-		TmpFileClose(tmpFile);
+		TmpGZFileClose(tmpFile);
 
 		/* Close tmp files if we are not going to use them */
-		if(belowTmpFile.numEntries <= 0) {
-			assert(belowTmpFile.startContig < belowMinContig ||
-					(belowTmpFile.startContig == belowMinContig && belowTmpFile.startPos <= belowMinPos));
-			assert(belowMaxContig < belowTmpFile.endContig ||
-					(belowMaxContig == belowTmpFile.endContig && belowMaxPos <= belowTmpFile.endPos));
-			belowTmpFile.startContig = belowMinContig;
-			belowTmpFile.startPos = belowMinPos;
-			belowTmpFile.endContig = belowMaxContig;
-			belowTmpFile.endPos = belowMaxPos;
-			TmpFileClose(&belowTmpFile);
+		if(belowTmpGZFile.numEntries <= 0) {
+			assert(belowTmpGZFile.startContig < belowMinContig ||
+					(belowTmpGZFile.startContig == belowMinContig && belowTmpGZFile.startPos <= belowMinPos));
+			assert(belowMaxContig < belowTmpGZFile.endContig ||
+					(belowMaxContig == belowTmpGZFile.endContig && belowMaxPos <= belowTmpGZFile.endPos));
+			belowTmpGZFile.startContig = belowMinContig;
+			belowTmpGZFile.startPos = belowMinPos;
+			belowTmpGZFile.endContig = belowMaxContig;
+			belowTmpGZFile.endPos = belowMaxPos;
+			TmpGZFileClose(&belowTmpGZFile);
 		}
-		if(aboveTmpFile.numEntries <= 0) {
-			assert(aboveTmpFile.startContig < belowMinContig ||
-					(aboveTmpFile.startContig == belowMinContig && belowTmpFile.startPos <= belowMinPos));
-			assert(aboveMaxContig < belowTmpFile.endContig ||
-					(aboveMaxContig == belowTmpFile.endContig && belowMaxPos <= belowTmpFile.endPos));
-			aboveTmpFile.startContig = aboveMinContig;
-			aboveTmpFile.startPos = aboveMinPos;
-			aboveTmpFile.endContig = aboveMaxContig;
-			aboveTmpFile.endPos = aboveMaxPos;
-			TmpFileClose(&aboveTmpFile);
+		if(aboveTmpGZFile.numEntries <= 0) {
+			assert(aboveTmpGZFile.startContig < belowMinContig ||
+					(aboveTmpGZFile.startContig == belowMinContig && belowTmpGZFile.startPos <= belowMinPos));
+			assert(aboveMaxContig < belowTmpGZFile.endContig ||
+					(aboveMaxContig == belowTmpGZFile.endContig && belowMaxPos <= belowTmpGZFile.endPos));
+			aboveTmpGZFile.startContig = aboveMinContig;
+			aboveTmpGZFile.startPos = aboveMinPos;
+			aboveTmpGZFile.endContig = aboveMaxContig;
+			aboveTmpGZFile.endPos = aboveMaxPos;
+			TmpGZFileClose(&aboveTmpGZFile);
 		}
 
 		/* Recurse on the two */
-		if(0 < belowTmpFile.numEntries) {
+		if(0 < belowTmpGZFile.numEntries) {
 			/* First update based on bounds */
 			SplitEntriesAndPrint(outputFP,
-					&belowTmpFile,
+					&belowTmpGZFile,
 					tmpDir,
 					maxNumEntries,
 					numThreads);
 		}
-		if(0 < aboveTmpFile.numEntries) {
+		if(0 < aboveTmpGZFile.numEntries) {
 			SplitEntriesAndPrint(outputFP,
-					&aboveTmpFile,
+					&aboveTmpGZFile,
 					tmpDir,
 					maxNumEntries,
 					numThreads);
@@ -638,9 +641,9 @@ int main(int argc, char *argv[])
 	int32_t maxNumEntries=0;
 	int32_t numThreads=0;
 	char tmpDir[MAX_FILENAME_LENGTH]="\0";
-	TmpFile tmpFile;
+	TmpGZFile tmpFile;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *outputFP=NULL;
+	gzFile outputFP=NULL;
 	char *last=NULL;
 
 	if(argc == 5) {
@@ -659,7 +662,7 @@ int main(int argc, char *argv[])
 
 		/* Move all into a tmp file */
 		fprintf(stderr, "%s", BREAK_LINE);
-		MoveAllIntoTmpFile(inputFileName, &tmpFile, tmpDir);
+		MoveAllIntoTmpGZFile(inputFileName, &tmpFile, tmpDir);
 		fprintf(stderr, "%s", BREAK_LINE);
 
 		/* Create output file name */
@@ -676,7 +679,7 @@ int main(int argc, char *argv[])
 		strcat(outputFileName, "sorted.");
 		strcat(outputFileName, BFAST_ALIGNED_FILE_EXTENSION);
 
-		if(!(outputFP = fopen(outputFileName, "wb"))) {
+		if(!(outputFP = gzopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
 					"Could not open file for writing",
@@ -694,7 +697,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\n");
 
 		/* Close files */
-		fclose(outputFP);
+		gzclose(outputFP);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Terminating successfully!\n");

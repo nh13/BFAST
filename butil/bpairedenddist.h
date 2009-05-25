@@ -1,6 +1,7 @@
 #ifndef BPAIREDENDDIST_H_
 #define BPAIREDENDDIST_H_
 
+#include <zlib.h>
 #include "../blib/RGIndex.h"
 #include "../blib/RGBinary.h"
 #include "../blib/RGMatch.h"
@@ -13,8 +14,8 @@ typedef struct {
 	int32_t numCounts;
 } Bins;
 
-void PrintDistributionFromBMF(FILE*, Bins*);
-void PrintDistributionFromBAF(FILE*, Bins*);
+void PrintDistributionFromBMF(gzFile, Bins*);
+void PrintDistributionFromBAF(gzFile, Bins*);
 
 int BinsInsert(Bins*, int32_t);
 void BinsPrint(Bins*, FILE*);

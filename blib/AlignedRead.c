@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <assert.h>
+#include <zlib.h>
 #include "BError.h"
 #include "BLib.h"
 #include "AlignedEnd.h"
@@ -10,45 +11,60 @@
 
 /* TODO */
 void AlignedReadPrint(AlignedRead *a,
-		FILE *outputFP,
-		int32_t binaryOutput)
+		gzFile outputFP)
 {
 	char *FnName = "AlignedReadPrint";
 	int32_t i;
 
-	if(binaryOutput == TextOutput) {
-		/* Print the read name and paired end flag */
-		if(fprintf(outputFP, "@%s\t%d\t%d\n",
-					a->readName,
-					a->space,
-					a->numEnds) < 0) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
-		}
-	}
-	else {
-		assert(a!=NULL);
-		a->readNameLength = (int)strlen(a->readName);
-		if(fwrite(&a->readNameLength, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(a->readName, sizeof(char), a->readNameLength, outputFP) != a->readNameLength ||
-				fwrite(&a->space, sizeof(int32_t), 1, outputFP) != 1 ||
-				fwrite(&a->numEnds, sizeof(int32_t), 1, outputFP) != 1) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
-		}
+	assert(a!=NULL);
+	a->readNameLength = (int)strlen(a->readName);
+	if(gzwrite(outputFP, &a->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(outputFP, a->readName, sizeof(char)*a->readNameLength)!=sizeof(char)*a->readNameLength ||
+			gzwrite(outputFP, &a->space, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(outputFP, &a->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
 	}
 
 	for(i=0;i<a->numEnds;i++) {
 		if(EOF == AlignedEndPrint(&a->ends[i],
 					outputFP,
-					a->space,
-					binaryOutput)) {
+					a->space)) {
+			PrintError(FnName,
+					"a->ends[i]",
+					"Could not write to file",
+					Exit,
+					WriteFileError);
+		}
+	}
+}
+
+/* TODO */
+void AlignedReadPrintText(AlignedRead *a,
+		FILE *outputFP)
+{
+	char *FnName = "AlignedReadPrintText";
+	int32_t i;
+
+	/* Print the read name and paired end flag */
+	if(fprintf(outputFP, "@%s\t%d\t%d\n",
+				a->readName,
+				a->space,
+				a->numEnds) < 0) {
+		PrintError(FnName,
+				NULL,
+				"Could not write to file",
+				Exit,
+				WriteFileError);
+	}
+
+	for(i=0;i<a->numEnds;i++) {
+		if(EOF == AlignedEndPrintText(&a->ends[i],
+					outputFP,
+					a->space)) {
 			PrintError(FnName,
 					"a->ends[i]",
 					"Could not write to file",
@@ -60,8 +76,7 @@ void AlignedReadPrint(AlignedRead *a,
 
 /* TODO */
 int32_t AlignedReadRead(AlignedRead *a,
-		FILE *inputFP,
-		int32_t binaryInput)
+		gzFile inputFP)
 {
 	char *FnName = "AlignedReadRead";
 	int32_t i;
@@ -81,37 +96,23 @@ int32_t AlignedReadRead(AlignedRead *a,
 	}
 
 	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
-	if(binaryInput == TextInput) {
-		if(fscanf(inputFP, "@%s %d %d",
-					a->readName,
-					&a->space,
-					&a->numEnds)<3) {
-			/* Free read name before leaving */
-			free(a->readName);
-			a->readName=NULL;
-			return EOF;
-		}
-		a->readNameLength = (int)strlen(a->readName);
+	if(gzread(inputFP, &a->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+		/* Free read name before leaving */
+		free(a->readName);
+		a->readName=NULL;
+		return EOF;
 	}
-	else {
-		if(fread(&a->readNameLength, sizeof(int32_t), 1, inputFP) != 1) {
-			/* Free read name before leaving */
-			free(a->readName);
-			a->readName=NULL;
-			return EOF;
-		}
-		if(fread(a->readName, sizeof(char), a->readNameLength, inputFP) != a->readNameLength ||
-				fread(&a->space, sizeof(int32_t), 1, inputFP) != 1 ||
-				fread(&a->numEnds, sizeof(int32_t), 1, inputFP) != 1) {
-			PrintError(FnName,
-					NULL,
-					"Could not read from file",
-					Exit,
-					ReadFileError);
-		}
-		/* Add the null terminator */
-		a->readName[a->readNameLength]='\0';
+	if(gzread(inputFP, a->readName, sizeof(char)*a->readNameLength)!=sizeof(char)*a->readNameLength||
+			gzread(inputFP, &a->space, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread(inputFP, &a->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				NULL,
+				"Could not read from file",
+				Exit,
+				ReadFileError);
 	}
+	/* Add the null terminator */
+	a->readName[a->readNameLength]='\0';
 
 	/* Reallocate to conserve memory */
 	if(0 < a->readNameLength) {
@@ -144,8 +145,7 @@ int32_t AlignedReadRead(AlignedRead *a,
 		AlignedEndInitialize(&a->ends[i]);
 		if(EOF==AlignedEndRead(&a->ends[i],
 					inputFP,
-					a->space,
-					binaryInput)) {
+					a->space)) {
 			PrintError(FnName, 
 					NULL, 
 					"Could not read a->ends[i]",
@@ -153,7 +153,83 @@ int32_t AlignedReadRead(AlignedRead *a,
 					EndOfFile);
 		}
 	}
-	
+
+	return 1;
+}
+
+/* TODO */
+int32_t AlignedReadReadText(AlignedRead *a,
+		FILE *inputFP) 
+{
+	char *FnName = "AlignedReadReadText";
+	int32_t i;
+
+	assert(a != NULL);
+
+	/* Allocate memory for the read name */
+	a->readName = malloc(sizeof(char)*SEQUENCE_NAME_LENGTH);
+	if(a->readName == NULL) {
+		if(NULL == a->readName) {
+			PrintError(FnName,
+					"a->readName",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+	}
+
+	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
+	if(fscanf(inputFP, "@%s %d %d",
+				a->readName,
+				&a->space,
+				&a->numEnds)<3) {
+		/* Free read name before leaving */
+		free(a->readName);
+		a->readName=NULL;
+		return EOF;
+	}
+	a->readNameLength = (int)strlen(a->readName);
+
+	/* Reallocate to conserve memory */
+	if(0 < a->readNameLength) {
+		a->readName = realloc(a->readName, sizeof(char)*(a->readNameLength+1));
+		if(NULL == a->readName) {
+			PrintError(FnName,
+					"a->readName",
+					"Could not reallocate memory",
+					Exit,
+					ReallocMemory);
+		}
+	}
+	else {
+		free(a->readName);
+		a->readName=NULL;
+	}
+
+	/* Allocate memory for the ends */ 
+	a->ends = malloc(sizeof(AlignedEnd)*a->numEnds);
+	if(NULL==a->ends) {
+		PrintError(FnName,
+				"a->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Read the alignment */
+	for(i=0;i<a->numEnds;i++) {
+		AlignedEndInitialize(&a->ends[i]);
+		if(EOF==AlignedEndReadText(&a->ends[i],
+					inputFP,
+					a->space)) {
+			PrintError(FnName, 
+					NULL, 
+					"Could not read a->ends[i]",
+					Exit,
+					EndOfFile);
+		}
+	}
+
 	return 1;
 }
 

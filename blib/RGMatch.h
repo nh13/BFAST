@@ -2,10 +2,13 @@
 #define RGMATCH_H_
 
 #include <stdio.h>
+#include <zlib.h>
 #include "BLibDefinitions.h"
 
-int32_t RGMatchRead(FILE*, RGMatch*, int32_t);
-void RGMatchPrint(FILE*, RGMatch*, int32_t);
+int32_t RGMatchRead(gzFile, RGMatch*);
+int32_t RGMatchReadText(FILE*, RGMatch*);
+void RGMatchPrint(gzFile, RGMatch*);
+void RGMatchPrintText(FILE*, RGMatch*);
 void RGMatchPrintFastq(FILE*, char*, RGMatch*);
 void RGMatchRemoveDuplicates(RGMatch*, int32_t);
 void RGMatchQuickSort(RGMatch*, int32_t, int32_t);

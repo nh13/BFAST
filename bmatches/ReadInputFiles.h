@@ -2,6 +2,7 @@
 #define READINPUTFILES_H_
 
 #include <stdio.h>
+#include <zlib.h>
 #include "../blib/RGMatches.h"
 #include "../blib/RGIndex.h"
 
@@ -9,7 +10,7 @@ int GetNextRead(FILE*, char*, char*, char*);
 int GetRead(FILE*, RGMatches*);
 int WriteRead(FILE*, RGMatches*);
 void WriteReadsToTempFile(FILE*, FILE*, FILE***, char***, int, int, int, char*, int*, int*, int32_t);
-int ReadTempReadsAndOutput(FILE*, FILE*, FILE*, int);
+int ReadTempReadsAndOutput(gzFile, gzFile, FILE*);
 void ReadRGIndex(char*, RGIndex*, int);
 int ReadFileNames(char*, char***);
 int ReadOffsets(char*, int**);

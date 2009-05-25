@@ -78,9 +78,6 @@ static struct argp_option options[] = {
 	{"bfastSecondaryIndexesFileName", 'I', "bfastSecondaryIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
-	/*
-	   {"binaryInput", 'b', 0, OPTION_NO_USAGE, "Specifies that the bfast input files will be in binary format", 1},
-	   */
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
@@ -107,9 +104,6 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
 	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 3},
-	/*
-	   {"binaryOutput", 'B', 0, OPTION_NO_USAGE, "Specifies that the output should be in binary format", 3},
-	   */
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -187,14 +181,12 @@ main (int argc, char **argv)
 
 						/* Run Matches */
 						FindMatches(
-								arguments.binaryOutput,
 								arguments.rgFileName,
 								arguments.bfastMainIndexesFileName,
 								arguments.bfastSecondaryIndexesFileName,
 								arguments.readsFileName,
 								arguments.offsetsFileName,
 								arguments.space,
-								arguments.binaryInput,
 								arguments.startReadNum,
 								arguments.endReadNum,
 								arguments.numMismatches,
@@ -370,8 +362,6 @@ int ValidateInputs(struct arguments *args) {
 
 	/* If this does not hold, we have done something wrong internally */
 	assert(args->timing == 0 || args->timing == 1);
-	assert(args->binaryInput == TextInput || args->binaryInput == BinaryInput);
-	assert(args->binaryOutput == TextOutput || args->binaryOutput == BinaryOutput);
 
 	return 1;
 }
@@ -409,7 +399,6 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->offsetsFileName!=0);
 	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
 
-	args->binaryInput = BPREPROCESS_DEFAULT_OUTPUT;
 	args->space = NTSpace;
 
 	args->startReadNum = -1;
@@ -440,8 +429,6 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->tmpDir!=0);
 	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
 
-	args->binaryOutput = BMATCHES_DEFAULT_OUTPUT;
-
 	args->timing = 0;
 
 	return;
@@ -461,9 +448,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "bfastSecondaryIndexesFileName\t\t\%s\n", args->bfastSecondaryIndexesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
-	/*
-	   fprintf(fp, "binaryInput:\t\t\t\t%d\n", args->binaryInput);
-	   */
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
@@ -482,9 +466,6 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
-	/*
-	   fprintf(fp, "binaryOutput:\t\t\t\t%d\n", args->binaryOutput);
-	   */
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -555,10 +536,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				   */
 #endif
 				switch (key) {
-						/*
-						   case 'b':
-						   arguments->binaryInput = 1;break;
-						   */
 					case 'd':
 						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */
@@ -603,10 +580,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'z':
 						arguments->numInsertions=atoi(OPTARG);break;
 						*/
-						/*
-						   case 'B':
-						   arguments->binaryOutput = 1;break;
-						   */
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
 					case 'I':

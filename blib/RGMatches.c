@@ -14,73 +14,45 @@
 #define RGMATCHES_CHECK 0
 
 /* TODO */
-int32_t RGMatchesRead(FILE *fp,
-		RGMatches *m,
-		int32_t binaryInput)
+int32_t RGMatchesRead(gzFile fp,
+		RGMatches *m)
 {
 	char *FnName = "RGMatchesRead";
 	int32_t i;
-	char readName[SEQUENCE_NAME_LENGTH]="\0";
 
-	/* Read the matches from the input file */
-	if(binaryInput == TextInput) {
-		if(fscanf(fp, "@%s %d", 
-					readName,
-					&m->numEnds) == EOF) {
-			return EOF;
-		}
-		for(i=0;i<strlen(readName);i++) {
-			readName[i] = readName[i+1];
-		}
-		m->readNameLength = strlen(readName);
-		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
-		assert(m->readNameLength > 0);
-		/* Allocate memory for the read name */
-		m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
-		if(NULL == m->readName) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
-		strcpy(m->readName, readName);
+	/* Read read name length */
+	if(gzread(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+		return EOF;
 	}
-	else {
-		/* Read read name length */
-		if(fread(&m->readNameLength, sizeof(int32_t), 1, fp) != 1) {
-			return EOF;
-		}
-		assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
-		assert(m->readNameLength > 0);
+	assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
+	assert(m->readNameLength > 0);
 
-		/* Allocate memory for the read name */
-		m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
-		if(NULL == m->readName) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
-		}
+	/* Allocate memory for the read name */
+	m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
+	if(NULL == m->readName) {
+		PrintError(FnName,
+				"m->readName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
-		/* Read in read name */
-		if(fread(m->readName, sizeof(char), m->readNameLength, fp)!=m->readNameLength) {
-			PrintError(FnName,
-					"m->readName",
-					"Could not read in read name",
-					Exit,
-					ReadFileError);
-		}
-		m->readName[m->readNameLength]='\0';
-		/* Read numEnds */
-		if(fread(&m->numEnds, sizeof(int32_t), 1, fp)!=1) {
-			PrintError(FnName,
-					"numEnds",
-					"Could not read in numEnds",
-					Exit,
-					ReadFileError);
-		}
+	/* Read in read name */
+	if(gzread(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength) {
+		PrintError(FnName,
+				"m->readName",
+				"Could not read in read name",
+				Exit,
+				ReadFileError);
+	}
+	m->readName[m->readNameLength]='\0';
+	/* Read numEnds */
+	if(gzread(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName,
+				"numEnds",
+				"Could not read in numEnds",
+				Exit,
+				ReadFileError);
 	}
 
 	/* Allocate the ends */
@@ -99,8 +71,64 @@ int32_t RGMatchesRead(FILE *fp,
 		RGMatchInitialize(&m->ends[i]);
 		/* Read */
 		RGMatchRead(fp,
-				&m->ends[i],
-				binaryInput);
+				&m->ends[i]);
+	}
+
+	/* Check m */
+	if(1==RGMATCHES_CHECK) {
+		RGMatchesCheck(m);
+	}
+
+	return 1;
+}
+
+int32_t RGMatchesReadText(FILE *fp,
+		RGMatches *m)
+{
+	char *FnName = "RGMatchesReadText";
+	int32_t i;
+	char readName[SEQUENCE_NAME_LENGTH]="\0";
+
+	/* Read the matches from the input file */
+	if(fscanf(fp, "%s %d", 
+				readName,
+				&m->numEnds) == EOF) {
+		return EOF;
+	}
+	for(i=0;i<strlen(readName);i++) {
+		readName[i] = readName[i+1];
+	}
+	m->readNameLength = strlen(readName);
+	assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
+	assert(m->readNameLength > 0);
+	/* Allocate memory for the read name */
+	m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
+	if(NULL == m->readName) {
+		PrintError(FnName,
+				"m->readName",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	strcpy(m->readName, readName);
+
+	/* Allocate the ends */
+	m->ends = malloc(sizeof(RGMatch)*m->numEnds);
+	if(NULL == m->ends) {
+		PrintError(FnName,
+				"m->ends",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	/* Read each end */
+	for(i=0;i<m->numEnds;i++) {
+		/* Initialize */
+		RGMatchInitialize(&m->ends[i]);
+		/* Read */
+		RGMatchReadText(fp,
+				&m->ends[i]);
 	}
 
 	/* Check m */
@@ -112,9 +140,8 @@ int32_t RGMatchesRead(FILE *fp,
 }
 
 /* TODO */
-void RGMatchesPrint(FILE *fp,
-		RGMatches *m,
-		int32_t binaryOutput)
+void RGMatchesPrint(gzFile fp,
+		RGMatches *m)
 {
 	char *FnName = "RGMatchesPrint";
 	int32_t i;
@@ -127,37 +154,54 @@ void RGMatchesPrint(FILE *fp,
 	   }
 	   */
 
-	/* Print the matches to the output file */
-	if(binaryOutput == TextInput) {
-		/* Print read name length, read name, and num ends*/
-		if(0 > fprintf(fp, "@%s %d\n",
-					m->readName,
-					m->numEnds)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write m->readNameLength, m->readName, and m->numEnds",
-					Exit,
-					WriteFileError);
-		}
-	}
-	else {
-		/* Print num ends, read name length, and read name */
-		if(fwrite(&m->readNameLength, sizeof(int32_t), 1, fp) != 1 ||
-				fwrite(m->readName, sizeof(char), m->readNameLength, fp) != m->readNameLength ||
-				fwrite(&m->numEnds, sizeof(int32_t), 1, fp) != 1) {
-			PrintError(FnName,
-					NULL,
-					"Could not write m->readNameLength, m->readName, and m->numEnds",
-					Exit,
-					WriteFileError);
-		}
+	/* Print num ends, read name length, and read name */
+	if(gzwrite(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength ||
+			gzwrite(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t))  {
+		PrintError(FnName,
+				NULL,
+				"Could not write m->readNameLength, m->readName, and m->numEnds",
+				Exit,
+				WriteFileError);
 	}
 
 	/* Print each end */
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchPrint(fp,
-				&m->ends[i],
-				binaryOutput);
+				&m->ends[i]);
+	}
+}
+/* TODO */
+void RGMatchesPrintText(FILE *fp,
+		RGMatches *m)
+{
+	char *FnName = "RGMatchesPrintText";
+	int32_t i;
+	assert(fp!=NULL);
+
+	/* Check m */
+	/*
+	   if(1==RGMATCHES_CHECK) {
+	   RGMatchesCheck(m);
+	   }
+	   */
+
+	/* Print the matches to the output file */
+	/* Print read name length, read name, and num ends*/
+	if(0 > fprintf(fp, "@%s %d\n",
+				m->readName,
+				m->numEnds)) {
+		PrintError(FnName,
+				NULL,
+				"Could not write m->readNameLength, m->readName, and m->numEnds",
+				Exit,
+				WriteFileError);
+	}
+
+	/* Print each end */
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchPrintText(fp,
+				&m->ends[i]);
 	}
 }
 
@@ -166,13 +210,13 @@ void RGMatchesPrintFastq(FILE *fp,
 		RGMatches *m)
 {
 	/*
-	char *FnName = "RGMatchesPrintFastq";
-	*/
+	   char *FnName = "RGMatchesPrintFastq";
+	   */
 	int32_t i;
 	assert(fp!=NULL);
 
 	/* Print the matches to the output file */
-		/* Print read name length, read name, and num ends*/
+	/* Print read name length, read name, and num ends*/
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchPrintFastq(fp,
 				m->readName,
@@ -193,10 +237,9 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 
 /* TODO */
 /* Merges matches from the same read */
-int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
+int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		int32_t numFiles,
-		FILE *outputFP,
-		int32_t binaryOutput,
+		gzFile outputFP,
 		int32_t maxNumMatches)
 {
 	char *FnName="RGMatchesMergeFilesAndOutput";
@@ -212,11 +255,6 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 	RGMatchesInitialize(&matches);
 	RGMatchesInitialize(&tempMatches);
 
-	/* Seek to the beginning of the files */
-	for(i=0;i<numFiles;i++) {
-		fseek(tempFPs[i], 0, SEEK_SET);
-	}
-
 	/* Read in each sequence/match one at a time */
 	counter = 0;
 	if(VERBOSE >=0) {
@@ -231,8 +269,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 		/* Read matches for one read from each file */ 
 		for(i=0;i<numFiles;i++) {
 			if(RGMatchesRead(tempFPs[i],
-						&tempMatches,
-						binaryOutput)==EOF) {
+						&tempMatches)==EOF) {
 				numFinished++;
 			}
 			else {
@@ -266,8 +303,7 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 				}
 			}
 			RGMatchesPrint(outputFP,
-					&matches,
-					binaryOutput);
+					&matches);
 		}
 		/* Free memory */
 		RGMatchesFree(&matches);
@@ -282,10 +318,9 @@ int32_t RGMatchesMergeFilesAndOutput(FILE **tempFPs,
 
 /* TODO */
 /* Merges matches from different reads */
-int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
+int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(gzFile *threadFPs,
 		int32_t numThreads,
-		FILE *outputFP,
-		int32_t binaryOutput)
+		gzFile outputFP)
 {
 	char *FnName = "RGMatchesMergeThreadTempFilesIntoOutputTempFile";
 	int32_t counter;
@@ -296,11 +331,6 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 
 	/* Initialize matches */
 	RGMatchesInitialize(&matches);
-
-	/* Initialize thread file pointers */
-	for(i=0;i<numThreads;i++) {
-		fseek(threadFPs[i], 0, SEEK_SET);
-	}
 
 	/* Allocate memory for the finished array */
 	finished = malloc(sizeof(int)*numThreads);
@@ -327,8 +357,7 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 			/* Only try reading from those that are not finished */
 			if(0 == finished[i]) {
 				if(RGMatchesRead(threadFPs[i],
-							&matches,
-							binaryOutput)==EOF) {
+							&matches)==EOF) {
 					finished[i] = 1;
 					numFinished++;
 				}
@@ -346,8 +375,7 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(FILE **threadFPs,
 					counter++;
 
 					RGMatchesPrint(outputFP,
-							&matches,
-							binaryOutput);
+							&matches);
 
 				}
 				/* Free memory */

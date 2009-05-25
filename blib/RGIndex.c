@@ -9,6 +9,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <zlib.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -1320,20 +1321,29 @@ double RGIndexGetSize(RGIndex *index, int32_t outputSize)
 }
 
 /* TODO */
-void RGIndexPrint(FILE *fp, RGIndex *index)
+void RGIndexPrint(char *outputFileName, RGIndex *index)
 {
 	char *FnName="RGIndexPrint";
+	gzFile fp;
+
+	if(!(fp=gzopen(outputFileName, "wb"))) {
+		PrintError(FnName,
+				outputFileName,
+				"Could not open outputFileName for writing",
+				Exit,
+				OpenFileError);
+	}
 
 	/* Print header */
 	RGIndexPrintHeader(fp, index);
 
 	/* Print positions */
 	if(index->contigType == Contig_8) {
-		if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
+		if(gzwrite(fp, index->positions, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length || 
 				/* Print chomosomes */
-				fwrite(index->contigs_8, sizeof(uint8_t), index->length, fp) != index->length ||
+				gzwrite(fp, index->contigs_8, sizeof(uint8_t)*index->length)!=sizeof(uint8_t)*index->length ||
 				/* Print the starts */
-				fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength) {
+				gzwrite(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
 			PrintError(FnName,
 					NULL,
 					"Could not write index and hash",
@@ -1342,11 +1352,11 @@ void RGIndexPrint(FILE *fp, RGIndex *index)
 		}
 	}
 	else {
-		if(fwrite(index->positions, sizeof(uint32_t), index->length, fp) != index->length || 
+		if(gzwrite(fp, index->positions, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length || 
 				/* Print chomosomes */
-				fwrite(index->contigs_32, sizeof(uint32_t), index->length, fp) != index->length ||
+				gzwrite(fp, index->contigs_32, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length ||
 				/* Print the starts */
-				fwrite(index->starts, sizeof(uint32_t), index->hashLength, fp) != index->hashLength) {
+				gzwrite(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
 			PrintError(FnName,
 					NULL,
 					"Could not write index and hash",
@@ -1354,6 +1364,8 @@ void RGIndexPrint(FILE *fp, RGIndex *index)
 					WriteFileError);
 		}
 	}
+
+	gzclose(fp);
 }
 
 /* TODO */
@@ -1361,7 +1373,7 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 {
 	char *FnName="RGIndexRead";
 
-	FILE *fp;
+	gzFile fp;
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reading index from %s.\n",
@@ -1369,7 +1381,7 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 	}
 
 	/* open file */
-	if((fp=fopen(rgIndexFileName, "r"))==0) {
+	if(!(fp=gzopen(rgIndexFileName, "rb"))) {
 		PrintError(FnName,
 				rgIndexFileName,
 				"Could not open rgIndexFileName for reading",
@@ -1412,6 +1424,36 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 					MallocMemory);
 		}
 	}
+
+	/* Read in positions */
+	if(gzread(fp, index->positions, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length) {
+		PrintError(FnName,
+				NULL,
+				"Could not read in positions",
+				Exit,
+				ReadFileError);
+	}
+
+	/* Read in the contigs */
+	if(index->contigType == Contig_8) {
+		if(gzread(fp, index->contigs_8, sizeof(uint8_t)*index->length)!=sizeof(uint8_t)*index->length) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in contigs_8",
+					Exit,
+					ReadFileError);
+		}
+	}
+	else {
+		if(gzread(fp, index->contigs_32, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length) {
+			PrintError(FnName,
+					NULL,
+					"Could not read in contigs_32",
+					Exit,
+					ReadFileError);
+		}
+	}
+	
 	/* Allocate memory for the starts */
 	index->starts = malloc(sizeof(uint32_t)*index->hashLength);
 	if(NULL == index->starts) {
@@ -1422,37 +1464,17 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 				MallocMemory);
 	}
 
-	/* Read in positions */
-	if(fread(index->positions, sizeof(uint32_t), index->length, fp)!=index->length) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in positions",
-				Exit,
-				ReadFileError);
-	}
-
-	/* Read in the contigs */
-	if(index->contigType == Contig_8) {
-		if(fread(index->contigs_8, sizeof(uint8_t), index->length, fp)!=index->length) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in contigs_8",
-					Exit,
-					ReadFileError);
-		}
-	}
-	else {
-		if(fread(index->contigs_32, sizeof(uint32_t), index->length, fp)!=index->length) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in contigs_32",
-					Exit,
-					ReadFileError);
-		}
-	}
-
 	/* Read in starts */
-	if(fread(index->starts, sizeof(uint32_t), index->hashLength, fp)!=index->hashLength) {
+	int temp = gzread(fp, index->starts, sizeof(uint32_t)*index->hashLength);
+	fprintf(stderr, "HERE: %lld\t%lld\n",
+			(long long int)sizeof(uint32_t)*index->hashLength,
+			(long long int)temp);
+	fprintf(stderr, "%s\n",
+			index->packageVersion);
+	/*
+	if(gzread(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
+	*/
+	if(temp != sizeof(uint32_t)*index->hashLength) {
 		PrintError(FnName,
 				NULL,
 				"Could not read in starts",
@@ -1461,7 +1483,7 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 	}
 
 	/* close file */
-	fclose(fp);
+	gzclose(fp);
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Read index from %s.\n",
@@ -1474,7 +1496,7 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 void RGIndexPrintInfo(char *inputFileName)
 {
 	char *FnName = "RGIndexPrintInfo";
-	FILE *fp;
+	gzFile fp;
 	int64_t i;
 	RGIndex index;
 	char contigType[2][256] = {"1 byte", "4 byte"};
@@ -1482,7 +1504,7 @@ void RGIndexPrintInfo(char *inputFileName)
 
 
 	/* Open the file */
-	if(!(fp=fopen(inputFileName, "rb"))) {
+	if(!(fp=gzopen(inputFileName, "rb"))) {
 		PrintError(FnName,
 				inputFileName,
 				"Could not open file for reading",
@@ -1533,30 +1555,30 @@ void RGIndexPrintInfo(char *inputFileName)
 	RGIndexInitialize(&index);
 
 	/* Close the file */
-	fclose(fp);
+	gzclose(fp);
 }
 
 /* TODO */
-void RGIndexPrintHeader(FILE *fp, RGIndex *index)
+void RGIndexPrintHeader(gzFile fp, RGIndex *index)
 {
 	char *FnName="RGIndexPrintHeader";
 	/* Print Header */
-	if(fwrite(&index->id, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->packageVersionLength, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(index->packageVersion, sizeof(char), index->packageVersionLength, fp) != index->packageVersionLength ||
-			fwrite(&index->length, sizeof(int64_t), 1, fp) != 1 || 
-			fwrite(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->endContig, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->endPos, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->width, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->space, sizeof(int32_t), 1, fp) != 1 ||
-			fwrite(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
-			fwrite(&index->hashLength, sizeof(int64_t), 1, fp) != 1 ||
-			fwrite(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
+	if(gzwrite(fp, &index->id, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, index->packageVersion, sizeof(char)*index->packageVersionLength)!=sizeof(char)*index->packageVersionLength ||
+			gzwrite(fp, &index->length, sizeof(int64_t))!=sizeof(int64_t) || 
+			gzwrite(fp, &index->contigType, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->startContig, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->startPos, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->endContig, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->endPos, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->width, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->keysize, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->repeatMasker, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->space, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
+			gzwrite(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t) ||
+			gzwrite(fp, index->mask, sizeof(int32_t)*index->width)!=sizeof(int32_t)*index->width) {
 		PrintError(FnName,
 				NULL,
 				"Could not write header",
@@ -1566,12 +1588,12 @@ void RGIndexPrintHeader(FILE *fp, RGIndex *index)
 }
 
 /* TODO */
-void RGIndexReadHeader(FILE *fp, RGIndex *index) 
+void RGIndexReadHeader(gzFile fp, RGIndex *index) 
 {
 	char *FnName = "RGIndexReadHeader";
 	/* Read in header */
-	if(fread(&index->id, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->packageVersionLength, sizeof(int32_t), 1, fp) != 1) {
+	if(gzread(fp, &index->id, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read header",
@@ -1587,19 +1609,19 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 				MallocMemory);
 	}
 
-	if(fread(index->packageVersion, sizeof(char), index->packageVersionLength, fp) != index->packageVersionLength ||
-			fread(&index->length, sizeof(int64_t), 1, fp) != 1 || 
-			fread(&index->contigType, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->startContig, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->startPos, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->endContig, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->endPos, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->width, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->keysize, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->repeatMasker, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->space, sizeof(int32_t), 1, fp) != 1 ||
-			fread(&index->hashWidth, sizeof(uint32_t), 1, fp) != 1 ||
-			fread(&index->hashLength, sizeof(int64_t), 1, fp) != 1) {
+	if(gzread(fp, index->packageVersion, sizeof(char)*index->packageVersionLength)!=sizeof(char)*index->packageVersionLength ||
+			gzread(fp, &index->length, sizeof(int64_t))!=sizeof(int64_t) || 
+			gzread(fp, &index->contigType, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->startContig, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->startPos, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->endContig, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->endPos, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->width, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->keysize, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->repeatMasker, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->space, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
+			gzread(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read header",
@@ -1617,7 +1639,7 @@ void RGIndexReadHeader(FILE *fp, RGIndex *index)
 				MallocMemory);
 	}
 	/* Read the mask */
-	if(fread(index->mask, sizeof(int32_t), index->width, fp) != index->width) {
+	if(gzread(fp, index->mask, sizeof(int32_t)*index->width)!=sizeof(int32_t)*index->width) {
 		PrintError(FnName,
 				NULL,
 				"Could not read header",

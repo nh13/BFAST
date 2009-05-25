@@ -5,7 +5,6 @@
 
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
-		int binaryInput,
 		int startChr,
 		int startPos,
 		int endChr,
