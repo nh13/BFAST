@@ -1395,6 +1395,26 @@ int IsWhiteSpace(char c)
 	return 0;
 }
 
+void ParsePackageVersion(char *packageVersion,
+		int *v1,
+		int *v2,
+		int *v3)
+{
+	char *FnName="ParsePackageVersion";
+	assert(NULL != packageVersion);
+
+	if(3 != sscanf(packageVersion, "%d.%d.%d",
+				v1,
+				v2,
+				v3)) {
+		PrintError(FnName,
+				packageVersion,
+				"Could not parse package version",
+				Exit,
+				OutOfRange);
+	}
+}
+
 /* TODO */
 void CheckPackageCompatibility(char *packageVersion, int fileType) 
 {
@@ -1403,16 +1423,7 @@ void CheckPackageCompatibility(char *packageVersion, int fileType)
 
 	assert(NULL != packageVersion);
 
-	if(3 != sscanf(packageVersion, "%d.%d.%d",
-				&version[0],
-				&version[1],
-				&version[2])) {
-		PrintError(FnName,
-				packageVersion,
-				"Could not parse package version",
-				Exit,
-				OutOfRange);
-	}
+	ParsePackageVersion(packageVersion, &version[0], &version[1], &version[2]);
 
 	switch(fileType) {
 		case BFASTReferenceGenomeFile:

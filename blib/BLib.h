@@ -49,6 +49,7 @@ int ValidateFileName(char*);
 void StringCopyAndReallocate(char**, const char*);
 int StringTrimWhiteSpace(char*);
 int IsWhiteSpace(char);
+void ParsePackageVersion(char*, int*, int*, int*);
 void CheckPackageCompatibility(char*, int);
 void KnuthMorrisPrattCreateTable(char*, int, int*);
 int32_t KnuthMorrisPratt(char*, int, char*, int);
