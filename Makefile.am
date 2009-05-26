@@ -5,10 +5,10 @@ EXTRA_DIST = LICENSE \
 			 scripts/solid2fastq.pl \
 			 scripts/qseq2fastq.pl \
 			 tests/test.definitions.sh \
-			 tests/data/data.tar.gz 
+			 tests/data/data.tar.gz \
 			 tests/test.initialize.sh \
-			 tests/test.bpreprocess.sh \
-			 tests/test.bpreprocess.sh \
+			 tests/test.bpreprocess.1.sh \
+			 tests/test.bpreprocess.2.sh \
 			 tests/test.bmatches.sh \
 			 tests/test.balign.sh \
 			 tests/test.bpostprocess.sh \
