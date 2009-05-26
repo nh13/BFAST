@@ -21,11 +21,11 @@ int32_t AlignedEndPrint(AlignedEnd *a,
 {
 	int32_t i;
 	assert(NULL != a->read);
-	if(gzwrite(outputFP, &a->readLength, sizeof(int32_t))!=sizeof(int32_t)||
-			gzwrite(outputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)||
-			gzwrite(outputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
-			gzwrite(outputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
-			gzwrite(outputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzwrite64(outputFP, &a->readLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite64(outputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite64(outputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
+			gzwrite64(outputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
+			gzwrite64(outputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		return EOF;
 	}
 
@@ -73,8 +73,8 @@ int32_t AlignedEndRead(AlignedEnd *a,
 	char *FnName = "AlignedEndRead";
 	int32_t i;
 
-	if(gzread(inputFP, &a->readLength, sizeof(int32_t))!=sizeof(int32_t)||
-			gzread(inputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(inputFP, &a->readLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread64(inputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		return EOF;
 	}
 	/* Allocate memory for the alignment */
@@ -99,9 +99,9 @@ int32_t AlignedEndRead(AlignedEnd *a,
 		}
 	}
 
-	if(gzread(inputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
-			gzread(inputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
-			gzread(inputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(inputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
+			gzread64(inputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
+			gzread64(inputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				"a->reads, a->qual, and a->numEntries",
 				"Could not read from file",

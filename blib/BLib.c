@@ -6,6 +6,8 @@
 #include <math.h>
 #include <ctype.h>
 #include <zlib.h>
+#include <limits.h>
+
 #include "BLibDefinitions.h"
 #include "RGIndex.h"
 #include "BError.h"
@@ -1695,3 +1697,42 @@ double AddLog10(double a, double b)
 	}
 }
 
+int64_t gzwrite64(gzFile file, void *buf, int64_t len) 
+{
+	int64_t count = 0;
+	uint32_t numBytesWritten = 0; 
+	uint32_t numBytesToWrite = 0; 
+
+	while(count < len) {
+		numBytesToWrite = MIN(INT_MAX, (len - count));
+		numBytesWritten = gzwrite(file, 
+				buf + count, 
+				numBytesToWrite);
+		if(numBytesWritten != numBytesToWrite) {
+			return count;
+		}
+		count += numBytesWritten;
+	}
+	
+	return count;
+}
+
+int64_t gzread64(gzFile file, void *buf, int64_t len)
+{
+	int64_t count = 0;
+	uint32_t numBytesRead = 0; 
+	uint32_t numBytesToRead = 0; 
+
+	while(count < len) {
+		numBytesToRead = MIN(INT_MAX, (len - count));
+		numBytesRead = gzread(file, 
+				buf + count, 
+				numBytesToRead);
+		if(numBytesRead != numBytesToRead) {
+			return count;
+		}
+		count += numBytesRead;
+	}
+
+	return count;
+}

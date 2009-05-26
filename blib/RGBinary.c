@@ -299,8 +299,8 @@ void RGBinaryReadBinary(RGBinary *rg,
 	}
 
 	/* Read RGBinary information */
-	if(gzread(fpRG, &rg->id, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzread(fpRG, &rg->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fpRG, &rg->id, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread64(fpRG, &rg->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
@@ -316,9 +316,9 @@ void RGBinaryReadBinary(RGBinary *rg,
 				Exit,
 				MallocMemory);
 	}
-	if(gzread(fpRG, rg->packageVersion, sizeof(char)*rg->packageVersionLength)!=sizeof(char)*rg->packageVersionLength ||
-			gzread(fpRG, &rg->numContigs, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzread(fpRG, &rg->space, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fpRG, rg->packageVersion, sizeof(char)*rg->packageVersionLength)!=sizeof(char)*rg->packageVersionLength ||
+			gzread64(fpRG, &rg->numContigs, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread64(fpRG, &rg->space, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read RGBinary information",
@@ -355,7 +355,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 	/* Read each contig */
 	for(i=0;i<rg->numContigs;i++) {
 		/* Read contig name length */
-		if(gzread(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+		if(gzread64(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
 			PrintError(FnName,
 					NULL,
 					"Could not read contig name length",
@@ -373,9 +373,9 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read RGContig information */
-		if(gzread(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
-				gzread(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t))!=sizeof(int32_t) ||
-				gzread(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t))!=sizeof(uint32_t)) {
+		if(gzread64(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
+				gzread64(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t))!=sizeof(int32_t) ||
+				gzread64(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t))!=sizeof(uint32_t)) {
 			PrintError(FnName,
 					NULL,
 					"Could not read RGContig information",
@@ -396,7 +396,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 					MallocMemory);
 		}
 		/* Read sequence */
-		if(gzread(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes)!=sizeof(char)*rg->contigs[i].numBytes) {
+		if(gzread64(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes)!=sizeof(char)*rg->contigs[i].numBytes) {
 			PrintError(FnName,
 					NULL,
 					"Could not read sequence",
@@ -443,11 +443,11 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	}
 
 	/* Output RGBinary information */
-	if(gzwrite(fpRG, &rg->id, sizeof(int32_t)) != sizeof(int32_t) ||
-		gzwrite(fpRG, &rg->packageVersionLength, sizeof(int32_t)) != sizeof(int32_t) ||
-		gzwrite(fpRG, rg->packageVersion, rg->packageVersionLength*sizeof(char)) != rg->packageVersionLength*sizeof(char) ||
-		gzwrite(fpRG, &rg->numContigs, sizeof(int32_t)) != sizeof(int32_t) ||
-		gzwrite(fpRG, &rg->space, sizeof(int32_t)) != sizeof(int32_t)) {
+	if(gzwrite64(fpRG, &rg->id, sizeof(int32_t)) != sizeof(int32_t) ||
+		gzwrite64(fpRG, &rg->packageVersionLength, sizeof(int32_t)) != sizeof(int32_t) ||
+		gzwrite64(fpRG, rg->packageVersion, rg->packageVersionLength*sizeof(char)) != rg->packageVersionLength*sizeof(char) ||
+		gzwrite64(fpRG, &rg->numContigs, sizeof(int32_t)) != sizeof(int32_t) ||
+		gzwrite64(fpRG, &rg->space, sizeof(int32_t)) != sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not output rg header",
@@ -458,11 +458,11 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	/* Output each contig */
 	for(i=0;i<rg->numContigs;i++) {
 		/* Output RGContig information */
-		if(gzwrite(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t)) != sizeof(int32_t) ||
-				gzwrite(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
-				gzwrite(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t)) != sizeof(int32_t) ||
-				gzwrite(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t)) != sizeof(uint32_t) ||
-				gzwrite(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes) != sizeof(char)*rg->contigs[i].numBytes) {
+		if(gzwrite64(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t)) != sizeof(int32_t) ||
+				gzwrite64(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
+				gzwrite64(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t)) != sizeof(int32_t) ||
+				gzwrite64(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t)) != sizeof(uint32_t) ||
+				gzwrite64(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes) != sizeof(char)*rg->contigs[i].numBytes) {
 			PrintError(FnName,
 					NULL,
 					"Could not output rg contig",

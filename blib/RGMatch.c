@@ -4,6 +4,8 @@
 #include <math.h>
 #include <sys/types.h>
 #include <string.h>
+
+#include "BLib.h"
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "RGMatch.h"
@@ -16,8 +18,8 @@ int32_t RGMatchRead(gzFile fp,
 	char *FnName = "RGMatchRead";
 
 	/* Read in the read length */
-	if(gzread(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t)||
-			gzread(fp, &m->qualLength, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread64(fp, &m->qualLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		if(feof(fp) != 0) {
 			return EOF;
 		}
@@ -51,8 +53,8 @@ int32_t RGMatchRead(gzFile fp,
 	}
 
 	/* Read in the read */
-	if(gzread(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength||
-			gzread(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength) {
+	if(gzread64(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength||
+			gzread64(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength) {
 		PrintError(FnName,
 				"m->read",
 				"Could not read in the read and qual",
@@ -63,7 +65,7 @@ int32_t RGMatchRead(gzFile fp,
 	m->qual[m->qualLength]='\0';
 
 	/* Read in if we have reached the maximum number of matches */
-	if(gzread(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				"m->maxReached",
 				"Could not read in m->maxReached",
@@ -73,7 +75,7 @@ int32_t RGMatchRead(gzFile fp,
 	assert(0 == m->maxReached || 1 == m->maxReached);
 
 	/* Read in the number of matches */
-	if(gzread(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				"m->numEntries",
 				"Could not read in m->numEntries",
@@ -86,21 +88,21 @@ int32_t RGMatchRead(gzFile fp,
 	RGMatchReallocate(m, m->numEntries);
 
 	/* Read first sequence matches */
-	if(gzread(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
+	if(gzread64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
 		PrintError(FnName,
 				"m->contigs",
 				"Could not read in contigs",
 				Exit,
 				ReadFileError);
 	}
-	if(gzread(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
+	if(gzread64(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
 		PrintError(FnName,
 				"m->positions",
 				"Could not read in positions",
 				Exit,
 				ReadFileError);
 	}
-	if(gzread(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
+	if(gzread64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
 		PrintError(FnName,
 				"m->strands",
 				"Could not read in strand",
@@ -203,12 +205,12 @@ void RGMatchPrint(gzFile fp,
 
 	/* Print the matches to the output file */
 	/* Print read length, read, maximum reached, and number of entries. */
-	if(gzwrite(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite(fp, &m->qualLength, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength ||
-			gzwrite(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength ||
-			gzwrite(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzwrite64(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(fp, &m->qualLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength ||
+			gzwrite64(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength ||
+			gzwrite64(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not write m->readLength, m->qualLength, m->read, m->qual, m->maxReached, and m->numEntries",
@@ -217,9 +219,9 @@ void RGMatchPrint(gzFile fp,
 	}
 
 	/* Print the contigs, positions, and strands */
-	if(gzwrite(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
-			gzwrite(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
-			gzwrite(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
+	if(gzwrite64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
+			gzwrite64(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
+			gzwrite64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
 		PrintError(FnName,
 				NULL,
 				"Could not write contigs, positions and strands",

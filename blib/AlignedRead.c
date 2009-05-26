@@ -18,10 +18,10 @@ void AlignedReadPrint(AlignedRead *a,
 
 	assert(a!=NULL);
 	a->readNameLength = (int)strlen(a->readName);
-	if(gzwrite(outputFP, &a->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite(outputFP, a->readName, sizeof(char)*a->readNameLength)!=sizeof(char)*a->readNameLength ||
-			gzwrite(outputFP, &a->space, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite(outputFP, &a->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzwrite64(outputFP, &a->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(outputFP, a->readName, sizeof(char)*a->readNameLength)!=sizeof(char)*a->readNameLength ||
+			gzwrite64(outputFP, &a->space, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(outputFP, &a->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not write to file",
@@ -96,15 +96,15 @@ int32_t AlignedReadRead(AlignedRead *a,
 	}
 
 	/* Read the read name, paired end flag, space flag, and the number of entries for both entries */
-	if(gzread(inputFP, &a->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(inputFP, &a->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		/* Free read name before leaving */
 		free(a->readName);
 		a->readName=NULL;
 		return EOF;
 	}
-	if(gzread(inputFP, a->readName, sizeof(char)*a->readNameLength)!=sizeof(char)*a->readNameLength||
-			gzread(inputFP, &a->space, sizeof(int32_t))!=sizeof(int32_t)||
-			gzread(inputFP, &a->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(inputFP, a->readName, sizeof(char)*a->readNameLength)!=sizeof(char)*a->readNameLength||
+			gzread64(inputFP, &a->space, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread64(inputFP, &a->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				NULL,
 				"Could not read from file",

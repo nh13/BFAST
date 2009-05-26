@@ -18,21 +18,21 @@ int32_t AlignedEntryPrint(AlignedEntry *a,
 	assert(space == NTSpace ||
 			(space == ColorSpace && NULL != a->colorError));
 
-	if(gzwrite(outputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)||
-			gzwrite(outputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
-			gzwrite(outputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite(outputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite(outputFP, &a->strand, sizeof(char))!=sizeof(char)||
-			gzwrite(outputFP, &a->score, sizeof(double))!=sizeof(double)||
-			gzwrite(outputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
-			gzwrite(outputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite(outputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite(outputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
-			gzwrite(outputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+	if(gzwrite64(outputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite64(outputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
+			gzwrite64(outputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite64(outputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite64(outputFP, &a->strand, sizeof(char))!=sizeof(char)||
+			gzwrite64(outputFP, &a->score, sizeof(double))!=sizeof(double)||
+			gzwrite64(outputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite64(outputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite64(outputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite64(outputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
+			gzwrite64(outputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
 		return EOF;
 	}
 	if(ColorSpace==space) {
-		if(gzwrite(outputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+		if(gzwrite64(outputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
 			return EOF;
 		}
 	}
@@ -123,7 +123,7 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 		}
 	}
 
-	if(gzread(inputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(inputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		return EOF;
 	}
 	/* Copy over contig name */
@@ -135,16 +135,16 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 				Exit,
 				MallocMemory);
 	}
-	if(gzread(inputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
-			gzread(inputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzread(inputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzread(inputFP, &a->strand, sizeof(char))!=sizeof(char)||
-			gzread(inputFP, &a->score, sizeof(double))!=sizeof(double)||
-			gzread(inputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
-			gzread(inputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzread(inputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzread(inputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
-			gzread(inputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+	if(gzread64(inputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
+			gzread64(inputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread64(inputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread64(inputFP, &a->strand, sizeof(char))!=sizeof(char)||
+			gzread64(inputFP, &a->score, sizeof(double))!=sizeof(double)||
+			gzread64(inputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread64(inputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread64(inputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzread64(inputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
+			gzread64(inputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
 		return EOF;
 	}
 	/* Add the null terminator to strings */
@@ -152,7 +152,7 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	a->read[a->length]='\0';
 	a->reference[a->length]='\0';
 	if(ColorSpace==space) {
-		if(gzread(inputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+		if(gzread64(inputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
 			return EOF;
 		}
 		a->colorError[a->length]='\0';

@@ -6,7 +6,9 @@
 #include <string.h>
 #include <time.h>
 #include <limits.h>
+
 #include "BLibDefinitions.h"
+#include "BLib.h"
 #include "BError.h"
 #include "RGMatch.h"
 #include "RGMatches.h"
@@ -21,7 +23,7 @@ int32_t RGMatchesRead(gzFile fp,
 	int32_t i;
 
 	/* Read read name length */
-	if(gzread(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		return EOF;
 	}
 	assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
@@ -38,7 +40,7 @@ int32_t RGMatchesRead(gzFile fp,
 	}
 
 	/* Read in read name */
-	if(gzread(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength) {
+	if(gzread64(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength) {
 		PrintError(FnName,
 				"m->readName",
 				"Could not read in read name",
@@ -47,7 +49,7 @@ int32_t RGMatchesRead(gzFile fp,
 	}
 	m->readName[m->readNameLength]='\0';
 	/* Read numEnds */
-	if(gzread(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+	if(gzread64(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName,
 				"numEnds",
 				"Could not read in numEnds",
@@ -155,9 +157,9 @@ void RGMatchesPrint(gzFile fp,
 	   */
 
 	/* Print num ends, read name length, and read name */
-	if(gzwrite(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength ||
-			gzwrite(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t))  {
+	if(gzwrite64(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength ||
+			gzwrite64(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t))  {
 		PrintError(FnName,
 				NULL,
 				"Could not write m->readNameLength, m->readName, and m->numEnds",
