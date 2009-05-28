@@ -28,7 +28,7 @@ void RGIndexPrintInfo(char*);
 void RGIndexPrintHeader(gzFile, RGIndex*);
 void RGIndexReadHeader(gzFile, RGIndex*);
 int64_t RGIndexGetRanges(RGIndex*, RGBinary*, char*, int32_t, int64_t*, int64_t*);
-void RGIndexGetRangesBothStrands(RGIndex*, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, RGRanges*);
+int32_t RGIndexGetRangesBothStrands(RGIndex*, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGRanges*);
 int64_t RGIndexGetIndex(RGIndex*, RGBinary*, char*, int32_t, int64_t*, int64_t*);
 void RGIndexSwapAt(RGIndex*, int64_t, int64_t);
 int64_t RGIndexGetPivot(RGIndex*, RGBinary*, int64_t, int64_t);

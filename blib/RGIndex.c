@@ -1683,7 +1683,7 @@ int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readL
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t space, int32_t strands, RGRanges *r)
+int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t maxNumMatches, int32_t space, int32_t strands, RGRanges *r)
 {
 	int64_t startIndexForward=0;
 	int64_t startIndexReverse=0;
@@ -1728,9 +1728,23 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 	numMatches = (0 < foundIndexForward)?(endIndexForward - startIndexForward + 1):0;
 	numMatches += (0 < foundIndexReverse)?(endIndexReverse - startIndexReverse + 1):0;
 
+
 	/* Check if the key has too many matches */
-	if(0 < numMatches &&
-			numMatches <= maxKeyMatches) {
+	if(numMatches <= 0) {
+		/* No matches */
+		return 0;
+	}
+	else if(maxKeyMatches < numMatches) {
+		/* Ignore the key since it had too many matches */
+		assert(0 < numMatches);
+		return 0;
+	}
+	else if(maxNumMatches < numMatches) {
+		/* Too many matches, return 1 */
+		assert(0 < numMatches);
+		return 1;
+	}
+	else {
 		toAdd = (0 < foundIndexForward)?1:0;
 		toAdd += (0 < foundIndexReverse)?1:0;
 		assert(1 <= toAdd && toAdd <= 2);
@@ -1756,6 +1770,7 @@ void RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32
 			}
 		}
 	}
+	return 0;
 }
 
 /* TODO */

@@ -748,6 +748,7 @@ void GetMatchesFromContigPos(RGIndex *index,
 				reads.readLength[i],
 				0,
 				INT_MAX,
+				INT_MAX,
 				rg->space,
 				BothStrands,
 				&ranges);
