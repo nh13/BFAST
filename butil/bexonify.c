@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <math.h>
+#include <zlib.h>
 
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 	 * */
 	if(argc == 4) {
 
-		FILE *fp;
+		gzFile fp;
 		char rgFileName[MAX_FILENAME_LENGTH]="\0";
 		char indexFileName[MAX_FILENAME_LENGTH]="\0";
 		char exonsFileName[MAX_FILENAME_LENGTH]="\0";
@@ -77,7 +78,7 @@ int main(int argc, char *argv[])
 		/* Print the new index */ 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Outputting to %s.\n", outputFileName);
-		if(!(fp=fopen(outputFileName, "wb"))) {
+		if(!(fp=gzopen(outputFileName, "wb"))) {
 			PrintError(Name,
 					outputFileName,
 					"Could not open file for writing",
@@ -85,7 +86,7 @@ int main(int argc, char *argv[])
 					OpenFileError);
 		}
 		RGIndexPrint(fp, &index);
-		fclose(fp);
+		gzclose(fp);
 
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Cleaning up.\n");
