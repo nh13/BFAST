@@ -739,12 +739,15 @@ int FindMatchesInIndex(char *indexFileName,
 	ReadRGIndex(indexFileName, &index, space);
 	/* Adjust if necessary */
 	if(0 < keySize &&
-			index.width < keySize &&
+			index.hashWidth < keySize &&
 			keySize < index.keysize) {
 		/* Adjust key size and width */
-		for(j=i=0;i<index.width && j<keySize;i++) {
-			if(1 == index.mask[i]) j++;
+		for(j=i=0;i < index.width && j < keySize;i++) {
+			if(1 == index.mask[i]) {
+				j++;
+			}
 		}
+		assert(j == keySize);
 		index.width = i;
 		index.keysize = keySize;
 	}
