@@ -548,7 +548,7 @@ void CloseTmpFile(FILE **fp,
 gzFile OpenTmpGZFile(char *tmpDir,
 		char **tmpFileName)
 {
-	char *FnName = "OpenTmpFile";
+	char *FnName = "OpenTmpGZFile";
 	int fd;
 	gzFile fp = NULL;
 
@@ -598,7 +598,7 @@ void CloseTmpGZFile(gzFile *fp,
 		char **tmpFileName,
 		int32_t removeFile)
 {
-	char *FnName="CloseTmpFile";
+	char *FnName="CloseTmpGZFile";
 
 	/* Close the file */
 	assert((*fp)!=NULL);

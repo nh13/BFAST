@@ -66,9 +66,9 @@ void ScoringMatrixInitialize(ScoringMatrix *sm)
 	sm->gapOpenPenalty=SCORING_MATRIX_GAP_OPEN;
 	sm->gapExtensionPenalty=SCORING_MATRIX_GAP_EXTEND;
 	sm->ntMatch=SCORING_MATRIX_NT_MATCH;
-	sm->ntMatch=SCORING_MATRIX_NT_MISMATCH;
+	sm->ntMismatch=SCORING_MATRIX_NT_MISMATCH;
 	sm->colorMatch=SCORING_MATRIX_COLOR_MATCH;
-	sm->colorMatch=SCORING_MATRIX_COLOR_MISMATCH;
+	sm->colorMismatch=SCORING_MATRIX_COLOR_MISMATCH;
 }
 
 /* TODO */
