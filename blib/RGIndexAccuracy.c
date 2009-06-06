@@ -707,7 +707,7 @@ void RGIndexAccuracyCopyFrom(RGIndexAccuracy *r, RGIndex *index, int32_t keysize
 	assert(index->hashWidth <= keysize && keysize <= index->keysize);
 
 	/* Get new keysize and width */
-	if(keysize < 0) {
+	if(keysize != index->keysize) {
 		new_width = new_keysize = 0;
 		while(new_keysize < keysize) {
 			if(1 == index->mask[new_width]) {
