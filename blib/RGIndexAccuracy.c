@@ -529,13 +529,13 @@ void RGIndexAccuracyMismatchProfilePrint(FILE *fp,
 
 	for(i=0;i<=p->maxReadLength;i++) {
 		if(0 <= p->maxMismatches[i]) {
-		if(fprintf(fp, "%d\t%d\n", i, p->maxMismatches[i]) < 0) {
-			PrintError(FnName,
-					"p->maxMismatches[i]",
-					"Could not write to file",
-					Exit,
-					WriteFileError);
-		}
+			if(fprintf(fp, "%d\t%d\n", i, p->maxMismatches[i]) < 0) {
+				PrintError(FnName,
+						"p->maxMismatches[i]",
+						"Could not write to file",
+						Exit,
+						WriteFileError);
+			}
 		}
 	}
 }
@@ -668,31 +668,74 @@ void RGIndexAccuracySetCopyFromRGIndex(RGIndexAccuracySet *set,
 	}
 }
 
-
-void RGIndexAccuracySetRead(RGIndexAccuracySet *set,
-		char *inputFileName)
+int32_t RGIndexAccuracySetCopyFrom(RGIndexAccuracySet *r, RGIndex *indexes, int32_t numIndexes, int32_t keysize)
 {
-	char *FnName="RGIndexAccuracySetRead";
-	FILE *fp;
-	RGIndexAccuracy index;
+	char *FnName="RGIndexAccuracySetCopyFrom";
+	int32_t i;
 
-	if(!(fp=fopen(inputFileName, "rb"))) {
+	r->numRGIndexAccuracies = numIndexes;
+
+	/* Check valid keysize */
+	for(i=0;i<numIndexes;i++) {
+		if(keysize < indexes[i].hashWidth ||
+				indexes[i].keysize < keysize) {
+			return -1;
+		}
+	}
+
+	r->indexes = malloc(sizeof(RGIndexAccuracy)*numIndexes);
+	if(NULL == r->indexes) {
 		PrintError(FnName,
-				inputFileName,
-				"Could not open file for reading",
+				"r->indexes",
+				"Could not allocate memory",
 				Exit,
-				OpenFileError);
+				MallocMemory);
 	}
 
-	RGIndexAccuracySetInitialize(set);
-	RGIndexAccuracyInitialize(&index);
-
-	while(EOF!=RGIndexAccuracyRead(&index, fp)) {
-		RGIndexAccuracySetPush(set, &index);
-		RGIndexAccuracyFree(&index);
+	for(i=0;i<numIndexes;i++) {
+		RGIndexAccuracyCopyFrom(&r->indexes[i], &indexes[i], keysize);
 	}
 
-	fclose(fp);
+	return 1;
+}
+
+void RGIndexAccuracyCopyFrom(RGIndexAccuracy *r, RGIndex *index, int32_t keysize)
+{
+	char *FnName="RGIndexAccuracyCopyFrom";
+	int32_t i, new_keysize, new_width = 0;
+
+	assert(index->hashWidth <= keysize && keysize <= index->keysize);
+
+	/* Get new keysize and width */
+	if(keysize < 0) {
+		new_width = new_keysize = 0;
+		while(new_keysize < keysize) {
+			if(1 == index->mask[new_width]) {
+				new_keysize++;
+			}
+			new_width++;
+		}
+		assert(new_keysize == keysize);
+		r->keyWidth = new_width;
+		r->keySize = new_keysize;
+	}
+	else {
+		r->keyWidth = index->width;
+		r->keySize = index->keysize;
+	}
+
+	r->mask = malloc(sizeof(int32_t)*r->keyWidth);
+	if(NULL == r->mask) {
+		PrintError(FnName,
+				"r->mask",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
+	for(i=0;i<r->keyWidth;i++) {
+		r->mask[i] = index->mask[i];
+	}
 }
 
 int RGIndexAccuracySetContains(RGIndexAccuracySet *set,
@@ -841,6 +884,32 @@ int RGIndexAccuracyRead(RGIndexAccuracy *index,
 	}
 
 	return 1;
+}
+
+void RGIndexAccuracySetRead(RGIndexAccuracySet *set,
+		char *inputFileName)
+{
+	char *FnName="RGIndexAccuracySetRead";
+	FILE *fp;
+	RGIndexAccuracy index;
+
+	if(!(fp=fopen(inputFileName, "rb"))) {
+		PrintError(FnName,
+				inputFileName,
+				"Could not open file for reading",
+				Exit,
+				OpenFileError);
+	}
+
+	RGIndexAccuracySetInitialize(set);
+	RGIndexAccuracyInitialize(&index);
+
+	while(EOF!=RGIndexAccuracyRead(&index, fp)) {
+		RGIndexAccuracySetPush(set, &index);
+		RGIndexAccuracyFree(&index);
+	}
+
+	fclose(fp);
 }
 
 int RGIndexAccuracyCompare(RGIndexAccuracy *a, RGIndexAccuracy *b) 

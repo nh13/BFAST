@@ -29,6 +29,7 @@ void RGIndexAccuracySetInitialize(RGIndexAccuracySet*);
 void RGIndexAccuracySetFree(RGIndexAccuracySet*);
 void RGIndexAccuracySetPrint(RGIndexAccuracySet*, FILE*);
 void RGIndexAccuracySetRead(RGIndexAccuracySet*, char*);
+int32_t RGIndexAccuracySetCopyFrom(RGIndexAccuracySet*, RGIndex*, int32_t, int32_t);
 /* RGIndexAccuracy functions */
 void RGIndexAccuracySetReadFromRGIndexes(RGIndexAccuracySet*, char**, int, char**, int);
 void RGIndexAccuracySetCopyFromRGIndex(RGIndexAccuracySet*, RGIndex*);
@@ -41,6 +42,7 @@ void RGIndexAccuracyInitialize(RGIndexAccuracy*);
 void RGIndexAccuracyFree(RGIndexAccuracy*);
 void RGIndexAccuracyPrint(RGIndexAccuracy*, FILE*);
 int RGIndexAccuracyRead(RGIndexAccuracy*, FILE*);
+void RGIndexAccuracyCopyFrom(RGIndexAccuracy*, RGIndex*, int32_t);
 /* Accuracy Profile functions */
 int AccuracyProfileCompare(RGIndexAccuracySet*, AccuracyProfile*, RGIndexAccuracySet*, AccuracyProfile*, int, int, int, int, int, int);
 void AccuracyProfileCopy(AccuracyProfile*, AccuracyProfile*);
