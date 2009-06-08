@@ -937,6 +937,9 @@ int ConvertReadFromColorSpace(char *read,
 			index = i-1; 
 		}
 		if(0 == ConvertBaseAndColor(read[index], read[i+1], &read[i])) {
+			fprintf(stderr, "%c\t%c\n",
+					read[index],
+					read[i+1]);
 			PrintError(FnName,
 					"read",
 					"Could not convert base and color",

@@ -669,7 +669,9 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 	int32_t curPos;
 
 	assert(ALPHABET_SIZE==4);
-	assert(contig > 0 && contig <= rg->numContigs);
+	if(contig <= 0 || rg->numContigs < contig) {
+		return 0;
+	}
 
 	/* Allocate memory for the reference */
 	assert((*sequence)==NULL);
