@@ -367,6 +367,23 @@ void Run(RGBinary *rg,
 		}
 		assert(m.ends[0].readLength > 0);
 		strcpy((char*)m.ends[0].read, r.readOne); 
+		if(ColorSpace == space) {
+			m.ends[0].qualLength = m.ends[0].readLength-1;
+		}
+		else {
+			m.ends[0].qualLength = m.ends[0].readLength;
+		}
+		m.ends[0].qual = malloc(sizeof(char)*(m.ends[0].qualLength + 1));
+		if(NULL==m.ends[0].qual) {
+			PrintError(FnName,
+					"m.ends[0].qual",
+					"Could not allocate memory",
+					Exit,
+					MallocMemory);
+		}
+		for(j=0;j<m.ends[0].qualLength;j++) {
+			m.ends[0].qual[j] = 'I';
+		}
 		m.ends[0].maxReached = 0;
 		m.ends[0].numEntries = 1;
 		m.ends[0].contigs = malloc(sizeof(uint32_t));
@@ -487,8 +504,6 @@ void Run(RGBinary *rg,
 		}
 		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;
-			/* HERE */
-			AlignedReadPrintText(&a, stderr);
 			/*
 			   PrintError(FnName,
 			   "numScoreGreaterThan",
