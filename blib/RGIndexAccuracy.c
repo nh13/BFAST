@@ -582,13 +582,13 @@ void RGIndexAccuracySetReadFromRGIndexes(RGIndexAccuracySet *set,
 {
 	char *FnName="RGIndexAccuracySetReadFromRGIndexes";
 	RGIndex tempIndex;
-	FILE *fp=NULL;
+	gzFile fp=NULL;
 	int32_t i;
 
 	/* Read in main indexes */
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
-		if((fp=fopen(mainFileNames[i], "r"))==0) {
+		if((fp=gzopen(mainFileNames[i], "r"))==0) {
 			PrintError(FnName,
 					mainFileNames[i],
 					"Could not open file for reading",
@@ -607,13 +607,13 @@ void RGIndexAccuracySetReadFromRGIndexes(RGIndexAccuracySet *set,
 		tempIndex.mask=NULL;
 
 		/* Close file */
-		fclose(fp);
+		gzclose(fp);
 	}
 
 	/* Read in secondary indexes */
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
-		if((fp=fopen(secondaryFileNames[i], "r"))==0) {
+		if((fp=gzopen(secondaryFileNames[i], "r"))==0) {
 			PrintError(FnName,
 					"secondaryFileNames[i]",
 					"Could not open file for reading",
@@ -632,7 +632,7 @@ void RGIndexAccuracySetReadFromRGIndexes(RGIndexAccuracySet *set,
 		tempIndex.mask=NULL;
 
 		/* Close file */
-		fclose(fp);
+		gzclose(fp);
 	}
 }
 

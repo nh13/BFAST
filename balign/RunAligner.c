@@ -228,7 +228,9 @@ void RunDynamicProgramming(gzFile matchFP,
 	startTime = time(NULL);
 
 	/* Read in scoring matrix */
-	ScoringMatrixRead(scoringMatrixFileName, &sm, space); 
+	if(NULL != scoringMatrixFileName) {
+		ScoringMatrixRead(scoringMatrixFileName, &sm, space); 
+	}
 	/* Calculate mismatch score */
 	/* Assumes all match scores are the same and all substitution scores are the same */
 	if(space == NTSpace) {

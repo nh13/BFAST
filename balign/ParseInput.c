@@ -58,7 +58,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlignmentType, DescBestOnly, DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads,
+	DescAlgoTitle, DescAlignmentType, /*DescBestOnly, */DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -75,8 +75,10 @@ static struct argp_option options[] = {
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
+	/*
 	{"bestOnly", 'b', 0, OPTION_NO_USAGE, "If specified prompts to find only the best scoring alignment(s) across all matches."
 		"\n\t\t\tOtherwise, a best scoring alignment is output for each match.", 2},
+	*/
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -422,10 +424,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->matchFileName!=0);
 	strcpy(args->matchFileName, DEFAULT_FILENAME);
 
-	args->scoringMatrixFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->scoringMatrixFileName!=0);
-	strcpy(args->scoringMatrixFileName, DEFAULT_FILENAME);
+	args->scoringMatrixFileName=NULL;
 	
 	args->alignmentType = FullAlignment;
 	args->bestOnly = AllAlignments;
@@ -475,7 +474,9 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
 	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
 	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
+	/*
 	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
+	*/
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
@@ -558,8 +559,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 				switch (key) {
 					case 'a':
 						arguments->alignmentType=atoi(OPTARG);break;
+						/*
 					case 'b':
 						arguments->bestOnly=atoi(OPTARG);break;
+						*/
 					case 'd':
 						StringCopyAndReallocate(&arguments->outputDir, OPTARG);
 						/* set the tmp directory to the output director */

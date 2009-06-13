@@ -27,7 +27,7 @@ int GetFastaHeaderLine(FILE *fp,
 	/* Read in the line */
 	ret = fgets(header,  MAX_CONTIG_NAME_LENGTH, fp);
 
-	/* Check teturn value */
+	/* Check the return value */
 	if(ret != header) {
 		return EOF;
 	}
@@ -324,12 +324,12 @@ void CheckRGIndexes(char **mainFileNames,
 	secondaryStartContig = secondaryStartPos = secondaryEndContig = secondaryEndPos = 0;
 
 	RGIndex tempIndex;
-	FILE *fp;
+	gzFile fp;
 
 	/* Read in main indexes */
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
-		if((fp=fopen(mainFileNames[i], "r"))==0) {
+		if((fp=gzopen(mainFileNames[i], "r"))==0) {
 			PrintError("CheckRGIndexes",
 					mainFileNames[i],
 					"Could not open file for reading",
@@ -372,12 +372,12 @@ void CheckRGIndexes(char **mainFileNames,
 		tempIndex.mask=NULL;
 
 		/* Close file */
-		fclose(fp);
+		gzclose(fp);
 	}
 	/* Read in secondary indexes */
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
-		if((fp=fopen(secondaryFileNames[i], "r"))==0) {
+		if((fp=gzopen(secondaryFileNames[i], "r"))==0) {
 			PrintError("CheckRGIndexes",
 					"secondaryFileNames[i]",
 					"Could not open file for reading",
@@ -420,7 +420,7 @@ void CheckRGIndexes(char **mainFileNames,
 		tempIndex.mask=NULL;
 
 		/* Close file */
-		fclose(fp);
+		gzclose(fp);
 	}
 
 	/* Check the bounds between main and secondary indexes */
