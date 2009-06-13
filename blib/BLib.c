@@ -961,9 +961,18 @@ void ConvertReadToColorSpace(char **read,
 {
 	char *FnName="ConvertReadToColorSpace";
 	int i;
-	char tempRead[SEQUENCE_LENGTH]="\0";
+	char *tempRead=NULL;
 
-	assert((*readLength) < SEQUENCE_LENGTH);
+	assert(0 < (*readLength));
+
+	tempRead = malloc(sizeof(char)*(1 + (*readLength)));
+	if(NULL == tempRead) {
+		PrintError(FnName, 
+				"tempRead",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	/* Initialize */
 	tempRead[0] =  COLOR_SPACE_START_NT;
@@ -993,15 +1002,17 @@ void ConvertReadToColorSpace(char **read,
 		}
 	}
 
+	(*readLength)++;
+
 	/* Convert integers to characters */
-	for(i=1;i<(*readLength)+1;i++) {
+	for(i=1;i<(*readLength);i++) {
 		assert(tempRead[i] <= 4);
 		tempRead[i] = COLORS[(int)(tempRead[i])];
 	}
-	tempRead[(*readLength)+1]='\0';
+	tempRead[(*readLength)]='\0';
 
 	/* Reallocate read to make sure */
-	(*read) = realloc((*read), sizeof(char)*SEQUENCE_LENGTH);
+	(*read) = realloc((*read), sizeof(char)*(1 + (*readLength)));
 	if((*read)==NULL) {
 		PrintError(FnName,
 				"(*read)",
@@ -1011,7 +1022,8 @@ void ConvertReadToColorSpace(char **read,
 	}
 
 	strcpy((*read), tempRead);
-	(*readLength)++;
+
+	free(tempRead);
 }
 
 /* TODO */
