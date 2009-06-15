@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59)
-AC_INIT([bfast],[0.5.2],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
+AC_INIT([bfast],[0.5.3],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
 AC_COPYRIGHT([bfast is copyright 2008-2009 by The University of California - Los
 Angeles.  All rights reserved.  This License is limited to, and you
