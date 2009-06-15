@@ -590,8 +590,9 @@ int FindMatchesInIndexes(char **indexFileNames,
 		tempSeqFP = OpenTmpFile(tmpDir, &tempSeqFileName);
 
 		startTime=time(NULL);
-		assert(tempOutputFP != outputFP);
+		assert(tempOutputFP != outputFP); // this is very important
 		numWritten=ReadTempReadsAndOutput(tempOutputFP,
+				tempOutputFileName,
 				outputFP,
 				tempSeqFP);
 		endTime=time(NULL);

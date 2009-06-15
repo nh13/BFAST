@@ -85,7 +85,7 @@ int GetRead(FILE *fp,
 				readName,
 				read,
 				qual)) {
-		/* Inset read name if this is the first end */
+		/* Insert read name if this is the first end */
 		if(0 == m->numEnds) {
 			/* Allocate memory */
 			m->readNameLength = strlen(readName);
@@ -144,6 +144,9 @@ int GetRead(FILE *fp,
 	}
 
 	if(0 == m->numEnds) {
+		if(0 != feof(fp)) {
+			return EOF;
+		}
 		PrintError(FnName,
 				"0 == m->numEnds",
 				"Did not find any reads and qualities",
@@ -282,6 +285,7 @@ void WriteReadsToTempFile(FILE *seqFP,
  * zero matches, output them to the temporary read file *
  * */
 int ReadTempReadsAndOutput(gzFile tempOutputFP,
+		char *tempOutputFileName,
 		gzFile outputFP,
 		FILE *tempSeqFP)
 {
@@ -296,7 +300,16 @@ int ReadTempReadsAndOutput(gzFile tempOutputFP,
 	RGMatchesInitialize(&m);
 
 	/* Go to the beginning of the temporary output file */
-	gzseek(tempOutputFP, 0, SEEK_SET);
+	CloseTmpGZFile(&tempOutputFP,
+			&tempOutputFileName,
+			0);
+	if(!(tempOutputFP=gzopen(tempOutputFileName, "rb"))) {
+		PrintError(FnName,
+				tempOutputFileName,
+				"Could not re-open file for reading",
+				Exit,
+				OpenFileError);
+	}
 
 	while(RGMatchesRead(tempOutputFP, 
 				&m)!=EOF) {

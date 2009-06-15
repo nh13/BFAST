@@ -10,7 +10,7 @@ int GetNextRead(FILE*, char*, char*, char*);
 int GetRead(FILE*, RGMatches*);
 int WriteRead(FILE*, RGMatches*);
 void WriteReadsToTempFile(FILE*, FILE*, FILE***, char***, int, int, int, char*, int*, int*, int32_t);
-int ReadTempReadsAndOutput(gzFile, gzFile, FILE*);
+int ReadTempReadsAndOutput(gzFile, char*, gzFile, FILE*);
 void ReadRGIndex(char*, RGIndex*, int);
 int ReadFileNames(char*, char***);
 int ReadOffsets(char*, int**);

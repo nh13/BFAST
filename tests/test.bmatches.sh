@@ -21,11 +21,11 @@ do
 
 	# Make files holding paths to index files
 	ls -1 $OUTPUT_DIR/*$OUTPUT_ID.*bif > $MAIN;
+	ls -1 $OUTPUT_DIR/*$OUTPUT_ID.*bif > $SECONDARY;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		exit 1
 	fi
-	touch $SECONDARY;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		exit 1
