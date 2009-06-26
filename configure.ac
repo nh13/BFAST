@@ -107,6 +107,7 @@ AC_CONFIG_FILES([Makefile
 				 bpostprocess/Makefile
 				 butil/Makefile
 				 tests/Makefile
+				 scripts/Makefile
 				 ])
 
 AC_OUTPUT

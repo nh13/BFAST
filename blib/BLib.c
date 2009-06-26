@@ -369,6 +369,8 @@ void CheckRGIndexes(char **mainFileNames,
 
 		/* Free masks */
 		free(tempIndex.mask);
+		free(tempIndex.packageVersion);
+		tempIndex.packageVersion=NULL;
 		tempIndex.mask=NULL;
 
 		/* Close file */
