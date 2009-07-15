@@ -6,12 +6,14 @@
 #endif
 #include <unistd.h>
 #include <string.h>
+#include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
 
 FILE *open_output_file(char*, int32_t, int32_t);
 void print_fastq(FILE*, FILE*, FILE*);
 char *get_read_name(FILE*, FILE*);
 int32_t cmp_read_names(char*, char*);
+void read_name_trim(char*);
 
 int main(int argc, char *argv[])
 {
@@ -153,7 +155,6 @@ int main(int argc, char *argv[])
 	output_count = 0;
 	// Open output file
 	fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
-	// TODO
 	while(0 < more_fps_left) { // while an input file is still open
 		// Get all with min read name
 		char *min_read_name=NULL;
@@ -265,26 +266,37 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 	char csfasta_name[SEQUENCE_NAME_LENGTH]="\0";
 	char read[SEQUENCE_LENGTH]="\0";
 	char qual_name[SEQUENCE_NAME_LENGTH]="\0";
-	char qual[SEQUENCE_LENGTH]="\0";
+	int32_t qual[SEQUENCE_LENGTH];
+	int32_t i;
 
 	// Read in
 	if(NULL == fgets(csfasta_name, SEQUENCE_NAME_LENGTH, csfasta_fp) ||
-			NULL == fgets(reads, SEQUENCE_LENGTH, csfasta_fp)) {
+			NULL == fgets(read, SEQUENCE_LENGTH, csfasta_fp)) {
 		PrintError(FnName,
 				"csfasta",
 				"Could not read in from file",
 				Exit,
 				ReadFileError);
 	}
-	if(NULL == fgets(qual_name, SEQUENCE_NAME_LENGTH, qual_fp) ||
-			NULL == fgets(qual, SEQUENCE_LENGTH, qual_fp)) {
+	if(NULL == fgets(qual_name, SEQUENCE_NAME_LENGTH, qual_fp)) {
 		PrintError(FnName,
-				"qual",
+				"qual_name",
 				"Could not read in from file",
 				Exit,
 				ReadFileError);
 	}
+	// Read in qual
+	for(i=0;i<strlen(read)-1;i++) {
+		if(fscanf(qual_fp, "%d", &qual[i]) < 0) {
+			PrintError(FnName,
+					"qual[i]",
+					"Could not read in from file",
+					Exit,
+					ReadFileError);
+		}
+	}
 
+	// Check that the read name and csfasta name match
 	if(0 != strcmp(csfasta_name, qual_name)) {
 		PrintError(FnName,
 				"csfasta_name != qual_name",
@@ -294,13 +306,98 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 	}
 
 	// Convert SOLiD qualities
-	// TODO
-	
+	for(i=0;i<strlen(read)-1;i++) {
+		qual[i] = (qual[i] <= 93 ? qual[i] : 93) + 33;
+	}
+
 	// Print out
-	// TODO
+	fprintf(output_fp, "%s\n%s\n+\n",
+			csfasta_name,
+			read);
+	for(i=0;i<strlen(read)-1;i++) {
+		fprintf(output_fp, "%c", QUAL2CHAR(qual[i]));
+	}
+	fprintf(output_fp, "\n");
 }
 
+char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
+{
+	char *FnName="get_read_name";
+	fpos_t pos_csfasta, pos_qual;
+	char name_csfasta[SEQUENCE_NAME_LENGTH]="\0";
+	char name_qual[SEQUENCE_NAME_LENGTH]="\0";
+
+	// Get position
+	if(0 != fgetpos(fp_csfasta, &pos_csfasta) ||
+			0 != fgetpos(fp_qual, &pos_qual)) {
+		return NULL;
+	}
+
+	// Read
+	if(EOF != fscanf(fp_csfasta, "%s", name_csfasta) ||
+			EOF != fscanf(fp_qual, "%s", name_qual)) {
+		return NULL;
+	}
+
+	// Reset position
+	if(0 != fsetpos(fp_csfasta, &pos_csfasta) ||
+			0 != fsetpos(fp_qual, &pos_qual)) {
+		return NULL;
+	}
+
+	// Trim last _R3 or _F3 or _whatever
+	read_name_trim(name_csfasta);
+	read_name_trim(name_qual);
+
+	// Check the names match
+	if(0 != cmp_read_names(name_csfasta, name_qual)) {
+		PrintError(FnName,
+				NULL,
+				"The read and qual names did not match",
+				Exit,
+				OutOfRange);
+	}
+
+	// This could be dangerous
+	return strdup(name_csfasta);
+}
+
+// TODO
 /*
-   char *get_read_name(FILE*, FILE*);
    int32_t cmp_read_names(char*, char*);
    */
+/*
+int32_t cmp_read_names(char *name_one, char *name_two)
+{
+	int32_t state = 0; // 0 - characters, 1 - numbers
+	int32_t name_one_i, name_two_i;
+
+	// characters, then numbers, then characters, then numbers
+	// recursion is for sissies
+}
+*/
+
+void read_name_trim(char *name)
+{
+	int32_t i;
+
+	// Trim last _R3 or _F3 or _whatever
+
+	if(NULL == name) {
+		return;
+	}
+
+	for(i=strlen(name)-1;0<i;i--) {
+		switch(name[i]) {
+			case '_':
+				// truncate
+				name[i]='\0';
+				return;
+				break;
+			default:
+				break;
+		}
+	}
+
+	assert('_' != name[0]);
+}
