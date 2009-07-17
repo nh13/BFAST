@@ -362,20 +362,47 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 	return strdup(name_csfasta);
 }
 
-// TODO
-/*
-   int32_t cmp_read_names(char*, char*);
-   */
-/*
 int32_t cmp_read_names(char *name_one, char *name_two)
 {
-	int32_t state = 0; // 0 - characters, 1 - numbers
-	int32_t name_one_i, name_two_i;
+	char *name_one_cur = NULL;
+	char *name_two_cur = NULL;
+	int32_t name_one_num_state = 0, name_two_num_state = 0;
+	int32_t return_value = 0;
 
-	// characters, then numbers, then characters, then numbers
-	// recursion is for sissies
+	name_one_cur = strtok(name_one, "_");
+	name_two_cur = strtok(name_two, "_");
+
+	while(NULL != name_one_cur && NULL != name_two_cur) {
+		// assumes positive
+		name_one_num_state = ( name_one_cur[0] < '0' || name_one_cur[0] > '9') ? 0 : 1;
+		name_two_num_state = ( name_two_cur[0] < '0' || name_two_cur[0] > '9') ? 0 : 1;
+		if(1 == name_one_num_state && 1 == name_two_num_state) {
+			name_one_num_state = atoi(name_one_cur);
+			name_two_num_state = atoi(name_two_cur);
+			return_value = (name_one_num_state < name_two_num_state) ? -1 : ((name_one_num_state == name_two_num_state) ? 0 : 1); 
+		}
+		else {
+			return_value = strcmp(name_one_cur, name_two_cur);
+		}
+		if(0 != return_value) {
+			return return_value;
+		}
+
+		// Get next tokens
+		name_one_cur = strtok(NULL, "_");
+		name_two_cur = strtok(NULL, "_");
+	}
+
+	if(NULL != name_one_cur && NULL == name_two_cur) {
+		return 1;
+	}
+	else if(NULL == name_one_cur && NULL != name_two_cur) {
+		return -1;
+	}
+	else {
+		return 0;
+	}
 }
-*/
 
 void read_name_trim(char *name)
 {
