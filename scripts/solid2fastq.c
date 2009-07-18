@@ -8,6 +8,7 @@
 #include <string.h>
 #include "../blib/BLibDefinitions.h"
 #include "../blib/BError.h"
+#include "../blib/BLib.h"
 
 FILE *open_output_file(char*, int32_t, int32_t);
 void print_fastq(FILE*, FILE*, FILE*);
@@ -21,6 +22,8 @@ int main(int argc, char *argv[])
 	char *output_prefix=NULL;
 	int32_t num_reads_per_file=-1;
 	int32_t number_of_ends;
+	int32_t num_ends_printed = 0;
+	int64_t *end_counts=NULL;
 	char **csfasta_filenames=NULL;
 	char **qual_filenames=NULL;
 	FILE **fps_csfasta=NULL;
@@ -77,9 +80,18 @@ int main(int argc, char *argv[])
 				Exit,
 				MallocMemory);
 	}
+	end_counts = malloc(sizeof(int64_t)*number_of_ends);
+	if(NULL == end_counts) {
+		PrintError("solid2fastq",
+				"end_counts",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 	for(i=0;i<number_of_ends;i++) {
 		csfasta_filenames[i] = strdup(argv[optind+i]);
 		qual_filenames[i] = strdup(argv[optind+i+number_of_ends]);
+		end_counts[i] = 0;
 	}
 
 	// Allocate memory for input file pointers
@@ -102,8 +114,6 @@ int main(int argc, char *argv[])
 
 	// Open input files
 	for(i=0;i<number_of_ends;i++) {
-		fprintf(stderr, "Opening %s\n", 
-				csfasta_filenames[i]);
 		if(!(fps_csfasta[i] = fopen(csfasta_filenames[i], "r"))) {
 			PrintError("solid2fastq",
 					csfasta_filenames[i],
@@ -111,8 +121,6 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
-		fprintf(stderr, "Opening %s\n", 
-				qual_filenames[i]);
 		if(!(fps_qual[i] = fopen(qual_filenames[i], "r"))) {
 			PrintError("solid2fastq",
 					qual_filenames[i],
@@ -144,7 +152,7 @@ int main(int argc, char *argv[])
 
 	int32_t *to_print=NULL;
 	int32_t more_fps_left=1;
-	int32_t output_count=0;
+	int64_t output_count=0;
 
 	to_print = malloc(sizeof(int32_t)*number_of_ends);
 	if(NULL == to_print) {
@@ -160,24 +168,31 @@ int main(int argc, char *argv[])
 	output_count = 0;
 	// Open output file
 	fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+	fprintf(stderr, "Outputting, currently on:\n0");
 	while(0 < more_fps_left) { // while an input file is still open
+
+		if(0 == (output_count % 100000)) {
+			fprintf(stderr, "\r%lld",
+					(long long int)output_count);
+		}
 		/*
-		fprintf(stderr, "more_fps_left=%d\n",
-				more_fps_left);
-				*/
+		   fprintf(stderr, "more_fps_left=%d\n",
+		   more_fps_left);
+		   */
 		// Get all with min read name
 		char *min_read_name=NULL;
 		for(i=0;i<number_of_ends;i++) {
+			to_print[i] = 0;
 			/*
-			fprintf(stderr, "%d\t%d\t%d\n",
-					i,
-					NULL == fps_csfasta[i],
-					NULL == fps_qual[i]);
-			*/
+			   fprintf(stderr, "%d\t%d\t%d\n",
+			   i,
+			   NULL == fps_csfasta[i],
+			   NULL == fps_qual[i]);
+			   */
 			if(NULL != fps_csfasta[i] && NULL != fps_qual[i]) {
 				/*
-				fprintf(stderr, "HERE 1\n");
-				*/
+				   fprintf(stderr, "HERE 1\n");
+				   */
 				fpos_t pos_csfasta, pos_qual;
 				char *read_name=NULL;
 				assert(0 == fgetpos(fps_csfasta[i], &pos_csfasta));
@@ -185,19 +200,20 @@ int main(int argc, char *argv[])
 				read_name = get_read_name(fps_csfasta[i], fps_qual[i]); // Get read name
 				if(NULL == read_name) { // eof
 					/*
-					fprintf(stderr, "EOF\n");
-					*/
+					   fprintf(stderr, "EOF\n");
+					   */
 					fclose(fps_csfasta[i]);
 					fclose(fps_qual[i]);
 					fps_csfasta[i] = fps_qual[i] = NULL;
+					to_print[i] = 0;
 				}
 				else {
 					/*
-					fprintf(stderr, "%d\tread_name=%s\tmin_read_name=%s\n",
-							i,
-							read_name,
-							min_read_name);
-							*/
+					   fprintf(stderr, "%d\tread_name=%s\tmin_read_name=%s\n",
+					   i,
+					   read_name,
+					   min_read_name);
+					   */
 					// check if the read name is the min
 					if(NULL == min_read_name || 0 == cmp_read_names(read_name, min_read_name)) {
 						if(NULL == min_read_name) {
@@ -230,14 +246,19 @@ int main(int argc, char *argv[])
 		}
 		// Print all with min read name
 		more_fps_left = 0;
+		num_ends_printed = 0;
 		for(i=0;i<number_of_ends;i++) {
 			if(1 == to_print[i]) {
 				more_fps_left++;
 				print_fastq(fp_output, fps_csfasta[i], fps_qual[i]);
+				num_ends_printed++;
 			}
 		}
-		// Update counts
-		output_count++;
+		if(0 < num_ends_printed) {
+			end_counts[num_ends_printed-1]++;
+			// Update counts
+			output_count++;
+		}
 		// Open a new output file if necessary
 		if(0 < num_reads_per_file &&
 				num_reads_per_file <= output_count) {
@@ -245,6 +266,18 @@ int main(int argc, char *argv[])
 			fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 			output_count=0;
 		}
+	}
+	fprintf(stderr, "\r%lld\n",
+			(long long int)output_count);
+
+	fprintf(stderr, "Found\n%16s\t%16s\n", 
+			"number_of_ends",
+			"number_of_reads");
+
+	for(i=0;i<number_of_ends;i++) {
+		fprintf(stderr, "%16d\t%16lld\n",
+				i+1,
+				(long long int)end_counts[i]);
 	}
 
 	// Free
@@ -255,6 +288,7 @@ int main(int argc, char *argv[])
 	}
 	free(csfasta_filenames);
 	free(qual_filenames);
+	free(end_counts);
 	free(fps_csfasta);
 	free(fps_qual);
 
@@ -296,22 +330,29 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 	int32_t qual[SEQUENCE_LENGTH];
 	int32_t i;
 
+	if(0 != feof(csfasta_fp) || 0 != feof(qual_fp)) {
+		return;
+	}
+
 	// Read in
-	if(NULL == fgets(csfasta_name, SEQUENCE_NAME_LENGTH, csfasta_fp) ||
-			NULL == fgets(read, SEQUENCE_LENGTH, csfasta_fp)) {
+	if(fscanf(csfasta_fp, "%s", csfasta_name) < 0 ||
+			fscanf(csfasta_fp, "%s", read) < 0) {
 		PrintError(FnName,
 				"csfasta",
 				"Could not read in from file",
 				Exit,
 				ReadFileError);
 	}
-	if(NULL == fgets(qual_name, SEQUENCE_NAME_LENGTH, qual_fp)) {
+	if(fscanf(qual_fp, "%s", qual_name) < 0) {
 		PrintError(FnName,
 				"qual_name",
 				"Could not read in from file",
 				Exit,
 				ReadFileError);
 	}
+	StringTrimWhiteSpace(csfasta_name);
+	StringTrimWhiteSpace(read);
+	StringTrimWhiteSpace(qual_name);
 	// Read in qual
 	for(i=0;i<strlen(read)-1;i++) {
 		if(fscanf(qual_fp, "%d", &qual[i]) < 0) {
@@ -325,9 +366,7 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 
 	// Check that the read name and csfasta name match
 	if(0 != strcmp(csfasta_name, qual_name)) {
-		/*
-		fprintf(stderr, "csfasta_name=%s\nqual_name=%s\n", csfasta_name, qual_name);
-		*/
+		   fprintf(stderr, "csfasta_name=[%s]\nqual_name=[%s]\n", csfasta_name, qual_name);
 		PrintError(FnName,
 				"csfasta_name != qual_name",
 				"Read names did not match",
@@ -338,20 +377,20 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 	// Convert SOLiD qualities
 	for(i=0;i<strlen(read)-1;i++) {
 		/*
-		fprintf(stderr, "%c -> %c\n%d -> %d\n",
-				qual[i],
-				(qual[i] <= 93 ? qual[i] : 93) + 33,
-				qual[i],
-				(qual[i] <= 93 ? qual[i] : 93) + 33);
-		exit(1);
-		*/
+		   fprintf(stderr, "%c -> %c\n%d -> %d\n",
+		   qual[i],
+		   (qual[i] <= 93 ? qual[i] : 93) + 33,
+		   qual[i],
+		   (qual[i] <= 93 ? qual[i] : 93) + 33);
+		   exit(1);
+		   */
 		qual[i] = (qual[i] <= 93 ? qual[i] : 93) + 33;
 	}
 
 	// Print out
 	assert('>' == csfasta_name[0]);
 	csfasta_name[0]='@'; // assumes '>' is the first character
-	fprintf(output_fp, "%s%s+\n",
+	fprintf(output_fp, "%s\n%s\n+\n",
 			csfasta_name,
 			read);
 	for(i=0;i<strlen(read)-1;i++) {
@@ -368,8 +407,8 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 	char name_qual[SEQUENCE_NAME_LENGTH]="\0";
 
 	/*
-	fprintf(stderr, "In %s\n", FnName);
-	*/
+	   fprintf(stderr, "In %s\n", FnName);
+	   */
 
 	// Get position
 	if(0 != fgetpos(fp_csfasta, &pos_csfasta) ||
@@ -390,10 +429,10 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 	}
 
 	/*
-	fprintf(stderr, "Checking %s with %s\n",
-			name_csfasta,
-			name_qual);
-			*/
+	   fprintf(stderr, "Checking %s with %s\n",
+	   name_csfasta,
+	   name_qual);
+	   */
 	// Trim last _R3 or _F3 or _whatever
 	read_name_trim(name_csfasta);
 	read_name_trim(name_qual);
@@ -401,10 +440,10 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 	// Check the names match
 	if(0 != cmp_read_names(name_csfasta, name_qual)) {
 		/*
-		fprintf(stderr, "\n%s\n%s\n",
-				name_csfasta,
-				name_qual);
-				*/
+		   fprintf(stderr, "\n%s\n%s\n",
+		   name_csfasta,
+		   name_qual);
+		   */
 		PrintError(FnName,
 				NULL,
 				"The read and qual names did not match",
@@ -424,9 +463,9 @@ int32_t cmp_read_names(char *name_one, char *name_two)
 	int32_t return_value = 0;
 	int32_t name_one_index = 0, name_two_index = 0;
 	/*
-	fprintf(stderr, "comparing %s with %s\n",
-			name_one, name_two);
-			*/
+	   fprintf(stderr, "comparing %s with %s\n",
+	   name_one, name_two);
+	   */
 
 	name_one_cur = strtok_mod(name_one, "_", &name_one_index);
 	name_two_cur = strtok_mod(name_two, "_", &name_two_index);
