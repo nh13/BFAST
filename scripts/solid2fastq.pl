@@ -209,6 +209,12 @@ sub print_fastq {
 		for(my $i=0;$i<scalar(@quals);$i++) {
 			# Sanger encoding
 			$qual .= chr(($quals[$i]<=93? $quals[$i]: 93) + 33);
+			#printf(STDERR "%s -> %s\n%d -> %d\n",
+			#	chr($quals[$i]),
+			#	chr(($quals[$i]<=93? $quals[$i]: 93) + 33),
+			#	int($quals[$i]),
+			#	int(($quals[$i]<=93? $quals[$i]: 93) + 33));
+			#exit 1;
 		}
 		# Print to stdout
 		printf($FH_out "@%s\n%s\n+\n%s\n",

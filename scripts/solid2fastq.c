@@ -14,6 +14,7 @@ void print_fastq(FILE*, FILE*, FILE*);
 char *get_read_name(FILE*, FILE*);
 int32_t cmp_read_names(char*, char*);
 void read_name_trim(char*);
+char *strtok_mod(char*, char*, int32_t*);
 
 int main(int argc, char *argv[])
 {
@@ -53,32 +54,32 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
 		fprintf(stderr, "\t-o\t\toutput prefix.\n");
 		fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
+		return 0;
 	}
 
 	// Copy over the filenames
-	number_of_ends = 0;
-	for(i=optind;i<argc;i+=2) {
-		number_of_ends++;
-		// Reallocate memory
-		csfasta_filenames = realloc(csfasta_filenames, sizeof(char*)*number_of_ends);
-		if(NULL == csfasta_filenames) {
-			PrintError("solid2fastq",
-					"csfasta_filenames",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-		qual_filenames = realloc(qual_filenames, sizeof(char*)*number_of_ends);
-		if(NULL == qual_filenames) {
-			PrintError("solid2fastq",
-					"qual_filenames",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
-		}
-		// Copy over filenames
-		csfasta_filenames[number_of_ends-1] = strdup(argv[i]);
-		qual_filenames[number_of_ends-1] = strdup(argv[i+1]);
+	assert(0 == (argc - optind) % 2);
+	number_of_ends = (argc - optind) / 2;
+	// Allocate memory
+	csfasta_filenames = malloc(sizeof(char*)*number_of_ends);
+	if(NULL == csfasta_filenames) {
+		PrintError("solid2fastq",
+				"csfasta_filenames",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	qual_filenames = malloc(sizeof(char*)*number_of_ends);
+	if(NULL == qual_filenames) {
+		PrintError("solid2fastq",
+				"qual_filenames",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+	for(i=0;i<number_of_ends;i++) {
+		csfasta_filenames[i] = strdup(argv[optind+i]);
+		qual_filenames[i] = strdup(argv[optind+i+number_of_ends]);
 	}
 
 	// Allocate memory for input file pointers
@@ -101,6 +102,8 @@ int main(int argc, char *argv[])
 
 	// Open input files
 	for(i=0;i<number_of_ends;i++) {
+		fprintf(stderr, "Opening %s\n", 
+				csfasta_filenames[i]);
 		if(!(fps_csfasta[i] = fopen(csfasta_filenames[i], "r"))) {
 			PrintError("solid2fastq",
 					csfasta_filenames[i],
@@ -108,6 +111,8 @@ int main(int argc, char *argv[])
 					Exit,
 					OpenFileError);
 		}
+		fprintf(stderr, "Opening %s\n", 
+				qual_filenames[i]);
 		if(!(fps_qual[i] = fopen(qual_filenames[i], "r"))) {
 			PrintError("solid2fastq",
 					qual_filenames[i],
@@ -156,21 +161,43 @@ int main(int argc, char *argv[])
 	// Open output file
 	fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 	while(0 < more_fps_left) { // while an input file is still open
+		/*
+		fprintf(stderr, "more_fps_left=%d\n",
+				more_fps_left);
+				*/
 		// Get all with min read name
 		char *min_read_name=NULL;
 		for(i=0;i<number_of_ends;i++) {
+			/*
+			fprintf(stderr, "%d\t%d\t%d\n",
+					i,
+					NULL == fps_csfasta[i],
+					NULL == fps_qual[i]);
+			*/
 			if(NULL != fps_csfasta[i] && NULL != fps_qual[i]) {
+				/*
+				fprintf(stderr, "HERE 1\n");
+				*/
 				fpos_t pos_csfasta, pos_qual;
 				char *read_name=NULL;
 				assert(0 == fgetpos(fps_csfasta[i], &pos_csfasta));
 				assert(0 == fgetpos(fps_qual[i], &pos_qual));
 				read_name = get_read_name(fps_csfasta[i], fps_qual[i]); // Get read name
 				if(NULL == read_name) { // eof
+					/*
+					fprintf(stderr, "EOF\n");
+					*/
 					fclose(fps_csfasta[i]);
 					fclose(fps_qual[i]);
 					fps_csfasta[i] = fps_qual[i] = NULL;
 				}
 				else {
+					/*
+					fprintf(stderr, "%d\tread_name=%s\tmin_read_name=%s\n",
+							i,
+							read_name,
+							min_read_name);
+							*/
 					// check if the read name is the min
 					if(NULL == min_read_name || 0 == cmp_read_names(read_name, min_read_name)) {
 						if(NULL == min_read_name) {
@@ -298,6 +325,9 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 
 	// Check that the read name and csfasta name match
 	if(0 != strcmp(csfasta_name, qual_name)) {
+		/*
+		fprintf(stderr, "csfasta_name=%s\nqual_name=%s\n", csfasta_name, qual_name);
+		*/
 		PrintError(FnName,
 				"csfasta_name != qual_name",
 				"Read names did not match",
@@ -307,15 +337,25 @@ void print_fastq(FILE *output_fp, FILE *csfasta_fp, FILE *qual_fp)
 
 	// Convert SOLiD qualities
 	for(i=0;i<strlen(read)-1;i++) {
+		/*
+		fprintf(stderr, "%c -> %c\n%d -> %d\n",
+				qual[i],
+				(qual[i] <= 93 ? qual[i] : 93) + 33,
+				qual[i],
+				(qual[i] <= 93 ? qual[i] : 93) + 33);
+		exit(1);
+		*/
 		qual[i] = (qual[i] <= 93 ? qual[i] : 93) + 33;
 	}
 
 	// Print out
-	fprintf(output_fp, "%s\n%s\n+\n",
+	assert('>' == csfasta_name[0]);
+	csfasta_name[0]='@'; // assumes '>' is the first character
+	fprintf(output_fp, "%s%s+\n",
 			csfasta_name,
 			read);
 	for(i=0;i<strlen(read)-1;i++) {
-		fprintf(output_fp, "%c", QUAL2CHAR(qual[i]));
+		fprintf(output_fp, "%c", (char)qual[i]);
 	}
 	fprintf(output_fp, "\n");
 }
@@ -327,6 +367,10 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 	char name_csfasta[SEQUENCE_NAME_LENGTH]="\0";
 	char name_qual[SEQUENCE_NAME_LENGTH]="\0";
 
+	/*
+	fprintf(stderr, "In %s\n", FnName);
+	*/
+
 	// Get position
 	if(0 != fgetpos(fp_csfasta, &pos_csfasta) ||
 			0 != fgetpos(fp_qual, &pos_qual)) {
@@ -334,8 +378,8 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 	}
 
 	// Read
-	if(EOF != fscanf(fp_csfasta, "%s", name_csfasta) ||
-			EOF != fscanf(fp_qual, "%s", name_qual)) {
+	if(EOF == fscanf(fp_csfasta, "%s", name_csfasta) ||
+			EOF == fscanf(fp_qual, "%s", name_qual)) {
 		return NULL;
 	}
 
@@ -345,12 +389,22 @@ char *get_read_name(FILE *fp_csfasta, FILE *fp_qual)
 		return NULL;
 	}
 
+	/*
+	fprintf(stderr, "Checking %s with %s\n",
+			name_csfasta,
+			name_qual);
+			*/
 	// Trim last _R3 or _F3 or _whatever
 	read_name_trim(name_csfasta);
 	read_name_trim(name_qual);
 
 	// Check the names match
 	if(0 != cmp_read_names(name_csfasta, name_qual)) {
+		/*
+		fprintf(stderr, "\n%s\n%s\n",
+				name_csfasta,
+				name_qual);
+				*/
 		PrintError(FnName,
 				NULL,
 				"The read and qual names did not match",
@@ -368,11 +422,21 @@ int32_t cmp_read_names(char *name_one, char *name_two)
 	char *name_two_cur = NULL;
 	int32_t name_one_num_state = 0, name_two_num_state = 0;
 	int32_t return_value = 0;
+	int32_t name_one_index = 0, name_two_index = 0;
+	/*
+	fprintf(stderr, "comparing %s with %s\n",
+			name_one, name_two);
+			*/
 
-	name_one_cur = strtok(name_one, "_");
-	name_two_cur = strtok(name_two, "_");
+	name_one_cur = strtok_mod(name_one, "_", &name_one_index);
+	name_two_cur = strtok_mod(name_two, "_", &name_two_index);
 
 	while(NULL != name_one_cur && NULL != name_two_cur) {
+		/*
+		   fprintf(stderr, "name_one_cur=%s\nname_two_cur=%s\n",
+		   name_one_cur,
+		   name_two_cur);
+		   */
 		// assumes positive
 		name_one_num_state = ( name_one_cur[0] < '0' || name_one_cur[0] > '9') ? 0 : 1;
 		name_two_num_state = ( name_two_cur[0] < '0' || name_two_cur[0] > '9') ? 0 : 1;
@@ -384,14 +448,22 @@ int32_t cmp_read_names(char *name_one, char *name_two)
 		else {
 			return_value = strcmp(name_one_cur, name_two_cur);
 		}
+		/*
+		   fprintf(stderr, "return_value=%d\n", return_value);
+		   */
 		if(0 != return_value) {
 			return return_value;
 		}
 
 		// Get next tokens
-		name_one_cur = strtok(NULL, "_");
-		name_two_cur = strtok(NULL, "_");
+		free(name_one_cur);
+		free(name_two_cur);
+		name_one_cur = strtok_mod(name_one, "_", &name_one_index);
+		name_two_cur = strtok_mod(name_two, "_", &name_two_index);
 	}
+
+	free(name_one_cur);
+	free(name_two_cur);
 
 	if(NULL != name_one_cur && NULL == name_two_cur) {
 		return 1;
@@ -419,6 +491,7 @@ void read_name_trim(char *name)
 			case '_':
 				// truncate
 				name[i]='\0';
+				//fprintf(stderr, "return i=%d\n%s\n", i, name);
 				return;
 				break;
 			default:
@@ -427,4 +500,31 @@ void read_name_trim(char *name)
 	}
 
 	assert('_' != name[0]);
+}
+
+char *strtok_mod(char *str, char *delim, int32_t *index)
+{
+	int32_t i, prev_index=(*index);
+	char *r=strdup(str);
+
+	assert(NULL != str);
+
+	while((*index) < strlen(str)) {
+		for(i=0;i<strlen(delim);i++) {
+			if(delim[i] == str[(*index)]) {
+				r[(*index)]='\0';
+				(*index)++;
+				return r;
+			}
+		}
+		(*index)++;
+	}
+
+	if(prev_index == (*index)) {
+		free(r);
+		return NULL;
+	}
+	else {
+		return r;
+	}
 }
