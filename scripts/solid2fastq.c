@@ -206,6 +206,9 @@ int main(int argc, char *argv[])
 					reads[i].to_print = 0;
 				}
 			}
+			else {
+				reads[i].to_print = 0;
+			}
 			// check if the read name is the min
 			if(1 == reads[i].is_pop) {
 				/*
@@ -247,8 +250,8 @@ int main(int argc, char *argv[])
 		for(i=0;i<number_of_ends;i++) {
 			if(1 == reads[i].to_print) {
 				more_fps_left++;
-				fastq_print(&reads[i], fp_output);
 				num_ends_printed++;
+				fastq_print(&reads[i], fp_output);
 				reads[i].is_pop = reads[i].to_print = 0;
 			}
 		}
@@ -262,9 +265,13 @@ int main(int argc, char *argv[])
 		if(0 < num_reads_per_file &&
 				num_reads_per_file <= output_count) {
 			output_suffix_number++;
+			fclose(fp_output);
 			fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 			output_count=0;
 		}
+	}
+	if(0 < output_count) {
+		fclose(fp_output);
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)output_count_total);
@@ -290,6 +297,7 @@ int main(int argc, char *argv[])
 	free(end_counts);
 	free(fps_csfasta);
 	free(fps_qual);
+	free(reads);
 
 	return 0;
 }
