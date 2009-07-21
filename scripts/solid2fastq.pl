@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 # Author: Nils Homer
+# Please see the C implementation of this script.
 
 use strict;
 use warnings;
@@ -36,11 +37,14 @@ Usage: solid2fastq.pl <output prefix> <number of reads> \\
   respecitive .qual files named <prefix>F3_QV.qual and 
   <prefix>R3_QV.qual, then the command should be:
 
-    solid2fastq.pl <prefix>F3.csfasta <prefix>R3.csfasta \\
-      <prefix>.F3_QV.qual <prefix>.R3_QV.qual
+    solid2fastq.pl <output prefix> <number of reads> \\
+		<prefix>.F3.csfasta <prefix>.R3.csfasta \\
+		<prefix>.F3_QV.qual <prefix>.R3_QV.qual
 
    It is assumed that for multi-end data, the files are given in 
    the same order as 5'->3'.
+
+   Please also see the C-version of this script.
 };
 my $ROTATE_NUM = 100000;
 

@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 # Author: Nils Homer
+# At some point, a C implementation of this script would be nice.
 
 use strict;
 use warnings;
