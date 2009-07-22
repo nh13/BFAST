@@ -214,11 +214,11 @@ int main(int argc, char *argv[])
 			// check if the read name is the min
 			if(1 == reads[i].is_pop) {
 				/*
-				fprintf(stderr, "i=%d\tmin_read_name=%s\treads[i].name=%s\n",
+				fprintf(stdout, "i=%d\tmin_read_name=%s\treads[i].name=%s\n",
 						i,
 						min_read_name,
 						reads[i].name);
-				*/
+						*/
 				if(NULL == min_read_name || 
 						0 == cmp_read_names(reads[i].name, min_read_name)) {
 					if(NULL == min_read_name) {
@@ -243,6 +243,10 @@ int main(int argc, char *argv[])
 				assert(0 == reads[i].to_print);
 			}
 		}
+		/*
+		fprintf(stdout, "min_read_name was %s\n",
+				min_read_name);
+				*/
 		free(min_read_name);
 		min_read_name=NULL;
 
@@ -336,7 +340,7 @@ void fastq_print(fastq_t *read, FILE *output_fp)
 	int32_t i;
 
 	// Print out
-	fprintf(output_fp, "%s\n%s\n+\n",
+	fprintf(output_fp, "@%s\n%s\n+\n",
 			read->name,
 			read->read);
 	for(i=0;i<strlen(read->read)-1;i++) {
@@ -393,6 +397,11 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, FILE *fp_qual)
 				Exit,
 				OutOfRange);
 	}
+	// Remove leading '@' from the read name
+	for(i=1;i<strlen(read->name);i++) {
+		read->name[i-1] = read->name[i];
+	}
+	read->name[i]='\0';
 
 	// Convert SOLiD qualities
 	for(i=0;i<strlen(read->read)-1;i++) {
@@ -410,9 +419,6 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, FILE *fp_qual)
 
 	// Trim last _R3 or _F3 or _whatever
 	read_name_trim(read->name);
-
-	assert('>' == read->name[0]);
-	read->name[0]='@'; // assumes '>' is the first character
 
 	read->is_pop = 1;
 }
