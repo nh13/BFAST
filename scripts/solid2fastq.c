@@ -363,18 +363,10 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, FILE *fp_qual)
 	// Read in
 	if(fscanf(fp_csfasta, "%s", read->name) < 0 ||
 			fscanf(fp_csfasta, "%s", read->read) < 0) {
-		PrintError(FnName,
-				"csfasta",
-				"Could not read in from file",
-				Exit,
-				ReadFileError);
+		return;
 	}
 	if(fscanf(fp_qual, "%s", qual_name) < 0) {
-		PrintError(FnName,
-				"qual_name",
-				"Could not read in from file",
-				Exit,
-				ReadFileError);
+		return;
 	}
 	StringTrimWhiteSpace(read->name);
 	StringTrimWhiteSpace(read->read);
