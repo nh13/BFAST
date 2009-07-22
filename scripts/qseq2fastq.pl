@@ -169,6 +169,7 @@ sub parse_line {
 
 	if(1 != $end) {
 		$seq = reverse($seq);
+		$seq =~ tr/ACGTacgt/TGCAtgca/;
 		$qual = reverse($qual);
 	}
 

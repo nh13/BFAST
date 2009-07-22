@@ -7,6 +7,8 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.5.3
 * Added C implementation of solid2fastq.pl for faster fastq generation.
+* Fixing bug in qseq2fastq.pl that did not complement but only reversed
+the seconde end of a paired end read.
 
 Version 0.5.2
 * Fixing bug when searching secondary indexes (introduced in 0.5.0
