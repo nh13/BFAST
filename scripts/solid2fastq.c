@@ -196,7 +196,9 @@ int main(int argc, char *argv[])
 		// Get all with min read name
 		for(i=0;i<number_of_ends;i++) {
 			// populate read if necessary
-			if(0 == reads[i].is_pop) {
+			if(0 == reads[i].is_pop &&
+					NULL != fps_csfasta[i] &&
+					NULL != fps_qual[i]) {
 				fastq_read(&reads[i], fps_csfasta[i], fps_qual[i]); // Get read name
 				if(0 == reads[i].is_pop) { // was not populated
 					//fprintf(stderr, "EOF\n");
@@ -451,6 +453,8 @@ int32_t cmp_read_names(char *name_one, char *name_two)
 		   fprintf(stderr, "return_value=%d\n", return_value);
 		   */
 		if(0 != return_value) {
+			free(name_one_cur);
+			free(name_two_cur);
 			return return_value;
 		}
 
