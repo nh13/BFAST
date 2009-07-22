@@ -32,7 +32,7 @@ Usage: qseq2fastq.pl <input .qseq prefix>
 	paired.  For example, if we wish to create a paired end fastq
 	file the first lane, the command should be:
 
-		qseq2fastq.pl s_1_
+		qseq2fastq.pl s_1
 };
 my $ROTATE_NUM = 100000;
 
