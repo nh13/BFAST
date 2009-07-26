@@ -255,6 +255,15 @@ void WriteReadsToTempFile(FILE *seqFP,
 				(*numWritten)++;
 			}
 			else {
+				assert(seqFilteredFP != NULL);
+				/* Write to filtered read file */
+				if(EOF == WriteRead(seqFilteredFP, &m)) {
+					PrintError(FnName,
+							NULL,
+							"Could not write read",
+							Exit,
+							WriteFileError);
+				}
 				(*numFiltered)++;
 			}
 		}
