@@ -254,6 +254,9 @@ void WriteReadsToTempFile(FILE *seqFP,
 				}
 				(*numWritten)++;
 			}
+			else {
+				(*numFiltered)++;
+			}
 		}
 		else {
 			assert(seqFilteredFP != NULL);
