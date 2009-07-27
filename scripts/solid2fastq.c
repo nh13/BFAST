@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 {
 	char *output_prefix=NULL;
 	int32_t num_reads_per_file=-1;
+	int32_t no_output=0;
 	int32_t number_of_ends;
 	int32_t num_ends_printed = 0;
 	int64_t *end_counts=NULL;
@@ -47,8 +48,10 @@ int main(int argc, char *argv[])
 	char *min_read_name=NULL;
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:c")) >= 0) {
 		switch(c) {
+			case 'c':
+				no_output=1; break;
 			case 'n':
 				num_reads_per_file=atoi(optarg); break;
 				break;
@@ -67,6 +70,7 @@ int main(int argc, char *argv[])
 				PACKAGE_VERSION);
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <lsit of .qual files>\n");
+		fprintf(stderr, "\t-c\t\tproduce no output.\n");
 		fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
 		fprintf(stderr, "\t-o\t\toutput prefix.\n");
 		fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
@@ -181,7 +185,9 @@ int main(int argc, char *argv[])
 	more_fps_left=number_of_ends;
 	output_count = output_count_total = 0;
 	// Open output file
+	if(0 == no_output) {
 	fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+	}
 	fprintf(stderr, "Outputting, currently on:\n0");
 	while(0 < more_fps_left) { // while an input file is still open
 
@@ -257,7 +263,9 @@ int main(int argc, char *argv[])
 			if(1 == reads[i].to_print) {
 				more_fps_left++;
 				num_ends_printed++;
-				fastq_print(&reads[i], fp_output);
+				if(0 == no_output) {
+					fastq_print(&reads[i], fp_output);
+				}
 				reads[i].is_pop = reads[i].to_print = 0;
 			}
 		}
@@ -271,12 +279,14 @@ int main(int argc, char *argv[])
 		if(0 < num_reads_per_file &&
 				num_reads_per_file <= output_count) {
 			output_suffix_number++;
+			if(0 == no_output) {
 			fclose(fp_output);
 			fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+			}
 			output_count=0;
 		}
 	}
-	if(0 < output_count) {
+	if(0 < output_count && 0 == no_output) {
 		fclose(fp_output);
 	}
 	fprintf(stderr, "\r%lld\n",
@@ -413,7 +423,7 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, FILE *fp_qual)
 		   (qual[i] <= 93 ? qual[i] : 93) + 33);
 		   exit(1);
 		   */
-		qual[i] = (qual[i] <= 93 ? qual[i] : 93) + 33;
+		qual[i] = 33 + (qual[i] <= 0 ? 1 : (qual[i] <= 93 ? qual[i] : 93));
 		read->qual[i] = (char)qual[i];
 	}
 
