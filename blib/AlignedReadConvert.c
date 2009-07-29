@@ -617,14 +617,17 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			flag |= (REVERSE == a->ends[mateEndIndex].entries[mateEntriesIndex].strand)?0x0020:0x0000; /* Strand of the mate */
 		}
 	}
-	if(0 <entriesIndex ) {
+	if(0 < entriesIndex ) {
 		flag |= 0x0100; /* This read is not primary */
 	}
 	if(0 <= entriesIndex) { /* Mapped */
 		flag |= (REVERSE==a->ends[endIndex].entries[entriesIndex].strand)?0x0010:0x0000;
-		if(2 == a->numEnds) {
-			flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
-		}
+	}
+	if(2 == a->numEnds) {
+		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
+	}
+	else {
+		flag |= 0x0040; /* Always first end */
 	}
 	if(0>fprintf(fp, "\t%llu",
 				(unsigned long long int)flag)) {
@@ -780,6 +783,18 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			strcpy(read, a->ends[endIndex].read);
 			strcpy(qual, a->ends[endIndex].qual);
 		}
+		/*
+		if(strlen(qual) != strlen(read)) {
+			fprintf(stderr, "\nreadname=%s\nread=%s[%d,%d]\nqual=%s[%d,%d]\n",
+					a->readName,
+					read,
+					a->ends[endIndex].readLength,
+					(int)strlen(read),
+					qual,
+					a->ends[endIndex].qualLength,
+					(int)strlen(qual));
+		}
+		*/
 		assert(strlen(qual) == strlen(read));
 	}
 	else {

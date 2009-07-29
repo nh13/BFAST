@@ -6,6 +6,9 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.5.3
+* Bug converting SAM format fixed where unmapped ends of a paired end
+read where not being annotated correctly (if the end was the first or
+second).
 * Added C implementation of solid2fastq.pl for faster fastq generation.
 * Fixing bug in qseq2fastq.pl that did not complement but only reversed
 the seconde end of a paired end read.
