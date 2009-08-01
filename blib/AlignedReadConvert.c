@@ -51,7 +51,7 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			break;
 		case SAM:
 			/* Header */
-			if(0>fprintf(fp, "@VN:%s\n",
+			if(0>fprintf(fp, "@HD\tVN:%s\n",
 						BFAST_SAM_VERSION)) {
 				PrintError(FnName,
 						"header",
@@ -61,7 +61,7 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			}
 			/* Sequence dictionary */
 			for(i=0;i<rg->numContigs;i++) {
-				if(0>fprintf(fp, "@SN:%s\t%d\n",
+				if(0>fprintf(fp, "@SQ\tSN:%s\tLN:%d\n",
 							rg->contigs[i].contigName,
 							rg->contigs[i].sequenceLength)) {
 					PrintError(FnName,
@@ -73,7 +73,7 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			}
 			/* Ignore read group */
 			/* Program */
-			if(0>fprintf(fp, "@ID:%s\t%s\n",
+			if(0>fprintf(fp, "@PG\t@ID:%s\tVN:%s\n",
 						PACKAGE_NAME,
 						PACKAGE_VERSION)) {
 				PrintError(FnName,
@@ -616,18 +616,16 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			/* Other end is mapped */
 			flag |= (REVERSE == a->ends[mateEndIndex].entries[mateEntriesIndex].strand)?0x0020:0x0000; /* Strand of the mate */
 		}
+		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
+	}
+	else {
+		flag |= 0x0040; /* Always first end */
 	}
 	if(0 < entriesIndex ) {
 		flag |= 0x0100; /* This read is not primary */
 	}
 	if(0 <= entriesIndex) { /* Mapped */
 		flag |= (REVERSE==a->ends[endIndex].entries[entriesIndex].strand)?0x0010:0x0000;
-	}
-	if(2 == a->numEnds) {
-		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
-	}
-	else {
-		flag |= 0x0040; /* Always first end */
 	}
 	if(0>fprintf(fp, "\t%llu",
 				(unsigned long long int)flag)) {
