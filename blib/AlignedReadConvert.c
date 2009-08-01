@@ -73,7 +73,7 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			}
 			/* Ignore read group */
 			/* Program */
-			if(0>fprintf(fp, "@PG\t@ID:%s\tVN:%s\n",
+			if(0>fprintf(fp, "@PG\tID:%s\tVN:%s\n",
 						PACKAGE_NAME,
 						PACKAGE_VERSION)) {
 				PrintError(FnName,
