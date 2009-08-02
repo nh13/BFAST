@@ -7,6 +7,7 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.5.4
 * Bug in the SAM header and setting the unpaired reads incorrectly.
+* SAM output will now skip triple/quad/... end reads instead of quitting.
 
 Version 0.5.3
 * Bug converting SAM format fixed where unmapped ends of a paired end

@@ -525,9 +525,10 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 	if(2 < a->numEnds) {
 		PrintError(FnName,
 				NULL,
-				"Outputting reads with greater than two ends to SAM format not supported",
-				Exit,
-				WriteFileError);
+				"Outputting reads with greater than two ends to SAM format not supported. Skipping...",
+				Warn,
+				OutOfRange);
+		return;
 	}
 
 	/* Get Data */
