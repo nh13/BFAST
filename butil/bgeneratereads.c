@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 						OutOfRange);
 			}
 			/* Generate reads */
-			GenerateReads(&rg,
+			GenerateReadsFP(&rg,
 					space,
 					indel,
 					indelLength,
@@ -83,7 +83,8 @@ int main(int argc, char *argv[])
 					readLength,
 					(0 == pairedEnd)?1:2,
 					pairedEndLength,
-					numReads);
+					numReads,
+					stdout);
 		}
 		fclose(fpIn);
 		free(inputFile);
@@ -264,4 +265,80 @@ void GenerateReads(RGBinary *rg,
 
 	/* Close output file */
 	fclose(fp);
+}
+
+/* TODO */
+void GenerateReadsFP(RGBinary *rg,
+		int space,
+		int indel,
+		int indelLength,
+		int withinInsertion,
+		int numSNPs,
+		int numErrors,
+		int readLength,
+		int numEnds,
+		int pairedEndLength,
+		int numReads,
+		FILE *fp)
+{
+	char *FnName="GenerateReadsFP";
+	SimRead r;
+	int i;
+	int64_t rgLength = 0;
+
+	if(NTSpace != rg->space) {
+		PrintError(FnName,
+				"rg->space",
+				"The reference genome must be given in nucleotide space",
+				Exit,
+				OutOfRange);
+	}
+
+	/* Seed random number */
+	srand(time(NULL));
+
+	/* Get the reference genome length */
+	for(i=0;i<rg->numContigs;i++) {
+		rgLength += rg->contigs[i].sequenceLength;
+	}
+
+	fprintf(stderr, "%s", BREAK_LINE);
+
+	/* Initialize */
+	r.numEnds = numEnds;
+	r.pairedEndLength = pairedEndLength;
+	SimReadInitialize(&r);
+
+	/* Generate the reads */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Out of %d reads, currently on:\n0", numReads);
+	for(i=0;i<numReads;i++) {
+		if((i+1) % READS_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d",
+					(i+1));
+		}
+		/* Get the read */
+		SimReadGetRandom(rg,
+				rgLength,
+				&r,
+				space,
+				indel,
+				indelLength,
+				withinInsertion,
+				numSNPs,
+				numErrors,
+				readLength,
+				numEnds,
+				pairedEndLength);
+		/* Output */
+		r.readNum = i+1;
+		SimReadPrint(&r,
+				fp);
+
+		/* Initialize read */
+		SimReadDelete(&r);
+	}
+	fprintf(stderr, "\r%d\n%s",
+			numReads,
+			BREAK_LINE);
 }

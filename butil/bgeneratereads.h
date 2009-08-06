@@ -4,4 +4,5 @@
 #include "../blib/RGBinary.h"
 
 void GenerateReads(RGBinary*, int, int, int, int, int, int, int, int, int, int);
+void GenerateReadsFP(RGBinary*, int, int, int, int, int, int, int, int, int, int, FILE*);
 #endif
