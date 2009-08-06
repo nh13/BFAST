@@ -30,7 +30,65 @@ int main(int argc, char *argv[])
 	int pairedEndLength = 0;
 	int numReads = 0;
 
-	if(argc == 12) {
+	char *inputFile=NULL;
+	char c;
+
+	while((c = getopt(argc, argv, "f:r:")) >= 0) {
+		switch(c) {
+			case 'f': inputFile = strdup(optarg); break;
+			case 'r': strcpy(rgFileName, optarg); break;
+			default: break;
+		}
+	}
+
+	if(NULL != inputFile) { // hidden!
+		/* Get reference genome */
+		RGBinaryReadBinary(&rg,
+				rgFileName);
+
+		FILE *fpIn=NULL;
+		if(!(fpIn = fopen(inputFile, "r"))) {
+			PrintError(Name,
+					inputFile,
+					"Could not open file for reading",
+					Exit,
+					OpenFileError);
+		}
+		while(0 == feof(fpIn)) {
+			if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d %d",
+						&space,
+						&indel,
+						&indelLength,
+						&withinInsertion,
+						&numSNPs,
+						&numErrors,
+						&readLength,
+						&pairedEnd,
+						&pairedEndLength,
+						&numReads) < 0) {
+				PrintError(Name,
+						inputFile,
+						"Could not read 10 entries from file",
+						Exit,
+						OutOfRange);
+			}
+			/* Generate reads */
+			GenerateReads(&rg,
+					space,
+					indel,
+					indelLength,
+					withinInsertion,
+					numSNPs,
+					numErrors,
+					readLength,
+					(0 == pairedEnd)?1:2,
+					pairedEndLength,
+					numReads);
+		}
+		fclose(fpIn);
+		free(inputFile);
+	}
+	else if(argc == 12) {
 
 		/* Get cmd line options */
 		strcpy(rgFileName, argv[1]);
@@ -183,15 +241,15 @@ void GenerateReads(RGBinary *rg,
 		SimReadGetRandom(rg,
 				rgLength,
 				&r,
-			space,
-			indel,
-			indelLength,
-			withinInsertion,
-			numSNPs,
-			numErrors,
-			readLength,
-			numEnds,
-			pairedEndLength);
+				space,
+				indel,
+				indelLength,
+				withinInsertion,
+				numSNPs,
+				numErrors,
+				readLength,
+				numEnds,
+				pairedEndLength);
 		/* Output */
 		r.readNum = i+1;
 		SimReadPrint(&r,
