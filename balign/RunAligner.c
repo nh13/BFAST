@@ -275,7 +275,6 @@ void RunDynamicProgramming(gzFile matchFP,
 				endPos,
 				maxNumMatches);
 
-
 		/* Print match to temp file */
 		RGMatchesPrint(data[i].inputFP,
 				&m);
@@ -287,8 +286,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r[%d]\n", numMatches);
-		fprintf(stderr, "Initially filtered %d out of %d reads.\n",
-				numNotAligned,
+		fprintf(stderr, "Found %d reads.\n",
 				numMatches);
 	}
 
