@@ -10,6 +10,6 @@ enum {NoFiltering, 		/* 0 */
 	BestScoreAll,		/* 4 */
 };
 enum {First, Second};
-enum {NoneFound, Found, ContigAb, Unpaired, Inversion, OutsideBounds};
+enum {NoneFound, Found};
 
 #endif

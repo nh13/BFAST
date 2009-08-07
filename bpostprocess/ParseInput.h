@@ -5,22 +5,7 @@ struct arguments
 	char *args[1];							/* No arguments to this function */
 	char *alignFileName;					/* -i */
 	char *rgFileName;						/* -r */
-	int binaryInput;                        /* -b - not used */
 	int algorithm;							/* -a */
-	int startContig;                        /* -s */
-	int startPos;                           /* -S */
-	int endContig;                          /* -e */
-	int endPos;                             /* -E */
-	int minScore;							/* -m */
-	int minQual;							/* -q */
-	int maxMismatches;						/* -j */
-	int maxColorErrors;						/* -k */
-	int minDistancePaired;					/* -X */
-	int maxDistancePaired;					/* -Y */
-	int useDistancePaired;					/* -X -Y */
-	int contigAbPaired;						/* -C */
-	int inversionsPaired;					/* -I */
-	int unpaired;							/* -U */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
 	int outputFormat;						/* -O */

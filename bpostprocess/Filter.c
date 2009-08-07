@@ -14,21 +14,7 @@
 
 /* TODO */
 int FilterAlignedRead(AlignedRead *a,
-		int algorithm,
-		int minScore,
-		int minQual,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
-		int maxMismatches,
-		int maxColorErrors,
-		int minDistancePaired,
-		int maxDistancePaired,
-		int useDistancePaired,
-		int contigAbPaired,
-		int inversionsPaired,
-		int unpaired)
+		int algorithm) 
 {
 	char *FnName="FilterAlignedRead";
 	int foundType;
@@ -36,7 +22,6 @@ int FilterAlignedRead(AlignedRead *a,
 	AlignedRead tmpA;
 	int32_t i, j, ctr;
 	int32_t best, bestIndex, numBest;
-	int32_t curContigDistance, curPositionDistance;
 
 	AlignedReadInitialize(&tmpA);
 
@@ -44,33 +29,6 @@ int FilterAlignedRead(AlignedRead *a,
 	/* Copy in case we do not find anything to report */
 	AlignedReadCopy(&tmpA, a);
 
-	if(NoFiltering != algorithm) {
-		/* Filter each alignment individually */
-		for(i=0;i<tmpA.numEnds;i++) {
-			for(j=0;j<tmpA.ends[i].numEntries;j++) {
-				/* Check if we should filter */
-				if(0<FilterAlignedEntry(&tmpA.ends[i].entries[j],
-							tmpA.space,
-							minScore,
-							minQual,
-							startContig,
-							startPos,
-							endContig,
-							endPos,
-							maxMismatches,
-							maxColorErrors)) {
-					/* Copy end here */
-					if(j < tmpA.ends[i].numEntries-1) {
-						AlignedEntryCopy(&tmpA.ends[i].entries[j], 
-								&tmpA.ends[i].entries[tmpA.ends[i].numEntries-1]);
-					}
-					AlignedEndReallocate(&tmpA.ends[i], tmpA.ends[i].numEntries-1);
-					/* Since we removed, do not incrememt */
-					j--;
-				}
-			}
-		}
-	}
 
 	foundType=NoneFound;
 	foundTypes=malloc(sizeof(int32_t)*tmpA.numEnds);
@@ -153,61 +111,14 @@ int FilterAlignedRead(AlignedRead *a,
 	if(1 == tmpA.numEnds) {
 		foundType=foundTypes[0];
 	}
-	else if(2 == tmpA.numEnds &&
-			1 == a->ends[0].numEntries &&
-			1 == a->ends[1].numEntries) {
-		foundType=(Found==foundTypes[0] && Found==foundTypes[1])?Found:NoneFound;
-
-		if(Found == foundType) {
-			if(1 == useDistancePaired) {
-				curContigDistance = a->ends[1].entries[0].contig - a->ends[0].entries[0].contig;
-				curPositionDistance = a->ends[1].entries[0].position - a->ends[0].entries[0].position;
-
-				if(0 != curContigDistance ||
-						curPositionDistance < minDistancePaired ||
-						maxDistancePaired < curPositionDistance) {
-					if(a->ends[0].entries[0].strand == a->ends[1].entries[0].strand) {
-						if(1 == contigAbPaired) {
-							/* Same strand - contig abnormality */
-							foundType = ContigAb;
-						}
-						else {
-							foundType = NoneFound;
-						}
-					}
-					else {
-						if(1 == inversionsPaired) { 
-							/* Different strand - inversion */
-							foundType = Inversion;
-						}
-						else {
-							foundType = NoneFound;
-						}
-					}
-				}
-			}
-		}
-	}
 	else {
-		/* Call found if all have been found */
-		foundType=Found;
-		for(i=0;Found==foundType && i<tmpA.numEnds;i++) {
-			if(NoneFound == foundTypes[i]) {
-				foundType=NoneFound;
-			}
-		}
-	}
-	/* See if we should check for unpaired alignments */
-	if(1 == unpaired && NoneFound == foundType) {
-		/* Call unpaired if at least one is found */
+		/* Call found if at least one has been found */
 		foundType=NoneFound;
 		for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
 			if(Found == foundTypes[i]) {
 				foundType=Found;
+				break;
 			}
-		}
-		if(Found == foundType) {
-			foundType = Unpaired;
 		}
 	}
 
@@ -221,41 +132,3 @@ int FilterAlignedRead(AlignedRead *a,
 
 	return foundType;
 }
-
-/* TODO */
-int FilterAlignedEntry(AlignedEntry *a,
-		int space,
-		int minScore,
-		int minQual,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
-		int maxMismatches,
-		int maxColorErrors)
-{
-	int32_t numMismatches, numColorErrors;
-	numMismatches=numColorErrors=0;
-	/* Check if the alignment has at least the minimum score */
-	if(a->score < minScore) {
-		return 1;
-	}
-	/* Check if the alignment has at least the minimum quality */
-	if(a->mappingQuality < minQual) {
-		return 2;
-	}
-	/* Check mismatches */
-	numMismatches = GetNumMismatchesInAlignedEntry(a);
-	if(maxMismatches < numMismatches) {
-		return 3;
-	}
-	if(ColorSpace == space) {
-		/* Check color errors */
-		numColorErrors = GetNumColorErrorsInAlignedEntry(a, space);
-		if(maxColorErrors < numColorErrors) {
-			return 4;
-		}
-	}
-	return 0;
-}
-
