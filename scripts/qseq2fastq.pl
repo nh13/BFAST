@@ -54,6 +54,10 @@ elsif(0 < scalar(@files_two) && scalar(@files_one) != scalar(@files_two)) {
 	die("Error.  Did not find an equal number of paired end files.  Terminating!\n");
 }
 
+# Sort the file names
+@files_one = sort @files_one;
+@files_two = sort @files_two;
+
 my $FH_index = 0;
 
 if(0 == scalar(@files_two)) { # Single end
@@ -70,6 +74,7 @@ if(0 == scalar(@files_two)) { # Single end
 else { # Paired end
 	while($FH_index < scalar(@files_one)) {
 		my $min_read_name = "";
+
 		open(FH_one, "$files_one[$FH_index]") || die;
 		open(FH_two, "$files_two[$FH_index]") || die;
 		my %read_one = ();
@@ -77,6 +82,7 @@ else { # Paired end
 		while(1 == get_read(*FH_one, \%read_one, 1) &&
 			1 == get_read(*FH_two, \%read_two, 2)) {
 			if(!($read_one{"NAME"} eq $read_two{"NAME"})) {
+				print STDERR "".$read_one{"NAME"}."\t".$read_two{"NAME"}."\n";
 				die;
 			}
 			print STDOUT "".$read_one{"NAME"}."\n".$read_one{"SEQ"}."\n+\n".$read_one{"QUAL"}."\n";

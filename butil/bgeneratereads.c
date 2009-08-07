@@ -66,11 +66,7 @@ int main(int argc, char *argv[])
 						&pairedEnd,
 						&pairedEndLength,
 						&numReads) < 0) {
-				PrintError(Name,
-						inputFile,
-						"Could not read 10 entries from file",
-						Exit,
-						OutOfRange);
+				break;
 			}
 			/* Generate reads */
 			GenerateReadsFP(&rg,

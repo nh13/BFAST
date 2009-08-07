@@ -11,7 +11,7 @@ Version 0.5.4
 * Adding support for all alignments to be carried forward. This is so
 if a SAM file is generated, all alignments, even those that are unmapped,
 are present in the SAM file.  This affects bmatches, balign, and bpostprocess.
-
+* qseq2fastq.pl now works with Illumina pipeline 1.4
 
 Version 0.5.3
 * Bug converting SAM format fixed where unmapped ends of a paired end
