@@ -695,6 +695,29 @@ int PrintContigPos(FILE *fp,
 	return numPrinted;
 }
 
+int32_t IsValidRead(RGMatches *m) 
+{
+	int32_t i;
+	for(i=0;i<m->numEnds;i++) {
+		if(0 == UpdateRead(m->ends[i].read,
+					m->ends[i].readLength)) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int32_t IsValidMatch(RGMatches *m)
+{
+	int32_t i;
+	for(i=0;i<m->numEnds;i++) {
+		if(1 != m->ends[i].maxReached && 0 < m->ends[i].numEntries) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 /* TODO */
 int UpdateRead(char *read, int readLength) 
 {
@@ -1730,7 +1753,7 @@ int64_t gzwrite64(gzFile file, void *buf, int64_t len)
 		}
 		count += numBytesWritten;
 	}
-	
+
 	return count;
 }
 

@@ -45,7 +45,6 @@ void FindMatches(
 		)
 {
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	char readsFilteredFileName[MAX_FILENAME_LENGTH]="\0";
 
 	int numMainIndexes=0;
 	char **mainIndexFileNames=NULL;
@@ -57,7 +56,6 @@ void FindMatches(
 	int numOffsets=0;
 
 	FILE *seqFP=NULL;
-	FILE *seqFilteredFP=NULL;
 	FILE **tempSeqFPs=NULL;
 	char **tempSeqFileNames=NULL;
 	gzFile outputFP;
@@ -65,7 +63,6 @@ void FindMatches(
 
 	int numMatches;
 	int numReads;
-	int numReadsFiltered;
 
 	time_t startTime, endTime;
 	int seconds, minutes, hours;
@@ -124,30 +121,11 @@ void FindMatches(
 	/* Read in the offsets */
 	numOffsets=ReadOffsets(offsetsFileName, &offsets);
 
-	/* Since we may be running through many indexes and only look for a small portion
-	 * of the reads (see startReadNum and endReadNum), we copy the relevant reads
-	 * to a temporary file, thereby elmininating the need to iterate through the 
-	 * source read read file for each index. 
-	 * */
-	/* Create filtered reads file name */
-	sprintf(readsFilteredFileName, "%s%s.reads.filtered.file.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
 	/* open read file */
 	if((seqFP=fopen(readFileName, "r"))==0) {
 		PrintError("FindMatches",
 				readFileName,
 				"Could not open readFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-	/* open reads filtered file */
-	if((seqFilteredFP=fopen(readsFilteredFileName, "w"))==0) {
-		PrintError("FindMatches",
-				readsFilteredFileName,
-				"Could not open readsFilteredFileName for reading",
 				Exit,
 				OpenFileError);
 	}
@@ -179,7 +157,6 @@ void FindMatches(
 	}
 	/* This will close the reads file */
 	WriteReadsToTempFile(seqFP,
-			seqFilteredFP,
 			&tempSeqFPs,
 			&tempSeqFileNames,
 			startReadNum,
@@ -187,19 +164,14 @@ void FindMatches(
 			numThreads,
 			tmpDir,
 			&numReads,
-			&numReadsFiltered,
 			space);
 	/* Close the read file */
 	fclose(seqFP);
-	fclose(seqFilteredFP);
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Out of %d reads, will process %d reads and omit %d reads due to filtering.\n",
-				numReads+numReadsFiltered,
-				numReads,
-				numReadsFiltered);
+		fprintf(stderr, "Will process %d reads.\n",
+				numReads);
 	}
 	assert(numReads >= numThreads);
-
 
 	/* Open output file */
 	if((outputFP=gzopen(outputFileName, "wb"))==0) {
@@ -428,7 +400,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 	char *tempOutputFileName=NULL;
 	gzFile *tempOutputIndexFPs=NULL;
 	char **tempOutputIndexFileNames=NULL;
-	int numWritten=0, numReads=0, numReadsFiltered=0;
+	int numWritten=0, numReads=0;
 	int numMatches = 0;
 	time_t startTime, endTime;
 	int seconds, minutes, hours;
@@ -608,7 +580,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 		 * searching the secondary indexes 
 		 * */
 		WriteReadsToTempFile(tempSeqFP,
-				NULL, /* We should have already filtered the reads */
 				tempSeqFPs,
 				tempSeqFileNames,
 				0,
@@ -616,10 +587,8 @@ int FindMatchesInIndexes(char **indexFileNames,
 				numThreads,
 				tmpDir,
 				&numReads,
-				&numReadsFiltered,
 				space);
 		/* In this case, all the reads should be valid so we should apportion all reads */
-		assert(numReadsFiltered == 0);
 		assert(numReads == numWritten);
 
 		/* Close the tempSeqFP */
@@ -943,30 +912,33 @@ void *FindMatchesInIndexThread(void *arg)
 					numRead);
 		}
 
-		/* Read */
-		foundMatch = 0;
-		for(i=0;i<m.numEnds;i++) {
-			RGReadsFindMatches(index,
-					rg,
-					&m.ends[i],
-					offsets,
-					numOffsets,
-					space,
-					numMismatches,
-					numInsertions,
-					numDeletions,
-					numGapInsertions,
-					numGapDeletions,
-					maxKeyMatches,
-					maxNumMatches,
-					whichStrand);
-			if(0 < m.ends[i].numEntries && 1 != m.ends[i].maxReached) {
-				foundMatch = 1;
-			}
-		}
+		if(1 == IsValidRead(&m)) {
 
-		if(1 == foundMatch) {
-			data->numMatches++;
+			/* Read */
+			foundMatch = 0;
+			for(i=0;i<m.numEnds;i++) {
+				RGReadsFindMatches(index,
+						rg,
+						&m.ends[i],
+						offsets,
+						numOffsets,
+						space,
+						numMismatches,
+						numInsertions,
+						numDeletions,
+						numGapInsertions,
+						numGapDeletions,
+						maxKeyMatches,
+						maxNumMatches,
+						whichStrand);
+				if(0 < m.ends[i].numEntries && 1 != m.ends[i].maxReached) {
+					foundMatch = 1;
+				}
+			}
+
+			if(1 == foundMatch) {
+				data->numMatches++;
+			}
 		}
 
 		/* Output to file */

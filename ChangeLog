@@ -8,6 +8,10 @@ Please send bfast bug reports to nhomer@cs.ucla.edu
 Version 0.5.4
 * Bug in the SAM header and setting the unpaired reads incorrectly.
 * SAM output will now skip triple/quad/... end reads instead of quitting.
+* Adding support for all alignments to be carried forward. This is so
+if a SAM file is generated, all alignments, even those that are unmapped,
+are present in the SAM file.  This affects bmatches, balign, and bpostprocess.
+
 
 Version 0.5.3
 * Bug converting SAM format fixed where unmapped ends of a paired end

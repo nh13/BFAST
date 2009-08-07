@@ -187,7 +187,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	RGMatches m;
 	int32_t i, j;
 
-	int32_t toAlign, wasAligned;
+	int32_t wasAligned;
 	int continueReading=0;
 	int numMatches=0;
 	int numAligned=0;
@@ -275,27 +275,12 @@ void RunDynamicProgramming(gzFile matchFP,
 				endPos,
 				maxNumMatches);
 
-		/* Filter those reads we will not be able to align */
-		/* line 1 - if an end reached its maximum match limit or there are no
-		 * candidate alignment locations */
-		for(j=toAlign=0;0==toAlign && j<m.numEnds;j++) {
-			if(1 != m.ends[j].maxReached && 0 < m.ends[j].numEntries) {
-				toAlign = 1;
-			}
-		}
-		if(0 == toAlign) {
-			/* Print to the not aligned file */
-			numNotAligned++;
-			RGMatchesPrint(notAlignedFP,
-					&m);
-		}
-		else {
-			/* Print match to temp file */
-			RGMatchesPrint(data[i].inputFP,
-					&m);
-			/* Increment */
-			i = (i+1)%numThreads;
-		}
+
+		/* Print match to temp file */
+		RGMatchesPrint(data[i].inputFP,
+				&m);
+		/* Increment */
+		i = (i+1)%numThreads;
 
 		/* Free memory */
 		RGMatchesFree(&m);
@@ -561,47 +546,68 @@ void *RunDynamicProgrammingThread(void *arg)
 	/* Go through each read in the match file */
 	while(EOF != RGMatchesRead(inputFP, 
 				&m)) {
-		numMatches++;
-		numAlignedRead = 0;
-		ctrOne=ctrTwo=0;
 
-		if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
-		}
+		wasAligned=0;
+		if(1 == IsValidMatch(&m)) {
+			numMatches++;
+			numAlignedRead = 0;
+			ctrOne=ctrTwo=0;
 
-		/* Update the number of local alignments performed */
-		data->numLocalAlignments += AlignRGMatches(&m,
-				rg,
-				&aEntries,
-				space,
-				offsetLength,
-				sm,
-				alignmentType,
-				bestOnly,
-				usePairedEndLength,
-				pairedEndLength,
-				mirroringType,
-				forceMirroring);
+			if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
+				fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+			}
 
-		/* Output alignment */
-		for(i=wasAligned=0;0==wasAligned && i<aEntries.numEnds;i++) {
-			if(0 < aEntries.ends[i].numEntries) {
-				wasAligned = 1;
+			/* Update the number of local alignments performed */
+			data->numLocalAlignments += AlignRGMatches(&m,
+					rg,
+					&aEntries,
+					space,
+					offsetLength,
+					sm,
+					alignmentType,
+					bestOnly,
+					usePairedEndLength,
+					pairedEndLength,
+					mirroringType,
+					forceMirroring);
+
+			/* Output alignment */
+			for(i=wasAligned=0;0==wasAligned && i<aEntries.numEnds;i++) {
+				if(0 < aEntries.ends[i].numEntries) {
+					wasAligned = 1;
+				}
+			}
+
+			if(1 == wasAligned) {
+				/* Remove duplicates */
+				AlignedReadRemoveDuplicates(&aEntries,
+						AlignedEntrySortByAll);
+				/* Updating mapping quality */
+				AlignedReadUpdateMappingQuality(&aEntries, 
+						mismatchScore, 
+						avgMismatchQuality);
 			}
 		}
-		if(1 == wasAligned) {
-			/* Remove duplicates */
-			AlignedReadRemoveDuplicates(&aEntries,
-					AlignedEntrySortByAll);
-			/* Updating mapping quality */
-			AlignedReadUpdateMappingQuality(&aEntries, 
-					mismatchScore, 
-					avgMismatchQuality);
-			/* Print */
-			AlignedReadPrint(&aEntries,
-					outputFP);
-		}
 		else {
+			/* Copy over to aEntries */
+			AlignedReadAllocate(&aEntries,
+					m.readName,
+					m.numEnds,
+					space);
+			for(i=0;i<m.numEnds;i++) {
+				AlignedEndAllocate(&aEntries.ends[i],
+						m.ends[i].read,
+						m.ends[i].qual,
+						0);
+			}
+		}
+
+		/* Print */
+		AlignedReadPrint(&aEntries,
+				outputFP);
+
+		if(0 == wasAligned) {
+			/* Store matches in not aligned */
 			RGMatchesPrint(notAlignedFP,
 					&m);
 		}

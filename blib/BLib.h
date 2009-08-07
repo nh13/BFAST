@@ -29,6 +29,8 @@ void CloseTmpGZFile(gzFile*, char**, int32_t);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
 int PrintContigPos(FILE*, int32_t, int32_t);
+int32_t IsValidRead(RGMatches*);
+int32_t IsValidMatch(RGMatches*);
 int UpdateRead(char*, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);

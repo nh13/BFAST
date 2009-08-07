@@ -176,7 +176,6 @@ int WriteRead(FILE *fp, RGMatches *m)
 
 /* TODO */
 void WriteReadsToTempFile(FILE *seqFP,
-		FILE *seqFilteredFP,
 		FILE ***tempSeqFPs, /* One for each thread */ 
 		char ***tempSeqFileNames,
 		int startReadNum, 
@@ -184,14 +183,12 @@ void WriteReadsToTempFile(FILE *seqFP,
 		int numThreads,
 		char *tmpDir,
 		int *numWritten,
-		int *numFiltered,
 		int32_t space)
 {
 	char *FnName = "WriteReadsToTempFile";
 	int i;
 	int curSeqFPIndex=0;
 	int curReadNum = 1;
-	int32_t isValidRead = 0;
 	RGMatches m;
 	char curLine[MAX_HEADER_LENGTH]="\0";
 	fpos_t curFilePos;
@@ -217,7 +214,6 @@ void WriteReadsToTempFile(FILE *seqFP,
 				OutOfRange);
 	}
 
-	(*numFiltered)=0;
 	(*numWritten)=0;
 	RGMatchesInitialize(&m);
 
@@ -236,48 +232,16 @@ void WriteReadsToTempFile(FILE *seqFP,
 		/* Print only if we are within the desired limit and the read checks out */
 		if(startReadNum<=0 || curReadNum >= startReadNum) {/* Only if we are within the bounds for the reads */
 
-			for(i=0,isValidRead=1;1==isValidRead && i<m.numEnds;i++) {
-				if(0 == UpdateRead(m.ends[i].read,
-							m.ends[i].readLength)) {
-					isValidRead= 0;
-				}
-			}
-
-			if(1 == isValidRead) {
-				/* Print */
-				if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {
-					PrintError(FnName,
-							NULL,
-							"Could not write read",
-							Exit,
-							WriteFileError);
-				}
-				(*numWritten)++;
-			}
-			else {
-				assert(seqFilteredFP != NULL);
-				/* Write to filtered read file */
-				if(EOF == WriteRead(seqFilteredFP, &m)) {
-					PrintError(FnName,
-							NULL,
-							"Could not write read",
-							Exit,
-							WriteFileError);
-				}
-				(*numFiltered)++;
-			}
-		}
-		else {
-			assert(seqFilteredFP != NULL);
-			/* Write to filtered read file */
-			if(EOF == WriteRead(seqFilteredFP, &m)) {
+			/* Print */
+			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {
 				PrintError(FnName,
 						NULL,
 						"Could not write read",
 						Exit,
 						WriteFileError);
 			}
-			(*numFiltered)++;
+			(*numWritten)++;
+
 		}
 		/* Increment read number */
 		curReadNum++;
@@ -331,8 +295,8 @@ int ReadTempReadsAndOutput(gzFile tempOutputFP,
 				hasEntries=1;
 			}
 		}
+		/* Output to final output file */
 		if(1 == hasEntries) {
-			/* Output to final output file */
 			RGMatchesPrint(outputFP,
 					&m);
 			numOutputted++;
