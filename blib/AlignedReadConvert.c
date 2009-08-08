@@ -606,9 +606,6 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(2 == a->numEnds) {
 		flag |= 0x0001; /* Paired end */
 		flag |= 0x0002; /* Always a proper pair */
-		if(entriesIndex < 0) { /* Unmapped */
-			flag |= 0x0004;
-		}
 		if(mateEndIndex < 0) {
 			/* Other end is unmapped */
 			flag |= 0x0008;
@@ -619,8 +616,8 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 		flag |= (0 == endIndex)?0x0040:0x0080; /* Which end */
 	}
-	else {
-		flag |= 0x0040; /* Always first end */
+	if(entriesIndex < 0) { /* Unmapped */
+		flag |= 0x0004;
 	}
 	if(0 < entriesIndex ) {
 		flag |= 0x0100; /* This read is not primary */
