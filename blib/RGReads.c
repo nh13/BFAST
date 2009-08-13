@@ -37,45 +37,53 @@ void RGReadsFindMatches(RGIndex *index,
 	int64_t i;
 	int64_t numEntries = 0;
 	int readLength=0;
-	char read[SEQUENCE_LENGTH]="\0";
+	int32_t read[SEQUENCE_LENGTH];
 	RGReads reads;
 	RGRanges ranges;
+	int readOffset = 0;
 
 	/* Initialize */
 	RGReadsInitialize(&reads);
 	RGRangesInitialize(&ranges);
 
-	/* Remove adaptor and first color if we are in color space */
+	readLength = match->readLength;
 	if(space==ColorSpace) {
 		/* First letter is adapter, second letter is the color (unusable) */
-		for(i=2;i<match->readLength;i++) {
-			read[i-2] = match->read[i];
+		readOffset += 2;
+		readLength -= 2;
+	}
+		
+	/* Copy over */
+	/* Convert bases/colors to 0-4 */
+	for(i=0;i<readLength;i++) {
+		switch(match->read[i + readOffset]) {
+			case 0:
+			case '0':
+			case 'A':
+			case 'a':
+				read[i] = 0; break;
+			case 1:
+			case '1':
+			case 'C':
+			case 'c':
+				read[i] = 1; break;
+			case 2:
+			case '2':
+			case 'G':
+			case 'g':
+				read[i] = 2; break;
+			case 3:
+			case '3':
+			case 'T':
+			case 't':
+				read[i] = 3; break;
+			default:
+				read[i] = 4; break;
 		}
-		readLength = match->readLength-2;
-		read[readLength] = '\0';
-		/* Update the colors in the read */
-		ConvertColorsToStorage(read, readLength);
+		fprintf(stderr, "%d,", read[i]);
 	}
-	else {
-		assert(space==NTSpace);
-		/* Copy over */
-		strcpy(read, match->read);
-		readLength = match->readLength;
-	}
-
-	/* Generate reads */
-	RGReadsGenerateReads(read,
-			readLength,
-			index,
-			&reads,
-			offsets,
-			numOffsets,
-			space,
-			numMismatches,
-			numInsertions,
-			numDeletions,
-			numGapInsertions,
-			numGapDeletions);
+	fprintf(stderr, "\n");
+	read[readLength] = '\0';
 
 	/* Merge all reads */
 	/* This may be necessary for a large number of generated reads, but omit for now */
@@ -89,13 +97,15 @@ void RGReadsFindMatches(RGIndex *index,
 	   }
 	   */
 
-	/* Get the matches */
-	for(i=0;i<reads.numReads && match->maxReached == 0;i++) {
+	for(i=0;0 == match->maxReached && // have not reached the maximum
+			i<numOffsets && // offsets remaining
+			index->width <= (readLength - offsets[i]); // offsets is within bounds (assumes sorted) 
+			i++) {
 		match->maxReached = RGIndexGetRangesBothStrands(index, 
 				rg,
-				reads.reads[i],
-				reads.readLength[i],
-				reads.offset[i],
+				read + offsets[i],
+				index->width,
+				i,
 				maxKeyMatches,
 				maxNumMatches,
 				space,
@@ -167,6 +177,7 @@ void RGReadsGenerateReads(char *read,
 		/* Note: we allow any number (including zero) of mismatches up to
 		 * numMismatches.  
 		 * */
+		/*
 		if(numMismatches > 0) {
 			RGReadsGenerateMismatches(read,
 					readLength,
@@ -175,6 +186,7 @@ void RGReadsGenerateReads(char *read,
 					index,
 					reads);
 		}
+		*/
 
 		/* Go through all deletions */
 		/* Note: we allow only contiguous deletions of length up to 
@@ -182,6 +194,7 @@ void RGReadsGenerateReads(char *read,
 		 * must add base to the reads, and therfore we enumerate
 		 * over all possible deletions in the entire read.
 		 * */
+		/*
 		if(numDeletions > 0) {
 			RGReadsGenerateDeletions(read,
 					readLength,
@@ -190,6 +203,7 @@ void RGReadsGenerateReads(char *read,
 					index,
 					reads);
 		}
+		*/
 
 		/* Go through all insertions */
 		/* Note: we allow only contiguous insertions of length up to
@@ -198,8 +212,8 @@ void RGReadsGenerateReads(char *read,
 		 * bases in the read, and therefore we enumerate over all
 		 * possible insertions in the entire read.
 		 * */
+		/*
 		if(numInsertions > 0) {
-			/* Forward */
 			RGReadsGenerateInsertions(read,
 					readLength,
 					offsets[i],
@@ -207,11 +221,13 @@ void RGReadsGenerateReads(char *read,
 					index,
 					reads);
 		}
+		*/
 
 		/* Go through all possible insertions in the gap between
 		 * the pair of l-mers.  If there is a gap insertion,
 		 * then we will delete bases in the gap.
 		 * */
+		/*
 		if(numGapInsertions > 0) {
 			RGReadsGenerateGapInsertions(read,
 					readLength,
@@ -220,13 +236,14 @@ void RGReadsGenerateReads(char *read,
 					index,
 					reads);
 		}
+		*/
 
 		/* Go through all possible deletions in the gap between
 		 * the pair of l-mers.  If there is a gap deletion, 
 		 * then we will add bases to the gap.
 		 * */
+		/*
 		if(numGapDeletions > 0) {
-			/* Forward */
 			RGReadsGenerateGapDeletions(read,
 					readLength,
 					offsets[i],
@@ -234,6 +251,7 @@ void RGReadsGenerateReads(char *read,
 					index,
 					reads);
 		}
+		*/
 	}
 
 }

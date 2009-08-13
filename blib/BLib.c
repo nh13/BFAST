@@ -134,6 +134,18 @@ void ReverseRead(char *s,
 	r[length]='\0';
 }
 
+void ReverseReadFourBit(int32_t *s,
+		int32_t *r,
+		int length)
+{       
+	int i;
+	/* Get reverse */
+	for(i=length-1;i>=0;i--) {
+		r[i] = s[length-1-i];
+	}
+	r[length]='\0';
+}
+
 /* TODO */
 void GetReverseComplimentAnyCase(char *s,
 		char *r,
@@ -143,6 +155,18 @@ void GetReverseComplimentAnyCase(char *s,
 	/* Get reverse compliment sequence */
 	for(i=length-1;i>=0;i--) {
 		r[i] = GetReverseComplimentAnyCaseBase(s[length-1-i]);
+	}
+	r[length]='\0';
+}
+
+void GetReverseComplimentFourBit(int32_t *s,
+		int32_t *r, 
+		int length) 
+{
+	int i;
+	/* Get reverse compliment sequence */
+	for(i=length-1;i>=0;i--) {
+		r[i] = (4 != s[length-i-1]) ? 3 - s[length-i-1] : 4;
 	}
 	r[length]='\0';
 }
@@ -1345,14 +1369,14 @@ void AdjustBounds(RGBinary *rg,
 
 /* TODO */
 int WillGenerateValidKey(RGIndex *index,
-		char *read,
+		int32_t *read,
 		int readLength)
 {
 	int i;
 
 	for(i=0;i<index->width;i++) {
 		if(i >= readLength ||
-				(1 == index->mask[i] && 1==RGBinaryIsBaseN(read[i]))) {
+				(1 == index->mask[i] && 4 == read[i])) {
 			return 0;
 		}
 	}

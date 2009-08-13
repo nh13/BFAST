@@ -1658,7 +1658,7 @@ void RGIndexReadHeader(gzFile fp, RGIndex *index)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int64_t *startIndex, int64_t *endIndex) 
+int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, int32_t *read, int32_t readLength, int64_t *startIndex, int64_t *endIndex) 
 {
 	int64_t foundIndex=0;
 
@@ -1683,7 +1683,7 @@ int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, char *read, int32_t readL
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t maxNumMatches, int32_t space, int32_t strands, RGRanges *r)
+int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int32_t *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t maxNumMatches, int32_t space, int32_t strands, RGRanges *r)
 {
 	int64_t startIndexForward=0;
 	int64_t startIndexReverse=0;
@@ -1693,8 +1693,8 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, in
 	int64_t foundIndexReverse=0;
 	int64_t numMatches=0;
 	int toAdd=0;
-	char reverseRead[SEQUENCE_LENGTH]="\0";
-
+	int32_t reverseRead[SEQUENCE_LENGTH];
+	
 	/* Forward */
 	if(BothStrands == strands || ForwardStrand == strands) {
 		foundIndexForward = RGIndexGetRanges(index,
@@ -1708,12 +1708,12 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, in
 	if(BothStrands == strands || ReverseStrand == strands) {
 		if(space==ColorSpace) {
 			/* In color space, the reverse compliment is just the reverse of the colors */
-			ReverseRead(read, reverseRead, readLength);
+			ReverseReadFourBit(read, reverseRead, readLength);
 		}
 		else {
 			assert(space==NTSpace);
 			/* Get the reverse compliment */
-			GetReverseComplimentAnyCase(read, reverseRead, readLength);
+			GetReverseComplimentFourBit(read, reverseRead, readLength);
 		}
 
 		foundIndexReverse = RGIndexGetRanges(index,
@@ -1776,7 +1776,7 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, char *read, in
 /* TODO */
 int64_t RGIndexGetIndex(RGIndex *index,
 		RGBinary *rg,
-		char *read,
+		int32_t *read,
 		int32_t readLength,
 		int64_t *startIndex,
 		int64_t *endIndex)
@@ -1814,6 +1814,19 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	else {
 		return 0;
 	}
+
+	/*
+	   int i;
+	   fprintf(stderr, "\n");
+	   for(i=0;i<readLength;i++) {
+	   fprintf(stderr, "%1d", read[i]);
+	   }
+	   fprintf(stderr, "\n");
+	   for(i=0;i<readLength;i++) {
+	   fprintf(stderr, "%1c", "ACGTN"[read[i]]);
+	   }
+	   fprintf(stderr, "\n");
+	   */
 
 	assert(low <= high);
 	assert(low==0 || 0 < RGIndexCompareRead(index, rg, read, low-1, 0));
@@ -2091,7 +2104,7 @@ int32_t RGIndexCompareAt(RGIndex *index,
 /* TODO */
 int32_t RGIndexCompareRead(RGIndex *index,
 		RGBinary *rg,
-		char *read,
+		int32_t* read,
 		int64_t a,
 		int debug)
 {
@@ -2102,17 +2115,18 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	uint32_t aContig = (index->contigType==Contig_8)?index->contigs_8[a]:index->contigs_32[a];
 	uint32_t aPos = index->positions[a];
 
-	char aBase;
-	char readBase;
+	uint8_t aBase;
 
-	if(debug > 0) {
-		fprintf(stderr, "%d\n%s", 
-				index->width,
-				BREAK_LINE);
-		fprintf(stderr, "read[%d]:%s\n", 
-				(int)strlen(read),
-				read);
-	}
+	/*
+	   if(debug > 0) {
+	   fprintf(stderr, "%d\n%s", 
+	   index->width,
+	   BREAK_LINE);
+	   fprintf(stderr, "read[%d]:%s\n", 
+	   (int)strlen(read),
+	   read);
+	   }
+	   */
 
 	/* Go across the mask */
 	for(i=0;i<index->width;i++) {
@@ -2122,15 +2136,13 @@ int32_t RGIndexCompareRead(RGIndex *index,
 				break;
 			case 1:
 				/* Get bases */
-				aBase = ToLower(RGBinaryGetBase(rg,
-							aContig,
-							aPos + i));
-				readBase = ToLower(read[i]);
+				aBase = RGBinaryGetFourBit(rg, aContig, aPos + i);
+				aBase = ((aBase >> 2) == 2) ? 4 : (aBase & 0x03);
 				/* Compare */
-				if(readBase < aBase) {
+				if(read[i] < aBase) {
 					return -1;
 				}
-				else if(readBase > aBase) {
+				else if(read[i] > aBase) {
 					return 1;
 				}
 				break;
@@ -2218,7 +2230,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 /* TODO */
 uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		RGBinary *rg,
-		char *read,
+		int32_t *read,
 		int32_t readLength,
 		int debug)
 {
@@ -2227,7 +2239,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 
 	int32_t cur = index->hashWidth-1;
 	uint32_t hashIndex = 0;
-	char readBase;
 
 	/* Go across the mask */
 	for(i=0;cur >= 0 && i<index->width;i++) {
@@ -2236,36 +2247,10 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 				/* Ignore base */
 				break;
 			case 1:
-				readBase = ToLower(read[i]);
 				/* Only works with a four letter alphabet */
 				hashIndex = hashIndex << 2;
-				switch(readBase) {
-					case 0:
-					case 'a':
-						break;
-					case 1:
-					case 'c':
-						hashIndex += 1;
-						break;
-					case 2:
-					case 'g':
-						hashIndex += 2;
-						break;
-					case 3:
-					case 't':
-						hashIndex += 3;
-						break;
-					default:
-						fprintf(stderr, "\nreadBase=[%c,%d]\n",
-								readBase,
-								(int)readBase);
-						PrintError(FnName,
-								"readBase",
-								"Could not understand base",
-								Exit,
-								OutOfRange);
-						break;
-				}
+				assert(0 <= read[i] && read[i] <= 3);
+				hashIndex += read[i];
 				cur--;
 				break;
 			default:
