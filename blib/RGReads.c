@@ -37,7 +37,7 @@ void RGReadsFindMatches(RGIndex *index,
 	int64_t i;
 	int64_t numEntries = 0;
 	int readLength=0;
-	int32_t read[SEQUENCE_LENGTH];
+	int8_t read[SEQUENCE_LENGTH];
 	RGReads reads;
 	RGRanges ranges;
 	int readOffset = 0;
@@ -55,35 +55,9 @@ void RGReadsFindMatches(RGIndex *index,
 		
 	/* Copy over */
 	/* Convert bases/colors to 0-4 */
-	for(i=0;i<readLength;i++) {
-		switch(match->read[i + readOffset]) {
-			case 0:
-			case '0':
-			case 'A':
-			case 'a':
-				read[i] = 0; break;
-			case 1:
-			case '1':
-			case 'C':
-			case 'c':
-				read[i] = 1; break;
-			case 2:
-			case '2':
-			case 'G':
-			case 'g':
-				read[i] = 2; break;
-			case 3:
-			case '3':
-			case 'T':
-			case 't':
-				read[i] = 3; break;
-			default:
-				read[i] = 4; break;
-		}
-		fprintf(stderr, "%d,", read[i]);
-	}
-	fprintf(stderr, "\n");
-	read[readLength] = '\0';
+	ConvertSequenceToIntegers(match->read + readOffset,
+			read,
+			readLength);
 
 	/* Merge all reads */
 	/* This may be necessary for a large number of generated reads, but omit for now */

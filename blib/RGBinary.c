@@ -722,6 +722,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 		reverseCompliment=NULL; /* Destroy the pointer for reverse compliment */
 	}
 	else {
+		fprintf(stderr, "stand=%c\n", strand);
 		PrintError(FnName,
 				"strand",
 				"Could not understand strand",

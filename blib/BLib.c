@@ -134,8 +134,8 @@ void ReverseRead(char *s,
 	r[length]='\0';
 }
 
-void ReverseReadFourBit(int32_t *s,
-		int32_t *r,
+void ReverseReadFourBit(int8_t *s,
+		int8_t *r,
 		int length)
 {       
 	int i;
@@ -159,8 +159,8 @@ void GetReverseComplimentAnyCase(char *s,
 	r[length]='\0';
 }
 
-void GetReverseComplimentFourBit(int32_t *s,
-		int32_t *r, 
+void GetReverseComplimentFourBit(int8_t *s,
+		int8_t *r, 
 		int length) 
 {
 	int i;
@@ -1002,6 +1002,39 @@ int ConvertReadFromColorSpace(char *read,
 	return readLength;
 }
 
+void ConvertSequenceToIntegers(char *seq,
+		int8_t *dest,
+		int32_t seqLength)
+{
+	int i;
+	for(i=0;i<seqLength;i++) {
+		switch(seq[i]) {
+			case 0:
+			case '0':
+			case 'A':
+			case 'a':
+				dest[i] = 0; break;
+			case 1:
+			case '1':
+			case 'C':
+			case 'c':
+				dest[i] = 1; break;
+			case 2:
+			case '2':
+			case 'G':
+			case 'g':
+				dest[i] = 2; break;
+			case 3:
+			case '3':
+			case 'T':
+			case 't':
+				dest[i] = 3; break;
+			default:
+				dest[i] = 4; break;
+		}
+	}
+}
+
 /* TODO */
 /* Must reallocate memory */
 /* NT read to color space */
@@ -1369,7 +1402,7 @@ void AdjustBounds(RGBinary *rg,
 
 /* TODO */
 int WillGenerateValidKey(RGIndex *index,
-		int32_t *read,
+		int8_t *read,
 		int readLength)
 {
 	int i;
@@ -1536,7 +1569,7 @@ void KnuthMorrisPrattCreateTable(char *read,
 	cur=2;
 	next=0;
 	while(cur < readLength) {
-		if(ToLower(read[cur-1]) == ToLower(read[next])) {
+		if(read[cur-1] == read[next]) {
 			kmp_table[cur] = next + 1;
 			cur++;
 			next++;
@@ -1563,7 +1596,7 @@ int32_t KnuthMorrisPratt(char *read,
 
 	i = m = 0;
 	while(m + i < referenceLength) {
-		if(ToLower(read[i]) == ToLower(reference[m + i])) {
+		if(ToUpper(read[i]) == ToUpper(reference[m + i])) {
 			i++;
 			if(i == readLength) {
 				return m;
@@ -1588,7 +1621,7 @@ int NaiveSubsequence(char *read,
 	int i, j, found;
 	for(i=0;i<referenceLength-readLength+1;i++) {
 		for(j=0, found=1;1==found && j<readLength;j++) {
-			if(ToLower(read[j]) != ToLower(reference[i+j])) {
+			if(ToUpper(read[j]) == ToUpper(reference[i+j])) {
 				found = 0;
 			}
 		}

@@ -1658,7 +1658,7 @@ void RGIndexReadHeader(gzFile fp, RGIndex *index)
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, int32_t *read, int32_t readLength, int64_t *startIndex, int64_t *endIndex) 
+int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, int8_t *read, int32_t readLength, int64_t *startIndex, int64_t *endIndex) 
 {
 	int64_t foundIndex=0;
 
@@ -1683,7 +1683,7 @@ int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, int32_t *read, int32_t re
 
 /* TODO */
 /* We will append the matches if matches have already been found */
-int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int32_t *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t maxNumMatches, int32_t space, int32_t strands, RGRanges *r)
+int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, int32_t readLength, int32_t offset, int32_t maxKeyMatches, int32_t maxNumMatches, int32_t space, int32_t strands, RGRanges *r)
 {
 	int64_t startIndexForward=0;
 	int64_t startIndexReverse=0;
@@ -1693,7 +1693,7 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int32_t *read,
 	int64_t foundIndexReverse=0;
 	int64_t numMatches=0;
 	int toAdd=0;
-	int32_t reverseRead[SEQUENCE_LENGTH];
+	int8_t reverseRead[SEQUENCE_LENGTH];
 	
 	/* Forward */
 	if(BothStrands == strands || ForwardStrand == strands) {
@@ -1776,7 +1776,7 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int32_t *read,
 /* TODO */
 int64_t RGIndexGetIndex(RGIndex *index,
 		RGBinary *rg,
-		int32_t *read,
+		int8_t *read,
 		int32_t readLength,
 		int64_t *startIndex,
 		int64_t *endIndex)
@@ -2104,7 +2104,7 @@ int32_t RGIndexCompareAt(RGIndex *index,
 /* TODO */
 int32_t RGIndexCompareRead(RGIndex *index,
 		RGBinary *rg,
-		int32_t* read,
+		int8_t* read,
 		int64_t a,
 		int debug)
 {
@@ -2230,7 +2230,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 /* TODO */
 uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		RGBinary *rg,
-		int32_t *read,
+		int8_t *read,
 		int32_t readLength,
 		int debug)
 {
