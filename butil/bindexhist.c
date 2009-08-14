@@ -102,6 +102,7 @@ void GetPivots(RGIndex *index,
 	   */
 	int64_t i, ind;
 	int32_t returnLength, returnPosition;
+	int8_t readInt[SEQUENCE_LENGTH];
 	RGReads reads;
 	RGRanges ranges;
 
@@ -135,9 +136,10 @@ void GetPivots(RGIndex *index,
 	/* Search reads in the index */
 	/* Get the matches */
 	for(i=0;i<reads.numReads;i++) {
+		ConvertSequenceToIntegers(reads.reads[i], readInt, reads.readLength[i]);
 		RGIndexGetRangesBothStrands(index,
 				rg,
-				reads.reads[i],
+				readInt,
 				reads.readLength[i],
 				reads.offset[i],
 				INT_MAX,
@@ -566,14 +568,12 @@ int GetMatchesFromContigPos(RGIndex *index,
 	int returnLength, returnPosition;
 	char *read=NULL;
 	RGRanges ranges;
-	RGReads reads;
 	int readLength = index->width;
-	int32_t offsets[1] = {0};
+	int8_t readInt[SEQUENCE_LENGTH];
 	int32_t i;
 
 	/* Initialize */
 	RGRangesInitialize(&ranges);
-	RGReadsInitialize(&reads);
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -588,33 +588,18 @@ int GetMatchesFromContigPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	/* Generate reads */
-	RGReadsGenerateReads(read,
-			readLength,
-			index,
-			&reads,
-			offsets,
-			1,
-			rg->space,
-			numMismatches,
-			0,
-			0,
-			0,
-			0);
+	ConvertSequenceToIntegers(read, readInt, readLength);
 
-	/* Get the matches */
-	for(i=0;i<reads.numReads;i++) {
-		RGIndexGetRangesBothStrands(index,
-				rg,
-				reads.reads[i],
-				reads.readLength[i],
-				0,
-				INT_MAX,
-				INT_MAX,
-				rg->space,
-				BothStrands,
-				&ranges);
-	}
+	RGIndexGetRangesBothStrands(index,
+			rg,
+			readInt,
+			readLength,
+			0,
+			INT_MAX,
+			INT_MAX,
+			rg->space,
+			BothStrands,
+			&ranges);
 
 	/* This exploits the fact that the ranges are non-overlapping */
 	RGRangesRemoveDuplicates(&ranges);
@@ -643,7 +628,6 @@ int GetMatchesFromContigPos(RGIndex *index,
 	assert((*numReverse) >= 0);
 
 	RGRangesFree(&ranges);
-	RGReadsFree(&reads);
 	free(read);
 	read=NULL;
 

@@ -694,10 +694,9 @@ void GetMatchesFromContigPos(RGIndex *index,
 	char *FnName = "GetMatchesFromContigPos";
 	int returnLength, returnPosition;
 	RGRanges ranges;
-	RGReads reads;
 	int readLength = index->width;
-	int32_t offsets[1] = {0};
 	int32_t i;
+	int8_t readInt[SEQUENCE_LENGTH];
 
 	/* Initialize */
 	RGRangesInitialize(&ranges);
@@ -726,33 +725,17 @@ void GetMatchesFromContigPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	/* Generate reads */
-	RGReadsGenerateReads((*read),
+	ConvertSequenceToIntegers((*read), readInt, readLength);
+	RGIndexGetRangesBothStrands(index,
+			rg,
+			readInt,
 			readLength,
-			index,
-			&reads,
-			offsets,
-			1,
+			0,
+			INT_MAX,
+			INT_MAX,
 			rg->space,
-			numMismatches,
-			0,
-			0,
-			0,
-			0);
-
-	/* Get the matches */
-	for(i=0;i<reads.numReads;i++) {
-		RGIndexGetRangesBothStrands(index,
-				rg,
-				reads.reads[i],
-				reads.readLength[i],
-				0,
-				INT_MAX,
-				INT_MAX,
-				rg->space,
-				BothStrands,
-				&ranges);
-	}
+			BothStrands,
+			&ranges);
 
 	/* This exploits the fact that the ranges are non-overlapping */
 	RGRangesRemoveDuplicates(&ranges);
@@ -786,5 +769,4 @@ void GetMatchesFromContigPos(RGIndex *index,
 	}
 
 	RGRangesFree(&ranges);
-	RGReadsFree(&reads);
 }
