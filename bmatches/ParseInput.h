@@ -23,6 +23,7 @@ struct arguments
 	int maxNumMatches;						/* -M */
 	int whichStrand;						/* -w */
 	int numThreads;							/* -n */
+	int queueLength;						/* -Q */
 	char *outputID;							/* -o */
 	char *outputDir;						/* -d */
 	char *tmpDir;							/* -T */

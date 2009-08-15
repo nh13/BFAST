@@ -32,10 +32,11 @@ typedef struct {
 	int maxNumMatches;
 	int whichStrand;
 	int numMatches;
+	int queueLength;
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
+void FindMatches(char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
 int FindMatchesInIndexes(char **rgIndexFileNames,
 		RGBinary *rg,
 		int numRGIndexes,
@@ -52,6 +53,7 @@ int FindMatchesInIndexes(char **rgIndexFileNames,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
+		int queueLength,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
 		gzFile outputFP,
@@ -77,6 +79,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
+		int queueLength,
 		FILE ***tempSeqFPs,
 		gzFile indexFP,
 		char *tmpDir,

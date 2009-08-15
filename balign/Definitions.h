@@ -14,6 +14,8 @@
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 
+#define DEFAULT_MATCHES_QUEUE_LENGTH 100000
+
 enum {FullAlignment, MismatchesOnly};
 enum {AllAlignments, BestOnly};
 

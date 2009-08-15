@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.5.5
+* Adding support for input queueing, so that a given number of reads are 
+loaded into memory then analyzed instead of one-by-one.
+
 Version 0.5.4
 * Bug in the SAM header and setting the unpaired reads incorrectly.
 * SAM output will now skip triple/quad/... end reads instead of quitting.

@@ -7,5 +7,6 @@ enum {MainIndexes, SecondaryIndexes};
 
 /* For FindMatches.c */
 #define FM_ROTATE_NUM 10000
+#define DEFAULT_MATCHES_QUEUE_LENGTH 100000
 
 #endif

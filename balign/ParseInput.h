@@ -19,6 +19,7 @@ struct arguments
 	int maxNumMatches;						/* -M */
 	int avgMismatchQuality;					/* -q */
 	int numThreads;                         /* -n */
+	int queueLength;                        /* -Q */
 	int usePairedEndLength;					/* -l - companion to pairedEndLength */
 	int mirroringType;						/* -L */
 	int forceMirroring;						/* -f */

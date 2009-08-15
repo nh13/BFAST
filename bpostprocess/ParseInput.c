@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithm, 
+	DescAlgoTitle, DescAlgorithm, DescQueueLength, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -78,6 +78,7 @@ static struct argp_option options[] = {
 			"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
 			"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
+    {"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
 	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
@@ -164,6 +165,7 @@ main (int argc, char **argv)
 						ReadInputFilterAndOutput(&rg,
 								arguments.alignFileName,
 								arguments.algorithm,
+								arguments.queueLength,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.outputFormat);
@@ -246,6 +248,10 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
 	}
 
+    if(args->queueLength<=0) {
+        PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
+    }
+
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
 				args->outputID);
@@ -291,6 +297,7 @@ AssignDefaultValues(struct arguments *args)
 	strcpy(args->alignFileName, DEFAULT_FILENAME);
 
 	args->algorithm=0;
+	args->queueLength=DEFAULT_QUEUE_LENGTH;
 
 	args->outputID = 
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -321,6 +328,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "rgFileName:\t\t%s\n", args->rgFileName);
 	fprintf(fp, "alignFileName:\t\t%s\n", args->alignFileName);
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
+    fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
@@ -425,6 +433,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 								break;
 						}
 						break;
+                    case 'Q':
+                        arguments->queueLength=atoi(OPTARG);break;
 					default:
 #ifdef HAVE_ARGP_H
 						return ARGP_ERR_UNKNOWN;

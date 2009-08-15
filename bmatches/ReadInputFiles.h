@@ -14,5 +14,6 @@ int ReadTempReadsAndOutput(gzFile, char*, gzFile, FILE*);
 void ReadRGIndex(char*, RGIndex*, int);
 int ReadFileNames(char*, char***);
 int ReadOffsets(char*, int**);
+int32_t GetReads(FILE*, RGMatches*, int32_t);
 
 #endif

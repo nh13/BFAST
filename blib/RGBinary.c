@@ -20,14 +20,17 @@ void RGBinaryRead(char *rgFileName,
 {
 	char *FnName="RGBinaryRead";
 	FILE *fpRG=NULL;
+	int32_t i;
 	char c;
 	char original;
 	int64_t numPosRead=0;
-	int32_t continueReadingContig;
 	int32_t byteIndex;
 	int32_t numCharsPerByte;
-	fpos_t curFilePos;
 
+	char curLine[MAX_FASTA_LINE_LENGTH]="\0";
+	char *buffer=NULL;
+	int64_t bufferLength=0, prevBufferLength=0;
+	int64_t bufferIndex=0;
 	char header[MAX_CONTIG_NAME_LENGTH]="\0";
 	char prevBase = COLOR_SPACE_START_NT; /* For color space */
 
@@ -77,7 +80,52 @@ void RGBinaryRead(char *rgFileName,
 				1);
 	}
 	rg->numContigs=0;
-	while(EOF!=GetFastaHeaderLine(fpRG, header)) {
+	// Get a header
+	if(NULL==fgets(header, MAX_CONTIG_NAME_LENGTH, fpRG)) {
+		PrintError(FnName,
+				"header",
+				"Could not find a fasta header",
+				Exit,
+				OutOfRange);
+	}
+	int32_t eofReached = 0;
+	while(0 == eofReached) {
+		ParseFastaHeaderLine(header);
+
+		/* Get sequence */
+		curLine[0]='\0';
+		buffer=NULL;
+		bufferLength=prevBufferLength=0;
+		while(NULL!=fgets(curLine, MAX_FASTA_LINE_LENGTH, fpRG)) {
+
+			if('>' == curLine[0]) {
+				strcpy(header, curLine);
+				break;
+			}
+			if('\n' == curLine[strlen(curLine)-1]) {
+				curLine[strlen(curLine)-1]='\0';
+			}
+
+			prevBufferLength=bufferLength;
+			bufferLength += strlen(curLine);
+			buffer = realloc(buffer, sizeof(char)*(1+bufferLength));
+			if(NULL == buffer) {
+				PrintError(FnName,
+						"buffer",
+						"Could not reallocate memory",
+						Exit,
+						ReallocMemory);
+			}
+			for(i=prevBufferLength;i<bufferLength;i++) {
+				buffer[i] = curLine[i-prevBufferLength];
+			}
+			buffer[bufferLength]='\0';
+		}
+
+		if(bufferLength <= 0) {
+			break;
+		}
+
 		rg->numContigs++;
 
 		/* Reallocate memory to store one more contig. */
@@ -106,18 +154,10 @@ void RGBinaryRead(char *rgFileName,
 		rg->contigs[rg->numContigs-1].sequenceLength = 0;
 		rg->contigs[rg->numContigs-1].numBytes = 0;
 
-		/* Save the file position */
-		if(0!=fgetpos(fpRG, &curFilePos)) {
-			PrintError(FnName,
-					"curFilePos",
-					"Could not get the current file position",
-					Exit,
-					OutOfRange);
-		}
-		/* Read in contig. */
 		prevBase = COLOR_SPACE_START_NT; /* For color space */
-		continueReadingContig=1;
-		while(continueReadingContig==1 && fscanf(fpRG, "%c", &original) > 0) {
+		fprintf(stderr, "bufferLength=%lld\n", (long long int)bufferLength); // HERE
+		for(bufferIndex=0;bufferIndex<bufferLength;bufferIndex++) {
+			original=buffer[bufferIndex];
 			/* original - will be the original sequence.  Possibilities include:
 			 * Non-repeat sequence: a,c,g,t
 			 * Repeat sequence: A,C,G,T
@@ -127,107 +167,84 @@ void RGBinaryRead(char *rgFileName,
 			/* Transform IUPAC codes */
 			original=TransformFromIUPAC(original);
 
-			if(original == '\n') {
-				/* ignore */
-			}
-			else if(original == '>') {
-				/* New contig, exit the loop and reset the file position */
-				continueReadingContig = 0;
-				if(0!=fsetpos(fpRG, &curFilePos)) {
+			if(ColorSpace==space) {
+				/* Convert to color space */
+				/* Convert color space to A,C,G,T */
+				if(0 == ConvertBaseToColorSpace(prevBase, original, &c)) {
+					fprintf(stderr, "bufferIndex=%lld\n", (long long int)bufferIndex);
+					fprintf(stderr, "prevBase=[%c]\toriginal=[%c]\n",
+							prevBase,
+							original);
 					PrintError(FnName,
-							"curFilePos",
-							"Could not set current file position",
+							"c",
+							"Could not convert base to color space",
 							Exit,
 							OutOfRange);
 				}
-			}
-			else {
-				if(ColorSpace==space) {
-					/* Convert to color space */
-					/* Convert color space to A,C,G,T */
-					if(0 == ConvertBaseToColorSpace(prevBase, original, &c)) {
-						fprintf(stderr, "prevBase=%c\toriginal=%c\n",
-								prevBase,
-								original);
-						PrintError(FnName,
-								"c",
-								"Could not convert base to color space",
-								Exit,
-								OutOfRange);
-					}
-					/* Convert to nucleotide equivalent for storage */
-					/* Store 0=A, 1=C, 2=G, 3=T, else N */
-					c = ConvertColorToStorage(c);
-					/* Update if it is a repeat */
-					/* For repeat sequence, if both the previous base and 
-					 * current base are non-repeat, the color is non-repeat.
-					 * Otherwise, it is repeat sequence */
-					if(RGBinaryIsBaseRepeat(prevBase) == 1 || RGBinaryIsBaseRepeat(original) == 1) {
-						/* Repeat */
-						prevBase = original; /* Update the previous base */
-						original = ToUpper(c);
-					}
-					else {
-						/* Non-repeat */
-						prevBase = original; /* Update the previous base */
-						original = ToLower(c);
-					}
+				/* Convert to nucleotide equivalent for storage */
+				/* Store 0=A, 1=C, 2=G, 3=T, else N */
+				c = ConvertColorToStorage(c);
+				/* Update if it is a repeat */
+				/* For repeat sequence, if both the previous base and 
+				 * current base are non-repeat, the color is non-repeat.
+				 * Otherwise, it is repeat sequence */
+				if(RGBinaryIsBaseRepeat(prevBase) == 1 || RGBinaryIsBaseRepeat(original) == 1) {
+					/* Repeat */
+					prevBase = original; /* Update the previous base */
+					original = ToUpper(c);
 				}
+				else {
+					/* Non-repeat */
+					prevBase = original; /* Update the previous base */
+					original = ToLower(c);
+				}
+			}
 
-				if(VERBOSE >= 0) {
-					if(0==rg->contigs[rg->numContigs-1].sequenceLength % READ_ROTATE_NUM) {
-						PrintContigPos(stderr,
-								rg->numContigs,
-								rg->contigs[rg->numContigs-1].sequenceLength);
-					}
-				}
-
-				/* Validate base pair */
-				if(ValidateBasePair(original)==0) {
-					fprintf(stderr, "Base:[%c]\n", original);
-					PrintError(FnName,
-							"original",
-							"Not a valid base pair",
-							Exit,
-							OutOfRange);
-				}
-				/* Get which byte to insert */
-				byteIndex = rg->contigs[rg->numContigs-1].sequenceLength%numCharsPerByte;
-				/* Check if we must allocate a new byte */
-				if(byteIndex==0) {
-					/* Update the number of bytes */
-					rg->contigs[rg->numContigs-1].numBytes++;
-					/* Reallocate a new byte */
-					rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(char)*(rg->contigs[rg->numContigs-1].numBytes));
-					if(NULL == rg->contigs[rg->numContigs-1].sequence) {
-						PrintError(FnName,
-								"rg->contigs[rg->numContigs-1].sequence",
-								"Could not reallocate memory",
-								Exit,
-								ReallocMemory);
-					}
-					/* Initialize the byte */
-					rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1] = 0;
-				}
-				/* Insert the sequence correctly (as opposed to incorrectly) */
-				RGBinaryInsertBase(&rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1], 
-						byteIndex, 
-						original);
-				rg->contigs[rg->numContigs-1].sequenceLength++;
-				numPosRead++;
-				if(rg->contigs[rg->numContigs-1].sequenceLength >= UINT_MAX) {
-					PrintError(FnName,
-							"sequenceLength",
-							"Maximum sequence length for a given contig was reached",
-							Exit,
-							OutOfRange);
+			if(VERBOSE >= 0) {
+				if(0==rg->contigs[rg->numContigs-1].sequenceLength % READ_ROTATE_NUM) {
+					PrintContigPos(stderr,
+							rg->numContigs,
+							rg->contigs[rg->numContigs-1].sequenceLength);
 				}
 			}
-			/* Save the file position in case the next character is the beginning of the header */
-			if(0!=fgetpos(fpRG, &curFilePos)) {
+
+			/* Validate base pair */
+			if(ValidateBasePair(original)==0) {
+				fprintf(stderr, "Base:[%c]\n", original);
 				PrintError(FnName,
-						"curFilePos",
-						"Could not get the current file position",
+						"original",
+						"Not a valid base pair",
+						Exit,
+						OutOfRange);
+			}
+			/* Get which byte to insert */
+			byteIndex = rg->contigs[rg->numContigs-1].sequenceLength%numCharsPerByte;
+			/* Check if we must allocate a new byte */
+			if(byteIndex==0) {
+				/* Update the number of bytes */
+				rg->contigs[rg->numContigs-1].numBytes++;
+				/* Reallocate a new byte */
+				rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(char)*(rg->contigs[rg->numContigs-1].numBytes));
+				if(NULL == rg->contigs[rg->numContigs-1].sequence) {
+					PrintError(FnName,
+							"rg->contigs[rg->numContigs-1].sequence",
+							"Could not reallocate memory",
+							Exit,
+							ReallocMemory);
+				}
+				/* Initialize the byte */
+				rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1] = 0;
+			}
+			/* Insert the sequence correctly (as opposed to incorrectly) */
+			RGBinaryInsertBase(&rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1], 
+					byteIndex, 
+					original);
+			rg->contigs[rg->numContigs-1].sequenceLength++;
+			numPosRead++;
+			if(rg->contigs[rg->numContigs-1].sequenceLength >= UINT_MAX) {
+				PrintError(FnName,
+						"sequenceLength",
+						"Maximum sequence length for a given contig was reached",
 						Exit,
 						OutOfRange);
 			}
@@ -251,6 +268,12 @@ void RGBinaryRead(char *rgFileName,
 					ReallocMemory);
 		}
 		/* End loop for the current contig */
+		free(buffer);
+		buffer=NULL;
+		bufferLength=0;
+		if(0 != feof(fpRG)) {
+			eofReached=1;
+		}
 	}
 	if(VERBOSE >= 0) {
 		PrintContigPos(stderr,
@@ -823,12 +846,12 @@ char RGBinaryGetBase(RGBinary *rg,
 	uint8_t curByte;
 
 	if(RGBinaryUnPacked == rg->packed) {
-	if(contig < 1 ||
-			contig > rg->numContigs ||
-			position < 1 ||
-			position > rg->contigs[contig-1].sequenceLength) {
-		return 0;
-	}
+		if(contig < 1 ||
+				contig > rg->numContigs ||
+				position < 1 ||
+				position > rg->contigs[contig-1].sequenceLength) {
+			return 0;
+		}
 		/* Simple */
 		curChar = rg->contigs[contig-1].sequence[position-1];
 	}
@@ -903,36 +926,36 @@ uint8_t RGBinaryGetFourBit(RGBinary *rg,
 		curByte = 0;
 		// Note: no error checking!
 		switch(rg->contigs[contig-1].sequence[position-1]) {
-				case 'A':
-				case 'C':
-				case 'G':
-				case 'T':
-					/* one */
-					curByte = curByte | 0x04;
-					break;
-				case 'N':
-				case 'n':
-					/* two */
-					curByte = curByte | 0x08;
-					break;
-				default:
-					break;
+			case 'A':
+			case 'C':
+			case 'G':
+			case 'T':
+				/* one */
+				curByte = curByte | 0x04;
+				break;
+			case 'N':
+			case 'n':
+				/* two */
+				curByte = curByte | 0x08;
+				break;
+			default:
+				break;
 		}
 		switch(rg->contigs[contig-1].sequence[position-1]) {
-				case 'C':
-				case 'c':
-					curByte = curByte | 0x01;
-					break;
-				case 'G':
-				case 'g':
-					curByte = curByte | 0x03;
-					break;
-				case 'T':
-				case 't':
-					curByte = curByte | 0x03;
-					break;
-				default:
-					break;
+			case 'C':
+			case 'c':
+				curByte = curByte | 0x01;
+				break;
+			case 'G':
+			case 'g':
+				curByte = curByte | 0x03;
+				break;
+			case 'T':
+			case 't':
+				curByte = curByte | 0x03;
+				break;
+			default:
+				break;
 		}
 		return curByte;
 	}

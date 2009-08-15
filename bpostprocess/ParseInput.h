@@ -6,6 +6,7 @@ struct arguments
 	char *alignFileName;					/* -i */
 	char *rgFileName;						/* -r */
 	int algorithm;							/* -a */
+	int queueLength;						/* -Q */
 	char *outputID;							/* -o */
 	char *outputDir;                        /* -d */
 	int outputFormat;						/* -O */

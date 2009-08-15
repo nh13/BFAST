@@ -419,3 +419,18 @@ int ReadOffsets(char *offsetsFileName, int **offsets)
 
 	return numOffsets;
 }
+
+int32_t GetReads(FILE *fp, RGMatches *m, int32_t maxToRead) 
+{
+	int32_t numRead = 0;
+
+	while(numRead < maxToRead) {
+		RGMatchesInitialize(&(m[numRead]));
+		if(EOF == GetRead(fp, &(m[numRead]))) {
+			return numRead;
+		}
+		numRead++;
+	}
+	return numRead;
+}
+

@@ -10,6 +10,7 @@
 extern char DNA[5];
 
 int GetFastaHeaderLine(FILE*, char*);
+int ParseFastaHeaderLine(char*);
 char ToLower(char);
 void ToLowerRead(char*, int);
 char ToUpper(char);

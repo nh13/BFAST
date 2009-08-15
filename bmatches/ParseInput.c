@@ -62,7 +62,7 @@ enum {
 	/*
 	DescNumMismatches, DescNumDeletions, DescNumInsertions, DescNumGapDeletions, DescNumGapInsertions, 
 	*/
-	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, 
+	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -99,7 +99,8 @@ static struct argp_option options[] = {
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
 	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse strand only", 2},
-	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1", 2},
+	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
+	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 3},
 	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 3},
@@ -129,7 +130,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 #else
 /* argp.h support not available! Fall back to getopt */
 static char OptionString[]=
-"d:e:i:k:m:n:o:r:s:w:A:I:K:M:O:R:T:hpt";
+"d:e:i:k:m:n:o:r:s:w:A:I:K:M:O:Q:R:T:hpt";
 #endif
 
 enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
@@ -199,6 +200,7 @@ main (int argc, char **argv)
 								arguments.maxNumMatches,
 								arguments.whichStrand,
 								arguments.numThreads,
+								arguments.queueLength,
 								arguments.outputID,
 								arguments.outputDir,
 								arguments.tmpDir,
@@ -338,6 +340,10 @@ int ValidateInputs(struct arguments *args) {
 	if(args->numThreads<=0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	} 
+	
+	if(args->queueLength<=0) {
+		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
+	} 
 
 	if(args->outputID!=0) {
 		fprintf(stderr, "Validating outputID %s. \n",
@@ -413,6 +419,7 @@ AssignDefaultValues(struct arguments *args)
 	args->maxNumMatches = INT_MAX;
 	args->whichStrand = BothStrands;
 	args->numThreads = 1;
+	args->queueLength = DEFAULT_MATCHES_QUEUE_LENGTH;
 
 	args->outputID =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
@@ -463,6 +470,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "whichStrand:\t\t\t\t%d\t[%s]\n", args->whichStrand, whichStrand[args->whichStrand]);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
+	fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
@@ -592,6 +600,8 @@ parse_opt (int key, char *arg, struct argp_state *state)
 					case 'O':
 						StringCopyAndReallocate(&arguments->offsetsFileName, OPTARG);
 						break;
+					case 'Q':
+						arguments->queueLength=atoi(OPTARG);break;
 					case 'R':
 						StringCopyAndReallocate(&arguments->readsFileName, OPTARG);
 						break;

@@ -32,6 +32,7 @@ void RunAligner(RGBinary *rg,
 		int maxNumMatches,
 		int avgMismatchQuality,
 		int numThreads,
+		int queueLength,
 		int usePairedEndLength,
 		int pairedEndLength,
 		int mirroringType,
@@ -131,6 +132,7 @@ void RunAligner(RGBinary *rg,
 			maxNumMatches,
 			avgMismatchQuality,
 			numThreads,
+			queueLength,
 			usePairedEndLength,
 			pairedEndLength,
 			mirroringType,
@@ -170,6 +172,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		int maxNumMatches,
 		int avgMismatchQuality,
 		int numThreads,
+		int queueLength,
 		int usePairedEndLength,
 		int pairedEndLength,
 		int mirroringType,
@@ -320,6 +323,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		data[i].numLocalAlignments = 0;
 		data[i].avgMismatchQuality = avgMismatchQuality;
 		data[i].mismatchScore = mismatchScore;
+		data[i].queueLength = queueLength;
 		data[i].threadID = i;
 	}
 
@@ -525,98 +529,129 @@ void *RunDynamicProgrammingThread(void *arg)
 	int threadID=data->threadID;
 	int avgMismatchQuality=data->avgMismatchQuality;
 	double mismatchScore=data->mismatchScore;
+	int queueLength=data->queueLength;
 	/* Local variables */
-	/*
-	   char *FnName = "RunDynamicProgrammingThread";
-	   */
+	char *FnName = "RunDynamicProgrammingThread";
 	AlignedRead aEntries;
-	int32_t i, wasAligned;
+	int32_t i, j, wasAligned;
 	int numAlignedRead=0;
-	RGMatches m;
 	int numMatches=0;
 	int ctrOne=0;
 	int ctrTwo=0;
 
+	RGMatches *matchQueue=NULL;
+	int32_t matchQueueLength=queueLength;
+	int32_t numMatchesRead=0;
+
+	/* Allocate match queue */
+	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength);
+	if(NULL == matchQueue) {
+		PrintError(FnName,
+				"matchQueue",
+				"Could not allocate memory",
+				Exit, 
+				MallocMemory);
+	}
+
 	/* Initialize */
-	RGMatchesInitialize(&m);
-	AlignedReadInitialize(&aEntries);
 
 	/* Go through each read in the match file */
-	while(EOF != RGMatchesRead(inputFP, 
-				&m)) {
+	while(0 != (numMatchesRead = GetMatches(inputFP, matchQueue, matchQueueLength))) {
 
-		wasAligned=0;
-		if(1 == IsValidMatch(&m)) {
-			numMatches++;
-			numAlignedRead = 0;
-			ctrOne=ctrTwo=0;
+		for(i=0;i<numMatchesRead;i++) {
+			AlignedReadInitialize(&aEntries);
 
-			if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
-				fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+			wasAligned=0;
+			if(1 == IsValidMatch(&matchQueue[i])) {
+				numMatches++;
+				numAlignedRead = 0;
+				ctrOne=ctrTwo=0;
+
+				if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
+					fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+				}
+
+				/* Update the number of local alignments performed */
+				data->numLocalAlignments += AlignRGMatches(&matchQueue[i],
+						rg,
+						&aEntries,
+						space,
+						offsetLength,
+						sm,
+						alignmentType,
+						bestOnly,
+						usePairedEndLength,
+						pairedEndLength,
+						mirroringType,
+						forceMirroring);
+
+				/* Output alignment */
+				for(j=wasAligned=0;0==wasAligned && j<aEntries.numEnds;j++) {
+					if(0 < aEntries.ends[j].numEntries) {
+						wasAligned = 1;
+					}
+				}
+
+				if(1 == wasAligned) {
+					/* Remove duplicates */
+					AlignedReadRemoveDuplicates(&aEntries,
+							AlignedEntrySortByAll);
+					/* Updating mapping quality */
+					AlignedReadUpdateMappingQuality(&aEntries, 
+							mismatchScore, 
+							avgMismatchQuality);
+				}
 			}
-
-			/* Update the number of local alignments performed */
-			data->numLocalAlignments += AlignRGMatches(&m,
-					rg,
-					&aEntries,
-					space,
-					offsetLength,
-					sm,
-					alignmentType,
-					bestOnly,
-					usePairedEndLength,
-					pairedEndLength,
-					mirroringType,
-					forceMirroring);
-
-			/* Output alignment */
-			for(i=wasAligned=0;0==wasAligned && i<aEntries.numEnds;i++) {
-				if(0 < aEntries.ends[i].numEntries) {
-					wasAligned = 1;
+			else {
+				/* Copy over to aEntries */
+				AlignedReadAllocate(&aEntries,
+						matchQueue[i].readName,
+						matchQueue[i].numEnds,
+						space);
+				for(j=0;j<matchQueue[i].numEnds;j++) {
+					AlignedEndAllocate(&aEntries.ends[j],
+							matchQueue[i].ends[j].read,
+							matchQueue[i].ends[j].qual,
+							0);
 				}
 			}
 
-			if(1 == wasAligned) {
-				/* Remove duplicates */
-				AlignedReadRemoveDuplicates(&aEntries,
-						AlignedEntrySortByAll);
-				/* Updating mapping quality */
-				AlignedReadUpdateMappingQuality(&aEntries, 
-						mismatchScore, 
-						avgMismatchQuality);
+			/* Print */
+			AlignedReadPrint(&aEntries,
+					outputFP);
+
+			if(0 == wasAligned) {
+				/* Store matches in not aligned */
+				RGMatchesPrint(notAlignedFP,
+						&matchQueue[i]);
 			}
-		}
-		else {
-			/* Copy over to aEntries */
-			AlignedReadAllocate(&aEntries,
-					m.readName,
-					m.numEnds,
-					space);
-			for(i=0;i<m.numEnds;i++) {
-				AlignedEndAllocate(&aEntries.ends[i],
-						m.ends[i].read,
-						m.ends[i].qual,
-						0);
-			}
-		}
 
-		/* Print */
-		AlignedReadPrint(&aEntries,
-				outputFP);
-
-		if(0 == wasAligned) {
-			/* Store matches in not aligned */
-			RGMatchesPrint(notAlignedFP,
-					&m);
+			/* Free memory */
+			AlignedReadFree(&aEntries);
+			RGMatchesFree(&matchQueue[i]);
 		}
-
-		/* Free memory */
-		AlignedReadFree(&aEntries);
-		RGMatchesFree(&m);
 	}
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 	}
 
+	free(matchQueue);
+
 	return arg;
+}
+
+
+//while(0 != (numMatchesRead = GetMatches(inputFP, m))) {
+int32_t GetMatches(gzFile fp, RGMatches *m, int32_t maxToRead)
+{
+	int32_t numRead = 0;
+
+	while(numRead < maxToRead) {
+		RGMatchesInitialize(&(m[numRead]));
+		if(EOF == RGMatchesRead(fp, &(m[numRead]))) {
+			return numRead;
+		}
+		numRead++;
+	}
+	return numRead;
 }

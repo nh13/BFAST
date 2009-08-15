@@ -20,9 +20,10 @@ char COLORS[5] = "01234";
 int GetFastaHeaderLine(FILE *fp,
 		char *header)
 {
+	/*
 	char *FnName="GetFastaHeaderLine";
+	*/
 	char *ret;
-	int i, length;
 
 	/* Read in the line */
 	ret = fgets(header,  MAX_CONTIG_NAME_LENGTH, fp);
@@ -31,6 +32,14 @@ int GetFastaHeaderLine(FILE *fp,
 	if(ret != header) {
 		return EOF;
 	}
+	return 1;
+}
+
+/* TODO */
+int ParseFastaHeaderLine(char *header)
+{
+	char *FnName="ParseFastaHeaderLine";
+	int i, length;
 
 	/* Check that the first character is a ">" */
 	if(header[0] != '>') {

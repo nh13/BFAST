@@ -35,10 +35,12 @@ typedef struct {
 	int64_t numLocalAlignments;
 	int32_t avgMismatchQuality;
 	double mismatchScore;
+	int queueLength;
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
-void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, gzFile, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
+void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, gzFile, int*, int*);
 void *RunDynamicProgrammingThread(void *);
+int32_t GetMatches(gzFile, RGMatches*, int32_t);
 #endif

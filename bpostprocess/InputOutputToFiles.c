@@ -16,6 +16,7 @@
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
+		int queueLength,
 		char *outputID,
 		char *outputDir,
 		int outputFormat)
@@ -24,7 +25,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	gzFile fp=NULL;
 	int32_t i, j;
 	int64_t counter, foundType, numNotReported, numReported;
-	AlignedRead a;
+	AlignedRead *aBuffer;
+	int32_t aBufferLength=0;
+	int32_t numRead, aBufferIndex;
 	char reportedFileName[MAX_FILENAME_LENGTH]="\0";
 	gzFile fpReportedGZ=NULL;
 	FILE *fpReported=NULL;
@@ -116,46 +119,58 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	AlignedReadConvertPrintHeader(fpReported, rg, outputFormat);
 
-	/* Initialize */
-	AlignedReadInitialize(&a);
+	aBufferLength=queueLength;
+	aBuffer=malloc(sizeof(AlignedRead)*aBufferLength);
+	if(NULL == aBuffer) {
+		PrintError(FnName,
+				"aBuffer",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
 	counter = numReported = numNotReported = 0;
-	while(EOF != AlignedReadRead(&a, fp)) {
-		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%lld",
-					(long long int)counter);
-		}
 
-		/* Filter */
-		foundType=FilterAlignedRead(&a,
-				algorithm);
+	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength))) {
 
-		if(NoneFound == foundType) {
-			/* Print to Not Reported file */
-			AlignedReadConvertPrintOutputFormat(&a, rg, fpNotReported, fpNotReportedGZ, outputID, outputFormat, BinaryOutput);
-			numNotReported++;
+		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
 
-			/* Free the alignments for output */
-			for(i=0;i<a.numEnds;i++) {
-				for(j=0;j<a.ends[i].numEntries;j++) {
-					AlignedEntryFree(&a.ends[i].entries[j]);
-				}
-				a.ends[i].numEntries=0;
+			if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
+				fprintf(stderr, "\r%lld",
+						(long long int)counter);
 			}
+
+			/* Filter */
+			foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
+					algorithm);
+
+			if(NoneFound == foundType) {
+				/* Print to Not Reported file */
+				AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpNotReported, fpNotReportedGZ, outputID, outputFormat, BinaryOutput);
+				numNotReported++;
+
+				/* Free the alignments for output */
+				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
+					for(j=0;j<aBuffer[aBufferIndex].ends[i].numEntries;j++) {
+						AlignedEntryFree(&aBuffer[aBufferIndex].ends[i].entries[j]);
+					}
+					aBuffer[aBufferIndex].ends[i].numEntries=0;
+				}
+			}
+
+			/* Print to Output file */
+			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, outputID, outputFormat, BinaryOutput);
+			numReported++;
+
+			/* Free memory */
+			AlignedReadFree(&aBuffer[aBufferIndex]);
+			/* Increment counter */
+			counter++;
 		}
-
-		/* Print to Output file */
-		AlignedReadConvertPrintOutputFormat(&a, rg, fpReported, fpReportedGZ, outputID, outputFormat, BinaryOutput);
-		numReported++;
-
-		/* Free memory */
-		AlignedReadFree(&a);
-		/* Increment counter */
-		counter++;
 	}
 	if(VERBOSE>=0) {
 		fprintf(stderr, "\r%lld\n",
@@ -173,4 +188,19 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	}
 	/* Close the input file */
 	gzclose(fp);
+
+	free(aBuffer);
+}
+
+int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead)
+{
+	int32_t numRead=0;
+	while(numRead < maxToRead) {
+		AlignedReadInitialize(&aBuffer[numRead]);
+		if(EOF == AlignedReadRead(&aBuffer[numRead], fp)) {
+			return numRead;
+		}
+		numRead++;
+	}
+	return numRead;
 }

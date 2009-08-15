@@ -38,6 +38,7 @@ void FindMatches(
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
+		int queueLength,
 		char *outputID,
 		char *outputDir,
 		char *tmpDir,
@@ -210,6 +211,7 @@ void FindMatches(
 			maxNumMatches,
 			whichStrand,
 			numThreads,
+			queueLength,
 			&tempSeqFPs,
 			&tempSeqFileNames,
 			outputFP,
@@ -252,6 +254,7 @@ void FindMatches(
 					maxNumMatches,
 					whichStrand,
 					numThreads,
+					queueLength,
 					&tempSeqFPs,
 					&tempSeqFileNames,
 					outputFP,
@@ -383,6 +386,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
+		int queueLength,
 		FILE ***tempSeqFPs,
 		char ***tempSeqFileNames,
 		gzFile outputFP,
@@ -477,6 +481,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				maxNumMatches,
 				whichStrand,
 				numThreads,
+				queueLength,
 				tempSeqFPs,
 				tempOutputIndexFPs[i],
 				tmpDir,
@@ -631,6 +636,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
+		int queueLength,
 		FILE ***tempSeqFPs,
 		gzFile indexFP,
 		char *tmpDir,
@@ -748,6 +754,7 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].numGapDeletions = numGapDeletions;
 		data[i].maxKeyMatches = maxKeyMatches;
 		data[i].maxNumMatches = maxNumMatches;
+		data[i].queueLength = queueLength;
 		data[i].whichStrand = whichStrand;
 		data[i].threadID = i;
 	}
@@ -866,11 +873,8 @@ int FindMatchesInIndex(char *indexFileName,
 /* TODO */
 void *FindMatchesInIndexThread(void *arg)
 {
-	/*
-	   char *FnName="FindMatchesInIndex";
-	   */
-	RGMatches m;
-	int32_t i;
+	char *FnName="FindMatchesInIndexThread";
+	int32_t i, j;
 	int numRead = 0;
 	int foundMatch = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
@@ -889,12 +893,29 @@ void *FindMatchesInIndexThread(void *arg)
 	int numGapDeletions = data->numGapDeletions;
 	int maxKeyMatches = data->maxKeyMatches;
 	int maxNumMatches = data->maxNumMatches;
+	int queueLength = data->queueLength;
 	int whichStrand = data->whichStrand;
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
+	RGMatches *matchQueue=NULL;
+	int32_t matchQueueLength=queueLength;
+	int32_t numMatches=0;
+
+	/* Allocate match queue */
+	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength); 
+	if(NULL == matchQueue) {
+		PrintError(FnName,
+				"matchQueue",
+				"Could not allocate memory",
+				Exit,
+				MallocMemory);
+	}
+
 	/* Initialize match structures */
-	RGMatchesInitialize(&m);
+	for(i=0;i<matchQueueLength;i++) {
+		RGMatchesInitialize(&matchQueue[i]);
+	}
 
 	/* For each read */
 	if(VERBOSE >= 0) {
@@ -902,57 +923,58 @@ void *FindMatchesInIndexThread(void *arg)
 				threadID,
 				numRead);
 	}
-	while(EOF!=GetRead(tempSeqFP, 
-				&m)) {
-		numRead++;
+	while(0!=(numMatches = GetReads(tempSeqFP, matchQueue, matchQueueLength))) {
+		for(i=0;i<numMatches;i++) {
+			numRead++;
+			if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
+				fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
+						threadID,
+						numRead);
+			}
+			if(1 == IsValidRead(&matchQueue[i])) {
+				/* Read */
+				foundMatch = 0;
+				for(j=0;j<matchQueue[i].numEnds;j++) {
+					RGReadsFindMatches(index,
+							rg,
+							&matchQueue[i].ends[j],
+							offsets,
+							numOffsets,
+							space,
+							numMismatches,
+							numInsertions,
+							numDeletions,
+							numGapInsertions,
+							numGapDeletions,
+							maxKeyMatches,
+							maxNumMatches,
+							whichStrand);
+					if(0 < matchQueue[i].ends[j].numEntries && 1 != matchQueue[i].ends[j].maxReached) {
+						foundMatch = 1;
+					}
+				}
 
-		if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
-					threadID,
-					numRead);
-		}
-
-		if(1 == IsValidRead(&m)) {
-
-			/* Read */
-			foundMatch = 0;
-			for(i=0;i<m.numEnds;i++) {
-				RGReadsFindMatches(index,
-						rg,
-						&m.ends[i],
-						offsets,
-						numOffsets,
-						space,
-						numMismatches,
-						numInsertions,
-						numDeletions,
-						numGapInsertions,
-						numGapDeletions,
-						maxKeyMatches,
-						maxNumMatches,
-						whichStrand);
-				if(0 < m.ends[i].numEntries && 1 != m.ends[i].maxReached) {
-					foundMatch = 1;
+				if(1 == foundMatch) {
+					data->numMatches++;
 				}
 			}
 
-			if(1 == foundMatch) {
-				data->numMatches++;
-			}
+			/* Output to file */
+			RGMatchesPrint(tempOutputFP, 
+					&matchQueue[i]);
+
+			/* Free matches */
+			RGMatchesFree(&matchQueue[i]);
 		}
-
-		/* Output to file */
-		RGMatchesPrint(tempOutputFP, 
-				&m);
-
-		/* Free matches */
-		RGMatchesFree(&m);
 	}
+	assert(0 == numMatches);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
 				threadID,
 				numRead);
 	}
 
-	return NULL;
+	free(matchQueue);
+
+	return arg;
 }
