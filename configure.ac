@@ -7,16 +7,7 @@
 AC_PREREQ(2.59)
 AC_INIT([bfast],[0.5.5],[Nils Homer - Nelson Lab - UCLA, <nhomer@cs.ucla.edu>],[bfast])
 
-AC_COPYRIGHT([bfast is copyright 2008-2009 by The University of California - Los
-Angeles.  All rights reserved.  This License is limited to, and you
-may use the Software solely for, your own internal and non-commercial
-use for academic and research purposes. Without limiting the foregoing,
-you may not use the Software as part of, or in any way in connection 
-with the production, marketing, sale or support of any commercial 
-product or service or for any governmental purposes.  For commercial
-or governmental use, please contact licensing@ucla.edu.  By installing 
-this Software you are agreeing to the terms of the LICENSE file 
-distributed with this software.  All rights for use are given to Nils Homer.])
+AC_COPYRIGHT([See LICENSE for copyright information.])
 
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE([dist-bzip2])
