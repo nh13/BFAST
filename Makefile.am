@@ -1,5 +1,6 @@
 EXTRA_DIST = LICENSE \
 			 autogen.sh \
+			 manual/bfast-book.pdf \
 			 blib/BLibDefinitions.h \
 			 scripts/solid2fastq.pl \
 			 scripts/qseq2fastq.pl \
