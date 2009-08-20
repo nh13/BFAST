@@ -45,8 +45,7 @@
 const char *argp_program_version =
 "bpostprocess "
 PACKAGE_VERSION
-"\n"
-"Copyright 2008-2009";
+"\n";;
 
 const char *argp_program_bug_address =
 PACKAGE_BUGREPORT;
