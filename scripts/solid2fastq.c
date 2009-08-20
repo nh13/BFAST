@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 	output_count = output_count_total = 0;
 	// Open output file
 	if(0 == no_output) {
-	fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+		fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 	}
 	fprintf(stderr, "Outputting, currently on:\n0");
 	while(0 < more_fps_left) { // while an input file is still open
@@ -220,11 +220,11 @@ int main(int argc, char *argv[])
 			// check if the read name is the min
 			if(1 == reads[i].is_pop) {
 				/*
-				fprintf(stdout, "i=%d\tmin_read_name=%s\treads[i].name=%s\n",
-						i,
-						min_read_name,
-						reads[i].name);
-						*/
+				   fprintf(stdout, "i=%d\tmin_read_name=%s\treads[i].name=%s\n",
+				   i,
+				   min_read_name,
+				   reads[i].name);
+				   */
 				if(NULL == min_read_name || 
 						0 == cmp_read_names(reads[i].name, min_read_name)) {
 					if(NULL == min_read_name) {
@@ -250,9 +250,9 @@ int main(int argc, char *argv[])
 			}
 		}
 		/*
-		fprintf(stdout, "min_read_name was %s\n",
-				min_read_name);
-				*/
+		   fprintf(stdout, "min_read_name was %s\n",
+		   min_read_name);
+		   */
 		free(min_read_name);
 		min_read_name=NULL;
 
@@ -280,8 +280,8 @@ int main(int argc, char *argv[])
 				num_reads_per_file <= output_count) {
 			output_suffix_number++;
 			if(0 == no_output) {
-			fclose(fp_output);
-			fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+				fclose(fp_output);
+				fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 			}
 			output_count=0;
 		}

@@ -133,7 +133,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
-	counter = numReported = numNotReported = 0;
+	counter = numReported = numNotReported = numRead = 0;
 
 	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength))) {
 
