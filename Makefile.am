@@ -1,6 +1,5 @@
 EXTRA_DIST = LICENSE \
 			 autogen.sh \
-			 doc/bfast.1 doc/bpreprocess.1 doc/bmatches.1 doc/balign.1 doc/bpostprocess.1 doc/butil.1 \
 			 blib/BLibDefinitions.h \
 			 scripts/solid2fastq.pl \
 			 scripts/qseq2fastq.pl \
@@ -14,4 +13,4 @@ EXTRA_DIST = LICENSE \
 			 tests/test.bpostprocess.sh \
 			 tests/test.diff.sh \
 			 tests/test.cleanup.sh
-SUBDIRS = bpreprocess bmatches balign bpostprocess butil doc tests scripts 
+SUBDIRS = bpreprocess bmatches balign bpostprocess butil tests scripts 

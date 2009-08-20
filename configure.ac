@@ -91,7 +91,6 @@ attempt to use getopt.h for command line parsing.])])
 
 
 AC_CONFIG_FILES([Makefile
-				 doc/Makefile
 				 bpreprocess/Makefile
 				 bmatches/Makefile
 				 balign/Makefile
