@@ -6,6 +6,10 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.5.6
+* balign now is able to only align a specific subset of reads from the 
+matches file.  This is similar to bmatches and should be especially 
+useful if the index search (bmatches) is faster than the local
+alignment (balign), which is usually the case for ABI SOLiD data.
 
 Version 0.5.5
 * Adding support for input queueing, so that a given number of reads are 

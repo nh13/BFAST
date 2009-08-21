@@ -24,10 +24,8 @@ void RunAligner(RGBinary *rg,
 		int alignmentType,
 		int bestOnly,
 		int space,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
+		int startReadNum,
+		int endReadNum,
 		int offsetLength,
 		int maxNumMatches,
 		int avgMismatchQuality,
@@ -58,13 +56,6 @@ void RunAligner(RGBinary *rg,
 				Exit,
 				OutOfRange);
 	}
-
-	/* Adjust start and end based on reference genome */
-	AdjustBounds(rg,
-			&startContig,
-			&startPos,
-			&endContig,
-			&endPos);
 
 	/* Create output file name */
 	sprintf(outputFileName, "%s%s.aligned.file.%s.%s",
@@ -124,10 +115,8 @@ void RunAligner(RGBinary *rg,
 			alignmentType,
 			bestOnly,
 			space,
-			startContig,
-			startPos,
-			endContig,
-			endPos,
+			startReadNum,
+			endReadNum,
 			offsetLength,
 			maxNumMatches,
 			avgMismatchQuality,
@@ -164,10 +153,8 @@ void RunDynamicProgramming(gzFile matchFP,
 		int alignmentType,
 		int bestOnly,
 		int space,
-		int startContig,
-		int startPos,
-		int endContig,
-		int endPos,
+		int startReadNum,
+		int endReadNum,
 		int offsetLength,
 		int maxNumMatches,
 		int avgMismatchQuality,
@@ -192,7 +179,8 @@ void RunDynamicProgramming(gzFile matchFP,
 
 	int32_t wasAligned;
 	int continueReading=0;
-	int numMatches=0;
+	int numMatchesInFile=0;
+	int numMatchesFound=0;
 	int numAligned=0;
 	int numNotAligned=0;
 	int startTime, endTime;
@@ -259,38 +247,40 @@ void RunDynamicProgramming(gzFile matchFP,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Filtering and partitioning matches for threads...\n0");
 	}
-	i=0;
+	i=numMatchesInFile=numMatchesFound=0;
 	while(EOF!=RGMatchesRead(matchFP, 
 				&m)) {
 
-		if(VERBOSE >= 0 && numMatches%PARTITION_MATCHES_ROTATE_NUM==0) {
-			fprintf(stderr, "\r[%d]", numMatches);
+		if(VERBOSE >= 0 && numMatchesFound%PARTITION_MATCHES_ROTATE_NUM==0) {
+			fprintf(stderr, "\r[%d]", numMatchesFound);
 		}
-		/* increment */
-		numMatches++;
+		numMatchesInFile++;
 
-		/* Filter the matches that are not within the bounds */
-		/* Filter one if it has too many entries */
-		RGMatchesFilterOutOfRange(&m,
-				startContig,
-				startPos,
-				endContig,
-				endPos,
-				maxNumMatches);
+		/* Ignore reads based on startReadNum and endReadNum */
+		if(startReadNum <= numMatchesInFile && numMatchesInFile <= endReadNum) {
 
-		/* Print match to temp file */
-		RGMatchesPrint(data[i].inputFP,
-				&m);
-		/* Increment */
-		i = (i+1)%numThreads;
+			/* increment the number of matches to be aligned */
+			numMatchesFound++;
+
+			/* Filter the matches that are not within the bounds */
+			/* Filter one if it has too many entries */
+			RGMatchesFilterOutOfRange(&m,
+					maxNumMatches);
+
+			/* Print match to temp file */
+			RGMatchesPrint(data[i].inputFP,
+					&m);
+			/* Increment */
+			i = (i+1)%numThreads;
+		}
 
 		/* Free memory */
 		RGMatchesFree(&m);
 	}
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r[%d]\n", numMatches);
+		fprintf(stderr, "\r[%d]\n", numMatchesFound);
 		fprintf(stderr, "Found %d reads.\n",
-				numMatches);
+				numMatchesFound);
 	}
 
 	/* End file handling timer */
@@ -330,7 +320,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Processing %d reads.\n",
-				numMatches - numNotAligned
+				numMatchesFound - numNotAligned
 			   );
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Performing alignment...\n");
@@ -500,7 +490,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		fprintf(stderr, "Outputted %d reads for which there were no alignments.\n", numNotAligned); 
 		fprintf(stderr, "Outputting complete.\n");
 	}
-	assert(numAligned + numNotAligned == numMatches);
+	assert(numAligned + numNotAligned == numMatchesFound);
 
 	/* Free memory */
 	free(data);

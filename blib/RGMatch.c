@@ -657,37 +657,8 @@ void RGMatchCheck(RGMatch *m)
 
 /* TODO */
 void RGMatchFilterOutOfRange(RGMatch *m,
-		int32_t startContig,
-		int32_t startPos,
-		int32_t endContig,
-		int32_t endPos,
 		int32_t maxNumMatches)
 {
-	int32_t i, prevIndex;
-
-	/* Filter contig/pos */
-	/* Remove duplicates */
-	prevIndex = -1;
-	int filter;
-	for(i=0;i<m->numEntries;i++) {
-		filter = 0;
-		if(m->contigs[i] < startContig || 
-				(m->contigs[i] == startContig && (m->positions[i] + m->readLength - 1) < startPos) ||
-				(m->contigs[i] == endContig && m->positions[i] > endPos) ||
-				(m->contigs[i] > endContig)) {
-			/* ignore */
-		}
-		else {
-			/* Do not filter */
-			prevIndex++;
-			/* Copy contig/pos at i to contig/pos at prevIndex */
-			RGMatchCopyAtIndex(m, prevIndex, m, i);
-		}
-	}
-
-	/* Reallocate pair */
-	RGMatchReallocate(m, prevIndex+1);
-
 	/* Filter based on the maximum number of matches */
 	if(maxNumMatches != 0 && m->numEntries > maxNumMatches) {
 		/* Do not align this one */

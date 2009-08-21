@@ -39,8 +39,8 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
-void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, gzFile, int*, int*);
+void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
+void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, gzFile, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 int32_t GetMatches(gzFile, RGMatches*, int32_t);
 #endif

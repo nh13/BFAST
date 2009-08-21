@@ -607,19 +607,11 @@ void RGMatchesCheck(RGMatches *m)
 
 /* TODO */
 void RGMatchesFilterOutOfRange(RGMatches *m,
-		int32_t startChr,
-		int32_t startPos,
-		int32_t endChr,
-		int32_t endPos,
 		int32_t maxNumMatches)
 {
 	int32_t i;
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchFilterOutOfRange(&m->ends[i],
-				startChr,
-				startPos,
-				endChr,
-				endPos,
 				maxNumMatches);
 	}
 }

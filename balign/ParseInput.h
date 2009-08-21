@@ -11,10 +11,8 @@ struct arguments
 	int alignmentType;						/* -a */
 	int bestOnly;							/* -b */
 	int space;								/* -A */
-	int startContig;                        /* -s */
-	int startPos;                           /* -S */
-	int endContig;                          /* -e */
-	int endPos;                             /* -E */
+	int startReadNum;                       /* -s */
+	int endReadNum;                         /* -e */
 	int offsetLength;						/* -O */
 	int maxNumMatches;						/* -M */
 	int avgMismatchQuality;					/* -q */

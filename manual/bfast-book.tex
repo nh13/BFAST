@@ -492,21 +492,13 @@ Specifies the encoding space of the alphabet.
 For nucleotide space, use \TT{-A 0}.
 For color space, use \TT{-A 1}, which will use a modified Smith Waterman algorithm to correct for color space errors.
 
-\subsubsection{\TT{-s INTEGER, --startContig=INTEGER}}
-Specifies the first contig to include when aligning CALs.
-CALs that are before the specified contig in order will be ignored.
+\subsubsection{\TT{-s INTEGER, --startReadNum=INTEGER}}
+Specifies the first read in which to process.
+This may be useful when distributing a large data set across a cluster.
 
-\subsubsection{\TT{-S INTEGER, --startPos=INTEGER}}
-Specifies the first position in the first contig to include when aligning CALs.
-CALS that are before the specified position on the first contig will be ignored.
-
-\subsubsection{\TT{-e INTEGER, --endContig=INTEGER}}
-Specifies the last contig to include when aligning CALs.
-CALs that are after the specified contig in order will be ignored.
-
-\subsubsection{\TT{-E INTEGER, --endPos=INTEGER}}
-Specifies the last position in the last contig to include when aligning CALs.
-CALS that are after the specified position on the last contig will be ignored.
+\subsubsection{\TT{-e INTEGER, --endReadNum=INTEGER}}
+Specifies the last read in which to process.
+This may be useful when distributing a large data set across a cluster.
 
 \subsubsection{\TT{-O INTEGER, --offset=INTEGER}}
 Specifies the number of bases before and after each CAL to include in the reference when aligning.

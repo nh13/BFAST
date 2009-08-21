@@ -57,7 +57,7 @@ PACKAGE_BUGREPORT;
    */
 enum { 
 	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlignmentType, /*DescBestOnly, */DescSpace, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
+	DescAlgoTitle, DescAlignmentType, /*DescBestOnly, */DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -79,10 +79,8 @@ static struct argp_option options[] = {
 		"\n\t\t\tOtherwise, a best scoring alignment is output for each match.", 2},
 	*/
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"startContig", 's', "startContig", 0, "Specifies the start chromosome", 2},
-	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
-	{"endContig", 'e', "endContig", 0, "Specifies the end chromosome", 2},
-	{"endPos", 'E', "endPos", 0, "Specifies the end position", 2},
+	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
+	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
 	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
@@ -197,10 +195,8 @@ main (int argc, char **argv)
 								arguments.alignmentType,
 								arguments.bestOnly,
 								arguments.space,
-								arguments.startContig,
-								arguments.startPos,
-								arguments.endContig,
-								arguments.endPos,
+								arguments.startReadNum,
+								arguments.endReadNum,
 								arguments.offsetLength,
 								arguments.maxNumMatches,
 								arguments.avgMismatchQuality,
@@ -340,20 +336,12 @@ int ValidateInputs(struct arguments *args) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->startContig < 0) {
-		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
+	if(args->startReadNum < 0) {
+		PrintError(FnName, "startReadNum", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->startPos < 0) {
-		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->endContig < 0) {
-		PrintError(FnName, "endContig", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->endPos < 0) {
-		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
+	if(args->endReadNum < 0) {
+		PrintError(FnName, "endReadNum", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->offsetLength < 0) {
@@ -434,10 +422,8 @@ AssignDefaultValues(struct arguments *args)
 	args->alignmentType = FullAlignment;
 	args->bestOnly = AllAlignments;
 	args->space = NTSpace;
-	args->startContig=0;
-	args->startPos=0;
-	args->endContig=INT_MAX;
-	args->endPos=INT_MAX;
+	args->startReadNum=0;
+	args->endReadNum=INT_MAX;
 	args->offsetLength=0;
 	args->maxNumMatches=INT_MAX;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
@@ -484,10 +470,8 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
 	*/
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
-	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
-	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
-	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
+	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
+	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 	fprintf(fp, "avgMismatchQuality:\t\t\t%d\n", args->avgMismatchQuality); 
@@ -578,7 +562,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						}
 						break;
 					case 'e':
-						arguments->endContig=atoi(OPTARG);break;
+						arguments->endReadNum=atoi(OPTARG);break;
 					case 'f':
 						arguments->forceMirroring=1;break;
 					case 'h':
@@ -602,7 +586,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						StringCopyAndReallocate(&arguments->rgFileName, OPTARG);
 						break;
 					case 's':
-						arguments->startContig=atoi(OPTARG);break;
+						arguments->startReadNum=atoi(OPTARG);break;
 					case 't':
 						arguments->timing = 1;break;
 					case 'x':
@@ -610,8 +594,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						break;
 					case 'A':
 						arguments->space=atoi(OPTARG);break;
-					case 'E':
-						arguments->endPos=atoi(OPTARG);break;
 					case 'L':
 						arguments->mirroringType=atoi(OPTARG);break;
 					case 'M':
@@ -620,8 +602,6 @@ parse_opt (int key, char *arg, struct argp_state *state)
 						arguments->offsetLength=atoi(OPTARG);break;
                     case 'Q':
                         arguments->queueLength=atoi(OPTARG);break;
-					case 'S':
-						arguments->startPos=atoi(OPTARG);break;
 					case 'T':
 						StringCopyAndReallocate(&arguments->tmpDir, OPTARG);
 						break;

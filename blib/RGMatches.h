@@ -21,7 +21,7 @@ void RGMatchesFree(RGMatches*);
 void RGMatchesInitialize(RGMatches*);
 void RGMatchesMirrorPairedEnd(RGMatches*, RGBinary *rg, int32_t, int32_t, int32_t);
 void RGMatchesCheck(RGMatches*);
-void RGMatchesFilterOutOfRange(RGMatches*, int32_t, int32_t, int32_t, int32_t, int32_t);
+void RGMatchesFilterOutOfRange(RGMatches*, int32_t);
 
 #endif
 

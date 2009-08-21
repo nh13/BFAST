@@ -79,7 +79,7 @@ static struct argp_option options[] = {
 	{"offsetsFileName", 'O', "offsetsFileName", 0, "Specifies the offsets", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 lines)", 2},
+	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
 	/*
 	{"numMismatches", 'x', "numMismatches", 0, "Specifies the number of mismatches to allow in the mask when searching for candidates"
