@@ -1,4 +1,4 @@
-#  Copyright (C) 2008-2009, University of California - Los Angeles
+#  See LICENSE for details
 #
 #  The version number in AC_INIT is for the bfast package.
 #  Developers - the version number should *NEVER* be changed except by, 
