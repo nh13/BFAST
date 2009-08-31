@@ -327,7 +327,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "rgFileName:\t\t%s\n", args->rgFileName);
 	fprintf(fp, "alignFileName:\t\t%s\n", args->alignFileName);
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
-    fprintf(fp, "queueLength:\t\t\t%d\n", args->queueLength);
+    fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
