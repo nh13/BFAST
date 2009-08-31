@@ -10,7 +10,6 @@ Version 0.5.6
 matches file.  This is similar to bmatches and should be especially 
 useful if the index search (bmatches) is faster than the local
 alignment (balign), which is usually the case for ABI SOLiD data.
-* Added some more support for missing color calls with ABI SOLiD data.
 
 Version 0.5.5
 * Adding support for input queueing, so that a given number of reads are 

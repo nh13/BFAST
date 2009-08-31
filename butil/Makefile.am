@@ -1,5 +1,4 @@
 bin_PROGRAMS = bafconvert \
-			   baftmp \
 			   balignmentscoredistribution \
 			   balignsim \
 			   bevalsim \
@@ -22,19 +21,6 @@ bin_PROGRAMS = bafconvert \
 			   bsort \
 			   btestindexes \
 			   btranslocations
-baftmp_SOURCES = \
-					 ../blib/BError.c	../blib/BError.h \
-					 ../blib/RGIndex.c	../blib/RGIndex.h \
-					 ../blib/BLib.c	../blib/BLib.h \
-					 ../blib/RGBinary.c ../blib/RGBinary.h \
-					 ../blib/RGRanges.c ../blib/RGRanges.h \
-					 ../blib/AlignedRead.c	../blib/AlignedRead.h \
-					 ../blib/AlignedReadConvert.c	../blib/AlignedReadConvert.h \
-					 ../blib/AlignedEnd.c	../blib/AlignedEnd.h \
-					 ../blib/AlignedEntry.c	../blib/AlignedEntry.h \
-					 baftmp.c 
-
-baftmp_LDADD = -lz
 
 bafconvert_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \
