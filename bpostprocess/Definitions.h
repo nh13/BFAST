@@ -3,7 +3,7 @@
 
 #define MIN_FILTER 0
 #define MAX_FILTER 4
-#define DEFAULT_QUEUE_LENGTH 100000
+#define DEFAULT_QUEUE_LENGTH 10000
 
 enum {NoFiltering, 		/* 0 */
 	AllNotFiltered, 	/* 1 */
