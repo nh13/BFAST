@@ -961,7 +961,10 @@ int ConvertReadFromColorSpace(char *read,
 		int readLength)
 {
 	char *FnName="ConvertReadFromColorSpace";
-	int i, index;
+	int i;
+	char prevBase;
+
+	if(readLength <= 0) return 0;
 
 	/* Convert character numbers to 8-bit ints */
 	for(i=0;i<readLength;i++) {
@@ -987,22 +990,21 @@ int ConvertReadFromColorSpace(char *read,
 		}
 	}
 
+	assert(0 < readLength);
+	prevBase=read[0];
 	for(i=0;i<readLength-1;i++) { 
-		if(0==i) {
-			index = 0;
-		}
-		else {
-			index = i-1; 
-		}
-		if(0 == ConvertBaseAndColor(read[index], read[i+1], &read[i])) {
-			fprintf(stderr, "%c\t%c\n",
-					read[index],
-					read[i+1]);
+		if(0 == ConvertBaseAndColor(prevBase, read[i+1], &read[i])) {
 			PrintError(FnName,
 					"read",
 					"Could not convert base and color",
 					Exit,
 					OutOfRange);
+		}
+		/* If the base is an 'N', meaning the color was a '4' (uncalled), then
+		 * use the previously non-N base as the previous base (this will be
+		 * correct 1/4 of the time). */
+		if('N' != read[i]) {
+			prevBase = read[i];
 		}
 	}
 	read[readLength-1] = '\0';

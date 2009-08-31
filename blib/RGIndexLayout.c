@@ -69,6 +69,13 @@ void RGIndexLayoutRead(char *layoutFileName, RGIndexLayout *layout)
 					ReallocMemory);
 		}
 		assert(tempHashWidth > 0);
+		if(RGINDEXLAYOUT_MAX_HASH_WIDTH < tempHashWidth) {
+			PrintError(FnName,
+					"tempHashWidth",
+					"The hash width was too large",
+					Exit, 
+					OutOfRange);
+		}
 		/* Copy over hash width and width */
 		layout->hashWidths[layout->numIndexes-1] = tempHashWidth;
 		layout->widths[layout->numIndexes-1] = strlen(tempMask);

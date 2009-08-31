@@ -21,6 +21,7 @@
 #define MAX_FASTA_LINE_LENGTH 2048
 #define ONE_GIGABYTE (int64_t)1073741824
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
+#define RGINDEX_LAYOUT_MAX_HASH_WIDTH 18
 
 /* Testing/Debug */
 #define TEST_RGINDEX_SORT 0
