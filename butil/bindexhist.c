@@ -571,11 +571,8 @@ int GetMatchesFromContigPos(RGIndex *index,
 	int readLength = index->width;
 	int8_t readInt[SEQUENCE_LENGTH];
 	int32_t i;
-	RGReads reads;
-	int32_t offsets[1]={0};
 
 	/* Initialize */
-	RGReadsInitialize(&reads);
 	RGRangesInitialize(&ranges);
 
 	/* Get the read */
@@ -591,32 +588,18 @@ int GetMatchesFromContigPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	RGReadsGenerateReads(read,
-			readLength,
-			index,
-			&reads,
-			offsets,
-			1,
-			rg->space,
-			numMismatches,
-			0,
-			0,
-			0,
-			0);
+	ConvertSequenceToIntegers(read, readInt, readLength);
 
-	for(i=0;i<reads.numReads;i++) {
-		ConvertSequenceToIntegers(reads.reads[i], readInt, readLength);
-		RGIndexGetRangesBothStrands(index,
-				rg,
-				readInt,
-				readLength,
-				0,
-				INT_MAX,
-				INT_MAX,
-				rg->space,
-				BothStrands,
-				&ranges);
-	}
+	RGIndexGetRangesBothStrands(index,
+			rg,
+			readInt,
+			readLength,
+			0,
+			INT_MAX,
+			INT_MAX,
+			rg->space,
+			BothStrands,
+			&ranges);
 
 	/* This exploits the fact that the ranges are non-overlapping */
 	RGRangesRemoveDuplicates(&ranges);
@@ -644,7 +627,6 @@ int GetMatchesFromContigPos(RGIndex *index,
 	assert((*numForward) > 0); /* It should at least match itself ! */
 	assert((*numReverse) >= 0);
 
-	RGReadsFree(&reads);
 	RGRangesFree(&ranges);
 	free(read);
 	read=NULL;
