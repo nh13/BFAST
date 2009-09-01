@@ -32,6 +32,7 @@ void RGBinaryRead(char *rgFileName,
 	int64_t bufferLength=0, prevBufferLength=0;
 	int64_t bufferIndex=0;
 	char header[MAX_CONTIG_NAME_LENGTH]="\0";
+	char nextHeader[MAX_CONTIG_NAME_LENGTH]="\0";
 	char prevBase = COLOR_SPACE_START_NT; /* For color space */
 
 	/* We assume that we can hold 2 [acgt] (nts) in each byte */
@@ -81,15 +82,16 @@ void RGBinaryRead(char *rgFileName,
 	}
 	rg->numContigs=0;
 	// Get a header
-	if(NULL==fgets(header, MAX_CONTIG_NAME_LENGTH, fpRG)) {
+	if(NULL==fgets(nextHeader, MAX_CONTIG_NAME_LENGTH, fpRG)) {
 		PrintError(FnName,
-				"header",
+				"nextHeader",
 				"Could not find a fasta header",
 				Exit,
 				OutOfRange);
 	}
 	int32_t eofReached = 0;
 	while(0 == eofReached) {
+		strcpy(header, nextHeader);
 		ParseFastaHeaderLine(header);
 
 		/* Get sequence */
@@ -99,7 +101,7 @@ void RGBinaryRead(char *rgFileName,
 		while(NULL!=fgets(curLine, MAX_FASTA_LINE_LENGTH, fpRG)) {
 
 			if('>' == curLine[0]) {
-				strcpy(header, curLine);
+				strcpy(nextHeader, curLine);
 				break;
 			}
 			if('\n' == curLine[strlen(curLine)-1]) {
@@ -138,6 +140,7 @@ void RGBinaryRead(char *rgFileName,
 					ReallocMemory);
 		}
 		/* Allocate memory for contig name */
+		fprintf(stderr, "h1:%s\n", header);
 		rg->contigs[rg->numContigs-1].contigNameLength=strlen(header);
 		rg->contigs[rg->numContigs-1].contigName = malloc(sizeof(char)*(rg->contigs[rg->numContigs-1].contigNameLength+1));
 		if(NULL==rg->contigs[rg->numContigs-1].contigName) {
