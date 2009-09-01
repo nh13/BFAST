@@ -48,7 +48,6 @@ int main(int argc, char *argv[])
 		strcpy(tmpDir, argv[7]);
 		numThreads = atoi(argv[8]);
 		assert(whichStrand == BothStrands || whichStrand == ForwardStrand || whichStrand == ReverseStrand);
-		assert(0 == numMismatches);
 
 		/* Create the distribution file name */
 		sprintf(distributionFileName, "%s%s.dist.%d",
@@ -696,9 +695,12 @@ void GetMatchesFromContigPos(RGIndex *index,
 	RGRanges ranges;
 	int readLength = index->width;
 	int32_t i;
+	int32_t offsets[1]={0};
 	int8_t readInt[SEQUENCE_LENGTH];
+	RGReads reads;
 
 	/* Initialize */
+	RGReadsInitialize(&reads);
 	RGRangesInitialize(&ranges);
 
 	/* Get the read */
@@ -725,17 +727,32 @@ void GetMatchesFromContigPos(RGIndex *index,
 	assert(returnLength == readLength);
 	assert(returnPosition == curPos);
 
-	ConvertSequenceToIntegers((*read), readInt, readLength);
-	RGIndexGetRangesBothStrands(index,
-			rg,
-			readInt,
+	RGReadsGenerateReads((*read),
 			readLength,
-			0,
-			INT_MAX,
-			INT_MAX,
+			index,
+			&reads,
+			offsets,
+			1,
 			rg->space,
-			BothStrands,
-			&ranges);
+			numMismatches,
+			0,
+			0,
+			0,
+			0);
+
+	for(i=0;i<reads.numReads;i++) {
+		ConvertSequenceToIntegers(reads.reads[i], readInt, readLength);
+		RGIndexGetRangesBothStrands(index,
+				rg,
+				readInt,
+				readLength,
+				0,
+				INT_MAX,
+				INT_MAX,
+				rg->space,
+				BothStrands,
+				&ranges);
+	}
 
 	/* This exploits the fact that the ranges are non-overlapping */
 	RGRangesRemoveDuplicates(&ranges);
@@ -768,5 +785,6 @@ void GetMatchesFromContigPos(RGIndex *index,
 		ConvertColorsFromStorage((*reverseRead), readLength);
 	}
 
+	RGReadsFree(&reads);
 	RGRangesFree(&ranges);
 }

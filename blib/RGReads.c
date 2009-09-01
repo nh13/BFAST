@@ -151,7 +151,6 @@ void RGReadsGenerateReads(char *read,
 		/* Note: we allow any number (including zero) of mismatches up to
 		 * numMismatches.  
 		 * */
-		/*
 		if(numMismatches > 0) {
 			RGReadsGenerateMismatches(read,
 					readLength,
@@ -160,7 +159,6 @@ void RGReadsGenerateReads(char *read,
 					index,
 					reads);
 		}
-		*/
 
 		/* Go through all deletions */
 		/* Note: we allow only contiguous deletions of length up to 

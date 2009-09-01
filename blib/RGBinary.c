@@ -140,7 +140,6 @@ void RGBinaryRead(char *rgFileName,
 					ReallocMemory);
 		}
 		/* Allocate memory for contig name */
-		fprintf(stderr, "h1:%s\n", header);
 		rg->contigs[rg->numContigs-1].contigNameLength=strlen(header);
 		rg->contigs[rg->numContigs-1].contigName = malloc(sizeof(char)*(rg->contigs[rg->numContigs-1].contigNameLength+1));
 		if(NULL==rg->contigs[rg->numContigs-1].contigName) {
