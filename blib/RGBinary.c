@@ -155,7 +155,6 @@ void RGBinaryRead(char *rgFileName,
 		rg->contigs[rg->numContigs-1].numBytes = 0;
 
 		prevBase = COLOR_SPACE_START_NT; /* For color space */
-		fprintf(stderr, "bufferLength=%lld\n", (long long int)bufferLength); // HERE
 		for(bufferIndex=0;bufferIndex<bufferLength;bufferIndex++) {
 			original=buffer[bufferIndex];
 			/* original - will be the original sequence.  Possibilities include:
