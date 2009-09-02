@@ -70,7 +70,9 @@ AC_C_CONST
 AC_FUNC_MALLOC 
 AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
-AC_CHECK_FUNCS([floor pow strstr strpbrk])
+AC_CHECK_LIB([z], [gzread])
+AC_CHECK_LIB([z], [gzwrite])
+AC_CHECK_FUNCS([floor pow strstr strpbrk strdup])
 
 # Check types
 AC_CHECK_TYPE([int64_t int32_t uint32_t int8_t uint8_t])
@@ -82,7 +84,7 @@ AC_CHECK_SIZEOF([long int])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h float.h])
+AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h float.h zlib.h])
 AC_CHECK_HEADER([argp.h], [AC_DEFINE([HAVE_ARGP_H],1,[Define to 1 if you have the <argp.h> header file])],
 [AC_MSG_WARN([argp.h header file not found.
 OS X is known to have this problem.
