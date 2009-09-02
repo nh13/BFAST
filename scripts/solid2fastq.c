@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "solid2fastq %s\nCopyright 2009.\n",
 				PACKAGE_VERSION);
 		fprintf(stderr, "\n");
-		fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <lsit of .qual files>\n");
+		fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <list of .qual files>\n");
 		fprintf(stderr, "\t-c\t\tproduce no output.\n");
 		fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
 		fprintf(stderr, "\t-o\t\toutput prefix.\n");
