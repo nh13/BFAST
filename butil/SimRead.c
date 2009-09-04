@@ -166,6 +166,7 @@ void SimReadGetRandom(RGBinary *rg,
 			/* Get the random contig and position */
 			SimReadGetRandomContigPos(rg,
 					rgLength,
+					r->readLength,
 					&r->contig,
 					&r->pos,
 					&r->strand);
@@ -247,6 +248,7 @@ void SimReadGetRandom(RGBinary *rg,
 /* Get the random contig and position */
 void SimReadGetRandomContigPos(RGBinary *rg,
 		int64_t rgLength,
+		int32_t readLength,
 		int *contig,
 		int *pos,
 		char *strand)
@@ -259,7 +261,7 @@ void SimReadGetRandomContigPos(RGBinary *rg,
 	int count = 0;
 
 	low = 1;
-	high = rgLength;
+	high = rgLength - readLength - 1;
 
 	/* Flip a coin for strand */
 	(*strand) = ((rand()%2)==0)?FORWARD:REVERSE;

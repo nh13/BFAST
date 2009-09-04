@@ -42,7 +42,7 @@ void SimReadPrint(SimRead*,
 		FILE*);
 
 void SimReadGetRandom(RGBinary*, int64_t, SimRead*, int, int, int, int, int, int, int, int, int);
-void SimReadGetRandomContigPos(RGBinary*, int64_t, int*, int*, char*);
+void SimReadGetRandomContigPos(RGBinary*, int64_t, int32_t, int*, int*, char*);
 int SimReadModify(RGBinary*, SimRead*, int, int, int, int, int, int);
 int SimReadInsertIndel(RGBinary*, SimRead*, int, int);
 void SimReadInsertMismatches(SimRead*, int, int, int);
