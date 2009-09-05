@@ -468,11 +468,16 @@ void AlignFullWithBound(char *read,
 		assert(maxH >= 0 && maxV >= 0);
 	}
 	else {
-		PrintError(FnName,
-				PACKAGE_BUGREPORT,
-				"This is currently not implemented, please report",
-				Exit,
-				OutOfRange);
+		// Default to maximums
+		maxH = MIN(maxH, readLength);
+		maxV = MIN(maxV, readLength);
+		/*
+		   PrintError(FnName,
+		   PACKAGE_BUGREPORT,
+		   "This is currently not implemented, please report",
+		   Exit,
+		   OutOfRange);
+		   */
 	}
 	if(maxH == 0 && maxV == 0) {
 		/* Use result from searching only mismatches */
