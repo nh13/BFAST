@@ -41,9 +41,66 @@ int main(int argc, char *argv[])
 	int readLength = 0;
 	int numReads = 0;
 	int numThreads = 1;
-	char tmpDir[MAX_FILENAME_LENGTH]="\0";
+	char tmpDir[MAX_FILENAME_LENGTH]="./";
 
-	if(argc == 14) {
+	char *inputFile=NULL;
+	char c;
+
+	while((c = getopt(argc, argv, "f:n:r:x:T:")) >= 0) {
+		switch(c) {
+			case 'f': inputFile = strdup(optarg); break;
+			case 'r': strcpy(rgFileName, optarg); break;
+			case 'x': strcpy(scoringMatrixFileName, optarg); break;
+			case 'n': numThreads=atoi(optarg); break;
+			case 'T': strcpy(tmpDir, optarg); break;
+			default: break;
+		}
+	}
+
+	if(NULL != inputFile) { // hidden !
+		/* Get reference genome */
+		RGBinaryReadBinary(&rg,
+				rgFileName);
+
+		FILE *fpIn=NULL;
+		if(!(fpIn = fopen(inputFile, "r"))) {
+			PrintError(Name,
+					inputFile,
+					"Could not open file for reading",
+					Exit,
+					OpenFileError);
+		}
+		while(0 == feof(fpIn)) {
+			if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d",
+						&alignmentType,
+						&space,
+						&indel,
+						&indelLength,
+						&withinInsertion,
+						&numSNPs,
+						&numErrors,
+						&readLength,
+						&numReads) < 0) {
+				break;
+			}
+			Run(&rg,
+					scoringMatrixFileName,
+					alignmentType,
+					space,
+					indel,
+					indelLength,
+					withinInsertion,
+					numSNPs,
+					numErrors,
+					readLength,
+					numReads,
+					numThreads,
+					tmpDir);
+		}
+		fclose(fpIn);
+		free(inputFile);
+	}
+	else if(argc == 14) {
 
 		/* Get cmd line options */
 		strcpy(rgFileName, argv[1]);
