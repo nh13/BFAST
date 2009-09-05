@@ -13,6 +13,7 @@ bin_PROGRAMS = bafconvert \
 			   bheader \
 			   bindexdist \
 			   bindexhist \
+			   bindexhistchr \
 			   bmergesorted \
 			   bmfconvert \
 			   bpairedenddist \
@@ -218,6 +219,20 @@ bindexdist_SOURCES = \
 					 bindexdist.c	bindexdist.h
 
 bindexdist_LDADD = -lz
+
+bindexhistchr_SOURCES = \
+					 ../blib/BError.c	../blib/BError.h \
+					 ../blib/RGIndexExons.c  ../blib/RGIndexExons.h \
+					 ../blib/RGIndex.c	../blib/RGIndex.h \
+					 ../blib/BLib.c	../blib/BLib.h \
+					 ../blib/RGBinary.c ../blib/RGBinary.h \
+					 ../blib/RGMatch.c ../blib/RGMatch.h \
+					 ../blib/RGRanges.c ../blib/RGRanges.h \
+					 ../blib/RGReads.c	../blib/RGReads.h \
+					 bindexhistchr.c	bindexhistchr.h
+
+bindexhistchr_LDADD = -lz
+
 
 bindexhist_SOURCES = \
 					 ../blib/BError.c	../blib/BError.h \

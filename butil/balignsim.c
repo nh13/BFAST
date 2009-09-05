@@ -545,6 +545,7 @@ void Run(RGBinary *rg,
 
 		if(round(a.ends[0].entries[0].score) < score) {
 			numScoreLessThan++;
+			/*
 			if(FullAlignment == alignmentType) {
 				fprintf(stderr, "a.readName=%s\n", a.readName);
 				fprintf(stderr, "found=%d\nexpected=%d\n",
@@ -557,6 +558,7 @@ void Run(RGBinary *rg,
 						Exit,
 						OutOfRange);
 			}
+			*/
 		}
 		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;
