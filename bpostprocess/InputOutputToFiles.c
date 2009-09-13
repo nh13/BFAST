@@ -32,8 +32,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	gzFile fpReportedGZ=NULL;
 	FILE *fpReported=NULL;
 	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
-	gzFile fpNotReportedGZ=NULL;
-	FILE *fpNotReported=NULL;
+	gzFile fpNotReported=NULL;
 	char fileExtension[256]="\0";
 
 	/* Open the input file */
@@ -48,7 +47,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	/* Get file extension for the output files */
 	switch(outputFormat) {
 		case BAF:
-			strcpy(fileExtension,  BFAST_ALIGNED_FILE_EXTENSION);
+			strcpy(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
 			break;
 		case MAF:
 			strcpy(fileExtension, BFAST_MAF_FILE_EXTENSION);
@@ -71,7 +70,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			outputDir,
 			PROGRAM_NAME,
 			outputID,
-			fileExtension);
+			BFAST_ALIGNED_FILE_EXTENSION);
 	sprintf(reportedFileName, "%s%s.reported.file.%s.%s",
 			outputDir,
 			PROGRAM_NAME,
@@ -79,25 +78,13 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			fileExtension);
 
 	/* Open output files, if necessary */
-	if(BAF == outputFormat) { 
-		if(!(fpNotReportedGZ=gzopen(notReportedFileName, "wb"))) {
-			PrintError(FnName,
-					notReportedFileName,
-					"Could not open notReportedFileName for writing",
-					Exit,
-					OpenFileError);
-		}
+	if(!(fpNotReported=gzopen(notReportedFileName, "wb"))) {
+		PrintError(FnName,
+				notReportedFileName,
+				"Could not open notReportedFileName for writing",
+				Exit,
+				OpenFileError);
 	}
-	else {
-		if(!(fpNotReported=fopen(notReportedFileName, "wb"))) {
-			PrintError(FnName,
-					notReportedFileName,
-					"Could not open notReportedFileName for writing",
-					Exit,
-					OpenFileError);
-		}
-	}
-	AlignedReadConvertPrintHeader(fpNotReported, rg, outputFormat);
 	if(BAF == outputFormat) {
 		if(!(fpReportedGZ=gzopen(reportedFileName, "wb"))) {
 			PrintError(FnName,
@@ -150,7 +137,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 			if(NoneFound == foundType) {
 				/* Print to Not Reported file */
-				AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpNotReported, fpNotReportedGZ, outputID, outputFormat, BinaryOutput);
+				AlignedReadPrint(&aBuffer[aBufferIndex], fpNotReported);
 				numNotReported++;
 
 				/* Free the alignments for output */
@@ -180,12 +167,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	/* Close output files, if necessary */
 	if(BAF == outputFormat) {
 		gzclose(fpReportedGZ);
-		gzclose(fpNotReportedGZ);
 	}
 	else {
 		fclose(fpReported);
-		fclose(fpNotReported);
 	}
+	gzclose(fpNotReported);
 	/* Close the input file */
 	gzclose(fp);
 
