@@ -389,10 +389,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->bfastMainIndexesFileName!=0);
 	strcpy(args->bfastMainIndexesFileName, DEFAULT_FILENAME);
 
-	args->bfastSecondaryIndexesFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->bfastSecondaryIndexesFileName!=0);
-	strcpy(args->bfastSecondaryIndexesFileName, DEFAULT_FILENAME);
+	args->bfastSecondaryIndexesFileName = NULL;
 
 	args->readsFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -451,7 +448,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "rgFileName:\t\t\t\t%s\n", args->rgFileName);
 	fprintf(fp, "bfastMainIndexesFileName\t\t%s\n", args->bfastMainIndexesFileName);
-	fprintf(fp, "bfastSecondaryIndexesFileName\t\t\%s\n", args->bfastSecondaryIndexesFileName);
+	fprintf(fp, "bfastSecondaryIndexesFileName\t\t%s\n", args->bfastSecondaryIndexesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
 	fprintf(fp, "offsetsFileName:\t\t\t%s\n", args->offsetsFileName);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);

@@ -94,7 +94,12 @@ void FindMatches(
 	}
 
 	/* Read in the secondary RGIndex File Names */
-	numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
+	if(NULL == rgIndexSecondaryListFileName) {
+		numSecondaryIndexes=0;
+	}
+	else {
+		numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
+	}
 
 	/* Check the indexes.
 	 * 1. We want the two sets of files to have the same range.
