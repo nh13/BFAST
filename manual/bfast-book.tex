@@ -943,6 +943,33 @@ Specifies to accept reads for which one or both the ends fall within the specifi
 The output ID.
 \subsubsection{\TT{arg 5}}
 The \BRF{} to be examined.
+\section{scripts}
+\label{sec:scripts}
+\BF{scripts} is a folder containing scripts that were developed to convert the input files from Illumina and ABI SOLiD sequencers to the BFAST FASTQ format.
+Additionally, we include a script to parallelize BFAST on a cluster.
+Currently only SGE and PBS clusters are supported.
+
+\subsection{bfast.submit.pl}
+This script will run BFAST on a SGE or PBS cluster.
+Please use the \TT{-man} option for information on how to use the script.
+\subsubsection{\TT{-help}}
+Print a brief help message and exits.
+\subsubsection{\TT{-config}}
+Print the configuration XML schema.
+\subsubsection{\TT{-man}}
+Prints the manual page and exits.
+\subsubsection{\TT{-quiet}}
+Do not print any submit messages.
+\subsubsection{\TT{-config}}
+The XML configuration file.
+\subsection{qseq2fastq.pl}
+This script will convert Illumina generated QSEQ files to the BFAST FASTQ format.
+Please execute the script with no arguments for more information.
+\subsection{solid2fastq}
+This program will convert ABI SOLiD generated CSFASTA and QUAL files to the BFAST format.
+It will also split the input reads into chunks for parallel computation.
+Please execute the program with no arguments for more information.
+We also include a PERL version of this program for developer modification.
 \chapter{File Formats}
 \section{Input Files}
 \label{sec:inputfiles}
