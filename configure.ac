@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59)
-AC_INIT([bfast],[0.5.6],[bfast-help@lists.sourceforge.net],[bfast])
+AC_INIT([bfast],[0.5.7],[bfast-help@lists.sourceforge.net],[bfast])
 
 AC_COPYRIGHT([See LICENSE for copyright information.])
 
