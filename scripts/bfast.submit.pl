@@ -387,7 +387,7 @@ sub CreateJobsBmatches {
 	# Go through each
 	foreach my $read_file (@read_files) {
 		my $output_id = $read_file; 
-		$output_id =~ s/.*(\d+)\.[^\.]+$/$1/; 
+		$output_id =~ s/.*\.(\d+)\.[^\.]+$/$1/; 
 		$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id"; 
 		my $run_file = CreateRunFile($data, 'bmatches', $output_id);
 		my $cmd = "";
