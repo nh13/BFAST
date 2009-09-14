@@ -17,6 +17,7 @@ use Cwd;
 
 # TODO:
 # - splitting reads for bmatches and balign with single scripts for each process 
+# - input values could be recognizable strings, such as 10GB for maxMemory...
 
 my %QUEUETYPES = ("SGE" => 0, "PBS" => 1);
 my %SPACE = ("NT" => 0, "CS" => 1);
@@ -535,6 +536,10 @@ sub SubmitJob {
 	if(0 < scalar(@$dependent_job_ids)) {
 		$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
 		$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
+	}
+	if(defined($data->{$type}->{'threads'}) && 1 < $data->{$type}->{'threads'}) {
+		$qsub .= " -pe serial ".$data->{$type}->{'threads'}     if ("SGE" eq $data->{'globalOptions'}->{'queueType'});;
+		$qsub .= " -l nodes=1:ppn=".$data->{$type}->{'threads'} if ("PBS" eq $data->{'globalOptions'}->{'queueType'});;
 	}
 	$qsub .= " -q ".$data->{$type}->{'qsubQueue'} if defined($data->{$type}->{'qsubQueue'});
 	$qsub .= " -N $output_id -o $run_file.out -e $run_file.err $run_file";
