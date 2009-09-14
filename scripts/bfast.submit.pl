@@ -564,7 +564,7 @@ bfast.submit.pl [options]
 Print a brief help message and exits.
 
 =item B<-schema>
-Print the configuration XML schema
+Print the configuration XML schema.
 
 =item B<-man>
 Prints the manual page and exits.
