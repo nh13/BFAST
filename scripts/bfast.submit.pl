@@ -325,6 +325,8 @@ sub GetDirContents {
 	if(0 == scalar(@$dirs)) {
 		die("Did not find any '$suffix' files\n");;
 	}
+
+	@$dirs = sort { $a cmp $b } @$dirs;
 }
 
 sub CreateJobs {
