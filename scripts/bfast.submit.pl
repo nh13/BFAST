@@ -18,6 +18,8 @@ use Cwd;
 # TODO:
 # - splitting reads for bmatches and balign with single scripts for each process 
 # - input values could be recognizable strings, such as 10GB for maxMemory...
+# - too many job dependencies could cause the "merge" step to fail... we should
+# structure this as the recursive merge step in a mergesort
 
 my %QUEUETYPES = ("SGE" => 0, "PBS" => 1);
 my %SPACE = ("NT" => 0, "CS" => 1);
@@ -29,6 +31,7 @@ use constant {
 	OPTIONAL => 0,
 	REQUIRED => 1,
 	BREAKLINE => "************************************************************\n",
+	MERGE_LOG_BASE => 8,
 };
 
 my $config;
@@ -489,15 +492,16 @@ sub CreateJobsBpostprocess {
 sub CreateJobsSamtools {
 	my ($data, $quiet, $dependent_ids, $output_ids) = @_;
 	my @qsub_ids = ();
+	my ($cmd, $run_file, $output_id);
 
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
-		my $output_id = $output_ids->[$i];
+		$output_id = $output_ids->[$i];
 		my $dependent_job = $dependent_ids->[$i];
 		my $sam_file = GetReportedFile($data, $output_id);
-		my $run_file = CreateRunFile($data, 'samtools', $output_id);
+		$run_file = CreateRunFile($data, 'samtools', $output_id);
 
-		my $cmd = "";
+		$cmd = "";
 		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
 		$cmd .= "samtools view -S -b";
 		$cmd .= " -T ".$data->{'globalOptions'}->{'referenceFasta'};
@@ -513,13 +517,36 @@ sub CreateJobsSamtools {
 		push(@qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'samtoolsOptions', $output_id, \@a));
 	}
 
-	# Merge script
-	my $run_file_merge = $data->{'globalOptions'}->{'runDirectory'}."samtools.merge.sh";
-	my $cmd_merge .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
-	$cmd_merge .= "samtools merge";
-	$cmd_merge .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
-	$cmd_merge .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
-	SubmitJob($run_file_merge, $quiet, $cmd_merge, $data, 'samtoolsOptions', $data->{'globalOptions'}->{'outputID'}, \@qsub_ids);
+	# Merge script(s)
+	# Note: there could be too many dependencies, so lets just create dummy jobs to "merge" the dependencies
+	my $merge_lvl = 0;
+	while(MERGE_LOG_BASE < scalar(@qsub_ids)) { # while we must merge
+		$merge_lvl++;
+		my $ctr = 0;
+		my @cur_ids = @qsub_ids;
+		@qsub_ids = ();
+		for(my $i=0;$i<scalar(@cur_ids);$i+=MERGE_LOG_BASE) {
+			$ctr++;
+			# Get the subset of dependent jobs
+			my @dependent_jobs = ();
+			for(my $j=$i;$j<scalar(@cur_ids) && $j<$i+MERGE_LOG_BASE;$j++) {
+				push(@dependent_jobs, $cur_ids[$j]);
+			}
+			# Create the command
+			$output_id = "merge.".$data->{'globalOptions'}->{'outputID'}.".$merge_lvl.$ctr";
+			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
+			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
+			push(@qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs));
+		}
+	}
+
+	$output_id = "merge.".$data->{'globalOptions'}->{'outputID'};
+	$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id;
+	$cmd = $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
+	$cmd .= "samtools merge";
+	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
+	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
+	SubmitJob($run_file , $quiet, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
 }
 
 sub SubmitJob {
@@ -549,6 +576,7 @@ sub SubmitJob {
 	# Submit the qsub command
 	my $qsub_id=`$qsub`;
 	chomp($qsub_id);
+	die("Error submitting QSUB_COMMAND=$qsub\n") unless (0 < length($qsub_id));
 	
 	if(!$quiet) {
 		print STDERR "[bfast submit] NAME=$output_id QSUBID=$qsub_id\n";
