@@ -7,7 +7,6 @@
 
 use strict;
 use warnings;
-use lib '/home/nhomer/bfast/scripts/XML-Simple-2.18/lib';
 use File::Path;
 use XML::Simple; 
 use Data::Dumper;
