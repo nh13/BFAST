@@ -609,4 +609,9 @@ will be created in the temporary directory.
 
 Please report all bugs to nhomer@cs.ucla.edu or bfast-help@lists.sourceforge.net.
 
+=head1 REQUIREMENTS
+
+This script requires the XML::Simple library, which can be found at:
+http://search.cpan.org/dist/XML-Simple
+
 =cut
