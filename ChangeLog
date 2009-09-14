@@ -10,6 +10,10 @@ Version 0.5.6
 matches file.  This is similar to bmatches and should be especially 
 useful if the index search (bmatches) is faster than the local
 alignment (balign), which is usually the case for ABI SOLiD data.
+* Both the secondary indexes list and offsets files are now optional in
+bmatches.
+* Added bfast.submit.pl PERL script for scheduling alignment jobs on SGE
+and PBS clusters.
 
 Version 0.5.5
 * Adding support for input queueing, so that a given number of reads are 

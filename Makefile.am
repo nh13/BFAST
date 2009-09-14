@@ -4,6 +4,7 @@ EXTRA_DIST = LICENSE \
 			 blib/BLibDefinitions.h \
 			 scripts/solid2fastq.pl \
 			 scripts/qseq2fastq.pl \
+			 scripts/bfast.submit.pl \
 			 tests/test.definitions.sh \
 			 tests/data/data.tar.gz \
 			 tests/test.initialize.sh \
