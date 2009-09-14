@@ -94,12 +94,7 @@ void FindMatches(
 	}
 
 	/* Read in the secondary RGIndex File Names */
-	if(NULL == rgIndexSecondaryListFileName) {
-		numSecondaryIndexes=0;
-	}
-	else {
-		numSecondaryIndexes=ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
-	}
+	numSecondaryIndexes = (NULL == rgIndexSecondaryListFileName) ? 0 : ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
 
 	/* Check the indexes.
 	 * 1. We want the two sets of files to have the same range.
@@ -125,7 +120,7 @@ void FindMatches(
 	totalReadRGTime = endTime - startTime;
 
 	/* Read in the offsets */
-	numOffsets=ReadOffsets(offsetsFileName, &offsets);
+	numOffsets = (NULL == offsetsFileName) ? 0 : ReadOffsets(offsetsFileName, &offsets);
 
 	/* open read file */
 	if((seqFP=fopen(readFileName, "r"))==0) {

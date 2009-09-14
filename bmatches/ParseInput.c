@@ -396,10 +396,7 @@ AssignDefaultValues(struct arguments *args)
 	assert(args->readsFileName!=0);
 	strcpy(args->readsFileName, DEFAULT_FILENAME);
 
-	args->offsetsFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->offsetsFileName!=0);
-	strcpy(args->offsetsFileName, DEFAULT_FILENAME);
+	args->offsetsFileName = NULL;
 
 	args->space = NTSpace;
 

@@ -257,7 +257,7 @@ See \autoref{sec:brgf} for the file format of the \BRGF{} and see \autoref{sec:b
 Also see \autoref{sec:commonoptions} for common options that are in use across some or all of the binaries.
 \subsection{Creating a Reference Genome}
 \label{sec:creating-a-rg}
-To create a reference genome, the required command-line options are \TT{-r}, and \TT{-a}.
+To create a reference genome, the required command-line options are \TT{-r} and \TT{-a}.
 
 To specify reference genome creation, use the option \TT{-a 0}.
 We need to input a \rGFF{} using the \TT{-r} option (see \autoref{sec:rgfastafile} for the file format).
@@ -346,12 +346,12 @@ The output will be a \BMF{} (see \autoref{sec:bmf} for the file format) and a \B
 Also see \autoref{sec:commonoptions} for common options that are in use across some or all of the binaries.
 \subsection{Finding Candidate Alignment Locations (CALs)}
 \label{sec:finding-cals}
-To find CALs for a set of reads, the required command-line options are \TT{-r}, \TT{-i}, \TT{-I}, \TT{-R}, and \TT{-O}.
+To find CALs for a set of reads, the required command-line options are \TT{-r}, \TT{-i}, and \TT{-R}.
 The \TT{-r} option specifies the \BRGF{}.
-The \TT{-i} and \TT{-I} options specify the two files containing the list of file paths to the main and secondary \BRGF{s} respectively (see \autoref{sec:biflistfile}).
+The \TT{-i} option specify the file containing the list of file paths to the main \BRGF{s} respectively (see \autoref{sec:biflistfile}).
+If you wish to have a secondary set of indexes, which are used if no matches are found in the main set of indexes, use the \TT{-I} option.
 If the option \TT{-A 1} is used, then both the \BRGF{} and the \BIF{s} must have been created using the \TT{-A 1} option.
 The file containing the reads is specified using the \TT{-R} option (see \autoref{sec:rff} for the file format).
-Finally, the file containing the offsets is specified using the \TT{-O} option (see \autoref{sec:offsetsfile} for the file format).
 
 There are two output files.
 The first output file is a \BMF{}, which stores the CALs for each read in a binary format (see \autoref{sec:bmf} for the file format).
@@ -441,10 +441,9 @@ Also see \autoref{sec:commonoptions} for common options that are in use across s
 
 \subsection{Performing Local Alignment on Candidate Alignment Locations (CALs)}
 \label{sec:local-alignment}
-To perform local alignment of CALs, the required options are \TT{-r}, \TT{-m}, and \TT{-x}.
+To perform local alignment of CALs, the required options are \TT{-r} and \TT{-m}.
 The \TT{-r} option specifies the \rGFF{}, which for this input must always have been created with nucleotide space encoding.
 The \TT{-m} option specifies the \BMF{} outputted by \TT{bmatches}.
-The \TT{-x} option specifies a Scoring Matrix file used to score the quality of the alignments (see \autoref{sec:scoringmatrixfile} for the file format).
 
 There are two output files.
 The first output file is a \BAF{}, which stores the local alignments for each CAL and read in binary format (see \autoref{sec:baf} for the file format).
@@ -552,7 +551,7 @@ If multiple alignments have the same best score, an alignment is not reported.
 
 \subsubsection{\TT{-r FILENAME, --rgFileName=FILENAME}}
 This option specifies the \BRGF{} (see \autoref{sec:brgf} for the file format).
-This is only required if MAF output is desired (\TT{-O 1}).
+This is only required if MAF or SAM output is desired (\TT{-O 1} or \TT{-O 3}).
 
 \subsubsection{\TT{-i FILENAME, --alignedFileName=FILENAME}}
 Specifies the \BAF{} (see \autoref{sec:baf} for the file format).
@@ -570,8 +569,7 @@ Specifies the output format.
 \TT{-O 0} specifies the output to be in \BAF{} format (see \autoref{sec:baf} for the file format).
 \TT{-O 1} specifies the output to be in \BMAF{} format (see \autoref{sec:bmaf} for the file format).
 \TT{-O 2} specifies the output to be in \BGFFF{} format (currently undocumented and experimental).
-\TT{-O 3} specifies the output to be in \BSAMF{} format (currently experimental, see \url{https://sourceforge.net/projects/samtools/}).
-\TT{-a 4} will output only reads that have a best scoring alignment (possibly many best scoring alignments may exist).
+\TT{-O 3} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
 
 \section{butil}
 \label{sec:butil}

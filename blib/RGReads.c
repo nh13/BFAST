@@ -52,7 +52,7 @@ void RGReadsFindMatches(RGIndex *index,
 		readOffset += 2;
 		readLength -= 2;
 	}
-		
+
 	/* Copy over */
 	/* Convert bases/colors to 0-4 */
 	ConvertSequenceToIntegers(match->read + readOffset,
@@ -71,20 +71,38 @@ void RGReadsFindMatches(RGIndex *index,
 	   }
 	   */
 
-	for(i=0;0 == match->maxReached && // have not reached the maximum
-			i<numOffsets && // offsets remaining
-			index->width <= (readLength - offsets[i]); // offsets is within bounds (assumes sorted) 
-			i++) {
-		match->maxReached = RGIndexGetRangesBothStrands(index, 
-				rg,
-				read + offsets[i],
-				index->width,
-				i,
-				maxKeyMatches,
-				maxNumMatches,
-				space,
-				strands,
-				&ranges);
+	if(0 < numOffsets) { /* Go through the offsets */
+		for(i=0;0 == match->maxReached && // have not reached the maximum
+				i<numOffsets && // offsets remaining
+				index->width <= (readLength - offsets[i]); // offsets is within bounds (assumes sorted) 
+				i++) {
+			match->maxReached = RGIndexGetRangesBothStrands(index, 
+					rg,
+					read + offsets[i],
+					index->width,
+					i,
+					maxKeyMatches,
+					maxNumMatches,
+					space,
+					strands,
+					&ranges);
+		}
+	}
+	else { /* Use all offsets */
+		for(i=0;0 == match->maxReached && // have not reached the maximum
+				index->width <= (readLength - i); // offsets is within bounds (assumes sorted) 
+				i++) {
+			match->maxReached = RGIndexGetRangesBothStrands(index, 
+					rg,
+					read + i,
+					index->width,
+					i,
+					maxKeyMatches,
+					maxNumMatches,
+					space,
+					strands,
+					&ranges);
+		}
 	}
 
 	/* Remove duplicate ranges */
@@ -167,15 +185,15 @@ void RGReadsGenerateReads(char *read,
 		 * over all possible deletions in the entire read.
 		 * */
 		/*
-		if(numDeletions > 0) {
-			RGReadsGenerateDeletions(read,
-					readLength,
-					offsets[i],
-					numDeletions,
-					index,
-					reads);
-		}
-		*/
+		   if(numDeletions > 0) {
+		   RGReadsGenerateDeletions(read,
+		   readLength,
+		   offsets[i],
+		   numDeletions,
+		   index,
+		   reads);
+		   }
+		   */
 
 		/* Go through all insertions */
 		/* Note: we allow only contiguous insertions of length up to
@@ -185,45 +203,45 @@ void RGReadsGenerateReads(char *read,
 		 * possible insertions in the entire read.
 		 * */
 		/*
-		if(numInsertions > 0) {
-			RGReadsGenerateInsertions(read,
-					readLength,
-					offsets[i],
-					numInsertions,
-					index,
-					reads);
-		}
-		*/
+		   if(numInsertions > 0) {
+		   RGReadsGenerateInsertions(read,
+		   readLength,
+		   offsets[i],
+		   numInsertions,
+		   index,
+		   reads);
+		   }
+		   */
 
 		/* Go through all possible insertions in the gap between
 		 * the pair of l-mers.  If there is a gap insertion,
 		 * then we will delete bases in the gap.
 		 * */
 		/*
-		if(numGapInsertions > 0) {
-			RGReadsGenerateGapInsertions(read,
-					readLength,
-					offsets[i],
-					numGapInsertions,
-					index,
-					reads);
-		}
-		*/
+		   if(numGapInsertions > 0) {
+		   RGReadsGenerateGapInsertions(read,
+		   readLength,
+		   offsets[i],
+		   numGapInsertions,
+		   index,
+		   reads);
+		   }
+		   */
 
 		/* Go through all possible deletions in the gap between
 		 * the pair of l-mers.  If there is a gap deletion, 
 		 * then we will add bases to the gap.
 		 * */
 		/*
-		if(numGapDeletions > 0) {
-			RGReadsGenerateGapDeletions(read,
-					readLength,
-					offsets[i],
-					numGapDeletions,
-					index,
-					reads);
-		}
-		*/
+		   if(numGapDeletions > 0) {
+		   RGReadsGenerateGapDeletions(read,
+		   readLength,
+		   offsets[i],
+		   numGapDeletions,
+		   index,
+		   reads);
+		   }
+		   */
 	}
 
 }
