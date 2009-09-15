@@ -16,10 +16,7 @@ use File::Path; # for directory creation
 use Cwd;
 
 # TODO:
-# - splitting reads for bmatches and balign with single scripts for each process 
 # - input values could be recognizable strings, such as 10GB for maxMemory...
-# - too many job dependencies could cause the "merge" step to fail... we should
-# structure this as the recursive merge step in a mergesort
 
 my %QUEUETYPES = ("SGE" => 0, "PBS" => 1);
 my %SPACE = ("NT" => 0, "CS" => 1);
@@ -67,149 +64,155 @@ sub Schema {
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="bfastConfig">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="globalOptions">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="bfastBin" type="directoryPath"/>
-              <xs:element name="samtoolsBin" type="directoryPath"/>
-              <xs:element name="qsubBin" type="directoryPath"/>
-              <xs:element name="referenceFasta" type="filePath"/>
-              <xs:element name="brgNT" type="filePath"/>
-              <xs:element name="brgCS" type="filePath"/>
-              <xs:element name="runDirectory" type="directoryPath"/>
-              <xs:element name="readsDirectory" type="directoryPath"/>
-              <xs:element name="outputDirectory" type="directoryPath"/>
-              <xs:element name="tmpDirectory" type="directoryPath"/>
-              <xs:element name="outputID" type="xs:string"/>
-              <xs:element name="timing">
-                <xs:simpleType>
-                  <xs:restriction base="xs:string">
-                    <xs:enumeration value="ON"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="queueType">
-                <xs:simpleType>
-                  <xs:restriction base="xs:string">
-                    <xs:enumeration value="SGE"/>
-                    <xs:enumeration value="PBS"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="space">
-                <xs:simpleType>
-                  <xs:restriction base="xs:string">
-                    <xs:enumeration value="NT"/>
-                    <xs:enumeration value="CS"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-        <xs:element name="bmatchesOptions">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="mainIndexes" type="filePath"/>
-              <xs:element name="secondaryIndexes" type="filePath"/>
-              <xs:element name="offsets" type="filePath"/>
-              <xs:element name="keySize" type="xs:positiveInteger"/>
-              <xs:element name="maxKeyMatches" type="xs:positiveInteger"/>
-              <xs:element name="maxNumMatches" type="xs:positiveInteger"/>
-              <xs:element name="strand">
-                <xs:simpleType>
-                  <xs:restriction base="xs:string">
-                    <xs:enumeration value="BOTH"/>
-                    <xs:enumeration value="FORWARD"/>
-                    <xs:enumeration value="REVERSE"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="threads" type="xs:positiveInteger"/>
-              <xs:element name="queueLength" type="xs:positiveInteger"/>
-              <xs:element name="qsubQueue" type="xs:string"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-        <xs:element name="balignOptions">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="scoringMatrix" type="filePath"/>
-              <xs:element name="localAlignmentType">
-                <xs:simpleType>
-                  <xs:restriction base="xs:integer">
-                    <xs:enumeration value="0"/>
-                    <xs:enumeration value="1"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="offset" type="xs:nonNegativeInteger"/>
-              <xs:element name="maxNumMatches" type="xs:positiveInteger"/>
-              <xs:element name="mismatchQuality" type="xs:positiveInteger"/>
-              <xs:element name="threads" type="xs:positiveInteger"/>
-              <xs:element name="queueLength" type="xs:positiveInteger"/>
-              <xs:element name="pairedEndLength" type="xs:integer"/>
-              <xs:element name="mirrorType" type="xs:integer"/>
-              <xs:element name="forceMirror">
-                <xs:simpleType>
-                  <xs:restriction base="xs:integer">
-                    <xs:minInclusive value="0"/>
-                    <xs:maxInclusive value="3"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="qsubQueue" type="xs:string"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-        <xs:element name="bpostprocessOptions">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="algorithm">
-                <xs:simpleType>
-                  <xs:restriction base="xs:integer">
-                    <xs:minInclusive value="0"/>
-                    <xs:maxInclusive value="3"/>
-                  </xs:restriction>
-                </xs:simpleType>
-              </xs:element>
-              <xs:element name="queueLength" type="xs:positiveInteger"/>
-              <xs:element name="qsubQueue" type="xs:string"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-        <xs:element name="samtoolsOptions">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="maximumMemory" type="xs:positiveInteger"/>
-              <xs:element name="qsubQueue" type="xs:string"/>
-            </xs:sequence>
-          </xs:complexType>
-        </xs:element>
-      </xs:sequence>
-    </xs:complexType>
+	<xs:complexType>
+	  <xs:sequence>
+		<xs:element name="globalOptions">
+		  <xs:complexType>
+			<xs:sequence>
+			  <xs:element name="bfastBin" type="directoryPath"/>
+			  <xs:element name="samtoolsBin" type="directoryPath"/>
+			  <xs:element name="qsubBin" type="directoryPath"/>
+			  <xs:element name="referenceFasta" type="filePath" use="required"/>
+			  <xs:element name="brgNT" type="filePath" use="required"/>
+			  <xs:element name="brgCS" type="filePath"/>
+			  <xs:element name="runDirectory" type="directoryPath" use="required">
+			  <xs:element name="readsDirectory" type="directoryPath" use="required"/>
+			  <xs:element name="outputDirectory" type="directoryPath" use="required"/>
+			  <xs:element name="tmpDirectory" type="directoryPath" use="required"/>
+			  <xs:element name="outputID" type="xs:string" use="required"/>
+			  <xs:element name="numReadsPerFASTQ" type="positiveInteger">
+				<xs:complexType>
+				  <xs:attribute name="bmatchesSplit" type="positiveInteger" use="required"/>
+				  <xs:attribute name="balignSplit" type="positiveInteger" use="required"/>
+				</xs:complexType>
+			  </xs:element>
+			  <xs:element name="timing">
+				<xs:simpleType>
+				  <xs:restriction base="xs:string">
+					<xs:enumeration value="ON"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			  <xs:element name="queueType" use="required">
+				<xs:simpleType>
+				  <xs:restriction base="xs:string">
+					<xs:enumeration value="SGE"/>
+					<xs:enumeration value="PBS"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			  <xs:element name="space" use="required">
+				<xs:simpleType>
+				  <xs:restriction base="xs:string">
+					<xs:enumeration value="NT"/>
+					<xs:enumeration value="CS"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			</xs:sequence>
+		  </xs:complexType>
+		</xs:element>
+		<xs:element name="bmatchesOptions">
+		  <xs:complexType>
+			<xs:sequence>
+			  <xs:element name="mainIndexes" type="filePath" use="required"/>
+			  <xs:element name="secondaryIndexes" type="filePath"/>
+			  <xs:element name="offsets" type="filePath"/>
+			  <xs:element name="keySize" type="xs:positiveInteger"/>
+			  <xs:element name="maxKeyMatches" type="xs:positiveInteger"/>
+			  <xs:element name="maxNumMatches" type="xs:positiveInteger"/>
+			  <xs:element name="strand">
+				<xs:simpleType>
+				  <xs:restriction base="xs:string">
+					<xs:enumeration value="BOTH"/>
+					<xs:enumeration value="FORWARD"/>
+					<xs:enumeration value="REVERSE"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			  <xs:element name="threads" type="xs:positiveInteger"/>
+			  <xs:element name="queueLength" type="xs:positiveInteger"/>
+			  <xs:element name="qsubQueue" type="xs:string"/>
+			</xs:sequence>
+		  </xs:complexType>
+		</xs:element>
+		<xs:element name="balignOptions">
+		  <xs:complexType>
+			<xs:sequence>
+			  <xs:element name="scoringMatrix" type="filePath"/>
+			  <xs:element name="localAlignmentType">
+				<xs:simpleType>
+				  <xs:restriction base="xs:integer">
+					<xs:enumeration value="0"/>
+					<xs:enumeration value="1"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			  <xs:element name="offset" type="xs:nonNegativeInteger"/>
+			  <xs:element name="maxNumMatches" type="xs:positiveInteger"/>
+			  <xs:element name="mismatchQuality" type="xs:positiveInteger"/>
+			  <xs:element name="threads" type="xs:positiveInteger"/>
+			  <xs:element name="queueLength" type="xs:positiveInteger"/>
+			  <xs:element name="pairedEndLength" type="xs:integer"/>
+			  <xs:element name="mirrorType" type="xs:integer"/>
+			  <xs:element name="forceMirror">
+				<xs:simpleType>
+				  <xs:restriction base="xs:integer">
+					<xs:minInclusive value="0"/>
+					<xs:maxInclusive value="3"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			  <xs:element name="qsubQueue" type="xs:string"/>
+			</xs:sequence>
+		  </xs:complexType>
+		</xs:element>
+		<xs:element name="bpostprocessOptions">
+		  <xs:complexType>
+			<xs:sequence>
+			  <xs:element name="algorithm">
+				<xs:simpleType>
+				  <xs:restriction base="xs:integer">
+					<xs:minInclusive value="0"/>
+					<xs:maxInclusive value="3"/>
+				  </xs:restriction>
+				</xs:simpleType>
+			  </xs:element>
+			  <xs:element name="queueLength" type="xs:positiveInteger"/>
+			  <xs:element name="qsubQueue" type="xs:string"/>
+			</xs:sequence>
+		  </xs:complexType>
+		</xs:element>
+		<xs:element name="samtoolsOptions">
+		  <xs:complexType>
+			<xs:sequence>
+			  <xs:element name="maximumMemory" type="xs:positiveInteger"/>
+			  <xs:element name="qsubQueue" type="xs:string"/>
+			</xs:sequence>
+		  </xs:complexType>
+		</xs:element>
+	  </xs:sequence>
+	</xs:complexType>
   </xs:element>
   <xs:simpleType name="filePath">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="\\S+"/>
-    </xs:restriction>
+	<xs:restriction base="xs:string">
+	  <xs:pattern value="\\S+"/>
+	</xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="directoryPath">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="\\S+/"/>
-    </xs:restriction>
+	<xs:restriction base="xs:string">
+	  <xs:pattern value="\\S+/"/>
+	</xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="nonNegativeInteger">
-    <xs:restriction base="xs:integer">
-      <xs:minInclusive value="0"/>
-    </xs:restriction>
+	<xs:restriction base="xs:integer">
+	  <xs:minInclusive value="0"/>
+	</xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="positiveInteger">
-    <xs:restriction base="xs:integer">
-      <xs:minInclusive value="1"/>
-    </xs:restriction>
+	<xs:restriction base="xs:integer">
+	  <xs:minInclusive value="1"/>
+	</xs:restriction>
   </xs:simpleType>
 </xs:schema>
 END
@@ -236,6 +239,11 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'outputDirectory',                          REQUIRED); 
 	ValidatePath($data->{'globalOptions'},         'tmpDirectory',                             REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'outputID',                                 REQUIRED); 
+	ValidateOption($data->{'globalOptions'},       'numReadsPerFASTQ',                         REQUIRED);
+	die "Attribute bmatchesSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}));
+	die "Attribute bmatchesSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'}));
+	die "Attribute bmatchesSplit must be <= numReadsPerFASTQ\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'});
+	die "Attribute balignSplit must be <= bmatchesSplit\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'});
 
 	# bmatches
 	die("The bmatches options were not found.\n") unless (defined($data->{'bmatchesOptions'})); 
@@ -281,7 +289,7 @@ sub ValidateOption {
 
 	return 1 if (defined($hash->{$option}));
 	return 0 if (OPTIONAL == $required);
-			
+
 	die("Option '$option' was not found.\n");
 }
 
@@ -335,7 +343,8 @@ sub GetDirContents {
 sub CreateJobs {
 	my ($data, $quiet) = @_;
 
-	my @output_ids = ();
+	my @bmatches_output_ids = ();
+	my @balign_output_ids = ();
 	my @bmatchesJobIDs = ();
 	my @balignJobIDs = ();
 	my @bpostprocessJobIDs = ();
@@ -346,10 +355,10 @@ sub CreateJobs {
 	mkpath([$data->{'globalOptions'}->{'tmpDirectory'}],    ($quiet) ? 0 : 1, 0755);
 
 	# bmatches
-	CreateJobsBmatches($data,     $quiet, \@bmatchesJobIDs,                           \@output_ids);
-	CreateJobsBalign($data,       $quiet, \@bmatchesJobIDs,     \@balignJobIDs,       \@output_ids);
-	CreateJobsBpostprocess($data, $quiet, \@balignJobIDs,       \@bpostprocessJobIDs, \@output_ids);
-	CreateJobsSamtools($data,     $quiet, \@bpostprocessJobIDs,                       \@output_ids);
+	CreateJobsBmatches($data,     $quiet, \@bmatchesJobIDs,     \@bmatches_output_ids);
+	CreateJobsBalign($data,       $quiet, \@bmatchesJobIDs,     \@balignJobIDs,       \@bmatches_output_ids, \@balign_output_ids);
+	CreateJobsBpostprocess($data, $quiet, \@balignJobIDs,       \@bpostprocessJobIDs, \@balign_output_ids);
+	CreateJobsSamtools($data,     $quiet, \@bpostprocessJobIDs, \@balign_output_ids);
 }
 
 sub CreateRunFile {
@@ -389,75 +398,107 @@ sub CreateJobsBmatches {
 	# Get reads
 	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, 'fastq');
 
+	# The number of bmatches to perform per read file
+	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}));
+
 	# Go through each
 	foreach my $read_file (@read_files) {
-		my $output_id = $read_file; 
-		$output_id =~ s/.*\.(\d+)\.[^\.]+$/$1/; 
-		$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id"; 
-		my $run_file = CreateRunFile($data, 'bmatches', $output_id);
-		my $cmd = "";
-		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bmatches/"      if defined($data->{'globalOptions'}->{'bfastBin'});
-		$cmd .= "bmatches";
-		$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'}              if ("NT" eq $data->{'globalOptions'}->{'space'});
-		$cmd .= " -r ".$data->{'globalOptions'}->{'brgCS'}              if ("CS" eq $data->{'globalOptions'}->{'space'});
-		$cmd .= " -i ".$data->{'bmatchesOptions'}->{'mainIndexes'};
-		$cmd .= " -I ".$data->{'bmatchesOptions'}->{'secondaryIndexes'} if defined($data->{'bmatchesOptions'}->{'secondaryIndexes'});
-		$cmd .= " -R ".$read_file;
-		$cmd .= " -O ".$data->{'bmatchesOptions'}->{'offsets'}          if defined($data->{'bmatchesOptions'}->{'offsets'});
-		$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
-		$cmd .= " -k ".$data->{'bmatchesOptions'}->{'keySize'}          if defined($data->{'bmatchesOptions'}->{'keySize'});
-		$cmd .= " -K ".$data->{'bmatchesOptions'}->{'maxKeyMatches'}    if defined($data->{'bmatchesOptions'}->{'maxKeyMatches'});
-		$cmd .= " -M ".$data->{'bmatchesOptions'}->{'maxNumMatches'}    if defined($data->{'bmatchesOptions'}->{'maxNumMatches'});
-		$cmd .= " -w ".$data->{'bmatchesOptions'}->{'strand'}           if defined($data->{'bmatchesOptions'}->{'strand'});
-		$cmd .= " -n ".$data->{'bmatchesOptions'}->{'threads'}          if defined($data->{'bmatchesOptions'}->{'threads'});
-		$cmd .= " -Q ".$data->{'bmatchesOptions'}->{'queueLength'}      if defined($data->{'bmatchesOptions'}->{'queueLength'});
-		$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
-		$cmd .= " -o ".$output_id;
-		$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
-		$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
+		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}); 
+		for(my $i=0;$i<$num_split_files;$i++) {
+			my $output_id = $read_file; 
+			$output_id =~ s/.*\.(\d+)\.[^\.]+$/$1/; 
+			$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";
+			my $run_file = CreateRunFile($data, 'bmatches', $output_id);
+			my $cmd = "";
+			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bmatches/"      if defined($data->{'globalOptions'}->{'bfastBin'});
+			$cmd .= "bmatches";
+			$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'}              if ("NT" eq $data->{'globalOptions'}->{'space'});
+			$cmd .= " -r ".$data->{'globalOptions'}->{'brgCS'}              if ("CS" eq $data->{'globalOptions'}->{'space'});
+			$cmd .= " -i ".$data->{'bmatchesOptions'}->{'mainIndexes'};
+			$cmd .= " -I ".$data->{'bmatchesOptions'}->{'secondaryIndexes'} if defined($data->{'bmatchesOptions'}->{'secondaryIndexes'});
+			$cmd .= " -R ".$read_file;
+			$cmd .= " -O ".$data->{'bmatchesOptions'}->{'offsets'}          if defined($data->{'bmatchesOptions'}->{'offsets'});
+			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
+			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
+			$cmd .= " -k ".$data->{'bmatchesOptions'}->{'keySize'}          if defined($data->{'bmatchesOptions'}->{'keySize'});
+			$cmd .= " -K ".$data->{'bmatchesOptions'}->{'maxKeyMatches'}    if defined($data->{'bmatchesOptions'}->{'maxKeyMatches'});
+			$cmd .= " -M ".$data->{'bmatchesOptions'}->{'maxNumMatches'}    if defined($data->{'bmatchesOptions'}->{'maxNumMatches'});
+			$cmd .= " -w ".$data->{'bmatchesOptions'}->{'strand'}           if defined($data->{'bmatchesOptions'}->{'strand'});
+			$cmd .= " -n ".$data->{'bmatchesOptions'}->{'threads'}          if defined($data->{'bmatchesOptions'}->{'threads'});
+			$cmd .= " -Q ".$data->{'bmatchesOptions'}->{'queueLength'}      if defined($data->{'bmatchesOptions'}->{'queueLength'});
+			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
+			$cmd .= " -o ".$output_id;
+			$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
+			$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
 
-		# Submit the job
-		my @a = (); # empty array for job dependencies
-		push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'bmatchesOptions', $output_id, \@a));
-		push(@$output_ids, $output_id);
+			# Submit the job
+			my @a = (); # empty array for job dependencies
+			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'bmatchesOptions', $output_id, \@a));
+			push(@$output_ids, $output_id);
+			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'};
+			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'};
+		}
 	}
 }
 
 # One dependent id for each output id
 sub CreateJobsBalign {
-	my ($data, $quiet, $dependent_ids, $qsub_ids, $output_ids) = @_;
+	my ($data, $quiet, $dependent_ids, $qsub_ids, $input_ids, $output_ids) = @_;
+
+	# The number of bmatches to perform per read file
+	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'}));
 
 	# Go through each
-	for(my $i=0;$i<scalar(@$output_ids);$i++) {
-		my $output_id = $output_ids->[$i];
+	for(my $i=0;$i<scalar(@$input_ids);$i++) {
+		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'});
+		my ($output_id_read_num_start, $output_id_read_num_end) = (0, 0);
 		my $dependent_job = $dependent_ids->[$i];
-		my $bmf_file = GetMatchesFile($data, $output_id);
-		my $run_file = CreateRunFile($data, 'balign', $output_id);
+		my $input_id = $input_ids->[$i];
+		my $input_id_no_read_num ="";
+		if($input_id =~ m/(.+)\.(\d+)\-\d+$/) {
+			$input_id_no_read_num = $1;
+			$output_id_read_num_start += $2; 
+			$output_id_read_num_end += $2 + $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'} - 1;
+		}
+		else {
+			die;
+		}
+		for(my $j=0;$j<$num_split_files;$j++) {
+			my $output_id = "$input_id_no_read_num.$output_id_read_num_start-$output_id_read_num_end";
+			my $bmf_file = GetMatchesFile($data, $input_id);
+			my $run_file = CreateRunFile($data, 'balign', $output_id);
 
-		my $cmd = "";
-		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."balign/"        if defined($data->{'globalOptions'}->{'bfastBin'});
-		$cmd .= "balign";
-		$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'};
-		$cmd .= " -m $bmf_file";
-		$cmd .= " -x ".$data->{'balignOptions'}->{'scoringMatrix'}      if defined($data->{'balignOptions'}->{'scoringMatrix'});
-		$cmd .= " -a ".$data->{'balignOptions'}->{'localAlignmentType'} if defined($data->{'balignOptions'}->{'localAlignmentType'});
-		$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
-		$cmd .= " -O ".$data->{'balignOptions'}->{'offset'}             if defined($data->{'balignOptions'}->{'offset'});
-		$cmd .= " -M ".$data->{'balignOptions'}->{'maxNumMatches'}      if defined($data->{'balignOptions'}->{'maxNumMatches'});
-		$cmd .= " -q ".$data->{'balignOptions'}->{'mismatchQuality'}    if defined($data->{'balignOptions'}->{'mismatchQuality'});
-		$cmd .= " -n ".$data->{'balignOptions'}->{'threads'}            if defined($data->{'balignOptions'}->{'threads'});
-		$cmd .= " -Q ".$data->{'balignOptions'}->{'queueLength'}        if defined($data->{'balignOptions'}->{'queueLength'});
-		$cmd .= " -l ".$data->{'balignOptions'}->{'pairedEndLength'}    if defined($data->{'balignOptions'}->{'pairedEndLength'});
-		$cmd .= " -L ".$data->{'balignOptions'}->{'mirroringType'}      if defined($data->{'balignOptions'}->{'mirroringType'});
-		$cmd .= " -F"                                                   if defined($data->{'balignOptions'}->{'forceMirror'});
-		$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
-		$cmd .= " -o ".$output_id;
-		$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
-		$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
+			my $cmd = "";
+			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."balign/"        if defined($data->{'globalOptions'}->{'bfastBin'});
+			$cmd .= "balign";
+			$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'};
+			$cmd .= " -m $bmf_file";
+			$cmd .= " -x ".$data->{'balignOptions'}->{'scoringMatrix'}      if defined($data->{'balignOptions'}->{'scoringMatrix'});
+			$cmd .= " -a ".$data->{'balignOptions'}->{'localAlignmentType'} if defined($data->{'balignOptions'}->{'localAlignmentType'});
+			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
+			$cmd .= " -O ".$data->{'balignOptions'}->{'offset'}             if defined($data->{'balignOptions'}->{'offset'});
+			$cmd .= " -M ".$data->{'balignOptions'}->{'maxNumMatches'}      if defined($data->{'balignOptions'}->{'maxNumMatches'});
+			$cmd .= " -q ".$data->{'balignOptions'}->{'mismatchQuality'}    if defined($data->{'balignOptions'}->{'mismatchQuality'});
+			$cmd .= " -n ".$data->{'balignOptions'}->{'threads'}            if defined($data->{'balignOptions'}->{'threads'});
+			$cmd .= " -Q ".$data->{'balignOptions'}->{'queueLength'}        if defined($data->{'balignOptions'}->{'queueLength'});
+			$cmd .= " -l ".$data->{'balignOptions'}->{'pairedEndLength'}    if defined($data->{'balignOptions'}->{'pairedEndLength'});
+			$cmd .= " -L ".$data->{'balignOptions'}->{'mirroringType'}      if defined($data->{'balignOptions'}->{'mirroringType'});
+			$cmd .= " -F"                                                   if defined($data->{'balignOptions'}->{'forceMirror'});
+			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
+			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
+			$cmd .= " -o ".$output_id;
+			$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
+			$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
 
-		# Submit the job
-		my @a = (); push(@a, $dependent_job);
-		push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'balignOptions', $output_id, \@a));
+			# Submit the job
+			my @a = (); push(@a, $dependent_job);
+			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'balignOptions', $output_id, \@a));
+			push(@$output_ids, $output_id);
+			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+			$output_id_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+			$output_id_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+		}
 	}
 }
 
@@ -577,11 +618,11 @@ sub SubmitJob {
 	my $qsub_id=`$qsub`;
 	chomp($qsub_id);
 	die("Error submitting QSUB_COMMAND=$qsub\n") unless (0 < length($qsub_id));
-	
+
 	if(!$quiet) {
 		print STDERR "[bfast submit] NAME=$output_id QSUBID=$qsub_id\n";
 	}
-	
+
 	return $qsub_id;
 }
 

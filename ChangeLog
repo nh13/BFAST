@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.5.7
+* bfast.submit.pl supports the -s and -e options in BFAST.
+
 Version 0.5.6
 * balign now is able to only align a specific subset of reads from the 
 matches file.  This is similar to bmatches and should be especially 
