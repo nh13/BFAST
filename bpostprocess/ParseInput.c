@@ -321,6 +321,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	char algorithm[5][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score", "Best Score All"};
+	char outputType[8][32] = {"BRG", "BIF", "BMF", "BAF", "MAF", "GFF", "SAM", "LastFileType"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
@@ -330,7 +331,7 @@ PrintProgramParameters(FILE* fp, struct arguments *args)
     fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
-	fprintf(fp, "outputFormat:\t\t%d\n", args->outputFormat);
+	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
 	fprintf(fp, "timing:\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;

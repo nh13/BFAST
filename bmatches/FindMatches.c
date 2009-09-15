@@ -278,7 +278,8 @@ void FindMatches(
 
 				/* Read in the reads */
 				while(EOF!=GetRead(tempSeqFPs[i],
-							&tempMatches)) {
+							&tempMatches,
+							space)) {
 					/* Print the match to the output file */
 					RGMatchesPrint(outputFP,
 							&tempMatches);
@@ -923,7 +924,7 @@ void *FindMatchesInIndexThread(void *arg)
 				threadID,
 				numRead);
 	}
-	while(0!=(numMatches = GetReads(tempSeqFP, matchQueue, matchQueueLength))) {
+	while(0!=(numMatches = GetReads(tempSeqFP, matchQueue, matchQueueLength, space))) {
 		for(i=0;i<numMatches;i++) {
 			numRead++;
 			if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
@@ -931,27 +932,25 @@ void *FindMatchesInIndexThread(void *arg)
 						threadID,
 						numRead);
 			}
-			if(1 == IsValidRead(&matchQueue[i])) {
-				/* Read */
-				foundMatch = 0;
-				for(j=0;j<matchQueue[i].numEnds;j++) {
-					RGReadsFindMatches(index,
-							rg,
-							&matchQueue[i].ends[j],
-							offsets,
-							numOffsets,
-							space,
-							numMismatches,
-							numInsertions,
-							numDeletions,
-							numGapInsertions,
-							numGapDeletions,
-							maxKeyMatches,
-							maxNumMatches,
-							whichStrand);
-					if(0 < matchQueue[i].ends[j].numEntries && 1 != matchQueue[i].ends[j].maxReached) {
-						foundMatch = 1;
-					}
+			/* Read */
+			foundMatch = 0;
+			for(j=0;j<matchQueue[i].numEnds;j++) {
+				RGReadsFindMatches(index,
+						rg,
+						&matchQueue[i].ends[j],
+						offsets,
+						numOffsets,
+						space,
+						numMismatches,
+						numInsertions,
+						numDeletions,
+						numGapInsertions,
+						numGapDeletions,
+						maxKeyMatches,
+						maxNumMatches,
+						whichStrand);
+				if(0 < matchQueue[i].ends[j].numEntries && 1 != matchQueue[i].ends[j].maxReached) {
+					foundMatch = 1;
 				}
 
 				if(1 == foundMatch) {

@@ -66,7 +66,8 @@ int GetNextRead(FILE *fp,
 /* TODO */
 /* Read all the ends for the next read from the stream */
 int GetRead(FILE *fp, 
-		RGMatches *m)
+		RGMatches *m,
+		int space)
 {
 	char *FnName = "GetRead";
 	fpos_t curPos;
@@ -154,6 +155,14 @@ int GetRead(FILE *fp,
 				ReadFileError);
 	}
 
+	if(0 == IsValidRead(m, space)) {
+		PrintError(FnName,
+				NULL,
+				"The input read was not in the proper format",
+				Exit,
+				OutOfRange);
+	}
+
 	return 1;
 }
 
@@ -225,7 +234,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 	}
 
 	while((endReadNum<=0 || endReadNum >= curReadNum) && 
-			EOF != GetRead(seqFP, &m)) {
+			EOF != GetRead(seqFP, &m, space)) {
 		/* Get which tmp file to put the read in */
 		curSeqFPIndex = (curReadNum-1)%numThreads;
 
@@ -420,13 +429,13 @@ int ReadOffsets(char *offsetsFileName, int **offsets)
 	return numOffsets;
 }
 
-int32_t GetReads(FILE *fp, RGMatches *m, int32_t maxToRead) 
+int32_t GetReads(FILE *fp, RGMatches *m, int32_t maxToRead, int32_t space) 
 {
 	int32_t numRead = 0;
 
 	while(numRead < maxToRead) {
 		RGMatchesInitialize(&(m[numRead]));
-		if(EOF == GetRead(fp, &(m[numRead]))) {
+		if(EOF == GetRead(fp, &(m[numRead]), space)) {
 			return numRead;
 		}
 		numRead++;

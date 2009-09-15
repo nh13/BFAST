@@ -21,8 +21,8 @@ int GetFastaHeaderLine(FILE *fp,
 		char *header)
 {
 	/*
-	char *FnName="GetFastaHeaderLine";
-	*/
+	   char *FnName="GetFastaHeaderLine";
+	   */
 	char *ret;
 
 	/* Read in the line */
@@ -728,12 +728,13 @@ int PrintContigPos(FILE *fp,
 	return numPrinted;
 }
 
-int32_t IsValidRead(RGMatches *m) 
+int32_t IsValidRead(RGMatches *m, int space) 
 {
 	int32_t i;
 	for(i=0;i<m->numEnds;i++) {
 		if(0 == UpdateRead(m->ends[i].read,
-					m->ends[i].readLength)) {
+					m->ends[i].readLength,
+					space)) {
 			return 0;
 		}
 	}
@@ -752,7 +753,7 @@ int32_t IsValidMatch(RGMatches *m)
 }
 
 /* TODO */
-int UpdateRead(char *read, int readLength) 
+int UpdateRead(char *read, int readLength, int space) 
 {
 	char *FnName="UpdateRead";
 	int i;
@@ -766,46 +767,81 @@ int UpdateRead(char *read, int readLength)
 	 * if we encounter a base we do not recognize, 
 	 * return 0 
 	 * */
-	for(i=0;i<readLength;i++) {
-		switch(read[i]) {
-			/* Do nothing for a, c, g, and t */
+
+	/* Check color space adaptor and colors */
+	if(ColorSpace == space) {
+		switch(read[0]) {
 			case 'a':
 			case 'c':
 			case 'g':
 			case 't':
-			case 'n':
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-				break;
 			case 'A':
-				read[i] = 'a';
-				break;
 			case 'C':
-				read[i] = 'c';
-				break;
 			case 'G':
-				read[i] = 'g';
-				break;
 			case 'T':
-				read[i] = 't';
-				break;
-			case 'N':
-				read[i] = 'n';
-				break;
-			case '\r':
-			case '\n':
-				PrintError(FnName,
-						"read[i]",
-						"Read was improperly trimmed",
-						Exit,
-						OutOfRange);
+				read[0] = tolower(read[0]);
 				break;
 			default:
 				return 0;
 				break;
+		}
+		for(i=1;i<readLength;i++) {
+			switch(read[i]) {
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+					break;
+				case '.':
+					read[i] = '0';
+					break;
+				case '\r':
+				case '\n':
+					PrintError(FnName,
+							"read[i]",
+							"Read was improperly trimmed",
+							Exit,
+							OutOfRange);
+					break;
+				default:
+					return 0;
+					break;
+			}
+		}
+	}
+	else {
+
+		for(i=0;i<readLength;i++) {
+			switch(read[i]) {
+				case 'a':
+				case 'c':
+				case 'g':
+				case 't':
+				case 'n':
+					break;
+				case 'A':
+				case 'C':
+				case 'G':
+				case 'T':
+				case 'N':
+					read[i] = tolower(read[i]);
+					break;
+				case '.':
+					read[i] = 'n';
+					break;
+				case '\r':
+				case '\n':
+					PrintError(FnName,
+							"read[i]",
+							"Read was improperly trimmed",
+							Exit,
+							OutOfRange);
+					break;
+				default:
+					return 0;
+					break;
+			}
 		}
 	}
 	return 1;
