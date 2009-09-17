@@ -406,7 +406,7 @@ sub CreateJobsBmatches {
 		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}); 
 		for(my $i=0;$i<$num_split_files;$i++) {
 			my $output_id = $read_file; 
-			$output_id =~ s/.*\.(\d+)\.[^\.]+$/$1/; 
+			$output_id =~ s/.*?([^\/]+\d+)\.[^\.]+$/$1/; 
 			$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";
 			my $run_file = CreateRunFile($data, 'bmatches', $output_id);
 			my $cmd = "";
@@ -582,7 +582,7 @@ sub CreateJobsSamtools {
 	}
 
 	$output_id = "merge.".$data->{'globalOptions'}->{'outputID'};
-	$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id;
+	$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
 	$cmd = $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
 	$cmd .= "samtools merge";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
