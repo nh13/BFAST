@@ -2792,7 +2792,9 @@ gzFile RGIndexOpenForWriting(char *fastaFileName, RGIndex *index)
 	int fd;
 
 	bifName=GetBIFName(fastaFileName, index->space, index->depthNumber, index->indexNumber);
-	if((fd = open(bifName, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IRGRP | S_IWOTH)) < 0) {
+	if((fd = open(bifName, 
+					O_WRONLY | O_CREAT | O_EXCL, 
+					S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP)) < 0) {
 		/* File exists */
 		PrintError(FnName,
 				bifName,
