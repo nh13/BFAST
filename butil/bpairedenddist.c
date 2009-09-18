@@ -6,12 +6,12 @@
 #include <pthread.h>
 #include <zlib.h>
 
-#include "../blib/BLibDefinitions.h"
-#include "../blib/BLib.h"
-#include "../blib/BError.h"
-#include "../blib/RGMatch.h"
-#include "../blib/RGMatches.h"
-#include "../blib/AlignedRead.h"
+#include "../BLibDefinitions.h"
+#include "../BLib.h"
+#include "../BError.h"
+#include "../RGMatch.h"
+#include "../RGMatches.h"
+#include "AlignedRead.h"
 #include "bpairedenddist.h"
 
 #define Name "bpairedenddist"

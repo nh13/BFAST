@@ -2,7 +2,7 @@
 #define BSORT_H_
 
 #include <zlib.h>
-#include "../blib/BLibDefinitions.h"
+#include "../BLibDefinitions.h"
 
 #define BSORT_THREADED_SORT_MIN 100000
 

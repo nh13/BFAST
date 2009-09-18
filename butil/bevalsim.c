@@ -5,11 +5,11 @@
 #include <time.h>
 #include <zlib.h>
 
-#include "../blib/BLibDefinitions.h"
-#include "../blib/BError.h"
-#include "../blib/AlignedRead.h"
-#include "../blib/RGMatches.h"
-#include "../blib/RGMatch.h"
+#include "../BLibDefinitions.h"
+#include "../BError.h"
+#include "AlignedRead.h"
+#include "../RGMatches.h"
+#include "../RGMatch.h"
 #include "bevalsim.h"
 
 #define Name "bevalsim"

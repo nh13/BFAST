@@ -5,10 +5,10 @@
 #include <math.h>
 #include <zlib.h>
 
-#include "../blib/BLibDefinitions.h"
-#include "../blib/BError.h"
-#include "../blib/RGIndex.h"
-#include "../blib/RGBinary.h"
+#include "../BLibDefinitions.h"
+#include "../BError.h"
+#include "../RGIndex.h"
+#include "../RGBinary.h"
 #include "bexonify.h"
 
 #define Name "bexonify"

@@ -1,9 +1,9 @@
 #ifndef BINDEXDIST_H_
 #define BINDEXDIST_H_
 
-#include "../blib/RGIndex.h"
-#include "../blib/RGBinary.h"
-#include "../blib/RGMatch.h"
+#include "../RGIndex.h"
+#include "../RGBinary.h"
+#include "../RGMatch.h"
 
 typedef struct {
 	char **reads;

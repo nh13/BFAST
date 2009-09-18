@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59)
-AC_INIT([bfast],[0.5.7],[bfast-help@lists.sourceforge.net],[bfast])
+AC_INIT([bfast],[0.6.0],[bfast-help@lists.sourceforge.net],[bfast])
 
 AC_COPYRIGHT([See LICENSE for copyright information.])
 
@@ -48,10 +48,10 @@ case "${host_cpu}-${host_os}" in
 esac
 
 # Define some variables
-svnrev="`svn info | grep Revision:`"
-if test -n "${svnrev}" ; then
-	AC_REVISION("${svnrev}") 
-	AC_DEFINE_UNQUOTED(SVN_REV,"${svnrev}", [Define to be the subversion revision number])
+gitrev="`git log | grep -m 1 commit | awk '{print $2}'`"
+if test -n "${gitrev}" ; then
+	AC_REVISION("${gitrev}") 
+	AC_DEFINE_UNQUOTED(SVN_REV,"${gitrev}", [Define to be the subversion revision number])
 else
 	AC_REVISION([$Revision: undefined $])
 	AC_DEFINE(SVN_REV,"$Revision: undefined$", [Define to be the subversion revision number])
@@ -91,15 +91,10 @@ OS X is known to have this problem.
 If your system does not have argp.h then bfast will
 attempt to use getopt.h for command line parsing.])])
 
-
 AC_CONFIG_FILES([Makefile
-				 bpreprocess/Makefile
-				 bmatches/Makefile
-				 balign/Makefile
-				 bpostprocess/Makefile
 				 butil/Makefile
-				 tests/Makefile
 				 scripts/Makefile
+				 tests/Makefile
 				 ])
 
 AC_OUTPUT

@@ -1,9 +1,9 @@
 #ifndef BINDEXHISTCHR_H_
 #define BINDEXHISTCHR_H_
 
-#include "../blib/RGIndex.h"
-#include "../blib/RGBinary.h"
-#include "../blib/RGMatch.h"
+#include "../RGIndex.h"
+#include "../RGBinary.h"
+#include "../RGMatch.h"
 
 typedef struct {
 	int64_t **counts;

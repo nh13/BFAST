@@ -1,14 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 #include <unistd.h>
 #include <string.h>
-#include "../blib/BLibDefinitions.h"
-#include "../blib/BError.h"
-#include "../blib/BLib.h"
+#include "../BLibDefinitions.h"
+#include "../BError.h"
+#include "../BLib.h"
 
 typedef struct {
 	int32_t to_print; // whether this entry should be printed (must be populated)

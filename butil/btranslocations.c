@@ -6,11 +6,11 @@
 #include <math.h>
 #include <zlib.h>
 
-#include "../blib/AlignedEntry.h"
-#include "../blib/AlignedRead.h"
-#include "../blib/BLibDefinitions.h"
-#include "../blib/BLib.h"
-#include "../blib/BError.h"
+#include "AlignedEntry.h"
+#include "AlignedRead.h"
+#include "../BLibDefinitions.h"
+#include "../BLib.h"
+#include "../BError.h"
 #include "btranslocations.h"
 
 #define Name "btranslocations"

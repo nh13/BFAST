@@ -10,12 +10,12 @@
 #include <zlib.h>
 
 #endif
-#include "../blib/AlignedEntry.h"
-#include "../blib/AlignedRead.h"
-#include "../blib/AlignedEnd.h"
-#include "../blib/BLibDefinitions.h"
-#include "../blib/BLib.h"
-#include "../blib/BError.h"
+#include "AlignedEntry.h"
+#include "AlignedRead.h"
+#include "AlignedEnd.h"
+#include "../BLibDefinitions.h"
+#include "../BLib.h"
+#include "../BError.h"
 #include "bsort.h"
 
 #define Name "bsort"
