@@ -15,10 +15,9 @@ void RGIndexLayoutCreate(char *mask, int32_t hashWidth, RGIndexLayout *layout)
 
 	assert(NULL != mask);
 
-	layout->mask=NULL;
-	layout->hashWidth=hashWidth;
 	layout->width = strlen(mask);
-	layout->mask = malloc(sizeof(int32_t*)*(layout->width));
+	layout->mask=NULL;
+	layout->mask = malloc(sizeof(int32_t)*(layout->width));
 	if(NULL==layout->mask) {
 		PrintError(FnName,
 				"layout->mask",
@@ -26,6 +25,7 @@ void RGIndexLayoutCreate(char *mask, int32_t hashWidth, RGIndexLayout *layout)
 				Exit,
 				MallocMemory);
 	}
+	layout->hashWidth=hashWidth;
 	if(RGINDEXLAYOUT_MAX_HASH_WIDTH < layout->hashWidth) {
 		PrintError(FnName,
 				"layout->hashWidth",
@@ -79,8 +79,6 @@ void RGIndexLayoutCreate(char *mask, int32_t hashWidth, RGIndexLayout *layout)
 
 void RGIndexLayoutDelete(RGIndexLayout *layout)
 {
-	int i;
-
 	free(layout->mask);
 	layout->mask=NULL;;
 }

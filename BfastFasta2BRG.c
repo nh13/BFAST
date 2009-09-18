@@ -14,7 +14,6 @@
 #include "RGIndexExons.h"
 #include "BError.h"
 #include "BLib.h"
-#include "GenerateIndex.h"
 #include "BfastFasta2BRG.h"
 
 /*
@@ -51,7 +50,6 @@ BfastFasta2BRG(int argc, char **argv)
 	RGBinary rg;
 	time_t startTime = time(NULL);
 	time_t endTime;
-	char spaceName[2][3]={"nt", "cs"};
 
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
@@ -87,7 +85,8 @@ BfastFasta2BRG(int argc, char **argv)
 							arguments.space);
 					/* Write binary */
 					RGBinaryWriteBinary(&rg,
-							fastaFileName);
+							arguments.space,
+							arguments.fastaFileName);
 
 					/* Free the Reference Genome */
 					RGBinaryDelete(&rg);
@@ -249,6 +248,7 @@ BfastFasta2BRGGetOptParse(int argc, char** argv, char OptionString[], struct arg
 			case 'A':
 				arguments->space=atoi(optarg); break;
 			default:
+				fprintf(stderr, "Key is %c and OptErr = %d\n", key, OptErr);
 				OptErr=1;
 		} /* while */
 	} /* switch */

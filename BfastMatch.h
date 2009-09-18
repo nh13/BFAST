@@ -7,7 +7,7 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *brgFileName;                   	/* -r */
+	char *fastaFileName;                   	/* -f */
 	char *bfastMainIndexesFileName;			/* -i */
 	char *bfastSecondaryIndexesFileName;	/* -I */
 	char *readsFileName;					/* -R */

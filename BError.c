@@ -24,6 +24,7 @@ PrintError(char* FunctionName, char *VariableName,
 		fprintf(stderr, "Message: %s.\n", Message);
 	}
 	if(type == ReadFileError || 
+			type == OpenFileError || 
 			type == WriteFileError) {
 		perror("The file stream error was:");
 	}

@@ -19,7 +19,7 @@
 
 /* TODO */
 void FindMatches(
-		char *rgFileName,
+		char *fastaFileName,
 		char *rgIndexMainListFileName,
 		char *rgIndexSecondaryListFileName,
 		char *readFileName, 
@@ -113,7 +113,8 @@ void FindMatches(
 	/* Read in the reference genome */
 	startTime = time(NULL);
 	RGBinaryReadBinary(&rg,
-			rgFileName);
+			space,
+			fastaFileName);
 	assert(rg.space == space);
 	endTime = time(NULL);
 	totalReadRGTime = endTime - startTime;

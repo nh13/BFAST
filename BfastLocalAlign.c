@@ -107,6 +107,7 @@ BfastLocalAlign(int argc, char **argv)
 					/* Execute Program */
 					startTime = time(NULL);
 					RGBinaryReadBinary(&rg,
+							NTSpace,
 							arguments.brgFileName);
 					/* Unpack */
 					/*

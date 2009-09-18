@@ -24,6 +24,7 @@ int BfastBRG2Fasta(int argc, char *argv[])
 	if(2 == argc) {
 		strcpy(rgFileName, argv[1]);
 		RGBinaryReadBinary(&rg,
+				NTSpace, // TODO
 				rgFileName);
 		/* Unpack */
 		RGBinaryUnPack(&rg);

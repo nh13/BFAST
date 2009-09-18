@@ -9,15 +9,13 @@ do
 	echo "        Testing -A "$SPACE;
 	if [ "$SPACE" -eq "0" ]; then
 		OUTPUT_ID=$OUTPUT_ID_NT;
-		RG="$OUTPUT_DIR$OUTPUT_ID.fa.nt.brg";
 	else
 		OUTPUT_ID=$OUTPUT_ID_CS;
-		RG="$OUTPUT_DIR$OUTPUT_ID.fa.cs.brg";
 	fi
-
+	RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 
 	# Make an index
-	CMD=$CMD_PREFIX"../bfast index -r $RG -A $SPACE -i $LAYOUT_FILE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
+	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 1111111111 -w 6 -d 1 -i 1 -T $TMP_DIR";
 	$CMD 2> /dev/null > /dev/null; 
 
 	# Get return code

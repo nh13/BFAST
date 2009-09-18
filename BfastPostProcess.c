@@ -92,6 +92,7 @@ BfastPostProcess(int argc, char **argv)
 					if(BAF != arguments.outputFormat) {
 						/* Read binary */
 						RGBinaryReadBinary(&rg,
+								NTSpace,
 								arguments.brgFileName);
 					}
 					ReadInputFilterAndOutput(&rg,

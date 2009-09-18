@@ -16,11 +16,11 @@ do
 	RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 
 	# Make reference genome in nt space always 
-	CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A 0 -o $OUTPUT_ID -d $OUTPUT_DIR";
+	CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A 0";
 	$CMD 2> /dev/null > /dev/null;
 	# Make reference genome in color space if necessary
 	if [ "$SPACE" -eq "1" ]; then
-		CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR";
+		CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A $SPACE";
 		$CMD 2> /dev/null > /dev/null;
 	fi
 

@@ -96,6 +96,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			outputSubType=TextOutput;
 			strcat(outputFileName, BFAST_MAF_FILE_EXTENSION);
 			RGBinaryReadBinary(&rg,
+					NTSpace,
 					brgFileName);
 			break;
 		case 3:
@@ -104,6 +105,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			outputSubType=TextOutput;
 			strcat(outputFileName, BFAST_GFF_FILE_EXTENSION);
 			RGBinaryReadBinary(&rg,
+					NTSpace,
 					brgFileName);
 			break;
 		case 4:
@@ -112,6 +114,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			outputSubType=TextOutput;
 			strcat(outputFileName, BFAST_SAM_FILE_EXTENSION);
 			RGBinaryReadBinary(&rg,
+					NTSpace,
 					brgFileName);
 			break;
 		default:

@@ -117,6 +117,13 @@ void RGIndexCreateSingle(char *fastaFileName,
 		fprintf(stderr, "Creating the index...\n");
 	}
 
+	/* Adjust bounds */
+	AdjustBounds(&rg,
+			&startContig,
+			&startPos,
+			&endContig,
+			&endPos);
+
 	/* Initialize the index */
 	RGIndexInitializeFull(&index,
 			&rg,
@@ -161,10 +168,10 @@ void RGIndexCreateSingle(char *fastaFileName,
 				&rg,
 				NULL,
 				depth,
-				index.startContig,
-				index.startPos,
-				index.endContig,
-				index.endPos,
+				startContig,
+				startPos,
+				endContig,
+				endPos,
 				repeatMasker,
 				includeNs);
 	}
@@ -239,6 +246,12 @@ void RGIndexCreateSplit(char *fastaFileName,
 		fprintf(stderr, "Creating the index...\n");
 	}
 
+	/* Adjust bounds */
+	AdjustBounds(&rg,
+			&startContig,
+			&startPos,
+			&endContig,
+			&endPos);
 
 	gzOuts = malloc(sizeof(gzFile)*numFiles);
 	if(NULL == gzOuts) {
@@ -282,6 +295,20 @@ void RGIndexCreateSplit(char *fastaFileName,
 		tmpFPs[i] = OpenTmpFile(tmpDir, &tmpFileNames[i]);
 	}
 
+	/* Create dummy index for binning */
+	RGIndexInitializeFull(&index,
+			&rg,
+			layout,
+			space,
+			depth,
+			1,
+			indexNumber,
+			startContig,
+			startPos,
+			endContig,
+			endPos,
+			repeatMasker);
+
 	/* Create bins */
 	if(UseExons == useExons) { /* Use only bases within the exons */
 		for(i=0;i<e->numExons;i++) { /* For each exon */
@@ -302,24 +329,27 @@ void RGIndexCreateSplit(char *fastaFileName,
 				&rg,
 				tmpFPs,
 				depth,
-				index.startContig,
-				index.startPos,
-				index.endContig,
-				index.endPos,
+				startContig,
+				startPos,
+				endContig,
+				endPos,
 				repeatMasker,
 				includeNs);
 	}
-
 	if(VERBOSE >= 0) {
 		PrintContigPos(stderr, 
-				index.endContig,
-				index.endPos);
+				endContig,
+				endPos);
 		fprintf(stderr, "\n");
 	}
+
+	/* Delete dummy index */
+	RGIndexDelete(&index);
 
 	/* Process each bin */
 	for(i=0;i<numFiles;i++) {
 		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Creating index (bin %d/%d)\n",
 					(int)(i+1), numFiles);
 		}
@@ -341,8 +371,8 @@ void RGIndexCreateSplit(char *fastaFileName,
 		index.length=0;
 		fseek(tmpFPs[i], 0, SEEK_SET);
 		if(Contig_8 == index.contigType) {
-			while(fread(&contig_8, sizeof(uint8_t), 1, tmpFPs[i]) == sizeof(uint8_t) &&
-					fread(&position, sizeof(uint32_t), 1, tmpFPs[i]) == sizeof(uint32_t)) {
+			while(fread(&contig_8, sizeof(uint8_t), 1, tmpFPs[i]) == 1 &&
+					fread(&position, sizeof(uint32_t), 1, tmpFPs[i]) == 1) {
 				/* Insert */
 				index.length++;
 
@@ -370,8 +400,8 @@ void RGIndexCreateSplit(char *fastaFileName,
 			}
 		}
 		else {
-			while(fread(&contig_32, sizeof(uint32_t), 1, tmpFPs[i]) == sizeof(uint32_t) &&
-					fread(&position, sizeof(uint32_t), 1, tmpFPs[i]) == sizeof(uint32_t)) {
+			while(fread(&contig_32, sizeof(uint32_t), 1, tmpFPs[i]) == 1 &&
+					fread(&position, sizeof(uint32_t), 1, tmpFPs[i]) == 1) {
 
 				/* Insert */
 				index.length++;
@@ -422,6 +452,10 @@ void RGIndexCreateSplit(char *fastaFileName,
 		/* Close the tmp file */
 		CloseTmpFile(&tmpFPs[i], &tmpFileNames[i]);
 	}
+			
+		if(VERBOSE >= 0) {
+	fprintf(stderr, "%s", BREAK_LINE);
+		}
 
 	/* Free memory */
 	free(gzOuts);
@@ -456,24 +490,23 @@ void RGIndexCreateHelper(RGIndex *index,
 	int32_t curPos=-1;
 	int32_t curStartPos=-1;
 	int32_t curEndPos=-1;
-	int32_t curContig=-1;
-	int8_t curContig_8;
-	int32_t keyStartPos, keyEndPos;
+	uint32_t curContig=0;
+	uint8_t curContig_8;
+	uint32_t keyStartPos, keyEndPos;
 	int64_t i;
 	int32_t toBin=0;
 	int32_t binNumber=0;
 	int32_t curDepth=0;
 
-	if(NULL == index) {
-		assert(NULL != tmpFPs);
-		assert(0 < depth);
-		toBin=1;
+	if(0 == depth) {
+		toBin=0;
+		assert(NULL == tmpFPs);
 	}
 	else {
-		assert(NULL == tmpFPs);
-		assert(0 == depth);
-		toBin=0;
+		toBin=1;
+		assert(NULL != tmpFPs);
 	}
+	assert(NULL != index);
 
 	/* For each contig */
 	for(curContig=startContig;
@@ -537,7 +570,6 @@ void RGIndexCreateHelper(RGIndex *index,
 				/* See if we should insert into the index.  We should have enough consecutive bases. */
 				if(1==toInsert) {
 					if(0 == toBin) {
-
 						/* Insert */
 						index->length++;
 
@@ -612,19 +644,20 @@ void RGIndexCreateHelper(RGIndex *index,
 						}
 						/* Debugging */
 						assert(0 <= binNumber);
-						assert(binNumber <= pow(ALPHABET_SIZE, depth));
+						assert(binNumber < pow(ALPHABET_SIZE, depth));
+						assert(NULL != tmpFPs[binNumber]);
 
 						/* Print to the Bin */
 						if(index->contigType == Contig_8) {
 							curContig_8 = (uint8_t)curContig;
-							if(fwrite(&curContig_8, sizeof(uint8_t), 1, tmpFPs[binNumber]) != sizeof(uint8_t) ||
-									fwrite(&keyStartPos, sizeof(uint32_t), 1, tmpFPs[binNumber]) != sizeof(uint32_t)) {
+							if(fwrite(&curContig_8, sizeof(uint8_t), 1, tmpFPs[binNumber]) != 1 ||
+									fwrite(&keyStartPos, sizeof(uint32_t), 1, tmpFPs[binNumber]) != 1) {
 								PrintError(FnName, "curContig8 and keyStartPos", "Could not write to file", Exit, WriteFileError);
 							}
 						}
 						else {
-							if(fwrite(&curContig, sizeof(uint32_t), 1, tmpFPs[binNumber]) != sizeof(uint32_t) ||
-									fwrite(&keyStartPos, sizeof(uint32_t), 1, tmpFPs[binNumber]) != sizeof(uint32_t)) {
+							if(fwrite(&curContig, sizeof(uint32_t), 1, tmpFPs[binNumber]) != 1 ||
+									fwrite(&keyStartPos, sizeof(uint32_t), 1, tmpFPs[binNumber]) != 1) {
 								PrintError(FnName, "curContig and keyStartPos", "Could not write to file", Exit, WriteFileError);
 							}
 						}
@@ -2702,13 +2735,6 @@ void RGIndexInitializeFull(RGIndex *index,
 	index->startPos = startPos;
 	index->endContig = endContig;
 	index->endPos = endPos;
-
-	/* Adjust bounds */
-	AdjustBounds(rg,
-			&index->startContig,
-			&index->startPos,
-			&index->endContig,
-			&index->endPos);
 	assert(index->startContig > 0);
 	assert(index->endContig > 0);
 
@@ -2766,14 +2792,13 @@ gzFile RGIndexOpenForWriting(char *fastaFileName, RGIndex *index)
 	int fd;
 
 	bifName=GetBIFName(fastaFileName, index->space, index->depthNumber, index->indexNumber);
-
-	if((fd = open(bifName, O_WRONLY | O_CREAT | O_EXCL)) < 0) {
+	if((fd = open(bifName, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IRGRP | S_IWOTH)) < 0) {
 		/* File exists */
 		PrintError(FnName,
 				bifName,
-				"File already exists!",
+				"Could not open bifName for writing",
 				Exit,
-				OutOfRange);
+				OpenFileError);
 	}
 
 	if(!(gz=gzdopen(fd, "wb"))) {

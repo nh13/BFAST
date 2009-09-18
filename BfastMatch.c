@@ -18,7 +18,7 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
+	DescInputFilesTitle, DescFastaFileName, DescBfastMainIndexesFileName, DescBfastSecondaryIndexesFileName, DescReadsFileName, DescOffsetsFileName, 
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming,
@@ -27,7 +27,7 @@ enum {
 
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"brgFileName", 'r', "brgFileName", 0, "Specifies the file name of the bfast reference genome file", 1},
+	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the bfast reference genome file", 1},
 	{"bfastMainIndexesFileName", 'i', "bfastMainIndexesFileName", 0, "Specifies the file name holding the list of main bif files", 1},
 	{"bfastSecondaryIndexesFileName", 'I', "bfastSecondaryIndexesFileName", 0, "Specifies the file name holding the list of bif files", 1},
 	{"readsFileName", 'R', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
@@ -54,7 +54,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"d:e:i:k:m:n:o:r:s:w:A:I:K:M:O:Q:R:T:hpt";
+"d:e:f:i:k:m:n:o:s:w:A:I:K:M:O:Q:R:T:hpt";
 	
 	int
 BfastMatch(int argc, char **argv)
@@ -95,7 +95,7 @@ BfastMatch(int argc, char **argv)
 
 						/* Run Matches */
 						FindMatches(
-								arguments.brgFileName,
+								arguments.fastaFileName,
 								arguments.bfastMainIndexesFileName,
 								arguments.bfastSecondaryIndexesFileName,
 								arguments.readsFileName,
@@ -168,11 +168,11 @@ int BfastMatchValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->brgFileName!=0) {
-		fprintf(stderr, "Validating brgFileName %s. \n",
-				args->brgFileName);
-		if(ValidateFileName(args->brgFileName)==0)
-			PrintError(FnName, "brgFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->fastaFileName!=0) {
+		fprintf(stderr, "Validating fastaFileName %s. \n",
+				args->fastaFileName);
+		if(ValidateFileName(args->fastaFileName)==0)
+			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);
 	}
 
 	if(args->bfastMainIndexesFileName!=0) {
@@ -288,10 +288,10 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->brgFileName =
+	args->fastaFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->brgFileName!=0);
-	strcpy(args->brgFileName, DEFAULT_FILENAME);
+	assert(args->fastaFileName!=0);
+	strcpy(args->fastaFileName, DEFAULT_FILENAME);
 
 	args->bfastMainIndexesFileName =
 		(char*)malloc(sizeof(DEFAULT_FILENAME));
@@ -352,7 +352,7 @@ BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "brgFileName:\t\t\t\t%s\n", args->brgFileName);
+	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
 	fprintf(fp, "bfastMainIndexesFileName\t\t%s\n", args->bfastMainIndexesFileName);
 	fprintf(fp, "bfastSecondaryIndexesFileName\t\t%s\n", args->bfastSecondaryIndexesFileName);
 	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
@@ -384,8 +384,8 @@ BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 /* TODO */
 void BfastMatchFreeProgramParameters(struct arguments *args)
 {
-	free(args->brgFileName);
-	args->brgFileName=NULL;
+	free(args->fastaFileName);
+	args->fastaFileName=NULL;
 	free(args->bfastMainIndexesFileName);
 	args->bfastMainIndexesFileName=NULL;
 	free(args->bfastSecondaryIndexesFileName);
@@ -464,7 +464,7 @@ BfastMatchGetOptHelp() {
 					case 'p':
 						arguments->programMode=ExecutePrintProgramParameters;break;
 					case 'r':
-						StringCopyAndReallocate(&arguments->brgFileName, optarg);
+						StringCopyAndReallocate(&arguments->fastaFileName, optarg);
 						break;
 					case 's':
 						arguments->startReadNum = atoi(optarg);break;

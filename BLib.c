@@ -1927,7 +1927,7 @@ char *GetBIFName(char *fastaFileName,
 			(NTSpace == space) ? "nt" : "cs",
 			depthNumber,
 			indexNumber,
-			BFAST_RG_FILE_EXTENSION);
+			BFAST_INDEX_FILE_EXTENSION);
 
 	return bifName;
 }

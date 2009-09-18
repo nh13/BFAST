@@ -14,7 +14,6 @@
 #include "RGIndexExons.h"
 #include "BError.h"
 #include "BLib.h"
-#include "GenerateIndex.h"
 #include "BfastIndex.h"
 
 /*
@@ -22,7 +21,7 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescIndexLayoutFileName,  
+	DescInputFilesTitle, DescFastaFileName, DescIndexLayoutFileName,  
 	DescAlgoTitle, DescSpace, DescNumThreads, DescRepeatMasker, DescStartContig, DescStartPos, DescEndContig, DescEndPos, DescExonFileName, 
 	DescOutputTitle, DescTmpDir, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -35,8 +34,8 @@ static struct argp_option options[] = {
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"mask", 'm', "mask", 0, "The mask or spaced seed to use", 2}, 
 	{"hashWidth", 'w', "hashWidth", 0, "The hash width for the index", 2},
-	{"depth", 'D', "depth", 0, "The depth of splitting (D).  The index will be split into 4^D parts", 2},
-	{"indexNumber", "i", "indexNumber", 0, "Specifies this is the ith index you are creating", 2},
+	{"depth", 'd', "depth", 0, "The depth of splitting (d).  The index will be split into 4^d parts", 2},
+	{"indexNumber", 'i', "indexNumber", 0, "Specifies this is the ith index you are creating", 2},
 	{"repeatMasker", 'R', 0, OPTION_NO_USAGE, "Specifies that lower case bases will be ignored (default: off).", 2},
 	{"startContig", 's', "startContig", 0, "Specifies the start contig", 2},
 	{"startPos", 'S', "startPos", 0, "Specifies the end position", 2},
@@ -54,7 +53,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"d:e:f:i:m:n:o:s:w:x:A:D:E:S:T:hptR";
+"d:e:f:i:m:n:s:w:x:A:E:S:T:hptR";
 
 	int
 BfastIndex(int argc, char **argv)
@@ -94,7 +93,9 @@ BfastIndex(int argc, char **argv)
 					BfastIndexPrintProgramParameters(stderr, &arguments);
 
 					/* Read in the RGIndex layout */
-					RGIndexLayoutCreate(arguments.mask, arguments.hashWidth, &rgLayout);
+					RGIndexLayoutCreate(arguments.mask, 
+							arguments.hashWidth, 
+							&rgLayout);
 					/* Read exons, if necessary */
 					if(NULL != arguments.exonsFileName) {
 						RGIndexExonsRead(arguments.exonsFileName,
@@ -113,15 +114,15 @@ BfastIndex(int argc, char **argv)
 							arguments.endPos,
 							(NULL == arguments.exonsFileName) ? 0 : 1,
 							&exons,
-							arguments.repeatMasker,
 							arguments.numThreads,
-							arguments.tmpDir,
-							BPREPROCESS_DEFAULT_OUTPUT);
+							arguments.repeatMasker,
+							0,
+							arguments.tmpDir);
 
 					/* Free the RGIndex layout */
 					RGIndexLayoutDelete(&rgLayout);
 					/* Free exons, if necessary */
-					if(arguments.useExons == UseExons) {
+					if(NULL != arguments.exonsFileName) {
 						RGIndexExonsDelete(&exons);
 					}
 					else {
@@ -313,15 +314,16 @@ BfastIndexPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
 	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "mask:\t\t\t\t\t\t%s\n", args->mask);
-	fprintf(fp, "hashWidth:\t\t\t%d\n", args->hashWidth);
-	fprintf(fp, "indexNumber:\t\t%d\n", args->indexNumber);
+	fprintf(fp, "mask:\t\t\t\t\t%s\n", args->mask);
+	fprintf(fp, "depth:\t\t\t\t\t%d\n", args->depth);
+	fprintf(fp, "hashWidth:\t\t\t\t%d\n", args->hashWidth);
+	fprintf(fp, "indexNumber:\t\t\t\t%d\n", args->indexNumber);
 	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "exonsFileName:\t\t\t\t\t%s\n", args->exonsFileName);
+	fprintf(fp, "exonsFileName:\t\t\t\t%s\n", args->exonsFileName);
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
@@ -382,6 +384,8 @@ BfastIndexGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 		   fprintf(stderr, "Key is %c and OptErr = %d\n", key, OptErr);
 		   */
 		switch (key) {
+			case 'd':
+				arguments->depth=atoi(optarg);break;
 			case 'e':
 				arguments->endContig=atoi(optarg);break;
 			case 'f':
@@ -407,8 +411,6 @@ BfastIndexGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->exonsFileName=strdup(optarg);break;
 			case 'A':
 				arguments->space=atoi(optarg);break;
-			case 'D':
-				arguments->depth=atoi(optarg);break;
 			case 'E':
 				arguments->endPos=atoi(optarg);break;
 			case 'R':
