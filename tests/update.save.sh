@@ -4,11 +4,11 @@
 
 # Run test suite 
 sh test.initialize.sh
-sh test.bpreprocess.1.sh
-sh test.bpreprocess.2.sh
-sh test.bmatches.sh
-sh test.balign.sh
-sh test.bpostprocess.sh
+sh test.fasta2brg.sh
+sh test.index.sh
+sh test.match.sh
+sh test.localalign.sh
+sh test.postprocess.sh
 # Update md5sum
 md5sum $OUTPUT_DIR/bfast* > $OUTPUT_DIR/tests.md5
 # Archive

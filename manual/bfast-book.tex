@@ -29,7 +29,7 @@ urlcolor=myurlcolor     % color of external links
 \usepackage{courier}
 
 % Version number
-\newcommand{\Version}{0.5.7}
+\newcommand{\Version}{0.6.0}
 
 % layout
 \setlength\topmargin{0in}
@@ -63,8 +63,8 @@ urlcolor=myurlcolor     % color of external links
 \newcommand{\BRFF}{BFAST reads filtered file} % short for for reads.filtered.fa
 \newcommand{\BAF}{BFAST aligned file} % short form for baf
 \newcommand{\BNAF}{BFAST not aligned file} % short form for bnaf
-\newcommand{\BRF}{BFAST reported file} % short form for the bpostprocess output (reported)
-\newcommand{\BNRF}{BFAST not reported file} % short form for the bpostprocess output (not reported)
+\newcommand{\BRF}{BFAST reported file} % short form for the postprocess output (reported)
+\newcommand{\BNRF}{BFAST not reported file} % short form for the postprocess output (not reported)
 \newcommand{\BMAF}{BFAST multiple sequence alignment file} % short form for the bfast output (maf)
 \newcommand{\BGFFF}{BFAST general feature format file} % short form for the bfast output (gff)
 \newcommand{\BSAMF}{BFAST sequence alignment/map file} % shoft for for the bfast output (sam) 
@@ -94,7 +94,7 @@ urlcolor=myurlcolor     % color of external links
 
 \chapter{Preface}
 This document is meant to serve as a guide for the practical use of BFAST.
-It includes explanations of all command-line options for each binary in BFAST to give an idea of basic usage.
+It includes explanations of all command-line options for each command and binary in BFAST to give an idea of basic usage.
 Input and output file formats are also detailed.
 We give many examples of use, including alignment to the whole genome, targeted genomic regions, and to the transcriptome.
 
@@ -174,24 +174,24 @@ The basic work flow has five steps as seen in \autoref{fig:work-flow}.
 	\item
 		The first step is to create a reference genome.
 		This reference genome contains all the sequence to which we wish to align.
-		The binary \TT{bpreprocess} performs this task (see \autoref{sec:bpreprocess}).
+		The command \TT{fasta2brg} performs this task (see \autoref{sec:fasta2brg}).
 	\item
 		The second step is to create indexes of the reference genome, which was created in the first step.
 		The number and layout of these indexes is determined both by the user's speed and accuracy requirements.
-		The binary \TT{bpreprocess} performs this task (see \autoref{sec:bpreprocess}).
+		The command \TT{index} performs this task (see \autoref{sec:index}).
 	\item
 		The third step is to find candidate alignment locations (CALs) for each read.
 		The expected number of CALs returned is a function of the number of indexes and the layouts chosen in the second step as well as the number offsets.
-		The binary \TT{bmatches} performs this task (see \autoref{sec:bmatches}).
+		The binary \TT{match} performs this task (see \autoref{sec:match}).
 	\item
 		The fourth step is to fully align each CAL for each read.
 		This uses a standard local alignment algorithm (\cite{SmithWaterman}) or a custom tool for ABI SOLiD data (\cite{BFAST-local-alignment}).
-		The binary \TT{balign} performs this task (see \autoref{sec:balign}).
+		The binary \TT{localalign} performs this task (see \autoref{sec:localalign}).
 	\item
 		The fifth and final step is to prioritize the final alignments.
 		The user specifies criteria to select the correct alignment for each read.
 		The criteria can be based on many factors, including uniqueness, score, or other factors.
-		The binary \TT{bpostprocess} performs this task (see \autoref{sec:bpostprocess}).
+		The binary \TT{postprocess} performs this task (see \autoref{sec:postprocess}).
 \end{enumerate}
 
 The reference genome (Step 1) and indexes (Step 2) can be re-used between experiments where only the read data changes, not the reference genome or index layouts.
@@ -202,68 +202,67 @@ In fact, the main speed of this program comes from the idea that in general, the
 \chapter{Basic Usage}
 BFAST is a command-line program.
 It accepts many command-line options to customize and tune the alignment algorithm.
-As seen in the \autoref{sec:work-flow}, there are five binaries to be run for the entire work flow, although only three need to be used if we are aligning to the same reference genome using the same indexes.
+As seen in the \autoref{sec:work-flow}, there are five commands to be run for the entire work flow, although only three need to be used if we are aligning to the same reference genome using the same indexes.
 \section{Common Options}
 \label{sec:commonoptions}
-Some common options exist across some or all of the binaries. 
+Some common options exist across some or all of the commands. 
 These options include specifying the number of threads for parallel processing (\TT{-n}), the number of reads to load at a time (\TT{-Q}), naming the output files (\TT{-o}), specifying where the output files should be created (\TT{-d}), specifying where temporary files should be stored (\TT{-T}), outputting timing information (\TT{-t}), printing program parameters (\TT{-p}), and printing a help message (\TT{-h}).
 
-Other options, such as \TT{-A} for specifying the encoding space and the options \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} for specifying only a contiguous range should be considered, are shared across some of the binaries but have specific implications to each binary and are described in the respective binary's section.
+Other options, such as \TT{-A} for specifying the encoding space and the options \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} for specifying only a contiguous range should be considered, are shared across some of the commands but have specific implications to each ommand and are described in the respective command's section.
 
 \subsection{Usage}
 \subsubsection{\TT{-n INTEGER, --numThreads=INTEGER}}
-This option applies to \TT{bpreprocess} (with option \TT{-a 1}), \TT{bmatches}, and \TT{balign}. 
-For \TT{bpreprocess} (with option \TT{-a 1}) the number of threads must be a power of two due the implementation of the index sorting algorithm (merge sort).
+This option applies to \TT{index}, \TT{match}, and \TT{localalign}. 
+For \TT{index} the number of threads must be a power of two due the implementation of the index sorting algorithm (merge sort).
 Otherwise it is recommended that the number of threads match the number of cores or processors.
 
 \subsubsection{\TT{-Q INTEGER, --queueLength=INTEGER}}
 Specifies the number of reads to cache or load into memory at one time.
 
 \subsubsection{\TT{-o STRING, --outputID=STRING}}
-This option applies to \TT{bpreprocess}, \TT{bmatches}, \TT{balign}, and \TT{bpostprocess}.
-The given string (no spaces) will be inserted into the file name of each output file created by the given binary.
+This option applies to \TT{fasta2brg}, \TT{index}, \TT{match}, \TT{localalign}, and \TT{postprocess}.
+The given string (no spaces) will be inserted into the file name of each output file created by the given command.
 
 \subsubsection{\TT{-d DIRECTORY --outputDir=DIRECTORY}}
-This option applies to \TT{bpreprocess}, \TT{bmatches}, \TT{balign}, and \TT{bpostprocess}.
+This option applies to \TT{fasta2brg}, \TT{index}, \TT{match}, \TT{localalign}, and \TT{postprocess}.
 This option specifies the output directory to which all files will be outputted.
 Be sure to include a trailing backslash or $\backslash$.
 
 \subsubsection{\TT{-T DIRECTORY --tmpDir=DIRECTORY}}
-This option applies to \TT{bpreprocess} (with option \TT{-a 1}), \TT{bmatches}, and \TT{balign}.
+This option applies to \TT{index} (with option \TT{-a 1}), \TT{match}, and \TT{localalign}.
 This option specifies the directory in which to store temporary files.
 For large datasets, the necessary disk space for temporary files may be large and therefore it is useful to to specify the temporary file directory. 
 Be sure to include a trailing backslash or $\backslash$.
 If no option is given, the temporary file directory is defaulted to the output directory (\TT{-d}).
 
 \subsubsection{\TT{-t, --timing}}
-This option applies to \TT{bpreprocess}, \TT{bmatches}, \TT{balign}, and \TT{bpostprocess}.
+This option applies to \TT{fasta2brg}, \TT{index}, \TT{match}, \TT{localalign}, and \TT{postprocess}.
 This option causes timing information for the execution of the program to be displayed upon successful termination.
 
 \subsubsection{\TT{-p, --Parameters}}
-This option applies to \TT{bpreprocess}, \TT{bmatches}, \TT{balign}, and \TT{bpostprocess}.
+This option applies to \TT{fasta2brg}, \TT{index}, \TT{match}, \TT{localalign}, and \TT{postprocess}.
 This option causes the input command-line parameters to be displayed and subsequent termination of the program.
 
 \subsubsection{\TT{-h, --Help}}
-This option applies to \TT{bpreprocess}, \TT{bmatches}, \TT{balign}, and \TT{bpostprocess}.
+This option applies to \TT{fasta2brg}, \TT{index}, \TT{match}, \TT{localalign}, and \TT{postprocess}.
 This option prints a help message.
 
-\section{bpreprocess}
-\label{sec:bpreprocess}
-\BF{bpreprocess} is a command-line utility that is used to create a reference genome and indexes of a reference genome.
-This utility performs the first and second step of the work flow outlined in \autoref{sec:work-flow}.
-Both the \BRGF{} and \BIF{} will be written in binary format to preserve space.
-See \autoref{sec:brgf} for the file format of the \BRGF{} and see \autoref{sec:bif} for the file format of the \BIF{}.
+\section{fasta2brg}
+\label{sec:fasta2brg}
+\BF{fasta2brg} is a command that is used to create a reference genome.
+This utility performs the first step of the work flow outlined in \autoref{sec:work-flow}.
+The \BRGF{} will be written in compressed binary format to preserve space.
+See \autoref{sec:brgf} for the file format of the \BRGF{}.
 
-Also see \autoref{sec:commonoptions} for common options that are in use across some or all of the binaries.
+Also see \autoref{sec:commonoptions} for common options that are in use across some or all of the commands.
 \subsection{Creating a Reference Genome}
 \label{sec:creating-a-rg}
-To create a reference genome, the required command-line options are \TT{-r} and \TT{-a}.
+To create a reference genome, the required command-line options is \TT{-f}.
 
-To specify reference genome creation, use the option \TT{-a 0}.
-We need to input a \rGFF{} using the \TT{-r} option (see \autoref{sec:rgfastafile} for the file format).
-Finally, to create a reference genome in color space, we use the option \TT{-A 1}, otherwise we use \TT{-A 0}.
+We need to input a \rGFF{} using the \TT{-f} option (see \autoref{sec:rgfastafile} for the file format).
+To create a reference genome in color space, we use the option \TT{-A 1}, otherwise we use \TT{-A 0}.
 
-When creating a \BRGF{}, the contigs will be numbered according to their order in the \rGFF{} (option \TT{-r}).
+When creating a \BRGF{}, the contigs will be numbered according to their order in the \rGFF{} (option \TT{-f}).
 The numbering is one-based (begins with one).
 The maximum number of contigs is $2^{31}$ or $2147483648$.
 The name of each contig specified in the header of the \rGFF{} will be also be stored.
@@ -273,12 +272,30 @@ Only the forward strand of the genome will be stored (see \autoref{sec:brgf} for
 
 The output will be a \BRGF{} (see \autoref{sec:brgf} for the file format).
 
-Other options are specified in \autoref{sec:bpreprocessusage}.
+Other options are specified in \autoref{sec:fasta2brgusage}.
+\subsection{Usage}
+\label{sec:fasta2brgusage}
+
+\subsubsection{\TT{-f FILENAME, --fastaFileName=FILENAME}}
+The file name should specify the \rGFF{} (see \autoref{sec:rgfastafile} for the file format).
+
+\subsubsection{\TT{-A INTEGER, --space=INTEGER}}
+Specifies the encoding space of the alphabet.
+For nucleotide space, use \TT{-A 0}.
+For color space, use \TT{-A 1}.
+
+\section{index}
+\label{sec:index}
+\BF{index} is a command that is used to create the indexes of a reference genome.
+This utility performs the second step of the work flow outlined in \autoref{sec:work-flow}.
+The \BIF{} will be written in compressed binary format to preserve space.
+See \autoref{sec:bif} for the file format of the \BIF{}.
+
+Also see \autoref{sec:commonoptions} for common options that are in use across some or all of the commands.
 \subsection{Creating Indexes of a Reference Genome}
 \label{sec:creating-bifs}
-To create indexes of a reference genome, the required command-line options are \TT{-r}, \TT{-a}, and \TT{-i}.
+To create indexes of a reference genome, the required command-line options are \TT{-r}, and \TT{-i}.
 
-To specify index creation, use the option \TT{-a 1}.
 We input the \BRGF{}, which was created previously, using the \TT{-r} option.
 To create the indexes in color space, we use the option \TT{-A 1}, otherwise we use \TT{-A 0}.
 If we choose to create the indexes in color space, the \BRGF{} must have been created in color space.
@@ -290,17 +307,12 @@ The file size of the \BIF{} can be very large for large indexes (see \autoref{se
 
 The output will be a \BIF{} (see \autoref{sec:bif} for the file format).
 
-Other options are specified in \autoref{sec:bpreprocessusage}.
+Other options are specified in \autoref{sec:indexusage}.
 \subsection{Usage}
-\label{sec:bpreprocessusage}
+\label{sec:indexusage}
 
-\subsubsection{\TT{-r FILENAME, --rgFileName=FILENAME}}
-If we are creating a \BRGF{} (\TT{-a 0}), then the file name should contain the \rGFF{} (see \autoref{sec:rgfastafile} for the file format).
-If we are creating a \BIF{} (\TT{-a 1}), then the file name should contain the \BRGF{} (see \autoref{sec:brgf} for the file format).
-
-\subsubsection{\TT{-a INTEGER, --algorithm=INTEGER}}
-To create a \BRGF{} use \TT{-a 0}.
-To create a \BIF{} use \TT{-a 1}.
+\subsubsection{\TT{-r FILENAME, --brgFileName=FILENAME}}
+The file name should specify the \BRGF{} (see \autoref{sec:brgf} for the file format).
 
 \subsubsection{\TT{-A INTEGER, --space=INTEGER}}
 Specifies the encoding space of the alphabet.
@@ -309,13 +321,13 @@ For color space, use \TT{-A 1}.
 If we are creating a \BIF{}, the space must be the same as the \BRGF{} used for input with option \TT{-r}. 
 
 \subsubsection{\TT{-i FILENAME, --indexLayoutFilename=FILENAME}}
-Specifies the file that contains the layout(s) for the index(es) that you wish to create (for use with \TT{-a 1}).
+Specifies the file that contains the layout(s) for the index(es) that you wish to create.
 To create multiple indexes in serial, include multiple entries in this file.
 The indexes will be numbered according to their order in the Index Layout file.
 For more information on this file format, see \autoref{sec:layoutfile}.
 
 \subsubsection{\TT{-R, --RepeatMasker}}
-Ignores lower case bases when creating the indexes (\TT{-a 1}).
+Ignores lower case bases when creating the indexes.
 This typically corresponds to RepeatMasker sequence.
 
 \subsubsection{\TT{-s INTEGER, --startContig=INTEGER}}
@@ -336,9 +348,9 @@ This option cannot be used with the \TT{-s}, \TT{-S}, \TT{-e}, or \TT{-E} option
 The exon ranges must fall within bounds in the \BRGF{}.
 For the file format of the exons file, please see \autoref{sec:exonsfile}.
 
-\section{bmatches}
-\label{sec:bmatches}
-\BF{bmatches} is a command-line utility that takes a set of reads and searches a set of indexes to find candidate alignment locations (or CALs) for each read.
+\section{match}
+\label{sec:match}
+\BF{match} is a command-line utility that takes a set of reads and searches a set of indexes to find candidate alignment locations (or CALs) for each read.
 This utility performs the third step in the work flow outlined in \autoref{sec:work-flow}.
 
 The output will be a \BMF{} (see \autoref{sec:bmf} for the file format) and a \BRFF{} (see \autoref{sec:brff} for the file format).
@@ -370,12 +382,12 @@ The \TT{-K} and \TT{-M} options are useful to ignore keys that return too many C
 If the reads file is large, a subset of reads can be specified using the \TT{-s} and \TT{-e} options, which helps distribute the process across a cluster.
 For extremely large read datasets (billions), it is recommended that the reads be split into separate files before hand.
 
-Other options are specified in \autoref{sec:bmatchesusage}
+Other options are specified in \autoref{sec:matchusage}
 
 \subsection{Usage}
-\label{sec:bmatchesusage}
+\label{sec:matchusage}
 
-\subsubsection{\TT{-r FILENAME, --rgFileName=FILENAME}}
+\subsubsection{\TT{-r FILENAME, --brgFileName=FILENAME}}
 This option specifies the \BRGF{} (see \autoref{sec:brgf} for the file format).
 
 \subsubsection{\TT{-i FILENAME, --bfastMainIndexesFileName=FILENAME}}
@@ -387,13 +399,14 @@ See \autoref{sec:bif} for the file format of the \BIF{s}.
 Specifies the file containing the paths to the secondary \BIF{s}.
 See \autoref{sec:biflistfile} for this file format.
 See \autoref{sec:bif} for the file format of the \BIF{s}.
-To use no secondary indexes, given an empty file as input.
+If not secondary index file is given, none will be used.
 \subsubsection{\TT{-R FILENAME, --readsFileName=FILENAME}}
 Specifies the file containing the reads.
 See \autoref{sec:rff} for more information on the file format of the reads file.
 
 \subsubsection{\TT{-O FILENAME, --offsetsFileName=FILENAME}}
 Specifies the file containing the offsets to use for all \BIF{s}.
+If no offsets file is given, all possible offsets will be used.
 See \autoref{sec:offsetsfile} for more information on the file format of the Offsets file.
 
 \subsubsection{\TT{-A INTEGER, --space=INTEGER}}
@@ -431,9 +444,9 @@ For both strands, use \TT{-w 0}.
 For the forward strand only, use \TT{-w 1}.
 For the reverse strand only, use \TT{-w 2}.
 
-\section{balign}
-\label{sec:balign}
-\BF{balign} is a command-line utility that takes a list of Candidate Alignment Locations (CALs) for each read and performs a local alignment of each read to the reference, giving a score for the quality of the alignment.
+\section{localalign}
+\label{sec:localalign}
+\BF{localalign} is a command that takes a list of Candidate Alignment Locations (CALs) for each read and performs a local alignment of each read to the reference, giving a score for the quality of the alignment.
 This utility performs the fourth step in the work flow outlined in \autoref{sec:work-flow}.
 
 The output will be a \BAF{} (see \autoref{sec:baf} for the file format) and a \BNAF{} (see \autoref{sec:bnaf} for the file format).
@@ -443,7 +456,7 @@ Also see \autoref{sec:commonoptions} for common options that are in use across s
 \label{sec:local-alignment}
 To perform local alignment of CALs, the required options are \TT{-r} and \TT{-m}.
 The \TT{-r} option specifies the \rGFF{}, which for this input must always have been created with nucleotide space encoding.
-The \TT{-m} option specifies the \BMF{} outputted by \TT{bmatches}.
+The \TT{-m} option specifies the \BMF{} outputted by \TT{localalign}.
 
 There are two output files.
 The first output file is a \BAF{}, which stores the local alignments for each CAL and read in binary format (see \autoref{sec:baf} for the file format).
@@ -454,7 +467,7 @@ If a read has more than the specified number, it will be ignored, and printed to
 Additionally, reads with no CALs will also be outputted to the \BNAF{}. 
 
 The Smith Waterman algorithm supports mismatches, indels (with affine gap penalties), and color errors.
-The value for the \TT{-A} option must match the value given to the \TT{-A} option in \TT{bmatches}.
+The value for the \TT{-A} option must match the value given to the \TT{-A} option in \TT{match}.
 In the case that \TT{-A 1} is used, the algorithm will simultaneously correct for color errors.
 For more information on the local aligner, please see \cite{BFAST-local-alignment}.
 
@@ -466,12 +479,12 @@ We can use the \TT{-L} option to mirror in various directions ($5'\rightarrow 3'
 If we wish to force this inference for all reads, not just those that have one read without CALs and the other with CALs, then the option \TT{-f} should be specified.
 
 \subsection{Usage}
-\subsubsection{\TT{-r FILENAME, --rgFileName=FILENAME}}
+\subsubsection{\TT{-r FILENAME, --brgFileName=FILENAME}}
 This option specifies the \BRGF{} (see \autoref{sec:brgf} for the file format).
 Regardless of option \TT{-A}, the \BRGF should have been created in nucleotide space.
 
 \subsubsection{\TT{-m FILENAME, --matchFileName=FILENAME}}
-Specifies the \BMF{} outputted by the \TT{bmatches} utility.
+Specifies the \BMF{} outputted by the \TT{match} utility.
 See \autoref{sec:bmf} for the file format.
 
 \subsubsection{\TT{-x FILENAME, --scoringMatrixFileName=FILENAME}}
@@ -522,9 +535,9 @@ A value of \TT{-f 3} specifies that we mirror CALs in both directions.
 \subsubsection{\TT{-f INTEGER, --forceMirroring INTEGER}}
 Specifies that we should always mirror CALs using the distance specified in option \TT{-l} for paired end reads, even if both of the reads have CALs.
 
-\section{bpostprocess}
-\label{sec:bpostprocess}
-\BF{bpostprocess} is a command-line utility that takes as input a \BAF{}.
+\section{postprocess}
+\label{sec:postprocess}
+\BF{postprocess} is a command that takes as input a \BAF{}.
 It can convert the input file to a specified output format as well as help choose the best alignment for each read based on score or uniqueness.
 This utility performs the fifth step in the work flow outlined in \autoref{sec:work-flow}.
 Many other filters can be applied, for example with paired-end reads where we desire only alignments for which BOTH ends align. 
@@ -549,7 +562,7 @@ If multiple alignments have the same best score, an alignment is not reported.
 
 \subsection{Usage}
 
-\subsubsection{\TT{-r FILENAME, --rgFileName=FILENAME}}
+\subsubsection{\TT{-r FILENAME, --brgFileName=FILENAME}}
 This option specifies the \BRGF{} (see \autoref{sec:brgf} for the file format).
 This is only required if MAF or SAM output is desired (\TT{-O 1} or \TT{-O 3}).
 
@@ -571,6 +584,52 @@ Specifies the output format.
 \TT{-O 2} specifies the output to be in \BGFFF{} format (currently undocumented and experimental).
 \TT{-O 3} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
 
+
+\section{bafconvert}
+\label{sec:bafconvert}
+\TT{bafconvert} converts a \BAF{} to the specified output format.
+\subsection{Usage}
+\subsubsection{\TT{-i}}
+The \BAF{} to convert.
+\subsubsection{\TT{-O}}
+Specifies the output type.
+\TT{0} converts a binary \BAF{} to a text \BAF{}.
+\TT{1} converts a text \BAF{} to a binary \BAF{}.
+\TT{2} converts a binary \BAF{} to a \BMAF{}.
+\TT{3} converts a binary \BAF{} to a \BGFFF{} (currently undocumented and experimental).
+\TT{4} converts a binary \BAF{} to a \BSAMF{} (currently experimental, see \url{https://sourceforge.net/projects/samtools/}).
+\subsubsection{\TT{-r}}
+Specifies the \BRGF{}.
+This option is not required for \BAF{} output.
+\subsubsection{\TT{-o}}
+Specifies an output ID, which will be prepended to the name of each read.
+This option is required for \BSAMF{} output only.
+
+\section{header}
+\label{sec:header}
+\TT{header} prints the header of a \BRGF{} or a \BIF{}.
+\subsection{Usage}
+\subsubsection{\TT{<files>}}
+This specifies the input files. 
+The input file can be either a \BRGF{} or a \BIF{}.
+
+\section{bmfconvert}
+\label{sec:bmfconvert}
+\TT{bmfconvert} converts a \BMF{} from binary to text or vice versa.
+\subsection{Usage}
+\subsubsection{\TT{-i}}
+The \BMF{} to convert.
+\subsubsection{\TT{-O}}
+The input type of the \BMF{}. 
+\TT{0} if the input type is text, \TT{1} if the input type is binary.
+
+\section{brg2fasta}
+\label{sec:brg2fasta}
+\TT{brg2fasta} prints the reference genome in FASTA format.
+\subsection{Usage}
+\subsubsection{\TT{<bfast reference genome file>}}
+The source \BRGF{}.
+
 \section{butil}
 \label{sec:butil}
 \BF{butil} is a folder containing utilities that were developed for personal use to test, debug, and compliment the BFAST program and its accompanying publication.  
@@ -582,24 +641,6 @@ If you find one of these utilities incredibly useful, please contact the authors
 
 Most of the utilities must have all options specified and the order listed below, without any command line flags. 
 
-\subsection{bafconvert}
-\label{sec:bafconvert}
-\TT{bafconvert} converts a \BAF{} to the specified output format.
-\subsubsection{\TT{arg 1}}
-The \BAF{} to convert.
-\subsubsection{\TT{arg 2}}
-Specifies the output type.
-\TT{0} converts a binary \BAF{} to a text \BAF{}.
-\TT{1} converts a text \BAF{} to a binary \BAF{}.
-\TT{2} converts a binary \BAF{} to a \BMAF{}.
-\TT{3} converts a binary \BAF{} to a \BGFFF{} (currently undocumented and experimental).
-\TT{4} converts a binary \BAF{} to a \BSAMF{} (currently experimental, see \url{https://sourceforge.net/projects/samtools/}).
-\subsubsection{\TT{arg 3}}
-Specifies the \BRGF{}.
-This option is not required for \BAF{} output.
-\subsubsection{\TT{arg 4}}
-Specifies an output ID, which will be prepended to the name of each read.
-This option is required for \BSAMF{} output only.
 \subsection{balignmentscoredistribution}
 \label{sec:balignmentscoredistribution}
 Assess the alignment score distribution (histogram) for all reads with a given number of CALs.
@@ -695,50 +736,6 @@ The \BIF{} you wish to modify.
 \subsubsection{\TT{arg 3}}
 The input exon list file name. 
 Please consult the source code for the file format.
-\subsection{bfixbaf}
-\label{sec:bfixbaf}
-\TT{bfixbaf} updates an old \BAF{} to the newest format.
-\subsubsection{\TT{arg 1}}
-Old version number.
-\subsubsection{\TT{arg 2}}
-Specifies the Scoring Matrix file used to score the alignments.
-Please see \autoref{sec:scoringmatrixfile} for the file format.
-\subsubsection{\TT{arg 3}}
-Average mismatch quality.
-\subsubsection{\TT{arg 4}}
-Specifies the encoding space of the alphabet.
-For nucleotide space, use \TT{-A 0}.
-For color space, use \TT{-A 1}, which will use a modified Smith Waterman algorithm to correct for color space errors.
-\subsubsection{\TT{arg 5}}
-The input \BAF{} file.
-\subsection{bfixbif}
-\label{sec:bfixbif}
-\TT{bfixbif} updates an old \BIF{} to the newest format.
-\subsubsection{\TT{arg 1}}
-The input \BIF{} file.
-\subsection{bfixbmf}
-\label{sec:bfixbmf}
-\TT{bfixbmf} updates an old \BMF{} to the newest format.
-\subsubsection{\TT{arg 1}}
-The input \BMF{} file.
-\subsection{bfixbrg}
-\label{sec:bfixbrg}
-\TT{bfixbrg} updates an old \BRGF{} to the newest format.
-\subsubsection{\TT{arg 1}}
-The input \BRGF{} file.
-\subsection{bfixhash}
-\label{sec:bfixhash}
-\TT{bfixhash} regenerates the hash lookup table for \BIF{} given a new hash width.
-
-\subsubsection{\TT{arg 1}}
-\BRGF{} accompanying the \BIF{} you wish to modify.
-
-\subsubsection{\TT{arg 2}}
-The \BIF{} you wish to modify.
-
-\subsubsection{\TT{arg 3}}
-The new hash width that you wish to generate.
-
 \subsection{bgeneratereads}
 \label{sec:bgeneratereads}
 \TT{bgeneratereads} genererates synthetic reads given a number of variants and errors from a reference genome.
@@ -772,13 +769,6 @@ If the read is paired end, all of the variants (indel and SNPs) will be in one o
 This specifies the length between the paired end reads (if \TT{arg 9} is specified as paired end).
 \subsubsection{\TT{arg 11}}
 This specifies the number of reads to be generated.
-
-\subsection{bheader}
-\label{sec:bheader}
-\TT{bheader} prints the header of a \BRGF{} or a \BIF{}.
-\subsubsection{\TT{arg 1}}
-This specifies the input file.  
-The input file can be either a \BRGF{} or a \BIF{}.
 
 \subsection{bindexdist}
 \label{sec:bindexdist}
@@ -821,14 +811,6 @@ The second sorted \BAF{}.
 \subsubsection{\TT{arg 3}}
 The output ID for the output file.
 
-\subsection{bmfconvert}
-\label{sec:bmfconvert}
-\TT{bmfconvert} converts a \BMF{} from binary to text or vice versa.
-\subsubsection{\TT{arg 1}}
-The \BMF{} to convert.
-\subsubsection{\TT{arg 2}}
-The input type of the \BMF{}. 
-\TT{0} if the input type is text, \TT{1} if the input type is binary.
 \subsection{bpairedenddist}
 \label{sec:bpairedenddist}
 \TT{bpairedenddist} prints the distribution of the distance between paired-end reads using reads that have both ends matching only one location on the same strand from a \BMF{}.
@@ -853,11 +835,6 @@ The minimum unit length for a repeat.
 The maximum unit length for a repeat.
 \subsubsection{\TT{arg 4}}
 The maximum total repeat length as a scalar multiple of the unit length.
-\subsection{brg2fasta}
-\label{sec:brg2fasta}
-\TT{brg2fasta} prints the reference genome in FASTA format.
-\subsubsection{\TT{arg 1}}
-The source \BRGF{}.
 \subsection{bsort}
 \label{sec:bsort}
 \TT{bsort} is a utility that sorts a \BRF{} based on chromosome, position, strand, and alignment length.
@@ -975,7 +952,7 @@ We also include a PERL version of this program for developer modification.
 \section{Input Files}
 \label{sec:inputfiles}
 These files represent the input files that are used by one or more BFAST binaries but are not generated as output by a BFAST binary.
-Although some files are used as input to other binaries, for example the \BMF{} is used as input to \TT{balign}, they are described in \autoref{sec:bfastfiles}.
+Although some files are used as input to other binaries, for example the \BMF{} is used as input to \TT{localalign}, they are described in \autoref{sec:bfastfiles}.
 Examples of each input file is given in \autoref{sec:examplefiles}.
 \subsection{\RGFF{}}
 \label{sec:rgfastafile}
@@ -1099,10 +1076,10 @@ Each base (or color) is stored in four bits: two bits for the raw base (or color
 The \BRGF{} stores only the forward strand.
 Therefore for a genome of size $G$ (forward strand), we can estimate the total required storage size of a \BRGF{} to be $G/2$ bytes.
 
-The contigs that compose the reference genome are indexed based on the order specified in the \RGFF{} (see \autoref{sec:rgfastafile}) along with each contig's associated name (see \autoref{sec:bpreprocess}).
+The contigs that compose the reference genome are indexed based on the order specified in the \RGFF{} (see \autoref{sec:rgfastafile}) along with each contig's associated name (see \autoref{sec:fasta2brg}).
 
 The \BRGF{} will have the prefix \TT{bfast.rg.file} and the file extension \TT{.brg}.
-Information about the \BRGF{} can be found by using the binary \TT{bheader} (see \autoref{sec:bheader}).
+Information about the \BRGF{} can be found by using the command \TT{header} (see \autoref{sec:header}).
 Please see the source code for the full internal binary representation.
 
 \subsection{\BIF{}}
@@ -1119,19 +1096,19 @@ Since we index a four letter alphabet, the hash with width $j$ will require $4\t
 Thus if the genome size is $G$ (forward strand), the estimated \BIF{} required storage size is approximately $5\times G + 4\times 4^j$ or $8\times G + 4\times 4^j$ for a small number ($\leq 256$) or large number ($>256$) contigs respectively. 
 
 The \BIF{} will have the prefix \TT{bfast.index.file} and the file extension \TT{.bif}.
-Information about the \BIF{} can be found by using the binary \TT{bheader} (see \autoref{sec:bheader}).
+Information about the \BIF{} can be found by using the binary \TT{header} (see \autoref{sec:header}).
 Please see the source code for the full internal binary representation.
 
 \subsection{\BMF{}}
 \label{sec:bmf}
-The \BMF{} is used to store Candidate Alignment Locations (CALs) for each read processed by \TT{bmatches} (see \autoref{sec:bmatches}).
+The \BMF{} is used to store Candidate Alignment Locations (CALs) for each read processed by \TT{match} (see \autoref{sec:match}).
 By default, this file is stored in binary format.
 This file can be converted to text format for manual inspection by using the utility \TT{bmfconvert} (see \autoref{sec:bmfconvert}).
 
 To estimate the file size \IF{a prior} is difficult.
 The read length, read name length, and number of CALs for each read must be known.
 The factor that causes the majority of the file size bloat is the average number of CALs stored per read.
-This can be overcome by having an upper limit on the number of CALs to store (see \autoref{sec:bmatches}).
+This can be overcome by having an upper limit on the number of CALs to store (see \autoref{sec:match}).
 
 The \BMF{} will have the prefix \TT{bfast.matches.file} and file extension \TT{.bmf}.
 The file format for the text version of the \BMF{} is as follows.
@@ -1145,20 +1122,20 @@ Please see the source code for the full internal binary representation.
 
 \subsection{\BRFF{}}
 \label{sec:brff}
-The \BRFF{} has the same format as the \rFF{} (see \autoref{sec:rff} and is used to store reads that were initially filtered by \TT{bmatches} (see \autoref{sec:bmatches}).
+The \BRFF{} has the same format as the \rFF{} (see \autoref{sec:rff} and is used to store reads that were initially filtered by \TT{match} (see \autoref{sec:match}).
 
 The \BRFF{} will have the prefix \TT{bfast.reads.filtered.file} and file extension \TT{.fa}.
 
 \subsection{\BAF{}}
 \label{sec:baf} 
-The \BAF{} is used to store the alignments of reads to the reference genome and is created by the utility \TT{balign} (see \autoref{sec:balign}).
+The \BAF{} is used to store the alignments of reads to the reference genome and is created by the command \TT{localalign} (see \autoref{sec:localalign}).
 By default, this file is stored in binary format.
 This file can be converted to text format for manual inspection by using the utility \TT{bafconvert} (see \autoref{sec:bafconvert}).
 
 To estimate the file size \IF{a prior} is difficult.
 The read length, read name length, and number of alignments, and the length of the alignments for each read must be known.
 The factor that causes the majority of the file size bloat is the average number of alignments stored per read.
-This can be overcome by having an upper limit on the number of alignments per read to consider (see \autoref{sec:balign}) or by filtering the alignments (see \autoref{sec:bpostprocess}).
+This can be overcome by having an upper limit on the number of alignments per read to consider (see \autoref{sec:localalign}) or by filtering the alignments (see \autoref{sec:postprocess}).
 
 The \BAF{} will have the prefix \TT{bfast.aligned.file} and the file extension \TT{.baf}.
 
@@ -1174,22 +1151,22 @@ Please see the source code for the full internal binary representation.
 
 \subsection{\BNAF{}}
 \label{sec:bnaf}
-The \BNAF{} is created by \TT{balign} (see \autoref{sec:balign}) to store reads that had no alignments or were flagged for having too many Candidate Alignment Locations (CALs).
+The \BNAF{} is created by \TT{localalign} (see \autoref{sec:localalign}) to store reads that had no alignments or were flagged for having too many Candidate Alignment Locations (CALs).
 The underlying file format is a \BMF{} (see \autoref{sec:bmf}).
 
 The \BNAF{} will have the prefix \TT{bfast.not.aligned.file} and the file extension \TT{.bnaf}.
 
 \subsection{\BRF{}}
 \label{sec:brf}
-The \BRF{} is a file storing the alignments chosen by \TT{bpostprocess} (see \autoref{sec:bpostprocess}).
-The underlying format is selected as a option in \TT{bpostprocess} and can be either a \BAF{} or a \BMAF{}.
+The \BRF{} is a file storing the alignments chosen by \TT{postprocess} (see \autoref{sec:postprocess}).
+The underlying format is selected as a option in \TT{postprocess} and can be either a \BAF{} or a \BMAF{}.
 
 The \BRF{} will have the prefix \TT{bfast.report.file} and the file extension according to the underlying format.
 
 \subsection{\BNRF{}}
 \label{sec:bnrf}
-The \BNRF{} is a file that stores those reads for which alignments could not be chosen by \TT{bpostprocess} (see \autoref{sec:bpostprocess}).
-The underlying format is selected as a option in \TT{bpostprocess} and can be either a \BAF{} or a \BMAF{}.
+The \BNRF{} is a file that stores those reads for which alignments could not be chosen by \TT{postprocess} (see \autoref{sec:postprocess}).
+The underlying format is selected as a option in \TT{postprocess} and can be either a \BAF{} or a \BMAF{}.
 
 The \BNRF{} will have the prefix \TT{bfast.not.reported.file} and the file extension according to the underlying format.
 
@@ -1201,7 +1178,7 @@ The file is stored in text format.
 
 For a detailed description of the multiple alignment format see \url{http://genome.ucsc.edu/FAQ/FAQformat#format5}).
 Each entry represents one alignment for a read. 
-Depending on the options used to generate this file (see \autoref{sec:bpostprocess}), there may be multiple entries for a read.
+Depending on the options used to generate this file (see \autoref{sec:postprocess}), there may be multiple entries for a read.
 Paired end reads have each end outputted individually.
 Alignment score, paired end information including to which end the alignment belong, contig name and optionally color error information is printed on the \QU{a} line.
 The next two \QU{s} lines follow the defined format conventions.
@@ -1488,7 +1465,7 @@ This can be found in \autoref{sec:bif}.
 
 If the indexes become to large, we urge you to upgrade your machine with more random access memory memory and disk space given cost of such an upgrade compared to the actual generation (sequencing) of the data.
 If all attempts at convincing the President fail, we suggest you further divide the indexes by ranges across the genome.
-This can be achieved by using the \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} in \TT{bpreprocess} (see \autoref{sec:bpreprocess}).
+This can be achieved by using the \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} in \TT{index} (see \autoref{sec:index}).
 
 \section{Whole-Genome Alignment}
 \label{sec:whole-genome-alignment}
@@ -1498,16 +1475,16 @@ An example can be found in \autoref{sec:phi}.
 \label{sec:targeted-genomic-alignments}
 There are a number of ways to target specific regions within the genome, for example by specifying a subset of chromosomes or a number of contiguous regions.
 
-The first method is to use \TT{bpreprocess} and to specify an Exons file (see \autoref{sec:bpreprocess}).
+The first method is to use \TT{index} and to specify an Exons file (see \autoref{sec:index}).
 The second method is to use \TT{bexonify} to create new targeted indexes from already created indexes (see \autoref{sec:bexonify}).
 The third method is to use command line options to limit the starting contig and position, and ending contig and position.
 
 Applications of this type of index creation included targeted pull-down methods, where it is known only a certain set of regions will be sequenced.
-\subsection{Using bpreprocess and exon list}
+\subsection{Using \TT{index} and exon list}
 \label{sec:using-exon-list}
-To target specific regions of a larger reference genome, we can specify a Exons file when creating the indexes in \TT{bpreprocess} using the \TT{-x} option (see \autoref{sec:bpreprocess}). 
+To target specific regions of a larger reference genome, we can specify a Exons file when creating the indexes in \TT{index} using the \TT{-x} option (see \autoref{sec:index}). 
 This will limit the locations indexed to just those specified in the Exons file.
-Subsequently, options that limit the number of CALs returned by a key look up or in total for a read (see \autoref{sec:bmatches} and \autoref{sec:balign}) will only be relative to this reduced index.
+Subsequently, options that limit the number of CALs returned by a key look up or in total for a read (see \autoref{sec:match} and \autoref{sec:localalign}) will only be relative to this reduced index.
 
 \subsection{Using bexonify on existing indexes}
 \label{sec:using-bexonify}
@@ -1515,21 +1492,21 @@ If \BIF{s} of a reference genome have already been created, then \TT{bexonify} (
 This can save time by avoiding having to create new indexes.
 \subsection{Using command-line options to specify one contiguous range}
 The command line options \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} can be used to only consider one contiguous range within the \BRGF{}.
-This specified during the index creation (see \autoref{sec:bpreprocess}), during the local alignment step (see \autoref{sec:balign}), or when prioritizing alignments (see \autoref{sec:bpostprocess}). 
+This specified during the index creation (see \autoref{sec:index}), during the local alignment step (see \autoref{sec:localalign}), or when prioritizing alignments (see \autoref{sec:postprocess}). 
 The step at which these options are specified will affect the resulting output.
 
 If specified during the index creation step, the \BIF{} will only contain the sequence from that region.
 Thus, only CALs within this range will be found.
-If we are limiting the number of CALs returned by a key or in total for a read (see \autoref{sec:bmatches} and \autoref{sec:balign}), then only CALs within the range will count towards these limits.
+If we are limiting the number of CALs returned by a key or in total for a read (see \autoref{sec:match} and \autoref{sec:localalign}), then only CALs within the range will count towards these limits.
 
 If specified during the local alignment step, only CALs that fall within the specified range will produce alignments.
-If we are limiting the number of CALs returned by a key or in total for a read (see \autoref{sec:bmatches} and \autoref{sec:balign}), then all CALs that are possible in the indexes will count towards these limits.
+If we are limiting the number of CALs returned by a key or in total for a read (see \autoref{sec:match} and \autoref{sec:localalign}), then all CALs that are possible in the indexes will count towards these limits.
 For example, if the index is of the whole genome, but we are interested in one chromosome, then if the CAL limits are used the limits are imposed according to CALs found in the whole genome, not the specified region.
 This may be useful if we want to flag reads that have high homology to a larger region or genome, but to have the alignments only be outputted within a specified range.
 Furthermore, since the local alignment step is typically the most expensive step for computation, ignoring alignments outside a certain range will reduce the number of local alignments needed.
 
 If specified when prioritizing alignments, only alignments within the specified range will be outputted.
-This is similar to limiting the alignment range using \TT{balign} but is useful when a \BAF{} has been created with alignments to the full reference genome and we wish to only report alignments within a contiguous region.
+This is similar to limiting the alignment range using \TT{localalign} but is useful when a \BAF{} has been created with alignments to the full reference genome and we wish to only report alignments within a contiguous region.
 
 \section{Transcriptome Alignment}
 \label{sec:transcriptome}
@@ -1538,15 +1515,15 @@ Examples include alignment to the transcriptome, including different transcript 
 This type of alignment can be easily handled by BFAST.
 We refer to each transcript, splice variant, isoform, or contigous sequence as a contig.
 
-The sequence each possible transcripts should be given as independent contig in the \RGFF{} when creating the \BRGF{} (see \autoref{sec:bpreprocess}).
+The sequence each possible transcripts should be given as independent contig in the \RGFF{} when creating the \BRGF{} (see \autoref{sec:fasta2brg}).
 This will ensure that each transcript will be indexed separately and reported separately.
 Each step of the work flow (see \autoref{sec:work-flow}) should proceed as normal.
 
 The contigs will be given an index number based on the order specified in the \RGFF{} as well as outputting their name as defined in the \RGFF{}.
 In this manner the ID of the contig can be recovered.
-In a \BMF{} (see \autoref{sec:bmf}) generated by \TT{bmatches} (see \autoref{sec:bmatches}) only the index number is given for compactness.
-In a \BAF{} (see \autoref{sec:baf}) generated by \TT{balign} (see \autoref{sec:balign}) either the index number or original contig name can be used.
-In a \BMAF{} (see \autoref{sec:bmaf}) generated by \TT{bpostprocess} (see \autoref{sec:bpostprocess}) either the index number or original contig name can be used.
+In a \BMF{} (see \autoref{sec:bmf}) generated by \TT{match} (see \autoref{sec:match}) only the index number is given for compactness.
+In a \BAF{} (see \autoref{sec:baf}) generated by \TT{localalign} (see \autoref{sec:localalign}) either the index number or original contig name can be used.
+In a \BMAF{} (see \autoref{sec:bmaf}) generated by \TT{postprocess} (see \autoref{sec:postprocess}) either the index number or original contig name can be used.
 
 \section{Bisulfite Treated or Methylation Alignment}
 Bisulfite sequencing is an interesting experiment whereby we wish to know the methylation status of certain bases.
@@ -1565,7 +1542,7 @@ We can either annotate where each conversion occurred, or just store the origina
 Either way, the annotation or the original read can be appended to the read name, since this will be kept throughout by BFAST.
 
 After converting the reference sequence and the input reads, we run BFAST using the standard work flow (see \autoref{sec:work-flow}) with two exceptions.
-The first exception is that in \TT{bmatches} we wish to use the option \TT{-w 1} so that we only match to the forward strand of each contig (see \autoref{sec:bmatches}).
+The first exception is that in \TT{match} we wish to use the option \TT{-w 1} so that we only match to the forward strand of each contig (see \autoref{sec:match}).
 The reason for this is that we will index each strand separately.
 The second exception is that we have reduced our alphabet size from four (A, C, G, and T) to three (A, G, and T).
 The reduced alphabet size must be taken into consideration when deciding on the masks for our indexes, since our genome complexity has been reduced.
@@ -1579,10 +1556,10 @@ After alignment using BFAST is complete, we simply convert back the read to its 
 The work flow for color space has five steps as seen in \autoref{fig:work-flow-color} similar in fashion to the one described in \autoref{sec:work-flow}.
 
 \begin{enumerate}
-	\item In the first step we build two reference genomes: a nucleotide space genome using the option \TT{-A 0} in \TT{bpreprocess}, and a color space genome using the option \TT{-A 1} (see \autoref{sec:bpreprocess}).
-	\item In the second step we create the indexes in color space by using the color space reference genome built in the first step and the option \TT{-A 1} (see \autoref{sec:bpreprocess}).
-	\item In the third step we search for CALs using the color space indexes created in the second step, using the color space reference genome built in first step, and by using the option \TT{-A 1} (see \autoref{sec:bmatches}).
-	\item In the fourth step we perform local alignment using the nucleotide space reference genome built in the fist step and by using the option \TT{-A 1} (see \autoref{sec:balign}).
+	\item In the first step we build two reference genomes: a nucleotide space genome using the option \TT{-A 0} in \TT{fasta2brg}, and a color space genome using the option \TT{-A 1} (see \autoref{sec:fasta2brg}).
+	\item In the second step we create the indexes in color space by using the color space reference genome built in the first step and the option \TT{-A 1} (see \autoref{sec:index}).
+	\item In the third step we search for CALs using the color space indexes created in the second step, using the color space reference genome built in first step, and by using the option \TT{-A 1} (see \autoref{sec:match}).
+	\item In the fourth step we perform local alignment using the nucleotide space reference genome built in the fist step and by using the option \TT{-A 1} (see \autoref{sec:localalign}).
 	\item In the fifth step we prioritize the local alignments as was previously described in \autoref{sec:work-flow}.
 \end{enumerate}
 
@@ -1605,21 +1582,21 @@ To begin this example, open the URL: \url{http://genome.ucla.edu/bfast/examples}
 Right-click the file ``bfast-example-phi.x.174.tar.gz'' and select the ``save-as'' option to download the examples file.
 To uncompress the compressed archive, in the command line type in ``tar zxvf bfast-example-phi.x.174.tar.gz'' (no quotes).
 
-We first want to create a \BRGF{} (see \autoref{sec:bpreprocess}).
+We first want to create a \BRGF{} (see \autoref{sec:fasta2brg}).
 The \rGFF{} is stored in a file called ``phi.x.174.fa''.
 The command we use to create the \BRGF{} is:
 \begin{script}
-	bpreprocess -r phi.x.174.fa -a 0 -o phi.x.174 -d ./
+	bfast fasta2brg -r phi.x.174.fa -o phi.x.174 -d ./
 \end{script}
 This should create a file called ``bfast.rg.file.phi.x.174.0.brg'', which is the \BRGF{}.
 
-The second step is to create the indexes using the \BRGF{} as input (see \autoref{sec:bpreprocess}).
+The second step is to create the indexes using the \BRGF{} as input (see \autoref{sec:index}).
 We must also specify layouts for our indexes.
 We give five layouts in ``layouts.txt'' that are chosen for $50$ base-pair reads, and robust against mismatches.
 The method used to choose these indexes is not described here, but can be performed using \TT{btestindexes} (see \autoref{sec:btestindexes} and \autoref{sec:design-indexes}).
 The command we use to create the \BIF{s} is:
 \begin{script}
-	bpreprocess -r bfast.rg.file.phi.x.174.0.brg -i layouts.txt -a 1 -o phi.x.174 -d ./ -T ./
+	bfast index -r bfast.rg.file.phi.x.174.0.brg -i layouts.txt -o phi.x.174 -d ./ -T ./
 \end{script}
 This should create five files, one for each \BIF{}:
 \begin{verbatim}
@@ -1630,7 +1607,7 @@ bfast.index.file.phi.x.174.0.1.1.1.5386.0.4.bif
 bfast.index.file.phi.x.174.0.1.1.1.5386.0.5.bif
 \end{verbatim}
 
-The third step is to find candidate alignment locations (CALs) for the set of reads using the indexes created in the second step (see \autoref{sec:bmatches}).
+The third step is to find candidate alignment locations (CALs) for the set of reads using the indexes created in the second step (see \autoref{sec:match}).
 We have generated synthetic reads from the Phi X 174 genome using \TT{bgeneratereads} (see \autoref{sec:bgeneratereads}).
 We created reads with $0$ to $5$ mismatches, with $10,000$ reads created for each scenario, for a total of $60,000$ reads.
 The reads file is ``reads.phi.x.174.fa''.
@@ -1638,24 +1615,24 @@ In this example we use all five indexes as our main indexes (listed in ``main.in
 We use all possible offsets, listed in ``offsets.txt''.
 The command we use to find the matches is:
 \begin{script}
-	bmatches -r bfast.rg.file.phi.x.174.0.brg -i main.indexes.txt -I secondary.indexes.txt -R reads.phi.x.174.fa -O offsets.txt -o phi.x.174 -d ./ -T ./
+	match -r bfast.rg.file.phi.x.174.0.brg -i main.indexes.txt -I secondary.indexes.txt -R reads.phi.x.174.fa -O offsets.txt -o phi.x.174 -d ./ -T ./
 \end{script}
 Two files should be outputted, a \BMF{} (``bfast.matches.file.phi.x.174.bmf'') and a \BRFF{} (``bfast.reads.filtered.file.phi.x.174.0.0.fa'').
 
-The fourth step is to run the local alignment algorithm for each CAL for a given read (see \autoref{sec:balign}).
+The fourth step is to run the local alignment algorithm for each CAL for a given read (see \autoref{sec:localalign}).
 We use the scoring matrix found in ``scoring.matrix.txt'' and the \BMF{} created in the previous step.
 The command we use to perform the local alignment is:
 \begin{script}
-	balign -r bfast.rg.file.phi.x.174.0.brg -m bfast.matches.file.phi.x.174.bmf -x scoring.matrix.txt -o phi.x.174 -d ./ -T ./
+	localalign -r bfast.rg.file.phi.x.174.0.brg -m bfast.matches.file.phi.x.174.bmf -x scoring.matrix.txt -o phi.x.174 -d ./ -T ./
 \end{script}
 This should create two output files, a \BAF{} (``bfast.aligned.file.phi.x.174.baf'') and a \BNAF{} (``bfast.not.aligned.file.phi.x.174.bmf'').
 
-The fifth and final step is to prioritize the alignments (see \autoref{sec:bpostprocess}).
+The fifth and final step is to prioritize the alignments (see \autoref{sec:postprocess}).
 We use as input the \BAF{} created in the previous step.
 In this case, we choose to output the best unambiguous alignment for each read.
 The command we use to prioritize alignments is:
 \begin{script}
-	bpostprocess -i bfast.aligned.file.phi.x.174.baf -a 3 -o phi.x.174 -d ./ -O 0
+	postprocess -i bfast.aligned.file.phi.x.174.baf -a 3 -o phi.x.174 -d ./ -O 0
 \end{script}
 This should create two output files, a \BRF{} (``bfast.reported.file.phi.x.174.baf'') and a \BNRF{} (``bfast.not.reported.file.phi.x.174.baf''). 
 Since the \BRF{} will be in binary format, to view the alignments in text we use the utility \TT{bafconvert} (see \autoref{sec:bafconvert}):
@@ -1717,15 +1694,15 @@ Given the above files, the commands we should execute are:
 Convert the reads:\\
 {\tt \scriptsize \$perl bfast-\Version{}/scripts/qseq2fastq.pl s\_$X$ $>$ reads.s\_$X$.fastq\\}
 Convert the reference:\\
-{\tt \scriptsize \$bfast-\Version{}/bpreprocess/bpreprocess -r hg18.fa -a 0 -o hg18 -d ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast fasta2brg -r hg18.fa -o hg18 -d ./\\}
 Create the indexes:\\
-{\tt \scriptsize \$bfast-\Version{}/bpreprocess/bpreprocess -r bfast.rg.file.hg18.0.brg -i layouts.txt -a 1 -o hg18 -d ./ -T ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast index -r bfast.rg.file.hg18.0.brg -i layouts.txt -o hg18 -d ./ -T ./\\}
 Search the indexes:\\
-{\tt \scriptsize \$bfast-\Version{}/bmatches/bmatches -r bfast.rg.file.hg18.0.brg -i main.indexes.txt -I secondary.indexes.txt -R reads.s\_$X$.fastq -O offsets.txt -K 8 -M 384 -o hg18 -d ./ -T ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast match -r bfast.rg.file.hg18.0.brg -i main.indexes.txt -I secondary.indexes.txt -R reads.s\_$X$.fastq -O offsets.txt -K 8 -M 384 -o hg18 -d ./ -T ./\\}
 Perform local alignment:\\
-{\tt \scriptsize \$bfast-\Version{}/balign/balign -r bfast.rg.file.hg18.0.brg -m bfast.matches.file.hg18.bmf -x scoring.matrix.txt -M 384 -o hg18 -d ./ -T ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast localalign -r bfast.rg.file.hg18.0.brg -m bfast.matches.file.hg18.bmf -x scoring.matrix.txt -M 384 -o hg18 -d ./ -T ./\\}
 Filter alignments:\\
-{\tt \scriptsize \$bfast-\Version{}/bpostprocess/bpostprocess -i bfast.aligned.file.hg18.baf -r bfast.rg.file.hg18.0.brg -a 3 -o hg18 -d ./ -O 3\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -i bfast.aligned.file.hg18.baf -r bfast.rg.file.hg18.0.brg -a 3 -o hg18 -d ./ -O 3\\}
 \\
 
 \subsection{ABI SOLiD}
@@ -1756,19 +1733,19 @@ Given the above files, the commands we should execute are:
 Convert the reads:\\
 {\tt \scriptsize \$perl bfast-\Version{}/scripts/solid2fastq.pl -n 10000000 -o reads *.csfasta *.qual\\}
 Convert the reference (nucleotide space):\\
-{\tt \scriptsize \$bfast-\Version{}/bpreprocess/bpreprocess -r hg18.fa -a 0 -o hg18 -d ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast fasta2brg -r hg18.fa -o hg18 -d ./\\}
 Convert the reference (color space):\\
-{\tt \scriptsize \$bfast-\Version{}/bpreprocess/bpreprocess -r hg18.fa -a 0 -A 1 -o hg18 -d ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast fasta2brg -r hg18.fa -A 1 -o hg18 -d ./\\}
 Create the indexes:\\
-{\tt \scriptsize \$bfast-\Version{}/bpreprocess/bpreprocess -r bfast.rg.file.hg18.1.brg -i layouts.txt -a 1 -A 1 -o hg18 -d ./ -T ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast index -r bfast.rg.file.hg18.1.brg -i layouts.txt -a 1 -A 1 -o hg18 -d ./ -T ./\\}
 Search the indexes:\\
-{\tt \scriptsize \$bfast-\Version{}/bmatches/bmatches -r bfast.rg.file.hg18.1.brg -i main.indexes.txt -I secondary.indexes.txt -R reads.$n$.fastq -O offsets.txt -A 1 -K 8 -M 384 -o hg18.$n$ -d ./ -T ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast match -r bfast.rg.file.hg18.1.brg -i main.indexes.txt -I secondary.indexes.txt -R reads.$n$.fastq -O offsets.txt -A 1 -K 8 -M 384 -o hg18.$n$ -d ./ -T ./\\}
 Perform local alignment:\\
-{\tt \scriptsize \$bfast-\Version{}/balign/balign -r bfast.rg.file.hg18.0.brg -m bfast.matches.file.hg18.$n$.bmf -x scoring.matrix.txt -A 1 -M 384 -o hg18 -d ./ -T ./\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast localalign -r bfast.rg.file.hg18.0.brg -m bfast.matches.file.hg18.$n$.bmf -x scoring.matrix.txt -A 1 -M 384 -o hg18 -d ./ -T ./\\}
 Filter alignments:\\
-{\tt \scriptsize \$bfast-\Version{}/bpostprocess/bpostprocess -i bfast.aligned.file.hg18.$n$.baf -r bfast.rg.file.hg18.0.brg -a 3 -o hg18 -d ./ -O 3\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -i bfast.aligned.file.hg18.$n$.baf -r bfast.rg.file.hg18.0.brg -a 3 -o hg18 -d ./ -O 3\\}
 \\
-Note that for parallel computation, execute {\tt bmatches}, {\tt balign}, and {\tt bpostprocess} for each converted input file created (replace $n$ with the input file number).
+Note that for parallel computation, execute {\tt match}, {\tt localalign}, and {\tt postprocess} for each converted input file created (replace $n$ with the input file number).
 
 \section{High-Speed Tutorial}
 \label{sec:high-speed-tutorial}
