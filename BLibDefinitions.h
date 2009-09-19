@@ -241,7 +241,7 @@ typedef struct {
 	int32_t repeatMasker;
 	int32_t space;
 	int32_t depth;
-	int32_t depthNumber; /* which index out of 4^depth possible indexes */
+	int32_t indexBin; /* which index out of 4^depth possible indexes */
 	int32_t indexNumber; /* the index # out of all indexes indexing this reference */
 	/* Hash storage */
 	uint32_t hashWidth; /* in bases */
@@ -255,6 +255,7 @@ typedef struct {
 	int32_t *mask;
 	int32_t width;
 	int32_t keysize;
+	int32_t depth;
 } RGIndexLayout;
 
 /* TODO */

@@ -146,7 +146,7 @@ void FindMatches(
 	/* Read the reads to the thread temp files */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reading %s into temp files.\n",
-				readFileName);
+				(readFileName == NULL) ? "stdin" : readFileName);
 	}
 	/* This will close the reads file */
 	WriteReadsToTempFile(seqFP,

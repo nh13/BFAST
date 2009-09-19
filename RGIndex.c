@@ -25,7 +25,6 @@
 void RGIndexCreate(char *fastaFileName,
 		RGIndexLayout *layout, 
 		int32_t space,
-		int32_t depth,
 		int32_t indexNumber,
 		int32_t startContig,
 		int32_t startPos,
@@ -44,14 +43,13 @@ void RGIndexCreate(char *fastaFileName,
 	 * repeatMasker and includeNs
 	 * */
 	//char *FnName = "RGIndexCreate";
-	int32_t numFiles = pow(ALPHABET_SIZE, depth);
+	int32_t numFiles = pow(ALPHABET_SIZE, layout->depth);
 
 	if(1 == numFiles) {
 		/* Create like normal */
 		RGIndexCreateSingle(fastaFileName,
 				layout,
 				space,
-				depth,
 				indexNumber,
 				startContig,
 				startPos,
@@ -69,7 +67,6 @@ void RGIndexCreate(char *fastaFileName,
 		RGIndexCreateSplit(fastaFileName,
 				layout,
 				space,
-				depth,
 				indexNumber,
 				startContig,
 				startPos,
@@ -88,7 +85,6 @@ void RGIndexCreate(char *fastaFileName,
 void RGIndexCreateSingle(char *fastaFileName,
 		RGIndexLayout *layout, 
 		int32_t space,
-		int32_t depth,
 		int32_t indexNumber,
 		int32_t startContig,
 		int32_t startPos,
@@ -129,7 +125,6 @@ void RGIndexCreateSingle(char *fastaFileName,
 			&rg,
 			layout,
 			space,
-			depth,
 			1,
 			indexNumber,
 			startContig,
@@ -154,7 +149,6 @@ void RGIndexCreateSingle(char *fastaFileName,
 			RGIndexCreateHelper(&index,
 					&rg,
 					NULL,
-					depth,
 					e->exons[i].startContig,
 					e->exons[i].startPos,
 					e->exons[i].endContig,
@@ -167,7 +161,6 @@ void RGIndexCreateSingle(char *fastaFileName,
 		RGIndexCreateHelper(&index,
 				&rg,
 				NULL,
-				depth,
 				startContig,
 				startPos,
 				endContig,
@@ -210,7 +203,6 @@ void RGIndexCreateSingle(char *fastaFileName,
 void RGIndexCreateSplit(char *fastaFileName,
 		RGIndexLayout *layout, 
 		int32_t space,
-		int32_t depth,
 		int32_t indexNumber,
 		int32_t startContig,
 		int32_t startPos,
@@ -227,7 +219,7 @@ void RGIndexCreateSplit(char *fastaFileName,
 	int64_t i;
 	RGIndex index;
 	RGBinary rg;
-	int32_t numFiles = pow(ALPHABET_SIZE, depth);
+	int32_t numFiles = pow(ALPHABET_SIZE, layout->depth);
 	FILE **tmpFPs=NULL;
 	char **tmpFileNames=NULL;
 	uint8_t contig_8;
@@ -265,7 +257,6 @@ void RGIndexCreateSplit(char *fastaFileName,
 				&rg,
 				layout,
 				space,
-				depth,
 				i+1,
 				indexNumber,
 				startContig,
@@ -299,7 +290,6 @@ void RGIndexCreateSplit(char *fastaFileName,
 			&rg,
 			layout,
 			space,
-			depth,
 			1,
 			indexNumber,
 			startContig,
@@ -314,7 +304,6 @@ void RGIndexCreateSplit(char *fastaFileName,
 			RGIndexCreateHelper(&index,
 					&rg,
 					tmpFPs,
-					depth,
 					e->exons[i].startContig,
 					e->exons[i].startPos,
 					e->exons[i].endContig,
@@ -327,7 +316,6 @@ void RGIndexCreateSplit(char *fastaFileName,
 		RGIndexCreateHelper(&index,
 				&rg,
 				tmpFPs,
-				depth,
 				startContig,
 				startPos,
 				endContig,
@@ -357,7 +345,6 @@ void RGIndexCreateSplit(char *fastaFileName,
 				&rg,
 				layout,
 				space,
-				depth,
 				i+1,
 				indexNumber,
 				startContig,
@@ -435,10 +422,10 @@ void RGIndexCreateSplit(char *fastaFileName,
 		/* Close the tmp file */
 		CloseTmpFile(&tmpFPs[i], &tmpFileNames[i]);
 	}
-			
-		if(VERBOSE >= 0) {
-	fprintf(stderr, "%s", BREAK_LINE);
-		}
+
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
 
 	/* Free memory */
 	free(gzOuts);
@@ -455,7 +442,6 @@ void RGIndexCreateSplit(char *fastaFileName,
 void RGIndexCreateHelper(RGIndex *index,
 		RGBinary *rg,
 		FILE **tmpFPs,
-		int32_t depth, 
 		int32_t startContig,
 		int32_t startPos,
 		int32_t endContig,
@@ -481,7 +467,7 @@ void RGIndexCreateHelper(RGIndex *index,
 	int32_t binNumber=0;
 	int32_t curDepth=0;
 
-	if(0 == depth) {
+	if(0 == index->depth) {
 		toBin=0;
 		assert(NULL == tmpFPs);
 	}
@@ -585,7 +571,7 @@ void RGIndexCreateHelper(RGIndex *index,
 						keyStartPos = curPos - index->width + 1;
 						keyEndPos = curPos;
 						binNumber=0;
-						for(i=curDepth=0;i<index->width && curDepth < depth;i++) { 
+						for(i=curDepth=0;i<index->width && curDepth < index->depth;i++) { 
 							if(1==index->mask[i]) {
 								binNumber = binNumber << 2; /* Only works with a four letter alphabet */
 								switch(tolower(bases[curBasesPos])) {
@@ -611,7 +597,7 @@ void RGIndexCreateHelper(RGIndex *index,
 						}
 						/* Debugging */
 						assert(0 <= binNumber);
-						assert(binNumber < pow(ALPHABET_SIZE, depth));
+						assert(binNumber < pow(ALPHABET_SIZE, index->depth));
 						assert(NULL != tmpFPs[binNumber]);
 
 						/* Print to the Bin */
@@ -672,7 +658,6 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 					(long long int)i);
 		}
 
-
 		curHash = RGIndexGetHashIndex(index, rg, i, 0);
 		if(prevHash == curHash) {
 			/* Ignore */
@@ -685,6 +670,14 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 			prevHash = curHash;
 		}
 	}
+	/* Test pass 1 has creation */
+	/*
+	for(i=0;i<index->hashLength;i++) {
+		assert(0 <= index->starts[i]);
+		assert(index->starts[i] < index->length || index->starts[i] == UINT_MAX);
+	}
+	*/
+
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r%lld\n", 
 				(long long int)i);
@@ -712,13 +705,20 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 				(long long int)(index->hashLength));
 	}
 
-	/* Test hash creation */
+	/* Test pass 2 has creation */
 	/*
-	   for(i=0;i<index->hashLength;i++) {
-	   assert(0 <= index->starts[i]);
-	   assert(index->starts[i] < index->length);
-	   }
-	   */
+	for(i=0;i<index->hashLength;i++) {
+		if(UINT_MAX == index->starts[i]) {
+			break;
+		}
+		assert(0 <= index->starts[i]);
+		assert(index->starts[i] < index->length);
+	}
+	while(i<index->hashLength) { // Last entries must be the maximum 
+		assert(index->starts[i] == UINT_MAX);
+		i++;
+	}
+	*/
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rHash created.\n");
 	}
@@ -1690,34 +1690,22 @@ void RGIndexPrintInfo(char *inputFileName)
 	RGIndexReadHeader(fp, &index);
 
 	/* Print the info */
-	fprintf(stderr, "version:\t\t%s\n",
-			index.packageVersion);
-	fprintf(stderr, "start contig:\t\t%d\n",
-			index.startContig);
-	fprintf(stderr, "start position:\t\t%d\n",
-			index.startPos);
-	fprintf(stderr, "end contig:\t\t%d\n",
-			index.endContig);
-	fprintf(stderr, "end position:\t\t%d\n",
-			index.endPos);
-	fprintf(stderr, "index length:\t\t%lld\n",
-			(long long int)index.length);
-	fprintf(stderr, "contig type:\t\t%d\t\t[%s]\n",
-			index.contigType,
-			contigType[index.contigType]);
-	fprintf(stderr, "repeat masker:\t\t%d\n",
-			index.repeatMasker);
-	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n",
-			index.space,
-			Space[index.space]);
-	fprintf(stderr, "hash width:\t\t%u\n",
-			index.hashWidth);
-	fprintf(stderr, "hash length:\t\t%lld\n",
-			(long long int)index.hashLength);
-	fprintf(stderr, "width:\t\t\t%d\n",
-			index.width);
-	fprintf(stderr, "keysize:\t\t%d\n",
-			index.keysize);
+	fprintf(stderr, "version:\t\t%s\n", index.packageVersion);
+	fprintf(stderr, "start contig:\t\t%d\n", index.startContig);
+	fprintf(stderr, "start position:\t\t%d\n", index.startPos);
+	fprintf(stderr, "end contig:\t\t%d\n", index.endContig);
+	fprintf(stderr, "end position:\t\t%d\n", index.endPos);
+	fprintf(stderr, "index length:\t\t%lld\n", (long long int)index.length);
+	fprintf(stderr, "contig type:\t\t%d\t\t[%s]\n", index.contigType, contigType[index.contigType]);
+	fprintf(stderr, "repeat masker:\t\t%d\n", index.repeatMasker);
+	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", index.space, Space[index.space]);
+	fprintf(stderr, "depth:\t\t\t%d\n", index.depth);
+	fprintf(stderr, "indexBin:\t\t%d\n", index.indexBin);
+	fprintf(stderr, "indexNumber:\t\t%d\n", index.indexNumber);
+	fprintf(stderr, "hash width:\t\t%u\n", index.hashWidth);
+	fprintf(stderr, "hash length:\t\t%lld\n", (long long int)index.hashLength);
+	fprintf(stderr, "width:\t\t\t%d\n", index.width);
+	fprintf(stderr, "keysize:\t\t%d\n", index.keysize);
 	fprintf(stderr, "mask:\t\t\t");
 	for(i=0;i<index.width;i++) {
 		fprintf(stderr, "%1d", index.mask[i]);
@@ -1751,7 +1739,7 @@ void RGIndexPrintHeader(gzFile fp, RGIndex *index)
 			gzwrite64(fp, &index->repeatMasker, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->space, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->depth, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite64(fp, &index->depthNumber, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(fp, &index->indexBin, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->indexNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
 			gzwrite64(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t) ||
@@ -1786,7 +1774,7 @@ void RGIndexReadHeader(gzFile fp, RGIndex *index)
 			gzread64(fp, &index->repeatMasker, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->space, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->depth, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzread64(fp, &index->depthNumber, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread64(fp, &index->indexBin, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->indexNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
 			gzread64(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t)) {
@@ -2192,11 +2180,21 @@ int32_t RGIndexCompareContigPos(RGIndex *index,
 	/* Initialize for color space */
 
 	if(debug == 1) {
-		fprintf(stderr, "\n[%d,%d]\t[%d,%d]\n",
+		fprintf(stderr, "[%d,%d]\t[%d,%d]\n",
 				(int)aContig,
 				aPos,
 				(int)bContig,
 				bPos);
+		/*
+		char *seq=NULL;
+		int32_t length;
+		length = RGBinaryGetSequence(rg, aContig, aPos, FORWARD, &seq, index->width);
+		fprintf(stderr, "%s\n", seq); 
+		free(seq); seq=NULL;
+		length = RGBinaryGetSequence(rg, bContig, bPos, FORWARD, &seq, index->width);
+		fprintf(stderr, "%s\n", seq); 
+		free(seq); seq=NULL;
+		*/
 	}
 
 	/* Go across the mask */
@@ -2318,7 +2316,7 @@ int32_t RGIndexCompareRead(RGIndex *index,
 /* TODO */
 uint32_t RGIndexGetHashIndex(RGIndex *index,
 		RGBinary *rg,
-		uint32_t a,
+		uint32_t a, // index in the index
 		int debug)
 {
 	assert(a>=0 && a<index->length);
@@ -2333,8 +2331,20 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 	uint32_t hashIndex = 0;
 	assert(ALPHABET_SIZE == 4);
 
+	for(cur=i=0;cur<index->depth;i++) { // Skip over the first (depth) bases 
+		switch(index->mask[i]) {
+			case 0:
+				break;
+			case 1:
+				cur++; 
+				break;
+			default:
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
+		}
+	}
+
 	/* Go across the mask */
-	for(i=0;cur >= 0 && i<index->width;i++) {
+	for(cur=index->hashWidth-1;0 <= cur && i<index->width;i++) {
 		switch(index->mask[i]) {
 			case 0:
 				/* Ignore base */
@@ -2385,19 +2395,30 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 	char *FnName = "RGIndexGetHashIndexFromRead";
 	int32_t i;
 
-	int32_t cur = index->hashWidth-1;
+	int32_t cur = 0;
 	uint32_t hashIndex = 0;
 
-	/* Go across the mask */
-	for(i=0;cur >= 0 && i<index->width;i++) {
+	for(cur=i=0;cur<index->depth;i++) { /* Skip over the first (depth) bases */
 		switch(index->mask[i]) {
 			case 0:
-				/* Ignore base */
+				break;
+			case 1:
+				cur++; 
+				break;
+			default:
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
+		}
+	}
+
+	/* Go across the mask */
+	for(cur=index->hashWidth-1;0 <= cur && i<index->width;i++) {
+		switch(index->mask[i]) {
+			case 0:
 				break;
 			case 1:
 				/* Only works with a four letter alphabet */
 				hashIndex = hashIndex << 2;
-				assert(0 <= read[i] && read[i] <= 3);
+				assert(0 <= read[i] && read[i] <= 3); // Debugging
 				hashIndex += read[i];
 				cur--;
 				break;
@@ -2453,7 +2474,7 @@ void RGIndexInitialize(RGIndex *index)
 	index->repeatMasker = 0;
 	index->space = 0;
 	index->depth = 0;
-	index->depthNumber = 0;
+	index->indexBin = 0;
 	index->indexNumber = 0;
 
 	index->hashWidth = 0;
@@ -2465,8 +2486,7 @@ void RGIndexInitializeFull(RGIndex *index,
 		RGBinary *rg,
 		RGIndexLayout *layout,
 		int32_t space,
-		int32_t depth,
-		int32_t depthNumber,
+		int32_t indexBin,
 		int32_t indexNumber,
 		int32_t startContig,
 		int32_t startPos,
@@ -2478,10 +2498,6 @@ void RGIndexInitializeFull(RGIndex *index,
 
 	int32_t i;
 	RGIndexInitialize(index);
-
-	if(layout->hashWidth < depth) {
-		PrintError(FnName, NULL, "hashWidth < depth", Exit, OutOfRange);
-	}
 
 	/* Copy over index information from the rg */
 	assert(startContig <= endContig);
@@ -2503,8 +2519,8 @@ void RGIndexInitializeFull(RGIndex *index,
 	strcpy(index->packageVersion, PACKAGE_VERSION);
 	index->repeatMasker = repeatMasker;
 	index->space = space;
-	index->depth = depth; 
-	index->depthNumber = depthNumber;
+	index->depth = layout->depth; 
+	index->indexBin = indexBin;
 	index->indexNumber = indexNumber;
 
 	/* Copy over index information from the layout */
@@ -2538,7 +2554,7 @@ gzFile RGIndexOpenForWriting(char *fastaFileName, RGIndex *index)
 	char *bifName=NULL;
 	int fd;
 
-	bifName=GetBIFName(fastaFileName, index->space, index->depthNumber, index->indexNumber);
+	bifName=GetBIFName(fastaFileName, index->space, index->indexBin, index->indexNumber);
 	if((fd = open(bifName, 
 					O_WRONLY | O_CREAT | O_EXCL, 
 					S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP)) < 0) {

@@ -4,13 +4,7 @@ General
 
 ===============================================================================
 match
-- if no main indexes are given, use all (auto-recognize)
-- auto-recognize using the file name.  Must also auto-recognize depth of each
-index (enforce all the depths be the same?)
-- to specify main/secondary indexes, we could just use #s: 
-i.e. -m 1,2,3,4,5 -s 6,7,8
 - save bit string for each match that represents where each key hit in the read
-- offsets file should just have a comma separated list off offsets, 0-50, or all
 ===============================================================================
 
 ===============================================================================

@@ -392,21 +392,55 @@ int ReadOffsets(char *offsetsInput, int **offsets)
 	char *FnName="ReadOffsets";
 	int numOffsets=0;
 	char *pch=NULL;
+	int start, end, offset;
 
-	pch = strtok(offsetsInput, ",");
-	while(pch != NULL) {
-		numOffsets++;
-		(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
-		(*offsets)[numOffsets-1] = atoi(pch);
-		if(0 == pch) {
-			PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);		
-		}		
-		else if((*offsets)[numOffsets-1] < 0) {			
-			PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);		
+	if(NULL != strchr(offsetsInput, ',')) { // use comma-separated offsets
+		pch = strtok(offsetsInput, ",");
+		while(pch != NULL) {
+			numOffsets++;
+			(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
+			(*offsets)[numOffsets-1] = atoi(pch);
+			if(0 == (*offsets)[numOffsets-1] && 0 == strcmp("0", pch)) {
+				PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);		
+			}		
+			else if((*offsets)[numOffsets-1] < 0) {			
+				PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);		
+			}
+			pch = strtok(NULL, ",");
 		}
-		pch = strtok(NULL, ",");
 	}
-	assert(numOffsets>0);
+	else if(NULL != strchr(offsetsInput, '-')) { // use %d-%d
+		pch = strtok(offsetsInput, "-");
+		start = end = -1;
+		while(pch != NULL) {
+			offset = atoi(pch);
+			if(0 == offset && strcmp("0", pch)) {
+				PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);		
+			}		
+			else if(offset < 0) {
+				PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);		
+			}
+			if(start < 0) {
+				start = offset;
+			}
+			else if(end < 0) {
+				end = offset;
+			}
+			else {
+				PrintError(FnName, NULL, "Offsets were not given in the correct format", Exit, OutOfRange);
+			}
+			pch = strtok(NULL, "-");
+		}
+		numOffsets=end-start+1;
+		(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
+		while(start<=end) {
+			(*offsets)[end-start] = start;
+			start++;
+		}
+	}
+	if(numOffsets <= 0) {
+		PrintError(FnName, NULL, "Could not find any offsets", Exit, OutOfRange);
+	}
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "Read %d offsets.\n", numOffsets);

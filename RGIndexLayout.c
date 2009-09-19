@@ -8,13 +8,14 @@
 #include "RGIndexLayout.h"
 
 /* TODO */
-void RGIndexLayoutCreate(char *mask, int32_t hashWidth, RGIndexLayout *layout)
+void RGIndexLayoutCreate(char *mask, int32_t hashWidth, int32_t depth, RGIndexLayout *layout)
 {
 	char *FnName="RGIndexLayoutCreate";
 	int i;
 
 	assert(NULL != mask);
 
+	layout->depth = depth;
 	layout->width = strlen(mask);
 	layout->mask=NULL;
 	layout->mask = malloc(sizeof(int32_t)*(layout->width));
@@ -48,8 +49,8 @@ void RGIndexLayoutCreate(char *mask, int32_t hashWidth, RGIndexLayout *layout)
 		PrintError(FnName, NULL, "Layout must begin with a one", Exit, OutOfRange);
 	}
 	/* Check that key-size is greater than or equalt to the hash width */
-	if(layout->keysize < layout->hashWidth) {
-		PrintError(FnName, NULL, "Hash width was greater than the key size", Exit, OutOfRange);
+	if(layout->keysize < layout->hashWidth + layout->depth) {
+		PrintError(FnName, NULL, "Hash width + depth are greater than the key size", Exit, OutOfRange);
 	}
 }
 

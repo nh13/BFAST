@@ -7,10 +7,10 @@
 #include "RGRanges.h"
 #include "BLibDefinitions.h"
 
-void RGIndexCreate(char*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, char*);
-void RGIndexCreateSingle(char*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, char*);
-void RGIndexCreateSplit(char*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, char*);
-void RGIndexCreateHelper(RGIndex*, RGBinary*, FILE**, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
+void RGIndexCreate(char*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, char*);
+void RGIndexCreateSingle(char*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, char*);
+void RGIndexCreateSplit(char*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, RGIndexExons*, int32_t, int32_t, int32_t, char*);
+void RGIndexCreateHelper(RGIndex*, RGBinary*, FILE**, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 void RGIndexCreateHash(RGIndex*, RGBinary*);
 void RGIndexSort(RGIndex*, RGBinary*, int32_t, char*);
 void *RGIndexMergeSort(void*);
@@ -41,7 +41,7 @@ uint32_t RGIndexGetHashIndex(RGIndex*, RGBinary*, uint32_t, int);
 uint32_t RGIndexGetHashIndexFromRead(RGIndex*, RGBinary*, int8_t*, int32_t, int);
 void RGIndexPrintReadMasked(RGIndex*, char*, int, FILE*);
 void RGIndexInitialize(RGIndex*);
-void RGIndexInitializeFull(RGIndex*, RGBinary*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
+void RGIndexInitializeFull(RGIndex*, RGBinary*, RGIndexLayout*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 gzFile RGIndexOpenForWriting(char*, RGIndex*);
 #endif
 

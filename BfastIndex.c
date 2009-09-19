@@ -91,6 +91,7 @@ BfastIndex(int argc, char **argv)
 					/* Read in the RGIndex layout */
 					RGIndexLayoutCreate(arguments.mask, 
 							arguments.hashWidth, 
+							arguments.depth,
 							&rgLayout);
 					/* Read exons, if necessary */
 					if(NULL != arguments.exonsFileName) {
@@ -102,7 +103,6 @@ BfastIndex(int argc, char **argv)
 					RGIndexCreate(arguments.fastaFileName,
 							&rgLayout,
 							arguments.space,
-							arguments.depth,
 							arguments.indexNumber,
 							arguments.startContig,
 							arguments.startPos,

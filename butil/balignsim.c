@@ -204,6 +204,7 @@ void Run(RGBinary *rg,
 	char *notAlignedFileName=NULL;
 	int32_t totalAlignTime = 0;
 	int32_t totalFileHandlingTime = 0;
+	int32_t totalReferenceGenomeTime = 0;
 	ScoringMatrix sm;
 	double mismatchScore;
 	SimRead r;
@@ -466,6 +467,7 @@ void Run(RGBinary *rg,
 			tmpDir,
 			alignFP,
 			notAlignedFP,
+			&totalReferenceGenomeTime,
 			&totalAlignTime,
 			&totalFileHandlingTime);
 	fprintf(stderr, "%s", BREAK_LINE);

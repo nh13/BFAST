@@ -11,7 +11,7 @@ static int usage()
 	fprintf(stderr, "Version: %s\n", PACKAGE_VERSION);
 	fprintf(stderr, "Contact: %s\n\n", PACKAGE_BUGREPORT);
 	fprintf(stderr, "Usage:   bfast <command> [options]\n\n"); 
-	fprintf(stderr, "Preprocessing:\n");
+	fprintf(stderr, "Pre-processing:\n");
 	fprintf(stderr, "         fasta2brg\n");
 	fprintf(stderr, "         index\n");
 	fprintf(stderr, "\n");
@@ -24,7 +24,7 @@ static int usage()
 	fprintf(stderr, "\n");
 	fprintf(stderr, "File Conversion:\n");
 	fprintf(stderr, "         bafconvert\n");
-	fprintf(stderr, "         bheader\n");
+	fprintf(stderr, "         header\n");
 	fprintf(stderr, "         bmfconvert\n");
 	fprintf(stderr, "         brg2fasta\n");
 	return 1;

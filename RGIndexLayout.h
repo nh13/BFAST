@@ -4,7 +4,7 @@
 #include "BLibDefinitions.h"
 
 /* TODO */
-void RGIndexLayoutCreate(char*, int32_t, RGIndexLayout*);
+void RGIndexLayoutCreate(char*, int32_t, int32_t, RGIndexLayout*);
 void RGIndexLayoutDelete(RGIndexLayout*);
 
 #endif
