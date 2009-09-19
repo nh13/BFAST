@@ -19,12 +19,30 @@
 int BfastBRG2Fasta(int argc, char *argv[])
 {
 	char rgFileName[MAX_FILENAME_LENGTH]="\0";
+	char fastaFileName[MAX_FILENAME_LENGTH]="\0";
 	RGBinary rg;
+	int32_t space = NTSpace;
 
 	if(2 == argc) {
 		strcpy(rgFileName, argv[1]);
+		/* Infer the space */
+		strcpy(fastaFileName, rgFileName);
+		assert(0 < strlen(rgFileName) - strlen(BFAST_RG_FILE_EXTENSION));
+		fastaFileName[strlen(rgFileName) - strlen(BFAST_RG_FILE_EXTENSION)] = '\0'; // remove file extension
+		assert(strlen(SPACENAME(NTSpace)) == strlen(SPACENAME(ColorSpace))); // must hold for the next comparison to work
+		assert(0 < strlen(fastaFileName)-2);
+		if(0 == strcmp(SPACENAME(NTSpace), fastaFileName + (strlen(fastaFileName)-2))) {
+			space = NTSpace;
+		}
+		else { 
+			space = ColorSpace;
+		}
+		assert(0 < strlen(fastaFileName) - strlen(SPACENAME(space)) - 1);
+		fastaFileName[strlen(fastaFileName) - strlen(SPACENAME(space)) - 1]='\0'; // remove space name
+
+		/* Read the BRG */
 		RGBinaryReadBinary(&rg,
-				NTSpace, // TODO
+				space,
 				rgFileName);
 		/* Unpack */
 		RGBinaryUnPack(&rg);
