@@ -5,10 +5,10 @@
 #include <math.h>
 #include <zlib.h>
 
-#include "../BLibDefinitions.h"
-#include "../BError.h"
-#include "../RGIndex.h"
-#include "../RGBinary.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BError.h"
+#include "../bfast/RGIndex.h"
+#include "../bfast/RGBinary.h"
 #include "bexonify.h"
 
 #define Name "bexonify"
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 
 		/* Fix the hash by recreating it */
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Regenerating the hash.\n");
+		fprintf(stderr, "../bfast/Regenerating the hash.\n");
 		RGIndexCreateHash(&index, &rg);
 
 		/* Create new file name */
@@ -109,14 +109,14 @@ int main(int argc, char *argv[])
 int ReadExons(char *exonsFileName,
 		Exon **exons)
 {
-	char *FnName = "ReadExons";
+	char *FnName = "../bfast/ReadExons";
 	FILE *fp;
 	uint32_t contig, prevContig;
 	uint32_t start, end, prevStart, prevEnd;
 	int numExons = 0;
 
 	/* Open the file */
-	fprintf(stderr, "Reading in exons from %s.\n",
+	fprintf(stderr, "../bfast/Reading in exons from %s.\n",
 			exonsFileName);
 	if(!(fp=fopen(exonsFileName, "rb"))) {
 		PrintError(FnName, exonsFileName, "Could not open file for reading", Exit, OpenFileError);
@@ -148,7 +148,7 @@ int ReadExons(char *exonsFileName,
 	/* Close the file */
 	fclose(fp);
 
-	fprintf(stderr, "Read in %d exons.\n",
+	fprintf(stderr, "../bfast/Read in %d exons.\n",
 			numExons);
 
 	return numExons;
@@ -223,7 +223,7 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 			fprintf(stderr, "\r%lld\n",
 					(long long int)(indexLength-i));
 	fprintf(stderr, "%s", BREAK_LINE);
-	fprintf(stderr, "Reallocating index.\n");
+	fprintf(stderr, "../bfast/Reallocating index.\n");
 
 	/* Reallocate */
 	if(index->contigType == Contig_8) {
@@ -249,7 +249,7 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 	index->endContig = (*exons)[numExons-1].contig;
 	index->endPos = (*exons)[numExons-1].end;
 	
-	fprintf(stderr, "Reallocating index complete.\n");
+	fprintf(stderr, "../bfast/Reallocating index complete.\n");
 	fprintf(stderr, "%s", BREAK_LINE);
 
 }

@@ -4,8 +4,8 @@
 #include <assert.h>
 #include <time.h>
 
-#include "../BError.h"
-#include "../BLib.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLib.h"
 #include "SimRead.h"
 #include "bgeneratereads.h"
 

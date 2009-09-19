@@ -5,13 +5,13 @@
 #include <limits.h>
 #include <pthread.h>
 
-#include "../BLibDefinitions.h"
-#include "../BLib.h"
-#include "../BError.h"
-#include "../RGIndex.h"
-#include "../RGRanges.h"
-#include "../RGMatch.h"
-#include "../RGReads.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BError.h"
+#include "../bfast/RGIndex.h"
+#include "../bfast/RGRanges.h"
+#include "../bfast/RGMatch.h"
+#include "../bfast/RGReads.h"
 #include "bindexhistchr.h"
 
 #define Name "bindexhistchr"

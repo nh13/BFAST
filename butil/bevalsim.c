@@ -5,11 +5,11 @@
 #include <time.h>
 #include <zlib.h>
 
-#include "../BLibDefinitions.h"
-#include "../BError.h"
-#include "AlignedRead.h"
-#include "../RGMatches.h"
-#include "../RGMatch.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BError.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/RGMatches.h"
+#include "../bfast/RGMatch.h"
 #include "bevalsim.h"
 
 #define Name "bevalsim"
@@ -169,7 +169,7 @@ int ReadTypeRead(ReadType *r,
 		gzFile fp,
 		int type)
 {
-	char *FnName = "ReadTypeRead";
+	char *FnName = "../bfast/ReadTypeRead";
 	AlignedRead a;
 	RGMatches m;
 	int i;
@@ -278,7 +278,7 @@ int ReadTypeRead(ReadType *r,
 
 void ReadTypeParseReadName(ReadType *r, char *readName)
 {
-	char *FnName="ReadTypeParseR1R2";
+	char *FnName="../bfast/ReadTypeParseR1R2";
 	char r1[SEQUENCE_LENGTH]="\0";
 	char r2[SEQUENCE_LENGTH]="\0";
 	char tempString[SEQUENCE_LENGTH]="\0";
@@ -646,7 +646,7 @@ void StatsPrint(Stats *s, FILE *fp)
 void StatsAdd(Stats *s, ReadType *r, int readType)
 {
 	int32_t i;
-	char *FnName="StatsAdd";
+	char *FnName="../bfast/StatsAdd";
 
 	assert(OriginalRead == readType || ReadAligned == readType);
 
@@ -660,7 +660,7 @@ void StatsAdd(Stats *s, ReadType *r, int readType)
 	}
 	if(ReadAligned == readType) {
 		ReadTypePrint(r, stderr);
-		PrintError(FnName, NULL, "Read type was not found in the original reads file", Exit, OutOfRange);
+		PrintError(FnName, NULL, "../bfast/Read type was not found in the original reads file", Exit, OutOfRange);
 	}
 	else {
 		/* Otherwise start a new start entry */
@@ -709,7 +709,7 @@ void Evaluate(char *inputFileName,
 	}
 
 	count = 0;
-	fprintf(stderr, "Reading in from %s.\nCurrently on:\n%d", inputFileName, 0);
+	fprintf(stderr, "../bfast/Reading in from %s.\nCurrently on:\n%d", inputFileName, 0);
 	while(EOF != ReadTypeRead(&r, fpIn, type)) {
 		count++;
 		if(count % COUNT_ROTATE_NUM == 0) {
@@ -751,7 +751,7 @@ void Evaluate(char *inputFileName,
 
 void ReadInReads(char *readsFile, Stats *s)
 {
-	char *FnName="ReadInReads";
+	char *FnName="../bfast/ReadInReads";
 	FILE *fpIn=NULL;
 	int count=0;
 	ReadType r;
@@ -764,7 +764,7 @@ void ReadInReads(char *readsFile, Stats *s)
 		PrintError(FnName, readsFile, "Could not open file for reading", Exit, OpenFileError);
 	}
 
-	fprintf(stderr, "Reading in original reads from %s.\nCurrently on:\n%d", readsFile, 0);
+	fprintf(stderr, "../bfast/Reading in original reads from %s.\nCurrently on:\n%d", readsFile, 0);
 	count = 0;
 	/* Read in read name and read(s) */
 	while(EOF != fscanf(fpIn, "%s", readName) &&

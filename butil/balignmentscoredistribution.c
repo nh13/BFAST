@@ -4,9 +4,9 @@
 #include <assert.h>
 #include <zlib.h>
 
-#include "AlignedRead.h"
-#include "AlignedEntry.h"
-#include "../BError.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/AlignedEntry.h"
+#include "../bfast/BError.h"
 #include "balignmentscoredistribution.h"
 
 #define Name "balignmentscoredistribution"

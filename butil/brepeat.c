@@ -4,10 +4,10 @@
 #include <string.h>
 #include <limits.h>
 
-#include "../BLibDefinitions.h"
-#include "../BError.h"
-#include "../BLib.h"
-#include "../RGBinary.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLib.h"
+#include "../bfast/RGBinary.h"
 #include "brepeat.h"
 
 #define Name "brepeat"

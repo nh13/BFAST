@@ -5,13 +5,13 @@
 #include <limits.h>
 #include <pthread.h>
 
-#include "../BLibDefinitions.h"
-#include "../BLib.h"
-#include "../BError.h"
-#include "../RGIndex.h"
-#include "../RGRanges.h"
-#include "../RGMatch.h"
-#include "../RGReads.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BError.h"
+#include "../bfast/RGIndex.h"
+#include "../bfast/RGRanges.h"
+#include "../bfast/RGMatch.h"
+#include "../bfast/RGReads.h"
 #include "bindexdist.h"
 
 #define Name "bindexdist"
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 				numMismatches);
 
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Starting %s.\n", Name);
+		fprintf(stderr, "../bfast/Starting %s.\n", Name);
 
 		/* Read in the rg binary file */
 		RGBinaryReadBinary(&rg, rgFileName);
@@ -270,13 +270,13 @@ void PrintDistribution(RGIndex *index,
 					index->width);
 		}
 	}
-	fprintf(stderr, "Sorting complete.\n");
+	fprintf(stderr, "../bfast/Sorting complete.\n");
 	fprintf(stderr, "%s", BREAK_LINE);
 
 	/* Remove duplicates */
 	/*
 	   fprintf(stderr, "%s", BREAK_LINE);
-	   fprintf(stderr, "Removing duplicates.\n");
+	   fprintf(stderr, "../bfast/Removing duplicates.\n");
 	   prevIndex = 0;
 	   for(i=1;i<numReads;i++) {
 	   if(strcmp(reads[prevIndex], reads[i]) == 0) {
@@ -304,7 +304,7 @@ void PrintDistribution(RGIndex *index,
 	   if(NULL==readCounts) {
 	   PrintError(FnName, "readCounts", "Could not reallocate memory", Exit, ReallocMemory);
 	   }
-	   fprintf(stderr, "Removing duplicates complete.\n");
+	   fprintf(stderr, "../bfast/Removing duplicates complete.\n");
 	   fprintf(stderr, "%s", BREAK_LINE);
 	   */
 

@@ -6,11 +6,11 @@
 #include <math.h>
 #include <zlib.h>
 
-#include "AlignedEntry.h"
-#include "AlignedRead.h"
-#include "../BLibDefinitions.h"
-#include "../BLib.h"
-#include "../BError.h"
+#include "../bfast/AlignedEntry.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BError.h"
 #include "bmergesorted.h"
 
 #define Name "bmergesorted"

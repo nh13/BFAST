@@ -6,12 +6,12 @@
 #include <pthread.h>
 #include <zlib.h>
 
-#include "../BLibDefinitions.h"
-#include "../BLib.h"
-#include "../BError.h"
-#include "../RGMatch.h"
-#include "../RGMatches.h"
-#include "AlignedRead.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BError.h"
+#include "../bfast/RGMatch.h"
+#include "../bfast/RGMatches.h"
+#include "../bfast/AlignedRead.h"
 #include "bpairedenddist.h"
 
 #define Name "bpairedenddist"
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 			strcpy(inputFileName, argv[i]);
 
 			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Reading in from %s.\n",
+			fprintf(stderr, "../bfast/Reading in from %s.\n",
 					inputFileName);
 			if(!(fpIn=gzopen(inputFileName, "rb"))) {
 				PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);

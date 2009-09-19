@@ -1,7 +1,7 @@
 #ifndef BTESTINDEXES_H_
 #define BTESTINDEXES_H_
 
-char Algorithm[3][2048] = {"Search for indexes", "Evaluate indexes", "Print Program Parameters"};
+char Algorithm[3][2048] = {"../bfast/bfast/Search for indexes", "Evaluate indexes", "Print Program Parameters"};
 
 typedef struct {
 	int algorithm;

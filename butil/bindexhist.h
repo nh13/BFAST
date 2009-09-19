@@ -1,9 +1,9 @@
 #ifndef BINDEXHIST_H_
 #define BINDEXHIST_H_
 
-#include "../RGIndex.h"
-#include "../RGBinary.h"
-#include "../RGMatch.h"
+#include "../bfast/RGIndex.h"
+#include "../bfast/RGBinary.h"
+#include "../bfast/RGMatch.h"
 
 typedef struct {
 	int64_t **counts;

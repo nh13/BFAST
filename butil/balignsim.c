@@ -7,14 +7,14 @@
 #include <math.h>
 #include <zlib.h>
 
-#include "../BError.h"
-#include "../BLib.h"
-#include "../BLibDefinitions.h"
-#include "../RGIndexAccuracy.h"
-#include "../RGMatches.h"
-#include "AlignedRead.h"
-#include "ScoringMatrix.h"
-#include "RunAligner.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/RGIndexAccuracy.h"
+#include "../bfast/RGMatches.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/ScoringMatrix.h"
+#include "../bfast/RunAligner.h"
 #include "SimRead.h"
 #include "balignsim.h"
 
@@ -193,7 +193,7 @@ void Run(RGBinary *rg,
 		int numThreads,
 		char *tmpDir)
 {
-	char *FnName="Run";
+	char *FnName="../bfast/Run";
 	int i, j;
 	int64_t rgLength=0;
 	gzFile matchesFP=NULL;
@@ -204,7 +204,6 @@ void Run(RGBinary *rg,
 	char *notAlignedFileName=NULL;
 	int32_t totalAlignTime = 0;
 	int32_t totalFileHandlingTime = 0;
-	int32_t totalReferenceGenomeTime = 0;
 	ScoringMatrix sm;
 	double mismatchScore;
 	SimRead r;
@@ -444,9 +443,9 @@ void Run(RGBinary *rg,
 		PrintError(FnName, matchesFileName, "Could not re-open file for reading", Exit, OpenFileError);
 	}
 
-	/* Run "RunDynamicProgramming" from balign */
+	/* Run "../bfast/RunDynamicProgramming" from balign */
 	fprintf(stderr, "%s", BREAK_LINE);
-	fprintf(stderr, "Running local alignment.\n");
+	fprintf(stderr, "../bfast/Running local alignment.\n");
 	RunDynamicProgramming(matchesFP,
 			rg,
 			scoringMatrixFileName,
@@ -466,8 +465,6 @@ void Run(RGBinary *rg,
 			0,
 			tmpDir,
 			alignFP,
-			notAlignedFP,
-			&totalReferenceGenomeTime,
 			&totalAlignTime,
 			&totalFileHandlingTime);
 	fprintf(stderr, "%s", BREAK_LINE);
@@ -482,7 +479,7 @@ void Run(RGBinary *rg,
 
 	/* Read in output and sum up accuracy */
 	fprintf(stderr, "%s", BREAK_LINE);
-	fprintf(stderr, "Summing up totals.\n");
+	fprintf(stderr, "../bfast/Summing up totals.\n");
 	AlignedReadInitialize(&a);
 	numScoreLessThan = numScoreEqual = numScoreGreaterThan = 0;
 	while(EOF != AlignedReadRead(&a,

@@ -5,10 +5,10 @@
 #include <time.h>
 #include <limits.h>
 
-#include "../BError.h"
-#include "../BLibDefinitions.h"
-#include "../RGIndexAccuracy.h"
-#include "../BLib.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/RGIndexAccuracy.h"
+#include "../bfast/BLib.h"
 #include "btestindexes.h"
 
 /* Is a utility that tests, searches for, and compares layouts for indexes against certain events,

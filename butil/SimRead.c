@@ -4,8 +4,8 @@
 #include <assert.h>
 #include <time.h>
 
-#include "BError.h"
-#include "BLib.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLib.h"
 #include "SimRead.h"
 
 static char *Colors = "01234";
@@ -38,7 +38,7 @@ void SimReadDelete(SimRead *r)
 
 char *SimReadGetName(SimRead *r)
 {
-	char *FnName="SimReadGetName";
+	char *FnName="../bfast/SimReadGetName";
 	char *name=NULL;
 	char tmp[32]="\0";
 	int i;
@@ -123,7 +123,7 @@ void SimReadGetRandom(RGBinary *rg,
 		int numEnds,
 		int pairedEndLength)
 {
-	char *FnName="SimReadGetRandom";
+	char *FnName="../bfast/SimReadGetRandom";
 	int count = 0;
 	int i;
 	int hasNs=0;
@@ -224,7 +224,7 @@ void SimReadGetRandom(RGBinary *rg,
 				numErrors);
 	}
 	if(SIMREAD_MAX_MODIFY_FAILURES <= ctr) {
-		PrintError(FnName, "SimReadModify", "Could not modify read", Exit, OutOfRange);
+		PrintError(FnName, "../bfast/SimReadModify", "Could not modify read", Exit, OutOfRange);
 	}
 }
 
@@ -299,7 +299,7 @@ int SimReadModify(RGBinary *rg,
 	 * 3. convert to color space (if necessary)
 	 * 4. insert errors (color errors if in color space, otherwise nt errors )
 	 */
-	char *FnName="SimReadModify";
+	char *FnName="../bfast/SimReadModify";
 	int tempReadLength=r->readLength;
 	int i;
 	int curNumSNPs=0;

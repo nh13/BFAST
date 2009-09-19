@@ -6,11 +6,11 @@
 #include <limits.h>
 #include <zlib.h>
 
-#include "../BLibDefinitions.h"
-#include "../BError.h"
-#include "../BLib.h"
-#include "AlignedRead.h"
-#include "AlignedEntry.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLib.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/AlignedEntry.h"
 #include "berrordistribution.h"
 
 #define Name "berrordistribution"
@@ -73,7 +73,7 @@ void ErrorDistribution(char *inputFileName,
 	gzFile FPin=NULL;
 	AlignedRead a;
 
-	fprintf(stderr, "Reading from %s.\n%s",
+	fprintf(stderr, "../bfast/Reading from %s.\n%s",
 			inputFileName,
 			BREAK_LINE);
 

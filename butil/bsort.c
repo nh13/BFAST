@@ -10,12 +10,12 @@
 #include <zlib.h>
 
 #endif
-#include "AlignedEntry.h"
-#include "AlignedRead.h"
-#include "AlignedEnd.h"
-#include "../BLibDefinitions.h"
-#include "../BLib.h"
-#include "../BError.h"
+#include "../bfast/AlignedEntry.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/AlignedEnd.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BError.h"
 #include "bsort.h"
 
 #define Name "bsort"
@@ -119,7 +119,7 @@ void MoveAllIntoTmpGZFile(char *inputFileName,
 		for(i=0;i<a.numEnds;i++) {
 			if(0 != a.ends[i].numEntries &&
 					1 != a.ends[i].numEntries) {
-				PrintError(FnName, a.readName, "Read was not uniquely aligned", Exit, OutOfRange);
+				PrintError(FnName, a.readName, "../bfast/Read was not uniquely aligned", Exit, OutOfRange);
 			}
 		}
 		AlignedReadPrint(&a, 
@@ -130,7 +130,7 @@ void MoveAllIntoTmpGZFile(char *inputFileName,
 	}
 	fprintf(stderr, "\r%lld\n",
 			(long long int)counter);
-	fprintf(stderr, "Sorting range is contig%lld:%lld to contig%lld:%lld.\n",
+	fprintf(stderr, "../bfast/Sorting range is contig%lld:%lld to contig%lld:%lld.\n",
 			(long long int)tmpFile->startContig,
 			(long long int)tmpFile->startPos,
 			(long long int)tmpFile->endContig,
@@ -147,7 +147,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 		int32_t maxNumEntries,
 		int32_t numThreads)
 {
-	char *FnName="SplitEntriesAndPrint";
+	char *FnName="../bfast/SplitEntriesAndPrint";
 	int64_t meanPos;
 	int32_t meanContig;
 	AlignedRead *entries=NULL;

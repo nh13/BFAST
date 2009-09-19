@@ -6,11 +6,11 @@
 #include <math.h>
 #include <zlib.h>
 
-#include "AlignedEntry.h"
-#include "AlignedRead.h"
-#include "../BLibDefinitions.h"
-#include "../BLib.h"
-#include "../BError.h"
+#include "../bfast/AlignedEntry.h"
+#include "../bfast/AlignedRead.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BLib.h"
+#include "../bfast/BError.h"
 #include "btranslocations.h"
 
 #define Name "btranslocations"
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 			}
 
 			AlignedReadInitialize(&a);
-			fprintf(stderr, "Reading in from %s.\nCurrently on:\n0",
+			fprintf(stderr, "../bfast/Reading in from %s.\nCurrently on:\n0",
 					inputFileName);
 			while(EOF != AlignedReadRead(&a,
 						inputFP)) {
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 		/* Close files */
 		gzclose(outputFP);
 
-		fprintf(stderr, "Read in %lld and outputted %lld paired two alignments.\n",
+		fprintf(stderr, "../bfast/Read in %lld and outputted %lld paired two alignments.\n",
 				(long long int)numRead,
 				(long long int)numPrinted);
 		fprintf(stderr, "%s", BREAK_LINE);
