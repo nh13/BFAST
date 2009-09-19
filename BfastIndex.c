@@ -29,7 +29,7 @@ enum {
 
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the bfast reference genome file", 1},
+	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"mask", 'm', "mask", 0, "The mask or spaced seed to use", 2}, 
@@ -84,11 +84,7 @@ BfastIndex(int argc, char **argv)
 						fprintf(stderr, BREAK_LINE);
 					}
 					else {
-						PrintError("PrintError",
-								NULL,
-								"validating command-line inputs",
-								Exit,
-								InputArguments);
+						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
 					}
 					BfastIndexPrintProgramParameters(stderr, &arguments);
 
@@ -149,20 +145,12 @@ BfastIndex(int argc, char **argv)
 					fprintf(stderr, "%s", BREAK_LINE);
 					break;
 				default:
-					PrintError("PrintError",
-							"programMode",
-							"Could not determine program mode",
-							Exit,
-							OutOfRange);
+					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
 			}
 
 		}
 		else {
-			PrintError("PrintError",
-					NULL,
-					"Could not parse command line argumnets",
-					Exit,
-					InputArguments);
+			PrintError("PrintError", NULL, "Could not parse command line argumnets", Exit, InputArguments);
 		}
 		/* Free program parameters */
 		BfastIndexFreeProgramParameters(&arguments);
@@ -185,56 +173,50 @@ int BfastIndexValidateInputs(struct arguments *args) {
 		fprintf(stderr, "Validating fastaFileName %s. \n",
 				args->fastaFileName);
 		if(ValidateFileName(args->fastaFileName)==0)
-			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);
-	}
-	else {
-			PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);
+			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	else {			
+		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);	
 	}
 	
 	if(args->mask==NULL) {
-		PrintError(FnName, "mask", "Required command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->space != NTSpace && args->space != ColorSpace) {
+		PrintError(FnName, "mask", "Required command line argument", Exit, IllegalFileName);	
+	}	
+	if(args->space != NTSpace && args->space != ColorSpace) {		
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->hashWidth <= 0) {
-		PrintError(FnName, "hashWidth", "Command line argument", Exit, OutOfRange);
-	}
-	
-	if(args->depth < 0) {
-		PrintError(FnName, "depth", "Command line argument", Exit, OutOfRange);
+		PrintError(FnName, "hashWidth", "Command line argument", Exit, OutOfRange);	
+	}		
+	if(args->depth < 0) {		
+			PrintError(FnName, "depth", "Command line argument", Exit, OutOfRange);
 	}
 	
 	if(args->indexNumber <= 0) {
-		PrintError(FnName, "indexNumber", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->startContig < 0) {
+		PrintError(FnName, "indexNumber", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->startContig < 0) {		
 		PrintError(FnName, "startContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startPos < 0) {
-		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->endContig < 0) {
+		PrintError(FnName, "startPos", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->endContig < 0) {		
 		PrintError(FnName, "endContig", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->endPos < 0) {
-		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->exonsFileName!=NULL) {
-		fprintf(stderr, "Validating exonsFileName %s. \n",
+		PrintError(FnName, "endPos", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->exonsFileName!=NULL) {		
+		fprintf(stderr, "Validating exonsFileName %s. \n", 
 				args->exonsFileName);
 		if(ValidateFileName(args->exonsFileName)==0)
-			PrintError(FnName, "exonsFileName", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->numThreads<=0) {
+			PrintError(FnName, "exonsFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	if(args->numThreads<=0) {		
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -242,31 +224,30 @@ int BfastIndexValidateInputs(struct arguments *args) {
 		fprintf(stderr, "Validating tmpDir path %s. \n",
 				args->tmpDir);
 		if(ValidateFileName(args->tmpDir)==0)
-			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
-	}
-
-	/* If this does not hold, we have done something wrong internally */
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);	
+	}	
+	/* If this does not hold, we have done something wrong internally */	
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->repeatMasker == 0 || args->repeatMasker == 1);
 
 	/* Cross-check arguments */
 	if(args->startContig > args->endContig) {
-		PrintError(FnName, "startContig > endContig", "Command line argument", Exit, OutOfRange);
-	}
-	if(args->startContig == args->endContig && args->startPos > args->endPos) {
-		PrintError(FnName, "endPos < startPos with startContig == endContig", "Command line argument", Exit, OutOfRange);
+		PrintError(FnName, "startContig > endContig", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->startContig == args->endContig && args->startPos > args->endPos) {		
+		PrintError(FnName, "endPos < startPos with startContig == endContig", "Command line argument", Exit, OutOfRange);	
 	}
 	if(NULL != args->exonsFileName && args->startContig > 0) {
-		PrintError(FnName, "Cannot use -s with -x", "Command line argument", Exit, OutOfRange);
-	}
-	if(NULL != args->exonsFileName && args->startPos > 0) {
-		PrintError(FnName, "Cannot use -S with -x", "Command line argument", Exit, OutOfRange);
+		PrintError(FnName, "Cannot use -s with -x", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(NULL != args->exonsFileName && args->startPos > 0) {		
+		PrintError(FnName, "Cannot use -S with -x", "Command line argument", Exit, OutOfRange);	
 	}
 	if(NULL != args->exonsFileName && args->endContig < INT_MAX) {
-		PrintError(FnName, "Cannot use -e with -x", "Command line argument", Exit, OutOfRange);
-	}
-	if(NULL != args->exonsFileName && args->endPos < INT_MAX) {
-		PrintError(FnName, "Cannot use -E with -x", "Command line argument", Exit, OutOfRange);
+		PrintError(FnName, "Cannot use -e with -x", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(NULL != args->exonsFileName && args->endPos < INT_MAX) {		
+		PrintError(FnName, "Cannot use -E with -x", "Command line argument", Exit, OutOfRange);	
 	}
 
 	return 1;

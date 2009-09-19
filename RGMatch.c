@@ -24,11 +24,7 @@ int32_t RGMatchRead(gzFile fp,
 			return EOF;
 		}
 		else {
-			PrintError(FnName,
-					"m->readLength",
-					"Could not read in read length",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, "m->readLength", "Could not read in read length", Exit, ReadFileError);
 		}
 	}
 	assert(m->readLength < SEQUENCE_LENGTH);
@@ -37,50 +33,30 @@ int32_t RGMatchRead(gzFile fp,
 	/* Allocate memory for the read */
 	m->read = malloc(sizeof(char)*(m->readLength+1));
 	if(NULL==m->read) {
-		PrintError(FnName,
-				"read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	m->qual = malloc(sizeof(char)*(m->qualLength+1));
 	if(NULL==m->qual) {
-		PrintError(FnName,
-				"qual",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "qual", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Read in the read */
 	if(gzread64(fp, m->read, sizeof(char)*m->readLength)!=sizeof(char)*m->readLength||
 			gzread64(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength) {
-		PrintError(FnName,
-				"m->read",
-				"Could not read in the read and qual",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->read", "Could not read in the read and qual", Exit, ReadFileError);
 	}
 	m->read[m->readLength]='\0';
 	m->qual[m->qualLength]='\0';
 
 	/* Read in if we have reached the maximum number of matches */
 	if(gzread64(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				"m->maxReached",
-				"Could not read in m->maxReached",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->maxReached", "Could not read in m->maxReached", Exit, ReadFileError);
 	}
 	assert(0 == m->maxReached || 1 == m->maxReached);
 
 	/* Read in the number of matches */
 	if(gzread64(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				"m->numEntries",
-				"Could not read in m->numEntries",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->numEntries", "Could not read in m->numEntries", Exit, ReadFileError);
 	}
 	assert(m->numEntries >= 0);
 
@@ -89,25 +65,13 @@ int32_t RGMatchRead(gzFile fp,
 
 	/* Read first sequence matches */
 	if(gzread64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
-		PrintError(FnName,
-				"m->contigs",
-				"Could not read in contigs",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->contigs", "Could not read in contigs", Exit, ReadFileError);
 	}
 	if(gzread64(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
-		PrintError(FnName,
-				"m->positions",
-				"Could not read in positions",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->positions", "Could not read in positions", Exit, ReadFileError);
 	}
 	if(gzread64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
-		PrintError(FnName,
-				"m->strands",
-				"Could not read in strand",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->strands", "Could not read in strand", Exit, ReadFileError);
 	}
 
 	return 1;
@@ -137,40 +101,24 @@ int32_t RGMatchReadText(FILE *fp,
 	/* Allocate memory for the read */
 	m->read = malloc(sizeof(char)*(m->readLength+1));
 	if(NULL==m->read) {
-		PrintError(FnName,
-				"read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	m->qual = malloc(sizeof(char)*(m->qualLength+1));
 	if(NULL==m->qual) {
-		PrintError(FnName,
-				"qual",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "qual", "Could not allocate memory", Exit, MallocMemory);
 	}
 	strcpy(m->read, read);
 	strcpy(m->qual, qual);
 
 	/* Read in if we have reached the maximum number of matches */
 	if(fscanf(fp, "%d", &m->maxReached)==EOF) {
-		PrintError(FnName,
-				"m->maxReached",
-				"Could not read in m->maxReached",
-				Exit,
-				EndOfFile);
+		PrintError(FnName, "m->maxReached", "Could not read in m->maxReached", Exit, EndOfFile);
 	}
 	assert(1==m->maxReached || 0 == m->maxReached);
 
 	/* Read in the number of matches */
 	if(fscanf(fp, "%d", &m->numEntries)==EOF) {
-		PrintError(FnName,
-				"m->numEntries",
-				"Could not read in m->numEntries",
-				Exit,
-				EndOfFile);
+		PrintError(FnName, "m->numEntries", "Could not read in m->numEntries", Exit, EndOfFile);
 	}
 	assert(m->numEntries >= 0);
 
@@ -183,11 +131,7 @@ int32_t RGMatchReadText(FILE *fp,
 					&m->contigs[i],
 					&m->positions[i],
 					&m->strands[i])==EOF) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in match",
-					Exit,
-					EndOfFile);
+			PrintError(FnName, NULL, "Could not read in match", Exit, EndOfFile);
 		}
 	}
 
@@ -211,22 +155,14 @@ void RGMatchPrint(gzFile fp,
 			gzwrite64(fp, m->qual, sizeof(char)*m->qualLength)!=sizeof(char)*m->qualLength ||
 			gzwrite64(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write m->readLength, m->qualLength, m->read, m->qual, m->maxReached, and m->numEntries",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write m->readLength, m->qualLength, m->read, m->qual, m->maxReached, and m->numEntries", Exit, WriteFileError);
 	}
 
 	/* Print the contigs, positions, and strands */
 	if(gzwrite64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
 			gzwrite64(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
 			gzwrite64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
-		PrintError(FnName,
-				NULL,
-				"Could not write contigs, positions and strands",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write contigs, positions and strands", Exit, WriteFileError);
 	}
 }
 
@@ -246,11 +182,7 @@ void RGMatchPrintText(FILE *fp,
 				m->qual,
 				m->maxReached,
 				m->numEntries)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write m->read, m->qual, m->maxReached, and m->numEntries",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write m->read, m->qual, m->maxReached, and m->numEntries", Exit, WriteFileError);
 	}
 
 	for(i=0;i<m->numEntries;i++) {
@@ -259,19 +191,11 @@ void RGMatchPrintText(FILE *fp,
 					m->contigs[i],
 					m->positions[i],
 					m->strands[i])) {
-			PrintError(FnName,
-					NULL,
-					"Could not write m->contigs[i], m->positions[i], and m->strands[i]",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write m->contigs[i], m->positions[i], and m->strands[i]", Exit, WriteFileError);
 		}
 	}
 	if(0 > fprintf(fp, "\n")) {
-		PrintError(FnName,
-				NULL,
-				"Could not write newline",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write newline", Exit, WriteFileError);
 	}
 }
 
@@ -289,11 +213,7 @@ void RGMatchPrintFastq(FILE *fp,
 				readName,
 				m->read,
 				m->qual)) {
-		PrintError(FnName,
-				NULL,
-				"Could not to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
 	}
 }
 
@@ -357,11 +277,7 @@ void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
 		temp=malloc(sizeof(RGMatch));
 		RGMatchInitialize(temp);
 		if(NULL == temp) {
-			PrintError("RGMatchQuickSort",
-					"temp",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGMatchQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
 		RGMatchAllocate(temp, 1);
 
@@ -436,20 +352,12 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 		/* Allocate memory */
 		dest->read = malloc(sizeof(char)*(dest->readLength+1));
 		if(NULL==dest->read) {
-			PrintError(FnName,
-					"dest->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "dest->read", "Could not allocate memory", Exit, MallocMemory);
 		}   
 		assert(dest->qual == NULL);
 		dest->qual = malloc(sizeof(char)*(dest->qualLength+1));
 		if(NULL==dest->qual) {
-			PrintError(FnName,
-					"dest->qual",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "dest->qual", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Copy over */
 		strcpy(dest->read, src->read);
@@ -498,29 +406,17 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 	assert(m->positions==NULL);
 	m->positions = malloc(sizeof(uint32_t)*numEntries); 
 	if(NULL == m->positions) {
-		PrintError(FnName,
-				"m->positions",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->positions", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(m->contigs==NULL);
 	m->contigs = malloc(sizeof(uint32_t)*numEntries); 
 	if(NULL == m->contigs) {
-		PrintError(FnName,
-				"m->contigs",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->contigs", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(m->strands==NULL);
 	m->strands = malloc(sizeof(char)*numEntries); 
 	if(NULL == m->strands) {
-		PrintError(FnName,
-				"m->strands",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->strands", "Could not allocate memory", Exit, MallocMemory);
 	}
 }
 
@@ -535,27 +431,15 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 			/*
 			   fprintf(stderr, "numEntries:%d\n", numEntries);
 			   */
-			PrintError(FnName,
-					"m->positions",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "m->positions", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		m->contigs = realloc(m->contigs, sizeof(uint32_t)*numEntries); 
 		if(numEntries > 0 && NULL == m->contigs) {
-			PrintError(FnName,
-					"m->contigs",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "m->contigs", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		m->strands = realloc(m->strands, sizeof(char)*numEntries); 
 		if(numEntries > 0 && NULL == m->strands) {
-			PrintError(FnName,
-					"m->strands",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "m->strands", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 	}
 	else {
@@ -615,43 +499,23 @@ void RGMatchCheck(RGMatch *m)
 	assert(m->numEntries >= 0);
 	/* Check that if the read length is greater than zero the read is not null */
 	if(m->readLength > 0 && m->read == NULL && m->qual == NULL) {
-		PrintError(FnName,
-				NULL,
-				"m->readLength > 0 && m->read == NULL && m->qual == NULL",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "m->readLength > 0 && m->read == NULL && m->qual == NULL", Exit, OutOfRange);
 	}
 	/* Check that the read length matches the read */
 	if(((int)strlen(m->read)) != m->readLength) {
-		PrintError(FnName,
-				NULL,
-				"m->readLength and strlen(m->read) do not match",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "m->readLength and strlen(m->read) do not match", Exit, OutOfRange);
 	}
 	/* Check that the qual length matches the qual */
 	if(((int)strlen(m->qual)) != m->qualLength) {
-		PrintError(FnName,
-				NULL,
-				"m->qualLength and strlen(m->qual) do not match",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "m->qualLength and strlen(m->qual) do not match", Exit, OutOfRange);
 	}
 	/* Check that if the max has been reached then there are no entries */
 	if(1==m->maxReached && m->numEntries > 0) {
-		PrintError(FnName,
-				NULL,
-				"1==m->maxReached and m->numEntries>0",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "1==m->maxReached and m->numEntries>0", Exit, OutOfRange);
 	}
 	/* Check that if the number of entries is greater than zero that the entries are not null */
 	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)) {
-		PrintError(FnName,
-				NULL,
-				"m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)", Exit, OutOfRange);
 	}
 }
 

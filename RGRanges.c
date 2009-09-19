@@ -105,11 +105,7 @@ void RGRangesQuickSort(RGRanges *r, int32_t low, int32_t high)
 		temp=malloc(sizeof(RGRanges));
 		RGRangesInitialize(temp);
 		if(NULL == temp) {
-			PrintError("RGRangesQuickSort",
-					"temp",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGRangesQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
 		RGRangesAllocate(temp, 1);
 
@@ -210,38 +206,22 @@ void RGRangesAllocate(RGRanges *r, int32_t numEntries)
 	assert(r->startIndex==NULL);
 	r->startIndex = malloc(sizeof(int64_t)*numEntries); 
 	if(NULL == r->startIndex) {
-		PrintError("RGRangesAllocate",
-				"r->startIndex",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGRangesAllocate", "r->startIndex", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(r->endIndex==NULL);
 	r->endIndex = malloc(sizeof(int64_t)*numEntries); 
 	if(NULL == r->endIndex) {
-		PrintError("RGRangesAllocate",
-				"r->endIndex",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGRangesAllocate", "r->endIndex", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(r->strand==NULL);
 	r->strand = malloc(sizeof(char)*numEntries); 
 	if(NULL == r->strand) {
-		PrintError("RGRangesAllocate",
-				"r->strand",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGRangesAllocate", "r->strand", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(r->offset==NULL);
 	r->offset = malloc(sizeof(int32_t)*numEntries); 
 	if(NULL == r->offset) {
-		PrintError("RGRangesAllocate",
-				"r->offset",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGRangesAllocate", "r->offset", "Could not allocate memory", Exit, MallocMemory);
 	}
 }
 
@@ -251,35 +231,19 @@ void RGRangesReallocate(RGRanges *r, int32_t numEntries)
 		r->numEntries = numEntries;
 		r->startIndex = realloc(r->startIndex, sizeof(int64_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->startIndex) {
-			PrintError("RGRangesReallocate",
-					"r->startIndex",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError("RGRangesReallocate", "r->startIndex", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		r->endIndex = realloc(r->endIndex, sizeof(int64_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->endIndex) {
-			PrintError("RGRangesReallocate",
-					"r->endIndex",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError("RGRangesReallocate", "r->endIndex", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		r->strand = realloc(r->strand, sizeof(char)*numEntries); 
 		if(numEntries > 0 && NULL == r->strand) {
-			PrintError("RGRangesReallocate",
-					"r->strand",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError("RGRangesReallocate", "r->strand", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		r->offset = realloc(r->offset, sizeof(int32_t)*numEntries); 
 		if(numEntries > 0 && NULL == r->offset) {
-			PrintError("RGRangesReallocate",
-					"r->offset",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError("RGRangesReallocate", "r->offset", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 	}
 	else {

@@ -42,11 +42,7 @@ int main(int argc, char *argv[])
 				argv[5]);
 
 		if(!(fp = fopen(argv[5], "w"))) {
-			PrintError("Main",
-					argv[5],
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError("Main", argv[5], "Could not open file for writing", Exit, OpenFileError);
 		}
 
 		/* Read in the rg binary file */

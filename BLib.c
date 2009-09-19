@@ -43,11 +43,7 @@ int ParseFastaHeaderLine(char *header)
 
 	/* Check that the first character is a ">" */
 	if(header[0] != '>') {
-		PrintError(FnName,
-				"header",
-				"Header of a contig must start with a '>'",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "header", "Header of a contig must start with a '>'", Exit, OutOfRange);
 	}
 
 	/* Shift over to remove the ">" and trailing EOL */
@@ -221,18 +217,10 @@ char GetReverseComplimentAnyCaseBase(char a)
 			fprintf(stderr, "\n[%c]\t[%d]\n",
 					a,
 					(int)a);
-			PrintError(FnName,
-					NULL,
-					"Could not understand sequence base",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Could not understand sequence base", Exit, OutOfRange);
 			break;
 	}
-	PrintError(FnName,
-			NULL,
-			"Control should not reach here",
-			Exit,
-			OutOfRange);
+	PrintError(FnName, NULL, "Control should not reach here", Exit, OutOfRange);
 	return '0';
 }
 
@@ -285,11 +273,7 @@ uint32_t Log2(uint32_t num)
 	int i;
 
 	if(IsAPowerOfTwo(num)==0) {
-		PrintError(FnName,
-				"num",
-				"Num is not a power of 2",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "num", "Num is not a power of 2", Exit, OutOfRange);
 	}
 	/* Not the most efficient but we are not going to use this often */
 	for(i=0;num>1;i++,num/=2) {
@@ -363,11 +347,7 @@ void CheckRGIndexes(char **mainFileNames,
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
 		if((fp=gzopen(mainFileNames[i], "r"))==0) {
-			PrintError("CheckRGIndexes",
-					mainFileNames[i],
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError("CheckRGIndexes", mainFileNames[i], "Could not open file for reading", Exit, OpenFileError);
 		}
 
 		/* Get the header */
@@ -413,11 +393,7 @@ void CheckRGIndexes(char **mainFileNames,
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
 		if((fp=gzopen(secondaryFileNames[i], "r"))==0) {
-			PrintError("CheckRGIndexes",
-					"secondaryFileNames[i]",
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError("CheckRGIndexes", "secondaryFileNames[i]", "Could not open file for reading", Exit, OpenFileError);
 		}
 
 		/* Get the header */
@@ -466,11 +442,7 @@ void CheckRGIndexes(char **mainFileNames,
 			mainEndContig != secondaryEndContig ||
 			mainEndPos != secondaryEndPos ||
 			mainColorSpace != secondaryColorSpace) {
-		PrintError("CheckRGIndexes",
-				NULL,
-				"The ranges between main and secondary indexes differ",
-				Exit,
-				OutOfRange);
+		PrintError("CheckRGIndexes", NULL, "The ranges between main and secondary indexes differ", Exit, OutOfRange);
 	}
 
 	(*startContig) = mainStartContig;
@@ -493,11 +465,7 @@ FILE *OpenTmpFile(char *tmpDir,
 	/* Allocate memory */
 	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 	if(NULL == (*tmpFileName)) {
-		PrintError(FnName,
-				"tmpFileName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tmpFileName", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Create the templated */
@@ -513,40 +481,24 @@ FILE *OpenTmpFile(char *tmpDir,
 			/* Remove the file and close */
 			unlink((*tmpFileName));
 			close(fd);
-			PrintError(FnName,
-					(*tmpFileName),
-					"Could not open temporary file",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, (*tmpFileName), "Could not open temporary file", Exit, OpenFileError);
 		}
 		else {
-			PrintError(FnName,
-					(*tmpFileName),
-					"Could not create a tmp file name",
-					Exit,
-					IllegalFileName);
+			PrintError(FnName, (*tmpFileName), "Could not create a tmp file name", Exit, IllegalFileName);
 		}
 	}
 
 	/* Create a new tmp file name */
 	/*
 	   if(NULL == mktemp((*tmpFileName))) {
-	   PrintError(FnName,
-	   (*tmpFileName),
-	   "Could not create a tmp file name",
-	   Exit,
-	   IllegalFileName);
+	   PrintError(FnName, (*tmpFileName), "Could not create a tmp file name", Exit, IllegalFileName);
 	   }
 	   */
 
 	/* Open a new file */
 	/*
 	   if(!(fp = fopen((*tmpFileName), "wb+"))) {
-	   PrintError(FnName,
-	   (*tmpFileName),
-	   "Could not open temporary file",
-	   Exit,
-	   OpenFileError);
+	   PrintError(FnName, (*tmpFileName), "Could not open temporary file", Exit, OpenFileError);
 	   }
 	   */
 
@@ -567,11 +519,7 @@ void CloseTmpFile(FILE **fp,
 	/* Remove the file */
 	assert((*tmpFileName)!=NULL);
 	if(0!=remove((*tmpFileName))) {
-		PrintError(FnName,
-				(*tmpFileName),
-				"Could not delete temporary file",
-				Exit,
-				DeleteFileError);
+		PrintError(FnName, (*tmpFileName), "Could not delete temporary file", Exit, DeleteFileError);
 	}
 
 	/* Free file name */
@@ -590,11 +538,7 @@ gzFile OpenTmpGZFile(char *tmpDir,
 	/* Allocate memory */
 	(*tmpFileName) = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 	if(NULL == (*tmpFileName)) {
-		PrintError(FnName,
-				"tmpFileName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tmpFileName", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Create the templated */
@@ -610,18 +554,10 @@ gzFile OpenTmpGZFile(char *tmpDir,
 			/* Remove the file and close */
 			unlink((*tmpFileName));
 			close(fd);
-			PrintError(FnName,
-					(*tmpFileName),
-					"Could not open temporary file",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, (*tmpFileName), "Could not open temporary file", Exit, OpenFileError);
 		}
 		else {
-			PrintError(FnName,
-					(*tmpFileName),
-					"Could not create a tmp file name",
-					Exit,
-					IllegalFileName);
+			PrintError(FnName, (*tmpFileName), "Could not create a tmp file name", Exit, IllegalFileName);
 		}
 	}
 
@@ -644,11 +580,7 @@ void CloseTmpGZFile(gzFile *fp,
 		/* Remove the file */
 		assert((*tmpFileName)!=NULL);
 		if(0!=remove((*tmpFileName))) {
-			PrintError(FnName,
-					(*tmpFileName),
-					"Could not delete temporary file",
-					Exit,
-					DeleteFileError);
+			PrintError(FnName, (*tmpFileName), "Could not delete temporary file", Exit, DeleteFileError);
 		}
 
 		/* Free file name */
@@ -798,11 +730,7 @@ int UpdateRead(char *read, int readLength, int space)
 					break;
 				case '\r':
 				case '\n':
-					PrintError(FnName,
-							"read[i]",
-							"Read was improperly trimmed",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "read[i]", "Read was improperly trimmed", Exit, OutOfRange);
 					break;
 				default:
 					return 0;
@@ -832,11 +760,7 @@ int UpdateRead(char *read, int readLength, int space)
 					break;
 				case '\r':
 				case '\n':
-					PrintError(FnName,
-							"read[i]",
-							"Read was improperly trimmed",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "read[i]", "Read was improperly trimmed", Exit, OutOfRange);
 					break;
 				default:
 					return 0;
@@ -863,11 +787,7 @@ int CheckReadAgainstIndex(RGIndex *index,
 			case 1:
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand return value of CheckReadBase",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand return value of CheckReadBase", Exit, OutOfRange);
 				break;
 		}
 	}
@@ -1030,11 +950,7 @@ int ConvertReadFromColorSpace(char *read,
 	prevBase=read[0];
 	for(i=0;i<readLength-1;i++) { 
 		if(0 == ConvertBaseAndColor(prevBase, read[i+1], &read[i])) {
-			PrintError(FnName,
-					"read",
-					"Could not convert base and color",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "read", "Could not convert base and color", Exit, OutOfRange);
 		}
 		/* If the base is an 'N', meaning the color was a '4' (uncalled), then
 		 * use the previously non-N base as the previous base (this will be
@@ -1096,11 +1012,7 @@ void ConvertReadToColorSpace(char **read,
 
 	tempRead = malloc(sizeof(char)*(1 + (*readLength)));
 	if(NULL == tempRead) {
-		PrintError(FnName, 
-				"tempRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tempRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Initialize */
@@ -1109,11 +1021,7 @@ void ConvertReadToColorSpace(char **read,
 		fprintf(stderr, "tempRead[0]=%c\t(*read)[0]=%c\n", 
 				tempRead[0],
 				(*read)[0]);
-		PrintError(FnName, 
-				NULL,
-				"Could not initialize color",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Could not initialize color", Exit, OutOfRange);
 	}
 
 	/* Convert to colors represented as integers */
@@ -1123,11 +1031,7 @@ void ConvertReadToColorSpace(char **read,
 					(*read)[i-1],
 					(*read)[i],
 					(*read));
-			PrintError(FnName, 
-					NULL,
-					"Could not convert base to color space",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Could not convert base to color space", Exit, OutOfRange);
 		}
 	}
 
@@ -1143,11 +1047,7 @@ void ConvertReadToColorSpace(char **read,
 	/* Reallocate read to make sure */
 	(*read) = realloc((*read), sizeof(char)*(1 + (*readLength)));
 	if((*read)==NULL) {
-		PrintError(FnName,
-				"(*read)",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "(*read)", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	strcpy((*read), tempRead);
@@ -1177,11 +1077,7 @@ void NormalizeRead(char **read,
 					prevOldBase,
 					(*read)[i],
 					(*read));
-			PrintError(FnName,
-					NULL,
-					"Could not convert base to color space",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Could not convert base to color space", Exit, OutOfRange);
 		}
 		prevOldBase = (*read)[i];
 		/* Convert to NT space but using the new previous NT and current color */
@@ -1190,11 +1086,7 @@ void NormalizeRead(char **read,
 					prevNewBase,
 					(*read)[i],
 					(*read));
-			PrintError(FnName,
-					NULL,
-					"Could not convert base and color",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Could not convert base and color", Exit, OutOfRange);
 		}
 		prevNewBase = (*read)[i];
 	}
@@ -1238,30 +1130,18 @@ void NormalizeColorSpaceRead(char *read,
 			firstColor=4;
 			break;
 		default:
-			PrintError(FnName,
-					"read[1]",
-					"Could not recognize first color",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "read[1]", "Could not recognize first color", Exit, OutOfRange);
 			break;
 	}
 
 	/* Get first base */
 	if(0 == ConvertBaseAndColor(read[0], firstColor, &firstBase)) {
-		PrintError(FnName,
-				NULL,
-				"Could not convert base and color",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Could not convert base and color", Exit, OutOfRange);
 	}
 	/* Now rencode first color */
 	read[0] = startNT; 
 	if(0 == ConvertBaseToColorSpace(read[0], firstBase, &firstColor)) {
-		PrintError(FnName,
-				NULL,
-				"Could not convert base to color space",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Could not convert base to color space", Exit, OutOfRange);
 	}
 	read[1] = COLORS[(int)firstColor];
 }
@@ -1431,19 +1311,11 @@ void AdjustBounds(RGBinary *rg,
 
 	/* Check that the start and end bounds are ok */
 	if((*startContig) > (*endContig)) {
-		PrintError(FnName,
-				NULL,
-				"The start contig is greater than the end contig",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "The start contig is greater than the end contig", Exit, OutOfRange);
 	}
 	else if((*startContig) == (*endContig) &&
 			(*startPos) > (*endPos)) {
-		PrintError(FnName,
-				NULL,
-				"The start position is greater than the end position on the same contig",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "The start position is greater than the end position on the same contig", Exit, OutOfRange);
 	}
 }
 
@@ -1497,11 +1369,7 @@ void StringCopyAndReallocate(char **dest, const char *src)
 	/* Reallocate dest */
 	(*dest) = realloc((*dest), sizeof(char*)*((int)strlen(src)));
 	if(NULL==(*dest)) {
-		PrintError(FnName,
-				"(*dest)",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "(*dest)", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	/* Copy */
 	strcpy((*dest), src);
@@ -1553,11 +1421,7 @@ void ParsePackageVersion(char *packageVersion,
 				v1,
 				v2,
 				v3)) {
-		PrintError(FnName,
-				packageVersion,
-				"Could not parse package version",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, packageVersion, "Could not parse package version", Exit, OutOfRange);
 	}
 }
 
@@ -1579,29 +1443,17 @@ void CheckPackageCompatibility(char *packageVersion, int fileType)
 						version[0],
 						version[1],
 						version[2]);
-				PrintError(FnName,
-						packageVersion,
-						"File was created using too old of a package",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, packageVersion, "File was created using too old of a package", Exit, OutOfRange);
 			}
 			break;
 		case BFASTIndexFile:
 			if(version[0] < 0 ||
 					version[1] < 2) {
-				PrintError(FnName,
-						packageVersion,
-						"File was created using too old of a package",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, packageVersion, "File was created using too old of a package", Exit, OutOfRange);
 			}
 			break;
 		default:
-			PrintError(FnName,
-					"fileType",
-					"Unrecognized file type given",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "fileType", "Unrecognized file type given", Exit, OutOfRange);
 	}
 }
 
@@ -1740,18 +1592,10 @@ void ParseRange(Range *r,
 				&r->contigEnd,
 				&r->positionStart,
 				&r->positionEnd)) {
-		PrintError(FnName,
-				string,
-				"Could not parse string.  Should be in %d-%d:%d-%d format",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, string, "Could not parse string.  Should be in %d-%d:%d-%d format", Exit, OutOfRange);
 	}
 	if(CompareContigPos(r->contigEnd, r->positionEnd, r->contigStart, r->positionStart) < 0) {
-		PrintError(FnName,
-				string,
-				"End range was out of bounds",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, string, "End range was out of bounds", Exit, OutOfRange);
 	}
 }
 
@@ -1889,11 +1733,7 @@ char *GetBRGFileName(char *fastaFileName, int32_t space)
 
 	rgFileName=malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 	if(NULL == rgFileName) {
-		PrintError(FnName,
-				"rgFileName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "rgFileName", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	sprintf(rgFileName, "%s.%s.%s",
@@ -1915,11 +1755,7 @@ char *GetBIFName(char *fastaFileName,
 
 	bifName=malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 	if(NULL == bifName) {
-		PrintError(FnName,
-				"bifName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "bifName", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	sprintf(bifName, "%s.%s.%d.%d.%s",

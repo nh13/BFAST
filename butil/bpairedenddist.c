@@ -45,11 +45,7 @@ int main(int argc, char *argv[])
 		b.numCounts += (int32_t)(b.maxDistance - b.minDistance + 1)/b.binSize;
 		b.counts = calloc(b.numCounts, sizeof(int32_t));
 		if(NULL == b.counts) {
-			PrintError(Name,
-					"b.counts",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(Name, "b.counts", "Could not allocate memory", Exit, MallocMemory);
 		}
 
 		for(i=5;i<argc;i++) {
@@ -59,11 +55,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Reading in from %s.\n",
 					inputFileName);
 			if(!(fpIn=gzopen(inputFileName, "rb"))) {
-				PrintError(Name,
-						inputFileName,
-						"Could not open file for reading",
-						Exit,
-						OpenFileError);
+				PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 			}
 			fprintf(stderr, "%s", BREAK_LINE);
 
@@ -76,11 +68,7 @@ int main(int argc, char *argv[])
 						&b);
 			}
 			else {
-				PrintError(Name,
-						"input file",
-						"Could not recognize input file extension",
-						Warn,
-						OutOfRange);
+				PrintError(Name, "input file", "Could not recognize input file extension", Warn, OutOfRange);
 			}
 			fprintf(stderr, "%s", BREAK_LINE);
 
@@ -96,11 +84,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Writing to %s.\n",
 				outputFileName);
 		if(!(fpOut=fopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError(Name, outputFileName, "Could not open file for writing", Exit, OpenFileError);
 		}
 		BinsPrint(&b, fpOut);
 		fclose(fpOut);
@@ -145,11 +129,7 @@ void PrintDistributionFromBMF(gzFile fpIn,
 		}
 		if(2 != m.numEnds && 0 == warnUnpaired) {
 			warnUnpaired=1;
-			PrintError(FnName,
-					"m.numEnds",
-					"Data includes non paired end",
-					Warn,
-					OutOfRange);
+			PrintError(FnName, "m.numEnds", "Data includes non paired end", Warn, OutOfRange);
 		}
 		else {
 			/* Only use found sequences on the same contig and strand */
@@ -207,11 +187,7 @@ void PrintDistributionFromBAF(gzFile fpIn,
 		}
 		if(2 != a.numEnds && 0 == warnUnpaired) {
 			warnUnpaired = 1;
-			PrintError(FnName,
-					"a.numEnds",
-					"Data includes non paired end",
-					Warn,
-					OutOfRange);
+			PrintError(FnName, "a.numEnds", "Data includes non paired end", Warn, OutOfRange);
 		}
 		else {
 			/* Only use found sequences on the same contig and strand */

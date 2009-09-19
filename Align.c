@@ -122,27 +122,15 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 
 	references = malloc(sizeof(char*)*m->numEntries);
 	if(NULL==references) {
-		PrintError(FnName,
-				"references",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "references", "Could not allocate memory", Exit, MallocMemory);
 	}
 	referenceLengths = malloc(sizeof(int32_t)*m->numEntries);
 	if(NULL==referenceLengths) {
-		PrintError(FnName,
-				"referenceLengths",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "referenceLengths", "Could not allocate memory", Exit, MallocMemory);
 	}
 	referencePositions = malloc(sizeof(int32_t)*m->numEntries);
 	if(NULL==referencePositions) {
-		PrintError(FnName,
-				"referencePositions",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "referencePositions", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for((*numAligned)=0,i=0,ctr=0;i<m->numEntries;i++) {
 		references[ctr]=NULL; /* This is needed for RGBinaryGetReference */
@@ -162,11 +150,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			end->entries[ctr].contigNameLength = rg->contigs[m->contigs[i]-1].contigNameLength;
 			end->entries[ctr].contigName = malloc(sizeof(char)*(end->entries[ctr].contigNameLength+1));
 			if(NULL==end->entries[ctr].contigName) {
-				PrintError(FnName,
-						"end->entries[ctr].contigName",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "end->entries[ctr].contigName", "Could not allocate memory", Exit, MallocMemory);
 			}
 			strcpy(end->entries[ctr].contigName, rg->contigs[m->contigs[i]-1].contigName);
 			end->entries[ctr].contig = m->contigs[i];
@@ -322,30 +306,18 @@ int32_t AlignExact(char *read,
 		assert(NULL==a->read);
 		a->read = malloc(sizeof(char)*(a->length+1));
 		if(NULL==a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 		}
 		assert(NULL==a->reference);
 		a->reference = malloc(sizeof(char)*(a->length+1));
 		if(NULL==a->reference) {
-			PrintError(FnName,
-					"a->reference",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 		}
 		assert(NULL==a->colorError);
 		if(ColorSpace == space) {
 			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL==a->colorError) {
-				PrintError(FnName,
-						"a->colorError",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
 			}
 		}
 
@@ -353,11 +325,7 @@ int32_t AlignExact(char *read,
 			if(ColorSpace == space) {
 				char curColor='X';
 				if(0 == ConvertBaseToColorSpace(prevReadBase, read[i], &curColor)) {
-					PrintError(FnName,
-							"curColor",
-							"Could not convert base to color space",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 				}
 				/* Add score for color error, if any */
 				a->score += ScoringMatrixGetColorScore(curColor,
@@ -414,11 +382,7 @@ void AlignMismatchesOnly(char *read,
 					position);
 			break;
 		default:
-			PrintError(FnName,
-					"space",
-					"Could not understand space",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);
 			break;
 	}
 }
@@ -472,11 +436,7 @@ void AlignFullWithBound(char *read,
 		maxH = GETMIN(maxH, readLength);
 		maxV = GETMIN(maxV, readLength);
 		/*
-		   PrintError(FnName,
-		   PACKAGE_BUGREPORT,
-		   "This is currently not implemented, please report",
-		   Exit,
-		   OutOfRange);
+		   PrintError(FnName, PACKAGE_BUGREPORT, "This is currently not implemented, please report", Exit, OutOfRange);
 		   */
 	}
 	if(maxH == 0 && maxV == 0) {
@@ -522,11 +482,7 @@ void AlignFullWithBound(char *read,
 					maxV);
 			break;
 		default:
-			PrintError(FnName,
-					"space",
-					"Could not understand space",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);
 			break;
 	}
 }
@@ -545,11 +501,7 @@ int32_t AlignRGMatchesKeepBestScore(AlignedEnd *end,
 			numLocalAlignments++;
 		}
 		if(bestScore < end->entries[i].score) {
-			PrintError(FnName,
-					"bestScore",
-					"Best score is incorrect",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "bestScore", "Best score is incorrect", Exit, OutOfRange);
 		}
 		else if(!(end->entries[i].score < bestScore)) {
 			/* Free */
@@ -566,11 +518,7 @@ int32_t AlignRGMatchesKeepBestScore(AlignedEnd *end,
 	end->numEntries = curIndex;
 	end->entries = realloc(end->entries, sizeof(AlignedEntry*)*end->numEntries);
 	if(NULL == end->entries) {
-		PrintError(FnName,
-				"end->entries",
-				"Could not reallocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "end->entries", "Could not reallocate memory", Exit, MallocMemory);
 	}
 
 	return numLocalAlignments;

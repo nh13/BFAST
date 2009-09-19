@@ -93,32 +93,20 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	if(a->read == NULL) {
 		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(a->reference == NULL) {
 		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == a->reference) {
-			PrintError(FnName,
-					"a->reference",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(space == ColorSpace) {
 		if(a->colorError == NULL) {
 			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == a->colorError) {
-				PrintError(FnName,
-						"a->colorError",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
 			}
 		}
 	}
@@ -129,11 +117,7 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	/* Copy over contig name */
 	a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
 	if(NULL==a->contigName) {
-		PrintError(FnName,
-				"a->contigName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->contigName", "Could not allocate memory", Exit, MallocMemory);
 	}
 	if(gzread64(inputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
 			gzread64(inputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
@@ -162,30 +146,18 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	assert(a->length > 0);
 	a->read = realloc(a->read, sizeof(char)*(a->length+1));
 	if(NULL == a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "a->read", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	/* Reference */
 	a->reference = realloc(a->reference, sizeof(char)*(a->length+1));
 	if(NULL == a->reference) {
-		PrintError(FnName,
-				"a->reference",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "a->reference", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	/* Color error, if necessary */
 	if(space == ColorSpace) {
 		a->colorError = realloc(a->colorError, sizeof(char)*(a->length+1));
 		if(NULL == a->colorError) {
-			PrintError(FnName,
-					"a->colorError",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "a->colorError", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 	}
 	else {
@@ -216,32 +188,20 @@ int32_t AlignedEntryReadText(AlignedEntry *a,
 	if(a->read == NULL) {
 		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(a->reference == NULL) {
 		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == a->reference) {
-			PrintError(FnName,
-					"a->reference",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(space == ColorSpace) {
 		if(a->colorError == NULL) {
 			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
 			if(NULL == a->colorError) {
-				PrintError(FnName,
-						"a->colorError",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
 			}
 		}
 	}
@@ -262,11 +222,7 @@ int32_t AlignedEntryReadText(AlignedEntry *a,
 	a->contigNameLength = (int)strlen(tempContigName);
 	a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
 	if(NULL==a->contigName) {
-		PrintError(FnName,
-				"a->contigName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->contigName", "Could not allocate memory", Exit, MallocMemory);
 	}
 	strcpy(a->contigName, tempContigName);
 
@@ -289,30 +245,18 @@ int32_t AlignedEntryReadText(AlignedEntry *a,
 	assert(a->length > 0);
 	a->read = realloc(a->read, sizeof(char)*(a->length+1));
 	if(NULL == a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "a->read", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	/* Reference */
 	a->reference = realloc(a->reference, sizeof(char)*(a->length+1));
 	if(NULL == a->reference) {
-		PrintError(FnName,
-				"a->reference",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "a->reference", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	/* Color error, if necessary */
 	if(space == ColorSpace) {
 		a->colorError = realloc(a->colorError, sizeof(char)*(a->length+1));
 		if(NULL == a->colorError) {
-			PrintError(FnName,
-					"a->colorError",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "a->colorError", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 	}
 	else {
@@ -349,11 +293,7 @@ void AlignedEntryQuickSort(AlignedEntry **a,
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(AlignedEntry));
 		if(NULL == temp) {
-			PrintError(FnName,
-					"temp",
-					"Could not allocate temp",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "temp", "Could not allocate temp", Exit, MallocMemory);
 		}
 		AlignedEntryInitialize(temp);
 
@@ -474,11 +414,7 @@ void AlignedEntryMergeSort(AlignedEntry **a,
 	/* Allocate pointers */
 	tempEntries = malloc(sizeof(AlignedEntry)*(high-low+1));
 	if(NULL == tempEntries) {
-		PrintError(FnName,
-				"tempEntries",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tempEntries", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Initialize */
 	for(i=0;i<high-low+1;i++) {
@@ -592,11 +528,7 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 		/* Contig name */
 		dest->contigName = realloc(dest->contigName, sizeof(char)*(dest->contigNameLength+1));
 		if(NULL == dest->contigName) {
-			PrintError(FnName,
-					"dest->contigName",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "dest->contigName", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		assert(src->contigName != NULL);
 		strcpy(dest->contigName, src->contigName);
@@ -604,22 +536,14 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 		assert(src->length > 0);
 		dest->read = realloc(dest->read, sizeof(char)*(src->length+1));
 		if(NULL == dest->read) {
-			PrintError(FnName,
-					"dest->read",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "dest->read", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		assert(src->read != NULL);
 		strcpy(dest->read, src->read);
 		/* Reference */
 		dest->reference = realloc(dest->reference, sizeof(char)*(src->length+1));
 		if(NULL == dest->reference) {
-			PrintError(FnName,
-					"dest->reference",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "dest->reference", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		assert(src->reference!= NULL);
 		strcpy(dest->reference, src->reference);
@@ -628,11 +552,7 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 			assert(src->length > 0);
 			dest->colorError = realloc(dest->colorError, sizeof(char)*(src->length+1));
 			if(NULL == dest->colorError) {
-				PrintError(FnName,
-						"dest->colorError",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
+				PrintError(FnName, "dest->colorError", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			assert(src->colorError!= NULL);
 			strcpy(dest->colorError, src->colorError);
@@ -701,11 +621,7 @@ void AlignedEntryCheckReference(AlignedEntry *a, RGBinary *rg, int32_t space)
 						rgBase,
 						reference);
 				AlignedEntryPrintText(a, stderr, space);
-				PrintError(FnName,
-						NULL,
-						"Reference in the align entry does not match the reference genome",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Reference in the align entry does not match the reference genome", Exit, OutOfRange);
 			}
 			curPos++;
 		}

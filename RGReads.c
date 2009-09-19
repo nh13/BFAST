@@ -263,11 +263,7 @@ void RGReadsGeneratePerfectMatch(char *read,
 
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsPerfectMatchesHelper",
-				"curRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsPerfectMatchesHelper", "curRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Copy over */
 	for(i=offset;i<index->width + offset;i++) {
@@ -300,11 +296,7 @@ void RGReadsGenerateMismatches(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateMismatches",
-				"curRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsGenerateMismatches", "curRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	RGReadsGenerateMismatchesHelper(read,
@@ -416,11 +408,7 @@ void RGReadsGenerateDeletions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateDeletions",
-				"curRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsGenerateDeletions", "curRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	for(i=1;i<=numDeletions;i++) {
@@ -559,11 +547,7 @@ void RGReadsGenerateInsertions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(index->width+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateInsertions",
-				"curRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsGenerateInsertions", "curRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Try up to the number of insertions */
@@ -683,11 +667,7 @@ void RGReadsGenerateGapDeletions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(readLength+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateGapDeletions",
-				"curRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsGenerateGapDeletions", "curRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 	RGReadsGenerateGapDeletionsHelper(read,
 			readLength,
@@ -786,11 +766,7 @@ void RGReadsGenerateGapInsertions(char *read,
 	/* Allocate memory */
 	curRead = malloc(sizeof(char)*(readLength+1));
 	if(NULL == curRead) {
-		PrintError("RGReadsGenerateGapInsertions",
-				"curRead",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsGenerateGapInsertions", "curRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	RGReadsGenerateGapInsertionsHelper(read,
@@ -910,21 +886,13 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 		/* Allocate memory for the temp RGReads indexes */
 		temp = malloc(sizeof(RGReads));
 		if(NULL == temp) {
-			PrintError("RGReadsQuickSort",
-					"temp",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGReadsQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
 		RGReadsInitialize(temp);
 		RGReadsAllocate(temp, 1);
 		temp->reads[0] = malloc(sizeof(char)*SEQUENCE_LENGTH);
 		if(NULL == temp->reads[0]) {
-			PrintError("RGReadsQuickSort",
-					"temp->reads[0]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGReadsQuickSort", "temp->reads[0]", "Could not allocate memory", Exit, MallocMemory);
 		}
 		temp->reads[0][0]='\0';
 		assert(temp->numReads == 1);
@@ -994,27 +962,15 @@ void RGReadsAllocate(RGReads *reads, int numReads)
 	reads->numReads = numReads;
 	reads->reads = malloc(sizeof(char*)*reads->numReads);
 	if(NULL == reads->reads) {
-		PrintError("RGReadsAllocate",
-				"reads->reads",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsAllocate", "reads->reads", "Could not allocate memory", Exit, MallocMemory);
 	}
 	reads->readLength= malloc(sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->readLength) {
-		PrintError("RGReadsAllocate",
-				"reads->readLength",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsAllocate", "reads->readLength", "Could not allocate memory", Exit, MallocMemory);
 	}
 	reads->offset = malloc(sizeof(int32_t)*(reads->numReads));
 	if(NULL == reads->offset) {
-		PrintError("RGReadsAllocate",
-				"reads->offset",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("RGReadsAllocate", "reads->offset", "Could not allocate memory", Exit, MallocMemory);
 	}
 }
 
@@ -1031,27 +987,15 @@ void RGReadsReallocate(RGReads *reads, int numReads)
 		reads->numReads = numReads;
 		reads->reads = realloc(reads->reads, sizeof(char*)*(reads->numReads));
 		if(NULL == reads->reads) {
-			PrintError("RGReadsReallocate",
-					"reads->reads",
-					"Could not reallocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGReadsReallocate", "reads->reads", "Could not reallocate memory", Exit, MallocMemory);
 		}
 		reads->readLength = realloc(reads->readLength, sizeof(int32_t)*(reads->numReads));
 		if(NULL == reads->readLength) {
-			PrintError("RGReadsReallocate",
-					"reads->readLength",
-					"Could not reallocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGReadsReallocate", "reads->readLength", "Could not reallocate memory", Exit, MallocMemory);
 		}
 		reads->offset = realloc(reads->offset, sizeof(int32_t)*(reads->numReads));
 		if(NULL == reads->offset) {
-			PrintError("RGReadsReallocate",
-					"reads->offset",
-					"Could not reallocate memory",
-					Exit,
-					MallocMemory);
+			PrintError("RGReadsReallocate", "reads->offset", "Could not reallocate memory", Exit, MallocMemory);
 		}
 	}
 	else {
@@ -1094,11 +1038,7 @@ void RGReadsAppend(RGReads *reads,
 	/* Allocate memory for read */
 	reads->reads[reads->numReads-1] = malloc(sizeof(char)*(readLength+1));
 	if(NULL == reads->reads[reads->numReads-1]) {
-		PrintError(FnName,
-				"reads->reads[reads->numReads-1]",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "reads->reads[reads->numReads-1]", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Copy over */
 	strcpy(reads->reads[reads->numReads-1], read);

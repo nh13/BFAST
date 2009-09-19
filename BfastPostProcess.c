@@ -20,15 +20,15 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescInputFileName, 
+	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
 	DescAlgoTitle, DescAlgorithm, DescQueueLength, 
-	DescOutputTitle, DescOutputID, DescOutputDir, DescOutputFormat, DescTiming,
+	DescOutputTitle, DescOutputFormat, DescOutputID, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"brgFileName", 'r', "brgFileName", 0, "Specifies the file name of the reference genome file (not required for BAF output)", 1},
+	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
@@ -39,19 +39,19 @@ static struct argp_option options[] = {
 			"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
-	{0, 0, 0, 0, "=========== Output Options ==========================================================", 6},
-	{"outputID", 'o', "outputID", 0, "Specifies the ID tag to identify the output files", 6},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 6},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 6},
-	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 6},
-	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 7},
-	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 7},
-	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 7},
+	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
+	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments into this file (always BAF format)", 3},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 3},
+	{"outputID", 'o', "outputID", 0, "Specifies output ID to append to the read name (SAM output only)", 3},
+	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
+	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
+	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
+	{"Help", 'h', 0, OPTION_NO_USAGE, "Display usage summary", 4},
 	{0, 0, 0, 0, 0, 0}
 };
 
 static char OptionString[]=
-"a:d:i:o:r:O:hpt";
+"a:i:f:o:u:O:Q:hpt";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -81,11 +81,7 @@ BfastPostProcess(int argc, char **argv)
 						fprintf(stderr, BREAK_LINE);
 					}
 					else {
-						PrintError("PrintError",
-								NULL,
-								"validating command-line inputs",
-								Exit,
-								InputArguments);
+						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
 					}
 					BfastPostProcessPrintProgramParameters(stderr, &arguments);
 					/* Execute program */
@@ -93,15 +89,15 @@ BfastPostProcess(int argc, char **argv)
 						/* Read binary */
 						RGBinaryReadBinary(&rg,
 								NTSpace,
-								arguments.brgFileName);
+								arguments.fastaFileName);
 					}
 					ReadInputFilterAndOutput(&rg,
 							arguments.alignFileName,
 							arguments.algorithm,
 							arguments.queueLength,
+							arguments.outputFormat,
 							arguments.outputID,
-							arguments.outputDir,
-							arguments.outputFormat);
+							arguments.unmappedFileName);
 					if(BAF != arguments.outputFormat) {
 						/* Free rg binary */
 						RGBinaryDelete(&rg);
@@ -125,20 +121,12 @@ BfastPostProcess(int argc, char **argv)
 					fprintf(stderr, "%s", BREAK_LINE);
 					break;
 				default:
-					PrintError("PrintError",
-							"programMode",
-							"Could not determine program mode",
-							Exit,
-							OutOfRange);
+					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
 			}
 
 		}
 		else {
-			PrintError("PrintError",
-					NULL,
-					"Could not parse command line argumnets",
-					Exit,
-					InputArguments);
+			PrintError("PrintError", NULL, "Could not parse command line argumnets", Exit, InputArguments);
 		}
 		/* Free program parameters */
 		BfastPostProcessFreeProgramParameters(&arguments);
@@ -157,52 +145,44 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->brgFileName!=0) {
-		fprintf(stderr, "Validating brgFileName %s. \n",
-				args->brgFileName);
-		if(ValidateFileName(args->brgFileName)==0)
-			PrintError(FnName, "brgFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->fastaFileName!=0) {
+		fprintf(stderr, "Validating fastaFileName %s. \n",
+				args->fastaFileName);
+		if(ValidateFileName(args->fastaFileName)==0)
+			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	else {
+		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);
 	}
 
-	if(args->alignFileName!=0) {
-		fprintf(stderr, "Validating alignFileName %s. \n",
+	if(args->alignFileName!=0) {		
+		fprintf(stderr, "Validating alignFileName %s. \n", 
 				args->alignFileName);
 		if(ValidateFileName(args->alignFileName)==0)
-			PrintError(FnName, "alignFileName", "Command line argument", Exit, IllegalFileName);
-	}
+			PrintError(FnName, "alignFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
 
-	if(args->algorithm < MIN_FILTER || 
+	if(args->algorithm < MIN_FILTER || 			
 			args->algorithm > MAX_FILTER) {
-		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->queueLength<=0) {
+		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->queueLength<=0) {		
 		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->outputID!=0) {
-		fprintf(stderr, "Validating outputID %s. \n",
-				args->outputID);
-		if(ValidateFileName(args->outputID)==0)
-			PrintError(FnName, "outputID", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->outputDir!=0) {
-		fprintf(stderr, "Validating outputDir path %s. \n",
-				args->outputDir);
-		if(ValidateFileName(args->outputDir)==0)
-			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(!(args->outputFormat == BAF ||
+	if(!(args->outputFormat == BAF ||				
 				args->outputFormat == MAF ||
 				args->outputFormat == GFF ||
 				args->outputFormat == SAM)) {
-		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);
-	}
-
+		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->unmappedFileName!=0) {		
+		fprintf(stderr, "Validating alignFileName %s. \n", 
+				args->unmappedFileName);
+		if(ValidateFileName(args->unmappedFileName)==0)
+			PrintError(FnName, "unmappedFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
 	assert(args->timing == 0 || args->timing == 1);
-
 	return 1;
 }
 
@@ -214,30 +194,15 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->brgFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->brgFileName!=0);
-	strcpy(args->brgFileName, DEFAULT_FILENAME);
-
-	args->alignFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->alignFileName!=0);
-	strcpy(args->alignFileName, DEFAULT_FILENAME);
+	args->fastaFileName = NULL;
+	args->alignFileName = NULL;
 
 	args->algorithm=0;
 	args->queueLength=DEFAULT_QUEUE_LENGTH;
 
-	args->outputID = 
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
-	assert(args->outputID!=0);
-	strcpy(args->outputID, DEFAULT_OUTPUT_ID);
-
-	args->outputDir =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
-	assert(args->outputDir!=0);
-	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
-
 	args->outputFormat=BAF;
+	args->unmappedFileName=NULL;
+	args->outputID=NULL;
 
 	args->timing = 0;
 
@@ -254,13 +219,13 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "brgFileName:\t\t%s\n", args->brgFileName);
+	fprintf(fp, "fastaFileName:\t\t%s\n", args->fastaFileName);
 	fprintf(fp, "alignFileName:\t\t%s\n", args->alignFileName);
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
 	fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
-	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
-	fprintf(fp, "outputDir:\t\t%s\n", args->outputDir);
 	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
+	fprintf(fp, "unmappedFileName:\t\t%s\n", args->unmappedFileName);
+	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "timing:\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -269,14 +234,14 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 /* TODO */
 void BfastPostProcessFreeProgramParameters(struct arguments *args)
 {
-	free(args->brgFileName);
-	args->brgFileName=NULL;
+	free(args->fastaFileName);
+	args->fastaFileName=NULL;
 	free(args->alignFileName);
 	args->alignFileName=NULL;
+	free(args->unmappedFileName);
+	args->unmappedFileName=NULL;
 	free(args->outputID);
 	args->outputID=NULL;
-	free(args->outputDir);
-	args->outputDir=NULL;
 }
 
 /* TODO */
@@ -319,23 +284,21 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 		switch (key) {
 			case 'a':
 				arguments->algorithm = atoi(optarg);break;
-			case 'd':
-				StringCopyAndReallocate(&arguments->outputDir, optarg);
-				break;
+			case 'f':
+				arguments->fastaFileName=strdup(optarg);break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp;break;
 			case 'i':
-				StringCopyAndReallocate(&arguments->alignFileName, optarg);
+				arguments->alignFileName=strdup(optarg);break;
 				break;
 			case 'o':
-				StringCopyAndReallocate(&arguments->outputID, optarg);
-				break;
+				arguments->outputID=strdup(optarg);break;
 			case 'p':
 				arguments->programMode=ExecutePrintProgramParameters;break;
-			case 'r':
-				StringCopyAndReallocate(&arguments->brgFileName, optarg);break;
 			case 't':
 				arguments->timing = 1;break;
+			case 'u':
+				arguments->unmappedFileName=strdup(optarg);break;
 			case 'O':
 				switch(atoi(optarg)) {
 					case 0:

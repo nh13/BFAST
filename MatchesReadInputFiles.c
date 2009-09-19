@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -33,29 +32,17 @@ int GetNextRead(FILE *fp,
 	StringTrimWhiteSpace(readName);
 	/* Read in sequence */
 	if(NULL==fgets(read, SEQUENCE_LENGTH-1, fp)) {
-		PrintError(FnName, 
-				"read",
-				"Could not read in read",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "read", "Could not read in read", Exit, ReadFileError);
 	}
 	StringTrimWhiteSpace(read);
 	/* Read in comment line */
 	if(NULL==fgets(comment, SEQUENCE_LENGTH-1, fp)) {
 		/* Ignore */
-		PrintError(FnName, 
-				"comment",
-				"Could not read in comment",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "comment", "Could not read in comment", Exit, ReadFileError);
 	}
 	/* Read in qualities */
 	if(NULL==fgets(qual, SEQUENCE_LENGTH-1, fp)) {
-		PrintError(FnName, 
-				"qual",
-				"Could not read in qualities",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "qual", "Could not read in qualities", Exit, ReadFileError);
 	}
 	StringTrimWhiteSpace(qual);
 
@@ -91,11 +78,7 @@ int GetRead(FILE *fp,
 			m->readNameLength = strlen(readName);
 			m->readName = malloc(sizeof(char)*(m->readNameLength+1));
 			if(NULL == m->readName) {
-				PrintError(FnName,
-						"m->readName",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "m->readName", "Could not allocate memory", Exit, MallocMemory);
 			}
 			strcpy(m->readName, readName);
 		}
@@ -107,31 +90,19 @@ int GetRead(FILE *fp,
 			m->numEnds++;
 			m->ends = realloc(m->ends, sizeof(RGMatch)*m->numEnds);
 			if(NULL == m->ends) {
-				PrintError(FnName,
-						"m->ends",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
+				PrintError(FnName, "m->ends", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			RGMatchInitialize(&m->ends[m->numEnds-1]);
 			m->ends[m->numEnds-1].readLength = strlen(read);
 			m->ends[m->numEnds-1].qualLength = strlen(qual);
 			m->ends[m->numEnds-1].read = malloc(sizeof(char)*(m->ends[m->numEnds-1].readLength+1));
 			if(NULL == m->ends[m->numEnds-1].read) {
-				PrintError(FnName,
-						"m->ends[m->numEnds-1].read",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "m->ends[m->numEnds-1].read", "Could not allocate memory", Exit, MallocMemory);
 			}
 			strcpy(m->ends[m->numEnds-1].read, read);
 			m->ends[m->numEnds-1].qual = malloc(sizeof(char)*(m->ends[m->numEnds-1].qualLength+1));
 			if(NULL == m->ends[m->numEnds-1].qual) {
-				PrintError(FnName,
-						"m->ends[m->numEnds-1].qual",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "m->ends[m->numEnds-1].qual", "Could not allocate memory", Exit, MallocMemory);
 			}
 			strcpy(m->ends[m->numEnds-1].qual, qual);
 		}
@@ -147,19 +118,11 @@ int GetRead(FILE *fp,
 		if(0 != feof(fp)) {
 			return EOF;
 		}
-		PrintError(FnName,
-				"0 == m->numEnds",
-				"Did not find any reads and qualities",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "0 == m->numEnds", "Did not find any reads and qualities", Exit, ReadFileError);
 	}
 
 	if(0 == IsValidRead(m, space)) {
-		PrintError(FnName,
-				NULL,
-				"The input read was not in the proper format",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "The input read was not in the proper format", Exit, OutOfRange);
 	}
 
 	return 1;
@@ -206,20 +169,12 @@ void WriteReadsToTempFile(FILE *seqFP,
 	do {
 		/* Get current file position */
 		if(0!=fgetpos(seqFP, &curFilePos)) {
-			PrintError(FnName,
-					"fgetpos",
-					"Could not get position in file",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "fgetpos", "Could not get position in file", Exit, OutOfRange);
 		}
 	} while(NULL!=fgets(curLine, MAX_HEADER_LENGTH, seqFP) && curLine[0]=='#');
 	/* Restore position */
 	if(0!=fsetpos(seqFP, &curFilePos)) {
-		PrintError(FnName,
-				"fsetpos",
-				"Could not set position in the file",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "fsetpos", "Could not set position in the file", Exit, OutOfRange);
 	}
 
 	(*numWritten)=0;
@@ -242,11 +197,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 
 			/* Print */
 			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write read",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write read", Exit, WriteFileError);
 			}
 			(*numWritten)++;
 
@@ -288,11 +239,7 @@ int ReadTempReadsAndOutput(gzFile tempOutputFP,
 			&tempOutputFileName,
 			0);
 	if(!(tempOutputFP=gzopen(tempOutputFileName, "rb"))) {
-		PrintError(FnName,
-				tempOutputFileName,
-				"Could not re-open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, tempOutputFileName, "Could not re-open file for reading", Exit, OpenFileError);
 	}
 
 	while(RGMatchesRead(tempOutputFP, 
@@ -312,11 +259,7 @@ int ReadTempReadsAndOutput(gzFile tempOutputFP,
 		else {
 			/* Put back in the read file */
 			if(EOF == WriteRead(tempSeqFP, &m)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write read.",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write read.", Exit, WriteFileError);
 			}
 			numReads++;
 		}
@@ -334,11 +277,7 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int space)
 	RGIndexRead(index, rgIndexFileName);
 
 	if(index->space != space) {
-		PrintError("space",
-				rgIndexFileName,
-				"The index has a different space parity than specified",
-				Exit,
-				OutOfRange);
+		PrintError("space", rgIndexFileName, "The index has a different space parity than specified", Exit, OutOfRange);
 	}
 }
 
@@ -366,10 +305,10 @@ int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char **
 			numIndexNumbers++;
 			indexNumbers=realloc(indexNumbers, sizeof(int32_t)*numIndexNumbers);
 			if(NULL == indexNumbers) {
-				PrintError(FnName, "indexNumbers", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			indexNumbers[numIndexNumbers-1]=atoi(pch);
-			if(0 == indexNumbers[numIndexNumbers-1]) {
+				PrintError(FnName, "indexNumbers", "Could not reallocate memory", Exit, ReallocMemory);			
+			}			
+			indexNumbers[numIndexNumbers-1]=atoi(pch);			
+			if(0 == indexNumbers[numIndexNumbers-1]) {				
 				PrintError(FnName, pch, "Could not understand index number", Exit, OutOfRange);
 			}
 			pch = strtok(NULL, ",");
@@ -379,28 +318,26 @@ int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char **
 			maxBin = GetBIFMaximumBin(prefix, indexNumbers[i]);
 			if(0 == maxBin) {
 				fprintf(stderr, "Index number: %d\n", indexNumbers[i]);
-				PrintError(FnName, NULL, "The index does not exist", Exit, OutOfRange);
-			}
-			(*fileNames) = realloc((*fileNames), sizeof(char*)*(numFiles+maxBin));
-			if(NULL == (*fileNames)) {
+				PrintError(FnName, NULL, "The index does not exist", Exit, OutOfRange);			
+			}			
+			(*fileNames) = realloc((*fileNames), sizeof(char*)*(numFiles+maxBin));			
+			if(NULL == (*fileNames)) {				
 				PrintError(FnName, "fileNames", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			/* Insert file names */
 			for(j=1;j<=maxBin;j++) {
 				(*fileNames)[numFiles] = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 				if(NULL == (*fileNames)[numFiles]) {
-					PrintError(FnName, "fileNames[j]", "Could not allocate memory", Exit, MallocMemory);
-				}
-				sprintf((*fileNames)[numFiles], "%s.%d.%d.%s",
-						prefix,
-						indexNumbers[i],
+					PrintError(FnName, "fileNames[j]", "Could not allocate memory", Exit, MallocMemory);				
+				}				
+				sprintf((*fileNames)[numFiles], "%s.%d.%d.%s", prefix, indexNumbers[i], 
 						j,
 						BFAST_INDEX_FILE_EXTENSION);
 				if(0 == FileExists((*fileNames)[numFiles])) {
-					PrintError(FnName, (*fileNames)[numFiles], "The index does not exist", Exit, OutOfRange);
-				}
-				numFiles++;
-			}
+					PrintError(FnName, (*fileNames)[numFiles], "The index does not exist", Exit, OutOfRange);				
+				}				
+				numFiles++;			
+			}		
 		}
 		free(indexNumbers);
 	}
@@ -414,24 +351,22 @@ int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char **
 			}
 			(*fileNames) = realloc((*fileNames), sizeof(char*)*(numFiles+maxBin));
 			if(NULL == (*fileNames)) {
-				PrintError(FnName, "fileNames", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			/* Insert file names */
-			for(j=1;j<=maxBin;j++) {
+				PrintError(FnName, "fileNames", "Could not reallocate memory", Exit, ReallocMemory);			
+			}			
+			/* Insert file names */			
+			for(j=1;j<=maxBin;j++) {				
 				(*fileNames)[numFiles] = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
 				if(NULL == (*fileNames)[numFiles]) {
-					PrintError(FnName, "fileNames[j]", "Could not allocate memory", Exit, MallocMemory);
-				}
-				sprintf((*fileNames)[numFiles], "%s.%d.%d.%s",
-						prefix,
-						i,
+					PrintError(FnName, "fileNames[j]", "Could not allocate memory", Exit, MallocMemory);				
+				}				
+				sprintf((*fileNames)[numFiles], "%s.%d.%d.%s", prefix, i, 
 						j,
 						BFAST_INDEX_FILE_EXTENSION);
 				if(0 == FileExists((*fileNames)[numFiles])) {
-					PrintError(FnName, (*fileNames)[numFiles], "Missing Bin: The index does not exist", Exit, OutOfRange);
-				}
-				numFiles++;
-			}
+					PrintError(FnName, (*fileNames)[numFiles], "Missing Bin: The index does not exist", Exit, OutOfRange);				
+				}				
+				numFiles++;			
+			}			
 			i++;
 			numIndexNumbers++;
 		}
@@ -439,17 +374,15 @@ int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char **
 	}
 
 	if(0 == numIndexNumbers) {
-		PrintError(FnName, prefix, "Could not find any indexes with the given prefix", Exit, OutOfRange);
-	}
-
+		PrintError(FnName, prefix, "Could not find any indexes with the given prefix", Exit, OutOfRange);	
+	}	
 	//for(i=0;i<numFiles;i++) fprintf(stderr, "f[%d]=[%s]\n", i, (*fileNames)[i]);
-
 	if(VERBOSE>=0) {
 		if(1 == numIndexNumbers && 1 == numFiles) fprintf(stderr, "Found %d index (%d file).\n", numIndexNumbers, numFiles);
 		else if(1 == numIndexNumbers && 1 != numFiles) fprintf(stderr, "Found %d index (%d total files).\n", numIndexNumbers, numFiles);
 		else fprintf(stderr, "Found %d index (%d total files).\n", numIndexNumbers, numFiles);
 	}
-	
+
 	return numFiles;
 }
 
@@ -466,12 +399,12 @@ int ReadOffsets(char *offsetsInput, int **offsets)
 		(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
 		(*offsets)[numOffsets-1] = atoi(pch);
 		if(0 == pch) {
-			PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);
+			PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);		
+		}		
+		else if((*offsets)[numOffsets-1] < 0) {			
+			PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);		
 		}
-		else if((*offsets)[numOffsets-1] < 0) {
-			PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);
-		}
-			pch = strtok(NULL, ",");
+		pch = strtok(NULL, ",");
 	}
 	assert(numOffsets>0);
 
@@ -495,4 +428,3 @@ int32_t GetReads(FILE *fp, RGMatches *m, int32_t maxToRead, int32_t space)
 	}
 	return numRead;
 }
-

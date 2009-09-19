@@ -23,6 +23,11 @@
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
 #define RGINDEXLAYOUT_MAX_HASH_WIDTH 18
 
+/* Program Default Command-line parameters */
+#define MAX_KEY_MATCHES 8
+#define MAX_NUM_MATCHES 384
+#define OFFSET_LENGTH 20
+
 /* Testing/Debug */
 #define TEST_RGINDEX_SORT 0
 

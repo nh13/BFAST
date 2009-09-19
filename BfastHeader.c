@@ -31,11 +31,7 @@ int BfastHeader(int argc, char *argv[])
 				RGIndexPrintInfo(inputFileName);
 			}
 			else {
-				PrintError(Name,
-						"input file",
-						"Could not recognize input file extension",
-						Warn,
-						OutOfRange);
+				PrintError(Name, "input file", "Could not recognize input file extension", Warn, OutOfRange);
 			}
 			fprintf(stderr, "%s", BREAK_LINE);
 		}

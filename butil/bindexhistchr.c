@@ -215,38 +215,22 @@ void PrintHistogram(RGIndex *index,
 	/* Allocate memory for the thread starts and ends */
 	starts = malloc(sizeof(int64_t)*numThreads);
 	if(NULL == starts) {
-		PrintError(FnName,
-				"starts",
-				"Could not allocate memory",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "starts", "Could not allocate memory", Exit, OutOfRange);
 	}
 	ends = malloc(sizeof(int64_t)*numThreads);
 	if(NULL == ends) {
-		PrintError(FnName,
-				"ends",
-				"Could not allocate memory",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "ends", "Could not allocate memory", Exit, OutOfRange);
 	}
 
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
 	if(NULL==threads) {
-		PrintError(FnName,
-				"threads",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Allocate memory to pass data to threads */
 	data=malloc(sizeof(ThreadData)*numThreads);
 	if(NULL==data) {
-		PrintError(FnName,
-				"data",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Get pivots */
@@ -289,11 +273,7 @@ void PrintHistogram(RGIndex *index,
 				PrintHistogramThread, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_create: errCode",
-					"Could not start thread",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 		}
 	}
 	/* Wait for threads to return */
@@ -303,11 +283,7 @@ void PrintHistogram(RGIndex *index,
 				&status);
 		/* Check the return code of the thread */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_join: errCode",
-					"Thread returned an error",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 		}
 	}
 	fprintf(stderr, "\n");
@@ -330,11 +306,7 @@ void PrintHistogram(RGIndex *index,
 				index->width,
 				(long long int)i);
 		if(!(fp = fopen(tmpFileName, "w"))) {
-			PrintError(FnName,
-					tmpFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, tmpFileName, "Could not open file for writing", Exit, OpenFileError);
 		}
 
 		fprintf(fp, "# Number of unique reads was: %lld\n",
@@ -426,30 +398,18 @@ void *PrintHistogramThread(void *arg)
 	/* Allocate memory to hold histogram data */
 	c->counts = malloc(sizeof(int64_t*)*(numMismatchesEnd - numMismatchesStart + 1));
 	if(NULL == c->counts) {
-		PrintError(FnName,
-				"c->counts",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "c->counts", "Could not allocate memory", Exit, MallocMemory);
 	}
 	c->maxCount = malloc(sizeof(int64_t)*(numMismatchesEnd - numMismatchesStart + 1));
 	if(NULL == c->maxCount) {
-		PrintError(FnName,
-				"c->maxCount",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "c->maxCount", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Initialize counts */
 	for(i=0;i<(numMismatchesEnd - numMismatchesStart + 1);i++) {
 		c->counts[i] = malloc(sizeof(int64_t));
 		if(NULL == c->counts[i]) {
-			PrintError(FnName,
-					"c->counts[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "c->counts[i]", "Could not allocate memory", Exit, MallocMemory);
 		}
 		c->counts[i][0] = 0;
 		c->maxCount[i] = 0;
@@ -533,11 +493,7 @@ void *PrintHistogramThread(void *arg)
 						assert(c->maxCount[i] > 0);
 						c->counts[i] = realloc(c->counts[i], sizeof(int64_t)*(c->maxCount[i]+1));
 						if(NULL == c->counts[i]) {
-							PrintError(FnName,
-									"counts",
-									"Could not allocate memory",
-									Exit,
-									MallocMemory);
+							PrintError(FnName, "counts", "Could not allocate memory", Exit, MallocMemory);
 						}
 						/* Initialize from j to maxCount */
 						while(j<=c->maxCount[i]) {
@@ -630,11 +586,7 @@ int GetMatchesFromContigPos(RGIndex *index,
 				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand strand",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand strand", Exit, OutOfRange);
 				break;
 		}
 	}

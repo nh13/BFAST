@@ -50,30 +50,18 @@ void AlignNTSpaceMismatchesOnly(char *read,
 	assert(NULL==a->read);
 	a->read = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->reference);
 	a->reference = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->reference) {
-		PrintError(FnName,
-				"a->reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->colorError);
 	/*
 	   a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	   if(NULL==a->colorError) {
-	   PrintError(FnName,
-	   "a->colorError",
-	   "Could not allocate memory",
-	   Exit,
-	   MallocMemory);
+	   PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
 	   }
 	   */
 	/* Copy over */
@@ -105,20 +93,12 @@ void AlignNTSpaceFull(char *read,
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixNT*)*(readLength+1));
 	if(NULL==matrix) {
-		PrintError(FnName,
-				"matrix",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "matrix", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for(i=0;i<readLength+1;i++) {
 		matrix[i] = malloc(sizeof(AlignMatrixNT)*(referenceLength+1));
 		if(NULL==matrix[i]) {
-			PrintError(FnName,
-					"matrix[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "matrix[i]", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 
@@ -232,20 +212,12 @@ void AlignNTSpaceFullWithBound(char *read,
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixNT*)*(readLength+1));
 	if(NULL==matrix) {
-		PrintError(FnName,
-				"matrix",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "matrix", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for(i=0;i<readLength+1;i++) {
 		matrix[i] = malloc(sizeof(AlignMatrixNT)*(referenceLength+1));
 		if(NULL==matrix[i]) {
-			PrintError(FnName,
-					"matrix[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "matrix[i]", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 
@@ -377,11 +349,7 @@ void AlignNTSpaceFullWithBound(char *read,
 				stderr,
 				ColorSpace,
 				TextOutput);
-		PrintError(FnName,
-				NULL,
-				"Alignments did not match",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Alignments did not match", Exit, OutOfRange);
 	}
 	AlignedEntryFree(&tmp);
 	*/
@@ -443,20 +411,12 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	assert(NULL==a->read);
 	a->read = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->reference);
 	a->reference = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->reference) { 
-		PrintError(FnName,
-				"a->reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->colorError); 
 
@@ -499,11 +459,7 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 				assert(curFrom == InsertionStart || curFrom == InsertionExtension);
 				break;
 			default:
-				PrintError(FnName,
-						"curFrom",
-						"Could not recognize curFrom",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "curFrom", "Could not recognize curFrom", Exit, OutOfRange);
 		}
 
 		assert(i>=0);
@@ -534,11 +490,7 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 				break;
 			default:
 				fprintf(stderr, "curFrom=%d\n", curFrom);
-				PrintError(FnName,
-						"curFrom",
-						"Could not understand curFrom",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
 		assert(a->read[i] != GAP || a->read[i] != a->reference[i]);

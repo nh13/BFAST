@@ -79,11 +79,7 @@ void ErrorDistribution(char *inputFileName,
 
 	/* Open the input file */
 	if(!(FPin = gzopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	/* Go through the input file */
@@ -142,18 +138,10 @@ void ErrorDistributionPrint(char *outputID,
 	for(i=0;i<3;i++) {
 		if(0 == countGaps || i != 2) {
 			if(!(FPsout[i] = fopen(outputFileNames[i], "wb"))) {
-				PrintError(FnName,
-						outputFileNames[i],
-						"Could not open file for writing",
-						Exit,
-						OpenFileError);
+				PrintError(FnName, outputFileNames[i], "Could not open file for writing", Exit, OpenFileError);
 			}
 			if(!(FPsout[i+3] = fopen(outputFileNames[i+3], "wb"))) {
-				PrintError(FnName,
-						outputFileNames[i+3],
-						"Could not open file for writing",
-						Exit,
-						OpenFileError);
+				PrintError(FnName, outputFileNames[i+3], "Could not open file for writing", Exit, OpenFileError);
 			}
 		}
 	}
@@ -368,27 +356,15 @@ void CountUpdate(Count *c,
 		c->numEnds = which;
 		c->lengths = realloc(c->lengths, sizeof(int)*c->numEnds);
 		if(NULL==c->lengths) {
-			PrintError(FnName,
-					"c->lengths",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "c->lengths", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		c->counts = realloc(c->counts, sizeof(int*)*c->numEnds);
 		if(NULL==c->counts) {
-			PrintError(FnName,
-					"c->counts",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "c->counts", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		c->totals = realloc(c->totals, sizeof(int*)*c->numEnds);
 		if(NULL==c->totals) {
-			PrintError(FnName,
-					"c->totals",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "c->totals", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		/* Initialize */
 		for(i=prev;i<c->numEnds;i++) {
@@ -403,22 +379,14 @@ void CountUpdate(Count *c,
 
 		c->counts[which-1] = realloc(c->counts[which-1], sizeof(int)*(c->lengths[which-1]));
 		if(NULL==c->counts[which-1]) {
-			PrintError(FnName,
-					"c->counts[which-1]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "c->counts[which-1]", "Could not allocate memory", Exit, MallocMemory);
 		}
 		for(i=prev;i<c->lengths[which-1];i++) {
 			c->counts[which-1][i] = 0;
 		}
 		c->totals[which-1] = realloc(c->totals[which-1], sizeof(int)*(c->lengths[which-1]));
 		if(NULL==c->totals[which-1]) {
-			PrintError(FnName,
-					"c->totals[which-1]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "c->totals[which-1]", "Could not allocate memory", Exit, MallocMemory);
 		}
 		for(i=prev;i<c->lengths[which-1];i++) {
 			c->totals[which-1][i] = 0;
@@ -438,11 +406,7 @@ void CountUpdate(Count *c,
 			c->totals[which-1][index]++;
 			break;
 		default:
-			PrintError(FnName,
-					"type",
-					"Could not understand type",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "type", "Could not understand type", Exit, OutOfRange);
 	}
 }
 

@@ -32,11 +32,7 @@ int FilterAlignedRead(AlignedRead *a,
 	foundType=NoneFound;
 	foundTypes=malloc(sizeof(int32_t)*tmpA.numEnds);
 	if(NULL == foundTypes) {
-		PrintError(FnName,
-				"foundTypes",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "foundTypes", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for(i=0;i<tmpA.numEnds;i++) {
 		foundTypes[i]=NoneFound;
@@ -93,11 +89,7 @@ int FilterAlignedRead(AlignedRead *a,
 				}
 				break;
 			default:
-				PrintError(FnName,
-						"algorithm",
-						"Could not understand algorithm",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "algorithm", "Could not understand algorithm", Exit, OutOfRange);
 				break;
 		}
 		/* Free if not found */

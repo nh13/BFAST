@@ -29,7 +29,7 @@ enum {
 
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the reference genome file", 1},
+	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
@@ -71,11 +71,7 @@ BfastFasta2BRG(int argc, char **argv)
 						fprintf(stderr, BREAK_LINE);
 					}
 					else {
-						PrintError("PrintError",
-								NULL,
-								"validating command-line inputs",
-								Exit,
-								InputArguments);
+						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
 					}
 					BfastFasta2BRGPrintProgramParameters(stderr, &arguments);
 
@@ -109,20 +105,12 @@ BfastFasta2BRG(int argc, char **argv)
 					fprintf(stderr, "%s", BREAK_LINE);
 					break;
 				default:
-					PrintError("PrintError",
-							"programMode",
-							"Could not determine program mode",
-							Exit,
-							OutOfRange);
+					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
 			}
 
 		}
 		else {
-			PrintError("PrintError",
-					NULL,
-					"Could not parse command line argumnets",
-					Exit,
-					InputArguments);
+			PrintError("PrintError", NULL, "Could not parse command line argumnets", Exit, InputArguments);
 		}
 		/* Free program parameters */
 		BfastFasta2BRGFreeProgramParameters(&arguments);
@@ -145,18 +133,16 @@ int BfastFasta2BRGValidateInputs(struct arguments *args) {
 		fprintf(stderr, "Validating fastaFileName %s. \n",
 				args->fastaFileName);
 		if(ValidateFileName(args->fastaFileName)==0)
-			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);
-	}
-	else {
-		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);
+			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	else {		
+		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);	
 	}
 
 	if(args->space != NTSpace && args->space != ColorSpace) {
-		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
-	}
-
+		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);	
+	}	
 	assert(args->timing == 0 || args->timing == 1);
-
 	return 1;
 }
 

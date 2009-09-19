@@ -49,11 +49,7 @@ int main(int argc, char *argv[])
 
 		FILE *fpIn=NULL;
 		if(!(fpIn = fopen(inputFile, "r"))) {
-			PrintError(Name,
-					inputFile,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(Name, inputFile, "Could not open file for reading", Exit, OpenFileError);
 		}
 		while(0 == feof(fpIn)) {
 			if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d %d",
@@ -181,11 +177,7 @@ void GenerateReads(RGBinary *rg,
 	int64_t rgLength = 0;
 
 	if(NTSpace != rg->space) {
-		PrintError(FnName,
-				"rg->space",
-				"The reference genome must be given in nucleotide space",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "rg->space", "The reference genome must be given in nucleotide space", Exit, OutOfRange);
 	}
 
 	/* Seed random number */
@@ -211,11 +203,7 @@ void GenerateReads(RGBinary *rg,
 
 	/* Open output file */
 	if(!(fp=fopen(outFileName, "wb"))) {
-		PrintError(FnName,
-				outFileName,
-				"Could not open output file for writing.\n",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, outFileName, "Could not open output file for writing.\n", Exit, OpenFileError);
 	}
 
 	fprintf(stderr, "%s", BREAK_LINE);
@@ -285,11 +273,7 @@ void GenerateReadsFP(RGBinary *rg,
 	int64_t rgLength = 0;
 
 	if(NTSpace != rg->space) {
-		PrintError(FnName,
-				"rg->space",
-				"The reference genome must be given in nucleotide space",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "rg->space", "The reference genome must be given in nucleotide space", Exit, OutOfRange);
 	}
 
 	/* Seed random number */

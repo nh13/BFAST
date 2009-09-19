@@ -66,11 +66,7 @@ int main(int argc, char *argv[])
 
 		FILE *fpIn=NULL;
 		if(!(fpIn = fopen(inputFile, "r"))) {
-			PrintError(Name,
-					inputFile,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(Name, inputFile, "Could not open file for reading", Exit, OpenFileError);
 		}
 		while(0 == feof(fpIn)) {
 			if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d",
@@ -225,11 +221,7 @@ void Run(RGBinary *rg,
 			1 == withinInsertion && 
 			0 < indelLength && 
 			2 == indel) {
-		PrintError(Name,
-				"withinInsertion",
-				"Incosistent results will occurs.  Try not using withinInsertion == 1.",
-				Warn,
-				OutOfRange);
+		PrintError(Name, "withinInsertion", "Incosistent results will occurs.  Try not using withinInsertion == 1.", Warn, OutOfRange);
 	}
 
 
@@ -237,11 +229,7 @@ void Run(RGBinary *rg,
 
 	/* Check rg to make sure it is in NT Space */
 	if(rg->space != NTSpace) {
-		PrintError(FnName,
-				"rg->space",
-				"The reference genome must be in NT space",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "rg->space", "The reference genome must be in NT space", Exit, OutOfRange);
 	}
 
 
@@ -346,11 +334,7 @@ void Run(RGBinary *rg,
 						break;
 					default:
 						fprintf(stderr, "r.readOneType[%d]=%d\n", j, r.readOneType[j]);
-						PrintError(FnName,
-								"r.readOneType[j]",
-								"Could not recognize type",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, "r.readOneType[j]", "Could not recognize type", Exit, OutOfRange);
 				}
 				prev = r.readOneType[j];
 			}
@@ -384,11 +368,7 @@ void Run(RGBinary *rg,
 						break;
 					default:
 						fprintf(stderr, "r.readOneType[%d]=%d\n", j, r.readOneType[j]);
-						PrintError(FnName,
-								"r.readOneType[j]",
-								"Could not recognize type",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, "r.readOneType[j]", "Could not recognize type", Exit, OutOfRange);
 				}
 				prev = r.readOneType[j];
 			}
@@ -405,11 +385,7 @@ void Run(RGBinary *rg,
 		   assert(NULL==m.readName);
 		   m.readName = malloc(sizeof(int8_t)*(SEQUENCE_LENGTH+1));
 		   if(NULL == m.readName) {
-		   PrintError(FnName,
-		   "m.readName",
-		   "Could not allocate memory",
-		   Exit,
-		   MallocMemory);
+		   PrintError(FnName, "m.readName", "Could not allocate memory", Exit, MallocMemory);
 		   }
 		   assert(0 <= sprintf((char*)m.readName, ">%d", score));
 		   */
@@ -419,11 +395,7 @@ void Run(RGBinary *rg,
 		assert(r.readLength > 0);
 		m.ends[0].read = malloc(sizeof(int8_t)*(m.ends[0].readLength+1));
 		if(NULL==m.ends[0].read) {
-			PrintError(FnName,
-					"m.ends[0].read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "m.ends[0].read", "Could not allocate memory", Exit, MallocMemory);
 		}
 		assert(m.ends[0].readLength > 0);
 		strcpy((char*)m.ends[0].read, r.readOne); 
@@ -435,11 +407,7 @@ void Run(RGBinary *rg,
 		}
 		m.ends[0].qual = malloc(sizeof(char)*(m.ends[0].qualLength + 1));
 		if(NULL==m.ends[0].qual) {
-			PrintError(FnName,
-					"m.ends[0].qual",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "m.ends[0].qual", "Could not allocate memory", Exit, MallocMemory);
 		}
 		for(j=0;j<m.ends[0].qualLength;j++) {
 			m.ends[0].qual[j] = 'I';
@@ -472,11 +440,7 @@ void Run(RGBinary *rg,
 			&matchesFileName,
 			0);
 	if(!(matchesFP=gzopen(matchesFileName, "rb"))) {
-		PrintError(FnName,
-				matchesFileName,
-				"Could not re-open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, matchesFileName, "Could not re-open file for reading", Exit, OpenFileError);
 	}
 
 	/* Run "RunDynamicProgramming" from balign */
@@ -511,11 +475,7 @@ void Run(RGBinary *rg,
 			&alignFileName,
 			0);
 	if(!(alignFP=gzopen(alignFileName, "rb"))) {
-		PrintError(FnName,
-				alignFileName,
-				"Could not re-open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, alignFileName, "Could not re-open file for reading", Exit, OpenFileError);
 	}
 
 	/* Read in output and sum up accuracy */
@@ -528,22 +488,14 @@ void Run(RGBinary *rg,
 		/* Get substring */
 		s = strstr(a.readName, "score=");
 		if(NULL == s) {
-			PrintError(FnName,
-					"a.readName",
-					"Could not find \"score=\"",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "a.readName", "Could not find \"score=\"", Exit, OutOfRange);
 		}
 		/* Extract score */
 		ret = sscanf(s, "score=%d", &score);
 		if(ret != 1) {
 			fprintf(stderr, "ret=%d\nscore=%d\n", ret, score);
 			fprintf(stderr, "a.readName=%s\n", a.readName);
-			PrintError(FnName,
-					"a.readName",
-					"Could not parse read name",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "a.readName", "Could not parse read name", Exit, OutOfRange);
 		}
 
 		if(round(a.ends[0].entries[0].score) < score) {
@@ -555,22 +507,14 @@ void Run(RGBinary *rg,
 						round(a.ends[0].entries[0].score),
 						score);
 				AlignedReadPrintText(&a, stderr);
-				PrintError(FnName,
-						"numScoreLessThan",
-						"The alignment score should not be less than expected",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "numScoreLessThan", "The alignment score should not be less than expected", Exit, OutOfRange);
 			}
 			*/
 		}
 		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;
 			/*
-			   PrintError(FnName,
-			   "numScoreGreaterThan",
-			   "The alignment score was greater than expected",
-			   Exit,
-			   OutOfRange);
+			   PrintError(FnName, "numScoreGreaterThan", "The alignment score was greater than expected", Exit, OutOfRange);
 			   */
 		}
 		else {

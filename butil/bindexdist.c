@@ -170,30 +170,18 @@ void PrintDistribution(RGIndex *index,
 		}
 		reads = realloc(reads, sizeof(char*)*numReads);
 		if(NULL==reads) {
-			PrintError(FnName,
-					"reads",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "reads", "Could not allocate memory", Exit, MallocMemory);
 		}
 		while(prevIndex < numReads) {
 			reads[prevIndex] = malloc(sizeof(char)*(index->width+1));
 			if(NULL==reads[prevIndex]) {
-				PrintError(FnName,
-						"reads[prevIndex]",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "reads[prevIndex]", "Could not allocate memory", Exit, MallocMemory);
 			}
 			prevIndex++;
 		}
 		readCounts = realloc(readCounts, sizeof(int64_t)*numReads);
 		if(NULL==readCounts) {
-			PrintError(FnName,
-					"readCounts",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "readCounts", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Copy over */
 		assert(strlen(read) < SEQUENCE_LENGTH);
@@ -226,20 +214,12 @@ void PrintDistribution(RGIndex *index,
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
 	if(NULL==threads) {
-		PrintError(FnName,
-				"threads",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Allocate memory to pass data to threads */
 	data=malloc(sizeof(ThreadData)*numThreads);
 	if(NULL==data) {
-		PrintError(FnName,
-				"data",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	for(i=0;i<numThreads;i++) {
@@ -263,11 +243,7 @@ void PrintDistribution(RGIndex *index,
 				MergeSortReads, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_create: errCode",
-					"Could not start thread",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 		}
 	}
 	/* Wait for threads to return */
@@ -277,11 +253,7 @@ void PrintDistribution(RGIndex *index,
 				&status);
 		/* Check the return code of the thread */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_join: errCode",
-					"Thread returned an error",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 		}
 	}
 
@@ -326,19 +298,11 @@ void PrintDistribution(RGIndex *index,
 	   numReads = prevIndex+1;
 	   reads = realloc(reads, sizeof(char*)*numReads);
 	   if(NULL==reads) {
-	   PrintError(FnName,
-	   "reads",
-	   "Could not reallocate memory",
-	   Exit,
-	   ReallocMemory);
+	   PrintError(FnName, "reads", "Could not reallocate memory", Exit, ReallocMemory);
 	   }
 	   readCounts = realloc(readCounts, sizeof(int64_t)*numReads);
 	   if(NULL==readCounts) {
-	   PrintError(FnName,
-	   "readCounts",
-	   "Could not reallocate memory",
-	   Exit,
-	   ReallocMemory);
+	   PrintError(FnName, "readCounts", "Could not reallocate memory", Exit, ReallocMemory);
 	   }
 	   fprintf(stderr, "Removing duplicates complete.\n");
 	   fprintf(stderr, "%s", BREAK_LINE);
@@ -348,11 +312,7 @@ void PrintDistribution(RGIndex *index,
 	fprintf(stderr, "Outputting to %s.\n",
 			distributionFileName);
 	if(!(fp = fopen(distributionFileName, "w"))) {
-		PrintError(FnName,
-				distributionFileName,
-				"Could not open file for writing",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, distributionFileName, "Could not open file for writing", Exit, OpenFileError);
 	}
 
 	/* Print */
@@ -501,19 +461,11 @@ void MergeHelper(char **reads,
 		/* Use memory */
 		tmpReads = malloc(sizeof(char*)*(high-low+1));
 		if(NULL == tmpReads) {
-			PrintError(FnName,
-					"tmpReads",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "tmpReads", "Could not allocate memory", Exit, MallocMemory);
 		}
 		tmpReadCounts = malloc(sizeof(int64_t)*(high-low+1));
 		if(NULL == tmpReadCounts) {
-			PrintError(FnName,
-					"tmpReadCounts",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "tmpReadCounts", "Could not allocate memory", Exit, MallocMemory);
 		}
 
 		/* Merge */
@@ -574,22 +526,14 @@ void MergeHelper(char **reads,
 			if(0 > fprintf(tmpLowerFP, "%s\t%lld\n", 
 						reads[i],
 						(long long int)readCounts[i])) { 
-				PrintError(FnName,
-						NULL,
-						"Could not write to tmp lower file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to tmp lower file", Exit, WriteFileError);
 			}
 		}
 		for(i=mid+1;i<=high;i++) {
 			if(0 > fprintf(tmpUpperFP, "%s\t%lld\n",
 						reads[i],
 						(long long int)readCounts[i])) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to tmp upper file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to tmp upper file", Exit, WriteFileError);
 			}
 		}
 
@@ -602,20 +546,12 @@ void MergeHelper(char **reads,
 		if(0 > fscanf(tmpLowerFP, "%s %lld\n",
 					tmpLowerRead,
 					&tmpLowerReadCount)) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in tmp lower",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read in tmp lower", Exit, ReadFileError);
 		}
 		if(0 > fscanf(tmpUpperFP, "%s %lld\n",
 					tmpUpperRead,
 					&tmpUpperReadCount)) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in tmp upper",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read in tmp upper", Exit, ReadFileError);
 		}
 		for(i=low, ctr=0, eofLower = 0, eofUpper = 0;
 				i<=high &&
@@ -751,11 +687,7 @@ void GetMatchesFromContigPos(RGIndex *index,
 				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand strand",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand strand", Exit, OutOfRange);
 				break;
 		}
 	}

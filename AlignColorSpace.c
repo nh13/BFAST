@@ -58,11 +58,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 				fprintf(stderr, "prevReadBase=%c\tcurReadBase=%c\n",
 						prevReadBase,
 						curReadBase);
-				PrintError(FnName,
-						"curColor",
-						"Could not convert base to color space",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 			}
 			int32_t nextScore[ALPHABET_SIZE+1];
 			int32_t nextScoreNT[ALPHABET_SIZE+1];
@@ -86,11 +82,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 								DNA[l],
 								k,
 								DNA[k]);
-						PrintError(FnName,
-								"convertedColor",
-								"Could not convert base to color space",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
 					}
 					/* Add score for color error, if any */
 					curScore += ScoringMatrixGetColorScore(curColor,
@@ -158,30 +150,18 @@ void AlignColorSpaceMismatchesOnly(char *read,
 	assert(NULL==a->read);
 	a->read = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->reference);
 	a->reference = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->reference) {
-		PrintError(FnName,
-				"a->reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->colorError);
 
 	a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
 	if(NULL==a->colorError) {
-		PrintError(FnName,
-				"a->colorError",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Copy over */
@@ -223,20 +203,12 @@ void AlignColorSpaceFull(char *read,
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixCS*)*(readLength+1));
 	if(NULL==matrix) {
-		PrintError(FnName,
-				"matrix",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "matrix", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for(i=0;i<readLength+1;i++) {
 		matrix[i] = malloc(sizeof(AlignMatrixCS)*(referenceLength+1));
 		if(NULL==matrix[i]) {
-			PrintError(FnName,
-					"matrix[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "matrix[i]", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 
@@ -310,11 +282,7 @@ void AlignColorSpaceFull(char *read,
 			fprintf(stderr, "prevReadBase=%c\tcurReadBase=%c\n",
 					prevReadBase,
 					curReadBase);
-			PrintError(FnName,
-					"curColor",
-					"Could not convert base to color space",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 		}
 
 		for(j=0;j<referenceLength;j++) { /* reference/columns */
@@ -403,11 +371,7 @@ void AlignColorSpaceFull(char *read,
 								DNA[l],
 								k,
 								DNA[k]);
-						PrintError(FnName,
-								"convertedColor",
-								"Could not convert base to color space",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
 					}
 					/* Get NT and Color scores */
 					scoreNT = ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
@@ -496,11 +460,7 @@ void AlignColorSpaceFull(char *read,
 
 				/* Get from base for extending an insertion */
 				if(0 == ConvertBaseAndColor(DNA[k], curColor, &B)) {
-					PrintError(FnName,
-							NULL,
-							"Could not convert base and color",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, NULL, "Could not convert base and color", Exit, OutOfRange);
 				}
 				switch(B) {
 					case 'a':
@@ -617,20 +577,12 @@ void AlignColorSpaceFullWithBound(char *read,
 	/* Allocate memory for the matrix */
 	matrix = malloc(sizeof(AlignMatrixCS*)*(readLength+1));
 	if(NULL==matrix) {
-		PrintError(FnName,
-				"matrix",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "matrix", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for(i=0;i<readLength+1;i++) {
 		matrix[i] = malloc(sizeof(AlignMatrixCS)*(referenceLength+1));
 		if(NULL==matrix[i]) {
-			PrintError(FnName,
-					"matrix[i]",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "matrix[i]", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 
@@ -704,11 +656,7 @@ void AlignColorSpaceFullWithBound(char *read,
 			fprintf(stderr, "prevReadBase=%c\tcurReadBase=%c\n",
 					prevReadBase,
 					curReadBase);
-			PrintError(FnName,
-					"curColor",
-					"Could not convert base to color space",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 		}
 
 		for(j=GETMAX(0, i - maxV);
@@ -813,11 +761,7 @@ void AlignColorSpaceFullWithBound(char *read,
 								DNA[l],
 								k,
 								DNA[k]);
-						PrintError(FnName,
-								"convertedColor",
-								"Could not convert base to color space",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
 					}
 					/* Get NT and Color scores */
 					scoreNT = ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
@@ -918,11 +862,7 @@ void AlignColorSpaceFullWithBound(char *read,
 
 					/* Get from base for extending an insertion */
 					if(0 == ConvertBaseAndColor(DNA[k], curColor, &B)) {
-						PrintError(FnName,
-								NULL,
-								"Could not convert base and color",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, NULL, "Could not convert base and color", Exit, OutOfRange);
 					}
 					switch(B) {
 						case 'a':
@@ -1045,11 +985,7 @@ void AlignColorSpaceFullWithBound(char *read,
 	   stderr,
 	   ColorSpace,
 	   TextOutput);
-	   PrintError(FnName,
-	   NULL,
-	   "Alignments did not match",
-	   Exit,
-	   OutOfRange);
+	   PrintError(FnName, NULL, "Alignments did not match", Exit, OutOfRange);
 	   }
 	   AlignedEntryFree(&tmp);
 	   */
@@ -1121,11 +1057,7 @@ int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 	a->referenceLength=0;
 	/* Init */
 	if(curFrom <= (ALPHABET_SIZE + 1)) {
-		PrintError(FnName, 
-				"curFrom",
-				"Cannot end with a deletion",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "curFrom", "Cannot end with a deletion", Exit, OutOfRange);
 		a->length = matrix[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 	}
 	else if(2*(ALPHABET_SIZE + 1) < curFrom) {
@@ -1146,29 +1078,17 @@ int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 	assert(NULL==a->read);
 	a->read = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->reference);
 	a->reference = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->reference) {
-		PrintError(FnName,
-				"a->reference",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL==a->colorError);
 	a->colorError = malloc(sizeof(char)*(a->length+1));
 	if(NULL==a->colorError) {
-		PrintError(FnName,
-				"a->colorError",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Now trace back the alignment using the "from" member in the matrix */
@@ -1245,11 +1165,7 @@ int FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 			default:
 				fprintf(stderr, "curFrom=%d\n",
 						curFrom);
-				PrintError(FnName,
-						"curFrom",
-						"Could not understand curFrom",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
 		switch(curFrom) {

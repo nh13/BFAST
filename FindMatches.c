@@ -72,11 +72,7 @@ void FindMatches(
 	}
 	numMainIndexes=GetIndexFileNames(fastaFileName, space, mainIndexes, &mainIndexFileNames);
 	if(numMainIndexes<=0) {
-		PrintError("FindMatches",
-				"numMainIndexes",
-				"Read zero indexes",
-				Exit,
-				OutOfRange);
+		PrintError("FindMatches", "numMainIndexes", "Read zero indexes", Exit, OutOfRange);
 	}
 
 	/* Read in the secondary RGIndex File Names */
@@ -126,38 +122,22 @@ void FindMatches(
 	/* open read file */
 	if(NULL == readFileName) {
 		if(0 == (seqFP = fdopen(fileno(stdin), "r"))) {
-		PrintError("FindMatches",
-				"stdin",
-				"Could not open stdin for reading",
-				Exit,
-				OpenFileError);
+		PrintError("FindMatches", "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
 	else {
 		if(0 == (seqFP = fopen(readFileName, "r"))) {
-		PrintError("FindMatches",
-				readFileName,
-				"Could not open readFileName for reading",
-				Exit,
-				OpenFileError);
+		PrintError("FindMatches", readFileName, "Could not open readFileName for reading", Exit, OpenFileError);
 		}
 	}
 	/* Allocate memory for the temp file pointers - one for each thread */
 	tempSeqFPs=malloc(sizeof(FILE*)*numThreads);
 	if(NULL==tempSeqFPs) {
-		PrintError("FindMatches",
-				"tempSeqFPs",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("FindMatches", "tempSeqFPs", "Could not allocate memory", Exit, MallocMemory);
 	}
 	tempSeqFileNames=malloc(sizeof(char*)*numThreads);
 	if(NULL==tempSeqFileNames) {
-		PrintError("FindMatches",
-				"tempSeqFileNames",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("FindMatches", "tempSeqFileNames", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for(i=0;i<numThreads;i++) {
 		tempSeqFPs[i] = NULL;
@@ -188,11 +168,7 @@ void FindMatches(
 
 	/* Open output file */
 	if(0 == (outputFP=gzdopen(fileno(stdout), "wb"))) {
-	   PrintError("FindMatches",
-			   "stdout",
-	   "Could not open stdout for writing",
-	   Exit,
-	   OpenFileError);
+	   PrintError("FindMatches", "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
@@ -420,19 +396,11 @@ int FindMatchesInIndexes(char **indexFileNames,
 	/* Allocate memory for the index specific file pointers */
 	tempOutputIndexFPs = malloc(sizeof(gzFile)*numIndexes);
 	if(NULL == tempOutputIndexFPs) {
-		PrintError(FnName,
-				"tempOutputIndexFPs",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tempOutputIndexFPs", "Could not allocate memory", Exit, MallocMemory);
 	}
 	tempOutputIndexFileNames = malloc(sizeof(char*)*numIndexes);
 	if(NULL == tempOutputIndexFileNames) {
-		PrintError(FnName,
-				"tempOutputIndexFileNames",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tempOutputIndexFileNames", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* If we are ending the search, output to the final output file.  Otherwise,
 	 * output to a temporary file.
@@ -498,11 +466,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 					&tempOutputIndexFileNames[i],
 					0);
 			if(!(tempOutputIndexFPs[i]=gzopen(tempOutputIndexFileNames[i], "rb"))) {
-				PrintError(FnName,
-						tempOutputIndexFileNames[i],
-						"Could not re-open file for reading",
-						Exit,
-						OpenFileError);
+				PrintError(FnName, tempOutputIndexFileNames[i], "Could not re-open file for reading", Exit, OpenFileError);
 			}
 		}
 
@@ -649,38 +613,22 @@ int FindMatchesInIndex(char *indexFileName,
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
 	if(NULL==threads) {
-		PrintError(FnName,
-				"threads",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Allocate memory to pass data to threads */
 	data=malloc(sizeof(ThreadIndexData)*numThreads);
 	if(NULL==data) {
-		PrintError(FnName,
-				"data",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Allocate memory for one file pointer per thread */
 	tempOutputThreadFPs=malloc(sizeof(gzFile)*numThreads); 
 	if(NULL == tempOutputThreadFPs) {
-		PrintError(FnName,
-				"tempOutputThreadFPs",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tempOutputThreadFPs", "Could not allocate memory", Exit, MallocMemory);
 	}
 	tempOutputThreadFileNames = malloc(sizeof(char*)*numThreads);
 	if(NULL == tempOutputThreadFileNames) {
-		PrintError("FindMatchesInThreades",
-				"tempOutputThreadFileNames",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError("FindMatchesInThreades", "tempOutputThreadFileNames", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* If we have only one thread, output directly to the index fp */
 	if(numThreads > 1) {
@@ -751,11 +699,7 @@ int FindMatchesInIndex(char *indexFileName,
 				FindMatchesInIndexThread, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_create: errCode",
-					"Could not start thread",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 		}
 	}
 	/* Wait for threads to return */
@@ -765,11 +709,7 @@ int FindMatchesInIndex(char *indexFileName,
 				&status);
 		/* Check the return code of the thread */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_join: errCode",
-					"Thread returned an error",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 		}
 		numMatches += data[i].numMatches;
 	}
@@ -795,11 +735,7 @@ int FindMatchesInIndex(char *indexFileName,
 					&tempOutputThreadFileNames[i],
 					0);
 			if(!(tempOutputThreadFPs[i]=gzopen(tempOutputThreadFileNames[i], "rb"))) {
-				PrintError(FnName,
-						tempOutputThreadFileNames[i],
-						"Could not re-open file for reading",
-						Exit,
-						OpenFileError);
+				PrintError(FnName, tempOutputThreadFileNames[i], "Could not re-open file for reading", Exit, OpenFileError);
 			}
 		}
 		startTime = time(NULL);
@@ -883,11 +819,7 @@ void *FindMatchesInIndexThread(void *arg)
 	/* Allocate match queue */
 	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength); 
 	if(NULL == matchQueue) {
-		PrintError(FnName,
-				"matchQueue",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Initialize match structures */

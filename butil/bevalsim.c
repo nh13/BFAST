@@ -42,11 +42,7 @@ int main(int argc, char *argv[])
 		}
 		else {
 			type=-1;
-			PrintError(Name,
-					"input file name",
-					"Could not recognize file extension",
-					Exit,
-					OutOfRange);
+			PrintError(Name, "input file name", "Could not recognize file extension", Exit, OutOfRange);
 		}
 
 
@@ -209,64 +205,36 @@ int ReadTypeRead(ReadType *r,
 		}
 	}
 	else {
-		PrintError(FnName,
-				"type",
-				"Could not recongize file type",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "type", "Could not recongize file type", Exit, OutOfRange);
 	}
 
 	/* Allocate memory */
 	if(r->numOne > 0) {
 		r->aContigOne = malloc(sizeof(int)*r->numOne);
 		if(NULL==r->aContigOne) {
-			PrintError(FnName,
-					"r->aContigOne",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "r->aContigOne", "Could not allocate memory", Exit, MallocMemory);
 		}
 		r->aPosOne = malloc(sizeof(int)*r->numOne);
 		if(NULL==r->aPosOne) {
-			PrintError(FnName,
-					"r->aPosOne",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "r->aPosOne", "Could not allocate memory", Exit, MallocMemory);
 		}
 		r->aStrandOne= malloc(sizeof(char)*r->numOne);
 		if(NULL==r->aStrandOne) {
-			PrintError(FnName,
-					"r->aStrandOne",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "r->aStrandOne", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(r->numTwo > 0) {
 		r->aContigTwo = malloc(sizeof(int)*r->numTwo);
 		if(NULL==r->aContigTwo) {
-			PrintError(FnName,
-					"r->aContigTwo",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "r->aContigTwo", "Could not allocate memory", Exit, MallocMemory);
 		}
 		r->aPosTwo = malloc(sizeof(int)*r->numTwo);
 		if(NULL==r->aPosTwo) {
-			PrintError(FnName,
-					"r->aPosTwo",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "r->aPosTwo", "Could not allocate memory", Exit, MallocMemory);
 		}
 		r->aStrandTwo= malloc(sizeof(char)*r->numTwo);
 		if(NULL==r->aStrandTwo) {
-			PrintError(FnName,
-					"r->aStrandTwo",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "r->aStrandTwo", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	/* Copy over */
@@ -295,11 +263,7 @@ int ReadTypeRead(ReadType *r,
 		}
 	}
 	else {
-		PrintError(FnName,
-				"type",
-				"Could not recongize file type",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "type", "Could not recongize file type", Exit, OutOfRange);
 	}
 
 	/* Convert into read type */
@@ -335,11 +299,7 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 				&r->startIndel,
 				&r->indelLength,
 				tempString)) {
-		PrintError(FnName,
-				readName,
-				"Could not parse read name (0)",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, readName, "Could not parse read name (0)", Exit, OutOfRange);
 	}
 	if(1 == r->numEnds) {
 		strcpy(r1, tempString);
@@ -405,11 +365,7 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 		assert(state == 2);
 	}
 	else {
-		PrintError(FnName,
-				"numEnds",
-				"Found more than two ends for a read",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "numEnds", "Found more than two ends for a read", Exit, OutOfRange);
 	}
 
 	/* Parse r1 and r2 */
@@ -458,11 +414,7 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 				r->numErrors++;
 				break;
 			default:
-				PrintError(FnName,
-						"r1[i]",
-						"Could not understand type",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "r1[i]", "Could not understand type", Exit, OutOfRange);
 		}
 		if(2 == r->numEnds) {
 			switch(r2[i]) {
@@ -503,11 +455,7 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 					r->numErrors++;
 					break;
 				default:
-					PrintError(FnName,
-							"r2[i]",
-							"Could not understand type",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "r2[i]", "Could not understand type", Exit, OutOfRange);
 			}
 		}
 	}
@@ -712,22 +660,14 @@ void StatsAdd(Stats *s, ReadType *r, int readType)
 	}
 	if(ReadAligned == readType) {
 		ReadTypePrint(r, stderr);
-		PrintError(FnName,
-				NULL,
-				"Read type was not found in the original reads file",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Read type was not found in the original reads file", Exit, OutOfRange);
 	}
 	else {
 		/* Otherwise start a new start entry */
 		s->numStats++;
 		s->stats = realloc(s->stats, sizeof(Stat)*s->numStats);
 		if(NULL==s->stats) {
-			PrintError(FnName,
-					"s->stats",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "s->stats", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Initialize */
 		StatInitialize(&s->stats[s->numStats-1], r);
@@ -765,11 +705,7 @@ void Evaluate(char *inputFileName,
 
 	/* Open the inputFileName file */
 	if(!(fpIn=gzopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	count = 0;
@@ -798,11 +734,7 @@ void Evaluate(char *inputFileName,
 	fprintf(stderr, "Outputting to %s.\n",
 			outputFileName);
 	if(!(fpOut=gzopen(outputFileName, "wb"))) {
-		PrintError(FnName,
-				outputFileName,
-				"Could not open file for writing",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, outputFileName, "Could not open file for writing", Exit, WriteFileError);
 	}
 
 	/* Print Stats */
@@ -829,11 +761,7 @@ void ReadInReads(char *readsFile, Stats *s)
 
 	/* Open the reads file */
 	if(!(fpIn=fopen(readsFile, "rb"))) {
-		PrintError(FnName,
-				readsFile,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, readsFile, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	fprintf(stderr, "Reading in original reads from %s.\nCurrently on:\n%d", readsFile, 0);

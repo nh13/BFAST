@@ -27,11 +27,7 @@ void RGIndexExonsRead(char *exonsFileName,
 				exonsFileName);
 	}
 	if(!(fp=fopen(exonsFileName, "rb"))) {
-		PrintError(FnName,
-				exonsFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, exonsFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	/* Read in the exons */ 
@@ -41,11 +37,7 @@ void RGIndexExonsRead(char *exonsFileName,
 		/* Check valid range */
 		if(curStartContig > curEndContig ||
 				(curStartContig == curEndContig && curStartPos > curEndPos)) {
-			PrintError(FnName,
-					NULL,
-					"Exon range is not valid",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Exon range is not valid", Exit, OutOfRange);
 		}
 		/* Check versus previous */
 		if(curStartContig < prevEndContig ||
@@ -58,21 +50,13 @@ void RGIndexExonsRead(char *exonsFileName,
 			fprintf(stderr, "previous was %u %u\n",
 					prevEndContig,
 					prevEndPos);
-			PrintError(FnName,
-					NULL,
-					"Exons must be in increasing order and non-overlapping",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Exons must be in increasing order and non-overlapping", Exit, OutOfRange);
 		}
 		/* Copy over */
 		e->numExons++;
 		e->exons = realloc(e->exons, sizeof(RGIndexExon)*e->numExons);
 		if(NULL == e->exons) {
-			PrintError(FnName,
-					"e->exons",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "e->exons", "Could not allocate memory", Exit, MallocMemory);
 		}
 		e->exons[e->numExons-1].startContig = curStartContig;
 		e->exons[e->numExons-1].startPos = curStartPos;

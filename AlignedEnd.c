@@ -81,32 +81,20 @@ int32_t AlignedEndRead(AlignedEnd *a,
 	if(a->read == NULL) {
 		a->read = malloc(sizeof(char)*(1+a->readLength));
 		if(NULL == a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(a->qual == NULL) {
 		a->qual = malloc(sizeof(char)*(1+a->qualLength));
 		if(NULL == a->qual) {
-			PrintError(FnName,
-					"a->qual",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->qual", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 
 	if(gzread64(inputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
 			gzread64(inputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
 			gzread64(inputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				"a->reads, a->qual, and a->numEntries",
-				"Could not read from file",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "a->reads, a->qual, and a->numEntries", "Could not read from file", Exit, ReadFileError);
 	}
 	/* Add the null terminator to strings */
 	a->read[a->readLength]='\0';
@@ -121,11 +109,7 @@ int32_t AlignedEndRead(AlignedEnd *a,
 		if(EOF == AlignedEntryRead(&a->entries[i],
 					inputFP,
 					space)) {
-			PrintError(FnName,
-					"a->entries[i]",
-					"Could not read from file",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, "a->entries[i]", "Could not read from file", Exit, ReadFileError);
 		}
 	}
 
@@ -156,21 +140,13 @@ int32_t AlignedEndReadText(AlignedEnd *a,
 	if(a->read == NULL) {
 		a->read = malloc(sizeof(char)*(1+a->readLength));
 		if(NULL == a->read) {
-			PrintError(FnName,
-					"a->read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	if(a->qual == NULL) {
 		a->qual = malloc(sizeof(char)*(1+a->qualLength));
 		if(NULL == a->qual) {
-			PrintError(FnName,
-					"a->qual",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "a->qual", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	/* Copy over */
@@ -186,11 +162,7 @@ int32_t AlignedEndReadText(AlignedEnd *a,
 		if(EOF == AlignedEntryReadText(&a->entries[i],
 					inputFP,
 					space)) {
-			PrintError(FnName,
-					"a->entries[i]",
-					"Could not read from file",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, "a->entries[i]", "Could not read from file", Exit, ReadFileError);
 		}
 	}
 
@@ -299,11 +271,7 @@ void AlignedEndCopy(AlignedEnd *dest, AlignedEnd *src)
 		dest->readLength = src->readLength;
 		dest->read = realloc(dest->read, sizeof(char)*(src->readLength+1));
 		if(NULL == dest->read) {
-			PrintError(FnName,
-					"dest->read",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "dest->read", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		assert(src->read != NULL);
 		strcpy(dest->read, src->read);
@@ -311,11 +279,7 @@ void AlignedEndCopy(AlignedEnd *dest, AlignedEnd *src)
 		dest->qualLength = src->qualLength;
 		dest->qual = realloc(dest->qual, sizeof(char)*(src->qualLength+1));
 		if(NULL == dest->qual) {
-			PrintError(FnName,
-					"dest->qual",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "dest->qual", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		assert(src->qual != NULL);
 		strcpy(dest->qual, src->qual);
@@ -343,30 +307,18 @@ void AlignedEndAllocate(AlignedEnd *a,
 	a->readLength = strlen(read);
 	a->read = malloc(sizeof(char)*(1+a->readLength));
 	if(NULL == a->read) {
-		PrintError(FnName,
-				"a->read",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
 	}
 	assert(NULL != qual);
 	a->qualLength = strlen(qual);
 	a->qual = malloc(sizeof(char)*(1+a->qualLength));
 	if(NULL == a->qual) {
-		PrintError(FnName,
-				"a->qual",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->qual", "Could not allocate memory", Exit, MallocMemory);
 	}
 	a->numEntries = numEntries;
 	a->entries = malloc(sizeof(AlignedEntry)*a->numEntries);
 	if(NULL == a->entries && 0 < numEntries) {
-		PrintError(FnName,
-				"a->entries",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "a->entries", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 
 	/* Copy over */
@@ -395,11 +347,7 @@ void AlignedEndReallocate(AlignedEnd *a,
 	/* Reallocate */
 	a->entries = realloc(a->entries, sizeof(AlignedEntry)*numEntries);
 	if(NULL == a->entries && 0 < numEntries) {
-		PrintError(FnName,
-				"a->entries",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "a->entries", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 
 	for(i=a->numEntries;i<numEntries;i++) {

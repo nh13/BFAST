@@ -105,20 +105,12 @@ int main(int argc, char *argv[])
 		/* Open input */
 		for(i=0;i<2;i++) {
 			if(!(inputFP[i] = gzopen(inputFileName[i], "rb"))) {
-				PrintError(Name,
-						inputFileName[i],
-						"Could not open file for reading",
-						Exit,
-						OpenFileError);
+				PrintError(Name, inputFileName[i], "Could not open file for reading", Exit, OpenFileError);
 			}
 		}
 		/* Open output */
 		if(!(outputFP = gzopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError(Name, outputFileName, "Could not open file for writing", Exit, OpenFileError);
 		}
 
 		/* Split entries and print */

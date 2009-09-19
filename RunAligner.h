@@ -19,8 +19,6 @@ typedef struct {
 	char *inputFileName;
 	gzFile outputFP;
 	char *outputFileName;
-	gzFile notAlignedFP;
-	char *notAlignedFileName;
 	RGBinary *rg;
 	int space;
 	int offsetLength;
@@ -36,10 +34,12 @@ typedef struct {
 	double mismatchScore;
 	int queueLength;
 	int threadID;
+	int64_t numAligned;
+	int64_t numNotAligned;
 } ThreadData;
 
-void RunAligner(RGBinary*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int*, int*);
-void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, gzFile, int*, int*);
+void RunAligner(char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, int*, int*, int*);
+void RunDynamicProgramming(gzFile, RGBinary*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, gzFile, int*, int*);
 void *RunDynamicProgrammingThread(void *);
 int32_t GetMatches(gzFile, RGMatches*, int32_t);
 #endif

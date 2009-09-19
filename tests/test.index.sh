@@ -15,7 +15,7 @@ do
 	RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 
 	# Make an index
-	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 1111111111 -w 6 -d 1 -i 1 -T $TMP_DIR";
+	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 111111111111111 -w 8 -d 1 -i 1 -T $TMP_DIR";
 	eval $CMD 2> /dev/null;
 
 	# Get return code

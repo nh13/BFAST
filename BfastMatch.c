@@ -27,7 +27,7 @@ enum {
 
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the bfast reference genome file", 1},
+	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"mainIndexes", 'i', "mainIndexes", 0, "Specifies the index numbers for the main bif files (comma separated)", 1},
 	{"secondaryIndexes", 'I', "secondaryIndexes", 0, "Specifies the index numbers for the secondary bif files (comma separated)", 1},
 	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
@@ -81,11 +81,7 @@ BfastMatch(int argc, char **argv)
 						fprintf(stderr, BREAK_LINE);
 					}
 					else {
-						PrintError("PrintError",
-								NULL,                                    
-								"validating command-line inputs",
-								Exit,
-								InputArguments);
+						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
 
 					}
 					BfastMatchPrintProgramParameters(stderr, &arguments);
@@ -127,19 +123,11 @@ BfastMatch(int argc, char **argv)
 					fprintf(stderr, "%s", BREAK_LINE);
 					break;
 				default:
-					PrintError("PrintError",
-							"programMode",
-							"Could not determine program mode",
-							Exit,
-							OutOfRange);
+					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
 			}
 		}
 		else {
-			PrintError("PrintError",
-					NULL,
-					"Could not parse command line argumnets",
-					Exit,
-					InputArguments);
+			PrintError("PrintError", NULL, "Could not parse command line argumnets", Exit, InputArguments);
 		}
 		/* Free program parameters */
 		BfastMatchFreeProgramParameters(&arguments);
@@ -163,50 +151,45 @@ int BfastMatchValidateInputs(struct arguments *args) {
 		fprintf(stderr, "Validating fastaFileName %s. \n",
 				args->fastaFileName);
 		if(ValidateFileName(args->fastaFileName)==0)
-			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);
-	}
-	else {
-		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);
+			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	else {		
+		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);	
 	}
 
 	if(args->space != NTSpace && args->space != ColorSpace) {
-		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->keySize < 0) {
+		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->keySize < 0) {		
 		PrintError(FnName, "keySize", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->maxKeyMatches < 0) {
-		PrintError(FnName, "maxKeyMatches", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->maxNumMatches < 0) {
+		PrintError(FnName, "maxKeyMatches", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->maxNumMatches < 0) {		
 		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(!(args->whichStrand == BothStrands || 
 				args->whichStrand == ForwardStrand || 
 				args->whichStrand == ReverseStrand)) {
-		PrintError(FnName, "whichStrand", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->numThreads<=0) {
+		PrintError(FnName, "whichStrand", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->numThreads<=0) {		
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	} 
 
 	if(args->queueLength<=0) {
-		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
-	} 
-
-	if(args->tmpDir!=0) {
-		fprintf(stderr, "Validating tmpDir path %s. \n",
+		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);	
+	} 	
+	if(args->tmpDir!=0) {		
+		fprintf(stderr, "Validating tmpDir path %s. \n", 
 				args->tmpDir);
 		if(ValidateFileName(args->tmpDir)==0)
-			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
-	}
-
-	/* If this does not hold, we have done something wrong internally */
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);	
+	}	
+	/* If this does not hold, we have done something wrong internally */	
 	assert(args->timing == 0 || args->timing == 1);
 
 	return 1;
@@ -232,8 +215,8 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 	args->startReadNum = -1;
 	args->endReadNum = -1;
 	args->keySize = 0;
-	args->maxKeyMatches = INT_MAX;
-	args->maxNumMatches = INT_MAX;
+	args->maxKeyMatches = MAX_KEY_MATCHES;
+	args->maxNumMatches = MAX_NUM_MATCHES;
 	args->whichStrand = BothStrands;
 	args->numThreads = 1;
 	args->queueLength = DEFAULT_MATCHES_QUEUE_LENGTH;

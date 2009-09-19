@@ -35,11 +35,7 @@ int main(int argc, char *argv[])
 
 		/* Open the input file */
 		if(!(fpIn=gzopen(inputFileName, "rb"))) {
-			PrintError(Name,
-					inputFileName,
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 		}
 
 		DistInitialize(&dist);
@@ -108,11 +104,7 @@ int32_t DistAdd(Dist *dist,
 		prev = dist->max_cals;
 		dist->cals = realloc(dist->cals, sizeof(CAL)*a->numEntries);
 		if(NULL == dist->cals) {
-			PrintError(FnName,
-					"dist->cals",
-					"Could not allocate memory",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "dist->cals", "Could not allocate memory", Exit, OutOfRange);
 		}
 		for(i=prev;i<a->numEntries;i++) {
 			CALInitialize(&dist->cals[i], i+1, from, by, to);
@@ -164,11 +156,7 @@ void CALInitialize(CAL *c, int32_t num_cal, double from, double by, double to)
 		c->length = (int32_t)((to - from)/by)+ 1;
 		c->hist = malloc(sizeof(int32_t)*c->length);
 		if(NULL == c->hist) {
-			PrintError(FnName,
-					"c->hist",
-					"Could not allocate memory",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "c->hist", "Could not allocate memory", Exit, OutOfRange);
 		}
 		for(i=0;i<c->length;i++) {
 			c->hist[i] = 0;

@@ -32,39 +32,23 @@ int32_t RGMatchesRead(gzFile fp,
 	/* Allocate memory for the read name */
 	m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
 	if(NULL == m->readName) {
-		PrintError(FnName,
-				"m->readName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->readName", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Read in read name */
 	if(gzread64(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength) {
-		PrintError(FnName,
-				"m->readName",
-				"Could not read in read name",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "m->readName", "Could not read in read name", Exit, ReadFileError);
 	}
 	m->readName[m->readNameLength]='\0';
 	/* Read numEnds */
 	if(gzread64(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				"numEnds",
-				"Could not read in numEnds",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, "numEnds", "Could not read in numEnds", Exit, ReadFileError);
 	}
 
 	/* Allocate the ends */
 	m->ends = malloc(sizeof(RGMatch)*m->numEnds);
 	if(NULL == m->ends) {
-		PrintError(FnName,
-				"m->ends",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->ends", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Read each end */
@@ -106,22 +90,14 @@ int32_t RGMatchesReadText(FILE *fp,
 	/* Allocate memory for the read name */
 	m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
 	if(NULL == m->readName) {
-		PrintError(FnName,
-				"m->readName",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->readName", "Could not allocate memory", Exit, MallocMemory);
 	}
 	strcpy(m->readName, readName);
 
 	/* Allocate the ends */
 	m->ends = malloc(sizeof(RGMatch)*m->numEnds);
 	if(NULL == m->ends) {
-		PrintError(FnName,
-				"m->ends",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->ends", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Read each end */
@@ -160,11 +136,7 @@ void RGMatchesPrint(gzFile fp,
 	if(gzwrite64(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength ||
 			gzwrite64(fp, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t))  {
-		PrintError(FnName,
-				NULL,
-				"Could not write m->readNameLength, m->readName, and m->numEnds",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write m->readNameLength, m->readName, and m->numEnds", Exit, WriteFileError);
 	}
 
 	/* Print each end */
@@ -193,11 +165,7 @@ void RGMatchesPrintText(FILE *fp,
 	if(0 > fprintf(fp, "@%s %d\n",
 				m->readName,
 				m->numEnds)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write m->readNameLength, m->readName, and m->numEnds",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write m->readNameLength, m->readName, and m->numEnds", Exit, WriteFileError);
 	}
 
 	/* Print each end */
@@ -277,11 +245,7 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 			else {
 				if(matches.readName != NULL &&
 						strcmp(matches.readName, tempMatches.readName)!=0) {
-					PrintError(FnName,
-							NULL,
-							"Read names do not match",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, NULL, "Read names do not match", Exit, OutOfRange);
 				}
 				/* Append temp matches to matches */
 				RGMatchesAppend(&matches, &tempMatches);
@@ -337,11 +301,7 @@ int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(gzFile *threadFPs,
 	/* Allocate memory for the finished array */
 	finished = malloc(sizeof(int)*numThreads);
 	if(NULL == finished) {
-		PrintError(FnName,
-				"finished",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "finished", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Initialize finished array */
 	for(i=0;i<numThreads;i++) {
@@ -417,11 +377,7 @@ void RGMatchesAppend(RGMatches *dest, RGMatches *src)
 		/* Allocate memory for the read name */
 		dest->readName = malloc(sizeof(char)*(dest->readNameLength+1));
 		if(NULL==dest->readName) {
-			PrintError(FnName,
-					"dest->readName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "dest->readName", "Could not allocate memory", Exit, MallocMemory);
 		}
 		strcpy(dest->readName, src->readName);
 
@@ -429,11 +385,7 @@ void RGMatchesAppend(RGMatches *dest, RGMatches *src)
 		if(dest->numEnds < src->numEnds) {
 			dest->ends = realloc(dest->ends, sizeof(RGMatch)*src->numEnds);
 			if(NULL==dest->ends) {
-				PrintError(FnName,
-						"dest->ends",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
+				PrintError(FnName, "dest->ends", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			for(i=dest->numEnds;i<src->numEnds;i++) {
 				RGMatchInitialize(&dest->ends[i]);
@@ -465,11 +417,7 @@ void RGMatchesReallocate(RGMatches *m,
 
 	m->ends = realloc(m->ends, sizeof(RGMatch)*numEnds);
 	if(NULL == m->ends) {
-		PrintError(FnName,
-				"m->ends",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "m->ends", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	for(i=m->numEnds;i<numEnds;i++) {
@@ -594,11 +542,7 @@ void RGMatchesCheck(RGMatches *m)
 	assert(m->numEnds == 0 || m->numEnds == 1);
 	/* Check that the read name length is the same as the length of the read name */
 	if(((int)strlen(m->readName)) != m->readNameLength) {
-		PrintError(FnName,
-				NULL,
-				"strlen(m->readName)) != m->readNameLength",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "strlen(m->readName)) != m->readNameLength", Exit, OutOfRange);
 	}
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchCheck(&m->ends[i]);

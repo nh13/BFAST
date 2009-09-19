@@ -19,8 +19,8 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescRGFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescAlignmentType, DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
+	DescInputFilesTitle, DescFastaFileName, DescMatchFileName, DescScoringMatrixFileName, 
+	DescAlgoTitle, DescUngapped, DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -28,15 +28,15 @@ enum {
 
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
-	{"brgFileName", 'r', "brgFileName", 0, "Specifies the file name of the reference genome file", 1},
+	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
-	{"alignmentType", 'a', "alignmentType", 0, "0: Full alignment 1: mismatches only", 2},
+	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"offsetLength", 'O', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
+	{"offsetLength", 'o', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
@@ -48,10 +48,8 @@ static struct argp_option options[] = {
 		"\n\t\t\t1: specifies that we assume that the first end is before the second end (5'->3')"
 			"\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3)"
 			"\n\t\t\t3: specifies that we mirror CALs in both directions", 3},
-	{"forceMirroring", 'f', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
+	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
-	{"outputID", 'o', "outputID", 0, "Specifies the name to identify the output files", 4},
-	{"outputDir", 'd', "outputDir", 0, "Specifies the output directory for the output files", 4},
 	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
@@ -61,17 +59,14 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:d:e:l:m:n:o:q:r:s:x:A:E:L:M:O:Q:S:T:bfhpt";
+"e:f:l:m:n:o:q:r:s:x:A:E:L:M:Q:S:T:bhptuF";
 
 	int
 BfastLocalAlign(int argc, char **argv)
 {
 	struct arguments arguments;
-	RGBinary rg;
 	time_t startTotalTime = time(NULL);
 	time_t endTotalTime;
-	time_t startTime;
-	time_t endTime;
 	int totalReferenceGenomeTime = 0; /* Total time to load and delete the reference genome */
 	int totalAlignTime = 0; /* Total time to align the reads */
 	int totalFileHandlingTime = 0; /* Total time partitioning and merging matches and alignments respectively */
@@ -96,31 +91,17 @@ BfastLocalAlign(int argc, char **argv)
 						fprintf(stderr, BREAK_LINE);
 					}
 					else {
-						PrintError("PrintError",
-								NULL,
-								"validating command-line inputs",
-								Exit,
-								InputArguments);
+						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
 
 					}
 					BfastLocalAlignPrintProgramParameters(stderr, &arguments);
 					/* Execute Program */
-					startTime = time(NULL);
-					RGBinaryReadBinary(&rg,
-							NTSpace,
-							arguments.brgFileName);
-					/* Unpack */
-					/*
-					   RGBinaryUnPack(&rg);
-					   */
-					endTime = time(NULL);
-					totalReferenceGenomeTime = endTime - startTime;
 					/* Run the aligner */
-					RunAligner(&rg,
+					RunAligner(arguments.fastaFileName,
 							arguments.matchFileName,
 							arguments.scoringMatrixFileName,
-							arguments.alignmentType,
-							arguments.bestOnly,
+							arguments.ungapped,
+							AllAlignments, // hard-coded
 							arguments.space,
 							arguments.startReadNum,
 							arguments.endReadNum,
@@ -133,13 +114,10 @@ BfastLocalAlign(int argc, char **argv)
 							arguments.pairedEndLength,
 							arguments.mirroringType,
 							arguments.forceMirroring,
-							arguments.outputID,
-							arguments.outputDir,
 							arguments.tmpDir,
+							&totalReferenceGenomeTime,
 							&totalAlignTime,
 							&totalFileHandlingTime);
-					/* Free the Reference Genome */
-					RGBinaryDelete(&rg);
 
 					if(arguments.timing == 1) {
 						/* Output loading reference genome time */
@@ -195,19 +173,11 @@ BfastLocalAlign(int argc, char **argv)
 					fprintf(stderr, "%s", BREAK_LINE);
 					break;
 				default:
-					PrintError("PrintError",
-							"programMode",
-							"Could not determine program mode",
-							Exit,
-							OutOfRange);
+					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
 			}
 		}
 		else {
-			PrintError("PrintError",
-					NULL,
-					"Could not parse command line argumnets",
-					Exit,
-					InputArguments);
+			PrintError("PrintError", NULL, "Could not parse command line argumnets", Exit, InputArguments);
 		}
 		/* Free program parameters */
 		BfastLocalAlignFreeProgramParameters(&arguments);
@@ -225,98 +195,75 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 	fprintf(stderr, BREAK_LINE);
 	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
 
-	if(args->brgFileName!=0) {
-		fprintf(stderr, "Validating brgFileName %s. \n",
-				args->brgFileName);
-		if(ValidateFileName(args->brgFileName)==0)
-			PrintError(FnName, "brgFileName", "Command line argument", Exit, IllegalFileName);
+	if(args->fastaFileName!=0) {
+		fprintf(stderr, "Validating fastaFileName %s. \n",
+				args->fastaFileName);
+		if(ValidateFileName(args->fastaFileName)==0)
+			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);        }   
+	else {
+		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);   
 	}
 
 	if(args->matchFileName!=0) {
-		fprintf(stderr, "Validating matchFileName path %s. \n",
+		fprintf(stderr, "Validating matchFileName%s. \n", 
 				args->matchFileName);
 		if(ValidateFileName(args->matchFileName)==0)
-			PrintError(FnName, "matchFileName", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->scoringMatrixFileName!=0) {
-		fprintf(stderr, "Validating scoringMatrixFileName path %s. \n",
+			PrintError(FnName, "matchFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	if(args->scoringMatrixFileName!=0) {		
+		fprintf(stderr, "Validating scoringMatrixFileName path %s. \n", 
 				args->scoringMatrixFileName);
 		if(ValidateFileName(args->scoringMatrixFileName)==0)
-			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
+			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
+	if(args->ungapped != FullAlignment && args->ungapped != MismatchesOnly) {		
+		PrintError(FnName, "ungapped", "Command line argument", Exit, OutOfRange);
 	}
 
-	if(args->alignmentType != FullAlignment && args->alignmentType != MismatchesOnly) {
-		PrintError(FnName, "alignmentType", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->bestOnly != BestOnly && args->bestOnly != AllAlignments) {
-		PrintError(FnName, "bestOnly", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->space != NTSpace && args->space != ColorSpace) {
+	if(args->space != NTSpace && args->space != ColorSpace) {		
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->startReadNum < 0) {
-		PrintError(FnName, "startReadNum", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->endReadNum < 0) {
+		PrintError(FnName, "startReadNum", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->endReadNum < 0) {		
 		PrintError(FnName, "endReadNum", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->offsetLength < 0) {
-		PrintError(FnName, "offsetLength", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->maxNumMatches < 0) {
+		PrintError(FnName, "offsetLength", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->maxNumMatches < 0) {		
 		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
 
 	if(args->avgMismatchQuality <= 0) {
-		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, OutOfRange);
-	}
-
-	if(args->numThreads<=0) {
+		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, OutOfRange);	
+	}	
+	if(args->numThreads<=0) {		
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	} 
 
 	if(args->queueLength<=0) {
-		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
-	}
+		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);	
+	}	
 
-	if(args->outputID!=0) {
-		fprintf(stderr, "Validating outputID %s. \n",
-				args->outputID);
-		if(ValidateFileName(args->outputID)==0)
-			PrintError(FnName, "outputID", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->outputDir!=0) {
-		fprintf(stderr, "Validating outputDir path %s. \n",
-				args->outputDir);
-		if(ValidateFileName(args->outputDir)==0)
-			PrintError(FnName, "outputDir", "Command line argument", Exit, IllegalFileName);
-	}
-
-	if(args->tmpDir!=0) {
-		fprintf(stderr, "Validating tmpDir path %s. \n",
-				args->tmpDir);
-		if(ValidateFileName(args->tmpDir)==0)
-			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);
-	}
-
-	/* If this does not hold, we have done something wrong internally */
+	if(args->tmpDir!=0) {		fprintf(stderr, "Validating tmpDir path %s. \n", 
+			args->tmpDir);
+	if(ValidateFileName(args->tmpDir)==0)
+		PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);	
+	}	
+	/* If this does not hold, we have done something wrong internally */	
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
 	assert(NoMirroring <= args->mirroringType && args->mirroringType <= MirrorBoth);
 	if(args->mirroringType != NoMirroring && args->usePairedEndLength == 0) {
-		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using mirroring", Exit, OutOfRange);
-	}
-	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {
-		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);
+		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using mirroring", Exit, OutOfRange);	
+	}	
+	if(args->forceMirroring == 1 && args->usePairedEndLength == 0) {		
+		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);	
 	}
 
 	return 1;
@@ -329,25 +276,16 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 
 	args->programMode = ExecuteProgram;
 
-	args->brgFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->brgFileName!=0);
-	strcpy(args->brgFileName, DEFAULT_FILENAME);
-
-	args->matchFileName =
-		(char*)malloc(sizeof(DEFAULT_FILENAME));
-	assert(args->matchFileName!=0);
-	strcpy(args->matchFileName, DEFAULT_FILENAME);
-
+	args->fastaFileName = NULL;
+	args->matchFileName = NULL;
 	args->scoringMatrixFileName=NULL;
 
-	args->alignmentType = FullAlignment;
-	args->bestOnly = AllAlignments;
+	args->ungapped = FullAlignment;
 	args->space = NTSpace;
 	args->startReadNum=0;
 	args->endReadNum=INT_MAX;
-	args->offsetLength=0;
-	args->maxNumMatches=INT_MAX;
+	args->offsetLength=OFFSET_LENGTH;
+	args->maxNumMatches=MAX_NUM_MATCHES;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads = 1;
 	args->queueLength = DEFAULT_MATCHES_QUEUE_LENGTH;
@@ -355,16 +293,6 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->pairedEndLength = 0;
 	args->mirroringType = NoMirroring;
 	args->forceMirroring = 0;
-
-	args->outputID =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_ID));
-	assert(args->outputID!=0);
-	strcpy(args->outputID, DEFAULT_OUTPUT_ID);
-
-	args->outputDir =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
-	assert(args->outputDir!=0);
-	strcpy(args->outputDir, DEFAULT_OUTPUT_DIR);
 
 	args->tmpDir =
 		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
@@ -384,13 +312,10 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "brgFileName:\t\t\t\t%s\n", args->brgFileName);
+	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
 	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
 	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
-	fprintf(fp, "alignmentType:\t\t\t\t%d\n", args->alignmentType);
-	/*
-	   fprintf(fp, "bestOnly:\t\t\t\t%d\n", args->bestOnly);
-	   */
+	fprintf(fp, "ungapped:\t\t\t\t%d\n", args->ungapped);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
@@ -402,8 +327,6 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
 	fprintf(fp, "mirroringType:\t\t\t\t%d\n", args->mirroringType);
 	fprintf(fp, "forceMirroring:\t\t\t\t%d\n", args->forceMirroring);
-	fprintf(fp, "outputID:\t\t\t\t%s\n", args->outputID);
-	fprintf(fp, "outputDir:\t\t\t\t%s\n", args->outputDir);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
@@ -414,16 +337,12 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 /* TODO */
 void BfastLocalAlignFreeProgramParameters(struct arguments *args)
 {
-	free(args->brgFileName);
-	args->brgFileName=NULL;
+	free(args->fastaFileName);
+	args->fastaFileName=NULL;
 	free(args->matchFileName);
 	args->matchFileName=NULL;
 	free(args->scoringMatrixFileName);
 	args->scoringMatrixFileName=NULL;
-	free(args->outputID);
-	args->outputID=NULL;
-	free(args->outputDir);
-	args->outputDir=NULL;
 	free(args->tmpDir);
 	args->tmpDir=NULL;
 }
@@ -463,58 +382,42 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 		   fprintf(stderr, "Key is %c and OptErr = %d\n", key, OptErr);
 		   */
 		switch (key) {
-			case 'a':
-				arguments->alignmentType=atoi(optarg);break;
-				/*
-				   case 'b':
-				   arguments->bestOnly=atoi(optarg);break;
-				   */
-			case 'd':
-				StringCopyAndReallocate(&arguments->outputDir, optarg);
-				/* set the tmp directory to the output director */
-				if(strcmp(arguments->tmpDir, DEFAULT_FILENAME)==0) {
-					StringCopyAndReallocate(&arguments->tmpDir, optarg);
-				}
-				break;
 			case 'e':
 				arguments->endReadNum=atoi(optarg);break;
 			case 'f':
-				arguments->forceMirroring=1;break;
+				arguments->fastaFileName=strdup(optarg);break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp; break;
 			case 'l':
 				arguments->usePairedEndLength=1;
 				arguments->pairedEndLength = atoi(optarg);break;
 			case 'm':
-				StringCopyAndReallocate(&arguments->matchFileName, optarg);
-				break;
+				arguments->matchFileName=strdup(optarg);break;
 			case 'n':
 				arguments->numThreads=atoi(optarg); break;
 			case 'o':
-				StringCopyAndReallocate(&arguments->outputID, optarg);
-				break;
+				arguments->offsetLength=atoi(optarg);break;
 			case 'p':
 				arguments->programMode=ExecutePrintProgramParameters; break;
 			case 'q':
 				arguments->avgMismatchQuality = atoi(optarg); break;
-			case 'r':
-				StringCopyAndReallocate(&arguments->brgFileName, optarg);
-				break;
 			case 's':
 				arguments->startReadNum=atoi(optarg);break;
 			case 't':
 				arguments->timing = 1;break;
+			case 'u':
+				arguments->ungapped = MismatchesOnly; break;
 			case 'x':
 				StringCopyAndReallocate(&arguments->scoringMatrixFileName, optarg);
 				break;
 			case 'A':
 				arguments->space=atoi(optarg);break;
+			case 'F':
+				arguments->forceMirroring=1;break;
 			case 'L':
 				arguments->mirroringType=atoi(optarg);break;
 			case 'M':
 				arguments->maxNumMatches=atoi(optarg);break;
-			case 'O':
-				arguments->offsetLength=atoi(optarg);break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
 			case 'T':

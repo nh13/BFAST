@@ -17,7 +17,7 @@
 #include "RunAligner.h"
 
 /* TODO */
-void RunAligner(RGBinary *rg,
+void RunAligner(char *fastaFileName,
 		char *matchFileName,
 		char *scoringMatrixFileName,
 		int alignmentType,
@@ -34,82 +34,58 @@ void RunAligner(RGBinary *rg,
 		int pairedEndLength,
 		int mirroringType,
 		int forceMirroring,
-		char *outputID,
-		char *outputDir,
 		char *tmpDir,
+		int *totalReferenceGenomeTime,
 		int *totalAlignedTime,
 		int *totalFileHandlingTime)
 {
 	char *FnName = "RunAligner";
 	gzFile outputFP=NULL;
-	gzFile notAlignedFP=NULL;
 	gzFile matchFP=NULL;
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-	char notAlignedFileName[MAX_FILENAME_LENGTH]="\0";
+	int32_t startTime, endTime;
+	RGBinary rg;
+
+	startTime = time(NULL);
+	RGBinaryReadBinary(&rg,
+			NTSpace, // always NT space
+			fastaFileName);
+	endTime = time(NULL);
+	/* Unpack */
+	/*
+	   RGBinaryUnPack(&rg);
+	   */
+	(*totalReferenceGenomeTime) = endTime - startTime;
 
 	/* Check rg to make sure it is in NT Space */
-	if(rg->space != NTSpace) {
-		PrintError(FnName,
-				"rg->space",
-				"The reference genome must be in NT space",
-				Exit,
-				OutOfRange);
+	if(rg.space != NTSpace) {
+		PrintError(FnName, "rg->space", "The reference genome must be in NT space", Exit, OutOfRange);
 	}
-
-	/* Create output file name */
-	sprintf(outputFileName, "%s%s.aligned.file.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			BFAST_ALIGNED_FILE_EXTENSION);
-	/* Create not aligned file name */
-	sprintf(notAlignedFileName, "%s%s.not.aligned.file.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			BFAST_MATCHES_FILE_EXTENSION);
 
 	/* Open output file */
-	if((outputFP=gzopen(outputFileName, "wb"))==0) {
-		PrintError(FnName,
-				outputFileName,
-				"Could not open file for writing",
-				Exit,
-				OpenFileError);
-	}
-
-	/* Open not aligned file */
-	if((notAlignedFP=gzopen(notAlignedFileName, "wb"))==0) {
-		PrintError(FnName,
-				notAlignedFileName,
-				"Could not open file for writing",
-				Exit,
-				OpenFileError);
-	}
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Will output aligned reads to %s.\n", outputFileName);
-		fprintf(stderr, "Will output unaligned reads to %s.\n", notAlignedFileName);
-		fprintf(stderr, "%s", BREAK_LINE);
+	if((outputFP=gzdopen(fileno(stdout), "wb"))==0) {
+		PrintError(FnName, "stdout", "Could not open stdout file for writing", Exit, OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading match file from %s.\n",
-				matchFileName);
+				(NULL == matchFileName) ? "stdin" : matchFileName);
 	}
 
 	/* Open current match file */
-	if((matchFP=gzopen(matchFileName, "rb"))==0) {
-		PrintError(FnName,
-				matchFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+	if(NULL == matchFileName) {
+		if((matchFP=gzdopen(fileno(stdout), "rb"))==0) {
+			PrintError(FnName, "stdout", "Could not open stdout for reading", Exit, OpenFileError);
+		}
+	}
+	else {
+		if((matchFP=gzopen(matchFileName, "rb"))==0) {
+			PrintError(FnName, matchFileName, "Could not open file for reading", Exit, OpenFileError);
+		}
 	}
 
 	RunDynamicProgramming(matchFP,
-			rg,
+			&rg,
 			scoringMatrixFileName,
 			alignmentType,
 			bestOnly,
@@ -127,7 +103,6 @@ void RunAligner(RGBinary *rg,
 			forceMirroring,
 			tmpDir,
 			outputFP,
-			notAlignedFP,
 			totalAlignedTime,
 			totalFileHandlingTime);
 
@@ -141,8 +116,8 @@ void RunAligner(RGBinary *rg,
 	/* Close output file */
 	gzclose(outputFP);
 
-	/* Close not aligned file */
-	gzclose(notAlignedFP);
+	/* Free the Reference Genome */
+	RGBinaryDelete(&rg);
 }
 
 /* TODO */
@@ -165,7 +140,6 @@ void RunDynamicProgramming(gzFile matchFP,
 		int forceMirroring,
 		char *tmpDir,
 		gzFile outputFP,
-		gzFile notAlignedFP,
 		int *totalAlignedTime,
 		int *totalFileHandlingTime)
 {
@@ -174,9 +148,8 @@ void RunDynamicProgramming(gzFile matchFP,
 	ScoringMatrix sm;
 	double mismatchScore;
 	RGMatches m;
-	int32_t i, j;
+	int32_t i, ctr;
 
-	int32_t wasAligned;
 	int continueReading=0;
 	int numMatchesInFile=0;
 	int numMatchesFound=0;
@@ -198,20 +171,12 @@ void RunDynamicProgramming(gzFile matchFP,
 	/* Allocate memory for thread arguments */
 	data = malloc(sizeof(ThreadData)*numThreads);
 	if(NULL==data) {
-		PrintError(FnName,
-				"data",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Allocate memory for thread ids */
 	threads = malloc(sizeof(pthread_t)*numThreads);
 	if(NULL==threads) {
-		PrintError(FnName,
-				"threads",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Start file handling timer */
@@ -239,7 +204,6 @@ void RunDynamicProgramming(gzFile matchFP,
 	for(i=0;i<numThreads;i++) {
 		data[i].inputFP = OpenTmpGZFile(tmpDir, &data[i].inputFileName);
 		data[i].outputFP = OpenTmpGZFile(tmpDir, &data[i].outputFileName);
-		data[i].notAlignedFP = OpenTmpGZFile(tmpDir, &data[i].notAlignedFileName); 
 	}
 
 	/* Go through each read in the match file and partition them for the threads */
@@ -293,11 +257,7 @@ void RunDynamicProgramming(gzFile matchFP,
 				&data[i].outputFileName,
 				0);
 		if(!(data[i].inputFP=gzopen(data[i].inputFileName, "rb"))) {
-			PrintError(FnName,
-					data[i].inputFileName,
-					"Could not re-open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, data[i].inputFileName, "Could not re-open file for reading", Exit, OpenFileError);
 		}
 		data[i].rg=rg;
 		data[i].space=space;
@@ -314,6 +274,8 @@ void RunDynamicProgramming(gzFile matchFP,
 		data[i].mismatchScore = mismatchScore;
 		data[i].queueLength = queueLength;
 		data[i].threadID = i;
+		data[i].numAligned = 0;
+		data[i].numNotAligned = 0;
 	}
 
 	if(VERBOSE >= 0) {
@@ -337,11 +299,7 @@ void RunDynamicProgramming(gzFile matchFP,
 				RunDynamicProgrammingThread, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_create: errCode",
-					"Could not start thread",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 		}
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "Created threadID:%d\n",
@@ -360,22 +318,14 @@ void RunDynamicProgramming(gzFile matchFP,
 		}
 		/* Check the return code of the thread */
 		if(0!=errCode) {
-			PrintError(FnName,
-					"pthread_join: errCode",
-					"Thread returned an error",
-					Exit,
-					ThreadError);
+			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 		}
 		/* Reinitialize file pointer */
 		CloseTmpGZFile(&data[i].outputFP, 
 				&data[i].outputFileName,
 				0);
 		if(!(data[i].outputFP=gzopen(data[i].outputFileName, "rb"))) {
-			PrintError(FnName,
-					data[i].outputFileName,
-					"Could not re-open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, data[i].outputFileName, "Could not re-open file for reading", Exit, OpenFileError);
 		}
 	}
 	if(VERBOSE >= 0) {
@@ -401,27 +351,18 @@ void RunDynamicProgramming(gzFile matchFP,
 		fprintf(stderr, "Merging and outputting aligned reads from threads...\n[0]");
 	}
 	AlignedReadInitialize(&aEntries);
-	numAligned=0;
 	continueReading=1;
+	ctr=0;
 	while(continueReading==1) {
 		/* Get an align from a thread */
 		continueReading=0;
 		for(i=0;i<numThreads;i++) {
 			/* Read in the align entries */
 			if(EOF != AlignedReadRead(&aEntries, data[i].outputFP)) {
-				if(VERBOSE >=0 && numAligned%ALIGN_ROTATE_NUM == 0) {
-					fprintf(stderr, "\r[%d]", numAligned);
+				if(VERBOSE >=0 && ctr%ALIGN_ROTATE_NUM == 0) {
+					fprintf(stderr, "\r[%d]", ctr);
 				}
 				continueReading=1;
-				/* Update the number that were aligned */
-				for(j=wasAligned=0;0==wasAligned && j<aEntries.numEnds;j++) {
-					if(0 < aEntries.ends[j].numEntries) {
-						wasAligned = 1;
-					}
-				}
-				if(1 == wasAligned) {
-					numAligned++;
-				}
 				/* Print it out */
 				AlignedReadPrint(&aEntries,
 						outputFP);
@@ -430,53 +371,17 @@ void RunDynamicProgramming(gzFile matchFP,
 		}
 	}
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r[%d]\n", numAligned);
+		fprintf(stderr, "\r[%d]\n", ctr);
 	}
-
-	/* Merge the not aligned tmp files */
-	if(VERBOSE >=0) {
-		fprintf(stderr, "Merging and outputting unaligned reads from threads and initial filter...\n");
-	}
+	numAligned = numNotAligned = 0;
 	for(i=0;i<numThreads;i++) {
-		/* Reinitialize file pointer */
-		CloseTmpGZFile(&data[i].notAlignedFP, 
-				&data[i].notAlignedFileName,
-				0);
-		if(!(data[i].notAlignedFP=gzopen(data[i].notAlignedFileName, "rb"))) {
-			PrintError(FnName,
-					data[i].notAlignedFileName,
-					"Could not re-open file for reading",
-					Exit,
-					OpenFileError);
-		}
-
-		continueReading=1;
-		while(continueReading==1) {
-			RGMatchesInitialize(&m);
-			if(RGMatchesRead(data[i].notAlignedFP,
-						&m) == EOF) {
-				continueReading = 0;
-			}
-			else {
-				if(VERBOSE >= 0 && numNotAligned%ALIGN_ROTATE_NUM==0) {
-					fprintf(stderr, "\r[%d]", numNotAligned);
-				}
-				numNotAligned++;
-				RGMatchesPrint(notAlignedFP,
-						&m);
-
-				RGMatchesFree(&m);
-			}
-		}
-	}
-	if(VERBOSE >=0) {
-		fprintf(stderr, "\r[%d]\n", numNotAligned);
+		numAligned += data[i].numAligned;
+		numNotAligned += data[i].numNotAligned;
 	}
 
 	/* Close tmp output files */
 	for(i=0;i<numThreads;i++) {
 		CloseTmpGZFile(&data[i].outputFP, &data[i].outputFileName, 1);
-		CloseTmpGZFile(&data[i].notAlignedFP, &data[i].notAlignedFileName, 1);
 	}
 
 	/* Start file handling timer */
@@ -504,7 +409,6 @@ void *RunDynamicProgrammingThread(void *arg)
 	ThreadData *data = (ThreadData *)(arg);
 	gzFile inputFP=data->inputFP;
 	gzFile outputFP=data->outputFP;
-	gzFile notAlignedFP = data->notAlignedFP;
 	RGBinary *rg=data->rg;
 	int space=data->space;
 	int offsetLength=data->offsetLength;
@@ -535,11 +439,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	/* Allocate match queue */
 	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength);
 	if(NULL == matchQueue) {
-		PrintError(FnName,
-				"matchQueue",
-				"Could not allocate memory",
-				Exit, 
-				MallocMemory);
+		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Initialize */
@@ -559,7 +459,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 					fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 				}
-
+				
 				/* Update the number of local alignments performed */
 				data->numLocalAlignments += AlignRGMatches(&matchQueue[i],
 						rg,
@@ -604,15 +504,16 @@ void *RunDynamicProgrammingThread(void *arg)
 							0);
 				}
 			}
-
+				
 			/* Print */
 			AlignedReadPrint(&aEntries,
 					outputFP);
 
 			if(0 == wasAligned) {
-				/* Store matches in not aligned */
-				RGMatchesPrint(notAlignedFP,
-						&matchQueue[i]);
+				data->numNotAligned++;
+			}
+			else {
+				data->numAligned++;
 			}
 
 			/* Free memory */
@@ -628,7 +529,6 @@ void *RunDynamicProgrammingThread(void *arg)
 
 	return arg;
 }
-
 
 //while(0 != (numMatchesRead = GetMatches(inputFP, m))) {
 int32_t GetMatches(gzFile fp, RGMatches *m, int32_t maxToRead)

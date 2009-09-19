@@ -11,11 +11,15 @@ static int usage()
 	fprintf(stderr, "Version: %s\n", PACKAGE_VERSION);
 	fprintf(stderr, "Contact: %s\n\n", PACKAGE_BUGREPORT);
 	fprintf(stderr, "Usage:   bfast <command> [options]\n\n"); 
-	fprintf(stderr, "Key Commands:\n");
+	fprintf(stderr, "Preprocessing:\n");
 	fprintf(stderr, "         fasta2brg\n");
 	fprintf(stderr, "         index\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Alignment:\n");
 	fprintf(stderr, "         match\n");
 	fprintf(stderr, "         localalign\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Post-processing:\n");
 	fprintf(stderr, "         postprocess\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "File Conversion:\n");
@@ -43,3 +47,4 @@ int main(int argc, char *argv[])
 	}
 	return 0;
 }
+

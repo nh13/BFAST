@@ -44,11 +44,7 @@ void RGBinaryRead(char *fastaFileName,
 	rg->packageVersionLength = (int)strlen(PACKAGE_VERSION);
 	rg->packageVersion = malloc(sizeof(char)*(rg->packageVersionLength+1));
 	if(NULL==rg->packageVersion) {
-		PrintError(FnName,
-				"rg->packageVersion",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "rg->packageVersion", "Could not allocate memory", Exit, MallocMemory);
 	}
 	strcpy(rg->packageVersion, PACKAGE_VERSION);
 	rg->packed=RGBinaryPacked;
@@ -64,11 +60,7 @@ void RGBinaryRead(char *fastaFileName,
 
 	/* open file */
 	if(!(fpRG=fopen(fastaFileName, "rb"))) {
-		PrintError(FnName,
-				fastaFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, fastaFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	/*****/
@@ -83,11 +75,7 @@ void RGBinaryRead(char *fastaFileName,
 	rg->numContigs=0;
 	// Get a header
 	if(NULL==fgets(nextHeader, MAX_CONTIG_NAME_LENGTH, fpRG)) {
-		PrintError(FnName,
-				"nextHeader",
-				"Could not find a fasta header",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "nextHeader", "Could not find a fasta header", Exit, OutOfRange);
 	}
 	int32_t eofReached = 0;
 	while(0 == eofReached) {
@@ -112,11 +100,7 @@ void RGBinaryRead(char *fastaFileName,
 			bufferLength += strlen(curLine);
 			buffer = realloc(buffer, sizeof(char)*(1+bufferLength));
 			if(NULL == buffer) {
-				PrintError(FnName,
-						"buffer",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
+				PrintError(FnName, "buffer", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			for(i=prevBufferLength;i<bufferLength;i++) {
 				buffer[i] = curLine[i-prevBufferLength];
@@ -133,21 +117,13 @@ void RGBinaryRead(char *fastaFileName,
 		/* Reallocate memory to store one more contig. */
 		rg->contigs = realloc(rg->contigs, rg->numContigs*sizeof(RGBinaryContig));
 		if(NULL == rg->contigs) {
-			PrintError(FnName,
-					"rg->contigs",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "rg->contigs", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		/* Allocate memory for contig name */
 		rg->contigs[rg->numContigs-1].contigNameLength=strlen(header);
 		rg->contigs[rg->numContigs-1].contigName = malloc(sizeof(char)*(rg->contigs[rg->numContigs-1].contigNameLength+1));
 		if(NULL==rg->contigs[rg->numContigs-1].contigName) {
-			PrintError(FnName,
-					"rg->contigs[rg->numContigs-1].contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "rg->contigs[rg->numContigs-1].contigName", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Copy over contig name */
 		strcpy(rg->contigs[rg->numContigs-1].contigName, header); 
@@ -176,11 +152,7 @@ void RGBinaryRead(char *fastaFileName,
 					fprintf(stderr, "prevBase=[%c]\toriginal=[%c]\n",
 							prevBase,
 							original);
-					PrintError(FnName,
-							"c",
-							"Could not convert base to color space",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "c", "Could not convert base to color space", Exit, OutOfRange);
 				}
 				/* Convert to nucleotide equivalent for storage */
 				/* Store 0=A, 1=C, 2=G, 3=T, else N */
@@ -212,11 +184,7 @@ void RGBinaryRead(char *fastaFileName,
 			/* Validate base pair */
 			if(ValidateBasePair(original)==0) {
 				fprintf(stderr, "Base:[%c]\n", original);
-				PrintError(FnName,
-						"original",
-						"Not a valid base pair",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "original", "Not a valid base pair", Exit, OutOfRange);
 			}
 			/* Get which byte to insert */
 			byteIndex = rg->contigs[rg->numContigs-1].sequenceLength%numCharsPerByte;
@@ -227,11 +195,7 @@ void RGBinaryRead(char *fastaFileName,
 				/* Reallocate a new byte */
 				rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(char)*(rg->contigs[rg->numContigs-1].numBytes));
 				if(NULL == rg->contigs[rg->numContigs-1].sequence) {
-					PrintError(FnName,
-							"rg->contigs[rg->numContigs-1].sequence",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError(FnName, "rg->contigs[rg->numContigs-1].sequence", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 				/* Initialize the byte */
 				rg->contigs[rg->numContigs-1].sequence[rg->contigs[rg->numContigs-1].numBytes-1] = 0;
@@ -243,11 +207,7 @@ void RGBinaryRead(char *fastaFileName,
 			rg->contigs[rg->numContigs-1].sequenceLength++;
 			numPosRead++;
 			if(rg->contigs[rg->numContigs-1].sequenceLength >= UINT_MAX) {
-				PrintError(FnName,
-						"sequenceLength",
-						"Maximum sequence length for a given contig was reached",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "sequenceLength", "Maximum sequence length for a given contig was reached", Exit, OutOfRange);
 			}
 		}
 		/* Update our our output */
@@ -262,11 +222,7 @@ void RGBinaryRead(char *fastaFileName,
 		/* we must add one since there could be an odd number of positions */
 		rg->contigs[rg->numContigs-1].sequence = realloc(rg->contigs[rg->numContigs-1].sequence, sizeof(char)*(rg->contigs[rg->numContigs-1].numBytes));
 		if(NULL == rg->contigs[rg->numContigs-1].sequence) {
-			PrintError(FnName,
-					"rg->contigs[numContigs-1].sequence",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "rg->contigs[numContigs-1].sequence", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 		/* End loop for the current contig */
 		free(buffer);
@@ -308,39 +264,23 @@ void RGBinaryReadBinaryHeader(RGBinary *rg,
 	/* Read RGBinary information */
 	if(gzread64(fpRG, &rg->id, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fpRG, &rg->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read RGBinary information",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read RGBinary information", Exit, ReadFileError);
 	}
 	assert(0<rg->packageVersionLength);
 	rg->packageVersion = malloc(sizeof(char)*(rg->packageVersionLength+1));
 	if(NULL==rg->packageVersion) {
-		PrintError(FnName,
-				"rg->packageVersion",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "rg->packageVersion", "Could not allocate memory", Exit, MallocMemory);
 	}
 	if(gzread64(fpRG, rg->packageVersion, sizeof(char)*rg->packageVersionLength)!=sizeof(char)*rg->packageVersionLength ||
 			gzread64(fpRG, &rg->numContigs, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fpRG, &rg->space, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read RGBinary information",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read RGBinary information", Exit, ReadFileError);
 	}
 	rg->packageVersion[rg->packageVersionLength]='\0';
 
 	/* Check id */
 	if(BFAST_ID != rg->id) {
-		PrintError(FnName,
-				"rg->id",
-				"The id did not match",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "rg->id", "The id did not match", Exit, OutOfRange);
 	}
 	CheckPackageCompatibility(rg->packageVersion,
 			BFASTReferenceGenomeFile);
@@ -352,42 +292,26 @@ void RGBinaryReadBinaryHeader(RGBinary *rg,
 	/* Allocate memory for the contigs */
 	rg->contigs = malloc(sizeof(RGBinaryContig)*rg->numContigs);
 	if(NULL==rg->contigs) {
-		PrintError(FnName,
-				"rg->contigs",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "rg->contigs", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Read each contig info */
 	for(i=0;i<rg->numContigs;i++) {
 		/* Read contig name length */
 		if(gzread64(fpRG, &rg->contigs[i].contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
-			PrintError(FnName,
-					NULL,
-					"Could not read contig name length",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read contig name length", Exit, ReadFileError);
 		}
 		assert(rg->contigs[i].contigNameLength > 0);
 		/* Allocate memory */
 		rg->contigs[i].contigName = malloc(sizeof(char)*(rg->contigs[i].contigNameLength+1));
 		if(NULL==rg->contigs[i].contigName) {
-			PrintError(FnName,
-					"contigName",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "contigName", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Read RGContig information */
 		if(gzread64(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
 				gzread64(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t))!=sizeof(int32_t) ||
 				gzread64(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t))!=sizeof(uint32_t)) {
-			PrintError(FnName,
-					NULL,
-					"Could not read RGContig information",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read RGContig information", Exit, ReadFileError);
 		}
 		rg->contigs[i].sequence = NULL;
 	}
@@ -418,11 +342,7 @@ void RGBinaryReadBinary(RGBinary *rg,
 
 	/* Open output file */
 	if((fpRG=gzopen(brgFileName, "rb"))==0) {
-		PrintError(FnName,
-				brgFileName,
-				"Could not open brgFileName for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, brgFileName, "Could not open brgFileName for reading", Exit, OpenFileError);
 	}
 
 	RGBinaryReadBinaryHeader(rg, fpRG);
@@ -436,19 +356,11 @@ void RGBinaryReadBinary(RGBinary *rg,
 		/* Allocate memory for the sequence */
 		rg->contigs[i].sequence = malloc(sizeof(char)*rg->contigs[i].numBytes);
 		if(NULL==rg->contigs[i].sequence) {
-			PrintError(FnName,
-					"rg->contigs[i].sequence",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "rg->contigs[i].sequence", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Read sequence */
 		if(gzread64(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes)!=sizeof(char)*rg->contigs[i].numBytes) {
-			PrintError(FnName,
-					NULL,
-					"Could not read sequence",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read sequence", Exit, ReadFileError);
 		}
 
 		numPosRead += rg->contigs[i].sequenceLength;
@@ -484,11 +396,7 @@ void RGBinaryWriteBinaryHeader(RGBinary *rg,
 			gzwrite64(fpRG, rg->packageVersion, rg->packageVersionLength*sizeof(char)) != rg->packageVersionLength*sizeof(char) ||
 			gzwrite64(fpRG, &rg->numContigs, sizeof(int32_t)) != sizeof(int32_t) ||
 			gzwrite64(fpRG, &rg->space, sizeof(int32_t)) != sizeof(int32_t)) {
-		PrintError(FnName,
-				NULL,
-				"Could not output rg header",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not output rg header", Exit, WriteFileError);
 	}
 
 	/* Output each contig */
@@ -498,11 +406,7 @@ void RGBinaryWriteBinaryHeader(RGBinary *rg,
 				gzwrite64(fpRG, rg->contigs[i].contigName, sizeof(char)*rg->contigs[i].contigNameLength) != sizeof(char)*rg->contigs[i].contigNameLength ||
 				gzwrite64(fpRG, &rg->contigs[i].sequenceLength, sizeof(int32_t)) != sizeof(int32_t) ||
 				gzwrite64(fpRG, &rg->contigs[i].numBytes, sizeof(uint32_t)) != sizeof(uint32_t)) {
-			PrintError(FnName,
-					NULL,
-					"Could not output rg contig",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not output rg contig", Exit, WriteFileError);
 		}
 	}
 }
@@ -528,11 +432,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 
 	/* Open output file */
 	if((fpRG=gzopen(brgFileName, "wb"))==0) {
-		PrintError(FnName,
-				brgFileName,
-				"Could not open brgFileName for writing",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, brgFileName, "Could not open brgFileName for writing", Exit, OpenFileError);
 	}
 
 	RGBinaryWriteBinaryHeader(rg, fpRG);
@@ -540,11 +440,7 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	for(i=0;i<rg->numContigs;i++) {
 		/* Output RGContig sequence */
 		if(gzwrite64(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes) != sizeof(char)*rg->contigs[i].numBytes) {
-			PrintError(FnName,
-					NULL,
-					"Could not output rg contig",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not output rg contig", Exit, WriteFileError);
 		}
 	}
 	gzclose(fpRG);
@@ -634,11 +530,7 @@ void RGBinaryInsertBase(char *dest,
 					(*dest) = (*dest) | 0x80;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
-							NULL,
-							"Could not understand case 0 base",
-							Exit,
-							OutOfRange);
+					PrintError("RGBinaryInsertSequenceLetterIntoByte", NULL, "Could not understand case 0 base", Exit, OutOfRange);
 			}
 			/* third and fourth bits from the left will hold the sequence */
 			switch(base) {
@@ -661,11 +553,7 @@ void RGBinaryInsertBase(char *dest,
 					(*dest) = (*dest) | 0x30;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
-							NULL,
-							"Could not understand case 0 base",
-							Exit,
-							OutOfRange);
+					PrintError("RGBinaryInsertSequenceLetterIntoByte", NULL, "Could not understand case 0 base", Exit, OutOfRange);
 					break;
 			}
 			break;
@@ -692,11 +580,7 @@ void RGBinaryInsertBase(char *dest,
 					(*dest) = (*dest) | 0x08;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
-							NULL,
-							"Could not understand case 1 repeat",
-							Exit,
-							OutOfRange);
+					PrintError("RGBinaryInsertSequenceLetterIntoByte", NULL, "Could not understand case 1 repeat", Exit, OutOfRange);
 			}
 			/* right most 2-bits will hold the sequence */
 			switch(base) {
@@ -719,19 +603,11 @@ void RGBinaryInsertBase(char *dest,
 					(*dest) = (*dest) | 0x03;
 					break;
 				default:
-					PrintError("RGBinaryInsertSequenceLetterIntoByte",
-							NULL,
-							"Could not understand case 1 base",
-							Exit,
-							OutOfRange);
+					PrintError("RGBinaryInsertSequenceLetterIntoByte", NULL, "Could not understand case 1 base", Exit, OutOfRange);
 			}
 			break;
 		default:
-			PrintError("RGBinaryInsertSequenceLetterIntoByte",
-					NULL,
-					"Could not understand byteIndex",
-					Exit,
-					OutOfRange);
+			PrintError("RGBinaryInsertSequenceLetterIntoByte", NULL, "Could not understand byteIndex", Exit, OutOfRange);
 	}
 }
 
@@ -756,11 +632,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 	assert((*sequence)==NULL);
 	(*sequence) = malloc(sizeof(char)*(sequenceLength+1));
 	if(NULL==(*sequence)) {
-		PrintError(FnName,
-				"sequence",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "sequence", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Copy over bases */
@@ -783,11 +655,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 		/* Allocate memory for the reverse compliment */
 		reverseCompliment = malloc(sizeof(char)*(sequenceLength+1));
 		if(NULL == reverseCompliment) {
-			PrintError(FnName,
-					"reverseCompliment",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "reverseCompliment", "Could not allocate memory", Exit, MallocMemory);
 		}
 		if(NTSpace == rg->space) {
 			/* Get the reverse compliment */
@@ -802,11 +670,7 @@ int32_t RGBinaryGetSequence(RGBinary *rg,
 	}
 	else {
 		fprintf(stderr, "stand=%c\n", strand);
-		PrintError(FnName,
-				"strand",
-				"Could not understand strand",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "strand", "Could not understand strand", Exit, OutOfRange);
 	}
 	return 1;
 }
@@ -835,11 +699,7 @@ void RGBinaryGetReference(RGBinary *rg,
 
 	/* Check contig bounds */
 	if(contig < 1 || contig > rg->numContigs) {
-		PrintError(FnName,
-				NULL,
-				"Contigomosome is out of range",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Contigomosome is out of range", Exit, OutOfRange);
 	}
 
 	/* Check position bounds */
@@ -856,11 +716,7 @@ void RGBinaryGetReference(RGBinary *rg,
 		assert((*reference)==NULL);
 		(*reference) = malloc(sizeof(char)*(2));
 		if(NULL==(*reference)) {
-			PrintError(FnName,
-					"reference",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "reference", "Could not allocate memory", Exit, MallocMemory);
 		}
 		(*reference)[0] = 'N';
 		(*reference)[1] = '\0';
@@ -878,11 +734,7 @@ void RGBinaryGetReference(RGBinary *rg,
 				endPos - startPos + 1);
 
 		if(0 == success) {
-			PrintError(FnName,
-					NULL,
-					"Could not get reference",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Could not get reference", Exit, OutOfRange);
 		}
 
 		/* Update start pos and reference length */
@@ -929,11 +781,7 @@ char RGBinaryGetBase(RGBinary *rg,
 				curChar='N';
 				break;
 			default:
-				PrintError(FnName,
-						"repeat",
-						"Could not understand repeat",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "repeat", "Could not understand repeat", Exit, OutOfRange);
 				break;
 		}
 		// Error check 
@@ -950,11 +798,7 @@ char RGBinaryGetBase(RGBinary *rg,
 		   case 'N':
 		   break;
 		   default:
-		   PrintError(FnName,
-		   NULL,
-		   "Could not understand base",
-		   Exit,
-		   OutOfRange);
+		   PrintError(FnName, NULL, "Could not understand base", Exit, OutOfRange);
 		   }
 		   */
 	}
@@ -1038,11 +882,7 @@ uint8_t RGBinaryGetFourBit(RGBinary *rg,
 				return (curByte & 0x0F);
 				break;
 			default:
-				PrintError(FnName,
-						"byteIndex",
-						"Could not understand byteIndex",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "byteIndex", "Could not understand byteIndex", Exit, OutOfRange);
 		}
 	}
 	return 0;
@@ -1115,11 +955,7 @@ void RGBinaryPrintInfo(char *brgFileName)
 
 	/* Open output file */
 	if((fpRG=gzopen(brgFileName, "rb"))==0) {
-		PrintError(FnName,
-				brgFileName,
-				"Could not open brgFileNamefor reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, brgFileName, "Could not open brgFileNamefor reading", Exit, OpenFileError);
 	}
 
 	/* Read in the reference genome */
@@ -1154,11 +990,7 @@ void RGBinaryUnPack(RGBinary *rg)
 	for(i=0;i<rg->numContigs;i++) {
 		tempSequence = malloc(sizeof(char)*rg->contigs[i].sequenceLength);
 		if(NULL==tempSequence) {
-			PrintError(FnName,
-					"tempSequence",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "tempSequence", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Unpack this */
 		for(j=1;j<=rg->contigs[i].sequenceLength;j++) {

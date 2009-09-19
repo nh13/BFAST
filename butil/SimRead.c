@@ -45,11 +45,7 @@ char *SimReadGetName(SimRead *r)
 
 	name = malloc(sizeof(char)*(SEQUENCE_LENGTH+1));
 	if(NULL == name) {
-		PrintError(FnName,
-				"name",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "name", "Could not allocate memory", Exit, MallocMemory);
 	}
 	if(sprintf(name, "readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d",
 				r->readNum,
@@ -62,11 +58,7 @@ char *SimReadGetName(SimRead *r)
 				r->whichReadVariants,
 				r->startIndel,
 				r->indelLength) < 0) {
-		PrintError(FnName,
-				"name",
-				"Could not create name",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "name", "Could not create name", Exit, MallocMemory);
 	}
 	strcat(name, "_r1=");
 	for(i=0;i<r->readLength;i++) {
@@ -151,11 +143,7 @@ void SimReadGetRandom(RGBinary *rg,
 			/* Avoid infinite loop */
 			count++;
 			if(SIMREAD_MAX_GETRANDOM_FAILURES < count) {
-				PrintError(FnName,
-						"count",
-						"Could not get a random read",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "count", "Could not get a random read", Exit, OutOfRange);
 			}
 
 			/* Initialize read */
@@ -236,11 +224,7 @@ void SimReadGetRandom(RGBinary *rg,
 				numErrors);
 	}
 	if(SIMREAD_MAX_MODIFY_FAILURES <= ctr) {
-		PrintError(FnName,
-				"SimReadModify",
-				"Could not modify read",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "SimReadModify", "Could not modify read", Exit, OutOfRange);
 	}
 }
 
@@ -281,11 +265,7 @@ void SimReadGetRandomContigPos(RGBinary *rg,
 		/* To avoid an infinite loop */
 		count++;
 		if(count > SIMREAD_MAX_GETRANDOM_FAILURES) {
-			PrintError(FnName,
-					"count",
-					"Could not get random contig and position",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "count", "Could not get random contig and position", Exit, OutOfRange);
 		}
 	}
 
@@ -300,11 +280,7 @@ void SimReadGetRandomContigPos(RGBinary *rg,
 		}
 	}
 
-	PrintError(FnName,
-			"mid",
-			"Mid was out of range",
-			Exit,
-			OutOfRange);
+	PrintError(FnName, "mid", "Mid was out of range", Exit, OutOfRange);
 }
 
 /* TODO */
@@ -354,11 +330,7 @@ int SimReadModify(RGBinary *rg,
 			}
 			break;
 		default:
-			PrintError(FnName,
-					"indel",
-					"indel out of range",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "indel", "indel out of range", Exit, OutOfRange);
 	}
 
 	/* 2. SNPs */
@@ -441,11 +413,7 @@ int SimReadModify(RGBinary *rg,
 				curNumErrors++;
 				break;
 			default:
-				PrintError(FnName,
-						"r->readOneType[i]",
-						"Could not understand type",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "r->readOneType[i]", "Could not understand type", Exit, OutOfRange);
 		}
 		/* read two */
 		if(2 == r->numEnds) {
@@ -479,11 +447,7 @@ int SimReadModify(RGBinary *rg,
 					curNumErrors++;
 					break;
 				default:
-					PrintError(FnName,
-							"r->readTwoType[i]",
-							"Could not understand type",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "r->readTwoType[i]", "Could not understand type", Exit, OutOfRange);
 			}
 		}
 	}
@@ -530,11 +494,7 @@ int SimReadInsertIndel(RGBinary *rg,
 				/* Reallocate memory */
 				r->readOne = realloc(r->readOne, sizeof(char)*(r->readLength+1));
 				if(NULL==r->readOne) {
-					PrintError(FnName,
-							"r->readOne",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError(FnName, "r->readOne", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 				r->readOne[r->readLength]='\0';
 				assert(strlen(r->readOne) == r->readLength);
@@ -562,11 +522,7 @@ int SimReadInsertIndel(RGBinary *rg,
 				/* Reallocate memory */
 				r->readTwo = realloc(r->readTwo, sizeof(char)*(r->readLength+1));
 				if(NULL==r->readTwo) {
-					PrintError(FnName,
-							"r->read",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError(FnName, "r->read", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 				r->readTwo[r->readLength]='\0';
 				assert(strlen(r->readTwo) == r->readLength);
@@ -601,11 +557,7 @@ int SimReadInsertIndel(RGBinary *rg,
 		}
 	}
 	else {
-		PrintError(FnName,
-				"indel",
-				"indel out of range",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "indel", "indel out of range", Exit, OutOfRange);
 	}
 
 	/* Update the start of the indel */
@@ -664,11 +616,7 @@ void SimReadInsertMismatches(SimRead *r,
 			}
 			break;
 		default:
-			PrintError(FnName,
-					"type",
-					"Could not understand type",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "type", "Could not understand type", Exit, OutOfRange);
 	}
 }
 
@@ -730,11 +678,7 @@ void SimReadInsertMismatchesHelper(char *read,
 				/* Nothing */
 				break;
 			default:
-				PrintError(FnName,
-						"readType[index]",
-						"Could not understand type",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "readType[index]", "Could not understand type", Exit, OutOfRange);
 				break;
 		}
 		if(1==toAdd) {

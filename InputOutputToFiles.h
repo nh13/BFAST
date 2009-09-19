@@ -7,9 +7,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
 		int queueLength,
+		int outputFormat,
 		char *outputID,
-		char *outputDir,
-		int outputFormat);
+		char *unmappedFileName);
 
 int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t);
 #endif

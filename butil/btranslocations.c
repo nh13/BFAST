@@ -49,11 +49,7 @@ int main(int argc, char *argv[])
 				outputRange[0],
 				outputRange[1]);
 		if(!(outputFP = gzopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError(Name, outputFileName, "Could not open file for writing", Exit, OpenFileError);
 		}
 		fprintf(stderr, "Outputting to %s.\n",
 				outputFileName);
@@ -62,11 +58,7 @@ int main(int argc, char *argv[])
 		for(i=5;i<argc;i++) {
 			strcpy(inputFileName, argv[i]);
 			if(!(inputFP = gzopen(inputFileName, "rb"))) {
-				PrintError(Name,
-						inputFileName,
-						"Could not open file for reading",
-						Exit,
-						OpenFileError);
+				PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 			}
 
 			AlignedReadInitialize(&a);

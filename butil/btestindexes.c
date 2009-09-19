@@ -83,62 +83,26 @@ void ValidateArguments(arguments *args)
 	char *FnName="ValidateArguments";
 
 	if(args->algorithm < 0 || args->algorithm > 1) {
-		PrintError(FnName, "Command line argument", "algorithm", Exit, OutOfRange);
-	}
-	if(args->readLength <= 0) {
-		PrintError(FnName, "Command line argument", "readLength", Exit, OutOfRange);
-	}
+		PrintError(FnName, "Command line argument", "algorithm", Exit, OutOfRange);	}	if(args->readLength <= 0) {		PrintError(FnName, "Command line argument", "readLength", Exit, OutOfRange);	}
 	if(args->numEventsToSample <= 0) {
-		PrintError(FnName, "Command line argument", "numEventsToSample", Exit, OutOfRange);
-	}
-	if(args->numIndexesToSample < 0 ||
-			(args->algorithm == 0 && args->numIndexesToSample <= 0)) {
-		PrintError(FnName, "Command line argument", "numIndexesToSample", Exit, OutOfRange);
+		PrintError(FnName, "Command line argument", "numEventsToSample", Exit, OutOfRange);	}	if(args->numIndexesToSample < 0 ||			(args->algorithm == 0 && args->numIndexesToSample <= 0)) {		PrintError(FnName, "Command line argument", "numIndexesToSample", Exit, OutOfRange);
 	}
 	if(args->algorithm == 0) {
 		if(args->keySize <= 0) {
-			PrintError(FnName, "Command line argument", "keySize", Exit, OutOfRange);
-		}
-		if(args->maxKeyWidth <= 0) {
-			PrintError(FnName, "Command line argument", "maxKeyWidth", Exit, OutOfRange);
-		}
+			PrintError(FnName, "Command line argument", "keySize", Exit, OutOfRange);		}		if(args->maxKeyWidth <= 0) {			PrintError(FnName, "Command line argument", "maxKeyWidth", Exit, OutOfRange);		}
 		if(args->maxIndexSetSize <= 0) {
-			PrintError(FnName, "Command line argument", "maxIndexSetSize", Exit, OutOfRange);
-		}
-		if(args->accuracyThreshold < 0) {
-			PrintError(FnName, "Command line argument", "accuracyThreshold", Exit, OutOfRange);
-		}
+			PrintError(FnName, "Command line argument", "maxIndexSetSize", Exit, OutOfRange);		}		if(args->accuracyThreshold < 0) {			PrintError(FnName, "Command line argument", "accuracyThreshold", Exit, OutOfRange);		}
 		if(args->keySize > args->maxKeyWidth) {
-			PrintError(FnName, "Command line argument", "keySize > maxKeyWidth", Exit, OutOfRange);
-		}
-		if(args->keySize > args->readLength) {
-			PrintError(FnName, "Command line argument", "keySize > readLength", Exit, OutOfRange);
-		}
+			PrintError(FnName, "Command line argument", "keySize > maxKeyWidth", Exit, OutOfRange);		}		if(args->keySize > args->readLength) {			PrintError(FnName, "Command line argument", "keySize > readLength", Exit, OutOfRange);		}
 		if(args->maxKeyWidth > args->readLength) {
-			PrintError(FnName, "Command line argument", "maxKeyWidth > readLength", Exit, OutOfRange);
-		}
-	}
-	if(args->space < 0 || 1 < args->space) {
-		PrintError(FnName, "Command line argument", "space", Exit, OutOfRange);
+			PrintError(FnName, "Command line argument", "maxKeyWidth > readLength", Exit, OutOfRange);		}	}	if(args->space < 0 || 1 < args->space) {		PrintError(FnName, "Command line argument", "space", Exit, OutOfRange);
 	}
 	if(args->maxNumMismatches < 0) {
-		PrintError(FnName, "Command line argument", "maxNumMismatches", Exit, OutOfRange);
-	}
-	if(args->maxInsertionLength < 0) {
-		PrintError(FnName, "Command line argument", "maxInsertionLength", Exit, OutOfRange);
-	}
+		PrintError(FnName, "Command line argument", "maxNumMismatches", Exit, OutOfRange);	}	if(args->maxInsertionLength < 0) {		PrintError(FnName, "Command line argument", "maxInsertionLength", Exit, OutOfRange);	}
 	if(args->space == 1) {
 		if(args->maxNumColorErrors < 0) {
-			PrintError(FnName, "Command line argument", "maxNumColorErrors", Exit, OutOfRange);
-		}
-	}
-	else {
-		if(args->maxNumColorErrors > 0) {
-			PrintError(FnName, "Command line argument", "maxNumColorErrors", Exit, OutOfRange);
-		}
-	}
-}
-
+			PrintError(FnName, "Command line argument", "maxNumColorErrors", Exit, OutOfRange);		}	}	else {		if(args->maxNumColorErrors > 0) {
+			PrintError(FnName, "Command line argument", "maxNumColorErrors", Exit, OutOfRange);		}	}}
 void ParseCommandLineArguments(int argc, char *argv[], arguments *args) 
 {
 	int i;

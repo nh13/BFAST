@@ -16,90 +16,47 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
 		int queueLength,
+		int outputFormat,
 		char *outputID,
-		char *outputDir,
-		int outputFormat)
+		char *unmappedFileName)
 {
 	char *FnName="ReadInputFilterAndOutput";
 	gzFile fp=NULL;
 	int32_t i, j;
-	int64_t counter, foundType, numNotReported, numReported;
+	int64_t counter, foundType, numUnmapped, numReported;
 	AlignedRead *aBuffer;
 	int32_t aBufferLength=0;
 	int32_t numRead, aBufferIndex;
-	char reportedFileName[MAX_FILENAME_LENGTH]="\0";
 	gzFile fpReportedGZ=NULL;
 	FILE *fpReported=NULL;
-	char notReportedFileName[MAX_FILENAME_LENGTH]="\0";
-	gzFile fpNotReported=NULL;
-	char fileExtension[256]="\0";
+	gzFile fpUnmapped=NULL;
 
 	/* Open the input file */
-	if(!(fp=gzopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open inputFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-
-	/* Get file extension for the output files */
-	switch(outputFormat) {
-		case BAF:
-			strcpy(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
-			break;
-		case MAF:
-			strcpy(fileExtension, BFAST_MAF_FILE_EXTENSION);
-			break;
-		case GFF:
-			strcpy(fileExtension, BFAST_GFF_FILE_EXTENSION);
-			break;
-		case SAM:
-			strcpy(fileExtension, BFAST_SAM_FILE_EXTENSION);
-			break;
-		default:
-			PrintError(FnName,
-					"outputFormat",
-					"Could not understand output format",
-					Exit,
-					OutOfRange);
-	}
-	/* Create output file names */
-	sprintf(notReportedFileName, "%s%s.not.reported.file.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			BFAST_ALIGNED_FILE_EXTENSION);
-	sprintf(reportedFileName, "%s%s.reported.file.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			fileExtension);
-
-	/* Open output files, if necessary */
-	if(!(fpNotReported=gzopen(notReportedFileName, "wb"))) {
-		PrintError(FnName,
-				notReportedFileName,
-				"Could not open notReportedFileName for writing",
-				Exit,
-				OpenFileError);
-	}
-	if(BAF == outputFormat) {
-		if(!(fpReportedGZ=gzopen(reportedFileName, "wb"))) {
-			PrintError(FnName,
-					reportedFileName,
-					"Could not open reportedFileName for writing",
-					Exit,
-					OpenFileError);
+	if(NULL == inputFileName) {
+		if(!(fp=gzdopen(fileno(stdin), "rb"))) {
+			PrintError(FnName, "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
 	else {
-		if(!(fpReported=fopen(reportedFileName, "wb"))) {
-			PrintError(FnName,
-					reportedFileName,
-					"Could not open reportedFileName for writing",
-					Exit,
-					OpenFileError);
+		if(!(fp=gzopen(inputFileName, "rb"))) {
+			PrintError(FnName, inputFileName, "Could not open inputFileName for reading", Exit, OpenFileError);
+		}
+	}
+
+	/* Open output files, if necessary */
+	if(BAF == outputFormat) {
+		if(!(fpReportedGZ=gzdopen(fileno(stdout), "wb"))) {
+			PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, OpenFileError);
+		}
+	}
+	else {
+		if(!(fpReported=fdopen(fileno(stdout), "wb"))) {
+			PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, OpenFileError);
+		}
+	}
+	if(NULL != unmappedFileName) {
+		if(!(fpUnmapped=gzopen(unmappedFileName, "wb"))) {
+			PrintError(FnName, unmappedFileName, "Could not open unmappedFileName for writing", Exit, OpenFileError);
 		}
 	}
 
@@ -108,18 +65,14 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	aBufferLength=queueLength;
 	aBuffer=malloc(sizeof(AlignedRead)*aBufferLength);
 	if(NULL == aBuffer) {
-		PrintError(FnName,
-				"aBuffer",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "aBuffer", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Processing reads, currently on:\n0");
 	}
-	counter = numReported = numNotReported = numRead = 0;
+	counter = numReported = numUnmapped = numRead = 0;
 
 	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength))) {
 
@@ -136,8 +89,10 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 			if(NoneFound == foundType) {
 				/* Print to Not Reported file */
-				AlignedReadPrint(&aBuffer[aBufferIndex], fpNotReported);
-				numNotReported++;
+				if(NULL != unmappedFileName) {
+					AlignedReadPrint(&aBuffer[aBufferIndex], fpUnmapped);
+				}
+				numUnmapped++;
 
 				/* Free the alignments for output */
 				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
@@ -149,7 +104,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			}
 
 			/* Print to Output file */
-			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, outputID, outputFormat, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, outputFormat, BinaryOutput);
 			numReported++;
 
 			/* Free memory */
@@ -170,7 +125,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	else {
 		fclose(fpReported);
 	}
-	gzclose(fpNotReported);
+	if(NULL != unmappedFileName) {
+		gzclose(fpUnmapped);
+	}
 	/* Close the input file */
 	gzclose(fp);
 

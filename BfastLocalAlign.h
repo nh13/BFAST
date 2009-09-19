@@ -5,16 +5,14 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
-	char *brgFileName;                   	/* -r */
+	char *fastaFileName;                   	/* -f */
 	char *matchFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
-	int binaryInput;                        /* -b - not used */
-	int alignmentType;						/* -a */
-	int bestOnly;							/* -b */
+	int ungapped;							/* -u */
 	int space;								/* -A */
 	int startReadNum;                       /* -s */
 	int endReadNum;                         /* -e */
-	int offsetLength;						/* -O */
+	int offsetLength;						/* -o */
 	int maxNumMatches;						/* -M */
 	int avgMismatchQuality;					/* -q */
 	int numThreads;                         /* -n */
@@ -23,10 +21,7 @@ struct arguments
 	int mirroringType;						/* -L */
 	int forceMirroring;						/* -f */
 	int pairedEndLength;					/* -l */
-	char *outputID;							/* -o */
-	char *outputDir;						/* -d */
 	char *tmpDir;							/* -T */
-	int binaryOutput;                       /* -B - not used */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

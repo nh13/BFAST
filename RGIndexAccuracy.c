@@ -197,11 +197,7 @@ void RunEvaluateRGIndexAccuracies(char *inputFileName,
 						maxNumColorErrors);
 				break;
 			default:
-				PrintError(FnName,
-						"space",
-						"Could not understand space",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);
 		}
 	}
 
@@ -466,11 +462,7 @@ int32_t GetNumCorrect(RGIndexAccuracySet *set,
 				}
 				break;
 			default:
-				PrintError(FnName,
-						"indelType",
-						"Could not understand indel type",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "indelType", "Could not understand indel type", Exit, OutOfRange);
 		}
 		/* Free read */
 		ReadFree(&curRead);
@@ -503,11 +495,7 @@ void RGIndexAccuracyMismatchProfileAdd(RGIndexAccuracyMismatchProfile *p,
 			p->maxReadLength = readLength;
 			p->maxMismatches = realloc(p->maxMismatches, sizeof(int32_t)*(1+p->maxReadLength));
 			if(NULL == p->maxMismatches) {
-				PrintError(FnName,
-						"p->maxMismatches",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
+				PrintError(FnName, "p->maxMismatches", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			/* Initialize */
 			for(i=prev+1;i<=p->maxReadLength;i++) {
@@ -530,11 +518,7 @@ void RGIndexAccuracyMismatchProfilePrint(FILE *fp,
 	for(i=0;i<=p->maxReadLength;i++) {
 		if(0 <= p->maxMismatches[i]) {
 			if(fprintf(fp, "%d\t%d\n", i, p->maxMismatches[i]) < 0) {
-				PrintError(FnName,
-						"p->maxMismatches[i]",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, "p->maxMismatches[i]", "Could not write to file", Exit, WriteFileError);
 			}
 		}
 	}
@@ -552,11 +536,7 @@ void RGIndexAccuracyMismatchProfileRead(FILE *fp,
 			p->maxReadLength = readLength;
 			p->maxMismatches = realloc(p->maxMismatches, sizeof(int32_t)*(1+p->maxReadLength));
 			if(NULL == p->maxMismatches) {
-				PrintError(FnName,
-						"p->maxMismatches",
-						"Could not reallocate memory",
-						Exit,
-						ReallocMemory);
+				PrintError(FnName, "p->maxMismatches", "Could not reallocate memory", Exit, ReallocMemory);
 			}
 			/* Initialize */
 			for(i=prev+1;i<=p->maxReadLength;i++) {
@@ -589,11 +569,7 @@ void RGIndexAccuracySetReadFromRGIndexes(RGIndexAccuracySet *set,
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
 		if((fp=gzopen(mainFileNames[i], "r"))==0) {
-			PrintError(FnName,
-					mainFileNames[i],
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, mainFileNames[i], "Could not open file for reading", Exit, OpenFileError);
 		}
 
 		/* Get the header */
@@ -614,11 +590,7 @@ void RGIndexAccuracySetReadFromRGIndexes(RGIndexAccuracySet *set,
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
 		if((fp=gzopen(secondaryFileNames[i], "r"))==0) {
-			PrintError(FnName,
-					"secondaryFileNames[i]",
-					"Could not open file for reading",
-					Exit,
-					OpenFileError);
+			PrintError(FnName, "secondaryFileNames[i]", "Could not open file for reading", Exit, OpenFileError);
 		}
 
 		/* Get the header */
@@ -644,11 +616,7 @@ void RGIndexAccuracySetCopyFromRGIndex(RGIndexAccuracySet *set,
 	set->numRGIndexAccuracies++;
 	set->indexes = realloc(set->indexes, sizeof(RGIndexAccuracy)*set->numRGIndexAccuracies);
 	if(NULL == set->indexes) {
-		PrintError(FnName,
-				"set->indexes",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "set->indexes", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	RGIndexAccuracyInitialize(&set->indexes[set->numRGIndexAccuracies-1]);
 	/* Copy mask */
@@ -657,11 +625,7 @@ void RGIndexAccuracySetCopyFromRGIndex(RGIndexAccuracySet *set,
 	set->indexes[set->numRGIndexAccuracies-1].mask = realloc(set->indexes[set->numRGIndexAccuracies-1].mask, 
 			sizeof(int32_t)*set->indexes[set->numRGIndexAccuracies-1].keyWidth);
 	if(NULL == set->indexes[set->numRGIndexAccuracies-1].mask) {
-		PrintError(FnName,
-				"set->indexes[set->numRGIndexAccuracies-1].mask",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "set->indexes[set->numRGIndexAccuracies-1].mask", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	for(i=0;i<set->indexes[set->numRGIndexAccuracies-1].keyWidth;i++) {
 		set->indexes[set->numRGIndexAccuracies-1].mask[i] = index->mask[i];
@@ -685,11 +649,7 @@ int32_t RGIndexAccuracySetCopyFrom(RGIndexAccuracySet *r, RGIndex *indexes, int3
 
 	r->indexes = malloc(sizeof(RGIndexAccuracy)*numIndexes);
 	if(NULL == r->indexes) {
-		PrintError(FnName,
-				"r->indexes",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "r->indexes", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	for(i=0;i<numIndexes;i++) {
@@ -726,11 +686,7 @@ void RGIndexAccuracyCopyFrom(RGIndexAccuracy *r, RGIndex *index, int32_t keysize
 
 	r->mask = malloc(sizeof(int32_t)*r->keyWidth);
 	if(NULL == r->mask) {
-		PrintError(FnName,
-				"r->mask",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "r->mask", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	for(i=0;i<r->keyWidth;i++) {
@@ -772,11 +728,7 @@ void RGIndexAccuracySetPush(RGIndexAccuracySet *set,
 	set->numRGIndexAccuracies++;
 	set->indexes = realloc(set->indexes, sizeof(RGIndexAccuracy)*set->numRGIndexAccuracies);
 	if(NULL == set->indexes) {
-		PrintError(FnName,
-				"set->indexes",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "set->indexes", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	RGIndexAccuracyInitialize(&set->indexes[set->numRGIndexAccuracies-1]);
 	RGIndexAccuracyCopy(&set->indexes[set->numRGIndexAccuracies-1], index);
@@ -789,11 +741,7 @@ void RGIndexAccuracySetPop(RGIndexAccuracySet *set)
 	set->numRGIndexAccuracies--;
 	set->indexes = realloc(set->indexes, sizeof(RGIndexAccuracy)*set->numRGIndexAccuracies);
 	if(NULL == set->indexes) {
-		PrintError(FnName,
-				"set->indexes",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "set->indexes", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 }
 
@@ -808,11 +756,7 @@ void RGIndexAccuracySetSeed(RGIndexAccuracySet *set,
 	set->numRGIndexAccuracies=1;
 	set->indexes = malloc(sizeof(RGIndexAccuracy)*set->numRGIndexAccuracies);
 	if(NULL == set->indexes) {
-		PrintError(FnName,
-				"set->indexes",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "set->indexes", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Allocate index */
 	RGIndexAccuracyAllocate(&set->indexes[set->numRGIndexAccuracies-1],
@@ -875,11 +819,7 @@ int RGIndexAccuracyRead(RGIndexAccuracy *index,
 				index->keySize++;
 				break;
 			default:
-				PrintError(FnName,
-						"mask",
-						"Could not read mask",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, "mask", "Could not read mask", Exit, OutOfRange);
 		}
 	}
 
@@ -894,11 +834,7 @@ void RGIndexAccuracySetRead(RGIndexAccuracySet *set,
 	RGIndexAccuracy index;
 
 	if(!(fp=fopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	RGIndexAccuracySetInitialize(set);
@@ -990,11 +926,7 @@ void RGIndexAccuracyGetRandom(RGIndexAccuracy *index,
 	/* Allocate memory for the bins */
 	bins = malloc(sizeof(int32_t)*numBins);
 	if(NULL == bins) {
-		PrintError(FnName,
-				"bins",
-				"Could not allocate memory",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "bins", "Could not allocate memory", Exit, OutOfRange);
 	}
 	/* Initialize bins */
 	for(i=0;i<numBins;i++) {
@@ -1054,11 +986,7 @@ void RGIndexAccuracyAllocate(RGIndexAccuracy *index,
 	index->keyWidth = keyWidth;
 	index->mask = malloc(sizeof(int32_t)*index->keyWidth);
 	if(NULL == index->mask) {
-		PrintError(FnName,
-				"index->mask",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->mask", "Could not allocate memory", Exit, MallocMemory);
 	}
 }
 
@@ -1216,11 +1144,7 @@ void AccuracyProfileAllocate(AccuracyProfile *a,
 	a->numAboveThreshold = 0;
 	a->accuracyThreshold = accuracyThreshold;
 	if(NULL == a->accuracy) {
-		PrintError(FnName,
-				"a->accuracy",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "a->accuracy", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Initialize all to -1 */
 	for(i=0;i<a->length;i++) {
@@ -1318,19 +1242,11 @@ void ReadGetRandom(Read *r,
 
 		read = malloc(sizeof(char)*(readLength+1));
 		if(NULL == read) {
-			PrintError(FnName,
-					"read",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "read", "Could not allocate memory", Exit, MallocMemory);
 		}
 		originalColorSpace = malloc(sizeof(char)*(readLength+1));
 		if(NULL == originalColorSpace) {
-			PrintError(FnName,
-					"originalColorSpace",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "originalColorSpace", "Could not allocate memory", Exit, MallocMemory);
 		}
 
 		/* Get a random NT read */
@@ -1409,11 +1325,7 @@ void ReadAllocate(Read *r,
 	r->length = readLength;
 	r->profile = malloc(sizeof(int32_t)*r->length);
 	if(NULL == r->profile) {
-		PrintError(FnName,
-				"r->profile",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "r->profile", "Could not allocate memory", Exit, MallocMemory);
 	}
 }
 

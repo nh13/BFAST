@@ -19,11 +19,7 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 
 	/* Open the scoring matrix file */
 	if((fp=fopen(scoringMatrixFileName, "r"))==0) {
-		PrintError(FnName,
-				scoringMatrixFileName,
-				"Could not open scoringMatrixFileName for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, scoringMatrixFileName, "Could not open scoringMatrixFileName for reading", Exit, OpenFileError);
 	}
 
 	/* Read in the gap open penalty,
@@ -34,21 +30,13 @@ int ScoringMatrixRead(char *scoringMatrixFileName,
 				&sm->gapExtensionPenalty,
 				&sm->ntMatch,
 				&sm->ntMismatch) == EOF) {
-		PrintError(FnName,
-				scoringMatrixFileName,
-				"Could not read in the gap open penalty, gap extension penalty, nt match score, and nt mismatch score",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, scoringMatrixFileName, "Could not read in the gap open penalty, gap extension penalty, nt match score, and nt mismatch score", Exit, OutOfRange);
 	}
 
 	if(space == 1) {
 		if(fscanf(fp, "%d %d", &sm->colorMatch,
 					&sm->colorMismatch) == EOF) {
-			PrintError(FnName,
-					scoringMatrixFileName,
-					"Could not read in the color match score and color mismatch score",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, scoringMatrixFileName, "Could not read in the color match score and color mismatch score", Exit, OutOfRange);
 		}
 	}
 
@@ -78,47 +66,23 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm,
 	char *FnName="ScoringMatrixCheck";
 
 	if(0 < sm->gapOpenPenalty) {
-		PrintError(FnName,
-				"sm->gapOpenPenalty",
-				"Must be less than or equal to zero",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "sm->gapOpenPenalty", "Must be less than or equal to zero", Exit, OutOfRange);
 	}
 	if(0 < sm->gapExtensionPenalty) {
-		PrintError(FnName,
-				"sm->gapExtensionPenalty",
-				"Must be less than or equal to zero",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "sm->gapExtensionPenalty", "Must be less than or equal to zero", Exit, OutOfRange);
 	}
 
 	if(sm->ntMatch < 0) {
-		PrintError(FnName,
-				"sm->ntMatch",
-				"Must be greater than or equal to zero",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "sm->ntMatch", "Must be greater than or equal to zero", Exit, OutOfRange);
 	}
 	if(ColorSpace == space && sm->colorMatch < 0) {
-		PrintError(FnName,
-				"sm->colorMatch",
-				"Must be greater than or equal to zero",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "sm->colorMatch", "Must be greater than or equal to zero", Exit, OutOfRange);
 	}
 	if(0 < sm->ntMismatch) {
-		PrintError(FnName,
-				"sm->ntMismatch",
-				"Must be less than or equal to zero",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "sm->ntMismatch", "Must be less than or equal to zero", Exit, OutOfRange);
 	}
 	if(ColorSpace == space && 0 < sm->colorMismatch) {
-		PrintError(FnName,
-				"sm->colorMismatch",
-				"Must be less than or equal to zero",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "sm->colorMismatch", "Must be less than or equal to zero", Exit, OutOfRange);
 	}
 	return 1;
 }

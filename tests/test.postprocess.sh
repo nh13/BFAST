@@ -12,11 +12,11 @@ do
 	else
 		OUTPUT_ID=$OUTPUT_ID_CS;
 	fi
-	RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.0.brg";
+	RG_FASTA="$OUTPUT_DIR$OUTPUT_ID.fa";
 	ALIGN=$OUTPUT_DIR"bfast.aligned.file.$OUTPUT_ID.baf";
 
 	# Run postprocess 
-	CMD=$CMD_PREFIX"../bfast postprocess -r $RG -i $ALIGN -a 3 -o $OUTPUT_ID -d $OUTPUT_DIR";
+	CMD=$CMD_PREFIX"../bfast postprocess -f $RG_FASTA -i $ALIGN -a 3 -o $OUTPUT_ID > ${OUTPUT_DIR}bfast.reported.file.$OUTPUT_ID.baf";
 	eval $CMD 2> /dev/null;
 	# Get return code
 	if [ "$?" -ne "0" ]; then

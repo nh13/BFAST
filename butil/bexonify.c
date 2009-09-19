@@ -80,11 +80,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Outputting to %s.\n", outputFileName);
 		if(!(fp=gzopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError(Name, outputFileName, "Could not open file for writing", Exit, OpenFileError);
 		}
 		RGIndexPrint(fp, &index);
 		gzclose(fp);
@@ -123,11 +119,7 @@ int ReadExons(char *exonsFileName,
 	fprintf(stderr, "Reading in exons from %s.\n",
 			exonsFileName);
 	if(!(fp=fopen(exonsFileName, "rb"))) {
-		PrintError(FnName,
-				exonsFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, exonsFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	/* Read in the exons */ 
@@ -139,21 +131,13 @@ int ReadExons(char *exonsFileName,
 		if(contig < prevContig || 
 				(contig == prevContig && start < prevStart) ||
 				(contig == prevContig && start == prevStart && end <= prevEnd)) {
-			PrintError(FnName,
-					NULL,
-					"Entries must be in increasing order with the keys=(contig, start, end)",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, NULL, "Entries must be in increasing order with the keys=(contig, start, end)", Exit, OutOfRange);
 		}
 
 		numExons++;
 		(*exons) = realloc((*exons), sizeof(Exon)*numExons);
 		if(NULL == (*exons)) {
-			PrintError(FnName,
-					"(*exons)",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "(*exons)", "Could not allocate memory", Exit, MallocMemory);
 		}
 		assert(start <= end);
 		(*exons)[numExons-1].contig = contig;
@@ -245,30 +229,18 @@ void FilterIndexBasedOnExons(RGIndex *index, Exon **exons, int numExons)
 	if(index->contigType == Contig_8) {
 		index->contigs_8 = realloc(index->contigs_8, index->length*sizeof(uint8_t));
 		if(NULL==index->contigs_8) {
-			PrintError(FnName,
-					"index->contigs_8",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "index->contigs_8", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 	}
 	else {
 		index->contigs_32 = realloc(index->contigs_32, index->length*sizeof(uint32_t));
 		if(NULL==index->contigs_32) {
-			PrintError(FnName,
-					"index->contigs_32",
-					"Could not reallocate memory",
-					Exit,
-					ReallocMemory);
+			PrintError(FnName, "index->contigs_32", "Could not reallocate memory", Exit, ReallocMemory);
 		}
 	}
 	index->positions = realloc(index->positions, index->length*sizeof(uint32_t));
 	if(NULL==index->positions) {
-		PrintError(FnName,
-				"index->positions",
-				"Could not reallocate memory",
-				Exit,
-				ReallocMemory);
+		PrintError(FnName, "index->positions", "Could not reallocate memory", Exit, ReallocMemory);
 	}
 
 	/* Update index range */

@@ -102,11 +102,7 @@ void MoveAllIntoTmpGZFile(char *inputFileName,
 
 	/* Open the input file */
 	if(!(fpIn=gzopen(inputFileName, "rb"))) {
-		PrintError(Name,
-				inputFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	/* Move all entries into the tmp file */
@@ -123,11 +119,7 @@ void MoveAllIntoTmpGZFile(char *inputFileName,
 		for(i=0;i<a.numEnds;i++) {
 			if(0 != a.ends[i].numEntries &&
 					1 != a.ends[i].numEntries) {
-				PrintError(FnName,
-						a.readName,
-						"Read was not uniquely aligned",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, a.readName, "Read was not uniquely aligned", Exit, OutOfRange);
 			}
 		}
 		AlignedReadPrint(&a, 
@@ -189,11 +181,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 	/* Move to the beginning of the tmp file */
 	CloseTmpGZFile(&tmpFile->FP, &tmpFile->FileName, 0);
 	if(!(tmpFile->FP=gzopen(tmpFile->FileName, "rb"))) {
-		PrintError(FnName,
-				tmpFile->FileName,
-				"Could not re-open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, tmpFile->FileName, "Could not re-open file for reading", Exit, OpenFileError);
 	}
 
 	/* Check if we should print or split */
@@ -215,19 +203,11 @@ void SplitEntriesAndPrint(gzFile outputFP,
 		/* Allocate memory for the entries */
 		entriesPtr = malloc(sizeof(AlignedRead*)*tmpFile->numEntries);
 		if(NULL == entriesPtr) {
-			PrintError(FnName,
-					"entriesPtr",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "entriesPtr", "Could not allocate memory", Exit, MallocMemory);
 		}
 		entries = malloc(sizeof(AlignedRead)*tmpFile->numEntries);
 		if(NULL == entries) {
-			PrintError(FnName,
-					"entries",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "entries", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Initialize */
 		for(i=0;i<tmpFile->numEntries;i++) {
@@ -263,20 +243,12 @@ void SplitEntriesAndPrint(gzFile outputFP,
 			/* Allocate memory for the thread arguments */
 			sortData = malloc(sizeof(ThreadSortData)*numThreads);
 			if(NULL==sortData) {
-				PrintError(FnName,
-						"sortData",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "sortData", "Could not allocate memory", Exit, MallocMemory);
 			}
 			/* Allocate memory for the thread point32_ters */
 			threads = malloc(sizeof(pthread_t)*numThreads);
 			if(NULL==threads) {
-				PrintError(FnName,
-						"threads",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 			}
 
 			/* Initialize sortData */
@@ -302,11 +274,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 						SortAlignedReadHelper, /* start routine */
 						(void*)(&sortData[i])); /* sortData to routine */
 				if(0!=errCode) {
-					PrintError(FnName,
-							"pthread_create: errCode",
-							"Could not start thread",
-							Exit,
-							ThreadError);
+					PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 				}
 			}
 
@@ -317,11 +285,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 						&status);
 				/* Check the return code of the thread */
 				if(0!=errCode) {
-					PrintError(FnName,
-							"pthread_join: errCode",
-							"Thread returned an error",
-							Exit,
-							ThreadError);
+					PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 				}
 			}
 			/* Free memory for the threads */
@@ -338,20 +302,12 @@ void SplitEntriesAndPrint(gzFile outputFP,
 				/* Allocate memory for the thread arguments */
 				mergeData = malloc(sizeof(ThreadRGIndexMergeData)*curNumThreads);
 				if(NULL==mergeData) {
-					PrintError(FnName,
-							"mergeData",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
+					PrintError(FnName, "mergeData", "Could not allocate memory", Exit, MallocMemory);
 				}
 				/* Allocate memory for the thread point32_ters */
 				threads = malloc(sizeof(pthread_t)*curNumThreads);
 				if(NULL==threads) {
-					PrintError(FnName,
-							"threads",
-							"Could not allocate memory",
-							Exit,
-							MallocMemory);
+					PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 				}
 				/* Initialize data for threads */
 				for(j=0,curThread=0;j<numThreads;j+=2*i,curThread++) {
@@ -365,11 +321,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 				/* Check that we split correctly */
 				for(j=1;j<curNumThreads;j++) {
 					if(mergeData[j-1].high >= mergeData[j].low) {
-						PrintError(FnName,
-								NULL,
-								"mergeData[j-1].high >= mergeData[j].low",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, NULL, "mergeData[j-1].high >= mergeData[j].low", Exit, OutOfRange);
 					}
 				}
 				/* Create threads */
@@ -380,11 +332,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 							MergeAlignedReadHelper, /* start routine */
 							(void*)(&mergeData[j])); /* sortData to routine */
 					if(0!=errCode) {
-						PrintError(FnName,
-								"pthread_create: errCode",
-								"Could not start thread",
-								Exit,
-								ThreadError);
+						PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 					}
 				}
 
@@ -395,11 +343,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 							&status);
 					/* Check the return code of the thread */
 					if(0!=errCode) {
-						PrintError(FnName,
-								"pthread_join: errCode",
-								"Thread returned an error",
-								Exit,
-								ThreadError);
+						PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 					}
 				}
 
@@ -433,11 +377,7 @@ void SplitEntriesAndPrint(gzFile outputFP,
 	}
 	else if(tmpFile->startContig == tmpFile->endContig && 
 			tmpFile->startPos == tmpFile->endPos) {
-		PrintError(FnName,
-				NULL,
-				"Could not split the file any further.  Try increasing your the maximum number of entries.",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "Could not split the file any further.  Try increasing your the maximum number of entries.", Exit, OutOfRange);
 	}
 	else {
 		/* Split and recurse */
@@ -669,22 +609,14 @@ int main(int argc, char *argv[])
 		last = StrStrGetLast(inputFileName,
 				BFAST_ALIGNED_FILE_EXTENSION);
 		if(NULL == last) {
-			PrintError(Name,
-					inputFileName,
-					"Could not recognize file extension",
-					Exit,
-					OutOfRange);
+			PrintError(Name, inputFileName, "Could not recognize file extension", Exit, OutOfRange);
 		}
 		strncpy(outputFileName, inputFileName, (last - inputFileName));
 		strcat(outputFileName, "sorted.");
 		strcat(outputFileName, BFAST_ALIGNED_FILE_EXTENSION);
 
 		if(!(outputFP = gzopen(outputFileName, "wb"))) {
-			PrintError(Name,
-					outputFileName,
-					"Could not open file for writing",
-					Exit,
-					OpenFileError);
+			PrintError(Name, outputFileName, "Could not open file for writing", Exit, OpenFileError);
 		}
 
 		/* Split entries and print */

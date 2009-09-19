@@ -8,10 +8,8 @@ static char ErrorString[][20]=
 static char ActionType[][20]={"Fatal Error", "Warning"};
 
 	void
-PrintError(char* FunctionName, char *VariableName, 
-		char* Message, int Action, int type)
-{
-
+PrintError(char* FunctionName, char *VariableName, char* Message, int Action, int type)
+{	
 	fprintf(stderr, "%s\rIn function \"%s\": %s[%s]. ", 
 			BREAK_LINE, FunctionName, ActionType[Action], ErrorString[type]);
 

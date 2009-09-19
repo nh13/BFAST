@@ -31,44 +31,28 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			if(0>fprintf(fp, "##maf version=%s scoring=%s\n",
 						PACKAGE_VERSION,
 						PROGRAM_NAME)) {
-				PrintError(FnName,
-						"header",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 			}
 			break;
 		case GFF:
 			if(0>fprintf(fp, "##gff version=%s scoring=%s\n",
 						PACKAGE_VERSION,
 						PROGRAM_NAME)) {
-				PrintError(FnName,
-						"header",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 			}
 			break;
 		case SAM:
 			/* Header */
 			if(0>fprintf(fp, "@HD\tVN:%s\n",
 						BFAST_SAM_VERSION)) {
-				PrintError(FnName,
-						"header",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 			}
 			/* Sequence dictionary */
 			for(i=0;i<rg->numContigs;i++) {
 				if(0>fprintf(fp, "@SQ\tSN:%s\tLN:%d\n",
 							rg->contigs[i].contigName,
 							rg->contigs[i].sequenceLength)) {
-					PrintError(FnName,
-							"header",
-							"Could not write to file",
-							Exit,
-							WriteFileError);
+					PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 				}
 			}
 			/* Ignore read group */
@@ -76,19 +60,11 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			if(0>fprintf(fp, "@PG\tID:%s\tVN:%s\n",
 						PACKAGE_NAME,
 						PACKAGE_VERSION)) {
-				PrintError(FnName,
-						"header",
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 			}
 			break;
 		default:
-			PrintError(FnName,
-					"outputFormat",
-					"Could not understand outputFormat",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
 			break;
 	}
 }
@@ -122,11 +98,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			AlignedReadConvertPrintSAM(a, outputID, fp);
 			break;
 		default:
-			PrintError(FnName,
-					"outputFormat",
-					"Could not understand outputFormat",
-					Exit,
-					OutOfRange);
+			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
 			break;
 	}
 }
@@ -187,11 +159,7 @@ void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry *a,
 					alignmentNum,
 					a->colorError,
 					a->contig)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	else {
@@ -201,11 +169,7 @@ void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry *a,
 					whichEnd,
 					alignmentNum,
 					a->contig)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 
@@ -220,11 +184,7 @@ void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry *a,
 				a->strand,
 				rg->contigs[a->contig-1].sequenceLength, /* original contig length */
 				a->reference)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* Print the read */
 	if(0>fprintf(fp, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
@@ -234,37 +194,21 @@ void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry *a,
 				a->strand,
 				originalReadLength, /* original read length */
 				a->read)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* Print the qualities */
 	if(0>fprintf(fp, "q %s ",
 				a->contigName)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	for(i=0;i<strlen(qual);i++) {
 		if(0>fprintf(fp, "%1d",
 					QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	if(0>fprintf(fp, "\n")) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 }
 
@@ -329,11 +273,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 				a->score,
 				a->strand,
 				alignmentNum)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 
 	/* Write attributes */ 
@@ -343,36 +283,20 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 		if(0>fprintf(fp, "b=%s;r=%s",
 					a->read,
 					a->reference)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 		/* Print the qualities */
 		if(0>fprintf(fp, ";q=")) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 		for(i=0;i<strlen(qual);i++) {
 			if(0>fprintf(fp, "%d",
 						QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
 			if(i<strlen(qual)-1) {
 				if(0>fprintf(fp, ",")) {
-					PrintError(FnName,
-							NULL,
-							"Could not write to file",
-							Exit,
-							WriteFileError);
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 				}
 			}
 		}
@@ -393,11 +317,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 		}
 		string[a->length]='\0';
 		if(0>fprintf(fp, "b=%s", string)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 
 		/* c - ignore, since we may not have unique alignments */
@@ -414,11 +334,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 			}
 			else {
 				if(1!=ConvertBaseToColorSpace(prevBase, a->read[i], &color)) {
-					PrintError(FnName,
-							NULL,
-							"Could not convert bases to color space",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, NULL, "Could not convert bases to color space", Exit, OutOfRange);
 				}
 				string[i] = ConvertIntColorToCharColor(color);
 				prevBase = a->read[i];
@@ -426,11 +342,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 		}
 		string[a->length]='\0';
 		if(0>fprintf(fp, ";g=%s", string)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 
 		/* i - ignore, since we only use one reference */
@@ -439,28 +351,16 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 
 		/* q - qualities */
 		if(0>fprintf(fp, ";q=")) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 		for(i=0;i<strlen(qual);i++) {
 			if(0>fprintf(fp, "%d",
 						QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
 			if(i<strlen(qual)-1) {
 				if(0>fprintf(fp, ",")) {
-					PrintError(FnName,
-							NULL,
-							"Could not write to file",
-							Exit,
-							WriteFileError);
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 				}
 			}
 		}
@@ -478,11 +378,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 				if(0>sprintf(tempString, "%d_%c", 
 							i+1,
 							a->colorError[i])) {
-					PrintError(FnName,
-							"tempString",
-							"Could not write to string",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, "tempString", "Could not write to string", Exit, OutOfRange);
 				}
 				strcat(string, tempString);
 				initialized=1;
@@ -490,11 +386,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 		}
 		if(1==initialized) {
 			if(0>fprintf(fp, ";r=%s", string)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
 		}
 
@@ -504,11 +396,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 	}
 	/* Print new-line */
 	if(0>fprintf(fp, "\n")) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 }
 
@@ -523,11 +411,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 
 	/* SAM can't deal with generalized multi-end reads */
 	if(2 < a->numEnds) {
-		PrintError(FnName,
-				NULL,
-				"Outputting reads with greater than two ends to SAM format not supported. Skipping...",
-				Warn,
-				OutOfRange);
+		PrintError(FnName, NULL, "Outputting reads with greater than two ends to SAM format not supported. Skipping...", Warn, OutOfRange);
 		return;
 	}
 
@@ -584,21 +468,13 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					outputID,
 					BFAST_SAM_MAX_QNAME_SEPARATOR,
 					a->readName)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	else {
 		if(0>fprintf(fp, "%s",
 					a->readName)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	/* FLAG */
@@ -627,11 +503,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	if(0>fprintf(fp, "\t%llu",
 				(unsigned long long int)flag)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* RNAME and POS */
 	if(entriesIndex < 0) { /* Current is unmapped */
@@ -640,21 +512,13 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			if(0>fprintf(fp, "\t%s\t%d",
 						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
 						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
 		}
 		else {
 			/* Make absent */ 
 			if(0>fprintf(fp, "\t*\t0")) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
 		}
 	}
@@ -662,11 +526,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		if(0>fprintf(fp, "\t%s\t%d",
 					a->ends[endIndex].entries[entriesIndex].contigName,
 					a->ends[endIndex].entries[entriesIndex].position)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	/* MAPQ */
@@ -674,20 +534,12 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(mapq < 0) mapq = 0;
 	if(mapq > 255) mapq = 255;
 	if(0>fprintf(fp, "\t%d", mapq)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* CIGAR - no alignment */
 	if(entriesIndex < 0) { /* Unmapped */
 		if(0>fprintf(fp, "\t*")) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	else {
@@ -699,11 +551,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			if(0>fprintf(fp, "\t%s\t%d",
 						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
 						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
-				PrintError(FnName,
-						NULL,
-						"Could not write to file",
-						Exit,
-						WriteFileError);
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
 		}
 		else {
@@ -711,33 +559,21 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			if(entriesIndex < 0) { /* Current is unmapped */
 				/* Make absent */ 
 				if(0>fprintf(fp, "\t*\t0")) {
-					PrintError(FnName,
-							NULL,
-							"Could not write to file",
-							Exit,
-							WriteFileError);
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 				}
 			}
 			else { /* Current is mapped */
 				if(0>fprintf(fp, "\t%s\t%d",
 							a->ends[endIndex].entries[entriesIndex].contigName,
 							a->ends[endIndex].entries[entriesIndex].position)) {
-					PrintError(FnName,
-							NULL,
-							"Could not write to file",
-							Exit,
-							WriteFileError);
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 				}
 			}
 		}
 	}
 	else {
 		if(0>fprintf(fp, "\t*\t0")) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	/* ISIZE */
@@ -745,22 +581,14 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			mateEndIndex < 0 || /* Mate is unmapped */
 			a->ends[endIndex].entries[entriesIndex].contig != a->ends[mateEndIndex].entries[mateEntriesIndex].contig) {
 		if(0>fprintf(fp, "\t0")) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	else {
 		if(0>fprintf(fp, "\t%d",
 					a->ends[mateEndIndex].entries[mateEntriesIndex].position -
 					a->ends[endIndex].entries[entriesIndex].position)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	/* SEQ and QUAL */
@@ -891,68 +719,40 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(0>fprintf(fp, "\t%s\t%s",
 				read,
 				qual)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* AS - optional field */
 	if(entriesIndex < 0) { /* Unmapped */
 		if(0>fprintf(fp, "\tAS:i:%d", INT_MIN)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	else {
 		if(0>fprintf(fp, "\tAS:i:%d", (int32_t)a->ends[endIndex].entries[entriesIndex].score)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	/* NH - optional field */
 	if(0>fprintf(fp, "\tNH:i:%d",
 				(entriesIndex < 0)?1:a->ends[endIndex].numEntries)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* IH - optional field */
 	if(0>fprintf(fp, "\tIH:i:%d",
 				(entriesIndex < 0)?1:a->ends[endIndex].numEntries)) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* HI - optional field */
 	if(0>fprintf(fp, "\tHI:i:%d",
 				(entriesIndex < 0)?1:(entriesIndex+1))) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* CS and CQ - optional field */
 	if(ColorSpace == a->space) {
 		if(0>fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s",
 					a->ends[endIndex].read,
 					a->ends[endIndex].qual)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 	/* CC - optional field */
@@ -965,20 +765,12 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		if(0>fprintf(fp, "\tCC:Z:%s\tCP:i:%d",
 					a->ends[endIndex].entries[entriesIndex+1].contigName,
 					a->ends[endIndex].entries[entriesIndex+1].position)) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 
 	if(0>fprintf(fp, "\n")) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 }
 
@@ -998,11 +790,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	int32_t startDel, endDel, startIns, endIns, prevDel, prevIns;
 
 	if(0>fprintf(fp, "\t")) {
-		PrintError(FnName,
-				NULL,
-				"Could not write to file",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 
 	if(REVERSE == a->strand) {
@@ -1140,11 +928,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 				if(0>fprintf(fp, "%d%c",
 							numPrevType,
 							"MID"[prevType])) {
-					PrintError(FnName,
-							NULL,
-							"Could not write to file",
-							Exit,
-							WriteFileError);
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 				}
 			}
 			prevType = curType;
@@ -1156,11 +940,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		if(0>fprintf(fp, "%d%c",
 					numPrevType,
 					"MID"[prevType])) {
-			PrintError(FnName,
-					NULL,
-					"Could not write to file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
 }

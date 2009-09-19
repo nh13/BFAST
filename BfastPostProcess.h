@@ -9,13 +9,13 @@
 struct arguments
 {
 	char *args[1];							/* No arguments to this function */
+	char *fastaFileName;					/* -f */
 	char *alignFileName;					/* -i */
-	char *brgFileName;						/* -r */
 	int algorithm;							/* -a */
 	int queueLength;						/* -Q */
-	char *outputID;							/* -o */
-	char *outputDir;                        /* -d */
 	int outputFormat;						/* -O */
+	char *outputID;							/* -o */
+	char *unmappedFileName;					/* -i */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

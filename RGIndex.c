@@ -255,11 +255,10 @@ void RGIndexCreateSplit(char *fastaFileName,
 
 	gzOuts = malloc(sizeof(gzFile)*numFiles);
 	if(NULL == gzOuts) {
-		PrintError(FnName, "gzOuts", "Could not allocate memory", Exit, MallocMemory);
-	}
-
-	/* Open output file before creation, so that if it exists we
-	 * know before all the work is performed. */
+		PrintError(FnName, "gzOuts", "Could not allocate memory", Exit, MallocMemory);	
+	}	
+	/* Open output file before creation, so that if it exists we	 
+	 * * know before all the work is performed. */
 	for(i=0;i<numFiles;i++) {
 		/* Initialize */
 		RGIndexInitializeFull(&index,
@@ -283,10 +282,10 @@ void RGIndexCreateSplit(char *fastaFileName,
 	/* Bin and create from each bin ... */
 	tmpFPs = malloc(sizeof(FILE*)*numFiles);
 	if(NULL == tmpFPs) {
-		PrintError(FnName, "tmpFPs", "Could not allocate memory", Exit, MallocMemory);
-	}
-	tmpFileNames = malloc(sizeof(char*)*numFiles);
-	if(NULL == tmpFileNames) {
+		PrintError(FnName, "tmpFPs", "Could not allocate memory", Exit, MallocMemory);	
+	}	
+	tmpFileNames = malloc(sizeof(char*)*numFiles);	
+	if(NULL == tmpFileNames) {		
 		PrintError(FnName, "tmpFileNames", "Could not allocate memory", Exit, MallocMemory);
 	}
 
@@ -379,19 +378,11 @@ void RGIndexCreateSplit(char *fastaFileName,
 				/* Reallocate memory */
 				index.positions = realloc(index.positions, sizeof(uint32_t)*index.length);
 				if(NULL == index.positions) {
-					PrintError("RGBinaryCreate",
-							"index.positions",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError("RGBinaryCreate", "index.positions", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 				index.contigs_8 = realloc(index.contigs_8, sizeof(uint8_t)*index.length);
 				if(NULL == index.contigs_8) {
-					PrintError("RGBinaryCreate",
-							"index.contigs_8",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError("RGBinaryCreate", "index.contigs_8", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 
 				/* Copy over */
@@ -409,19 +400,11 @@ void RGIndexCreateSplit(char *fastaFileName,
 				/* Reallocate memory */
 				index.positions = realloc(index.positions, sizeof(uint32_t)*index.length);
 				if(NULL == index.positions) {
-					PrintError("RGBinaryCreate",
-							"index.positions",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError("RGBinaryCreate", "index.positions", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 				index.contigs_32 = realloc(index.contigs_32, sizeof(uint32_t)*index.length);
 				if(NULL == index.contigs_32) {
-					PrintError("RGBinaryCreate",
-							"index.contigs_32",
-							"Could not reallocate memory",
-							Exit,
-							ReallocMemory);
+					PrintError("RGBinaryCreate", "index.contigs_32", "Could not reallocate memory", Exit, ReallocMemory);
 				}
 
 				/* Copy over */
@@ -577,33 +560,21 @@ void RGIndexCreateHelper(RGIndex *index,
 						/* Copy over.  Remember that we are at the end of the read. */
 						index->positions = realloc(index->positions, sizeof(uint32_t)*index->length);
 						if(NULL == index->positions) {
-							PrintError("RGBinaryCreate",
-									"index->positions",
-									"Could not reallocate memory",
-									Exit,
-									ReallocMemory);
+							PrintError("RGBinaryCreate", "index->positions", "Could not reallocate memory", Exit, ReallocMemory);
 						}
 						index->positions[index->length-1] = keyStartPos;
 						/* Reallocate memory for the contigs based on contig type and copy over. */
 						if(index->contigType == Contig_8) {
 							index->contigs_8 = realloc(index->contigs_8, sizeof(uint8_t)*index->length);
 							if(NULL == index->contigs_8) {
-								PrintError("RGBinaryCreate",
-										"index->contigs_8",
-										"Could not reallocate memory",
-										Exit,
-										ReallocMemory);
+								PrintError("RGBinaryCreate", "index->contigs_8", "Could not reallocate memory", Exit, ReallocMemory);
 							}
 							index->contigs_8[index->length-1] = curContig;
 						}
 						else {
 							index->contigs_32 = realloc(index->contigs_32, sizeof(uint32_t)*index->length);
 							if(NULL == index->contigs_32) {
-								PrintError("RGBinaryCreate",
-										"index->contigs_32",
-										"Could not reallocate memory",
-										Exit,
-										ReallocMemory);
+								PrintError("RGBinaryCreate", "index->contigs_32", "Could not reallocate memory", Exit, ReallocMemory);
 							}
 							index->contigs_32[index->length-1] = curContig;
 						}
@@ -630,11 +601,7 @@ void RGIndexCreateHelper(RGIndex *index,
 										binNumber += 3;
 										break;
 									default:
-										PrintError(FnName,
-												NULL,
-												"Unrecognized base while binning",
-												Exit,
-												OutOfRange);
+										PrintError(FnName, NULL, "Unrecognized base while binning", Exit, OutOfRange);
 										break;
 								}
 								curDepth++;
@@ -652,17 +619,13 @@ void RGIndexCreateHelper(RGIndex *index,
 							curContig_8 = (uint8_t)curContig;
 							if(fwrite(&curContig_8, sizeof(uint8_t), 1, tmpFPs[binNumber]) != 1 ||
 									fwrite(&keyStartPos, sizeof(uint32_t), 1, tmpFPs[binNumber]) != 1) {
-								PrintError(FnName, "curContig8 and keyStartPos", "Could not write to file", Exit, WriteFileError);
-							}
-						}
-						else {
+								PrintError(FnName, "curContig8 and keyStartPos", "Could not write to file", Exit, WriteFileError);							
+							}						
+						}						
+						else {							
 							if(fwrite(&curContig, sizeof(uint32_t), 1, tmpFPs[binNumber]) != 1 ||
 									fwrite(&keyStartPos, sizeof(uint32_t), 1, tmpFPs[binNumber]) != 1) {
-								PrintError(FnName, "curContig and keyStartPos", "Could not write to file", Exit, WriteFileError);
-							}
-						}
-					}
-				}
+								PrintError(FnName, "curContig and keyStartPos", "Could not write to file", Exit, WriteFileError);							}						}					}				}
 			}
 		}
 		if(VERBOSE >= 0) {
@@ -681,21 +644,13 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 	int64_t i;
 
 	if(index->length >= UINT_MAX) {
-		PrintError(FnName,
-				"index->length",
-				"Index length has reached its maximum",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, "index->length", "Index length has reached its maximum", Exit, OutOfRange);
 	}
 
 	/* Allocate memory for the hash */
 	index->starts = malloc(sizeof(uint32_t)*index->hashLength);
 	if(NULL==index->starts) {
-		PrintError(FnName,
-				"index->starts",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->starts", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* initialize */
@@ -795,20 +750,12 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 		/* Allocate memory for the thread arguments */
 		sortData = malloc(sizeof(ThreadRGIndexSortData)*numThreads);
 		if(NULL==sortData) {
-			PrintError(FnName,
-					"sortData",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "sortData", "Could not allocate memory", Exit, MallocMemory);
 		}
 		/* Allocate memory for the thread point32_ters */
 		threads = malloc(sizeof(pthread_t)*numThreads);
 		if(NULL==threads) {
-			PrintError(FnName,
-					"threads",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 		}
 
 		/* Merge sort with tmp file I/O */
@@ -843,11 +790,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 					RGIndexMergeSort, /* start routine */
 					(void*)(&sortData[i])); /* sortData to routine */
 			if(0!=errCode) {
-				PrintError(FnName,
-						"pthread_create: errCode",
-						"Could not start thread",
-						Exit,
-						ThreadError);
+				PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 			}
 		}
 
@@ -858,11 +801,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 					&status);
 			/* Check the return code of the thread */
 			if(0!=errCode) {
-				PrintError(FnName,
-						"pthread_join: errCode",
-						"Thread returned an error",
-						Exit,
-						ThreadError);
+				PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 			}
 			if(i==numThreads-1 && VERBOSE >= 0) {
 				fprintf(stderr, "\rWaiting for other threads to complete...");
@@ -890,20 +829,12 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 			/* Allocate memory for the thread arguments */
 			mergeData = malloc(sizeof(ThreadRGIndexMergeData)*curNumThreads);
 			if(NULL==mergeData) {
-				PrintError(FnName,
-						"mergeData",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "mergeData", "Could not allocate memory", Exit, MallocMemory);
 			}
 			/* Allocate memory for the thread point32_ters */
 			threads = malloc(sizeof(pthread_t)*curNumThreads);
 			if(NULL==threads) {
-				PrintError(FnName,
-						"threads",
-						"Could not allocate memory",
-						Exit,
-						MallocMemory);
+				PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
 			}
 			/* Initialize data for threads */
 			for(j=0,curThread=0;j<numThreads;j+=2*i,curThread++) {
@@ -920,11 +851,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 			/* Check that we split correctly */
 			for(j=1;j<curNumThreads;j++) {
 				if(mergeData[j-1].high >= mergeData[j].low) {
-					PrintError(FnName,
-							NULL,
-							"mergeData[j-1].high >= mergeData[j].low",
-							Exit,
-							OutOfRange);
+					PrintError(FnName, NULL, "mergeData[j-1].high >= mergeData[j].low", Exit, OutOfRange);
 				}
 			}
 
@@ -936,11 +863,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 						RGIndexMerge, /* start routine */
 						(void*)(&mergeData[j])); /* sortData to routine */
 				if(0!=errCode) {
-					PrintError(FnName,
-							"pthread_create: errCode",
-							"Could not start thread",
-							Exit,
-							ThreadError);
+					PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
 				}
 			}
 
@@ -951,11 +874,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 						&status);
 				/* Check the return code of the thread */
 				if(0!=errCode) {
-					PrintError(FnName,
-							"pthread_join: errCode",
-							"Thread returned an error",
-							Exit,
-							ThreadError);
+					PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 				}
 			}
 
@@ -1182,19 +1101,11 @@ void RGIndexMergeHelperInMemoryContig_8(RGIndex *index,
 	/* Use memory */
 	tmpPositions = malloc(sizeof(uint32_t)*(high-low+1));
 	if(NULL == tmpPositions) {
-		PrintError(FnName,
-				"tmpPositions",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tmpPositions", "Could not allocate memory", Exit, MallocMemory);
 	}
 	tmpContigs_8 = malloc(sizeof(uint8_t)*(high-low+1));
 	if(NULL == tmpContigs_8) {
-		PrintError(FnName,
-				"tmpContigs_8",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tmpContigs_8", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Merge */
@@ -1265,19 +1176,11 @@ void RGIndexMergeHelperInMemoryContig_32(RGIndex *index,
 	/* Use memory */
 	tmpPositions = malloc(sizeof(uint32_t)*(high-low+1));
 	if(NULL == tmpPositions) {
-		PrintError(FnName,
-				"tmpPositions",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tmpPositions", "Could not allocate memory", Exit, MallocMemory);
 	}
 	tmpContigs_32 = malloc(sizeof(uint32_t)*(high-low+1));
 	if(NULL == tmpContigs_32) {
-		PrintError(FnName,
-				"tmpContigs_32",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "tmpContigs_32", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Merge */
@@ -1361,34 +1264,18 @@ void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
 	/* Print to tmp files */
 	for(i=low;i<=mid;i++) {
 		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-			PrintError(FnName,
-					"index->positions",
-					"Could not write positions to tmp lower file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->positions", "Could not write positions to tmp lower file", Exit, WriteFileError);
 		}
 		if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpLowerFP)) {
-			PrintError(FnName,
-					"index->contigs_8",
-					"Could not write contigs_8 to tmp lower file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->contigs_8", "Could not write contigs_8 to tmp lower file", Exit, WriteFileError);
 		}
 	}
 	for(i=mid+1;i<=high;i++) {
 		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-			PrintError(FnName,
-					"index->positions",
-					"Could not write positions to tmp upper file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->positions", "Could not write positions to tmp upper file", Exit, WriteFileError);
 		}
 		if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpUpperFP)) {
-			PrintError(FnName,
-					"index->contigs_8",
-					"Could not write contigs_8 to tmp upper file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->contigs_8", "Could not write contigs_8 to tmp upper file", Exit, WriteFileError);
 		}
 	}
 
@@ -1401,19 +1288,11 @@ void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
 
 	if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
 			1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in tmp lower",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read in tmp lower", Exit, ReadFileError);
 	}
 	if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
 			1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in tmp upper",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read in tmp upper", Exit, ReadFileError);
 	}
 
 	for(i=low, ctr=0;
@@ -1525,34 +1404,18 @@ void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
 	/* Print to tmp files */
 	for(i=low;i<=mid;i++) {
 		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-			PrintError(FnName,
-					"index->positions",
-					"Could not write positions to tmp lower file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->positions", "Could not write positions to tmp lower file", Exit, WriteFileError);
 		}
 		if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-			PrintError(FnName,
-					"index->contigs_32",
-					"Could not write contigs_32 to tmp lower file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->contigs_32", "Could not write contigs_32 to tmp lower file", Exit, WriteFileError);
 		}
 	}
 	for(i=mid+1;i<=high;i++) {
 		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-			PrintError(FnName,
-					"index->positions",
-					"Could not write positions to tmp upper file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->positions", "Could not write positions to tmp upper file", Exit, WriteFileError);
 		}
 		if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-			PrintError(FnName,
-					"index->contigs_32",
-					"Could not write contigs_32 to tmp upper file",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, "index->contigs_32", "Could not write contigs_32 to tmp upper file", Exit, WriteFileError);
 		}
 	}
 
@@ -1565,19 +1428,11 @@ void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
 
 	if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
 			1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in tmp lower",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read in tmp lower", Exit, ReadFileError);
 	}
 	if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
 			1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in tmp upper",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read in tmp upper", Exit, ReadFileError);
 	}
 
 	for(i=low, ctr=0;
@@ -1719,11 +1574,7 @@ void RGIndexPrint(gzFile fp, RGIndex *index)
 				gzwrite64(fp, index->contigs_8, sizeof(uint8_t)*index->length)!=sizeof(uint8_t)*index->length ||
 				/* Print the starts */
 				gzwrite64(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
-			PrintError(FnName,
-					NULL,
-					"Could not write index and hash",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write index and hash", Exit, WriteFileError);
 		}
 	}
 	else {
@@ -1733,11 +1584,7 @@ void RGIndexPrint(gzFile fp, RGIndex *index)
 				gzwrite64(fp, index->contigs_32, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length ||
 				/* Print the starts */
 				gzwrite64(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
-			PrintError(FnName,
-					NULL,
-					"Could not write index and hash",
-					Exit,
-					WriteFileError);
+			PrintError(FnName, NULL, "Could not write index and hash", Exit, WriteFileError);
 		}
 	}
 
@@ -1758,11 +1605,7 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 
 	/* open file */
 	if(!(fp=gzopen(rgIndexFileName, "rb"))) {
-		PrintError(FnName,
-				rgIndexFileName,
-				"Could not open rgIndexFileName for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, rgIndexFileName, "Could not open rgIndexFileName for reading", Exit, OpenFileError);
 	}
 
 	/* Read in the header */
@@ -1773,80 +1616,48 @@ void RGIndexRead(RGIndex *index, char *rgIndexFileName)
 	/* Allocate memory for the positions */
 	index->positions = malloc(sizeof(uint32_t)*index->length);
 	if(NULL == index->positions) {
-		PrintError(FnName,
-				"index->positions",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->positions", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Allocate memory for the contigs */
 	if(index->contigType == Contig_8) {
 		index->contigs_8 = malloc(sizeof(uint8_t)*index->length);
 		if(NULL == index->contigs_8) {
-			PrintError(FnName,
-					"index->contigs",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "index->contigs", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 	else {
 		index->contigs_32 = malloc(sizeof(uint32_t)*index->length);
 		if(NULL == index->contigs_32) {
-			PrintError(FnName,
-					"index->contigs",
-					"Could not allocate memory",
-					Exit,
-					MallocMemory);
+			PrintError(FnName, "index->contigs", "Could not allocate memory", Exit, MallocMemory);
 		}
 	}
 
 	/* Read in positions */
 	if(gzread64(fp, index->positions, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in positions",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read in positions", Exit, ReadFileError);
 	}
 
 	/* Read in the contigs */
 	if(index->contigType == Contig_8) {
 		if(gzread64(fp, index->contigs_8, sizeof(uint8_t)*index->length)!=sizeof(uint8_t)*index->length) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in contigs_8",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read in contigs_8", Exit, ReadFileError);
 		}
 	}
 	else {
 		if(gzread64(fp, index->contigs_32, sizeof(uint32_t)*index->length)!=sizeof(uint32_t)*index->length) {
-			PrintError(FnName,
-					NULL,
-					"Could not read in contigs_32",
-					Exit,
-					ReadFileError);
+			PrintError(FnName, NULL, "Could not read in contigs_32", Exit, ReadFileError);
 		}
 	}
 
 	/* Allocate memory for the starts */
 	index->starts = malloc(sizeof(uint32_t)*index->hashLength);
 	if(NULL == index->starts) {
-		PrintError(FnName,
-				"index->starts",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->starts", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Read in starts */
 	if(gzread64(fp, index->starts, sizeof(uint32_t)*index->hashLength)!=sizeof(uint32_t)*index->hashLength) {
-		PrintError(FnName,
-				NULL,
-				"Could not read in starts",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read in starts", Exit, ReadFileError);
 	}
 
 	/* close file */
@@ -1872,11 +1683,7 @@ void RGIndexPrintInfo(char *inputFileName)
 
 	/* Open the file */
 	if(!(fp=gzopen(inputFileName, "rb"))) {
-		PrintError(FnName,
-				inputFileName,
-				"Could not open file for reading",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
 
 	/* Read in the header */
@@ -1949,11 +1756,7 @@ void RGIndexPrintHeader(gzFile fp, RGIndex *index)
 			gzwrite64(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
 			gzwrite64(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t) ||
 			gzwrite64(fp, index->mask, sizeof(int32_t)*index->width)!=sizeof(int32_t)*index->width) {
-		PrintError(FnName,
-				NULL,
-				"Could not write header",
-				Exit,
-				WriteFileError);
+		PrintError(FnName, NULL, "Could not write header", Exit, WriteFileError);
 	}
 }
 
@@ -1964,19 +1767,11 @@ void RGIndexReadHeader(gzFile fp, RGIndex *index)
 	/* Read in header */
 	if(gzread64(fp, &index->id, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->packageVersionLength, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read header",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read header", Exit, ReadFileError);
 	}
 	index->packageVersion = malloc(sizeof(char)*(index->packageVersionLength+1));
 	if(NULL==index->packageVersion) {
-		PrintError(FnName,
-				"index->packageVersion",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->packageVersion", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	if(gzread64(fp, index->packageVersion, sizeof(char)*index->packageVersionLength)!=sizeof(char)*index->packageVersionLength ||
@@ -1995,29 +1790,17 @@ void RGIndexReadHeader(gzFile fp, RGIndex *index)
 			gzread64(fp, &index->indexNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
 			gzread64(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t)) {
-		PrintError(FnName,
-				NULL,
-				"Could not read header",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read header", Exit, ReadFileError);
 	}
 	index->packageVersion[index->packageVersionLength]='\0';
 	/* Allocate memory for the mask */
 	index->mask = malloc(sizeof(int32_t)*index->width);
 	if(NULL==index->mask) {
-		PrintError(FnName,
-				"index->mask",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->mask", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Read the mask */
 	if(gzread64(fp, index->mask, sizeof(int32_t)*index->width)!=sizeof(int32_t)*index->width) {
-		PrintError(FnName,
-				NULL,
-				"Could not read header",
-				Exit,
-				ReadFileError);
+		PrintError(FnName, NULL, "Could not read header", Exit, ReadFileError);
 	}
 
 	/* Error checking */
@@ -2440,11 +2223,7 @@ int32_t RGIndexCompareContigPos(RGIndex *index,
 				/* Continue if the current bases are equal */
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand mask",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
 		}
 	}
 
@@ -2528,11 +2307,7 @@ int32_t RGIndexCompareRead(RGIndex *index,
 				}
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand mask",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
 		}
 	}
 
@@ -2586,22 +2361,14 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 						hashIndex += pow(ALPHABET_SIZE, cur)*3;
 						break;
 					default:
-						PrintError(FnName,
-								"aBase",
-								"Could not understand base",
-								Exit,
-								OutOfRange);
+						PrintError(FnName, "aBase", "Could not understand base", Exit, OutOfRange);
 						break;
 				}
 				/* Update */
 				cur--;
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand mask",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
 		}
 	}
 
@@ -2635,11 +2402,7 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 				cur--;
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand mask",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
 		}
 	}
 
@@ -2661,11 +2424,7 @@ void RGIndexPrintReadMasked(RGIndex *index, char *read, int offset, FILE *fp)
 				fprintf(stderr, "%c", read[i]);
 				break;
 			default:
-				PrintError(FnName,
-						NULL,
-						"Could not understand mask",
-						Exit,
-						OutOfRange);
+				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
 		}
 	}   
 	fprintf(fp, "\n");
@@ -2721,11 +2480,7 @@ void RGIndexInitializeFull(RGIndex *index,
 	RGIndexInitialize(index);
 
 	if(layout->hashWidth < depth) {
-		PrintError(FnName,
-				NULL,
-				"hashWidth < depth",
-				Exit,
-				OutOfRange);
+		PrintError(FnName, NULL, "hashWidth < depth", Exit, OutOfRange);
 	}
 
 	/* Copy over index information from the rg */
@@ -2743,11 +2498,7 @@ void RGIndexInitializeFull(RGIndex *index,
 	index->packageVersionLength = (int)strlen(PACKAGE_VERSION);
 	index->packageVersion = malloc(sizeof(char)*(index->packageVersionLength+1));
 	if(NULL==index->packageVersion) {
-		PrintError(FnName,
-				"index->packageVersion",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->packageVersion", "Could not allocate memory", Exit, MallocMemory);
 	}
 	strcpy(index->packageVersion, PACKAGE_VERSION);
 	index->repeatMasker = repeatMasker;
@@ -2765,11 +2516,7 @@ void RGIndexInitializeFull(RGIndex *index,
 	assert(index->keysize > 0);
 	index->mask = malloc(sizeof(int32_t)*layout->width);
 	if(NULL == index->mask) {
-		PrintError(FnName,
-				"index->mask",
-				"Could not allocate memory",
-				Exit,
-				MallocMemory);
+		PrintError(FnName, "index->mask", "Could not allocate memory", Exit, MallocMemory);
 	}
 	/* Copy over mask */
 	for(i=0;i<layout->width;i++) {
@@ -2796,19 +2543,11 @@ gzFile RGIndexOpenForWriting(char *fastaFileName, RGIndex *index)
 					O_WRONLY | O_CREAT | O_EXCL, 
 					S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP)) < 0) {
 		/* File exists */
-		PrintError(FnName,
-				bifName,
-				"Could not open bifName for writing",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, bifName, "Could not open bifName for writing", Exit, OpenFileError);
 	}
 
 	if(!(gz=gzdopen(fd, "wb"))) {
-		PrintError(FnName,
-				bifName,
-				"Could not open bifName for writing",
-				Exit,
-				OpenFileError);
+		PrintError(FnName, bifName, "Could not open bifName for writing", Exit, OpenFileError);
 	}
 
 	free(bifName);
