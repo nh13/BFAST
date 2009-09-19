@@ -39,9 +39,11 @@ void FindMatches(
 {
 	int numMainIndexes=0;
 	char **mainIndexFileNames=NULL;
+	int32_t **mainIndexIDs=NULL;
 
 	int numSecondaryIndexes=0;
 	char **secondaryIndexFileNames=NULL;
+	int32_t **secondaryIndexIDs=NULL;
 
 	int *offsets=NULL;
 	int numOffsets=0;
@@ -70,7 +72,7 @@ void FindMatches(
 	if(0<=VERBOSE) {
 		fprintf(stderr, "Searching for main indexes...\n");
 	}
-	numMainIndexes=GetIndexFileNames(fastaFileName, space, mainIndexes, &mainIndexFileNames);
+	numMainIndexes=GetIndexFileNames(fastaFileName, space, mainIndexes, &mainIndexFileNames, &mainIndexIDs);
 	if(numMainIndexes<=0) {
 		PrintError("FindMatches", "numMainIndexes", "Read zero indexes", Exit, OutOfRange);
 	}
@@ -83,7 +85,7 @@ void FindMatches(
 		if(0<=VERBOSE) {
 			fprintf(stderr, "Searching for secondary indexes...\n");
 		}
-		numSecondaryIndexes=GetIndexFileNames(fastaFileName, space, secondaryIndexes, &secondaryIndexFileNames);
+		numSecondaryIndexes=GetIndexFileNames(fastaFileName, space, secondaryIndexes, &secondaryIndexFileNames, &secondaryIndexIDs);
 	}
 	else {
 		if(0<=VERBOSE) {
@@ -181,8 +183,9 @@ void FindMatches(
 
 	/* Do step 1: search the main indexes for all reads */
 	numMatches=FindMatchesInIndexes(mainIndexFileNames,
-			&rg,
+			mainIndexIDs,
 			numMainIndexes,
+			&rg,
 			offsets,
 			numOffsets,
 			space,
@@ -219,8 +222,9 @@ void FindMatches(
 
 			/* Do step 2: search the indexes for all reads */
 			numMatches+=FindMatchesInIndexes(secondaryIndexFileNames,
-					&rg,
+					secondaryIndexIDs,
 					numSecondaryIndexes,
+					&rg,
 					offsets,
 					numOffsets,
 					space,
@@ -283,14 +287,18 @@ void FindMatches(
 	/* Free main RGIndex file names */
 	for(i=0;i<numMainIndexes;i++) {
 		free(mainIndexFileNames[i]);
+		free(mainIndexIDs[i]);
 	}
 	free(mainIndexFileNames);
+	free(mainIndexIDs);
 
 	/* Free RGIndex file names */
 	for(i=0;i<numSecondaryIndexes;i++) {
 		free(secondaryIndexFileNames[i]);
+		free(secondaryIndexIDs[i]);
 	}
 	free(secondaryIndexFileNames);
+	free(secondaryIndexIDs);
 
 	/* Free the offsets */
 	free(offsets);
@@ -350,8 +358,9 @@ void FindMatches(
 }
 
 int FindMatchesInIndexes(char **indexFileNames,
-		RGBinary *rg,
+		int32_t **indexIDs,
 		int numIndexes,
+		RGBinary *rg,
 		int *offsets,
 		int numOffsets,
 		int space,
@@ -428,9 +437,10 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 	/* For each RGIndex, write temporary output */
 	for(i=0;i<numIndexes;i++) { /* For each RGIndex */
-
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Searching index %d out of %d...\n", i+1, numIndexes);
+			fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
+					i+1, numIndexes,
+					indexIDs[i][0], indexIDs[i][1]);
 		}
 		numMatches = FindMatchesInIndex(indexFileNames[i],
 				rg,
@@ -452,7 +462,9 @@ int FindMatchesInIndexes(char **indexFileNames,
 				totalOutputTime
 				);
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "Search for index %d out of %d complete.\n", i+1, numIndexes);
+			fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d) complete...\n", 
+					i+1, numIndexes,
+					indexIDs[i][0], indexIDs[i][1]);
 		}
 	}
 

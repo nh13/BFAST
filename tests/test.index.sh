@@ -13,9 +13,11 @@ do
 		OUTPUT_ID=$OUTPUT_ID_CS;
 	fi
 	RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
+	DEPTH=`expr 1 - $SPACE`;
+	DEPTH=`expr 2 \* $DEPTH`;
 
 	# Make an index
-	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 111111111111111 -w 8 -d 1 -i 1 -T $TMP_DIR";
+	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 111111111111111 -w 8 -d $DEPTH -i 1 -T $TMP_DIR";
 	eval $CMD 2> /dev/null;
 
 	# Get return code

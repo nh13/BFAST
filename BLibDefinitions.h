@@ -241,8 +241,8 @@ typedef struct {
 	int32_t repeatMasker;
 	int32_t space;
 	int32_t depth;
-	int32_t indexBin; /* which index out of 4^depth possible indexes */
-	int32_t indexNumber; /* the index # out of all indexes indexing this reference */
+	int32_t binNumber; /* which index out of 4^depth possible indexes (one-based) */
+	int32_t indexNumber; /* the index # out of all indexes indexing this reference (one-based) */
 	/* Hash storage */
 	uint32_t hashWidth; /* in bases */
 	int64_t hashLength; 

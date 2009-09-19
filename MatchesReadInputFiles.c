@@ -282,7 +282,11 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int space)
 }
 
 /* TODO */
-int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char ***fileNames)
+int GetIndexFileNames(char *fastaFileName, 
+		int32_t space, 
+		char *indexes, 
+		char ***fileNames,
+		int32_t ***indexIDs)
 {
 	char *FnName="GetIndexFileNames";
 	char prefix[MAX_FILENAME_LENGTH]="\0";
@@ -336,6 +340,16 @@ int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char **
 				if(0 == FileExists((*fileNames)[numFiles])) {
 					PrintError(FnName, (*fileNames)[numFiles], "The index does not exist", Exit, OutOfRange);				
 				}				
+				(*indexIDs) = realloc((*indexIDs), sizeof(int32_t*)*(1+numFiles));
+				if(NULL == (*indexIDs)) {
+					PrintError(FnName, "(*indexIDs)", "Could not reallocate memory", Exit, ReallocMemory);
+				}
+				(*indexIDs)[numFiles] = malloc(sizeof(int32_t)*2);
+				if(NULL == (*indexIDs)[numFiles]) {
+					PrintError(FnName, "(*indexIDs)[numFiles]", "Could not allocate memory", Exit, MallocMemory);
+				}
+				(*indexIDs)[numFiles][0] = indexNumbers[i];
+				(*indexIDs)[numFiles][1] = j;
 				numFiles++;			
 			}		
 		}
@@ -365,8 +379,21 @@ int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char **
 				if(0 == FileExists((*fileNames)[numFiles])) {
 					PrintError(FnName, (*fileNames)[numFiles], "Missing Bin: The index does not exist", Exit, OutOfRange);				
 				}				
+			
+				(*indexIDs) = realloc((*indexIDs), sizeof(int32_t*)*(1+numFiles));
+				if(NULL == (*indexIDs)) {
+					PrintError(FnName, "(*indexIDs)", "Could not reallocate memory", Exit, ReallocMemory);
+				}
+				(*indexIDs)[numFiles] = malloc(sizeof(int32_t)*2);
+				if(NULL == (*indexIDs)[numFiles]) {
+					PrintError(FnName, "(*indexIDs)[numFiles]", "Could not allocate memory", Exit, MallocMemory);
+				}
+				(*indexIDs)[numFiles][0] = i;
+				(*indexIDs)[numFiles][1] = j;
+				
 				numFiles++;			
 			}			
+
 			i++;
 			numIndexNumbers++;
 		}

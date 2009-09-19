@@ -49,9 +49,10 @@ void FindMatches(
 		char *tmpDir,
 		int timing
 		);
-int FindMatchesInIndexes(char **rgIndexFileNames,
-		RGBinary *rg,
+int FindMatchesInIndexes(char **indexFileNames,
+		int32_t **indexIDs,
 		int numRGIndexes,
+		RGBinary *rg,
 		int *offsets,
 		int numOffsets,
 		int colorSpace,

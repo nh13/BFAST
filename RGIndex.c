@@ -185,7 +185,7 @@ void RGIndexCreateSingle(char *fastaFileName,
 	RGIndexCreateHash(&index, &rg);
 
 	/* Write */ 
-	RGIndexPrint(fastaFileName, &index);
+	RGIndexPrint(gzOut, &index);
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Index created.\n");
@@ -672,11 +672,11 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 	}
 	/* Test pass 1 has creation */
 	/*
-	for(i=0;i<index->hashLength;i++) {
-		assert(0 <= index->starts[i]);
-		assert(index->starts[i] < index->length || index->starts[i] == UINT_MAX);
-	}
-	*/
+	   for(i=0;i<index->hashLength;i++) {
+	   assert(0 <= index->starts[i]);
+	   assert(index->starts[i] < index->length || index->starts[i] == UINT_MAX);
+	   }
+	   */
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\r%lld\n", 
@@ -707,18 +707,18 @@ void RGIndexCreateHash(RGIndex *index, RGBinary *rg)
 
 	/* Test pass 2 has creation */
 	/*
-	for(i=0;i<index->hashLength;i++) {
-		if(UINT_MAX == index->starts[i]) {
-			break;
-		}
-		assert(0 <= index->starts[i]);
-		assert(index->starts[i] < index->length);
-	}
-	while(i<index->hashLength) { // Last entries must be the maximum 
-		assert(index->starts[i] == UINT_MAX);
-		i++;
-	}
-	*/
+	   for(i=0;i<index->hashLength;i++) {
+	   if(UINT_MAX == index->starts[i]) {
+	   break;
+	   }
+	   assert(0 <= index->starts[i]);
+	   assert(index->starts[i] < index->length);
+	   }
+	   while(i<index->hashLength) { // Last entries must be the maximum 
+	   assert(index->starts[i] == UINT_MAX);
+	   i++;
+	   }
+	   */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rHash created.\n");
 	}
@@ -1700,7 +1700,7 @@ void RGIndexPrintInfo(char *inputFileName)
 	fprintf(stderr, "repeat masker:\t\t%d\n", index.repeatMasker);
 	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", index.space, Space[index.space]);
 	fprintf(stderr, "depth:\t\t\t%d\n", index.depth);
-	fprintf(stderr, "indexBin:\t\t%d\n", index.indexBin);
+	fprintf(stderr, "binNumber:\t\t%d\n", index.binNumber);
 	fprintf(stderr, "indexNumber:\t\t%d\n", index.indexNumber);
 	fprintf(stderr, "hash width:\t\t%u\n", index.hashWidth);
 	fprintf(stderr, "hash length:\t\t%lld\n", (long long int)index.hashLength);
@@ -1739,7 +1739,7 @@ void RGIndexPrintHeader(gzFile fp, RGIndex *index)
 			gzwrite64(fp, &index->repeatMasker, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->space, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->depth, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzwrite64(fp, &index->indexBin, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzwrite64(fp, &index->binNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->indexNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzwrite64(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
 			gzwrite64(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t) ||
@@ -1774,7 +1774,7 @@ void RGIndexReadHeader(gzFile fp, RGIndex *index)
 			gzread64(fp, &index->repeatMasker, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->space, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->depth, sizeof(int32_t))!=sizeof(int32_t) ||
-			gzread64(fp, &index->indexBin, sizeof(int32_t))!=sizeof(int32_t) ||
+			gzread64(fp, &index->binNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->indexNumber, sizeof(int32_t))!=sizeof(int32_t) ||
 			gzread64(fp, &index->hashWidth, sizeof(uint32_t))!=sizeof(uint32_t) ||
 			gzread64(fp, &index->hashLength, sizeof(int64_t))!=sizeof(int64_t)) {
@@ -1942,8 +1942,11 @@ int64_t RGIndexGetIndex(RGIndex *index,
 
 	/* Use hash to restrict low and high */
 	hashIndex = RGIndexGetHashIndexFromRead(index, rg, read, readLength, 0);
+	if(UINT_MAX == hashIndex) {
+		/* Did not fall in this bin */
+		return 0;
+	}
 	assert(0 <= hashIndex && hashIndex < index->hashLength);
-
 	if(UINT_MAX == index->starts[hashIndex]) {
 		/* The hash from this point on does not index anything */
 		return 0;
@@ -1978,6 +1981,7 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	   fprintf(stderr, "%1c", "ACGTN"[read[i]]);
 	   }
 	   fprintf(stderr, "\n");
+	   fprintf(stderr, "hashIndex=%u\n", hashIndex);
 	   */
 
 	assert(low <= high);
@@ -2186,15 +2190,15 @@ int32_t RGIndexCompareContigPos(RGIndex *index,
 				(int)bContig,
 				bPos);
 		/*
-		char *seq=NULL;
-		int32_t length;
-		length = RGBinaryGetSequence(rg, aContig, aPos, FORWARD, &seq, index->width);
-		fprintf(stderr, "%s\n", seq); 
-		free(seq); seq=NULL;
-		length = RGBinaryGetSequence(rg, bContig, bPos, FORWARD, &seq, index->width);
-		fprintf(stderr, "%s\n", seq); 
-		free(seq); seq=NULL;
-		*/
+		   char *seq=NULL;
+		   int32_t length;
+		   length = RGBinaryGetSequence(rg, aContig, aPos, FORWARD, &seq, index->width);
+		   fprintf(stderr, "%s\n", seq); 
+		   free(seq); seq=NULL;
+		   length = RGBinaryGetSequence(rg, bContig, bPos, FORWARD, &seq, index->width);
+		   fprintf(stderr, "%s\n", seq); 
+		   free(seq); seq=NULL;
+		   */
 	}
 
 	/* Go across the mask */
@@ -2393,24 +2397,34 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 		int debug)
 {
 	char *FnName = "RGIndexGetHashIndexFromRead";
-	int32_t i;
-
+	int32_t i=0;
 	int32_t cur = 0;
 	uint32_t hashIndex = 0;
 
-	for(cur=i=0;cur<index->depth;i++) { /* Skip over the first (depth) bases */
-		switch(index->mask[i]) {
-			case 0:
-				break;
-			case 1:
-				cur++; 
-				break;
-			default:
-				PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
+	if(0 < index->depth) {
+		/* Check if we are in the correct bin */
+		for(cur=index->depth-1,i=0;0 <= cur && i < index->width;i++) { /* Skip over the first (depth) bases */
+			switch(index->mask[i]) {
+				case 0:
+					break;
+				case 1:
+					/* Only works with a four letter alphabet */
+					hashIndex = hashIndex << 2;
+					assert(0 <= read[i] && read[i] <= 3); // Debugging
+					hashIndex += read[i];
+					cur--;
+					break;
+				default:
+					PrintError(FnName, NULL, "Could not understand mask", Exit, OutOfRange);
+			}
+		}
+		if(hashIndex != index->binNumber - 1) {
+			return UINT_MAX;
 		}
 	}
 
 	/* Go across the mask */
+	hashIndex = 0;
 	for(cur=index->hashWidth-1;0 <= cur && i<index->width;i++) {
 		switch(index->mask[i]) {
 			case 0:
@@ -2474,7 +2488,7 @@ void RGIndexInitialize(RGIndex *index)
 	index->repeatMasker = 0;
 	index->space = 0;
 	index->depth = 0;
-	index->indexBin = 0;
+	index->binNumber = 0;
 	index->indexNumber = 0;
 
 	index->hashWidth = 0;
@@ -2486,7 +2500,7 @@ void RGIndexInitializeFull(RGIndex *index,
 		RGBinary *rg,
 		RGIndexLayout *layout,
 		int32_t space,
-		int32_t indexBin,
+		int32_t binNumber,
 		int32_t indexNumber,
 		int32_t startContig,
 		int32_t startPos,
@@ -2520,7 +2534,7 @@ void RGIndexInitializeFull(RGIndex *index,
 	index->repeatMasker = repeatMasker;
 	index->space = space;
 	index->depth = layout->depth; 
-	index->indexBin = indexBin;
+	index->binNumber = binNumber;
 	index->indexNumber = indexNumber;
 
 	/* Copy over index information from the layout */
@@ -2554,7 +2568,7 @@ gzFile RGIndexOpenForWriting(char *fastaFileName, RGIndex *index)
 	char *bifName=NULL;
 	int fd;
 
-	bifName=GetBIFName(fastaFileName, index->space, index->indexBin, index->indexNumber);
+	bifName=GetBIFName(fastaFileName, index->space, index->binNumber, index->indexNumber);
 	if((fd = open(bifName, 
 					O_WRONLY | O_CREAT | O_EXCL, 
 					S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP)) < 0) {
