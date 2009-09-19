@@ -92,6 +92,7 @@ If your system does not have argp.h then bfast will
 attempt to use getopt.h for command line parsing.])])
 
 AC_CONFIG_FILES([Makefile
+				 bfast/Makefile
 				 butil/Makefile
 				 scripts/Makefile
 				 tests/Makefile

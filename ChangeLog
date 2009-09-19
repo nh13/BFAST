@@ -5,6 +5,15 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.6.0
+* complete re-organization of the bfast code and commands
+* supports automatic splitting of the indexes to allow efficient
+low-memory execution (<4GB for the human genome).
+* bfast reference and index file names are now based off of the 
+input reference FASTA file.
+* the match, localalign, and postprocess command support the
+pipe-and-filter model (stdin and stdout).
+
 Version 0.5.7
 * bfast.submit.pl supports the -s and -e options in BFAST.
 
