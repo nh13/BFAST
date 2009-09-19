@@ -17,18 +17,18 @@ do
 
 	# Make reference genome in nt space always 
 	CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A 0";
-	$CMD 2> /dev/null > /dev/null;
+	eval $CMD 2> /dev/null;
 	# Make reference genome in color space if necessary
 	if [ "$SPACE" -eq "1" ]; then
 		CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A $SPACE";
-		$CMD 2> /dev/null > /dev/null;
+		eval $CMD 2> /dev/null;
 	fi
 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
 		echo $CMD;
-		$CMD;
+		eval $CMD;
 		exit 1
 	fi
 done

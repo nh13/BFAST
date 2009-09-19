@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
 	if(NULL != inputFile) { // hidden!
 		/* Get reference genome */
 		RGBinaryReadBinary(&rg,
+				NTSpace,
 				rgFileName);
 
 		FILE *fpIn=NULL;
@@ -116,6 +117,7 @@ int main(int argc, char *argv[])
 
 		/* Get reference genome */
 		RGBinaryReadBinary(&rg,
+				NTSpace,
 				rgFileName);
 
 		/* Generate reads */

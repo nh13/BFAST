@@ -37,13 +37,14 @@ int main(int argc, char *argv[])
 		RGIndex index;
 		Exon *exons=NULL;
 		int numExons = 0;
+		int space = NTSpace; // TODO
 
 		strcpy(rgFileName, argv[1]);
 		strcpy(indexFileName, argv[2]);
 		strcpy(exonsFileName, argv[3]);
 
 		/* Read in the rg binary file */
-		RGBinaryReadBinary(&rg, rgFileName);
+		RGBinaryReadBinary(&rg, space, rgFileName);
 
 		/* Read the index */
 		RGIndexRead(&index, indexFileName);

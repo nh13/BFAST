@@ -16,13 +16,13 @@ do
 
 	# Make an index
 	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 1111111111 -w 6 -d 1 -i 1 -T $TMP_DIR";
-	$CMD 2> /dev/null > /dev/null; 
+	eval $CMD 2> /dev/null;
 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
 		echo $CMD;
-		$CMD;
+		eval $CMD;
 		exit 1
 	fi
 done

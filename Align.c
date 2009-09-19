@@ -447,12 +447,12 @@ void AlignFullWithBound(char *read,
 			/* N = read length */
 			/* Find x such that b(N) + p + e(x - 1) < Bound */
 			/* x < (e + Bound - p - b(N)) / e */
-			maxH = MAX(0, (int32_t)ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
+			maxH = GETMAX(0, (int32_t)ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
 			/* Find x such that b(N - x) + p + e(x - 1) < lowerBound */
 			/* b(N) - x(b) + p + e(x) - e < lowerBound */
 			/* - x(b) + e(x) < lowerBound + e -p - b(N) */
 			/* x < (lowerBound - e - p - b(N) ) / (e - b)*/
-			maxV = MAX(0, ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->ntMatch)));
+			maxV = GETMAX(0, ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->ntMatch)));
 		}
 		else {
 			/* c = color match score */
@@ -461,16 +461,16 @@ void AlignFullWithBound(char *read,
 			/* e = gap extend */
 			/* N = read length */
 			/* Find x such that (c + b)N + p + e(x - 1) < Bound */
-			maxH = MAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
+			maxH = GETMAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
 			/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
-			maxV = MAX(0, ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
+			maxV = GETMAX(0, ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
 		}
 		assert(maxH >= 0 && maxV >= 0);
 	}
 	else {
 		// Default to maximums
-		maxH = MIN(maxH, readLength);
-		maxV = MIN(maxV, readLength);
+		maxH = GETMIN(maxH, readLength);
+		maxV = GETMIN(maxV, readLength);
 		/*
 		   PrintError(FnName,
 		   PACKAGE_BUGREPORT,
@@ -493,8 +493,8 @@ void AlignFullWithBound(char *read,
 	a->read = a->reference = a->colorError = NULL;
 
 	/* Get the maximum number of vertical and horizontal moves */
-	maxH = MIN(maxH, readLength);
-	maxV = MIN(maxV, readLength);
+	maxH = GETMIN(maxH, readLength);
+	maxV = GETMIN(maxV, readLength);
 
 	switch(space) {
 		case NTSpace:

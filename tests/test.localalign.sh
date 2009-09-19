@@ -18,12 +18,12 @@ do
 
 	# Run local alignment
 	CMD=$CMD_PREFIX"../bfast localalign -r $RG -m $MATCHES -A $SPACE -O 15 -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
-	$CMD 2> /dev/null > /dev/null; 
+	eval $CMD 2> /dev/null;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		echo $CMD;
 		# Run again without piping anything
-		$CMD;
+		eval $CMD;
 		exit 1
 	fi
 done

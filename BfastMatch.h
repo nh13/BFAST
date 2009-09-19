@@ -8,29 +8,20 @@ struct arguments
 {
 	char *args[1];							/* No arguments to this function */
 	char *fastaFileName;                   	/* -f */
-	char *bfastMainIndexesFileName;			/* -i */
-	char *bfastSecondaryIndexesFileName;	/* -I */
-	char *readsFileName;					/* -R */
-	char *offsetsFileName;					/* -O */
+	char *mainIndexes;						/* -i */
+	char *secondaryIndexes;					/* -I */
+	char *readsFileName;					/* -r */
+	char *offsets;							/* -o */
 	int space;								/* -A */
-	int binaryInput;						/* -b - not used */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */
-	int numMismatches;						/* -x - not used */
-	int numInsertions;						/* -y - not used */
-	int numDeletions;						/* -z - not used */
-	int numGapInsertions;					/* -Y - not used */
-	int numGapDeletions;					/* -Z - not used */
 	int keySize;							/* -k */
 	int maxKeyMatches;						/* -K */
 	int maxNumMatches;						/* -M */
 	int whichStrand;						/* -w */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
-	char *outputID;							/* -o */
-	char *outputDir;						/* -d */
 	char *tmpDir;							/* -T */
-	int binaryOutput;						/* -B - not used */
 	int timing;								/* -t */
 	int programMode;						/* -h */ 
 };

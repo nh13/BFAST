@@ -268,8 +268,8 @@ void AlignNTSpaceFullWithBound(char *read,
 
 	/* Fill in the matrix according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
-		for(j=MAX(0, i - maxV);
-				j <= MIN(referenceLength-1, referenceLength - (readLength - maxH) + i);
+		for(j=GETMAX(0, i - maxV);
+				j <= GETMIN(referenceLength-1, referenceLength - (readLength - maxH) + i);
 				j++) { /* reference/columns */
 			assert(i-maxV <= j && j <= referenceLength - (readLength - maxH) + i);
 

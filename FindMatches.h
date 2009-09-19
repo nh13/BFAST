@@ -23,11 +23,6 @@ typedef struct {
 	int *offsets;
 	int numOffsets;
 	int space;
-	int numMismatches;
-	int numInsertions;
-	int numDeletions;
-	int numGapInsertions;
-	int numGapDeletions;
 	int maxKeyMatches;
 	int maxNumMatches;
 	int whichStrand;
@@ -36,18 +31,30 @@ typedef struct {
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(char*, char*, char*, char*, char*, int, int, int, int, int, int, int, int, int, int, int, int, int, int, char*, char*, char*, int);
+void FindMatches(
+		char *fastaFileName,
+		char *mainIndexes,
+		char *secondaryIndexes,
+		char *readFileName,
+		char *offsets,
+		int space,
+		int startReadNum,
+		int endReadNum,
+		int keySize,
+		int maxKeyMatches,
+		int maxNumMatches,
+		int whichStrand,
+		int numThreads,
+		int queueLength,
+		char *tmpDir,
+		int timing
+		);
 int FindMatchesInIndexes(char **rgIndexFileNames,
 		RGBinary *rg,
 		int numRGIndexes,
 		int *offsets,
 		int numOffsets,
 		int colorSpace,
-		int numMismatches,
-		int numInsertions,
-		int numDeletions,
-		int numGapInsertions,
-		int numGapDeletions,
 		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
@@ -69,11 +76,6 @@ int FindMatchesInIndex(char *indexFileName,
 		int *offsets,
 		int numOffsets,
 		int colorSpace,
-		int numMismatches,
-		int numInsertions,
-		int numDeletions,
-		int numGapInsertions,
-		int numGapDeletions,
 		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,

@@ -13,8 +13,7 @@ do
 	else
 		OUTPUT_ID=$OUTPUT_ID_CS;
 	fi
-
-	RG=$OUTPUT_DIR"bfast.rg.file.$OUTPUT_ID.$SPACE.brg";
+	RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 	MAIN=$OUTPUT_DIR"main.indexes.$OUTPUT_ID.txt";
 	READS=$OUTPUT_DIR"reads.$OUTPUT_ID.fastq";
 
@@ -30,13 +29,13 @@ do
 	fi
 
 	# Find matches
-	CMD=$CMD_PREFIX"../bfast match -r $RG -i $MAIN -R $READS -A $SPACE -o $OUTPUT_ID -d $OUTPUT_DIR -T $TMP_DIR";
-	$CMD 2> /dev/null > /dev/null; 
+	CMD="${CMD_PREFIX}../bfast match -f $RG_FASTA -i 1 -r $READS -A $SPACE -T $TMP_DIR > ${OUTPUT_DIR}bfast.matches.file.$OUTPUT_ID.bmf";
+	eval $CMD 2> /dev/null;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
 		echo $CMD;
-		$CMD;
+		eval $CMD;
 		exit 1
 	fi
 done

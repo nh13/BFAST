@@ -17,12 +17,12 @@ do
 
 	# Run postprocess 
 	CMD=$CMD_PREFIX"../bfast postprocess -r $RG -i $ALIGN -a 3 -o $OUTPUT_ID -d $OUTPUT_DIR";
-	$CMD 2> /dev/null > /dev/null; 
+	eval $CMD 2> /dev/null;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
 		echo $CMD;
-		$CMD;
+		eval $CMD;
 		exit 1
 	fi
 done

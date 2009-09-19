@@ -343,86 +343,140 @@ void ReadRGIndex(char *rgIndexFileName, RGIndex *index, int space)
 }
 
 /* TODO */
-int ReadFileNames(char *listFileName, char ***fileNames)
+int GetIndexFileNames(char *fastaFileName, int32_t space, char *indexes, char ***fileNames)
 {
-	char tempFileName[MAX_FILENAME_LENGTH]="\0";
-	FILE *fp;
-	int numFileNames=0;
+	char *FnName="GetIndexFileNames";
+	char prefix[MAX_FILENAME_LENGTH]="\0";
+	int32_t i, j, numFiles=0;
+	int32_t *indexNumbers=NULL;
+	int32_t numIndexNumbers=0;
+	int32_t maxBin;
+	char *pch=NULL;
 
-	if(VERBOSE>0) {
-		fprintf(stderr, "Reading in file names from %s.\n",
-				listFileName);
-	}
+	assert(NULL != fastaFileName);
 
-	/* open file */
-	if((fp=fopen(listFileName, "r"))==0) {
-		PrintError("ReadFileNames",
-				listFileName,
-				"Could not open listFileName for reading",
-				Exit,
-				OpenFileError);
-	}
+	/* Build the index file names */
+	strcpy(prefix, fastaFileName);
+	strcat(prefix, ".");
+	strcat(prefix, SPACENAME(space));
 
-	/* Read in the file names */
-	while(fscanf(fp, "%s", tempFileName)!=EOF) {
-		numFileNames++;
-		(*fileNames) = (char**)realloc((*fileNames), sizeof(char*)*numFileNames);
-		(*fileNames)[numFileNames-1] = (char*)malloc(sizeof(char)*MAX_FILENAME_LENGTH);
-		strcpy((*fileNames)[numFileNames-1], tempFileName);
-		if(VERBOSE>0) {
-			fprintf(stderr, "file name %d:%s\n", 
-					numFileNames,
-					(*fileNames)[numFileNames-1]);
+	if(NULL != indexes) { // Tokenize
+		pch = strtok(indexes, ",");
+		while(pch != NULL) {
+			numIndexNumbers++;
+			indexNumbers=realloc(indexNumbers, sizeof(int32_t)*numIndexNumbers);
+			if(NULL == indexNumbers) {
+				PrintError(FnName, "indexNumbers", "Could not reallocate memory", Exit, ReallocMemory);
+			}
+			indexNumbers[numIndexNumbers-1]=atoi(pch);
+			if(0 == indexNumbers[numIndexNumbers-1]) {
+				PrintError(FnName, pch, "Could not understand index number", Exit, OutOfRange);
+			}
+			pch = strtok(NULL, ",");
 		}
+
+		for(i=0;i<numIndexNumbers;i++) {
+			maxBin = GetBIFMaximumBin(prefix, indexNumbers[i]);
+			if(0 == maxBin) {
+				fprintf(stderr, "Index number: %d\n", indexNumbers[i]);
+				PrintError(FnName, NULL, "The index does not exist", Exit, OutOfRange);
+			}
+			(*fileNames) = realloc((*fileNames), sizeof(char*)*(numFiles+maxBin));
+			if(NULL == (*fileNames)) {
+				PrintError(FnName, "fileNames", "Could not reallocate memory", Exit, ReallocMemory);
+			}
+			/* Insert file names */
+			for(j=1;j<=maxBin;j++) {
+				(*fileNames)[numFiles] = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+				if(NULL == (*fileNames)[numFiles]) {
+					PrintError(FnName, "fileNames[j]", "Could not allocate memory", Exit, MallocMemory);
+				}
+				sprintf((*fileNames)[numFiles], "%s.%d.%d.%s",
+						prefix,
+						indexNumbers[i],
+						j,
+						BFAST_INDEX_FILE_EXTENSION);
+				if(0 == FileExists((*fileNames)[numFiles])) {
+					PrintError(FnName, (*fileNames)[numFiles], "The index does not exist", Exit, OutOfRange);
+				}
+				numFiles++;
+			}
+		}
+		free(indexNumbers);
+	}
+	else {
+		i=1;
+		numIndexNumbers=0;
+		while(1) { // ^^
+			maxBin = GetBIFMaximumBin(prefix, i);
+			if(0 == maxBin) {
+				break;
+			}
+			(*fileNames) = realloc((*fileNames), sizeof(char*)*(numFiles+maxBin));
+			if(NULL == (*fileNames)) {
+				PrintError(FnName, "fileNames", "Could not reallocate memory", Exit, ReallocMemory);
+			}
+			/* Insert file names */
+			for(j=1;j<=maxBin;j++) {
+				(*fileNames)[numFiles] = malloc(sizeof(char)*MAX_FILENAME_LENGTH);
+				if(NULL == (*fileNames)[numFiles]) {
+					PrintError(FnName, "fileNames[j]", "Could not allocate memory", Exit, MallocMemory);
+				}
+				sprintf((*fileNames)[numFiles], "%s.%d.%d.%s",
+						prefix,
+						i,
+						j,
+						BFAST_INDEX_FILE_EXTENSION);
+				if(0 == FileExists((*fileNames)[numFiles])) {
+					PrintError(FnName, (*fileNames)[numFiles], "Missing Bin: The index does not exist", Exit, OutOfRange);
+				}
+				numFiles++;
+			}
+			i++;
+			numIndexNumbers++;
+		}
+		free(indexNumbers);
 	}
 
-	/* close file */
-	fclose(fp);
-
-	if(VERBOSE>0) {
-		fprintf(stderr, "Read %d file names from %s.\n", numFileNames, listFileName);
+	if(0 == numIndexNumbers) {
+		PrintError(FnName, prefix, "Could not find any indexes with the given prefix", Exit, OutOfRange);
 	}
 
-	return numFileNames;
+	//for(i=0;i<numFiles;i++) fprintf(stderr, "f[%d]=[%s]\n", i, (*fileNames)[i]);
+
+	if(VERBOSE>=0) {
+		if(1 == numIndexNumbers && 1 == numFiles) fprintf(stderr, "Found %d index (%d file).\n", numIndexNumbers, numFiles);
+		else if(1 == numIndexNumbers && 1 != numFiles) fprintf(stderr, "Found %d index (%d total files).\n", numIndexNumbers, numFiles);
+		else fprintf(stderr, "Found %d index (%d total files).\n", numIndexNumbers, numFiles);
+	}
+	
+	return numFiles;
 }
 
 /* TODO */
-int ReadOffsets(char *offsetsFileName, int **offsets) 
+int ReadOffsets(char *offsetsInput, int **offsets) 
 {
-	FILE *fp;
+	char *FnName="ReadOffsets";
 	int numOffsets=0;
-	int tempInt;
+	char *pch=NULL;
 
-	if(VERBOSE>0) {
-		fprintf(stderr, "Reading in offsets from %s.\n",
-				offsetsFileName);
-	}
-
-	/* open file */
-	if((fp=fopen(offsetsFileName, "r"))==0) {
-		PrintError("ReadOffsets",
-				offsetsFileName,
-				"Could not open offsetsFileName for reading",
-				Exit,
-				OpenFileError);
-	}
-
-	numOffsets=0;
-	while(fscanf(fp, "%d", &tempInt)!=EOF) {
+	pch = strtok(offsetsInput, ",");
+	while(pch != NULL) {
 		numOffsets++;
 		(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
-		(*offsets)[numOffsets-1] = tempInt;
-		if(VERBOSE>0) {
-			fprintf(stderr, "Offset %d:%d\n", numOffsets, (*offsets)[numOffsets-1]);
+		(*offsets)[numOffsets-1] = atoi(pch);
+		if(0 == pch) {
+			PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);
 		}
+		else if((*offsets)[numOffsets-1] < 0) {
+			PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);
+		}
+			pch = strtok(NULL, ",");
 	}
 	assert(numOffsets>0);
 
-	/* close file */
-	fclose(fp);
-
-	if(VERBOSE>0) {
-		fprintf(stderr, "Read %d offsets from %s.\n", numOffsets, offsetsFileName);
+	if(VERBOSE>=0) {
+		fprintf(stderr, "Read %d offsets.\n", numOffsets);
 	}
 
 	return numOffsets;

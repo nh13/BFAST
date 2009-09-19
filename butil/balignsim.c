@@ -46,12 +46,13 @@ int main(int argc, char *argv[])
 	char *inputFile=NULL;
 	char c;
 
-	while((c = getopt(argc, argv, "f:n:r:x:T:")) >= 0) {
+	while((c = getopt(argc, argv, "f:n:r:x:A:T:")) >= 0) {
 		switch(c) {
 			case 'f': inputFile = strdup(optarg); break;
 			case 'r': strcpy(rgFileName, optarg); break;
 			case 'x': strcpy(scoringMatrixFileName, optarg); break;
 			case 'n': numThreads=atoi(optarg); break;
+			case 'A': space=atoi(optarg); break;
 			case 'T': strcpy(tmpDir, optarg); break;
 			default: break;
 		}
@@ -60,6 +61,7 @@ int main(int argc, char *argv[])
 	if(NULL != inputFile) { // hidden !
 		/* Get reference genome */
 		RGBinaryReadBinary(&rg,
+				space,
 				rgFileName);
 
 		FILE *fpIn=NULL;
@@ -133,6 +135,7 @@ int main(int argc, char *argv[])
 
 		/* Get reference genome */
 		RGBinaryReadBinary(&rg,
+				space,
 				rgFileName);
 
 		/* Run Simulation */

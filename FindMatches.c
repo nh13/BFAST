@@ -20,32 +20,23 @@
 /* TODO */
 void FindMatches(
 		char *fastaFileName,
-		char *rgIndexMainListFileName,
-		char *rgIndexSecondaryListFileName,
+		char *mainIndexes,
+		char *secondaryIndexes,
 		char *readFileName, 
-		char *offsetsFileName,
+		char *offsetsInput,
 		int space,
 		int startReadNum,
 		int endReadNum,
-		int numMismatches,
-		int numInsertions,
-		int numDeletions,
-		int numGapInsertions,
-		int numGapDeletions,
 		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		char *outputID,
-		char *outputDir,
 		char *tmpDir,
 		int timing
 		)
 {
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
-
 	int numMainIndexes=0;
 	char **mainIndexFileNames=NULL;
 
@@ -75,15 +66,11 @@ void FindMatches(
 	RGBinary rg;
 	int startChr, startPos, endChr, endPos;
 
-	/* Create output file name */
-	sprintf(outputFileName, "%s%s.matches.file.%s.%s",
-			outputDir,
-			PROGRAM_NAME,
-			outputID,
-			BFAST_MATCHES_FILE_EXTENSION);
-
 	/* Read in the main RGIndex File Names */
-	numMainIndexes=ReadFileNames(rgIndexMainListFileName, &mainIndexFileNames);
+	if(0<=VERBOSE) {
+		fprintf(stderr, "Searching for main indexes...\n");
+	}
+	numMainIndexes=GetIndexFileNames(fastaFileName, space, mainIndexes, &mainIndexFileNames);
 	if(numMainIndexes<=0) {
 		PrintError("FindMatches",
 				"numMainIndexes",
@@ -93,7 +80,21 @@ void FindMatches(
 	}
 
 	/* Read in the secondary RGIndex File Names */
-	numSecondaryIndexes = (NULL == rgIndexSecondaryListFileName) ? 0 : ReadFileNames(rgIndexSecondaryListFileName, &secondaryIndexFileNames);
+	if(0<=VERBOSE) {
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
+	if(NULL != secondaryIndexes) {
+		if(0<=VERBOSE) {
+			fprintf(stderr, "Searching for secondary indexes...\n");
+		}
+		numSecondaryIndexes=GetIndexFileNames(fastaFileName, space, secondaryIndexes, &secondaryIndexFileNames);
+	}
+	else {
+		if(0<=VERBOSE) {
+			fprintf(stderr, "Not using secondary indexes.\n");
+		}
+		numSecondaryIndexes=0;
+	}
 
 	/* Check the indexes.
 	 * 1. We want the two sets of files to have the same range.
@@ -120,15 +121,26 @@ void FindMatches(
 	totalReadRGTime = endTime - startTime;
 
 	/* Read in the offsets */
-	numOffsets = (NULL == offsetsFileName) ? 0 : ReadOffsets(offsetsFileName, &offsets);
+	numOffsets = (NULL == offsetsInput) ? 0 : ReadOffsets(offsetsInput, &offsets);
 
 	/* open read file */
-	if((seqFP=fopen(readFileName, "r"))==0) {
+	if(NULL == readFileName) {
+		if(0 == (seqFP = fdopen(fileno(stdin), "r"))) {
+		PrintError("FindMatches",
+				"stdin",
+				"Could not open stdin for reading",
+				Exit,
+				OpenFileError);
+		}
+	}
+	else {
+		if(0 == (seqFP = fopen(readFileName, "r"))) {
 		PrintError("FindMatches",
 				readFileName,
 				"Could not open readFileName for reading",
 				Exit,
 				OpenFileError);
+		}
 	}
 	/* Allocate memory for the temp file pointers - one for each thread */
 	tempSeqFPs=malloc(sizeof(FILE*)*numThreads);
@@ -175,18 +187,15 @@ void FindMatches(
 	assert(numReads >= numThreads);
 
 	/* Open output file */
-	if((outputFP=gzopen(outputFileName, "wb"))==0) {
-		PrintError("FindMatches",
-				outputFileName,
-				"Could not open outputFileName for writing",
-				Exit,
-				OpenFileError);
+	if(0 == (outputFP=gzdopen(fileno(stdout), "wb"))) {
+	   PrintError("FindMatches",
+			   "stdout",
+	   "Could not open stdout for writing",
+	   Exit,
+	   OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Will output to %s.\n",
-				outputFileName);
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Processing %d reads using %d main indexes.\n",
 				numReads,
@@ -201,11 +210,6 @@ void FindMatches(
 			offsets,
 			numOffsets,
 			space,
-			numMismatches,
-			numInsertions,
-			numDeletions,
-			numGapInsertions,
-			numGapDeletions,
 			keySize,
 			maxKeyMatches,
 			maxNumMatches,
@@ -244,11 +248,6 @@ void FindMatches(
 					offsets,
 					numOffsets,
 					space,
-					numMismatches,
-					numInsertions,
-					numDeletions,
-					numGapInsertions,
-					numGapDeletions,
 					keySize,
 					maxKeyMatches,
 					maxNumMatches,
@@ -317,6 +316,9 @@ void FindMatches(
 	}
 	free(secondaryIndexFileNames);
 
+	/* Free the offsets */
+	free(offsets);
+
 	/* Free reference genome */
 	RGBinaryDelete(&rg);
 
@@ -377,11 +379,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int *offsets,
 		int numOffsets,
 		int space,
-		int numMismatches,
-		int numInsertions,
-		int numDeletions,
-		int numGapInsertions,
-		int numGapDeletions,
 		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
@@ -472,11 +469,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 				offsets,
 				numOffsets,
 				space,
-				numMismatches,
-				numInsertions,
-				numDeletions,
-				numGapInsertions,
-				numGapDeletions,
 				keySize,
 				maxKeyMatches,
 				maxNumMatches,
@@ -490,7 +482,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 				totalDataStructureTime,
 				totalSearchTime,
 				totalOutputTime
-					);
+				);
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Search for index %d out of %d complete.\n", i+1, numIndexes);
 		}
@@ -627,11 +619,6 @@ int FindMatchesInIndex(char *indexFileName,
 		int *offsets,
 		int numOffsets,
 		int space,
-		int numMismatches,
-		int numInsertions,
-		int numDeletions,
-		int numGapInsertions,
-		int numGapDeletions,
 		int keySize,
 		int maxKeyMatches,
 		int maxNumMatches,
@@ -748,11 +735,6 @@ int FindMatchesInIndex(char *indexFileName,
 		data[i].offsets = offsets;
 		data[i].numOffsets = numOffsets;
 		data[i].space = space;
-		data[i].numMismatches = numMismatches;
-		data[i].numInsertions = numInsertions;
-		data[i].numDeletions = numDeletions;
-		data[i].numGapInsertions = numGapInsertions;
-		data[i].numGapDeletions = numGapDeletions;
 		data[i].maxKeyMatches = maxKeyMatches;
 		data[i].maxNumMatches = maxNumMatches;
 		data[i].queueLength = queueLength;
@@ -887,11 +869,6 @@ void *FindMatchesInIndexThread(void *arg)
 	int *offsets = data->offsets;
 	int numOffsets = data->numOffsets;
 	int space = data->space;
-	int numMismatches = data->numMismatches;
-	int numInsertions = data->numInsertions;
-	int numDeletions = data->numDeletions;
-	int numGapInsertions = data->numGapInsertions;
-	int numGapDeletions = data->numGapDeletions;
 	int maxKeyMatches = data->maxKeyMatches;
 	int maxNumMatches = data->maxNumMatches;
 	int queueLength = data->queueLength;
@@ -941,11 +918,11 @@ void *FindMatchesInIndexThread(void *arg)
 						offsets,
 						numOffsets,
 						space,
-						numMismatches,
-						numInsertions,
-						numDeletions,
-						numGapInsertions,
-						numGapDeletions,
+						0,
+						0,
+						0,
+						0,
+						0,
 						maxKeyMatches,
 						maxNumMatches,
 						whichStrand);

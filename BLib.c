@@ -1848,7 +1848,7 @@ int64_t gzwrite64(gzFile file, void *buf, int64_t len)
 	uint32_t numBytesToWrite = 0; 
 
 	while(count < len) {
-		numBytesToWrite = MIN(INT_MAX, (len - count));
+		numBytesToWrite = GETMIN(INT_MAX, (len - count));
 		numBytesWritten = gzwrite(file, 
 				buf + count, 
 				numBytesToWrite);
@@ -1868,7 +1868,7 @@ int64_t gzread64(gzFile file, void *buf, int64_t len)
 	uint32_t numBytesToRead = 0; 
 
 	while(count < len) {
-		numBytesToRead = MIN(INT_MAX, (len - count));
+		numBytesToRead = GETMIN(INT_MAX, (len - count));
 		numBytesRead = gzread(file, 
 				buf + count, 
 				numBytesToRead);
@@ -1898,7 +1898,7 @@ char *GetBRGFileName(char *fastaFileName, int32_t space)
 
 	sprintf(rgFileName, "%s.%s.%s",
 			fastaFileName,
-			(NTSpace == space) ? "nt" : "cs",
+			SPACENAME(space),
 			BFAST_RG_FILE_EXTENSION);
 
 	return rgFileName;
@@ -1924,10 +1924,45 @@ char *GetBIFName(char *fastaFileName,
 
 	sprintf(bifName, "%s.%s.%d.%d.%s",
 			fastaFileName,
-			(NTSpace == space) ? "nt" : "cs",
-			depthNumber,
+			SPACENAME(space),
 			indexNumber,
+			depthNumber,
 			BFAST_INDEX_FILE_EXTENSION);
 
 	return bifName;
+}
+
+/* Do not use this if you want to open the file writing afterwards */
+int32_t FileExists(char *fileName)
+{
+	FILE *fp=NULL;
+	if(0==(fp=fopen(fileName, "r"))) {
+		return 0;
+	}
+	fclose(fp);
+	return 1;
+}
+
+int32_t GetBIFMaximumBin(char *prefix, int32_t indexNumber)
+{
+	int32_t curExp = 0;
+	char bifName[MAX_FILENAME_LENGTH]="\0";
+
+	while(1) { /* ^^ */
+		/* Check that it exists */
+		sprintf(bifName, "%s.%d.%d.%s",
+				prefix,
+				indexNumber,
+				(int)pow(ALPHABET_SIZE, curExp),
+				BFAST_INDEX_FILE_EXTENSION);
+		if(0==FileExists(bifName)) {
+			break;
+		}   
+		curExp++;
+	}
+	if(0 == curExp) {
+		return 0;
+	}
+	
+	return (int)pow(ALPHABET_SIZE, curExp-1);
 }

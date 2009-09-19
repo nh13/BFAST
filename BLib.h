@@ -74,5 +74,7 @@ int64_t gzwrite64(gzFile, void*, int64_t);
 int64_t gzread64(gzFile, void*, int64_t);
 char *GetBRGFileName(char*, int32_t);
 char *GetBIFName(char*, int32_t, int32_t, int32_t);
+int32_t FileExists(char*);
+int32_t GetBIFMaximumBin(char*, int32_t);
 
 #endif

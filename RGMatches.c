@@ -577,10 +577,10 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 		RGMatchesRemoveDuplicates(m, INT_MAX);
 		/* Adjust positions in case they trail off the end of the contigs */
 		for(i=0;i<m->ends[0].numEntries;i++) {
-			m->ends[0].positions[i] = MAX(1, MIN(m->ends[0].positions[i], rg->contigs[m->ends[0].contigs[i]-1].sequenceLength));
+			m->ends[0].positions[i] = GETMAX(1, GETMIN(m->ends[0].positions[i], rg->contigs[m->ends[0].contigs[i]-1].sequenceLength));
 		}
 		for(i=0;i<m->ends[1].numEntries;i++) {
-			m->ends[1].positions[i] = MAX(1, MIN(m->ends[1].positions[i], rg->contigs[m->ends[1].contigs[i]-1].sequenceLength));
+			m->ends[1].positions[i] = GETMAX(1, GETMIN(m->ends[1].positions[i], rg->contigs[m->ends[1].contigs[i]-1].sequenceLength));
 		}
 	}
 }
