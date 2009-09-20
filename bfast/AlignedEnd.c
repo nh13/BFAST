@@ -181,9 +181,6 @@ int32_t AlignedEndRemoveDuplicates(AlignedEnd *end,
 	if(end->numEntries > 1) {
 		/* Sort the entries */
 		AlignedEndQuickSort(end, sortOrder, 0);
-		/*
-		   AlignedEndMergeSort(end, sortOrder, 0);
-		   */
 
 		/* Remove duplicates */
 		prevIndex=0;
@@ -207,7 +204,6 @@ int32_t AlignedEndRemoveDuplicates(AlignedEnd *end,
 
 /* TODO */
 /* Log-n space */
-/* Do not use, since it is buggy and has not been updated lately */  
 void AlignedEndQuickSort(AlignedEnd *a,
 		int32_t sortOrder,
 		int32_t showPercentComplete)
@@ -215,22 +211,6 @@ void AlignedEndQuickSort(AlignedEnd *a,
 
 	double curPercent = 0.0;
 	AlignedEntryQuickSort(&a->entries,
-			0,
-			a->numEntries-1,
-			sortOrder,
-			showPercentComplete,
-			&curPercent,
-			a->numEntries);
-}
-
-/* TODO */
-/* O(n) space, but really double */
-void AlignedEndMergeSort(AlignedEnd *a,
-		int32_t sortOrder,
-		int32_t showPercentComplete)
-{
-	double curPercent = 0.0;
-	AlignedEntryMergeSort(&a->entries,
 			0,
 			a->numEntries-1,
 			sortOrder,

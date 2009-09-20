@@ -12,6 +12,7 @@ void RGMatchPrintText(FILE*, RGMatch*);
 void RGMatchPrintFastq(FILE*, char*, RGMatch*);
 void RGMatchRemoveDuplicates(RGMatch*, int32_t);
 void RGMatchQuickSort(RGMatch*, int32_t, int32_t);
+void RGMatchShellSort(RGMatch*, int32_t, int32_t);
 int32_t RGMatchCompareAtIndex(RGMatch*, int32_t, RGMatch*, int32_t);
 void RGMatchAppend(RGMatch*, RGMatch*);
 void RGMatchCopyAtIndex(RGMatch*, int32_t, RGMatch*, int32_t);
@@ -22,6 +23,10 @@ void RGMatchFree(RGMatch*);
 void RGMatchInitialize(RGMatch*);
 void RGMatchCheck(RGMatch*);
 void RGMatchFilterOutOfRange(RGMatch*, int32_t);
+char *RGMatchMaskToString(char*, int32_t);
+char *RGMatchStringToMask(char*, int32_t);
+void RGMatchUpdateMask(char*, int32_t);
+void RGMatchUnionMasks(RGMatch*, int32_t, int32_t);
 
 #endif
 

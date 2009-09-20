@@ -21,6 +21,7 @@ void RGReadsGenerateGapInsertions(char*, int, int, int, RGIndex*, RGReads*);
 void RGReadsGenerateGapInsertionsHelper(char*, int, int, int, char*, RGIndex*, RGReads*);
 void RGReadsRemoveDuplicates(RGReads*);
 void RGReadsQuickSort(RGReads*, int, int);
+void RGReadsShellSort(RGReads*, int, int);
 int RGReadsCompareAtIndex(RGReads*, int, RGReads*, int);
 void RGReadsCopyAtIndex(RGReads*, int, RGReads*, int);
 void RGReadsAllocate(RGReads*, int);

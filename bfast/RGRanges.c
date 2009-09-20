@@ -49,11 +49,11 @@ int RGRangesRemoveDuplicates(RGRanges *r)
 /* TODO */
 void RGRangesCopyToRGMatch(RGRanges *r,
 		RGIndex *index,
-		RGMatch *m)
+		RGMatch *m,
+		int32_t space)
 {
-	int64_t i;
-	int64_t j;
-	int64_t counter;
+	int64_t i, j, counter;
+	int32_t k;
 
 	assert(m->numEntries > 0);
 	assert(r->numEntries > 0);
@@ -87,6 +87,17 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 					m->positions[counter] = 1;
 				}
 				m->strands[counter] = r->strand[i];
+				if(ColorSpace == space) {
+					/* In color space we removed the first base/color so we need to 
+					 * decrement the positions by one.
+					 * */
+					m->positions[counter]--;
+				}
+				for(k=0;k<index->width;k++) {
+					if(1 == index->mask[k]) {
+						RGMatchUpdateMask(m->masks[counter], r->offset[i] + k + ((NTSpace == space) ? 0 : 1));
+					}
+				}
 				counter++;
 			}
 		}
@@ -96,16 +107,23 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 /* TODO */
 void RGRangesQuickSort(RGRanges *r, int32_t low, int32_t high)
 {
+	char *FnName="RGRangesQuickSort";
 	int32_t i;
 	int32_t pivot=-1;
 	RGRanges *temp;
 
 	if(low < high) {
+
+		if(high - low + 1 <= RGRANGES_SHELL_SORT_MAX) {
+			RGRangesShellSort(r, low, high);
+			return;
+		}
+
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(RGRanges));
 		RGRangesInitialize(temp);
 		if(NULL == temp) {
-			PrintError("RGRangesQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
+			PrintError(FnName, "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
 		RGRangesAllocate(temp, 1);
 
@@ -141,6 +159,41 @@ void RGRangesQuickSort(RGRanges *r, int32_t low, int32_t high)
 		RGRangesQuickSort(r, low, pivot-1);
 		RGRangesQuickSort(r, pivot+1, high);
 	}
+}
+
+/* TODO */
+void RGRangesShellSort(RGRanges *r, int32_t low, int32_t high)
+{
+	char *FnName="RGRangesShellSort";
+	int32_t i, j, inc;
+	RGRanges *temp;
+
+	inc = ROUND((high - low + 1) / 2);
+
+	/* Allocate memory for the temp used for swapping */
+	temp=malloc(sizeof(RGRanges));
+	RGRangesInitialize(temp);
+	if(NULL == temp) {
+		PrintError(FnName, "temp", "Could not allocate memory", Exit, MallocMemory);
+	}
+	RGRangesAllocate(temp, 1);
+
+	while(0 < inc) {
+		for(i=inc + low;i<=high;i++) {
+			RGRangesCopyAtIndex(temp, 0, r, i);
+			j=i;
+			while(inc + low <= j && RGRangesCompareAtIndex(temp, 0, r, j - inc) < 0) {
+				RGRangesCopyAtIndex(r, j, r, j - inc);
+				j -= inc;
+			}
+			RGRangesCopyAtIndex(r, j, temp, 0);
+		}
+		inc = ROUND(inc / SHELL_SORT_GAP_DIVIDE_BY);
+	}
+
+	RGRangesFree(temp);
+	free(temp);
+	temp=NULL;
 }
 
 /* TODO */

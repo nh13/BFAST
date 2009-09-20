@@ -7,10 +7,8 @@ bin_PROGRAMS = balignmentscoredistribution \
 			   bindexdist \
 			   bindexhist \
 			   bindexhistchr \
-			   bmergesorted \
 			   bpairedenddist \
 			   brepeat \
-			   bsort \
 			   btestindexes \
 			   btranslocations
 
@@ -148,23 +146,6 @@ bindexhist_SOURCES = \
 
 bindexhist_LDADD = -lz
 
-bmergesorted_SOURCES = \
-					   ../bfast/BError.c	../bfast/BError.h \
-					   ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-					   ../bfast/RGIndex.c	../bfast/RGIndex.h \
-					   ../bfast/BLib.c	../bfast/BLib.h \
-					   ../bfast/RGBinary.c ../bfast/RGBinary.h \
-					   ../bfast/RGMatch.c ../bfast/RGMatch.h \
-					   ../bfast/RGMatches.c ../bfast/RGMatches.h \
-					   ../bfast/RGRanges.c ../bfast/RGRanges.h \
-					   ../bfast/RGReads.c	../bfast/RGReads.h \
-					   ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
-					   ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
-					   ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-					   bmergesorted.c	bmergesorted.h
-
-bmergesorted_LDADD = -lz
-
 bpairedenddist_SOURCES = \
 						 ../bfast/BError.c	../bfast/BError.h \
 						 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
@@ -193,23 +174,6 @@ brepeat_SOURCES = \
 				  brepeat.c	brepeat.h
 
 brepeat_LDADD = -lz 
-
-bsort_SOURCES = \
-				../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
-				../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-				../bfast/AlignedRead.c	../bfast/AlignedRead.h \
-				../bfast/BError.c	../bfast/BError.h \
-				../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-				../bfast/RGIndex.c	../bfast/RGIndex.h \
-				../bfast/BLib.c	../bfast/BLib.h \
-				../bfast/RGBinary.c ../bfast/RGBinary.h \
-				../bfast/RGMatch.c ../bfast/RGMatch.h \
-				../bfast/RGMatches.c ../bfast/RGMatches.h \
-				../bfast/RGRanges.c ../bfast/RGRanges.h \
-				../bfast/RGReads.c	../bfast/RGReads.h \
-				bsort.c	bsort.h
-
-bsort_LDADD = -lz
 
 btestindexes_SOURCES = \
 					   ../bfast/RGRanges.c ../bfast/RGRanges.h \

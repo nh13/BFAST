@@ -275,7 +275,6 @@ int32_t AlignedEntryReadText(AlignedEntry *a,
 
 /* TODO */
 /* Log-n space */
-/* Do not use, since it is buggy and has not been updated lately */  
 void AlignedEntryQuickSort(AlignedEntry **a,
 		int32_t low,
 		int32_t high,
@@ -290,6 +289,12 @@ void AlignedEntryQuickSort(AlignedEntry **a,
 	AlignedEntry *temp=NULL;
 
 	if(low < high) {
+
+		if(high - low + 1 <= ALIGNEDENTRY_SHELL_SORT_MAX) {
+			AlignedEntryShellSort(a, low, high, sortOrder);
+			return;
+		}
+
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(AlignedEntry));
 		if(NULL == temp) {
@@ -361,109 +366,40 @@ void AlignedEntryQuickSort(AlignedEntry **a,
 	}
 }
 
-/* TODO */
-/* O(n) space, but really double */
-void AlignedEntryMergeSort(AlignedEntry **a,
+void AlignedEntryShellSort(AlignedEntry **a,
 		int32_t low,
 		int32_t high,
-		int32_t sortOrder,
-		int32_t showPercentComplete,
-		double *curPercent,
-		int32_t total)
+		int32_t sortOrder)
 {
-	char *FnName = "AlignedEntryMergeSort";
-	int32_t i, ctr;
-	int32_t mid = (low + high)/2;
-	int32_t startLower =  low;
-	int32_t endLower = mid;
-	int32_t startUpper = mid + 1;
-	int32_t endUpper = high;
-	AlignedEntry *tempEntries=NULL;
+	char *FnName = "AlignedEntryShellSort";
+	int32_t i, j, inc;
+	AlignedEntry *temp=NULL;
 
-	if(low >= high) {
-		if(VERBOSE >= 0 &&
-				showPercentComplete == 1) { 
-			assert(NULL!=curPercent);
-			if((*curPercent) < 100.0*((double)low)/total) {
-				while((*curPercent) < 100.0*((double)low)/total) {
-					(*curPercent) += SORT_ROTATE_INC;
-				}
-				PrintPercentCompleteShort((*curPercent));
+	inc = ROUND((high - low + 1) / 2);
+
+	/* Allocate memory for the temp used for swapping */
+	temp=malloc(sizeof(AlignedEntry));
+	if(NULL == temp) {
+		PrintError(FnName, "temp", "Could not allocate temp", Exit, MallocMemory);
+	}
+	AlignedEntryInitialize(temp);
+
+	while(0 < inc) {
+		for(i=inc + low;i<=high;i++) {
+			AlignedEntryCopyAtIndex(temp, 0, (*a), i);
+			j = i;
+			while(inc + low <= j && AlignedEntryCompareAtIndex(temp, 0, (*a), j - inc, sortOrder) < 0) {
+				AlignedEntryCopyAtIndex((*a), j, (*a), j - inc);
+				j -= inc;
 			}
+			AlignedEntryCopyAtIndex((*a), j, temp, 0);
 		}
-		return;
+		inc = ROUND(inc / SHELL_SORT_GAP_DIVIDE_BY);
 	}
+	AlignedEntryFree(temp);
+	free(temp);
+	temp=NULL;
 
-
-	/* Partition the list into two lists and sort them recursively */
-	AlignedEntryMergeSort(a,
-			low,
-			mid,
-			sortOrder,
-			showPercentComplete,
-			curPercent,
-			total);
-	AlignedEntryMergeSort(a,
-			mid+1,
-			high,
-			sortOrder,
-			showPercentComplete,
-			curPercent,
-			total);
-
-	/* Allocate pointers */
-	tempEntries = malloc(sizeof(AlignedEntry)*(high-low+1));
-	if(NULL == tempEntries) {
-		PrintError(FnName, "tempEntries", "Could not allocate memory", Exit, MallocMemory);
-	}
-	/* Initialize */
-	for(i=0;i<high-low+1;i++) {
-		AlignedEntryInitialize(&tempEntries[i]);
-	}
-
-	/* Merge the two lists */
-	ctr=0;
-	while( (startLower <= endLower) && (startUpper <= endUpper)) {
-		if(AlignedEntryCompareAtIndex((*a), startLower, (*a), startUpper, sortOrder) <= 0) {
-			AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startLower);
-			startLower++;
-		}
-		else {
-			AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startUpper);
-			startUpper++;
-		}
-		ctr++;
-	}
-	while(startLower <= endLower) {
-		AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startLower);
-		startLower++;
-		ctr++;
-	}
-	while(startUpper <= endUpper) {
-		AlignedEntryCopyAtIndex(tempEntries, ctr, (*a), startUpper);
-		startUpper++;
-		ctr++;
-	}
-	/* Copy back */
-	for(i=low, ctr=0;
-			i<=high;
-			i++, ctr++) {
-		AlignedEntryCopyAtIndex((*a), i, tempEntries, ctr);
-	}
-
-	/* Free memory */
-	for(i=0;i<high-low+1;i++) {
-		AlignedEntryFree(&tempEntries[i]);
-	}
-	free(tempEntries);
-	tempEntries=NULL;
-
-	/* Test sort */
-	/* 
-	   for(i=low+1;i<=high;i++) {
-	   assert(AlignedEntryCompareAtIndex((*a), i-1, (*a), i, sortOrder) <= 0);
-	   }
-	   */
 }
 
 /* TODO */

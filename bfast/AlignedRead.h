@@ -11,15 +11,11 @@ void AlignedReadPrintText(AlignedRead*, FILE*);
 int AlignedReadRead(AlignedRead*, gzFile);
 int AlignedReadReadText(AlignedRead*, FILE*);
 void AlignedReadRemoveDuplicates(AlignedRead*, int32_t);
-void AlignedReadQuickSort(AlignedRead*, int32_t, int32_t);
-void AlignedReadMergeSort(AlignedRead*, int32_t, int32_t);
 void AlignedReadReallocate(AlignedRead*, int32_t);
 void AlignedReadAllocate(AlignedRead*, char*, int32_t, int32_t);
 void AlignedReadFree(AlignedRead*);
 void AlignedReadInitialize(AlignedRead*);
 void AlignedReadCopy(AlignedRead*, AlignedRead*);
-void AlignedReadMergeSortAll(AlignedRead**, int64_t, int64_t);
-void AlignedReadMergeAll(AlignedRead**, int64_t, int64_t, int64_t);
 int32_t AlignedReadCompareAll(AlignedRead*, AlignedRead*);
 void AlignedReadUpdateMappingQuality(AlignedRead*, double, int32_t);
 #endif

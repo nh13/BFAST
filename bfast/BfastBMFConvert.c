@@ -44,6 +44,7 @@ int BfastBMFConvert(int argc, char *argv[])
 	int c, argnum;
 	char *last;
 	RGMatches m;
+	char fileExtension[256]="\0";
 
 	// Get parameters
 	while((c = getopt(argc, argv, "O:h")) >= 0) {
@@ -59,6 +60,27 @@ int BfastBMFConvert(int argc, char *argv[])
 		BfastBMFConvertUsage(); 
 		return 1;
 	}
+		
+	switch(outputType) {			
+			case 0:
+				binaryInput = TextInput;
+				binaryOutput = BinaryOutput;
+				strcat(fileExtension, "binary.");
+				strcat(fileExtension, BFAST_MATCHES_FILE_EXTENSION);
+				break;
+			case 1:
+				binaryInput = BinaryInput;
+				binaryOutput = TextOutput;
+				strcat(fileExtension, "text.");
+				strcat(fileExtension, BFAST_MATCHES_FILE_EXTENSION);
+				break;
+			case 2:
+				binaryInput = BinaryInput;
+				strcat(fileExtension, BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
+				break;
+			default:
+				PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);		
+		}		
 
 	for(argnum = optind; argnum < argc; argnum++) {
 
@@ -71,28 +93,11 @@ int BfastBMFConvert(int argc, char *argv[])
 		if(NULL == last) {
 			PrintError(Name, inputFileName, "Could not recognize file extension", Exit, OutOfRange);		
 		} 		
+		outputFileName[0]='\0';
 		strncpy(outputFileName, inputFileName, (last - inputFileName));		
-		switch(outputType) {			
-			case 0:
-				binaryInput = TextInput;
-				binaryOutput = BinaryOutput;
-				strcat(outputFileName, "binary.");
-				strcat(outputFileName, BFAST_MATCHES_FILE_EXTENSION);
-				break;
-			case 1:
-				binaryInput = BinaryInput;
-				binaryOutput = TextOutput;
-				strncpy(outputFileName, inputFileName, (last - inputFileName));
-				strcat(outputFileName, "text.");
-				strcat(outputFileName, BFAST_MATCHES_FILE_EXTENSION);
-				break;
-			case 2:
-				binaryInput = BinaryInput;
-				strcat(outputFileName, BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
-				break;
-			default:
-				PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);		
-		}		
+		outputFileName[(last-inputFileName)]='\0';
+		strcat(outputFileName, fileExtension);
+		
 		/* Open the input file */		
 		if(TextInput == binaryInput) {			
 			if(!(fpIn=fopen(inputFileName, "rb"))) {

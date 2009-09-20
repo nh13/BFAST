@@ -194,38 +194,6 @@ void AlignedReadRemoveDuplicates(AlignedRead *a,
 }
 
 /* TODO */
-/* Log-n space */
-/* Do not use, since it is buggy and has not been updated lately */  
-void AlignedReadQuickSort(AlignedRead *a,
-		int32_t sortOrder,
-		int32_t showPercentComplete)
-{
-	int32_t i;
-	for(i=0;i<a->numEnds;i++) {
-		AlignedEndQuickSort(&a->ends[i],
-				sortOrder,
-				showPercentComplete);
-	}
-}
-
-/* TODO */
-/* O(n) space, but really double */
-void AlignedReadMergeSort(AlignedRead *a,
-		int32_t sortOrder,
-		int32_t showPercentComplete)
-{
-	double percentComplete;
-	int32_t i;
-	/* Sort the first entry */
-	for(i=0;i<a->numEnds;i++) {
-		percentComplete=0.0;
-		AlignedEndMergeSort(&a->ends[i],
-				0,
-				showPercentComplete);
-	}
-}
-
-/* TODO */
 void AlignedReadReallocate(AlignedRead *a,
 		int32_t numEnds)
 {
@@ -318,84 +286,6 @@ void AlignedReadCopy(AlignedRead *dest, AlignedRead *src)
 	for(i=0;i<src->numEnds;i++) {
 		AlignedEndCopy(&dest->ends[i], &src->ends[i]);
 	}
-}
-
-/* O(n) space, but really double */
-/* Should be a list of pointers to individual AlignedRead */
-void AlignedReadMergeSortAll(AlignedRead **a,
-		int64_t low, 
-		int64_t high)
-{
-	int64_t mid = (low + high)/2;
-
-	if(low >= high) {
-		return;
-	}
-
-	/* Split */
-	AlignedReadMergeSortAll(a,
-			low,
-			mid);
-	AlignedReadMergeSortAll(a,
-			mid+1,
-			high);
-
-	AlignedReadMergeAll(a,
-			low,
-			mid,
-			high);
-}
-
-void AlignedReadMergeAll(AlignedRead **a,
-		int64_t low, 
-		int64_t mid,
-		int64_t high)
-{
-	char *FnName="AlignedReadMergeAll";
-	int64_t startLower = low;
-	int64_t endLower = mid;
-	int64_t startUpper = mid+1;
-	int64_t endUpper = high;
-	int64_t ctr, i;
-	AlignedRead **tmp=NULL;
-
-	/* Merge */
-	tmp = malloc(sizeof(AlignedRead*)*(high-low+1));
-	if(NULL == tmp) {
-		PrintError(FnName, "tmp", "Could not allocate memory", Exit, MallocMemory);
-	}
-	/* Merge the two lists */
-	ctr=0;
-	while( (startLower <= endLower) && (startUpper <= endUpper)) {
-		if(AlignedReadCompareAll(a[startLower], a[startUpper]) <= 0) {
-			tmp[ctr] = a[startLower];
-			startLower++;
-		}
-		else {
-			tmp[ctr] = a[startUpper];
-			startUpper++;
-		}
-		ctr++;
-	}
-	while(startLower <= endLower) {
-		tmp[ctr] = a[startLower];
-		startLower++;
-		ctr++;
-	}
-	while(startUpper <= endUpper) {
-		tmp[ctr] = a[startUpper];
-		startUpper++;
-		ctr++;
-	}
-	/* Copy back */
-	for(i=low, ctr=0;
-			i<=high;
-			i++, ctr++) {
-		a[i] = tmp[ctr];
-	}
-
-	free(tmp);
-	tmp=NULL;
 }
 
 /* TODO */

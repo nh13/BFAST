@@ -438,6 +438,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 	/* For each RGIndex, write temporary output */
 	for(i=0;i<numIndexes;i++) { /* For each RGIndex */
 		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
 					i+1, numIndexes,
 					indexIDs[i][0], indexIDs[i][1]);

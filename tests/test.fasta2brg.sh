@@ -16,13 +16,8 @@ do
 	RG_FASTA=$OUTPUT_DIR$OUTPUT_ID".fa";
 
 	# Make reference genome in nt space always 
-	CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A 0";
+	CMD=$CMD_PREFIX"bfast fasta2brg -f $RG_FASTA -A 0";
 	eval $CMD 2> /dev/null;
-	# Make reference genome in color space if necessary
-	if [ "$SPACE" -eq "1" ]; then
-		CMD=$CMD_PREFIX"../bfast fasta2brg -f $RG_FASTA -A $SPACE";
-		eval $CMD 2> /dev/null;
-	fi
 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
@@ -30,6 +25,19 @@ do
 		echo $CMD;
 		eval $CMD;
 		exit 1
+	fi
+
+	# Make reference genome in color space if necessary
+	if [ "$SPACE" -eq "1" ]; then
+		CMD=$CMD_PREFIX"bfast fasta2brg -f $RG_FASTA -A $SPACE";
+		eval $CMD 2> /dev/null;
+		# Get return code
+		if [ "$?" -ne "0" ]; then
+			# Run again without piping anything
+			echo $CMD;
+			eval $CMD;
+			exit 1
+		fi
 	fi
 done
 

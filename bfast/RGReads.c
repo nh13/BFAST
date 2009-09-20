@@ -117,21 +117,13 @@ void RGReadsFindMatches(RGIndex *index,
 		/* Transfer ranges to matches */
 		RGRangesCopyToRGMatch(&ranges,
 				index,
-				match);
+				match,
+				space);
 	}
 
 	/* Remove duplicates */
 	RGMatchRemoveDuplicates(match,
 			maxNumMatches);
-
-	/* In color space we removed the first base/color so we need to 
-	 * decrement the positions by one.
-	 * */
-	if(space == ColorSpace) {
-		for(i=0;i<match->numEntries;i++) {
-			match->positions[i]--;
-		}
-	}
 
 	/* Free memory */
 	RGRangesFree(&ranges);
@@ -878,15 +870,22 @@ void RGReadsRemoveDuplicates(RGReads *s)
 /* TO DO */
 void RGReadsQuickSort(RGReads *s, int low, int high)
 {
+	char *FnName="RGReadsQuickSort";
 	int32_t i;
 	int32_t pivot=-1;
 	RGReads *temp;
 
 	if(low < high) {
+
+		if(high - low + 1 <= RGREADS_SHELL_SORT_MAX) {
+			RGReadsShellSort(s, low, high);
+			return;
+		}
+
 		/* Allocate memory for the temp RGReads indexes */
 		temp = malloc(sizeof(RGReads));
 		if(NULL == temp) {
-			PrintError("RGReadsQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
+			PrintError(FnName, "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
 		RGReadsInitialize(temp);
 		RGReadsAllocate(temp, 1);
@@ -928,6 +927,46 @@ void RGReadsQuickSort(RGReads *s, int low, int high)
 		RGReadsQuickSort(s, low, pivot-1);
 		RGReadsQuickSort(s, pivot+1, high);
 	}
+}
+
+void RGReadsShellSort(RGReads *s, int low, int high)
+{
+	char *FnName="RGReadsShellSort";
+	int32_t i, j, inc;
+	RGReads *temp;
+
+	inc = ROUND((high - low + 1) / 2);
+
+	/* Allocate memory for the temp RGReads indexes */
+	temp = malloc(sizeof(RGReads));
+	if(NULL == temp) {
+		PrintError(FnName, "temp", "Could not allocate memory", Exit, MallocMemory);
+	}
+	RGReadsInitialize(temp);
+	RGReadsAllocate(temp, 1);
+	temp->reads[0] = malloc(sizeof(char)*SEQUENCE_LENGTH);
+	if(NULL == temp->reads[0]) {
+		PrintError("RGReadsQuickSort", "temp->reads[0]", "Could not allocate memory", Exit, MallocMemory);
+	}
+	temp->reads[0][0]='\0';
+	assert(temp->numReads == 1);
+
+	while(0 < inc) {
+		for(i=inc + low;i<=high;i++) {
+			RGReadsCopyAtIndex(temp, 0, s, i);
+			j = i;
+			while(inc + low <= j && RGReadsCompareAtIndex(temp, 0, s, j - inc) < 0) {
+				RGReadsCopyAtIndex(s, j, s, j - inc);
+				j -= inc;
+			}
+			RGReadsCopyAtIndex(s, j, temp, 0);
+		}
+		inc = ROUND(inc / SHELL_SORT_GAP_DIVIDE_BY);
+	}
+
+	RGReadsFree(temp);
+	free(temp);
+	temp=NULL;
 }
 
 int RGReadsCompareAtIndex(RGReads *pOne, int iOne, RGReads *pTwo, int iTwo) 

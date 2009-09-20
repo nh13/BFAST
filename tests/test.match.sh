@@ -23,13 +23,9 @@ do
 	if [ "$?" -ne "0" ]; then
 		exit 1
 	fi
-	# Get return code
-	if [ "$?" -ne "0" ]; then
-		exit 1
-	fi
 
 	# Find matches
-	CMD="${CMD_PREFIX}../bfast match -f $RG_FASTA -r $READS -A $SPACE -T $TMP_DIR > ${OUTPUT_DIR}bfast.matches.file.$OUTPUT_ID.bmf";
+	CMD="${CMD_PREFIX}bfast match -f $RG_FASTA -r $READS -A $SPACE -T $TMP_DIR > ${OUTPUT_DIR}bfast.matches.file.$OUTPUT_ID.bmf";
 	eval $CMD 2> /dev/null;
 
 	# Get return code

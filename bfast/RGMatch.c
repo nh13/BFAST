@@ -14,8 +14,8 @@
 int32_t RGMatchRead(gzFile fp,
 		RGMatch *m)
 {
-
 	char *FnName = "RGMatchRead";
+	int32_t i, numEntries;
 
 	/* Read in the read length */
 	if(gzread64(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t)||
@@ -55,13 +55,13 @@ int32_t RGMatchRead(gzFile fp,
 	assert(0 == m->maxReached || 1 == m->maxReached);
 
 	/* Read in the number of matches */
-	if(gzread64(fp, &m->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
-		PrintError(FnName, "m->numEntries", "Could not read in m->numEntries", Exit, ReadFileError);
+	if(gzread64(fp, &numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName, "numEntries", "Could not read in numEntries", Exit, ReadFileError);
 	}
-	assert(m->numEntries >= 0);
+	assert(numEntries >= 0);
 
 	/* Allocate memory for the matches */
-	RGMatchReallocate(m, m->numEntries);
+	RGMatchAllocate(m, numEntries);
 
 	/* Read first sequence matches */
 	if(gzread64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
@@ -73,6 +73,11 @@ int32_t RGMatchRead(gzFile fp,
 	if(gzread64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
 		PrintError(FnName, "m->strands", "Could not read in strand", Exit, ReadFileError);
 	}
+	for(i=0;i<m->numEntries;i++) {
+		if(gzread64(fp, m->masks[i], sizeof(char)*GETMASKNUMBYTES(m))!=sizeof(char)*GETMASKNUMBYTES(m)) {
+			PrintError(FnName, "m->masks[i]", "Could not read in mask", Exit, ReadFileError);
+		}
+	}
 
 	return 1;
 }
@@ -81,11 +86,11 @@ int32_t RGMatchRead(gzFile fp,
 int32_t RGMatchReadText(FILE *fp,
 		RGMatch *m)
 {
-
 	char *FnName = "RGMatchRead";
-	int32_t i;
+	int32_t i, numEntries;
 	char read[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
+	char mask[SEQUENCE_LENGTH]="\0";
 
 	/* Read the read and qual */
 	if(fscanf(fp, "%s %s",
@@ -117,22 +122,25 @@ int32_t RGMatchReadText(FILE *fp,
 	assert(1==m->maxReached || 0 == m->maxReached);
 
 	/* Read in the number of matches */
-	if(fscanf(fp, "%d", &m->numEntries)==EOF) {
-		PrintError(FnName, "m->numEntries", "Could not read in m->numEntries", Exit, EndOfFile);
+	if(fscanf(fp, "%d", &numEntries)==EOF) {
+		PrintError(FnName, "numEntries", "Could not read in numEntries", Exit, EndOfFile);
 	}
-	assert(m->numEntries >= 0);
+	assert(numEntries >= 0);
 
 	/* Allocate memory for the matches */
-	RGMatchReallocate(m, m->numEntries);
+	RGMatchAllocate(m, numEntries);
 
 	/* Read first sequence matches */
 	for(i=0;i<m->numEntries;i++) {
-		if(fscanf(fp, "%u %d %c", 
+		if(fscanf(fp, "%u %d %c %s", 
 					&m->contigs[i],
 					&m->positions[i],
-					&m->strands[i])==EOF) {
+					&m->strands[i],
+					mask)==EOF) {
 			PrintError(FnName, NULL, "Could not read in match", Exit, EndOfFile);
 		}
+		free(m->masks[i]); // since we reallocated
+		m->masks[i] = RGMatchStringToMask(mask, m->readLength);
 	}
 
 	return 1;
@@ -146,7 +154,8 @@ void RGMatchPrint(gzFile fp,
 	assert(fp!=NULL);
 	assert(m->readLength > 0);
 	assert(m->qualLength > 0);
-
+	int32_t i;
+	
 	/* Print the matches to the output file */
 	/* Print read length, read, maximum reached, and number of entries. */
 	if(gzwrite64(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t) ||
@@ -164,6 +173,11 @@ void RGMatchPrint(gzFile fp,
 			gzwrite64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
 		PrintError(FnName, NULL, "Could not write contigs, positions and strands", Exit, WriteFileError);
 	}
+	for(i=0;i<m->numEntries;i++) {
+		if(gzwrite64(fp, m->masks[i], sizeof(char)*GETMASKNUMBYTES(m))!=sizeof(char)*GETMASKNUMBYTES(m)) {
+			PrintError(FnName, NULL, "Could not write masks[i]", Exit, WriteFileError);
+		}
+	}
 }
 
 /* TODO */
@@ -172,6 +186,7 @@ void RGMatchPrintText(FILE *fp,
 {
 	char *FnName = "RGMatchPrint";
 	int32_t i;
+	char *maskString=NULL;
 	assert(fp!=NULL);
 	assert(m->readLength > 0);
 	assert(m->qualLength > 0);
@@ -187,12 +202,16 @@ void RGMatchPrintText(FILE *fp,
 
 	for(i=0;i<m->numEntries;i++) {
 		assert(m->contigs[i] > 0);
-		if(0 > fprintf(fp, "\t%u\t%d\t%c",
+		maskString=RGMatchMaskToString(m->masks[i], m->readLength);
+		if(0 > fprintf(fp, "\t%u\t%d\t%c\t%s",
 					m->contigs[i],
 					m->positions[i],
-					m->strands[i])) {
-			PrintError(FnName, NULL, "Could not write m->contigs[i], m->positions[i], and m->strands[i]", Exit, WriteFileError);
+					m->strands[i],
+					maskString)) {
+			PrintError(FnName, NULL, "Could not write m->contigs[i], m->positions[i], m->strands[i], and m->masks[i]", Exit, WriteFileError);
 		}
+		free(maskString);
+		maskString=NULL;
 	}
 	if(0 > fprintf(fp, "\n")) {
 		PrintError(FnName, NULL, "Could not write newline", Exit, WriteFileError);
@@ -240,7 +259,8 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		prevIndex=0;
 		for(i=1;i<m->numEntries;i++) {
 			if(RGMatchCompareAtIndex(m, prevIndex, m, i)==0) {
-				/* ignore */
+				/* union of masks */
+				RGMatchUnionMasks(m, prevIndex, i);
 			}
 			else {
 				prevIndex++;
@@ -272,10 +292,18 @@ void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
 	int32_t pivot=-1;
 	RGMatch *temp=NULL;
 
+
 	if(low < high) {
+
+		if(high - low + 1 <= RGMATCH_SHELL_SORT_MAX) {
+			RGMatchShellSort(m, low, high);
+			return;
+		}
+
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(RGMatch));
 		RGMatchInitialize(temp);
+		temp->readLength = m->readLength;
 		if(NULL == temp) {
 			PrintError("RGMatchQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
@@ -313,6 +341,42 @@ void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
 		RGMatchQuickSort(m, low, pivot-1);
 		RGMatchQuickSort(m, pivot+1, high);
 	}
+}
+
+/* TODO */
+void RGMatchShellSort(RGMatch *m, int32_t low, int32_t high)
+{
+	char *FnName="RGMatchShellSort";
+	int32_t i, j, inc;
+	RGMatch *temp=NULL;
+
+	inc = ROUND((high - low + 1) / 2);
+
+	/* Allocate memory for the temp used for swapping */
+	temp=malloc(sizeof(RGMatch));
+	if(NULL == temp) {
+		PrintError(FnName, "temp", "Could not allocate memory", Exit, MallocMemory);
+	}
+	RGMatchInitialize(temp);
+	temp->readLength = m->readLength;
+	RGMatchAllocate(temp, 1);
+
+	while(0 < inc) {
+		for(i=inc + low;i<=high;i++) {
+			RGMatchCopyAtIndex(temp, 0, m, i);
+			j = i;
+			while(inc + low <= j && RGMatchCompareAtIndex(temp, 0, m, j - inc) < 0) {
+				RGMatchCopyAtIndex(m, j, m, j - inc);
+				j -= inc;
+			}
+			RGMatchCopyAtIndex(m, j, temp, 0);
+		}
+		inc = ROUND(inc / SHELL_SORT_GAP_DIVIDE_BY);
+	}
+
+	RGMatchFree(temp);
+	free(temp);
+	temp=NULL;
 }
 
 /* TODO */
@@ -387,6 +451,7 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 /* TODO */
 void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t srcIndex)
 {
+	int32_t i;
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
 
@@ -394,6 +459,12 @@ void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t 
 		dest->positions[destIndex] = src->positions[srcIndex];
 		dest->contigs[destIndex] = src->contigs[srcIndex];
 		dest->strands[destIndex] = src->strands[srcIndex];
+		assert(GETMASKNUMBYTES(dest) == GETMASKNUMBYTES(src));
+		assert(NULL != dest->masks[destIndex]);
+		assert(NULL != src->masks[srcIndex]);
+		for(i=0;i<GETMASKNUMBYTES(dest);i++) {
+			dest->masks[destIndex][i] = src->masks[srcIndex][i];
+		}
 	}
 }
 
@@ -401,6 +472,7 @@ void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t 
 void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 {
 	char *FnName = "RGMatchAllocate";
+	int32_t i;
 	assert(m->numEntries==0);
 	m->numEntries = numEntries;
 	assert(m->positions==NULL);
@@ -418,13 +490,25 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 	if(NULL == m->strands) {
 		PrintError(FnName, "m->strands", "Could not allocate memory", Exit, MallocMemory);
 	}
+	m->masks = malloc(sizeof(char*)*numEntries); 
+	if(NULL == m->masks) {
+		PrintError(FnName, "m->masks", "Could not allocate memory", Exit, MallocMemory);
+	}
+	for(i=0;i<m->numEntries;i++) {
+		m->masks[i] = calloc(GETMASKNUMBYTES(m), sizeof(char)); 
+		if(NULL == m->masks[i]) {
+			PrintError(FnName, "m->masks[i]", "Could not allocate memory", Exit, MallocMemory);
+		}
+	}
 }
 
 /* TODO */
 void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 {
 	char *FnName = "RGMatchReallocate";
+	int32_t i, prevNumEntries;
 	if(numEntries > 0) {
+		prevNumEntries = m->numEntries;
 		m->numEntries = numEntries;
 		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
 		if(numEntries > 0 && NULL == m->positions) {
@@ -441,6 +525,19 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 		if(numEntries > 0 && NULL == m->strands) {
 			PrintError(FnName, "m->strands", "Could not reallocate memory", Exit, ReallocMemory);
 		}
+		for(i=numEntries;i<prevNumEntries;i++) {
+			free(m->masks[i]);
+		}
+		m->masks = realloc(m->masks, sizeof(char*)*numEntries); 
+		if(NULL == m->masks) {
+			PrintError(FnName, "m->masks", "Could not reallocate memory", Exit, ReallocMemory);
+		}
+		for(i=prevNumEntries;i<m->numEntries;i++) {
+			m->masks[i] = calloc(GETMASKNUMBYTES(m), sizeof(char)); 
+			if(NULL == m->masks[i]) {
+				PrintError(FnName, "m->masks[i]", "Could not allocate memory", Exit, MallocMemory);
+			}
+		}
 	}
 	else {
 		/* Free just the matches part, not the meta-data */
@@ -452,7 +549,7 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 /* Does not free read */
 void RGMatchClearMatches(RGMatch *m) 
 {
-	m->numEntries=0;
+	int32_t i;
 	/* Free */
 	free(m->contigs);
 	free(m->positions);
@@ -460,16 +557,27 @@ void RGMatchClearMatches(RGMatch *m)
 	m->contigs=NULL;
 	m->positions=NULL;
 	m->strands=NULL;
+	for(i=0;i<m->numEntries;i++) {
+		free(m->masks[i]);
+	}
+	free(m->masks);
+	m->masks=NULL;
+	m->numEntries=0;
 }
 
 /* TODO */
 void RGMatchFree(RGMatch *m) 
 {
+	int32_t i;
 	free(m->read);
 	free(m->qual);
 	free(m->contigs);
 	free(m->positions);
 	free(m->strands);
+	for(i=0;i<m->numEntries;i++) {
+		free(m->masks[i]);
+	}
+	free(m->masks);
 	RGMatchInitialize(m);
 }
 
@@ -485,6 +593,7 @@ void RGMatchInitialize(RGMatch *m)
 	m->contigs=NULL;
 	m->positions=NULL;
 	m->strands=NULL;
+	m->masks=NULL;
 }
 
 /* TODO */
@@ -529,5 +638,75 @@ void RGMatchFilterOutOfRange(RGMatch *m,
 		RGMatchClearMatches(m);
 		m->maxReached=1;
 		assert(m->readLength > 0);
+	}
+}
+
+char *RGMatchMaskToString(char *mask,
+		int32_t readLength)
+{
+	char *FnName="RGMatchMaskToString";
+	int32_t i, curByte, curByteIndex;
+	uint8_t byte;
+
+	char *string = malloc(sizeof(char)*(1+readLength));
+	if(NULL == string) {
+		PrintError(FnName, "string", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	for(i=0;i<readLength;i++) {
+		curByte = GETMASKBYTE(i);
+		curByteIndex = i % (8*sizeof(char));
+		byte = mask[curByte];
+		byte = byte << (8 - 1 - curByteIndex);
+		byte = byte >> curByteIndex;
+
+		if(0 < byte) {
+			string[i] = '1';
+		}
+		else {
+			string[i] = '0';
+		}
+	}
+	string[readLength] = '\0';
+
+	return string;
+}
+
+char *RGMatchStringToMask(char *string,
+		int32_t readLength)
+{
+	char *FnName="RGMatchStringToMask";
+	assert(readLength == strlen(string));
+	int32_t i, curByte, curByteIndex;
+
+	char *mask = malloc(sizeof(char)*GETMASKNUMBYTESFROMLENGTH(readLength));
+	if(NULL == mask) {
+		PrintError(FnName, "mask", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	for(i=0;i<readLength;i++) {
+		if('1' == string[i]) {
+			curByte = GETMASKBYTE(i);
+			curByteIndex = i % (8*sizeof(char));
+			mask[curByte] &= (0x01 << curByteIndex);
+		}
+	}
+
+	return mask;
+}
+
+void RGMatchUpdateMask(char *mask, int32_t pos)
+{
+	int32_t curByte, curByteIndex;
+	curByte = GETMASKBYTE(pos);
+	curByteIndex = pos % (8*sizeof(char));
+	mask[curByte] |= (0x01 << curByteIndex);
+}
+
+void RGMatchUnionMasks(RGMatch *m, int32_t dest, int32_t src)
+{
+	int32_t i;
+	for(i=0;i<GETMASKNUMBYTES(m);i++) {
+		m->masks[dest][i] |= m->masks[src][i];
 	}
 }

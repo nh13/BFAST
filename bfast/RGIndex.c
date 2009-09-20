@@ -918,7 +918,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 	if(1 == TEST_RGINDEX_SORT) {
 		/* Test that we sorted correctly */
 		for(i=1;i<index->length;i++) {
-			if(RGIndexCompareAt(index, rg, i-1, i, 0) > 0) {
+			if(0 < RGIndexCompareAt(index, rg, i-1, i, 0)) {
 				RGIndexCompareAt(index, rg, i-1, i, 1);
 			}
 			assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
@@ -959,6 +959,68 @@ void *RGIndexMergeSort(void *arg)
 }
 
 /* TODO */
+void RGIndexShellSort(RGIndex *index,
+		RGBinary *rg,
+		int64_t low,
+		int64_t high)
+{
+	int64_t i, j, inc;
+	uint8_t tempContig_8;
+	uint32_t tempContig_32, tempPosition;
+
+	inc = ROUND((high - low + 1) / 2);
+
+	if(Contig_8 == index->contigType) {
+		while(0 < inc) {
+			for(i=inc + low;i<=high;i++) {
+				tempContig_8 = index->contigs_8[i]; 
+				tempPosition = index->positions[i];
+				j = i;            
+				while(inc + low <= j 
+						&& RGIndexCompareContigPos(index,
+							rg,
+							tempContig_8, 
+							tempPosition, 
+							index->contigs_8[j-inc], 
+							index->positions[j-inc],
+							0) < 0) {
+					index->contigs_8[j] = index->contigs_8[j-inc];
+					index->positions[j] = index->positions[j-inc];
+					j -= inc;
+				}
+				index->contigs_8[j] = tempContig_8;
+				index->positions[j] = tempPosition;
+			}
+			inc = ROUND(inc / SHELL_SORT_GAP_DIVIDE_BY);
+		}
+	}
+	else {
+		while(0 < inc) {
+			for(i=inc + low;i<=high;i++) {
+				tempContig_32 = index->contigs_32[i]; 
+				tempPosition = index->positions[i];
+				j = i;            
+				while(inc + low <= j 
+						&& RGIndexCompareContigPos(index,
+							rg,
+							tempContig_32, 
+							tempPosition, 
+							index->contigs_32[j-inc], 
+							index->positions[j-inc],
+							0) < 0) {
+					index->contigs_32[j] = index->contigs_32[j-inc];
+					index->positions[j] = index->positions[j-inc];
+					j -= inc;
+				}
+				index->contigs_32[j] = tempContig_32;
+				index->positions[j] = tempPosition;
+			}
+			inc = ROUND(inc / SHELL_SORT_GAP_DIVIDE_BY);
+		}
+	}
+}
+
+/* TODO */
 /* Call stack was getting too big, implement non-recursive sort */
 void RGIndexMergeSortHelper(RGIndex *index,
 		RGBinary *rg,
@@ -974,7 +1036,7 @@ void RGIndexMergeSortHelper(RGIndex *index,
 	/* Local Variables */
 	int64_t mid = (low + high)/2;
 
-	if(low >= high) {
+	if(high <= low) {
 		if(VERBOSE >= 0 &&
 				showPercentComplete == 1) {
 			assert(NULL!=curPercentComplete);
@@ -987,6 +1049,12 @@ void RGIndexMergeSortHelper(RGIndex *index,
 		}
 		return;
 	}
+
+	if(high - low + 1 <= RGINDEX_SHELL_SORT_MAX) {
+		RGIndexShellSort(index, rg, low, high);
+		return;
+	}
+
 	/* Partition the list into two lists and sort them recursively */
 	RGIndexMergeSortHelper(index,
 			rg,
@@ -2189,16 +2257,14 @@ int32_t RGIndexCompareContigPos(RGIndex *index,
 				aPos,
 				(int)bContig,
 				bPos);
-		/*
-		   char *seq=NULL;
-		   int32_t length;
-		   length = RGBinaryGetSequence(rg, aContig, aPos, FORWARD, &seq, index->width);
-		   fprintf(stderr, "%s\n", seq); 
-		   free(seq); seq=NULL;
-		   length = RGBinaryGetSequence(rg, bContig, bPos, FORWARD, &seq, index->width);
-		   fprintf(stderr, "%s\n", seq); 
-		   free(seq); seq=NULL;
-		   */
+		char *seq=NULL;
+		int32_t length;
+		length = RGBinaryGetSequence(rg, aContig, aPos, FORWARD, &seq, index->width);
+		RGIndexPrintReadMasked(index, seq, 0, stderr);
+		free(seq); seq=NULL;
+		length = RGBinaryGetSequence(rg, bContig, bPos, FORWARD, &seq, index->width);
+		RGIndexPrintReadMasked(index, seq, 0, stderr);
+		free(seq); seq=NULL;
 	}
 
 	/* Go across the mask */

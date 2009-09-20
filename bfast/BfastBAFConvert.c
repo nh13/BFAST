@@ -83,44 +83,44 @@ int BfastBAFConvert(int argc, char *argv[])
 		default:
 			break;
 	}
-		
+
 	/* Set types and file extension */
 	switch(outputType) {
-			case 0:
-				outputType=BAF;
-				inputType=TextInput;
-				outputSubType=BinaryOutput;
-				strcat(fileExtension, "binary.");
-				strcat(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
-				break;
-			case 1:
-				outputType=BAF;
-				inputType=BinaryInput;
-				outputSubType=TextOutput;
-				strcat(fileExtension, "text.");
-				strcat(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
-				break;
-			case 2:
-				outputType=MAF;
-				inputType=BinaryInput;
-				outputSubType=TextOutput;
-				strcat(fileExtension, BFAST_MAF_FILE_EXTENSION);
-				break;
-			case 3:
-				outputType=GFF;
-				inputType=BinaryInput;
-				outputSubType=TextOutput;
-				strcat(fileExtension, BFAST_GFF_FILE_EXTENSION);
-				break;
-			case 4:
-				outputType=SAM;
-				inputType=BinaryInput;
-				outputSubType=TextOutput;
-				strcat(fileExtension, BFAST_SAM_FILE_EXTENSION);
-				break;
-			default:
-				PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);
-		}
+		case 0:
+			outputType=BAF;
+			inputType=TextInput;
+			outputSubType=BinaryOutput;
+			strcat(fileExtension, "binary.");
+			strcat(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
+			break;
+		case 1:
+			outputType=BAF;
+			inputType=BinaryInput;
+			outputSubType=TextOutput;
+			strcat(fileExtension, "text.");
+			strcat(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
+			break;
+		case 2:
+			outputType=MAF;
+			inputType=BinaryInput;
+			outputSubType=TextOutput;
+			strcat(fileExtension, BFAST_MAF_FILE_EXTENSION);
+			break;
+		case 3:
+			outputType=GFF;
+			inputType=BinaryInput;
+			outputSubType=TextOutput;
+			strcat(fileExtension, BFAST_GFF_FILE_EXTENSION);
+			break;
+		case 4:
+			outputType=SAM;
+			inputType=BinaryInput;
+			outputSubType=TextOutput;
+			strcat(fileExtension, BFAST_SAM_FILE_EXTENSION);
+			break;
+		default:
+			PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);
+	}
 
 	for(argnum=optind;argnum<argc;argnum++) {
 		strcpy(inputFileName, argv[argnum]);

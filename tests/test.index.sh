@@ -17,15 +17,18 @@ do
 	DEPTH=`expr 2 \* $DEPTH`;
 
 	# Make an index
-	CMD=$CMD_PREFIX"../bfast index -f $RG_FASTA -A $SPACE -m 111111111111111 -w 8 -d $DEPTH -i 1 -T $TMP_DIR";
+	rm "$RG_FASTA"*bif; # in case they exist
+	CMD=$CMD_PREFIX"bfast index -f $RG_FASTA -A $SPACE -m 111111111111111 -w 8 -d $DEPTH -i 1 -T $TMP_DIR";
 	eval $CMD 2> /dev/null;
 
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything
+		echo "RETURN CODE=$?";
+		rm "$RG_FASTA"*bif;
 		echo $CMD;
 		eval $CMD;
-		exit 1
+		exit 1;
 	fi
 done
 

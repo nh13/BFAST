@@ -1,6 +1,14 @@
 ===============================================================================
 General
+- queues should be for the input as well as the output
+- default to insertion sorts for small arrays in:
+RGIndex [X]
+RGMatch [X]
+AlignedEntry [X]
+RGRanges [X]
+RGReads [X]
 ===============================================================================
+
 
 ===============================================================================
 match
