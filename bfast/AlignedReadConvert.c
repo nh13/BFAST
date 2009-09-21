@@ -446,7 +446,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
 	int32_t i, j;
 	uint64_t flag;
-	int32_t mateEndIndex, mateEntriesIndex;
+	int32_t mateEndIndex, mateEntriesIndex, mapq;
 	char read[SEQUENCE_LENGTH]="\0";
 	char readRC[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
@@ -530,7 +530,12 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	/* MAPQ */
-	int32_t mapq = (int32_t)a->ends[endIndex].entries[entriesIndex].mappingQuality;
+	if(entriesIndex < 0) {
+		mapq = 0;
+	}
+	else {
+		mapq = (int32_t)a->ends[endIndex].entries[entriesIndex].mappingQuality;
+	}
 	if(mapq < 0) mapq = 0;
 	if(mapq > 255) mapq = 255;
 	if(0>fprintf(fp, "\t%d", mapq)) {
