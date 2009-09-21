@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <config.h>
 #include <assert.h>
 #include <time.h>
 #include <math.h>
@@ -26,13 +27,42 @@
  * from a reference genome and tests the various local alignment 
  * algorithms. */
 
+int PrintUsage()
+{
+	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
+	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\t-i\tFILE\tinput specification file\n");
+	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
+	fprintf(stderr, "\t-x\tFILE\tSpecifies the file name storing the scoring matrix\n");
+	fprintf(stderr, "\t-n\tINT\tSpecifies the number of threads to use (Default 1)\n");
+	fprintf(stderr, "\t-A\tINT\t0: NT space 1: Color space\n");
+	fprintf(stderr, "\t-T\tDIR\tSpecifies the directory in which to store temporary file\n");
+	fprintf(stderr, "\t-h\t\tprints this help message\n");
+
+	fprintf(stderr, "\nInput specification file:\n");
+	fprintf(stderr, "\tThe input specification file is line-orientated.  Each line\n");
+	fprintf(stderr, "\tcontains the specification for one set of simulated reads.\n");
+	fprintf(stderr, "\tEach set of reads has 8 fields (all specified on one line).\n");
+	fprintf(stderr, "\t\t#1 - 0: gapped 1: ungapped\n");
+	fprintf(stderr, "\t\t#2 - 0: no indel 1: deletion 2: insertion\n");
+	fprintf(stderr, "\t\t#3 - indel length (if #2 is an indel)\n");
+	fprintf(stderr, "\t\t#4 - include errors within insertion 0: false 1: true\n");
+	fprintf(stderr, "\t\t#5 - # of SNPs\n");
+	fprintf(stderr, "\t\t#6 - # of errors\n");
+	fprintf(stderr, "\t\t#7 - read length\n");
+	fprintf(stderr, "\t\t#8 - number of reads\n");
+	fprintf(stderr, "\nsend bugs to %s\n",
+			PACKAGE_BUGREPORT);
+	return 1;
+}
+
 int main(int argc, char *argv[]) 
 {
 	RGBinary rg;
-	char rgFileName[MAX_FILENAME_LENGTH]="\0";
-	char scoringMatrixFileName[MAX_FILENAME_LENGTH]="\0";
-	int alignmentType=FullAlignment;
-	int space = 0;
+	char *fastaFileName=NULL;
+	char *scoringMatrixFileName=NULL;
+	int alignmentType=Gapped;
+	int space = NTSpace;
 	int indel = 0;
 	int indelLength = 0;
 	int withinInsertion = 0;
@@ -42,99 +72,58 @@ int main(int argc, char *argv[])
 	int numReads = 0;
 	int numThreads = 1;
 	char tmpDir[MAX_FILENAME_LENGTH]="./";
-
-	char *inputFile=NULL;
+	char *inputFileName=NULL;
 	char c;
+	FILE *fpIn=NULL;
 
-	while((c = getopt(argc, argv, "f:n:r:x:A:T:")) >= 0) {
+	while((c = getopt(argc, argv, "f:i:n:x:A:T:h")) >= 0) {
 		switch(c) {
-			case 'f': inputFile = strdup(optarg); break;
-			case 'r': strcpy(rgFileName, optarg); break;
-			case 'x': strcpy(scoringMatrixFileName, optarg); break;
+			case 'f': fastaFileName=strdup(optarg); break;
+			case 'i': inputFileName = strdup(optarg); break;
+			case 'h': return PrintUsage();
+			case 'x': scoringMatrixFileName=strdup(optarg); break;
 			case 'n': numThreads=atoi(optarg); break;
 			case 'A': space=atoi(optarg); break;
 			case 'T': strcpy(tmpDir, optarg); break;
-			default: break;
+			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
 
-	if(NULL != inputFile) { // hidden !
-		/* Get reference genome */
-		RGBinaryReadBinary(&rg,
-				space,
-				rgFileName);
+	if(argc != optind) {
+		return PrintUsage();
+	}
 
-		FILE *fpIn=NULL;
-		if(!(fpIn = fopen(inputFile, "r"))) {
-			PrintError(Name, inputFile, "Could not open file for reading", Exit, OpenFileError);
-		}
-		while(0 == feof(fpIn)) {
-			if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d",
-						&alignmentType,
-						&space,
-						&indel,
-						&indelLength,
-						&withinInsertion,
-						&numSNPs,
-						&numErrors,
-						&readLength,
-						&numReads) < 0) {
-				break;
+	if(NULL == inputFileName) {
+		PrintError(Name, "inputFileName", "Command line option", Exit, InputArguments);
+	}
+	if(NULL == fastaFileName) {
+		PrintError(Name, "fastaFileName", "Command line option", Exit, InputArguments);
+	}
+
+
+	/* Get reference genome */
+	RGBinaryReadBinary(&rg,
+			space,
+			fastaFileName);
+
+	if(!(fpIn = fopen(inputFileName, "r"))) {
+		PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
+	}
+	while(0 == feof(fpIn)) {
+		if(fscanf(fpIn, "%d %d %d %d %d %d %d %d",
+					&alignmentType,
+					&indel,
+					&indelLength,
+					&withinInsertion,
+					&numSNPs,
+					&numErrors,
+					&readLength,
+					&numReads) < 0) {
+			if(0 == feof(fpIn)) {
+				PrintError(Name, NULL, "Could not understand line", Exit, OutOfRange);
 			}
-			Run(&rg,
-					scoringMatrixFileName,
-					alignmentType,
-					space,
-					indel,
-					indelLength,
-					withinInsertion,
-					numSNPs,
-					numErrors,
-					readLength,
-					numReads,
-					numThreads,
-					tmpDir);
+			break;
 		}
-		fclose(fpIn);
-		free(inputFile);
-	}
-	else if(argc == 14) {
-
-		/* Get cmd line options */
-		strcpy(rgFileName, argv[1]);
-		strcpy(scoringMatrixFileName, argv[2]);
-		alignmentType = atoi(argv[3]);
-		space = atoi(argv[4]);
-		indel = atoi(argv[5]);
-		indelLength = atoi(argv[6]);
-		withinInsertion = atoi(argv[7]);
-		numSNPs = atoi(argv[8]);
-		numErrors = atoi(argv[9]);
-		readLength = atoi(argv[10]);
-		numReads = atoi(argv[11]);
-		numThreads = atoi(argv[12]);
-		strcpy(tmpDir, argv[13]);
-
-		/* Check cmd line options */
-		assert(FullAlignment == alignmentType || MismatchesOnly == alignmentType);
-		assert(NTSpace == space || ColorSpace == space);
-		assert(indel >= 0 && indel <= 2);
-		assert(indelLength > 0 || indel == 0);
-		assert(withinInsertion == 0 || (indel == 2 && withinInsertion == 1));
-		assert(numSNPs >= 0);
-		assert(readLength > 0);
-		assert(readLength < SEQUENCE_LENGTH);
-		assert(numReads > 0);
-		assert(numThreads > 0);
-
-		/* Should check if we have enough bases for everything */
-
-		/* Get reference genome */
-		RGBinaryReadBinary(&rg,
-				space,
-				rgFileName);
-
-		/* Run Simulation */
 		Run(&rg,
 				scoringMatrixFileName,
 				alignmentType,
@@ -148,33 +137,11 @@ int main(int argc, char *argv[])
 				numReads,
 				numThreads,
 				tmpDir);
-
-		/* Delete reference genome */
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Deleting reference genome.\n");
-		RGBinaryDelete(&rg);
-		fprintf(stderr, "%s", BREAK_LINE);
-
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Terminating successfully.\n");
-		fprintf(stderr, "%s", BREAK_LINE);
 	}
-	else {
-		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast reference genome file name (must be in nt space)>\n");
-		fprintf(stderr, "\t<scoring matrix file name>\n");
-		fprintf(stderr, "\t<alignmentType 0: Full alignment 1: mismatches only>\n");
-		fprintf(stderr, "\t<space 0: nt space 1: color space>\n");
-		fprintf(stderr, "\t<indel 0: none 1: deletion 2: insertion>\n");
-		fprintf(stderr, "\t<indel length>\n");
-		fprintf(stderr, "\t<include errors within insertion 0: false 1: true>\n");
-		fprintf(stderr, "\t<# of SNPs>\n");
-		fprintf(stderr, "\t<# of errors>\n");
-		fprintf(stderr, "\t<read length>\n");
-		fprintf(stderr, "\t<number of reads>\n");
-		fprintf(stderr, "\t<number of threads\n");
-		fprintf(stderr, "\t<tmp file directory>\n");
-	}
+	fclose(fpIn);
+	free(inputFileName);
+	free(scoringMatrixFileName);
+	free(tmpDir);
 	return 0;
 }
 
@@ -204,8 +171,8 @@ void Run(RGBinary *rg,
 	char *notAlignedFileName=NULL;
 	int32_t totalAlignTime = 0;
 	int32_t totalFileHandlingTime = 0;
-	ScoringMatrix sm;
 	double mismatchScore;
+	ScoringMatrix sm;
 	SimRead r;
 	RGMatches m;
 	AlignedRead a;
@@ -254,19 +221,21 @@ void Run(RGBinary *rg,
 
 	/* Get scoring matrix */
 	ScoringMatrixInitialize(&sm);
-	ScoringMatrixRead(scoringMatrixFileName,
-			&sm,
-			space);
+	if(NULL != scoringMatrixFileName) {
+		ScoringMatrixRead(scoringMatrixFileName,
+				&sm,
+				space);
+	}
+
+	/* In these sims we want the scoring matrix to have certain constraints:
+	 * All scores for matches must be the same and all scores for mismatches 
+	 * must be the same */
 	if(space == NTSpace) {
 		mismatchScore = sm.ntMatch - sm.ntMismatch;
 	}
 	else {
 		mismatchScore = sm.colorMatch - sm.colorMismatch;
 	}
-	/* In these sims we want the scoring matrix to have certain constraints:
-	 * All scores for matches must be the same and all scores for mismatches 
-	 * must be the same */
-
 	score_m = sm.ntMatch;
 	score_mm = sm.ntMismatch;
 	if(ColorSpace == space) {
@@ -500,15 +469,15 @@ void Run(RGBinary *rg,
 		if(round(a.ends[0].entries[0].score) < score) {
 			numScoreLessThan++;
 			/*
-			if(FullAlignment == alignmentType) {
-				fprintf(stderr, "a.readName=%s\n", a.readName);
-				fprintf(stderr, "found=%d\nexpected=%d\n",
-						round(a.ends[0].entries[0].score),
-						score);
-				AlignedReadPrintText(&a, stderr);
-				PrintError(FnName, "numScoreLessThan", "The alignment score should not be less than expected", Exit, OutOfRange);
-			}
-			*/
+			   if(FullAlignment == alignmentType) {
+			   fprintf(stderr, "a.readName=%s\n", a.readName);
+			   fprintf(stderr, "found=%d\nexpected=%d\n",
+			   round(a.ends[0].entries[0].score),
+			   score);
+			   AlignedReadPrintText(&a, stderr);
+			   PrintError(FnName, "numScoreLessThan", "The alignment score should not be less than expected", Exit, OutOfRange);
+			   }
+			   */
 		}
 		else if(score < round(a.ends[0].entries[0].score)) {
 			numScoreGreaterThan++;

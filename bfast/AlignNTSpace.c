@@ -13,7 +13,7 @@
 #include "AlignNTSpace.h"
 
 /* TODO */
-void AlignNTSpaceMismatchesOnly(char *read,
+void AlignNTSpaceUngapped(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
@@ -22,7 +22,7 @@ void AlignNTSpaceMismatchesOnly(char *read,
 		char strand,
 		int32_t position)
 {
-	char *FnName = "AlignNTSpaceMismatchesOnly";
+	char *FnName = "AlignNTSpaceUngapped";
 	/* Read goes on the second row, reference on the first */
 	int i, j;
 	int32_t maxScore = NEGATIVE_INFINITY;

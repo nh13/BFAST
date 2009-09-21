@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <config.h>
 #include <time.h>
 
 #include "../bfast/BError.h"
@@ -15,11 +16,41 @@
 /* Generate synthetic reads given a number of variants and errors
  * from a reference genome. */
 
+
+int PrintUsage()
+{
+	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
+	fprintf(stderr, "\nUsage:%s [options]\n", Name);
+	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
+	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\t-i\tFILE\tinput specification file\n");
+	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
+	fprintf(stderr, "\t-A\tINT\t0: NT space 1: Color space\n");
+	fprintf(stderr, "\t-h\t\tprints this help message\n");
+
+	fprintf(stderr, "\nInput specification file:\n");
+	fprintf(stderr, "\tThe input specification file is line-orientated.  Each line\n");
+	fprintf(stderr, "\tcontains the specification for one set of simulated reads.\n");
+	fprintf(stderr, "\tEach set of reads has 10 fields (all specified on one line).\n");
+	fprintf(stderr, "\t\t#1 - 0: no indel 1: deletion 2: insertion\n");
+	fprintf(stderr, "\t\t#2 - indel length (if #2 is an indel)\n");
+	fprintf(stderr, "\t\t#3 - include errors within insertion 0: false 1: true\n");
+	fprintf(stderr, "\t\t#5 - # of SNPs\n");
+	fprintf(stderr, "\t\t#6 - # of errors\n");
+	fprintf(stderr, "\t\t#7 - read length\n");
+	fprintf(stderr, "\t\t#8 - paired end 0: true 1: false\n");
+	fprintf(stderr, "\t\t#9 - paired end length\n");
+	fprintf(stderr, "\t\t#10 - number of reads\n");
+	fprintf(stderr, "\nsend bugs to %s\n",
+			PACKAGE_BUGREPORT);
+	return 1;
+}
+
 int main(int argc, char *argv[]) 
 {
 	RGBinary rg;
-	char rgFileName[MAX_FILENAME_LENGTH]="\0";
-	int space = 0;
+	char *fastaFileName=NULL;
+	int space = NTSpace;
 	int indel = 0;
 	int indelLength = 0;
 	int withinInsertion = 0;
@@ -29,95 +60,54 @@ int main(int argc, char *argv[])
 	int pairedEnd = 0;
 	int pairedEndLength = 0;
 	int numReads = 0;
-
-	char *inputFile=NULL;
+	char *inputFileName=NULL;
 	char c;
+	FILE *fpIn=NULL;
 
-	while((c = getopt(argc, argv, "f:r:")) >= 0) {
+	while((c = getopt(argc, argv, "f:r:A:")) >= 0) {
 		switch(c) {
-			case 'f': inputFile = strdup(optarg); break;
-			case 'r': strcpy(rgFileName, optarg); break;
+			case 'f': fastaFileName=strdup(optarg);break;
+			case 'h': return PrintUsage();
+			case 'i': inputFileName = strdup(optarg); break;
+			case 'A': space=atoi(optarg); break;
 			default: break;
 		}
 	}
 
-	if(NULL != inputFile) { // hidden!
-		/* Get reference genome */
-		RGBinaryReadBinary(&rg,
-				NTSpace,
-				rgFileName);
-
-		FILE *fpIn=NULL;
-		if(!(fpIn = fopen(inputFile, "r"))) {
-			PrintError(Name, inputFile, "Could not open file for reading", Exit, OpenFileError);
-		}
-		while(0 == feof(fpIn)) {
-			if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d %d",
-						&space,
-						&indel,
-						&indelLength,
-						&withinInsertion,
-						&numSNPs,
-						&numErrors,
-						&readLength,
-						&pairedEnd,
-						&pairedEndLength,
-						&numReads) < 0) {
-				break;
-			}
-			/* Generate reads */
-			GenerateReadsFP(&rg,
-					space,
-					indel,
-					indelLength,
-					withinInsertion,
-					numSNPs,
-					numErrors,
-					readLength,
-					(0 == pairedEnd)?1:2,
-					pairedEndLength,
-					numReads,
-					stdout);
-		}
-		fclose(fpIn);
-		free(inputFile);
+	if(argc != optind) {
+		return PrintUsage();
 	}
-	else if(argc == 12) {
 
-		/* Get cmd line options */
-		strcpy(rgFileName, argv[1]);
-		space = atoi(argv[2]);
-		indel = atoi(argv[3]);
-		indelLength = atoi(argv[4]);
-		withinInsertion = atoi(argv[5]);
-		numSNPs = atoi(argv[6]);
-		numErrors = atoi(argv[7]);
-		readLength = atoi(argv[8]);
-		pairedEnd = atoi(argv[9]);
-		pairedEndLength = atoi(argv[10]);
-		numReads = atoi(argv[11]);
+	if(NULL == fastaFileName) {
+		PrintError(Name, "fastaFileName", "Command line argument", Exit, OutOfRange);
+	}
+	if(NULL == inputFileName) {
+		PrintError(Name, "inputFileName", "Command line argument", Exit, OutOfRange);
+	}
 
-		/* Check cmd line options */
-		assert(space == 0 || space == 1);
-		assert(indel >= 0 && indel <= 2);
-		assert(indelLength > 0 || indel == 0);
-		assert(withinInsertion == 0 || (indel == 2 && withinInsertion == 1));
-		assert(numSNPs >= 0);
-		assert(readLength > 0);
-		assert(readLength < SEQUENCE_LENGTH);
-		assert(pairedEnd == 0 || pairedEnd == 1);
-		assert(pairedEndLength > 0 || pairedEnd == 0);
-		assert(numReads > 0);
+	/* Get reference genome */
+	RGBinaryReadBinary(&rg,
+			NTSpace, // Always in NT Space
+			fastaFileName);
 
-		/* Should check if we have enough bases for everything */
-
-		/* Get reference genome */
-		RGBinaryReadBinary(&rg,
-				NTSpace,
-				rgFileName);
-
+	if(!(fpIn = fopen(inputFileName, "r"))) {
+		PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
+	}
+	while(0 == feof(fpIn)) {
+		if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d",
+					&indel,
+					&indelLength,
+					&withinInsertion,
+					&numSNPs,
+					&numErrors,
+					&readLength,
+					&pairedEnd,
+					&pairedEndLength,
+					&numReads) < 0) {
+			break;
+		}
 		/* Generate reads */
-		GenerateReads(&rg,
+		GenerateReadsFP(&rg,
 				space,
 				indel,
 				indelLength,
@@ -127,32 +117,15 @@ int main(int argc, char *argv[])
 				readLength,
 				(0 == pairedEnd)?1:2,
 				pairedEndLength,
-				numReads);
-
-		/* Delete reference genome */
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Deleting reference genome.\n");
-		RGBinaryDelete(&rg);
-		fprintf(stderr, "%s", BREAK_LINE);
-
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Terminating successfully.\n");
-		fprintf(stderr, "%s", BREAK_LINE);
+				numReads,
+				stdout);
 	}
-	else {
-		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast reference genome file name (must be in nt space)>\n");
-		fprintf(stderr, "\t<space 0: nt space 1: color space>\n");
-		fprintf(stderr, "\t<indel 0: none 1: deletion 2: insertion>\n");
-		fprintf(stderr, "\t<indel length>\n");
-		fprintf(stderr, "\t<include errors within insertion 0: false 1: true>\n");
-		fprintf(stderr, "\t<# of SNPs>\n");
-		fprintf(stderr, "\t<# of errors>\n");
-		fprintf(stderr, "\t<read length>\n");
-		fprintf(stderr, "\t<paired end 0: false 1: true>\n");
-		fprintf(stderr, "\t<paired end length>\n");
-		fprintf(stderr, "\t<number of reads>\n");
-	}
+	fclose(fpIn);
+
+	/* Free */
+	RGBinaryDelete(&rg);
+	free(inputFileName);
+	free(fastaFileName);
 	return 0;
 }
 

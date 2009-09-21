@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <config.h>
 #include <zlib.h>
 
 #include "../bfast/BLibDefinitions.h"
@@ -19,51 +20,72 @@
  * bgeneratereads to give accuracy statistics for the mapping.
  * */
 
+int PrintUsage()
+{
+	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
+	fprintf(stderr, "\nUsage:%s [options]\n", Name);
+	fprintf(stderr, "\t-i\tFILE\tinput bfast matches file or bfast aligned file\n");
+	fprintf(stderr, "\t-r\tFILE\treads file (FASTQ)\n"); 
+	fprintf(stderr, "\t-o\tSTRING\toutput id\n");
+	fprintf(stderr, "\t-h\t\tprints this help message\n");
+	fprintf(stderr, "\nsend bugs to %s\n",
+			PACKAGE_BUGREPORT);
+	return 1;
+}
+
 int main(int argc, char *argv[]) 
 {
-	char inputFileName[MAX_FILENAME_LENGTH]="\0";
-	char readsFile[MAX_FILENAME_LENGTH]="\0";
-	char outputID[MAX_FILENAME_LENGTH]="\0";
-	int type;
+	char *inputFileName=NULL;
+	char *readsFile=NULL;
+	char *outputID=NULL;
+	int c, type;
 
-	if(argc == 4) {
-
-		/* Get cmd line options */
-		strcpy(inputFileName, argv[1]);
-		strcpy(readsFile, argv[2]);
-		strcpy(outputID, argv[3]);
-
-		/* Check cmd line options */
-		if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
-			type=BMF;
+	while((c = getopt(argc, argv, "i:o:r:h")) >= 0) {
+		switch(c) {
+			case 'h': return PrintUsage();
+			case 'i': inputFileName=strdup(optarg); break;
+			case 'o': outputID=strdup(optarg); break;
+			case 'r': readsFile=strdup(optarg); break;
+			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
-		else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
-			type=BAF;
-		}
-		else {
-			type=-1;
-			PrintError(Name, "input file name", "Could not recognize file extension", Exit, OutOfRange);
-		}
+	}
 
+	if(argc != optind) {
+		return PrintUsage();
+	}
 
-		/* Run program */
-		Evaluate(inputFileName, 
-				readsFile, 
-				outputID,
-				type
-				);
-
-		/* Terminate */
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Terminating successfully.\n");
-		fprintf(stderr, "%s", BREAK_LINE);
+	/* Check cmd line options */
+	if(NULL == inputFileName) {
+		PrintError(Name, "inputFileName", "Command line arguments", Exit, InputArguments);
+	}
+	if(NULL == outputID) {
+		PrintError(Name, "outputID", "Command line arguments", Exit, InputArguments);
+	}
+	if(NULL == readsFile) {
+		PrintError(Name, "readsFile", "Command line arguments", Exit, InputArguments);
+	}
+	if(NULL!=strstr(inputFileName, BFAST_MATCHES_FILE_EXTENSION)) {
+		type=BMF;
+	}
+	else if(NULL!=strstr(inputFileName, BFAST_ALIGNED_FILE_EXTENSION)) {
+		type=BAF;
 	}
 	else {
-		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast matches file or bfast aligned file>\n");
-		fprintf(stderr, "\t<reads file>\n");
-		fprintf(stderr, "\t<output id>\n");
+		type=-1;
+		PrintError(Name, "input file name", "Could not recognize file extension", Exit, OutOfRange);
 	}
+
+	/* Run program */
+	Evaluate(inputFileName, 
+			readsFile, 
+			outputID,
+			type
+			);
+
+	/* Terminate */
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Terminating successfully.\n");
+	fprintf(stderr, "%s", BREAK_LINE);
 	return 0;
 }
 
@@ -182,7 +204,7 @@ int ReadTypeRead(ReadType *r,
 	/* Read in align entries */
 	if(BMF==type) {
 		if(EOF==RGMatchesRead(fp, &m)) {
-			
+
 			return EOF;
 		}
 		readName = (char*)m.readName;
@@ -755,8 +777,9 @@ void ReadInReads(char *readsFile, Stats *s)
 	FILE *fpIn=NULL;
 	int count=0;
 	ReadType r;
-	char readName[SEQUENCE_NAME_LENGTH]="\0";
+	char readName[2][SEQUENCE_NAME_LENGTH]={"\0", "\0"};
 	char r1[SEQUENCE_LENGTH]="\0";
+	char q[SEQUENCE_LENGTH]="\0";
 	char r2[SEQUENCE_LENGTH]="\0";
 
 	/* Open the reads file */
@@ -767,16 +790,22 @@ void ReadInReads(char *readsFile, Stats *s)
 	fprintf(stderr, "../bfast/Reading in original reads from %s.\nCurrently on:\n%d", readsFile, 0);
 	count = 0;
 	/* Read in read name and read(s) */
-	while(EOF != fscanf(fpIn, "%s", readName) &&
+	while(EOF != fscanf(fpIn, "%s", readName[0]) &&
 			EOF != fscanf(fpIn, "%s", r1) &&
-			(NULL != strpbrk("numends=1", readName) || EOF != fscanf(fpIn, "%s", r2))) {
+			EOF != fscanf(fpIn, "%s", q) && // comment
+			EOF != fscanf(fpIn, "%s", q) && // qual
+			(NULL != strpbrk("numends=1", readName[0]) 
+			 || (fscanf(fpIn, "%s", readName[1]) &&
+				 EOF != fscanf(fpIn, "%s", r2) &&
+				 EOF != fscanf(fpIn, "%s", q) && // comment
+				 EOF != fscanf(fpIn, "%s", q)))) {
 		/* Only accepting 1 or 2 ends currently */
-		if(!(NULL != strpbrk("numends=1", readName) ||
-				NULL != strpbrk("numends=2", readName))) {
-			fprintf(stderr, "readName=%s\n", readName);
+		if(!(NULL != strpbrk("numends=1", readName[0]) ||
+					NULL != strpbrk("numends=2", readName[0]))) {
+			PrintError(FnName, readName[0], "Only single or paired end reads", Exit, OutOfRange);
 		}
-		assert(NULL != strpbrk("numends=1", readName) ||
-				NULL != strpbrk("numends=2", readName));
+		assert(NULL != strpbrk("numends=1", readName[0]) ||
+				NULL != strpbrk("numends=2", readName[0]));
 		ReadTypeInitialize(&r);
 
 		count++;
@@ -786,7 +815,10 @@ void ReadInReads(char *readsFile, Stats *s)
 					s->numStats
 				   );
 		}
-		ReadTypeParseReadName(&r, readName);
+		if(NULL != strpbrk("numends=2", readName[0]) &&
+				0 == strcmp(readName[0], readName[1])) {
+		}
+		ReadTypeParseReadName(&r, readName[0]);
 
 		/* Add to Stats */
 		StatsAdd(s, &r, OriginalRead);

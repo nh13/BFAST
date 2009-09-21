@@ -102,15 +102,20 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 					aBuffer[aBufferIndex].ends[i].numEntries=0;
 				}
 			}
+			else {
+				numReported++;
+			}
 
-			/* Print to Output file */
+			/* Increment counter */
+			counter++;
+		}
+
+		/* Print to Output file */
+		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
 			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, outputFormat, BinaryOutput);
-			numReported++;
 
 			/* Free memory */
 			AlignedReadFree(&aBuffer[aBufferIndex]);
-			/* Increment counter */
-			counter++;
 		}
 	}
 	if(VERBOSE>=0) {
@@ -130,8 +135,13 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	}
 	/* Close the input file */
 	gzclose(fp);
-
 	free(aBuffer);
+
+	if(VERBOSE>=0) {
+		fprintf(stderr, "Found %lld mappings after filtering.\n%lld reads were left unmapped\n",
+				(long long int)numReported,
+				(long long int)numUnmapped);
+	}
 }
 
 int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead)

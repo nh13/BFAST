@@ -879,8 +879,10 @@ void *FindMatchesInIndexThread(void *arg)
 					data->numMatches++;
 				}
 			}
+		}
 
-			/* Output to file */
+		/* Output to file */
+		for(i=0;i<numMatches;i++) {
 			RGMatchesPrint(tempOutputFP, 
 					&matchQueue[i]);
 

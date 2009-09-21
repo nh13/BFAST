@@ -13,7 +13,7 @@
 #include "AlignColorSpace.h"
 
 /* TODO */
-void AlignColorSpaceMismatchesOnly(char *read,
+void AlignColorSpaceUngapped(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
@@ -23,7 +23,7 @@ void AlignColorSpaceMismatchesOnly(char *read,
 		int32_t position)
 {
 	/* read goes on the rows, reference on the columns */
-	char *FnName = "AlignColorSpaceMismatchesOnly";
+	char *FnName = "AlignColorSpaceUngapped";
 	int i, j, k, l;
 
 	int offset=-1;

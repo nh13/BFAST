@@ -20,7 +20,7 @@
    */
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescMatchFileName, DescScoringMatrixFileName, 
-	DescAlgoTitle, DescUngapped, DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
+	DescAlgoTitle, DescUngapped, DescUnconstrained, DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
 	DescMiscTitle, DescHelp
@@ -33,6 +33,7 @@ static struct argp_option options[] = {
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
+	{"unconstrained", 'c', 0, OPTION_NO_USAGE, "Do not use mask constraints from the match step", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
@@ -59,7 +60,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:l:m:n:o:q:r:s:x:A:E:L:M:Q:S:T:bhptuF";
+"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:chptuF";
 
 	int
 BfastLocalAlign(int argc, char **argv)
@@ -216,7 +217,7 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 		if(ValidateFileName(args->scoringMatrixFileName)==0)
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
-	if(args->ungapped != FullAlignment && args->ungapped != MismatchesOnly) {		
+	if(args->ungapped != Gapped && args->ungapped != Ungapped) {		
 		PrintError(FnName, "ungapped", "Command line argument", Exit, OutOfRange);
 	}
 
@@ -280,7 +281,8 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->matchFileName = NULL;
 	args->scoringMatrixFileName=NULL;
 
-	args->ungapped = FullAlignment;
+	args->ungapped = Gapped;
+	args->unconstrained = Constrained;
 	args->space = NTSpace;
 	args->startReadNum=0;
 	args->endReadNum=INT_MAX;
@@ -315,7 +317,8 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
 	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
 	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
-	fprintf(fp, "ungapped:\t\t\t\t%d\n", args->ungapped);
+	fprintf(fp, "ungapped:\t\t\t\t%s\n", using[args->ungapped]);
+	fprintf(fp, "unconstrained:\t\t\t\t%s\n", using[args->unconstrained]);
 	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
@@ -406,7 +409,7 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 			case 't':
 				arguments->timing = 1;break;
 			case 'u':
-				arguments->ungapped = MismatchesOnly; break;
+				arguments->ungapped = Ungapped; break;
 			case 'x':
 				StringCopyAndReallocate(&arguments->scoringMatrixFileName, optarg);
 				break;

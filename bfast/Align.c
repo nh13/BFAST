@@ -211,11 +211,11 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 #endif
 
 #ifdef UNOPTIMIZED_SMITH_WATERMAN
-	if(MismatchesOnly == alignmentType) {
+	if(Ungapped == alignmentType) {
 #endif
 		for(i=0;i<end->numEntries;i++) {
 			if(!(DBL_MIN < end->entries[i].score)) {
-				AlignMismatchesOnly(read,
+				AlignUngapped(read,
 						readLength,
 						references[i],
 						referenceLengths[i],
@@ -232,7 +232,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 
 		/* Return if we are only to be searching for mismatches */
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
-		if(MismatchesOnly == alignmentType) {
+		if(Ungapped == alignmentType) {
 #endif
 			for(i=0;i<end->numEntries;i++) {
 				free(references[i]);
@@ -349,7 +349,7 @@ int32_t AlignExact(char *read,
 	return 1;
 }
 
-void AlignMismatchesOnly(char *read,
+void AlignUngapped(char *read,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,
@@ -359,10 +359,10 @@ void AlignMismatchesOnly(char *read,
 		char strand,
 		int32_t position)
 {
-	char *FnName="AlignMismatchesOnly";
+	char *FnName="AlignUngapped";
 	switch(space) {
 		case NTSpace:
-			AlignNTSpaceMismatchesOnly(read,
+			AlignNTSpaceUngapped(read,
 					readLength,
 					reference,
 					referenceLength,
@@ -372,7 +372,7 @@ void AlignMismatchesOnly(char *read,
 					position);
 			break;
 		case ColorSpace:
-			AlignColorSpaceMismatchesOnly(read,
+			AlignColorSpaceUngapped(read,
 					readLength,
 					reference,
 					referenceLength,

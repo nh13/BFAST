@@ -16,8 +16,6 @@ typedef struct {
 	RGIndex *index;
 	RGBinary *rg;
 	Counts c;
-	int numMismatchesStart;
-	int numMismatchesEnd;
 	int whichStrand;
 	int numDifferent;
 	int64_t totalForward;
@@ -25,9 +23,9 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void PrintHistogram(RGIndex*, RGBinary*, int, int, int, int, char*);
+void PrintHistogram(RGIndex*, RGBinary*, int, int);
 void *PrintHistogramThread(void *arg);
 void GetPivots(RGIndex*, RGBinary*, int64_t*, int64_t*, int64_t);
-int GetMatchesFromContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*);
+int GetMatchesFromContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int64_t*, int64_t*);
 
 #endif

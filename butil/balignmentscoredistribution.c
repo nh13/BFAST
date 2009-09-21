@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <config.h>
 #include <assert.h>
 #include <zlib.h>
 
@@ -18,65 +19,96 @@
  * with a given number of CALs 
  * */
 
+int PrintUsage()
+{
+	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
+	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\t-i\tFILE\tthe bfast aligned file to analyez\n");
+	fprintf(stderr, "\t-t\tINT\tto (bin range)\n");
+	fprintf(stderr, "\t-f\tINT\tfrom (bin range)\n");
+	fprintf(stderr, "\t-b\tINT\tby (bin range)\n");
+	fprintf(stderr, "\t-h\t\tprints this help message\n");
+	fprintf(stderr, "\nsend bugs to %s\n",
+			PACKAGE_BUGREPORT);
+	return 1;
+}
+
 int main(int argc, char *argv[])
 {
 	gzFile fpIn=NULL;
-	char inputFileName[MAX_FILENAME_LENGTH]="\0";
+	char *inputFileName=NULL;
+	double from=-2000, by=10, to=2000;
 	AlignedRead a;
 	int64_t counter, i;
-	double from, by, to;
 	Dist dist;
+	int c;
 
-	if(5 == argc) {
-		strcpy(inputFileName, argv[1]);
-		from=atof(argv[2]);
-		by=atof(argv[3]);
-		to=atof(argv[4]);
-
-		/* Open the input file */
-		if(!(fpIn=gzopen(inputFileName, "rb"))) {
-			PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
+	while((c = getopt(argc, argv, "b:f:i:t:h")) >= 0) {
+		switch(c) {
+			case 'b':
+				by=atoi(optarg); break;
+			case 'f':
+				from=atoi(optarg); break;
+			case 'h':
+				return PrintUsage(); 
+			case 'i':
+				inputFileName=strdup(optarg); break;
+			case 't':
+				to=atoi(optarg); break;
+			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
+	}
 
-		DistInitialize(&dist);
-		AlignedReadInitialize(&a);
-		counter = 0;
-		fprintf(stderr, "Currently on:\n0");
-		/* Read in each match */
-		while(EOF != AlignedReadRead(&a, fpIn)) {
-			if(counter%ROTATE_NUM==0) {
-				fprintf(stderr, "\r%lld",
-						(long long int)counter);
-			}
-			counter++;
-			/* Add */
-			for(i=0;i<a.numEnds;i++) {
-				DistAdd(&dist, &a.ends[i], from, by, to);
-			}
-			/* Free */
-			AlignedReadFree(&a);
+	if(argc != optind) {
+		return PrintUsage();
+	}
+	if(NULL == inputFileName) {
+		PrintError(Name, "inputFileName", "Command line option", Exit, InputArguments);
+	}
+	if(by < 1) {
+		PrintError(Name, "by < 1", "Command line option", Exit, InputArguments);
+	}
+	if(to <= from) {
+		PrintError(Name, "to <= from", "Command line option", Exit, InputArguments);
+	}
+
+	/* Open the input file */
+	if(!(fpIn=gzopen(inputFileName, "rb"))) {
+		PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
+	}
+
+	DistInitialize(&dist);
+	AlignedReadInitialize(&a);
+	counter = 0;
+	fprintf(stderr, "Currently on:\n0");
+	/* Read in each match */
+	while(EOF != AlignedReadRead(&a, fpIn)) {
+		if(counter%ROTATE_NUM==0) {
+			fprintf(stderr, "\r%lld",
+					(long long int)counter);
 		}
-		fprintf(stderr, "\r%lld\n",
-				(long long int)counter);
-
-		/* Close the input file */
-		gzclose(fpIn);
-
-		/* Print */
-		DistPrint(&dist, stdout);
-
+		counter++;
+		/* Add */
+		for(i=0;i<a.numEnds;i++) {
+			DistAdd(&dist, &a.ends[i], from, by, to);
+		}
 		/* Free */
-		DistFree(&dist);
+		AlignedReadFree(&a);
+	}
+	fprintf(stderr, "\r%lld\n",
+			(long long int)counter);
 
-		fprintf(stderr, "Terminating successfully!\n");
-	}
-	else {
-		fprintf(stderr, "Usage: %s [OPTIONS]\n", Name);
-		fprintf(stderr, "\t<bfast aligned file>\n");
-		fprintf(stderr, "\t<bins: from>\n");
-		fprintf(stderr, "\t<bins: by>\n");
-		fprintf(stderr, "\t<bins: to>\n");
-	}
+	/* Close the input file */
+	gzclose(fpIn);
+
+	/* Print */
+	DistPrint(&dist, stdout);
+
+	/* Free */
+	DistFree(&dist);
+	free(inputFileName);
+
+	fprintf(stderr, "Terminating successfully!\n");
 	return 0;
 }
 

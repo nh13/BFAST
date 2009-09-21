@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <limits.h>
+#include <config.h>
 #include <pthread.h>
 
 #include "../bfast/BLibDefinitions.h"
@@ -23,87 +24,96 @@
  * the bfast index file.
  * */
 
+int PrintUsage()
+{
+	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
+	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
+	fprintf(stderr, "\t-i\tFILE\tSpecifies the bfast index file name\n");
+	fprintf(stderr, "\t-s\tINT\tStrands 0: both strands 1: forward only 2: reverse only\n");
+	fprintf(stderr, "\t-n\tINT\tSpecifies the number of threads to use (Default 1)\n");
+	fprintf(stderr, "\t-A\tINT\t0: NT space 1: Color space\n");
+	fprintf(stderr, "\t-T\tDIR\tSpecifies the directory in which to store temporary file\n");
+	fprintf(stderr, "\t-h\t\tprints this help message\n");
+	fprintf(stderr, "\nsend bugs to %s\n",
+			PACKAGE_BUGREPORT);
+	return 1;
+}
+
 int main(int argc, char *argv[]) 
 {
-	char indexFileName[MAX_FILENAME_LENGTH]="\0";
-	char distributionFileName[MAX_FILENAME_LENGTH]="\0";
-	char rgFileName[MAX_FILENAME_LENGTH]="\0";
-	char outputDir[MAX_FILENAME_LENGTH]="\0";
-	char outputID[MAX_FILENAME_LENGTH]="\0";
-	char tmpDir[MAX_FILENAME_LENGTH]="\0";
-	int numMismatches = 0;
-	int numThreads = 0;
-	int whichStrand;
+	char *indexFileName=NULL;
+	char *fastaFileName=NULL;
+	char tmpDir[MAX_FILENAME_LENGTH]="./";
+	int numThreads = 1;
+	int whichStrand = 0;
+	int space = NTSpace;
+	char c;
+	RGBinary rg;
+	RGIndex index;
 
-	if(argc == 9) {
-		RGBinary rg;
-		RGIndex index;
-
-		strcpy(rgFileName, argv[1]);
-		strcpy(indexFileName, argv[2]);
-		numMismatches = atoi(argv[3]);
-		whichStrand = atoi(argv[4]);
-		strcpy(outputDir, argv[5]);
-		strcpy(outputID, argv[6]);
-		strcpy(tmpDir, argv[7]);
-		numThreads = atoi(argv[8]);
-		assert(whichStrand == BothStrands || whichStrand == ForwardStrand || whichStrand == ReverseStrand);
-		assert(0 == numMismatches);
-
-		/* Create the distribution file name */
-		sprintf(distributionFileName, "%s%s.dist.%d",
-				outputDir,
-				outputID,
-				numMismatches);
-
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "../bfast/Starting %s.\n", Name);
-
-		/* Read in the rg binary file */
-		RGBinaryReadBinary(&rg, rgFileName);
-
-		/* Read the index */
-		RGIndexRead(&index, indexFileName);
-
-		fprintf(stderr, "%s", BREAK_LINE);
-		PrintDistribution(&index, 
-				&rg, 
-				distributionFileName,
-				numMismatches,
-				whichStrand,
-				tmpDir,
-				numThreads); 
-		fprintf(stderr, "%s", BREAK_LINE);
-
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Cleaning up.\n");
-		/* Delete the index */
-		RGIndexDelete(&index);
-		/* Delete the rg */
-		RGBinaryDelete(&rg);
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Terminating successfully!\n");
-		fprintf(stderr, "%s", BREAK_LINE);
+	while((c = getopt(argc, argv, "f:i:n:s:A:T:h")) >= 0) {
+		switch(c) {
+			case 'f': fastaFileName=strdup(optarg); break;
+			case 'h': return PrintUsage();
+			case 'i': indexFileName=strdup(optarg); break;
+			case 's': whichStrand=atoi(optarg); break;
+			case 'n': numThreads=atoi(optarg); break;
+			case 'A': space=atoi(optarg); break;
+			case 'T': strcpy(tmpDir, optarg); break;
+			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
+		}
 	}
-	else {
-		fprintf(stderr, "Usage: bindexdist [OPTIONS]\n");
-		fprintf(stderr, "\t\t<bfast reference genome file name>\n");
-		fprintf(stderr, "\t\t<bfast index file name>\n");
-		fprintf(stderr, "\t\t<number of mismatches>\n");
-		fprintf(stderr, "\t\t<0: consider both strands 1: forward strand only 2: reverse strand only>\n");
-		fprintf(stderr, "\t\t<output directory>\n");
-		fprintf(stderr, "\t\t<output id>\n");
-		fprintf(stderr, "\t\t<tmp file directory>\n");
-		fprintf(stderr, "\t\t<number of threads>\n");
+
+	if(argc == optind) {
+		return PrintUsage();
 	}
+
+	if(NULL == indexFileName) {
+		PrintError(Name, "indexFileName", "Command line option", Exit, InputArguments);
+	}
+	if(NULL == fastaFileName) {
+		PrintError(Name, "fastaFileName", "Command line option", Exit, InputArguments);
+	}
+
+	assert(whichStrand == BothStrands || whichStrand == ForwardStrand || whichStrand == ReverseStrand);
+
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "../Starting %s.\n", Name);
+
+	/* Read in the rg binary file */
+	RGBinaryReadBinary(&rg, space, fastaFileName);
+
+	/* Read the index */
+	RGIndexRead(&index, indexFileName);
+
+	if(index.space != space) {
+		PrintError(Name, "space", "The index and space do not match", Exit, InputArguments); 
+	}
+
+	fprintf(stderr, "%s", BREAK_LINE);
+	PrintDistribution(&index, 
+			&rg, 
+			whichStrand,
+			tmpDir,
+			numThreads); 
+	fprintf(stderr, "%s", BREAK_LINE);
+
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Cleaning up.\n");
+	/* Delete the index */
+	RGIndexDelete(&index);
+	/* Delete the rg */
+	RGBinaryDelete(&rg);
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Terminating successfully!\n");
+	fprintf(stderr, "%s", BREAK_LINE);
 
 	return 0;
 }
 
 void PrintDistribution(RGIndex *index, 
 		RGBinary *rg,
-		char *distributionFileName,
-		int numMismatches,
 		int whichStrand,
 		char *tmpDir,
 		int numThreads)
@@ -144,7 +154,6 @@ void PrintDistribution(RGIndex *index,
 				rg,
 				(index->contigType==Contig_8)?(index->contigs_8[curIndex]):(index->contigs_32[curIndex]),
 				index->positions[curIndex],
-				numMismatches,
 				&numForward, 
 				&numReverse,
 				&read,
@@ -309,10 +318,8 @@ void PrintDistribution(RGIndex *index,
 	   */
 
 	/* Open the output file */
-	fprintf(stderr, "Outputting to %s.\n",
-			distributionFileName);
-	if(!(fp = fopen(distributionFileName, "w"))) {
-		PrintError(FnName, distributionFileName, "Could not open file for writing", Exit, OpenFileError);
+	if(!(fp = fdopen(fileno(stdout), "w"))) {
+		PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 	}
 
 	/* Print */
@@ -621,7 +628,6 @@ void GetMatchesFromContigPos(RGIndex *index,
 		RGBinary *rg,
 		uint32_t curContig,
 		uint32_t curPos,
-		int numMismatches,
 		int64_t *numForward,
 		int64_t *numReverse, 
 		char **read,

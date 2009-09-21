@@ -16,8 +16,8 @@ typedef struct {
 	int threadID;
 } ThreadData;
 
-void PrintDistribution(RGIndex*, RGBinary*, char*, int, int, char*, int);
-void GetMatchesFromContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int, int64_t*, int64_t*, char**, char**);
+void PrintDistribution(RGIndex*, RGBinary*, int, char*, int);
+void GetMatchesFromContigPos(RGIndex*, RGBinary*, uint32_t, uint32_t, int64_t*, int64_t*, char**, char**);
 void *MergeSortReads(void *arg);
 void MergeSortReadsHelper(char**, int64_t*, int64_t, int64_t, int64_t, int64_t, int, double*, char*, int);
 void MergeHelper(char**, int64_t*, int64_t, int64_t, int64_t, char*, int);

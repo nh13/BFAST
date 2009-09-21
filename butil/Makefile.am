@@ -1,17 +1,11 @@
 bin_PROGRAMS = balignmentscoredistribution \
 			   balignsim \
 			   bevalsim \
-			   bexonify \
 			   bgeneratereads \
-			   berrordistribution \
 			   bindexdist \
 			   bindexhist \
-			   bindexhistchr \
-			   bpairedenddist \
 			   brepeat \
-			   btestindexes \
-			   btranslocations
-
+			   btestindexes 
 
 balignmentscoredistribution_SOURCES = \
 									  ../bfast/BError.c	../bfast/BError.h \
@@ -19,6 +13,7 @@ balignmentscoredistribution_SOURCES = \
 									  ../bfast/BLib.c	../bfast/BLib.h \
 									  ../bfast/RGBinary.c ../bfast/RGBinary.h \
 									  ../bfast/RGRanges.c ../bfast/RGRanges.h \
+									  ../bfast/RGMatch.c ../bfast/RGMatch.h \
 									  ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
 									  ../bfast/AlignedReadConvert.c	../bfast/AlignedReadConvert.h \
 									  ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
@@ -66,18 +61,6 @@ bevalsim_SOURCES = \
 
 bevalsim_LDADD = -lz 
 
-bexonify_SOURCES = \
-				   ../bfast/BError.c	../bfast/BError.h \
-				   ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-				   ../bfast/RGIndex.c	../bfast/RGIndex.h \
-				   ../bfast/BLib.c	../bfast/BLib.h \
-				   ../bfast/RGBinary.c ../bfast/RGBinary.h \
-				   ../bfast/RGMatch.c ../bfast/RGMatch.h \
-				   ../bfast/RGRanges.c ../bfast/RGRanges.h \
-				   bexonify.c	bexonify.h
-
-bexonify_LDADD = -lz
-
 bgeneratereads_SOURCES = \
 						 ../bfast/BError.c	../bfast/BError.h \
 						 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
@@ -90,21 +73,6 @@ bgeneratereads_SOURCES = \
 						 bgeneratereads.c	bgeneratereads.h 
 
 bgeneratereads_LDADD = -lz  
-
-berrordistribution_SOURCES = \
-							 ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
-							 ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-							 ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
-							 ../bfast/BError.c	../bfast/BError.h \
-							 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-							 ../bfast/RGIndex.c	../bfast/RGIndex.h \
-							 ../bfast/BLib.c	../bfast/BLib.h \
-							 ../bfast/RGBinary.c ../bfast/RGBinary.h \
-							 ../bfast/RGMatch.c ../bfast/RGMatch.h \
-							 ../bfast/RGRanges.c ../bfast/RGRanges.h \
-							 berrordistribution.c	berrordistribution.h 
-
-berrordistribution_LDADD = -lz  
 
 bindexdist_SOURCES = \
 					 ../bfast/BError.c	../bfast/BError.h \
@@ -119,20 +87,6 @@ bindexdist_SOURCES = \
 
 bindexdist_LDADD = -lz
 
-bindexhistchr_SOURCES = \
-					 ../bfast/BError.c	../bfast/BError.h \
-					 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-					 ../bfast/RGIndex.c	../bfast/RGIndex.h \
-					 ../bfast/BLib.c	../bfast/BLib.h \
-					 ../bfast/RGBinary.c ../bfast/RGBinary.h \
-					 ../bfast/RGMatch.c ../bfast/RGMatch.h \
-					 ../bfast/RGRanges.c ../bfast/RGRanges.h \
-					 ../bfast/RGReads.c	../bfast/RGReads.h \
-					 bindexhistchr.c	bindexhistchr.h
-
-bindexhistchr_LDADD = -lz
-
-
 bindexhist_SOURCES = \
 					 ../bfast/BError.c	../bfast/BError.h \
 					 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
@@ -145,23 +99,6 @@ bindexhist_SOURCES = \
 					 bindexhist.c	bindexhist.h
 
 bindexhist_LDADD = -lz
-
-bpairedenddist_SOURCES = \
-						 ../bfast/BError.c	../bfast/BError.h \
-						 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-						 ../bfast/RGIndex.c	../bfast/RGIndex.h \
-						 ../bfast/BLib.c	../bfast/BLib.h \
-						 ../bfast/RGBinary.c ../bfast/RGBinary.h \
-						 ../bfast/RGMatch.c ../bfast/RGMatch.h \
-						 ../bfast/RGMatches.c ../bfast/RGMatches.h \
-						 ../bfast/RGRanges.c ../bfast/RGRanges.h \
-						 ../bfast/RGReads.c	../bfast/RGReads.h \
-						 ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
-						 ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
-						 ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-						 bpairedenddist.c	bpairedenddist.h
-
-bpairedenddist_LDADD = -lz
 
 brepeat_SOURCES = \
 				  ../bfast/BError.c	../bfast/BError.h \
@@ -176,6 +113,7 @@ brepeat_SOURCES = \
 brepeat_LDADD = -lz 
 
 btestindexes_SOURCES = \
+					   ../bfast/RGMatch.c ../bfast/RGMatch.h \
 					   ../bfast/RGRanges.c ../bfast/RGRanges.h \
 					   ../bfast/RGBinary.c ../bfast/RGBinary.h \
 					   ../bfast/RGIndex.c	../bfast/RGIndex.h \
@@ -185,20 +123,3 @@ btestindexes_SOURCES = \
 					   btestindexes.c	btestindexes.h
 
 btestindexes_LDADD = -lz
-
-btranslocations_SOURCES = \
-						  ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
-						  ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-						  ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
-						  ../bfast/BError.c	../bfast/BError.h \
-						  ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
-						  ../bfast/RGIndex.c	../bfast/RGIndex.h \
-						  ../bfast/BLib.c	../bfast/BLib.h \
-						  ../bfast/RGBinary.c ../bfast/RGBinary.h \
-						  ../bfast/RGMatch.c ../bfast/RGMatch.h \
-						  ../bfast/RGMatches.c ../bfast/RGMatches.h \
-						  ../bfast/RGRanges.c ../bfast/RGRanges.h \
-						  ../bfast/RGReads.c	../bfast/RGReads.h \
-						  btranslocations.c btranslocations.h
-
-btranslocations_LDADD = -lz 

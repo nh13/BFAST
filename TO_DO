@@ -1,12 +1,6 @@
 ===============================================================================
 General
 - queues should be for the input as well as the output
-- default to insertion sorts for small arrays in:
-RGIndex [X]
-RGMatch [X]
-AlignedEntry [X]
-RGRanges [X]
-RGReads [X]
 ===============================================================================
 
 
@@ -19,6 +13,7 @@ match
 localalign
 - use bit string for each match to constrain the local alignment
   - solve how to do this in "gapped" and "ungapped" modes
+- remove duplicates should be based on starting position and score (?)
 ===============================================================================
 
 ===============================================================================

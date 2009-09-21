@@ -425,13 +425,13 @@ void *RunDynamicProgrammingThread(void *arg)
 	int queueLength=data->queueLength;
 	/* Local variables */
 	char *FnName = "RunDynamicProgrammingThread";
-	AlignedRead aEntries;
 	int32_t i, j, wasAligned;
 	int numAlignedRead=0;
 	int numMatches=0;
 	int ctrOne=0;
 	int ctrTwo=0;
 
+	AlignedRead *alignedQueue=NULL;
 	RGMatches *matchQueue=NULL;
 	int32_t matchQueueLength=queueLength;
 	int32_t numMatchesRead=0;
@@ -441,6 +441,10 @@ void *RunDynamicProgrammingThread(void *arg)
 	if(NULL == matchQueue) {
 		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
+	alignedQueue = malloc(sizeof(AlignedRead)*matchQueueLength);
+	if(NULL == alignedQueue) {
+		PrintError(FnName, "alignedQueue", "Could not allocate memory", Exit, MallocMemory);
+	}
 
 	/* Initialize */
 
@@ -448,7 +452,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	while(0 != (numMatchesRead = GetMatches(inputFP, matchQueue, matchQueueLength))) {
 
 		for(i=0;i<numMatchesRead;i++) {
-			AlignedReadInitialize(&aEntries);
+			AlignedReadInitialize(&alignedQueue[i]);
 
 			wasAligned=0;
 			if(1 == IsValidMatch(&matchQueue[i])) {
@@ -463,7 +467,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				/* Update the number of local alignments performed */
 				data->numLocalAlignments += AlignRGMatches(&matchQueue[i],
 						rg,
-						&aEntries,
+						&alignedQueue[i],
 						space,
 						offsetLength,
 						sm,
@@ -475,40 +479,36 @@ void *RunDynamicProgrammingThread(void *arg)
 						forceMirroring);
 
 				/* Output alignment */
-				for(j=wasAligned=0;0==wasAligned && j<aEntries.numEnds;j++) {
-					if(0 < aEntries.ends[j].numEntries) {
+				for(j=wasAligned=0;0==wasAligned && j<alignedQueue[i].numEnds;j++) {
+					if(0 < alignedQueue[i].ends[j].numEntries) {
 						wasAligned = 1;
 					}
 				}
 
 				if(1 == wasAligned) {
 					/* Remove duplicates */
-					AlignedReadRemoveDuplicates(&aEntries,
+					AlignedReadRemoveDuplicates(&alignedQueue[i],
 							AlignedEntrySortByAll);
 					/* Updating mapping quality */
-					AlignedReadUpdateMappingQuality(&aEntries, 
+					AlignedReadUpdateMappingQuality(&alignedQueue[i], 
 							mismatchScore, 
 							avgMismatchQuality);
 				}
 			}
 			else {
-				/* Copy over to aEntries */
-				AlignedReadAllocate(&aEntries,
+				/* Copy over to alignedQueue[i] */
+				AlignedReadAllocate(&alignedQueue[i],
 						matchQueue[i].readName,
 						matchQueue[i].numEnds,
 						space);
 				for(j=0;j<matchQueue[i].numEnds;j++) {
-					AlignedEndAllocate(&aEntries.ends[j],
+					AlignedEndAllocate(&alignedQueue[i].ends[j],
 							matchQueue[i].ends[j].read,
 							matchQueue[i].ends[j].qual,
 							0);
 				}
 			}
-				
-			/* Print */
-			AlignedReadPrint(&aEntries,
-					outputFP);
-
+			
 			if(0 == wasAligned) {
 				data->numNotAligned++;
 			}
@@ -517,8 +517,16 @@ void *RunDynamicProgrammingThread(void *arg)
 			}
 
 			/* Free memory */
-			AlignedReadFree(&aEntries);
 			RGMatchesFree(&matchQueue[i]);
+		}
+
+		/* Print */
+		for(i=0;i<numMatchesRead;i++) {
+			AlignedReadPrint(&alignedQueue[i],
+					outputFP);
+
+			/* Free memory */
+			AlignedReadFree(&alignedQueue[i]);
 		}
 	}
 	if(VERBOSE >= 0) {
@@ -530,7 +538,6 @@ void *RunDynamicProgrammingThread(void *arg)
 	return arg;
 }
 
-//while(0 != (numMatchesRead = GetMatches(inputFP, m))) {
 int32_t GetMatches(gzFile fp, RGMatches *m, int32_t maxToRead)
 {
 	int32_t numRead = 0;
