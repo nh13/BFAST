@@ -20,7 +20,7 @@
 int PrintUsage()
 {
 	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
-	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\nUsage:%s [options]\n", Name);
 	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
 	fprintf(stderr, "\t-m\tINT\tMinimum unit length\n");
 	fprintf(stderr, "\t-M\tINT\tMaximum unit length\n");
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	RGBinary rg;
 	char c;
 
-	while((c = getopt(argc, argv, "f:h:m:r:M:")) >= 0) {
+	while((c = getopt(argc, argv, "f:m:r:M:h")) >= 0) {
 		switch(c) {
 			case 'f': fastaFileName=strdup(optarg); break;
 			case 'h': return PrintUsage();

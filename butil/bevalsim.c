@@ -26,7 +26,6 @@ int PrintUsage()
 	fprintf(stderr, "\nUsage:%s [options]\n", Name);
 	fprintf(stderr, "\t-i\tFILE\tinput bfast matches file or bfast aligned file\n");
 	fprintf(stderr, "\t-r\tFILE\treads file (FASTQ)\n"); 
-	fprintf(stderr, "\t-o\tSTRING\toutput id\n");
 	fprintf(stderr, "\t-h\t\tprints this help message\n");
 	fprintf(stderr, "\nsend bugs to %s\n",
 			PACKAGE_BUGREPORT);
@@ -37,14 +36,12 @@ int main(int argc, char *argv[])
 {
 	char *inputFileName=NULL;
 	char *readsFile=NULL;
-	char *outputID=NULL;
 	int c, type;
 
-	while((c = getopt(argc, argv, "i:o:r:h")) >= 0) {
+	while((c = getopt(argc, argv, "i:r:h")) >= 0) {
 		switch(c) {
 			case 'h': return PrintUsage();
 			case 'i': inputFileName=strdup(optarg); break;
-			case 'o': outputID=strdup(optarg); break;
 			case 'r': readsFile=strdup(optarg); break;
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
@@ -57,9 +54,6 @@ int main(int argc, char *argv[])
 	/* Check cmd line options */
 	if(NULL == inputFileName) {
 		PrintError(Name, "inputFileName", "Command line arguments", Exit, InputArguments);
-	}
-	if(NULL == outputID) {
-		PrintError(Name, "outputID", "Command line arguments", Exit, InputArguments);
 	}
 	if(NULL == readsFile) {
 		PrintError(Name, "readsFile", "Command line arguments", Exit, InputArguments);
@@ -78,7 +72,6 @@ int main(int argc, char *argv[])
 	/* Run program */
 	Evaluate(inputFileName, 
 			readsFile, 
-			outputID,
 			type
 			);
 
@@ -707,7 +700,6 @@ void StatsDelete(Stats *s)
 
 void Evaluate(char *inputFileName,
 		char *readsFile,
-		char *outputID,
 		int type)
 {
 	char *FnName="Evaluate";
@@ -716,7 +708,6 @@ void Evaluate(char *inputFileName,
 	ReadType r;
 	Stats s;
 	int32_t count;
-	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 
 	StatsInitialize(&s);
 
@@ -747,16 +738,11 @@ void Evaluate(char *inputFileName,
 	}
 	fprintf(stderr, "\r%d\n", count);
 
-	/* Create output file name */
-	sprintf(outputFileName, "%s.evalsim.%s.txt",
-			PROGRAM_NAME,
-			outputID);
 	/* Open the output file */
 	fprintf(stderr, "%s", BREAK_LINE);
-	fprintf(stderr, "Outputting to %s.\n",
-			outputFileName);
-	if(!(fpOut=gzopen(outputFileName, "wb"))) {
-		PrintError(FnName, outputFileName, "Could not open file for writing", Exit, WriteFileError);
+	fprintf(stderr, "Outputting...\n");
+	if(!(fpOut=gzdopen(fileno(stdout), "wb"))) {
+		PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, WriteFileError);
 	}
 
 	/* Print Stats */

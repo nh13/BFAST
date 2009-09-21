@@ -28,7 +28,7 @@
 int PrintUsage()
 {
 	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
-	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\nUsage:%s [options]\n", Name);
 	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
 	fprintf(stderr, "\t-i\tFILE\tSpecifies the bfast index file name\n");
 	fprintf(stderr, "\t-s\tINT\tStrands 0: both strands 1: forward only 2: reverse only\n");
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
-	if(argc == optind) {
+	if(argc != optind) {
 		return PrintUsage();
 	}
 

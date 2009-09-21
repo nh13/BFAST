@@ -5,7 +5,7 @@
 #define SIMREAD_MAX_GETRANDOM_FAILURES 1000000
 #define SIMREAD_MAX_MODIFY_FAILURES 1000000
 
-#include "../bfast/bfast/BLibDefinitions.h"
+#include "../bfast/BLibDefinitions.h"
 
 typedef struct {
 	char *readOne;

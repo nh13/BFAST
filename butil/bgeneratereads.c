@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	char c;
 	FILE *fpIn=NULL;
 
-	while((c = getopt(argc, argv, "f:r:A:")) >= 0) {
+	while((c = getopt(argc, argv, "f:r:A:h")) >= 0) {
 		switch(c) {
 			case 'f': fastaFileName=strdup(optarg);break;
 			case 'h': return PrintUsage();

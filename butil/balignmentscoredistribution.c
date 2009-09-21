@@ -22,7 +22,7 @@
 int PrintUsage()
 {
 	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
-	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
+	fprintf(stderr, "\nUsage:%s [options]\n", Name);
 	fprintf(stderr, "\t-i\tFILE\tthe bfast aligned file to analyez\n");
 	fprintf(stderr, "\t-t\tINT\tto (bin range)\n");
 	fprintf(stderr, "\t-f\tINT\tfrom (bin range)\n");

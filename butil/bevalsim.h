@@ -58,7 +58,7 @@ void StatsAdd(Stats*, ReadType*, int);
 int StatCompare(Stat*, ReadType*, int, int, char, int, int, char, int*);
 void StatsDelete(Stats*);
 
-void Evaluate(char*, char*, char*, int);
+void Evaluate(char*, char*, int);
 void ReadInReads(char*, Stats*);
 
 #endif
