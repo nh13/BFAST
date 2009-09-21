@@ -224,7 +224,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
 	fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
-	fprintf(fp, "unmappedFileName:\t\t%s\n", args->unmappedFileName);
+	fprintf(fp, "unmappedFileName:\t%s\n", args->unmappedFileName);
 	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
 	fprintf(fp, "timing:\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);

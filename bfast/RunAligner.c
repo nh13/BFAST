@@ -74,8 +74,8 @@ void RunAligner(char *fastaFileName,
 
 	/* Open current match file */
 	if(NULL == matchFileName) {
-		if((matchFP=gzdopen(fileno(stdout), "rb"))==0) {
-			PrintError(FnName, "stdout", "Could not open stdout for reading", Exit, OpenFileError);
+		if((matchFP=gzdopen(fileno(stdin), "rb"))==0) {
+			PrintError(FnName, "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
 	else {
@@ -362,6 +362,7 @@ void RunDynamicProgramming(gzFile matchFP,
 				if(VERBOSE >=0 && ctr%ALIGN_ROTATE_NUM == 0) {
 					fprintf(stderr, "\r[%d]", ctr);
 				}
+				ctr++;
 				continueReading=1;
 				/* Print it out */
 				AlignedReadPrint(&aEntries,
@@ -463,7 +464,7 @@ void *RunDynamicProgrammingThread(void *arg)
 				if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
 					fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 				}
-				
+
 				/* Update the number of local alignments performed */
 				data->numLocalAlignments += AlignRGMatches(&matchQueue[i],
 						rg,
@@ -508,7 +509,7 @@ void *RunDynamicProgrammingThread(void *arg)
 							0);
 				}
 			}
-			
+
 			if(0 == wasAligned) {
 				data->numNotAligned++;
 			}
@@ -518,6 +519,10 @@ void *RunDynamicProgrammingThread(void *arg)
 
 			/* Free memory */
 			RGMatchesFree(&matchQueue[i]);
+		}
+
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
 
 		/* Print */

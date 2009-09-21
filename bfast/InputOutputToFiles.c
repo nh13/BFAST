@@ -110,6 +110,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			counter++;
 		}
 
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\r%lld",
+					(long long int)counter);
+		}
+
 		/* Print to Output file */
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
 			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, outputFormat, BinaryOutput);

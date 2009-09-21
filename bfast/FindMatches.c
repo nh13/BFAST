@@ -124,12 +124,12 @@ void FindMatches(
 	/* open read file */
 	if(NULL == readFileName) {
 		if(0 == (seqFP = fdopen(fileno(stdin), "r"))) {
-		PrintError("FindMatches", "stdin", "Could not open stdin for reading", Exit, OpenFileError);
+			PrintError("FindMatches", "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
 	else {
 		if(0 == (seqFP = fopen(readFileName, "r"))) {
-		PrintError("FindMatches", readFileName, "Could not open readFileName for reading", Exit, OpenFileError);
+			PrintError("FindMatches", readFileName, "Could not open readFileName for reading", Exit, OpenFileError);
 		}
 	}
 	/* Allocate memory for the temp file pointers - one for each thread */
@@ -170,7 +170,7 @@ void FindMatches(
 
 	/* Open output file */
 	if(0 == (outputFP=gzdopen(fileno(stdout), "wb"))) {
-	   PrintError("FindMatches", "stdout", "Could not open stdout for writing", Exit, OpenFileError);
+		PrintError("FindMatches", "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 	}
 
 	if(VERBOSE >= 0) {
@@ -875,10 +875,15 @@ void *FindMatchesInIndexThread(void *arg)
 					foundMatch = 1;
 				}
 
-				if(1 == foundMatch) {
-					data->numMatches++;
-				}
 			}
+			if(1 == foundMatch) {
+				data->numMatches++;
+			}
+		}
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
+					threadID,
+					numRead);
 		}
 
 		/* Output to file */

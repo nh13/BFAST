@@ -1049,6 +1049,17 @@ void RGIndexMergeSortHelper(RGIndex *index,
 
 	if(high - low + 1 <= RGINDEX_SHELL_SORT_MAX) {
 		RGIndexShellSort(index, rg, low, high);
+
+		if(VERBOSE >= 0 &&
+				showPercentComplete == 1) {
+			assert(NULL!=curPercentComplete);
+			if((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
+				while((*curPercentComplete) < 100.0*((double)(low - startLow))/total) {
+					(*curPercentComplete) += RGINDEX_SORT_ROTATE_INC;
+				}
+				PrintPercentCompleteLong((*curPercentComplete));
+			}
+		}
 		return;
 	}
 
