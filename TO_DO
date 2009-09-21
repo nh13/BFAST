@@ -1,19 +1,13 @@
 ===============================================================================
 General
-- queues should be for the input as well as the output
-===============================================================================
-
-
-===============================================================================
-match
-- save bit string for each match that represents where each key hit in the read
 ===============================================================================
 
 ===============================================================================
 localalign
 - use bit string for each match to constrain the local alignment
   - solve how to do this in "gapped" and "ungapped" modes
-- remove duplicates should be based on starting position and score (?)
+- remove duplicates in AlingedEntry should be based on starting position and 
+  score (?)
 ===============================================================================
 
 ===============================================================================
@@ -23,6 +17,6 @@ postprocess
 ===============================================================================
 
 ===============================================================================
-butil
-- fix how brg files are inputted.  Add getopt to all.
+manual
+- update the manual based on the changes
 ===============================================================================

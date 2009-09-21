@@ -6,12 +6,9 @@
 #include <sys/types.h>
 #include <string.h>
 #include <pthread.h>
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 #include <zlib.h>
 #include <ctype.h>
-#include <sys/stat.h> 
 #include <fcntl.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
