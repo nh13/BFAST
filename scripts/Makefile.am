@@ -1,11 +1,12 @@
 bin_PROGRAMS = solid2fastq
 
 solid2fastq_SOURCES = \
-					  ../BError.c	../BError.h \
-					  ../RGIndex.c  ../RGIndex.h \
-					  ../BLib.c ../BLib.h \
-					  ../RGBinary.c ../RGBinary.h \
-					  ../RGRanges.c ../RGRanges.h \
+					  ../bfast/BError.c	../bfast/BError.h \
+					  ../bfast/RGIndex.c  ../bfast/RGIndex.h \
+					  ../bfast/BLib.c ../bfast/BLib.h \
+					  ../bfast/RGBinary.c ../bfast/RGBinary.h \
+					  ../bfast/RGRanges.c ../bfast/RGRanges.h \
+					  ../bfast/RGMatch.c ../bfast/RGMatch.h \
 					  solid2fastq.c
 
 solid2fastq_LDADD = -lm -lz

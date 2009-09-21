@@ -4,9 +4,9 @@
 #include <config.h>
 #include <unistd.h>
 #include <string.h>
-#include "../BLibDefinitions.h"
-#include "../BError.h"
-#include "../BLib.h"
+#include "../bfast/BLibDefinitions.h"
+#include "../bfast/BError.h"
+#include "../bfast/BLib.h"
 
 typedef struct {
 	int32_t to_print; // whether this entry should be printed (must be populated)
