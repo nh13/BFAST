@@ -19,6 +19,7 @@
 #include "ScoringMatrix.h"
 #include "AlignNTSpace.h"
 #include "AlignColorSpace.h"
+#include "RGMatch.h"
 #include "Align.h"
 
 int AlignRGMatches(RGMatches *m,
@@ -113,6 +114,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	char *FnName="AlignRGMatchOneEnd";
 	int32_t i;
 	char **references=NULL;
+	char **masks=NULL;
 	int32_t *referenceLengths=NULL;
 	int32_t *referencePositions=NULL;
 	char read[SEQUENCE_LENGTH]="\0";
@@ -140,9 +142,14 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			m->qual,
 			m->numEntries);
 
+	/* Get all the references */
 	references = malloc(sizeof(char*)*m->numEntries);
 	if(NULL==references) {
 		PrintError(FnName, "references", "Could not allocate memory", Exit, MallocMemory);
+	}
+	masks = malloc(sizeof(char*)*m->numEntries);
+	if(NULL==masks) {
+		PrintError(FnName, "masks", "Could not allocate memory", Exit, MallocMemory);
 	}
 	referenceLengths = malloc(sizeof(int32_t)*m->numEntries);
 	if(NULL==referenceLengths) {
@@ -167,6 +174,9 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		assert(referenceLengths[ctr] > 0);
 		/* Initialize entries */
 		if(readLength <= referenceLengths[ctr]) {
+			/* Copy over mask */
+			masks[i] = RGMatchMaskToString(m->masks[i], m->readLength);
+			/* Update contig name and strand */
 			end->entries[ctr].contigNameLength = rg->contigs[m->contigs[i]-1].contigNameLength;
 			end->entries[ctr].contigName = malloc(sizeof(char)*(end->entries[ctr].contigNameLength+1));
 			if(NULL==end->entries[ctr].contigName) {
@@ -194,6 +204,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			/* Free retrieved reference sequence */
 			free(references[ctr]);
 			references[ctr]=NULL;
+			masks[ctr]=NULL;
 		}
 	}
 
@@ -242,9 +253,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 					referenceLengths[i],
 					sm,
 					&end->entries[i],
-					end->entries[i].strand,
 					referencePositions[i],
-					space)) {
+					end->entries[i].strand,
+					space,
+					offset)) {
 			foundExact=1;
 			if((*bestScore) < end->entries[i].score) {
 				(*bestScore) = end->entries[i].score;
@@ -256,8 +268,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	if(1==foundExact && bestOnly == BestOnly) {
 		for(i=0;i<end->numEntries;i++) {
 			free(references[i]);
+			free(masks[i]);
 		}
 		free(references);
+		free(masks);
 		free(referenceLengths);
 		free(referencePositions);
 		return;
@@ -270,6 +284,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		for(i=0;i<end->numEntries;i++) {
 			if(!(DBL_MIN < end->entries[i].score)) {
 				AlignUngapped(read,
+						masks[i],
 						readLength,
 						references[i],
 						referenceLengths[i],
@@ -292,8 +307,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 #endif
 			for(i=0;i<end->numEntries;i++) {
 				free(references[i]);
+				free(masks[i]);
 			}
 			free(references);
+			free(masks);
 			free(referenceLengths);
 			free(referencePositions);
 
@@ -308,14 +325,15 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	/* Run Full */
 	for(i=0;i<end->numEntries;i++) {
 		AlignFullWithBound(read,
+				masks[i],
 				readLength,
 				references[i],
 				referenceLengths[i],
 				sm,
 				&end->entries[i],
 				space,
-				end->entries[i].strand,
 				referencePositions[i],
+				end->entries[i].strand,
 				(BestOnly == bestOnly)?(*bestScore):end->entries[i].score,
 				matrixNT,
 				matrixCS);
@@ -326,8 +344,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 
 	for(i=0;i<end->numEntries;i++) {
 		free(references[i]);
+		free(masks[i]);
 	}
 	free(references);
+	free(masks);
 	free(referenceLengths);
 	free(referencePositions);
 }
@@ -339,45 +359,34 @@ int32_t AlignExact(char *read,
 		int32_t referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
-		char strand,
 		int32_t position,
-		int32_t space)
+		char strand,
+		int32_t space,
+		int32_t offset)
 {
 	char *FnName="AlignExact";
 	int32_t i;
-	int32_t offset;
+	int32_t foundOffset = -1;
 
-	offset = KnuthMorrisPratt(read, readLength, reference, referenceLength);
+	// Use this when we want to perform exact substring matching 
+	//foundOffset = KnuthMorrisPratt(read, readLength, reference, referenceLength);
 
-	if(offset < 0) {
+	// Use this when we want to perform exact string matching
+	for(i=0, foundOffset=offset;i<readLength;i++) {
+		if(ToUpper(read[i]) != ToUpper(reference[offset+i])) {
+			foundOffset = -1;
+			break;
+		}
+	}
+
+	if(foundOffset < 0) {
 		return -1;
 	}
 	else {
 		char prevReadBase = COLOR_SPACE_START_NT;
-		a->strand = strand;
-		a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - readLength - offset);
-		a->score = 0;
-		a->length = readLength;
-		a->referenceLength = readLength;
-
-		/* Allocate memory */
-		assert(NULL==a->read);
-		a->read = malloc(sizeof(char)*(a->length+1));
-		if(NULL==a->read) {
-			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
-		}
-		assert(NULL==a->reference);
-		a->reference = malloc(sizeof(char)*(a->length+1));
-		if(NULL==a->reference) {
-			PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
-		}
-		assert(NULL==a->colorError);
-		if(ColorSpace == space) {
-			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL==a->colorError) {
-				PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
-			}
-		}
+		char referenceAligned[SEQUENCE_LENGTH]="\0";
+		char colorErrorAligned[SEQUENCE_LENGTH]="\0";
+		int32_t score=0;
 
 		for(i=0;i<readLength;i++) {
 			if(ColorSpace == space) {
@@ -386,28 +395,34 @@ int32_t AlignExact(char *read,
 					PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 				}
 				/* Add score for color error, if any */
-				a->score += ScoringMatrixGetColorScore(curColor,
+				score += ScoringMatrixGetColorScore(curColor,
 						curColor,
 						sm);
 
-				a->colorError[i] = GAP;
+				colorErrorAligned[i] = GAP;
 			}
-			assert(ToLower(read[i]) == ToLower(reference[i+offset]));
-			a->score += ScoringMatrixGetNTScore(read[i], read[i], sm);
-			a->read[i] = read[i];
-			a->reference[i] = reference[i+offset];
+			//assert(ToLower(read[i]) == ToLower(reference[i+foundOffset]));
+			score += ScoringMatrixGetNTScore(read[i], read[i], sm);
+			referenceAligned[i] = reference[i+foundOffset];
 		}
-	}
-	a->read[a->length] = '\0';
-	a->reference[a->length] = '\0';
-	if(ColorSpace == space) {
-		a->colorError[a->length] = '\0';
+		referenceAligned[readLength]='\0';
+		colorErrorAligned[readLength]='\0';
+
+		AlignedEntryUpdateAlignment(a,
+				(FORWARD==strand) ? (position + foundOffset) : (position + referenceLength - readLength - foundOffset),
+				score,
+				readLength,
+				readLength,
+				read,
+				referenceAligned,
+				(NTSpace == space) ? NULL : colorErrorAligned);
 	}
 
 	return 1;
 }
 
 void AlignUngapped(char *read,
+		char *mask,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,
@@ -419,27 +434,32 @@ void AlignUngapped(char *read,
 		uint32_t position,
 		char strand)
 {
+	// Note: we do not allow any wiggle room in ungapped alignment
 	char *FnName="AlignUngapped";
 	switch(space) {
 		case NTSpace:
 			AlignNTSpaceUngapped(read,
+					mask,
 					readLength,
 					reference,
 					referenceLength,
+					unconstrained,
 					sm,
 					a,
-					(Unconstrained == unconstrained) ? offset : 0,
+					offset, //(Unconstrained == unconstrained) ? 0 : offset,
 					position,
 					strand);
 			break;
 		case ColorSpace:
 			AlignColorSpaceUngapped(read,
+					mask,
 					readLength,
 					reference,
 					referenceLength,
+					unconstrained,
 					sm,
 					a,
-					(Unconstrained == unconstrained) ? offset : 0,
+					offset, //(Unconstrained == unconstrained) ? 0 : offset,
 					position,
 					strand);
 			break;
@@ -450,14 +470,15 @@ void AlignUngapped(char *read,
 }
 
 void AlignFullWithBound(char *read,
+		char *mask,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		int32_t space,
-		char strand,
 		int32_t position,
+		char strand,
 		double lowerBound,
 		AlignMatrixNT ***matrixNT,
 		AlignMatrixCS ***matrixCS) 

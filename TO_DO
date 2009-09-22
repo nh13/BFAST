@@ -10,6 +10,7 @@ localalign
   score (?)
 - only consider N base (or extra color 4) when necessary (in the read or 
 		reference)
+- remove *ScoreNT
 ===============================================================================
 
 ===============================================================================

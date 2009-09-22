@@ -14,9 +14,11 @@
 
 /* TODO */
 void AlignColorSpaceUngapped(char *read,
+		char *mask,
 		int readLength,
 		char *reference,
 		int referenceLength,
+		int unconstrained,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		int offset,
@@ -29,27 +31,40 @@ void AlignColorSpaceUngapped(char *read,
 
 	int offsetAligned=-1;
 	int32_t prevScore[ALPHABET_SIZE+1];
-	int32_t prevScoreNT[ALPHABET_SIZE+1];
 	int prevNT[ALPHABET_SIZE+1][SEQUENCE_LENGTH];
 	int32_t maxScore = NEGATIVE_INFINITY;
-	int32_t maxScoreNT = NEGATIVE_INFINITY;
 	int maxNT[SEQUENCE_LENGTH];
 	char DNA[ALPHABET_SIZE+1] = "ACGTN";
 	char readAligned[SEQUENCE_LENGTH]="\0";
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
 	char colorErrorAligned[SEQUENCE_LENGTH]="\0";
+	int32_t alphabetSize = ALPHABET_SIZE+1;
 
 	assert(readLength <= referenceLength);
-	assert(2*offset <= referenceLength); // should be exact, but this is ok
+	assert(2*offset + readLength <= referenceLength); 
+
+	/* Check if there are any Ns or 0s */
+	alphabetSize=ALPHABET_SIZE;
+	for(i=0;i<readLength;i++) {
+		if(1 == RGBinaryIsBaseN(read[i])) {
+			alphabetSize++; // include room for the N
+			break;
+		}
+	}
+	for(i=offset;i<referenceLength-offset+1 && ALPHABET_SIZE==alphabetSize;i++) {
+		if(1 == RGBinaryIsBaseN(reference[i])) {
+			alphabetSize++; // include room for the N
+			break;
+		}
+	}
 
 	for(i=offset;i<referenceLength-readLength-offset+1;i++) { /* Starting position */
 		/* Initialize */
-		for(j=0;j<ALPHABET_SIZE+1;j++) {
+		for(j=0;j<alphabetSize;j++) {
 			if(DNA[j] == COLOR_SPACE_START_NT) { 
-				prevScore[j] = prevScoreNT[j] = 0.0;
+				prevScore[j] = 0.0;
 			}
 			else {
-				prevScore[j] = prevScoreNT[j] = NEGATIVE_INFINITY;
 			}
 		}
 		for(j=0;j<readLength;j++) { /* Position in the alignment */
@@ -66,77 +81,93 @@ void AlignColorSpaceUngapped(char *read,
 				PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 			}
 			int32_t nextScore[ALPHABET_SIZE+1];
-			int32_t nextScoreNT[ALPHABET_SIZE+1];
 			char nextNT[ALPHABET_SIZE+1];
-			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+			for(k=0;k<alphabetSize;k++) { /* To NT */
 
 				/* Get the best score to this NT */
 				int32_t bestScore = NEGATIVE_INFINITY;
-				int32_t bestScoreNT = NEGATIVE_INFINITY;
 				int bestNT=-1;
 				char bestColor = 'X';
+				int allowedNT[ALPHABET_SIZE+1];
 
-				for(l=0;l<ALPHABET_SIZE+1;l++) { /* From NT */
-					char convertedColor='X';
-					int32_t curScore = prevScore[l];
-					int32_t curScoreNT = prevScoreNT[l]; 
-					/* Get color */
-					if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
-						fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
-								l,
-								DNA[l],
-								k,
-								DNA[k]);
-						PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
+				if(Constrained == unconstrained) {
+					for(l=0;l<alphabetSize;l++) { /* From NT */
+						allowedNT[l]=0;
 					}
-					/* Add score for color error, if any */
-					curScore += ScoringMatrixGetColorScore(curColor,
-							convertedColor,
-							sm);
-					/* Add score for NT */
-					curScore += ScoringMatrixGetNTScore(reference[i+j], DNA[k], sm);
-					curScoreNT += ScoringMatrixGetNTScore(reference[i+j], DNA[k], sm);
-
-					if(curScore < NEGATIVE_INFINITY/2) {
-						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
+					char base;
+					assert(1 == ConvertBaseAndColor(DNA[k], curColor, &base));
+					switch(ToLower(base)) {
+						case 'a':
+							allowedNT[0] = 1; break;
+						case 'c':
+							allowedNT[1] = 1; break;
+						case 'g':
+							allowedNT[2] = 1; break;
+						case 't':
+							allowedNT[3] = 1; break;
+						case 'n':
+							assert(ALPHABET_SIZE < alphabetSize);
+							allowedNT[4] = 1; break;
+						default:
+							PrintError(FnName, "base", "Could not understand base", Exit, OutOfRange);
+							break;
 					}
+				}
+				else {
+					for(l=0;l<alphabetSize;l++) { /* From NT */
+						allowedNT[l]=1;
+					}
+				}
 
-					if(bestScore < curScore) {
-						bestScore = curScore;
-						bestScoreNT = curScoreNT;
-						bestNT = l;
-						bestColor = convertedColor;
+				for(l=0;l<alphabetSize;l++) { /* From NT */
+					if(1 == allowedNT[l]) {
+						char convertedColor='X';
+						int32_t curScore = prevScore[l];
+						/* Get color */
+						if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
+							fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
+									l,
+									DNA[l],
+									k,
+									DNA[k]);
+							PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
+						}
+						/* Add score for color error, if any */
+						curScore += ScoringMatrixGetColorScore(curColor,
+								convertedColor,
+								sm);
+						/* Add score for NT */
+						curScore += ScoringMatrixGetNTScore(reference[i+j], DNA[k], sm);
+
+						if(curScore < NEGATIVE_INFINITY/2) {
+							curScore = NEGATIVE_INFINITY;
+						}
+
+						if(bestScore < curScore) {
+							bestScore = curScore;
+							bestNT = l;
+							bestColor = convertedColor;
+						}
 					}
 				}
 				nextScore[k] = bestScore;
-				nextScoreNT[k] = bestScoreNT;
 				nextNT[k] = bestNT;
 			}
 
-			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+			for(k=0;k<alphabetSize;k++) { /* To NT */
 				prevScore[k] = nextScore[k];
-				prevScoreNT[k] = nextScoreNT[k];
 				prevNT[k][j] = nextNT[k];
-				/*
-				   fprintf(stderr, "k=%d\tscore=%lf\tscoreNT=%lf\tfromNT=%d\n",
-				   k,
-				   prevScore[k],
-				   prevScoreNT[k],
-				   prevNT[k][j]);
-				   */
 			}
 		}
 		/* Check if the score is better than the max */
 		k=0;
-		for(j=0;j<ALPHABET_SIZE+1;j++) { /* To NT */
+		for(j=0;j<alphabetSize;j++) { /* To NT */
 			if(prevScore[k] < prevScore[j]) {
 				k=j;
 			}
 		}
 		if(maxScore < prevScore[k]) {
 			maxScore = prevScore[k];
-			maxScoreNT = prevScoreNT[k];
 			/* TO GET COLORS WE NEED TO BACKTRACK */
 			for(j=readLength-1;0<=j;j--) {
 				maxNT[j] = k;
@@ -185,26 +216,39 @@ void AlignColorSpaceFull(char *read,
 	/* read goes on the rows, reference on the columns */
 	char *FnName = "AlignColorSpaceFull";
 	int i, j, k, l;
+	int alphabetSize=ALPHABET_SIZE;
+
+	/* Check if there are any Ns or 0s */
+	alphabetSize=ALPHABET_SIZE;
+	for(i=0;i<readLength;i++) {
+		if(1 == RGBinaryIsBaseN(read[i])) {
+			alphabetSize++; // include room for the N
+			break;
+		}
+	}
+	for(i=0;i<referenceLength && ALPHABET_SIZE==alphabetSize;i++) {
+		if(1 == RGBinaryIsBaseN(reference[i])) {
+			alphabetSize++; // include room for the N
+			break;
+		}
+	}
 
 	/* Initialize "the matrix" */
 	/* Row i (i>0) column 0 should be negative infinity since we want to
 	 * align the full read */
 	for(i=1;i<readLength+1;i++) {
-		for(k=0;k<ALPHABET_SIZE+1;k++) {
+		for(k=0;k<alphabetSize;k++) {
 			matrix[i][0].h.score[k] = NEGATIVE_INFINITY;
-			matrix[i][0].h.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].h.from[k] = StartCS;
 			matrix[i][0].h.length[k] = 0;
 			matrix[i][0].h.colorError[k] = GAP;
 
 			matrix[i][0].s.score[k] = NEGATIVE_INFINITY;
-			matrix[i][0].s.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].s.from[k] = StartCS;
 			matrix[i][0].s.length[k] = 0;
 			matrix[i][0].s.colorError[k] = GAP;
 
 			matrix[i][0].v.score[k] = NEGATIVE_INFINITY;
-			matrix[i][0].v.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].v.from[k] = StartCS;
 			matrix[i][0].v.length[k] = 0;
 			matrix[i][0].v.colorError[k] = GAP;
@@ -213,9 +257,8 @@ void AlignColorSpaceFull(char *read,
 	/* Row 0 column j should be zero since we want to find the best
 	 * local alignment within the reference */
 	for(j=0;j<referenceLength+1;j++) {
-		for(k=0;k<ALPHABET_SIZE+1;k++) {
+		for(k=0;k<alphabetSize;k++) {
 			matrix[0][j].h.score[k] = NEGATIVE_INFINITY;
-			matrix[0][j].h.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[0][j].h.from[k] = StartCS;
 			matrix[0][j].h.length[k] = 0;
 			matrix[0][j].h.colorError[k] = GAP;
@@ -224,18 +267,15 @@ void AlignColorSpaceFull(char *read,
 			if(DNA[k] == COLOR_SPACE_START_NT) { 
 				/* Starting adaptor NT */
 				matrix[0][j].s.score[k] = 0;
-				matrix[0][j].s.scoreNT[k] = 0;
 			}
 			else {
 				matrix[0][j].s.score[k] = NEGATIVE_INFINITY;
-				matrix[0][j].s.scoreNT[k] = NEGATIVE_INFINITY;
 			}
 			matrix[0][j].s.from[k] = StartCS;
 			matrix[0][j].s.length[k] = 0;
 			matrix[0][j].s.colorError[k] = GAP;
 
 			matrix[0][j].v.score[k] = NEGATIVE_INFINITY;
-			matrix[0][j].v.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[0][j].v.from[k] = StartCS;
 			matrix[0][j].v.length[k] = 0;
 			matrix[0][j].v.colorError[k] = GAP;
@@ -262,15 +302,13 @@ void AlignColorSpaceFull(char *read,
 		for(j=0;j<referenceLength;j++) { /* reference/columns */
 
 			/* Deletion */
-			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+			for(k=0;k<alphabetSize;k++) { /* To NT */
 				int32_t maxScore = NEGATIVE_INFINITY-1;
-				int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
 				char maxColorError = GAP;
 				int maxLength = 0;
 
 				int32_t curScore=NEGATIVE_INFINITY;
-				int32_t curScoreNT=NEGATIVE_INFINITY;
 				int curLength=-1;
 
 				/* Deletion starts or extends from the same base */
@@ -281,16 +319,14 @@ void AlignColorSpaceFull(char *read,
 				/* Ignore color error since one color will span the entire
 				 * deletion.  We will consider the color at the end of the deletion.
 				 * */
-				curScore = curScoreNT = matrix[i+1][j].s.score[k] + sm->gapOpenPenalty;
+				curScore = matrix[i+1][j].s.score[k] + sm->gapOpenPenalty;
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
-					curScoreNT = NEGATIVE_INFINITY;
 					assert(curScore < 0);
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
-					maxScoreNT = curScoreNT;
 					maxFrom = k + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 					maxColorError = GAP;
 					maxLength = curLength;
@@ -299,41 +335,36 @@ void AlignColorSpaceFull(char *read,
 				/* Extend current deletion */
 				curLength = matrix[i+1][j].h.length[k] + 1;
 				/* Deletion - previous column */
-				curScore = curScoreNT = matrix[i+1][j].h.score[k] + sm->gapExtensionPenalty;
+				curScore = matrix[i+1][j].h.score[k] + sm->gapExtensionPenalty;
 				/* Ignore color error since one color will span the entire
 				 * deletion.  We will consider the color at the end of the deletion.
 				 * */
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
-					curScoreNT = NEGATIVE_INFINITY;
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
-					maxScoreNT = curScoreNT;
 					maxFrom = k + 1; /* see the enum */ 
 					maxColorError = GAP;
 					maxLength = curLength;
 				}
 				/* Update */
 				matrix[i+1][j+1].h.score[k] = maxScore;
-				matrix[i+1][j+1].h.scoreNT[k] = maxScoreNT;
 				matrix[i+1][j+1].h.from[k] = maxFrom;
 				matrix[i+1][j+1].h.colorError[k] = maxColorError;
 				matrix[i+1][j+1].h.length[k] = maxLength;
 			}
 
 			/* Match/Mismatch */
-			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+			for(k=0;k<alphabetSize;k++) { /* To NT */
 				int32_t maxScore = NEGATIVE_INFINITY-1;
-				int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
 				char maxColorError = GAP;
 				int maxLength = 0;
 
-				for(l=0;l<ALPHABET_SIZE+1;l++) { /* From NT */
+				for(l=0;l<alphabetSize;l++) { /* From NT */
 					int32_t curScore=NEGATIVE_INFINITY;
-					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
 					char convertedColor='X';
 					int32_t scoreNT, scoreColor;
@@ -356,17 +387,15 @@ void AlignColorSpaceFull(char *read,
 					/* From Horizontal - Deletion */
 					curLength = matrix[i][j].h.length[l] + 1;
 					/* Add previous with current NT */
-					curScore = curScoreNT = matrix[i][j].h.score[l] + scoreNT;
+					curScore = matrix[i][j].h.score[l] + scoreNT;
 					/* Add score for color error, if any */
 					curScore += scoreColor;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = l + 1; /* see the enum */ 
 						maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 						maxLength = curLength;
@@ -375,17 +404,15 @@ void AlignColorSpaceFull(char *read,
 					/* From Vertical - Insertion */
 					curLength = matrix[i][j].v.length[l] + 1;
 					/* Add previous with current NT */
-					curScore = curScoreNT = matrix[i][j].v.score[l] + scoreNT;
+					curScore = matrix[i][j].v.score[l] + scoreNT;
 					/* Add score for color error, if any */
 					curScore += scoreColor;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 						maxLength = curLength;
@@ -394,17 +421,15 @@ void AlignColorSpaceFull(char *read,
 					/* From Diagonal - Match/Mismatch */
 					curLength = matrix[i][j].s.length[l] + 1;
 					/* Add previous with current NT */
-					curScore = curScoreNT = matrix[i][j].s.score[l] + scoreNT;
+					curScore = matrix[i][j].s.score[l] + scoreNT;
 					/* Add score for color error, if any */
 					curScore += scoreColor;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 						maxLength = curLength;
@@ -412,22 +437,19 @@ void AlignColorSpaceFull(char *read,
 				}
 				/* Update */
 				matrix[i+1][j+1].s.score[k] = maxScore;
-				matrix[i+1][j+1].s.scoreNT[k] = maxScoreNT;
 				matrix[i+1][j+1].s.from[k] = maxFrom;
 				matrix[i+1][j+1].s.colorError[k] = maxColorError;
 				matrix[i+1][j+1].s.length[k] = maxLength;
 			}
 
 			/* Insertion */
-			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+			for(k=0;k<alphabetSize;k++) { /* To NT */
 				int32_t maxScore = NEGATIVE_INFINITY-1;
-				int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
 				char maxColorError = GAP;
 				int maxLength = 0;
 
 				int32_t curScore=NEGATIVE_INFINITY;
-				int32_t curScoreNT=NEGATIVE_INFINITY;
 				int curLength=-1;
 				char B;
 				int fromNT=-1;
@@ -460,22 +482,19 @@ void AlignColorSpaceFull(char *read,
 
 				/* New insertion */
 				curScore=NEGATIVE_INFINITY;
-				curScoreNT=NEGATIVE_INFINITY;
 				curLength=-1;
 				/* Get NT and Color scores */
 				curLength = matrix[i][j+1].s.length[fromNT] + 1;
-				curScore = curScoreNT = matrix[i][j+1].s.score[fromNT] + sm->gapOpenPenalty;
+				curScore = matrix[i][j+1].s.score[fromNT] + sm->gapOpenPenalty;
 				curScore += ScoringMatrixGetColorScore(curColor,
 						curColor,
 						sm);
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
-					curScoreNT = NEGATIVE_INFINITY;
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
-					maxScoreNT = curScoreNT;
 					maxFrom = fromNT + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 					maxColorError = GAP;
 					maxLength = curLength;
@@ -484,15 +503,13 @@ void AlignColorSpaceFull(char *read,
 				/* Extend current insertion */
 				curLength = matrix[i][j+1].v.length[fromNT] + 1;
 				/* Insertion - previous row */
-				curScore = curScoreNT = matrix[i][j+1].v.score[fromNT] + sm->gapExtensionPenalty;
+				curScore = matrix[i][j+1].v.score[fromNT] + sm->gapExtensionPenalty;
 				/* Make sure we aren't below infinity */
 				if(curScore < NEGATIVE_INFINITY/2) {
 					curScore = NEGATIVE_INFINITY;
-					curScoreNT = NEGATIVE_INFINITY;
 				}
 				if(curScore > maxScore) {
 					maxScore = curScore;
-					maxScoreNT = curScoreNT;
 					maxFrom = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
 					maxColorError = GAP;
 					maxLength = curLength;
@@ -500,7 +517,6 @@ void AlignColorSpaceFull(char *read,
 
 				/* Update */
 				matrix[i+1][j+1].v.score[k] = maxScore;
-				matrix[i+1][j+1].v.scoreNT[k] = maxScoreNT;
 				matrix[i+1][j+1].v.from[k] = maxFrom;
 				matrix[i+1][j+1].v.colorError[k] = maxColorError;
 				matrix[i+1][j+1].v.length[k] = maxLength;
@@ -517,6 +533,7 @@ void AlignColorSpaceFull(char *read,
 			0,
 			position,
 			strand,
+			alphabetSize,
 			0);
 }
 
@@ -535,29 +552,42 @@ void AlignColorSpaceFullWithBound(char *read,
 {
 	char *FnName = "AlignColorSpaceFullWithBound";
 	int i, j, k, l;
+	int alphabetSize=ALPHABET_SIZE;
 
 	assert(0 < readLength);
 	assert(0 < referenceLength);
+
+	/* Check if there are any Ns or 0s */
+	alphabetSize=ALPHABET_SIZE;
+	for(i=0;i<readLength;i++) {
+		if(1 == RGBinaryIsBaseN(read[i])) {
+			alphabetSize++; // include room for the N
+			break;
+		}
+	}
+	for(i=0;i<referenceLength && ALPHABET_SIZE==alphabetSize;i++) {
+		if(1 == RGBinaryIsBaseN(reference[i])) {
+			alphabetSize++; // include room for the N
+			break;
+		}
+	}
 
 	/* Initialize "the matrix" */
 	/* Row i (i>0) column 0 should be negative infinity since we want to
 	 * align the full read */
 	for(i=1;i<readLength+1;i++) {
-		for(k=0;k<ALPHABET_SIZE+1;k++) {
+		for(k=0;k<alphabetSize;k++) {
 			matrix[i][0].h.score[k] = NEGATIVE_INFINITY;
-			matrix[i][0].h.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].h.from[k] = StartCS;
 			matrix[i][0].h.length[k] = 0;
 			matrix[i][0].h.colorError[k] = GAP;
 
 			matrix[i][0].s.score[k] = NEGATIVE_INFINITY;
-			matrix[i][0].s.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].s.from[k] = StartCS;
 			matrix[i][0].s.length[k] = 0;
 			matrix[i][0].s.colorError[k] = GAP;
 
 			matrix[i][0].v.score[k] = NEGATIVE_INFINITY;
-			matrix[i][0].v.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[i][0].v.from[k] = StartCS;
 			matrix[i][0].v.length[k] = 0;
 			matrix[i][0].v.colorError[k] = GAP;
@@ -566,9 +596,8 @@ void AlignColorSpaceFullWithBound(char *read,
 	/* Row 0 column j should be zero since we want to find the best
 	 * local alignment within the reference */
 	for(j=0;j<referenceLength+1;j++) {
-		for(k=0;k<ALPHABET_SIZE+1;k++) {
+		for(k=0;k<alphabetSize;k++) {
 			matrix[0][j].h.score[k] = NEGATIVE_INFINITY;
-			matrix[0][j].h.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[0][j].h.from[k] = StartCS;
 			matrix[0][j].h.length[k] = 0;
 			matrix[0][j].h.colorError[k] = GAP;
@@ -577,18 +606,15 @@ void AlignColorSpaceFullWithBound(char *read,
 			if(DNA[k] == COLOR_SPACE_START_NT) { 
 				/* Starting adaptor NT */
 				matrix[0][j].s.score[k] = 0;
-				matrix[0][j].s.scoreNT[k] = 0;
 			}
 			else {
 				matrix[0][j].s.score[k] = NEGATIVE_INFINITY;
-				matrix[0][j].s.scoreNT[k] = NEGATIVE_INFINITY;
 			}
 			matrix[0][j].s.from[k] = StartCS;
 			matrix[0][j].s.length[k] = 0;
 			matrix[0][j].s.colorError[k] = GAP;
 
 			matrix[0][j].v.score[k] = NEGATIVE_INFINITY;
-			matrix[0][j].v.scoreNT[k] = NEGATIVE_INFINITY;
 			matrix[0][j].v.from[k] = StartCS;
 			matrix[0][j].v.length[k] = 0;
 			matrix[0][j].v.colorError[k] = GAP;
@@ -620,25 +646,22 @@ void AlignColorSpaceFullWithBound(char *read,
 			/* Deletion */
 			if(maxV == i - j) {
 				/* We are on the boundary, do not consider a deletion */
-				for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+				for(k=0;k<alphabetSize;k++) { /* To NT */
 					/* Update */
 					matrix[i+1][j+1].h.score[k] = NEGATIVE_INFINITY-1;
-					matrix[i+1][j+1].h.scoreNT[k] = NEGATIVE_INFINITY-1;
 					matrix[i+1][j+1].h.from[k] = NoFromCS;
 					matrix[i+1][j+1].h.colorError[k] = GAP;
 					matrix[i+1][j+1].h.length[k] = INT_MIN;
 				}
 			}
 			else {
-				for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+				for(k=0;k<alphabetSize;k++) { /* To NT */
 					int32_t maxScore = NEGATIVE_INFINITY-1;
-					int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 					int maxFrom = -1;
 					char maxColorError = GAP;
 					int maxLength = 0;
 
 					int32_t curScore=NEGATIVE_INFINITY;
-					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
 
 					/* Deletion starts or extends from the same base */
@@ -649,16 +672,14 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* Ignore color error since one color will span the entire
 					 * deletion.  We will consider the color at the end of the deletion.
 					 * */
-					curScore = curScoreNT = matrix[i+1][j].s.score[k] + sm->gapOpenPenalty;
+					curScore = matrix[i+1][j].s.score[k] + sm->gapOpenPenalty;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 						assert(curScore < 0);
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = k + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = GAP;
 						maxLength = curLength;
@@ -667,25 +688,22 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* Extend current deletion */
 					curLength = matrix[i+1][j].h.length[k] + 1;
 					/* Deletion - previous column */
-					curScore = curScoreNT = matrix[i+1][j].h.score[k] + sm->gapExtensionPenalty;
+					curScore = matrix[i+1][j].h.score[k] + sm->gapExtensionPenalty;
 					/* Ignore color error since one color will span the entire
 					 * deletion.  We will consider the color at the end of the deletion.
 					 * */
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = k + 1; /* see the enum */ 
 						maxColorError = GAP;
 						maxLength = curLength;
 					}
 					/* Update */
 					matrix[i+1][j+1].h.score[k] = maxScore;
-					matrix[i+1][j+1].h.scoreNT[k] = maxScoreNT;
 					matrix[i+1][j+1].h.from[k] = maxFrom;
 					matrix[i+1][j+1].h.colorError[k] = maxColorError;
 					matrix[i+1][j+1].h.length[k] = maxLength;
@@ -693,16 +711,14 @@ void AlignColorSpaceFullWithBound(char *read,
 			}
 
 			/* Match/Mismatch */
-			for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+			for(k=0;k<alphabetSize;k++) { /* To NT */
 				int32_t maxScore = NEGATIVE_INFINITY-1;
-				int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
 				char maxColorError = GAP;
 				int maxLength = 0;
 
-				for(l=0;l<ALPHABET_SIZE+1;l++) { /* From NT */
+				for(l=0;l<alphabetSize;l++) { /* From NT */
 					int32_t curScore=NEGATIVE_INFINITY;
-					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
 					char convertedColor='X';
 					int32_t scoreNT, scoreColor;
@@ -725,17 +741,15 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* From Horizontal - Deletion */
 					curLength = matrix[i][j].h.length[l] + 1;
 					/* Add previous with current NT */
-					curScore = curScoreNT = matrix[i][j].h.score[l] + scoreNT;
+					curScore = matrix[i][j].h.score[l] + scoreNT;
 					/* Add score for color error, if any */
 					curScore += scoreColor;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = l + 1; /* see the enum */ 
 						maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 						maxLength = curLength;
@@ -744,17 +758,15 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* From Vertical - Insertion */
 					curLength = matrix[i][j].v.length[l] + 1;
 					/* Add previous with current NT */
-					curScore = curScoreNT = matrix[i][j].v.score[l] + scoreNT;
+					curScore = matrix[i][j].v.score[l] + scoreNT;
 					/* Add score for color error, if any */
 					curScore += scoreColor;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 						maxLength = curLength;
@@ -763,17 +775,15 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* From Diagonal - Match/Mismatch */
 					curLength = matrix[i][j].s.length[l] + 1;
 					/* Add previous with current NT */
-					curScore = curScoreNT = matrix[i][j].s.score[l] + scoreNT;
+					curScore = matrix[i][j].s.score[l] + scoreNT;
 					/* Add score for color error, if any */
 					curScore += scoreColor;
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 						maxLength = curLength;
@@ -781,7 +791,6 @@ void AlignColorSpaceFullWithBound(char *read,
 				}
 				/* Update */
 				matrix[i+1][j+1].s.score[k] = maxScore;
-				matrix[i+1][j+1].s.scoreNT[k] = maxScoreNT;
 				matrix[i+1][j+1].s.from[k] = maxFrom;
 				matrix[i+1][j+1].s.colorError[k] = maxColorError;
 				matrix[i+1][j+1].s.length[k] = maxLength;
@@ -790,25 +799,22 @@ void AlignColorSpaceFullWithBound(char *read,
 			/* Insertion */
 			if(j == referenceLength - (readLength - maxH) + i) {
 				/* We are on the boundary, do not consider an insertion */
-				for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+				for(k=0;k<alphabetSize;k++) { /* To NT */
 					/* Update */
 					matrix[i+1][j+1].v.score[k] = NEGATIVE_INFINITY-1;
-					matrix[i+1][j+1].v.scoreNT[k] = NEGATIVE_INFINITY-1;
 					matrix[i+1][j+1].v.from[k] = NoFromCS;
 					matrix[i+1][j+1].v.colorError[k] = GAP;
 					matrix[i+1][j+1].v.length[k] = INT_MIN;
 				}
 			}
 			else {
-				for(k=0;k<ALPHABET_SIZE+1;k++) { /* To NT */
+				for(k=0;k<alphabetSize;k++) { /* To NT */
 					int32_t maxScore = NEGATIVE_INFINITY-1;
-					int32_t maxScoreNT = NEGATIVE_INFINITY-1;
 					int maxFrom = -1;
 					char maxColorError = GAP;
 					int maxLength = 0;
 
 					int32_t curScore=NEGATIVE_INFINITY;
-					int32_t curScoreNT=NEGATIVE_INFINITY;
 					int curLength=-1;
 					char B;
 					int fromNT=-1;
@@ -841,11 +847,10 @@ void AlignColorSpaceFullWithBound(char *read,
 
 					/* New insertion */
 					curScore=NEGATIVE_INFINITY;
-					curScoreNT=NEGATIVE_INFINITY;
 					curLength=-1;
 					/* Get NT and Color scores */
 					curLength = matrix[i][j+1].s.length[fromNT] + 1;
-					curScore = curScoreNT = matrix[i][j+1].s.score[fromNT] + sm->gapOpenPenalty;
+					curScore = matrix[i][j+1].s.score[fromNT] + sm->gapOpenPenalty;
 					/*
 					   curScore += ScoringMatrixGetColorScore(curColor,
 					   convertedColor,
@@ -854,11 +859,9 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = fromNT + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = GAP;
 						maxLength = curLength;
@@ -867,18 +870,16 @@ void AlignColorSpaceFullWithBound(char *read,
 					/* Extend current insertion */
 					curLength = matrix[i][j+1].v.length[fromNT] + 1;
 					/* Insertion - previous row */
-					curScore = curScoreNT = matrix[i][j+1].v.score[fromNT] + sm->gapExtensionPenalty;
+					curScore = matrix[i][j+1].v.score[fromNT] + sm->gapExtensionPenalty;
 					curScore += ScoringMatrixGetColorScore(curColor,
 							curColor,
 							sm);
 					/* Make sure we aren't below infinity */
 					if(curScore < NEGATIVE_INFINITY/2) {
 						curScore = NEGATIVE_INFINITY;
-						curScoreNT = NEGATIVE_INFINITY;
 					}
 					if(curScore > maxScore) {
 						maxScore = curScore;
-						maxScoreNT = curScoreNT;
 						maxFrom = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
 						maxColorError = GAP;
 						maxLength = curLength;
@@ -886,7 +887,6 @@ void AlignColorSpaceFullWithBound(char *read,
 
 					/* Update */
 					matrix[i+1][j+1].v.score[k] = maxScore;
-					matrix[i+1][j+1].v.scoreNT[k] = maxScoreNT;
 					matrix[i+1][j+1].v.from[k] = maxFrom;
 					matrix[i+1][j+1].v.colorError[k] = maxColorError;
 					matrix[i+1][j+1].v.length[k] = maxLength;
@@ -904,6 +904,7 @@ void AlignColorSpaceFullWithBound(char *read,
 			readLength - maxV,
 			position,
 			strand,
+			alphabetSize,
 			0);
 
 	/* Debug code */
@@ -947,6 +948,7 @@ void FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 		int toExclude,
 		uint32_t position,
 		char strand,
+		int alphabetSize,
 		int debug)
 {
 	char *FnName="FillAlignedEntryFromMatrixColorSpace";
@@ -956,7 +958,6 @@ void FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 	char nextReadBase;
 	int curFrom=-1;
 	double maxScore;
-	double maxScoreNT=NEGATIVE_INFINITY;
 	int i, j;
 	int offset;
 	char readAligned[SEQUENCE_LENGTH]="\0";
@@ -974,15 +975,13 @@ void FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 	startCol=-1;
 	startCell=-1;
 	maxScore = NEGATIVE_INFINITY-1;
-	maxScoreNT = NEGATIVE_INFINITY-1;
 	for(i=toExclude+1;i<referenceLength+1;i++) {
-		for(j=0;j<ALPHABET_SIZE+1;j++) {
+		for(j=0;j<alphabetSize;j++) {
 			/* Don't end with a Deletion in the read */
 
 			/* End with a Match/Mismatch */
 			if(maxScore < matrix[readLength][i].s.score[j]) {
 				maxScore = matrix[readLength][i].s.score[j];
-				maxScoreNT = matrix[readLength][i].s.scoreNT[j];
 				startRow = readLength;
 				startCol = i;
 				startCell = j + 1 + (ALPHABET_SIZE + 1);
@@ -991,7 +990,6 @@ void FillAlignedEntryFromMatrixColorSpace(AlignedEntry *a,
 			/* End with an Insertion */
 			if(maxScore < matrix[readLength][i].v.score[j]) {
 				maxScore = matrix[readLength][i].v.score[j];
-				maxScoreNT = matrix[readLength][i].v.scoreNT[j];
 				startRow = readLength;
 				startCol = i;
 				startCell = j + 1 + 2*(ALPHABET_SIZE + 1);

@@ -14,9 +14,11 @@
 
 /* TODO */
 void AlignNTSpaceUngapped(char *read,
+		char *mask,
 		int readLength,
 		char *reference,
 		int referenceLength,
+		int unconstrained,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		int offset,
@@ -35,9 +37,15 @@ void AlignNTSpaceUngapped(char *read,
 	assert(readLength <= referenceLength);
 	assert(2*offset <= referenceLength); // should be exact, but this is ok
 
-	for(i=offset;i<referenceLength-readLength-offset+1;i++) { /* Starting position */
+	for(i=offset;i<referenceLength-readLength-offset+1;i++) { // Starting position 
 		curScore = 0.0;
-		for(j=0;j<readLength;j++) { /* Position in the alignment */
+		for(j=0;j<readLength;j++) { // Position in the alignment
+			if(Constrained == unconstrained &&
+					'1' == mask[j] 
+					&& read[j] != reference[i+j]) { // they must match
+				curScore = NEGATIVE_INFINITY;
+				break;
+			}
 			curScore += ScoringMatrixGetNTScore(read[j], reference[i+j], sm);
 			curReference[j] = reference[i+j];
 		}
@@ -50,14 +58,16 @@ void AlignNTSpaceUngapped(char *read,
 	}
 
 	/* Copy over */
-	AlignedEntryUpdateAlignment(a,
-			(FORWARD==strand) ? (position + referenceLength - readLength - offset) : (position + offset),
-			maxScore, 
-			readLength, 
-			readLength,
-			read,
-			bestReference,
-			NULL);
+	if(NEGATIVE_INFINITY < maxScore) {
+		AlignedEntryUpdateAlignment(a,
+				(FORWARD==strand) ? (position + referenceLength - readLength - offset) : (position + offset),
+				maxScore, 
+				readLength, 
+				readLength,
+				read,
+				bestReference,
+				NULL);
+	}
 }
 
 /* TODO */

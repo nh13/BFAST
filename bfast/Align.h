@@ -21,7 +21,6 @@ typedef struct {
 typedef struct {
 	/* For A, C, G, T, and N */
 	int32_t score[ALPHABET_SIZE+1];
-	int32_t scoreNT[ALPHABET_SIZE+1];
 	int32_t from[ALPHABET_SIZE+1];
 	int32_t length[ALPHABET_SIZE+1];
 	char colorError[ALPHABET_SIZE+1];
@@ -69,9 +68,9 @@ enum {
 
 int AlignRGMatches(RGMatches*, RGBinary*, AlignedRead*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, AlignMatrixNT***, AlignMatrixCS***, int32_t*, int32_t*);
 void AlignRGMatchesOneEnd(RGMatch*, RGBinary*, AlignedEnd*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, double*, int32_t*, AlignMatrixNT***, AlignMatrixCS***, int32_t*, int32_t*);
-int32_t AlignExact(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, char, int32_t, int32_t);
-void AlignUngapped(char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, uint32_t, char);
-void AlignFullWithBound(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, char, int32_t, double, AlignMatrixNT***, AlignMatrixCS***);
+int32_t AlignExact(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, char, int32_t, int32_t);
+void AlignUngapped(char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, uint32_t, char);
+void AlignFullWithBound(char*, char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, char, double, AlignMatrixNT***, AlignMatrixCS***);
 int32_t AlignRGMatchesKeepBestScore(AlignedEnd*, double);
 
 #endif
