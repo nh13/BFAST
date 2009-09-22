@@ -260,6 +260,11 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
 	assert(args->forceMirroring == 0 || args->forceMirroring == 1);
 	assert(NoMirroring <= args->mirroringType && args->mirroringType <= MirrorBoth);
+	assert(Ungapped == args->ungapped || Gapped == args->ungapped);
+	assert(Unconstrained == args->unconstrained || Constrained == args->unconstrained);
+	if(Constrained == args->unconstrained) {
+		PrintError(FnName, "Unconstrained", "Constrained local alignment not implemented", Exit, OutOfRange);
+	}
 	if(args->mirroringType != NoMirroring && args->usePairedEndLength == 0) {
 		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using mirroring", Exit, OutOfRange);	
 	}	
@@ -282,7 +287,7 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->scoringMatrixFileName=NULL;
 
 	args->ungapped = Gapped;
-	args->unconstrained = Constrained;
+	args->unconstrained = Unconstrained; //
 	args->space = NTSpace;
 	args->startReadNum=0;
 	args->endReadNum=INT_MAX;
