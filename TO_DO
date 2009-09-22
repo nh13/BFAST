@@ -8,6 +8,8 @@ localalign
   - solve how to do this in "gapped" and "ungapped" modes
 - remove duplicates in AlingedEntry should be based on starting position and 
   score (?)
+- only consider N base (or extra color 4) when necessary (in the read or 
+		reference)
 ===============================================================================
 
 ===============================================================================
@@ -17,6 +19,7 @@ postprocess
 ===============================================================================
 
 ===============================================================================
-manual
-- update the manual based on the changes
+bfast.submit.pl
+- if there is an error while submitting, could we call an error-handling routine
+that will try to delete all the jobs?
 ===============================================================================

@@ -25,14 +25,20 @@ int AlignRGMatches(RGMatches *m,
 		RGBinary *rg,
 		AlignedRead *a,
 		int32_t space,
-		int32_t offsetLength,
+		int32_t offset,
 		ScoringMatrix *sm,
-		int32_t alignmentType,
+		int32_t ungapped,
+		int32_t unconstrained,
 		int32_t bestOnly,
 		int32_t usePairedEndLength,
 		int32_t pairedEndLength,
 		int32_t mirroringType,
-		int32_t forceMirroring)
+		int32_t forceMirroring,
+		AlignMatrixNT ***matrixNT,
+		AlignMatrixCS ***matrixCS,
+		int32_t *maxReadLength,
+		int32_t *maxReferenceLength
+		)
 {
 	double bestScore;
 	int32_t i;
@@ -64,12 +70,17 @@ int AlignRGMatches(RGMatches *m,
 				rg,
 				&a->ends[i],
 				space,
-				offsetLength,
+				offset,
 				sm,
-				alignmentType,
+				ungapped,
+				unconstrained,
 				bestOnly,
 				&bestScore,
-				&numAligned
+				&numAligned,
+				matrixNT,
+				matrixCS,
+				maxReadLength,
+				maxReferenceLength
 				);
 		if(BestOnly == bestOnly) {
 			numLocalAlignments += AlignRGMatchesKeepBestScore(&a->ends[i],
@@ -87,12 +98,17 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		RGBinary *rg,
 		AlignedEnd *end,
 		int32_t space,
-		int32_t offsetLength,
+		int32_t offset,
 		ScoringMatrix *sm,
-		int32_t alignmentType,
+		int32_t ungapped,
+		int32_t unconstrained,
 		int32_t bestOnly,
 		double *bestScore,
-		int32_t *numAligned)
+		int32_t *numAligned,
+		AlignMatrixNT ***matrixNT,
+		AlignMatrixCS ***matrixCS,
+		int32_t *maxReadLength,
+		int32_t *maxReferenceLength)
 {
 	char *FnName="AlignRGMatchOneEnd";
 	int32_t i;
@@ -100,7 +116,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t *referenceLengths=NULL;
 	int32_t *referencePositions=NULL;
 	char read[SEQUENCE_LENGTH]="\0";
-	int32_t readLength;
+	int32_t readLength, updateMatrix=0;
 	int32_t ctr=0;
 
 	(*bestScore)=DBL_MIN;
@@ -112,6 +128,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	}
 	else {
 		readLength = ConvertReadFromColorSpace(read, m->readLength);
+	}
+	if((*maxReadLength) < readLength) {
+		(*maxReadLength) = readLength;
+		updateMatrix = 1;
 	}
 
 	/* Allocate */
@@ -139,7 +159,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				m->contigs[i],
 				m->positions[i],
 				m->strands[i], 
-				offsetLength,
+				offset,
 				&references[ctr],
 				readLength,
 				&referenceLengths[ctr],
@@ -161,6 +181,12 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			end->entries[ctr].length = 0;
 			end->entries[ctr].referenceLength = 0;
 			end->entries[ctr].read = end->entries[ctr].reference = end->entries[ctr].colorError = NULL;
+
+			if((*maxReferenceLength) < referenceLengths[ctr]) {
+				(*maxReferenceLength) = referenceLengths[ctr];
+				updateMatrix = 1;
+			}
+
 			(*numAligned)++;
 			ctr++;
 		}
@@ -175,6 +201,34 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	if(ctr < end->numEntries) {
 		AlignedEndReallocate(end,
 				ctr);
+	}
+
+	/* Reallocate matrix */
+	if(1 == updateMatrix) {
+		if(NTSpace == space) {
+			(*matrixNT) = realloc((*matrixNT), sizeof(AlignMatrixNT*)*((*maxReadLength)+1));
+			if(NULL==(*matrixNT)) {
+				PrintError(FnName, "(*matrixNT)", "Could not allocate memory", Exit, MallocMemory);
+			}
+			for(i=0;i<(*maxReadLength)+1;i++) {
+				(*matrixNT)[i] = realloc((*matrixNT)[i], sizeof(AlignMatrixNT)*((*maxReferenceLength)+1));
+				if(NULL==(*matrixNT)[i]) {
+					PrintError(FnName, "(*matrixNT)[i]", "Could not allocate memory", Exit, MallocMemory);
+				}
+			}
+		}
+		else {
+			(*matrixCS) = realloc((*matrixCS), sizeof(AlignMatrixCS*)*((*maxReadLength)+1));
+			if(NULL==(*matrixCS)) {
+				PrintError(FnName, "(*matrixCS)", "Could not allocate memory", Exit, MallocMemory);
+			}
+			for(i=0;i<(*maxReadLength)+1;i++) {
+				(*matrixCS)[i] = realloc((*matrixCS)[i], sizeof(AlignMatrixCS)*((*maxReferenceLength)+1));
+				if(NULL==(*matrixCS)[i]) {
+					PrintError(FnName, "(*matrix)[i]", "Could not allocate memory", Exit, MallocMemory);
+				}
+			}
+		}
 	}
 
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
@@ -211,7 +265,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 #endif
 
 #ifdef UNOPTIMIZED_SMITH_WATERMAN
-	if(Ungapped == alignmentType) {
+	if(Ungapped == ungapped) {
 #endif
 		for(i=0;i<end->numEntries;i++) {
 			if(!(DBL_MIN < end->entries[i].score)) {
@@ -219,11 +273,13 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 						readLength,
 						references[i],
 						referenceLengths[i],
+						unconstrained,
 						sm,
 						&end->entries[i],
 						space,
-						end->entries[i].strand,
-						referencePositions[i]);
+						offset,
+						referencePositions[i],
+						end->entries[i].strand);
 				if((*bestScore) < end->entries[i].score) {
 					(*bestScore) = end->entries[i].score;
 				}
@@ -232,7 +288,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 
 		/* Return if we are only to be searching for mismatches */
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
-		if(Ungapped == alignmentType) {
+		if(Ungapped == ungapped) {
 #endif
 			for(i=0;i<end->numEntries;i++) {
 				free(references[i]);
@@ -260,7 +316,9 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				space,
 				end->entries[i].strand,
 				referencePositions[i],
-				(BestOnly == bestOnly)?(*bestScore):end->entries[i].score);
+				(BestOnly == bestOnly)?(*bestScore):end->entries[i].score,
+				matrixNT,
+				matrixCS);
 		if((*bestScore) < end->entries[i].score) {
 			(*bestScore) = end->entries[i].score;
 		}
@@ -283,7 +341,7 @@ int32_t AlignExact(char *read,
 		AlignedEntry *a,
 		char strand,
 		int32_t position,
-		int32_t space) 
+		int32_t space)
 {
 	char *FnName="AlignExact";
 	int32_t i;
@@ -353,11 +411,13 @@ void AlignUngapped(char *read,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,
+		int32_t unconstrained,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		int32_t space,
-		char strand,
-		int32_t position)
+		int32_t offset,
+		uint32_t position,
+		char strand)
 {
 	char *FnName="AlignUngapped";
 	switch(space) {
@@ -368,8 +428,9 @@ void AlignUngapped(char *read,
 					referenceLength,
 					sm,
 					a,
-					strand,
-					position);
+					(Unconstrained == unconstrained) ? offset : 0,
+					position,
+					strand);
 			break;
 		case ColorSpace:
 			AlignColorSpaceUngapped(read,
@@ -378,8 +439,9 @@ void AlignUngapped(char *read,
 					referenceLength,
 					sm,
 					a,
-					strand,
-					position);
+					(Unconstrained == unconstrained) ? offset : 0,
+					position,
+					strand);
 			break;
 		default:
 			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);
@@ -396,7 +458,9 @@ void AlignFullWithBound(char *read,
 		int32_t space,
 		char strand,
 		int32_t position,
-		double lowerBound)
+		double lowerBound,
+		AlignMatrixNT ***matrixNT,
+		AlignMatrixCS ***matrixCS) 
 {
 	char *FnName="AlignFullWithBound";
 	int64_t maxH, maxV;
@@ -464,10 +528,11 @@ void AlignFullWithBound(char *read,
 					referenceLength,
 					sm,
 					a,
-					strand,
-					position,
 					maxH,
-					maxV);
+					maxV,
+					(*matrixNT),
+					position,
+					strand);
 			break;
 		case ColorSpace:
 			AlignColorSpaceFullWithBound(read,
@@ -476,10 +541,11 @@ void AlignFullWithBound(char *read,
 					referenceLength,
 					sm,
 					a,
-					strand,
-					position,
 					maxH,
-					maxV);
+					maxV,
+					(*matrixCS),
+					position,
+					strand);
 			break;
 		default:
 			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);

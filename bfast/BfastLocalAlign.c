@@ -102,6 +102,7 @@ BfastLocalAlign(int argc, char **argv)
 							arguments.matchFileName,
 							arguments.scoringMatrixFileName,
 							arguments.ungapped,
+							arguments.unconstrained,
 							AllAlignments, // hard-coded
 							arguments.space,
 							arguments.startReadNum,

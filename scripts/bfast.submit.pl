@@ -208,8 +208,8 @@ sub Schema {
   </xs:simpleType>
 </xs:schema>
 END
-	print STDOUT $schema;
-	exit 1;
+print STDOUT $schema;
+exit 1;
 }
 
 sub ValidateData {
@@ -610,7 +610,15 @@ sub SubmitJob {
 	# Submit the qsub command
 	my $qsub_id=`$qsub`;
 	chomp($qsub_id);
-	die("Error submitting QSUB_COMMAND=$qsub\n") unless (0 < length($qsub_id));
+
+	# There has to be a better way to get the job ids (?)
+	if($qsub_id =~ m/Your job (\d+)/) {
+		$qsub_id = $1;
+	}
+	die("Error submitting QSUB_COMMAND=$qsub\nQSUB_ID=$qsub_id\n") unless (0 < length($qsub_id));
+	if($qsub_id !~ m/^\S+$/) {
+		die("Error submitting QSUB_COMMAND=$qsub\nQSUB_ID=$qsub_id\n") unless (0 < length($qsub_id));
+	}
 
 	if(!$quiet) {
 		print STDERR "[bfast submit] NAME=$output_id QSUBID=$qsub_id\n";

@@ -197,10 +197,10 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->fastaFileName = NULL;
 	args->alignFileName = NULL;
 
-	args->algorithm=0;
+	args->algorithm=BestScore;
 	args->queueLength=DEFAULT_QUEUE_LENGTH;
 
-	args->outputFormat=BAF;
+	args->outputFormat=SAM;
 	args->unmappedFileName=NULL;
 	args->outputID=NULL;
 

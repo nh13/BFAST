@@ -20,24 +20,25 @@
 void RunAligner(char *fastaFileName,
 		char *matchFileName,
 		char *scoringMatrixFileName,
-		int alignmentType,
-		int bestOnly,
-		int space,
-		int startReadNum,
-		int endReadNum,
-		int offsetLength,
-		int maxNumMatches,
-		int avgMismatchQuality,
-		int numThreads,
-		int queueLength,
-		int usePairedEndLength,
-		int pairedEndLength,
-		int mirroringType,
-		int forceMirroring,
+		int32_t ungapped,
+		int32_t unconstrained,
+		int32_t bestOnly,
+		int32_t space,
+		int32_t startReadNum,
+		int32_t endReadNum,
+		int32_t offsetLength,
+		int32_t maxNumMatches,
+		int32_t avgMismatchQuality,
+		int32_t numThreads,
+		int32_t queueLength,
+		int32_t usePairedEndLength,
+		int32_t pairedEndLength,
+		int32_t mirroringType,
+		int32_t forceMirroring,
 		char *tmpDir,
-		int *totalReferenceGenomeTime,
-		int *totalAlignedTime,
-		int *totalFileHandlingTime)
+		int32_t *totalReferenceGenomeTime,
+		int32_t *totalAlignedTime,
+		int32_t *totalFileHandlingTime)
 {
 	char *FnName = "RunAligner";
 	gzFile outputFP=NULL;
@@ -87,7 +88,8 @@ void RunAligner(char *fastaFileName,
 	RunDynamicProgramming(matchFP,
 			&rg,
 			scoringMatrixFileName,
-			alignmentType,
+			ungapped,
+			unconstrained,
 			bestOnly,
 			space,
 			startReadNum,
@@ -124,24 +126,25 @@ void RunAligner(char *fastaFileName,
 void RunDynamicProgramming(gzFile matchFP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
-		int alignmentType,
-		int bestOnly,
-		int space,
-		int startReadNum,
-		int endReadNum,
-		int offsetLength,
-		int maxNumMatches,
-		int avgMismatchQuality,
-		int numThreads,
-		int queueLength,
-		int usePairedEndLength,
-		int pairedEndLength,
-		int mirroringType,
-		int forceMirroring,
+		int32_t ungapped,
+		int32_t unconstrained,
+		int32_t bestOnly,
+		int32_t space,
+		int32_t startReadNum,
+		int32_t endReadNum,
+		int32_t offsetLength,
+		int32_t maxNumMatches,
+		int32_t avgMismatchQuality,
+		int32_t numThreads,
+		int32_t queueLength,
+		int32_t usePairedEndLength,
+		int32_t pairedEndLength,
+		int32_t mirroringType,
+		int32_t forceMirroring,
 		char *tmpDir,
 		gzFile outputFP,
-		int *totalAlignedTime,
-		int *totalFileHandlingTime)
+		int32_t *totalAlignedTime,
+		int32_t *totalFileHandlingTime)
 {
 	char *FnName="RunDynamicProgramming";
 	/* local variables */
@@ -150,18 +153,18 @@ void RunDynamicProgramming(gzFile matchFP,
 	RGMatches m;
 	int32_t i, ctr;
 
-	int continueReading=0;
-	int numMatchesInFile=0;
-	int numMatchesFound=0;
-	int numAligned=0;
-	int numNotAligned=0;
-	int startTime, endTime;
+	int32_t continueReading=0;
+	int32_t numMatchesInFile=0;
+	int32_t numMatchesFound=0;
+	int32_t numAligned=0;
+	int32_t numNotAligned=0;
+	int32_t startTime, endTime;
 	int64_t numLocalAlignments=0;
 	AlignedRead aEntries;
 	/* Thread specific data */
 	ThreadData *data;
 	pthread_t *threads=NULL;
-	int errCode;
+	int32_t errCode;
 	void *status;
 
 	/* Initialize */
@@ -230,7 +233,7 @@ void RunDynamicProgramming(gzFile matchFP,
 			RGMatchesFilterOutOfRange(&m,
 					maxNumMatches);
 
-			/* Print match to temp file */
+			/* Print32_t match to temp file */
 			RGMatchesPrint(data[i].inputFP,
 					&m);
 			/* Increment */
@@ -267,7 +270,8 @@ void RunDynamicProgramming(gzFile matchFP,
 		data[i].mirroringType = mirroringType;
 		data[i].forceMirroring = forceMirroring;
 		data[i].sm = &sm;
-		data[i].alignmentType = alignmentType;
+		data[i].ungapped = ungapped;
+		data[i].unconstrained = unconstrained;
 		data[i].bestOnly = bestOnly;
 		data[i].numLocalAlignments = 0;
 		data[i].avgMismatchQuality = avgMismatchQuality;
@@ -364,7 +368,7 @@ void RunDynamicProgramming(gzFile matchFP,
 				}
 				ctr++;
 				continueReading=1;
-				/* Print it out */
+				/* Print32_t it out */
 				AlignedReadPrint(&aEntries,
 						outputFP);
 			}
@@ -411,27 +415,31 @@ void *RunDynamicProgrammingThread(void *arg)
 	gzFile inputFP=data->inputFP;
 	gzFile outputFP=data->outputFP;
 	RGBinary *rg=data->rg;
-	int space=data->space;
-	int offsetLength=data->offsetLength;
-	int usePairedEndLength=data->usePairedEndLength;
-	int pairedEndLength=data->pairedEndLength;
-	int mirroringType=data->mirroringType;
-	int forceMirroring=data->forceMirroring;
+	int32_t space=data->space;
+	int32_t offsetLength=data->offsetLength;
+	int32_t usePairedEndLength=data->usePairedEndLength;
+	int32_t pairedEndLength=data->pairedEndLength;
+	int32_t mirroringType=data->mirroringType;
+	int32_t forceMirroring=data->forceMirroring;
 	ScoringMatrix *sm = data->sm;
-	int alignmentType=data->alignmentType;
-	int bestOnly=data->bestOnly;
-	int threadID=data->threadID;
-	int avgMismatchQuality=data->avgMismatchQuality;
+	int32_t ungapped=data->ungapped;
+	int32_t unconstrained=data->unconstrained;
+	int32_t bestOnly=data->bestOnly;
+	int32_t threadID=data->threadID;
+	int32_t avgMismatchQuality=data->avgMismatchQuality;
 	double mismatchScore=data->mismatchScore;
-	int queueLength=data->queueLength;
+	int32_t queueLength=data->queueLength;
 	/* Local variables */
 	char *FnName = "RunDynamicProgrammingThread";
 	int32_t i, j, wasAligned;
-	int numAlignedRead=0;
-	int numMatches=0;
-	int ctrOne=0;
-	int ctrTwo=0;
+	int32_t numAlignedRead=0;
+	int32_t numMatches=0;
+	int32_t ctrOne=0;
+	int32_t ctrTwo=0;
 
+	AlignMatrixNT **matrixNT=NULL;
+	AlignMatrixCS **matrixCS=NULL;
+	int32_t maxReadLength=0, maxReferenceLength=0;
 	AlignedRead *alignedQueue=NULL;
 	RGMatches *matchQueue=NULL;
 	int32_t matchQueueLength=queueLength;
@@ -472,12 +480,18 @@ void *RunDynamicProgrammingThread(void *arg)
 						space,
 						offsetLength,
 						sm,
-						alignmentType,
+						ungapped,
+						unconstrained,
 						bestOnly,
 						usePairedEndLength,
 						pairedEndLength,
 						mirroringType,
-						forceMirroring);
+						forceMirroring,
+						&matrixNT,
+						&matrixCS,
+						&maxReadLength,
+						&maxReferenceLength
+						);
 
 				/* Output alignment */
 				for(j=wasAligned=0;0==wasAligned && j<alignedQueue[i].numEnds;j++) {
@@ -525,7 +539,7 @@ void *RunDynamicProgrammingThread(void *arg)
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
 
-		/* Print */
+		/* Print32_t */
 		for(i=0;i<numMatchesRead;i++) {
 			AlignedReadPrint(&alignedQueue[i],
 					outputFP);
@@ -534,6 +548,24 @@ void *RunDynamicProgrammingThread(void *arg)
 			AlignedReadFree(&alignedQueue[i]);
 		}
 	}
+	/* Free the matrix, free your mind */
+	if(NTSpace == space) {
+		for(i=0;i<maxReadLength+1;i++) {
+			free(matrixNT[i]);
+			matrixNT[i]=NULL;
+		}
+		free(matrixNT);
+		matrixNT=NULL;
+	}
+	else {
+		for(i=0;i<maxReadLength+1;i++) {
+			free(matrixCS[i]);
+			matrixCS[i]=NULL;
+		}
+		free(matrixCS);
+		matrixCS=NULL;
+	}
+
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 	}

@@ -24,6 +24,7 @@ bfast_SOURCES = \
 				Align.c Align.h \
 				AlignNTSpace.c AlignNTSpace.h \
 				AlignColorSpace.c AlignColorSpace.h \
+				AlignMatrix.c AlignMatrix.h \
 				InputOutputToFiles.c InputOutputToFiles.h \
 				FilterAlignments.c FilterAlignments.h \
 				BfastFasta2BRG.c BfastFasta2BRG.h \

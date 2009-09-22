@@ -19,59 +19,45 @@ void AlignNTSpaceUngapped(char *read,
 		int referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
-		char strand,
-		int32_t position)
+		int offset,
+		uint32_t position,
+		char strand)
 {
-	char *FnName = "AlignNTSpaceUngapped";
+	//char *FnName = "AlignNTSpaceUngapped";
 	/* Read goes on the second row, reference on the first */
 	int i, j;
 	int32_t maxScore = NEGATIVE_INFINITY;
-	int offset=-1;
+	int alignmentOffset=-1;
 	int32_t curScore = 0.0;
-	
-	assert(readLength <= referenceLength);
+	char curReference[SEQUENCE_LENGTH]="\0";
+	char bestReference[SEQUENCE_LENGTH]="\0";
 
-	for(i=0;i<referenceLength-readLength+1;i++) { /* Starting position */
+	assert(readLength <= referenceLength);
+	assert(2*offset <= referenceLength); // should be exact, but this is ok
+
+	for(i=offset;i<referenceLength-readLength-offset+1;i++) { /* Starting position */
 		curScore = 0.0;
 		for(j=0;j<readLength;j++) { /* Position in the alignment */
 			curScore += ScoringMatrixGetNTScore(read[j], reference[i+j], sm);
+			curReference[j] = reference[i+j];
 		}
+		curReference[j]='\0';
 		if(maxScore < curScore) {
 			maxScore = curScore;
-			offset = i;
+			alignmentOffset = i;
+			strcpy(bestReference, curReference);
 		}
 	}
 
 	/* Copy over */
-	a->referenceLength = readLength;
-	a->length = readLength;
-	a->score = maxScore;
-	/* Allocate memory */
-	assert(NULL==a->read);
-	a->read = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->read) {
-		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
-	}
-	assert(NULL==a->reference);
-	a->reference = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->reference) {
-		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
-	}
-	assert(NULL==a->colorError);
-	/*
-	   a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-	   if(NULL==a->colorError) {
-	   PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
-	   }
-	   */
-	/* Copy over */
-	for(i=0;i<a->length;i++) {
-		a->read[i] = read[i];
-		a->reference[i] = reference[i+offset];
-	}
-	a->read[a->length] = '\0';
-	a->reference[a->length] = '\0';
-	a->position = (FORWARD==strand)?(position + referenceLength - readLength - offset):(position + offset);
+	AlignedEntryUpdateAlignment(a,
+			(FORWARD==strand) ? (position + referenceLength - readLength - offset) : (position + offset),
+			maxScore, 
+			readLength, 
+			readLength,
+			read,
+			bestReference,
+			NULL);
 }
 
 /* TODO */
@@ -81,26 +67,13 @@ void AlignNTSpaceFull(char *read,
 		int referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
-		char strand,
-		int32_t position)
+		AlignMatrixNT **matrix,
+		uint32_t position,
+		char strand)
 {
-	char *FnName = "AlignNTSpaceFull";
+	//char *FnName = "AlignNTSpaceFull";
 	/* read goes on the rows, reference on the columns */
-	AlignMatrixNT **matrix=NULL;
-	int offset = 0;
 	int i, j;
-
-	/* Allocate memory for the matrix */
-	matrix = malloc(sizeof(AlignMatrixNT*)*(readLength+1));
-	if(NULL==matrix) {
-		PrintError(FnName, "matrix", "Could not allocate memory", Exit, MallocMemory);
-	}
-	for(i=0;i<readLength+1;i++) {
-		matrix[i] = malloc(sizeof(AlignMatrixNT)*(referenceLength+1));
-		if(NULL==matrix[i]) {
-			PrintError(FnName, "matrix[i]", "Could not allocate memory", Exit, MallocMemory);
-		}
-	}
 
 	/* Initialize "the matrix" */
 	/* Row i (i>0) column 0 should be negative infinity since we want to
@@ -169,24 +142,16 @@ void AlignNTSpaceFull(char *read,
 		}
 	}
 
-	offset = FillAlignedEntryFromMatrixNTSpace(a,
+	FillAlignedEntryFromMatrixNTSpace(a,
 			matrix,
 			read,
 			readLength,
 			reference,
 			referenceLength,
 			0,
+			position,
+			strand,
 			0);
-
-	/* Free the matrix, free your mind */
-	for(i=0;i<readLength+1;i++) {
-		free(matrix[i]);
-		matrix[i]=NULL;
-	}
-	free(matrix);
-	matrix=NULL;
-
-	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
 /* TODO */
@@ -196,30 +161,17 @@ void AlignNTSpaceFullWithBound(char *read,
 		int referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
-		char strand,
-		int32_t position,
 		int32_t maxH,
-		int32_t maxV)
+		int32_t maxV,
+		AlignMatrixNT **matrix,
+		uint32_t position,
+		char strand)
 {
-	char *FnName = "AlignNTSpaceFullWithBound";
+	//char *FnName = "AlignNTSpaceFullWithBound";
 	/* read goes on the rows, reference on the columns */
-	AlignMatrixNT **matrix=NULL;
-	int offset = 0;
 	int i, j;
 
 	assert(maxV >= 0 && maxH >= 0);
-
-	/* Allocate memory for the matrix */
-	matrix = malloc(sizeof(AlignMatrixNT*)*(readLength+1));
-	if(NULL==matrix) {
-		PrintError(FnName, "matrix", "Could not allocate memory", Exit, MallocMemory);
-	}
-	for(i=0;i<readLength+1;i++) {
-		matrix[i] = malloc(sizeof(AlignMatrixNT)*(referenceLength+1));
-		if(NULL==matrix[i]) {
-			PrintError(FnName, "matrix[i]", "Could not allocate memory", Exit, MallocMemory);
-		}
-	}
 
 	/* Initialize "the matrix" */
 	/* Row i (i>0) column 0 should be negative infinity since we want to
@@ -306,65 +258,60 @@ void AlignNTSpaceFullWithBound(char *read,
 		}
 	}
 
-	offset = FillAlignedEntryFromMatrixNTSpace(a,
+	FillAlignedEntryFromMatrixNTSpace(a,
 			matrix,
 			read,
 			readLength,
 			reference,
 			referenceLength,
 			readLength - maxV,
+			position,
+			strand,
 			0);
-
-	/* Free the matrix, free your mind */
-	for(i=0;i<readLength+1;i++) {
-		free(matrix[i]);
-		matrix[i]=NULL;
-	}
-	free(matrix);
-	matrix=NULL;
 
 	/* Debug code */
 	/*
-	AlignedEntry tmp;
-	AlignedEntryInitialize(&tmp);
-	AlignNTSpaceFull(read,
-			readLength,
-			reference,
-			referenceLength,
-			sm,
-			&tmp,
-			strand,
-			position);
-	if(a->score < tmp.score ||
-			tmp.score < a->score ||
-			!(a->length == tmp.length) ||
-			!(a->referenceLength == tmp.referenceLength)) {
-		fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
-		fprintf(stderr, "\nstrand=%c\n", strand);
-		AlignedEntryPrint(a,
-				stderr,
-				ColorSpace,
-				TextOutput);
-		AlignedEntryPrint(&tmp,
-				stderr,
-				ColorSpace,
-				TextOutput);
-		PrintError(FnName, NULL, "Alignments did not match", Exit, OutOfRange);
-	}
-	AlignedEntryFree(&tmp);
-	*/
+	   AlignedEntry tmp;
+	   AlignedEntryInitialize(&tmp);
+	   AlignNTSpaceFull(read,
+	   readLength,
+	   reference,
+	   referenceLength,
+	   sm,
+	   &tmp,
+	   strand,
+	   position);
+	   if(a->score < tmp.score ||
+	   tmp.score < a->score ||
+	   !(a->length == tmp.length) ||
+	   !(a->referenceLength == tmp.referenceLength)) {
+	   fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
+	   fprintf(stderr, "\nstrand=%c\n", strand);
+	   AlignedEntryPrint(a,
+	   stderr,
+	   ColorSpace,
+	   TextOutput);
+	   AlignedEntryPrint(&tmp,
+	   stderr,
+	   ColorSpace,
+	   TextOutput);
+	   PrintError(FnName, NULL, "Alignments did not match", Exit, OutOfRange);
+	   }
+	   AlignedEntryFree(&tmp);
+	   */
 
-	a->position = (FORWARD==strand)?(position + offset):(position + referenceLength - a->referenceLength - offset);
 }
 
 /* TODO */
-int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
+void FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 		AlignMatrixNT **matrix,
 		char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		int toExclude,
+		uint32_t position,
+		char strand,
 		int debug)
 {
 	char *FnName="FillAlignedEntryFromMatrixNTSpace";
@@ -374,8 +321,10 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	char nextReadBase;
 	int curFrom;
 	double maxScore;
-	int i;
-	int offset;
+	int i, offset;
+	char readAligned[SEQUENCE_LENGTH]="\0";
+	char referenceAligned[SEQUENCE_LENGTH]="\0";
+	int32_t referenceLengthAligned, length;
 
 	curReadBase = nextReadBase = 'X';
 	nextRow = nextCol = -1;
@@ -402,23 +351,10 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	curRow=startRow;
 	curCol=startCol;
 	curFrom = Match;
-	a->referenceLength=0;
-	i=matrix[curRow][curCol].s.length-1; /* Get the length of the alignment */
-	a->length=matrix[curRow][curCol].s.length; /* Copy over the length */
-	a->score = maxScore; /* Copy over score */
 
-	/* Allocate memory */
-	assert(NULL==a->read);
-	a->read = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->read) {
-		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
-	}
-	assert(NULL==a->reference);
-	a->reference = malloc(sizeof(char)*(a->length+1));
-	if(NULL==a->reference) { 
-		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
-	}
-	assert(NULL==a->colorError); 
+	referenceLengthAligned=0;
+	i=matrix[curRow][curCol].s.length-1; /* Get the length of the alignment */
+	length=matrix[curRow][curCol].s.length; /* Copy over the length */
 
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(curRow > 0 && curCol > 0) {
@@ -468,23 +404,23 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 		switch(curFrom) {
 			case DeletionStart:
 			case DeletionExtension:
-				a->read[i] = GAP;
-				a->reference[i] = reference[curCol-1];
-				a->referenceLength++;
+				readAligned[i] = GAP;
+				referenceAligned[i] = reference[curCol-1];
+				referenceLengthAligned++;
 				nextRow = curRow;
 				nextCol = curCol-1;
 				break;
 			case Match:
-				a->read[i] = read[curRow-1];
-				a->reference[i] = reference[curCol-1];
-				a->referenceLength++;
+				readAligned[i] = read[curRow-1];
+				referenceAligned[i] = reference[curCol-1];
+				referenceLengthAligned++;
 				nextRow = curRow-1;
 				nextCol = curCol-1;
 				break;
 			case InsertionStart:
 			case InsertionExtension:
-				a->read[i] = read[curRow-1];
-				a->reference[i] = GAP;
+				readAligned[i] = read[curRow-1];
+				referenceAligned[i] = GAP;
 				nextRow = curRow-1;
 				nextCol = curCol;
 				break;
@@ -493,23 +429,31 @@ int FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
-		assert(a->read[i] != GAP || a->read[i] != a->reference[i]);
+		assert(readAligned[i] != GAP || readAligned[i] != referenceAligned[i]);
 
 		/* Update for next loop iteration */
 		curRow = nextRow;
 		curCol = nextCol;
 		i--;
 
-		assert(i!=-1 || a->read[0] != GAP);
+		assert(i!=-1 || readAligned[0] != GAP);
 	} /* End Loop */
 	assert(-1==i);
-	assert(a->length >= a->referenceLength);
-	assert(a->length >= readLength);
+	assert(length >= referenceLengthAligned);
+	assert(length >= readLength);
 
-	a->read[a->length]='\0';
-	a->reference[a->length]='\0';
+	readAligned[length]='\0';
+	referenceAligned[length]='\0';
 
 	offset = curCol;
 
-	return offset;
+	/* Copy over */
+	AlignedEntryUpdateAlignment(a,
+			(FORWARD==strand) ? (position + offset) : (position + referenceLength - referenceLengthAligned - offset),
+			maxScore, 
+			referenceLengthAligned,
+			length,
+			readAligned,
+			referenceAligned,
+			NULL);
 }

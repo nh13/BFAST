@@ -619,3 +619,34 @@ int32_t AlignedEntryGetPivot(AlignedEntry *a,
 	}
 	return pivot;
 }
+
+void AlignedEntryUpdateAlignment(AlignedEntry *a,
+		uint32_t position,
+		double score,
+		int32_t referenceLength,
+		int32_t length,
+		char *read,
+		char *reference,
+		char *colorError) 
+{
+	char *FnName="AlignedEntryAllocate";
+
+	a->position = position;
+	a->score = score;
+	a->referenceLength = referenceLength;
+	a->length = length;
+	a->read = strdup(read);
+	if(NULL == a->read) {
+		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
+	}
+	a->reference = strdup(reference);
+	if(NULL == a->reference) {
+		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
+	}
+	if(NULL != colorError) {
+		a->colorError = strdup(colorError);
+		if(NULL == a->colorError) {
+			PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
+		}
+	}
+}

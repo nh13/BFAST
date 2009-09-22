@@ -22,5 +22,6 @@ void AlignedEntryFree(AlignedEntry*);
 void AlignedEntryInitialize(AlignedEntry*);
 void AlignedEntryCheckReference(AlignedEntry*, RGBinary*, int32_t);
 int32_t AlignedEntryGetPivot(AlignedEntry*, int32_t, int32_t, int32_t);
+void AlignedEntryUpdateAlignment(AlignedEntry *a, uint32_t, double, int32_t, int32_t, char*, char*, char*);
 
 #endif
