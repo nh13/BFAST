@@ -72,9 +72,7 @@ sub Schema {
 			  <xs:element name="bfastBin" type="directoryPath"/>
 			  <xs:element name="samtoolsBin" type="directoryPath"/>
 			  <xs:element name="qsubBin" type="directoryPath"/>
-			  <xs:element name="referenceFasta" type="filePath" use="required"/>
-			  <xs:element name="brgNT" type="filePath" use="required"/>
-			  <xs:element name="brgCS" type="filePath"/>
+			  <xs:element name="fastaFileName" type="filePath" use="required"/>
 			  <xs:element name="runDirectory" type="directoryPath" use="required">
 			  <xs:element name="readsDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="outputDirectory" type="directoryPath" use="required"/>
@@ -82,8 +80,8 @@ sub Schema {
 			  <xs:element name="outputID" type="xs:string" use="required"/>
 			  <xs:element name="numReadsPerFASTQ" type="positiveInteger">
 				<xs:complexType>
-				  <xs:attribute name="bmatchesSplit" type="positiveInteger" use="required"/>
-				  <xs:attribute name="balignSplit" type="positiveInteger" use="required"/>
+				  <xs:attribute name="matchSplit" type="positiveInteger" use="required"/>
+				  <xs:attribute name="localalignSplit" type="positiveInteger" use="required"/>
 				</xs:complexType>
 			  </xs:element>
 			  <xs:element name="timing">
@@ -112,15 +110,15 @@ sub Schema {
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
-		<xs:element name="bmatchesOptions">
+		<xs:element name="matchOptions">
 		  <xs:complexType>
 			<xs:sequence>
-			  <xs:element name="mainIndexes" type="filePath" use="required"/>
-			  <xs:element name="secondaryIndexes" type="filePath"/>
-			  <xs:element name="offsets" type="filePath"/>
-			  <xs:element name="keySize" type="xs:positiveInteger"/>
-			  <xs:element name="maxKeyMatches" type="xs:positiveInteger"/>
-			  <xs:element name="maxNumMatches" type="xs:positiveInteger"/>
+			  <xs:element name="mainIndexes" type="xs:string"/>
+			  <xs:element name="secondaryIndexes" type="xs:string"/>
+			  <xs:element name="offsets" type="xs:string"/>
+			  <xs:element name="keySize" type="positiveInteger"/>
+			  <xs:element name="maxKeyMatches" type="positiveInteger"/>
+			  <xs:element name="maxNumMatches" type="positiveInteger"/>
 			  <xs:element name="strand">
 				<xs:simpleType>
 				  <xs:restriction base="xs:string">
@@ -130,29 +128,23 @@ sub Schema {
 				  </xs:restriction>
 				</xs:simpleType>
 			  </xs:element>
-			  <xs:element name="threads" type="xs:positiveInteger"/>
-			  <xs:element name="queueLength" type="xs:positiveInteger"/>
+			  <xs:element name="threads" type="positiveInteger"/>
+			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
-		<xs:element name="balignOptions">
+		<xs:element name="localalignOptions">
 		  <xs:complexType>
 			<xs:sequence>
 			  <xs:element name="scoringMatrix" type="filePath"/>
-			  <xs:element name="localAlignmentType">
-				<xs:simpleType>
-				  <xs:restriction base="xs:integer">
-					<xs:enumeration value="0"/>
-					<xs:enumeration value="1"/>
-				  </xs:restriction>
-				</xs:simpleType>
-			  </xs:element>
-			  <xs:element name="offset" type="xs:nonNegativeInteger"/>
-			  <xs:element name="maxNumMatches" type="xs:positiveInteger"/>
-			  <xs:element name="mismatchQuality" type="xs:positiveInteger"/>
-			  <xs:element name="threads" type="xs:positiveInteger"/>
-			  <xs:element name="queueLength" type="xs:positiveInteger"/>
+			  <xs:element name="ungapped" type="xs:integer"/>
+			  <xs:element name="unconstrained" type="xs:integer"/>
+			  <xs:element name="offset" type="nonNegativeInteger"/>
+			  <xs:element name="maxNumMatches" type="positiveInteger"/>
+			  <xs:element name="mismatchQuality" type="positiveInteger"/>
+			  <xs:element name="threads" type="positiveInteger"/>
+			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="pairedEndLength" type="xs:integer"/>
 			  <xs:element name="mirrorType" type="xs:integer"/>
 			  <xs:element name="forceMirror">
@@ -167,7 +159,7 @@ sub Schema {
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
-		<xs:element name="bpostprocessOptions">
+		<xs:element name="postprocessOptions">
 		  <xs:complexType>
 			<xs:sequence>
 			  <xs:element name="algorithm">
@@ -178,7 +170,7 @@ sub Schema {
 				  </xs:restriction>
 				</xs:simpleType>
 			  </xs:element>
-			  <xs:element name="queueLength" type="xs:positiveInteger"/>
+			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
@@ -186,7 +178,7 @@ sub Schema {
 		<xs:element name="samtoolsOptions">
 		  <xs:complexType>
 			<xs:sequence>
-			  <xs:element name="maximumMemory" type="xs:positiveInteger"/>
+			  <xs:element name="maximumMemory" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
@@ -230,7 +222,7 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'qsubBin',                                  OPTIONAL); 
 	ValidateOptions($data->{'globalOptions'},      'queueType',          \%QUEUETYPES,         REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'space',              \%SPACE,              REQUIRED);
-	ValidateFile($data->{'globalOptions'},         'referenceFasta',                           REQUIRED);
+	ValidateFile($data->{'globalOptions'},         'fastaFileName',                           REQUIRED);
 	ValidateFile($data->{'globalOptions'},         'brgNT',                                    REQUIRED);
 	ValidateFile($data->{'globalOptions'},         'brgCS',                                    REQUIRED) if ("CS" eq $data->{'globalOptions'}->{'space'});
 	ValidateOptions($data->{'globalOptions'},      'timing',             \%TIMING,             OPTIONAL);
@@ -240,43 +232,44 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'tmpDirectory',                             REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'outputID',                                 REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'numReadsPerFASTQ',                         REQUIRED);
-	die "Attribute bmatchesSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}));
-	die "Attribute bmatchesSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'}));
-	die "Attribute bmatchesSplit must be <= numReadsPerFASTQ\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'});
-	die "Attribute balignSplit must be <= bmatchesSplit\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'});
+	die "Attribute matchSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
+	die "Attribute matchSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
+	die "Attribute matchSplit must be <= numReadsPerFASTQ\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'});
+	die "Attribute localalignSplit must be <= matchSplit\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'});
 
-	# bmatches
-	die("The bmatches options were not found.\n") unless (defined($data->{'bmatchesOptions'})); 
-	ValidateFile($data->{'bmatchesOptions'},       'mainIndexes',                              REQUIRED);
-	ValidateFile($data->{'bmatchesOptions'},       'secondaryIndexes',                         OPTIONAL);
-	ValidateFile($data->{'bmatchesOptions'},       'offsets',                                  OPTIONAL);
-	ValidateOption($data->{'bmatchesOptions'},     'keySize',                                  OPTIONAL);
-	ValidateOption($data->{'bmatchesOptions'},     'maxKeyMatches',                            OPTIONAL);
-	ValidateOption($data->{'bmatchesOptions'},     'maxNumMatches',                            OPTIONAL);
-	ValidateOptions($data->{'bmatchesOptions'},    'strand',             \%STRAND,             OPTIONAL);
-	ValidateOption($data->{'bmatchesOptions'},     'threads',                                  OPTIONAL);
-	ValidateOption($data->{'bmatchesOptions'},     'queueLength',                              OPTIONAL);
-	ValidateOption($data->{'bmatchesOptions'},     'qsubQueue',                                OPTIONAL);
+	# match
+	die("The match options were not found.\n") unless (defined($data->{'matchOptions'})); 
+	ValidateOption($data->{'matchOptions'},     'mainIndexes',                              OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'secondaryIndexes',                         OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'offsets',                                  OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'keySize',                                  OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'maxKeyMatches',                            OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'maxNumMatches',                            OPTIONAL);
+	ValidateOptions($data->{'matchOptions'},    'strand',             \%STRAND,             OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'threads',                                  OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'queueLength',                              OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'qsubQueue',                                OPTIONAL);
 
-	# balign
-	die("The balign options were not found.\n") unless (defined($data->{'balignOptions'})); 
-	ValidateFile($data->{'balignOptions'},         'scoringMatrix',                            OPTIONAL);
-	ValidateOptions($data->{'balignOptions'},      'localAlignmentType', \%LOCALALIGNMENTTYPE, OPTIONAL);
-	ValidateFile($data->{'balignOptions'},         'offset',                                   OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'maxNumMatches',                            OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'mismatchQuality',                          OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'queueLength',                              OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'pairedEndLength',                          OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'mirrorType',                               OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'forceMirror',                              OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'threads',                                  OPTIONAL);
-	ValidateOption($data->{'balignOptions'},       'qsubQueue',                                OPTIONAL);
+	# localalign
+	die("The localalign options were not found.\n") unless (defined($data->{'localalignOptions'})); 
+	ValidateFile($data->{'localalignOptions'},         'scoringMatrix',                            OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'ungapped',                            	   OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'unconstrained',                            OPTIONAL);
+	ValidateFile($data->{'localalignOptions'},         'offset',                                   OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'maxNumMatches',                            OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'mismatchQuality',                          OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'queueLength',                              OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'pairedEndLength',                          OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'mirrorType',                               OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'forceMirror',                              OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'threads',                                  OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'qsubQueue',                                OPTIONAL);
 
-	# bpostprocess
-	die("The bpostprocess options were not found.\n") unless (defined($data->{'bpostprocessOptions'})); 
-	ValidateOption($data->{'bpostprocessOptions'}, 'algorithm',                                OPTIONAL);
-	ValidateOption($data->{'bpostprocessOptions'}, 'queueLength',                              OPTIONAL);
-	ValidateOption($data->{'bpostprocessOptions'}, 'qsubQueue',                                OPTIONAL);
+	# postprocess
+	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
+	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 
 	# samtools
 	die("The samtools options were not found.\n") unless (defined($data->{'samtoolsOptions'})); 
@@ -343,22 +336,22 @@ sub GetDirContents {
 sub CreateJobs {
 	my ($data, $quiet) = @_;
 
-	my @bmatches_output_ids = ();
-	my @balign_output_ids = ();
-	my @bmatchesJobIDs = ();
-	my @balignJobIDs = ();
-	my @bpostprocessJobIDs = ();
+	my @match_output_ids = ();
+	my @localalign_output_ids = ();
+	my @matchJobIDs = ();
+	my @localalignJobIDs = ();
+	my @postprocessJobIDs = ();
 
 	# Create directories - Error checking...
 	mkpath([$data->{'globalOptions'}->{'runDirectory'}],    ($quiet) ? 0 : 1, 0755);
 	mkpath([$data->{'globalOptions'}->{'outputDirectory'}], ($quiet) ? 0 : 1, 0755);
 	mkpath([$data->{'globalOptions'}->{'tmpDirectory'}],    ($quiet) ? 0 : 1, 0755);
 
-	# bmatches
-	CreateJobsBmatches($data,     $quiet, \@bmatchesJobIDs,     \@bmatches_output_ids);
-	CreateJobsBalign($data,       $quiet, \@bmatchesJobIDs,     \@balignJobIDs,       \@bmatches_output_ids, \@balign_output_ids);
-	CreateJobsBpostprocess($data, $quiet, \@balignJobIDs,       \@bpostprocessJobIDs, \@balign_output_ids);
-	CreateJobsSamtools($data,     $quiet, \@bpostprocessJobIDs, \@balign_output_ids);
+	# match
+	CreateJobsMatch($data,     $quiet, \@matchJobIDs,     \@match_output_ids);
+	CreateJobsLocalalign($data,       $quiet, \@matchJobIDs,     \@localalignJobIDs,       \@match_output_ids, \@localalign_output_ids);
+	CreateJobsPostprocess($data, $quiet, \@localalignJobIDs,       \@postprocessJobIDs, \@localalign_output_ids);
+	CreateJobsSamtools($data,     $quiet, \@postprocessJobIDs, \@localalign_output_ids);
 }
 
 sub CreateRunFile {
@@ -391,66 +384,65 @@ sub GetReportedFile {
 		$output_id);
 }
 
-sub CreateJobsBmatches {
+sub CreateJobsMatch {
 	my ($data, $quiet, $qsub_ids, $output_ids) = @_;
 	my @read_files = ();
 
 	# Get reads
 	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, 'fastq');
 
-	# The number of bmatches to perform per read file
-	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}));
+	# The number of match to perform per read file
+	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
 
 	# Go through each
 	foreach my $read_file (@read_files) {
-		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}); 
+		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}); 
 		for(my $i=0;$i<$num_split_files;$i++) {
 			my $output_id = $read_file; 
 			$output_id =~ s/.*?([^\/]+\d+)\.[^\.]+$/$1/; 
 			$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";
-			my $run_file = CreateRunFile($data, 'bmatches', $output_id);
+			my $run_file = CreateRunFile($data, 'match', $output_id);
+			my $bmf_file = GetMatchesFile($data, $output_id);
 			my $cmd = "";
-			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bmatches/"      if defined($data->{'globalOptions'}->{'bfastBin'});
-			$cmd .= "bmatches";
-			$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'}              if ("NT" eq $data->{'globalOptions'}->{'space'});
-			$cmd .= " -r ".$data->{'globalOptions'}->{'brgCS'}              if ("CS" eq $data->{'globalOptions'}->{'space'});
-			$cmd .= " -i ".$data->{'bmatchesOptions'}->{'mainIndexes'};
-			$cmd .= " -I ".$data->{'bmatchesOptions'}->{'secondaryIndexes'} if defined($data->{'bmatchesOptions'}->{'secondaryIndexes'});
-			$cmd .= " -R ".$read_file;
-			$cmd .= " -O ".$data->{'bmatchesOptions'}->{'offsets'}          if defined($data->{'bmatchesOptions'}->{'offsets'});
+			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/bfast"      if defined($data->{'globalOptions'}->{'bfastBin'});
+			$cmd .= " match";
+			$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
+			$cmd .= " -i ".$data->{'matchOptions'}->{'mainIndexes'} if defined($data->{'matchOptions'}->{'mainIndexes'});
+			$cmd .= " -I ".$data->{'matchOptions'}->{'secondaryIndexes'} if defined($data->{'matchOptions'}->{'secondaryIndexes'});
+			$cmd .= " -r ".$read_file;
+			$cmd .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
 			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
 			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
-			$cmd .= " -k ".$data->{'bmatchesOptions'}->{'keySize'}          if defined($data->{'bmatchesOptions'}->{'keySize'});
-			$cmd .= " -K ".$data->{'bmatchesOptions'}->{'maxKeyMatches'}    if defined($data->{'bmatchesOptions'}->{'maxKeyMatches'});
-			$cmd .= " -M ".$data->{'bmatchesOptions'}->{'maxNumMatches'}    if defined($data->{'bmatchesOptions'}->{'maxNumMatches'});
-			$cmd .= " -w ".$data->{'bmatchesOptions'}->{'strand'}           if defined($data->{'bmatchesOptions'}->{'strand'});
-			$cmd .= " -n ".$data->{'bmatchesOptions'}->{'threads'}          if defined($data->{'bmatchesOptions'}->{'threads'});
-			$cmd .= " -Q ".$data->{'bmatchesOptions'}->{'queueLength'}      if defined($data->{'bmatchesOptions'}->{'queueLength'});
+			$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
+			$cmd .= " -K ".$data->{'matchOptions'}->{'maxKeyMatches'}    if defined($data->{'matchOptions'}->{'maxKeyMatches'});
+			$cmd .= " -M ".$data->{'matchOptions'}->{'maxNumMatches'}    if defined($data->{'matchOptions'}->{'maxNumMatches'});
+			$cmd .= " -w ".$data->{'matchOptions'}->{'strand'}           if defined($data->{'matchOptions'}->{'strand'});
+			$cmd .= " -n ".$data->{'matchOptions'}->{'threads'}          if defined($data->{'matchOptions'}->{'threads'});
+			$cmd .= " -Q ".$data->{'matchOptions'}->{'queueLength'}      if defined($data->{'matchOptions'}->{'queueLength'});
 			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
-			$cmd .= " -o ".$output_id;
-			$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
 			$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
+			$cmd .= " > ".$bmf_file;
 
 			# Submit the job
 			my @a = (); # empty array for job dependencies
-			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'bmatchesOptions', $output_id, \@a));
+			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'matchOptions', $output_id, \@a));
 			push(@$output_ids, $output_id);
-			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'};
-			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'};
+			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
+			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
 		}
 	}
 }
 
 # One dependent id for each output id
-sub CreateJobsBalign {
+sub CreateJobsLocalalign {
 	my ($data, $quiet, $dependent_ids, $qsub_ids, $input_ids, $output_ids) = @_;
 
-	# The number of bmatches to perform per read file
-	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'bmatchesSplit'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'}));
+	# The number of match to perform per read file
+	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
 
 	# Go through each
 	for(my $i=0;$i<scalar(@$input_ids);$i++) {
-		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'});
+		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'});
 		my ($output_id_read_num_start, $output_id_read_num_end) = (0, 0);
 		my $dependent_job = $dependent_ids->[$i];
 		my $input_id = $input_ids->[$i];
@@ -458,7 +450,7 @@ sub CreateJobsBalign {
 		if($input_id =~ m/(.+)\.(\d+)\-\d+$/) {
 			$input_id_no_read_num = $1;
 			$output_id_read_num_start += $2; 
-			$output_id_read_num_end += $2 + $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'} - 1;
+			$output_id_read_num_end += $2 + $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'} - 1;
 		}
 		else {
 			die;
@@ -466,43 +458,44 @@ sub CreateJobsBalign {
 		for(my $j=0;$j<$num_split_files;$j++) {
 			my $output_id = "$input_id_no_read_num.$output_id_read_num_start-$output_id_read_num_end";
 			my $bmf_file = GetMatchesFile($data, $input_id);
-			my $run_file = CreateRunFile($data, 'balign', $output_id);
+			my $run_file = CreateRunFile($data, 'localalign', $output_id);
+			my $baf_file = GetAlignFile($data, $output_id);
 
 			my $cmd = "";
-			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."balign/"        if defined($data->{'globalOptions'}->{'bfastBin'});
-			$cmd .= "balign";
-			$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'};
+			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/bfast"        if defined($data->{'globalOptions'}->{'bfastBin'});
+			$cmd .= " localalign";
+			$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 			$cmd .= " -m $bmf_file";
-			$cmd .= " -x ".$data->{'balignOptions'}->{'scoringMatrix'}      if defined($data->{'balignOptions'}->{'scoringMatrix'});
-			$cmd .= " -a ".$data->{'balignOptions'}->{'localAlignmentType'} if defined($data->{'balignOptions'}->{'localAlignmentType'});
+			$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
+			$cmd .= " -u " if defined($data->{'localalignOptions'}->{'ungapped'});
+			$cmd .= " -c " if defined($data->{'localalignOptions'}->{'unconstrained'});
 			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
-			$cmd .= " -O ".$data->{'balignOptions'}->{'offset'}             if defined($data->{'balignOptions'}->{'offset'});
-			$cmd .= " -M ".$data->{'balignOptions'}->{'maxNumMatches'}      if defined($data->{'balignOptions'}->{'maxNumMatches'});
-			$cmd .= " -q ".$data->{'balignOptions'}->{'mismatchQuality'}    if defined($data->{'balignOptions'}->{'mismatchQuality'});
-			$cmd .= " -n ".$data->{'balignOptions'}->{'threads'}            if defined($data->{'balignOptions'}->{'threads'});
-			$cmd .= " -Q ".$data->{'balignOptions'}->{'queueLength'}        if defined($data->{'balignOptions'}->{'queueLength'});
-			$cmd .= " -l ".$data->{'balignOptions'}->{'pairedEndLength'}    if defined($data->{'balignOptions'}->{'pairedEndLength'});
-			$cmd .= " -L ".$data->{'balignOptions'}->{'mirroringType'}      if defined($data->{'balignOptions'}->{'mirroringType'});
-			$cmd .= " -F"                                                   if defined($data->{'balignOptions'}->{'forceMirror'});
+			$cmd .= " -o ".$data->{'localalignOptions'}->{'offset'}             if defined($data->{'localalignOptions'}->{'offset'});
+			$cmd .= " -M ".$data->{'localalignOptions'}->{'maxNumMatches'}      if defined($data->{'localalignOptions'}->{'maxNumMatches'});
+			$cmd .= " -q ".$data->{'localalignOptions'}->{'mismatchQuality'}    if defined($data->{'localalignOptions'}->{'mismatchQuality'});
+			$cmd .= " -n ".$data->{'localalignOptions'}->{'threads'}            if defined($data->{'localalignOptions'}->{'threads'});
+			$cmd .= " -Q ".$data->{'localalignOptions'}->{'queueLength'}        if defined($data->{'localalignOptions'}->{'queueLength'});
+			$cmd .= " -l ".$data->{'localalignOptions'}->{'pairedEndLength'}    if defined($data->{'localalignOptions'}->{'pairedEndLength'});
+			$cmd .= " -L ".$data->{'localalignOptions'}->{'mirroringType'}      if defined($data->{'localalignOptions'}->{'mirroringType'});
+			$cmd .= " -F"                                                   if defined($data->{'localalignOptions'}->{'forceMirror'});
 			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
 			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
-			$cmd .= " -o ".$output_id;
-			$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
 			$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
+			$cmd .= " > ".$baf_file;
 
 			# Submit the job
 			my @a = (); push(@a, $dependent_job);
-			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'balignOptions', $output_id, \@a));
+			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'localalignOptions', $output_id, \@a));
 			push(@$output_ids, $output_id);
-			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
-			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
-			$output_id_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
-			$output_id_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
+			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
+			$output_id_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
+			$output_id_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 		}
 	}
 }
 
-sub CreateJobsBpostprocess {
+sub CreateJobsPostprocess {
 	my ($data, $quiet, $dependent_ids, $qsub_ids, $output_ids) = @_;
 
 	# Go through each
@@ -510,23 +503,23 @@ sub CreateJobsBpostprocess {
 		my $output_id = $output_ids->[$i];
 		my $dependent_job = $dependent_ids->[$i];
 		my $baf_file = GetAlignFile($data, $output_id);
-		my $run_file = CreateRunFile($data, 'bpostprocess', $output_id);
+		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
+		my $sam_file = GetReportedFile($data, $output_id);
 
 		my $cmd = "";
-		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bpostprocess/" if defined($data->{'globalOptions'}->{'bfastBin'});
-		$cmd .= "bpostprocess";
-		$cmd .= " -r ".$data->{'globalOptions'}->{'brgNT'};
+		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/bfast" if defined($data->{'globalOptions'}->{'bfastBin'});
+		$cmd .= " postprocess";
+		$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 		$cmd .= " -i $baf_file";
-		$cmd .= " -a ".$data->{'bpostprocessOptions'}->{'algorithm'}   if defined($data->{'bpostprocessOptions'}->{'algorithm'});
-		$cmd .= " -Q ".$data->{'bpostprocessOptions'}->{'queueLength'} if defined($data->{'bpostprocessOptions'}->{'queueLength'});
-		$cmd .= " -o ".$output_id;
+		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
+		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -O 3"; # always SAM format
-		$cmd .= " -d ".$data->{'globalOptions'}->{'outputDirectory'};
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
+		$cmd .= " > ".$sam_file;
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job);
-		push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'bpostprocessOptions', $output_id, \@a));
+		push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'postprocessOptions', $output_id, \@a));
 	}
 }
 
@@ -545,7 +538,7 @@ sub CreateJobsSamtools {
 		$cmd = "";
 		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
 		$cmd .= "samtools view -S -b";
-		$cmd .= " -T ".$data->{'globalOptions'}->{'referenceFasta'};
+		$cmd .= " -T ".$data->{'globalOptions'}->{'fastaFileName'};
 		$cmd .= " $sam_file | ";
 		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
 		$cmd .= "samtools sort";
@@ -672,9 +665,9 @@ For a description of how to create these files, please see the
 B<bfast-book.pdf> in the B<BFAST> distribution.
 
 The behaviour of this script is as follows.  For each B<FASTQ> file found in the
-reads directory, one index search process using B<bmatches>, one local alignment
-process using B<balign> will be performed, one post-processing process using 
-B<bpostprocess>, and one import to the B<SAM> format using B<SAMtools> (see 
+reads directory, one index search process using B<bfast match>, one local alignment
+process using B<bfast align> will be performed, one post-processing process using 
+B<bfast postprocess>, and one import to the B<SAM> format using B<SAMtools> (see 
 http://samtools.sourceforge.net) will be performed.  Finally, we merge all B<SAM> 
 files that have been created for each input B<FASTQ> file.  Observe that all the
 B<SAM> files will be sorted by location.  We submit each job separately using
