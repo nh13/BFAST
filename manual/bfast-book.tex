@@ -574,6 +574,10 @@ Specifies the output format.
 \TT{-O 2} specifies the output to be in \BGFFF{} format (currently undocumented and experimental).
 \TT{-O 3} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
 
+\subsubsection{\TT{-u, --unmappedFileName}}
+Dump unmapped reads including all their alignments into this file (always \BAF{} format).
+\subsubsection{\TT{-o STRING, --outputID=STRING}}
+Specifies output ID to append to the read name (\BSAMF{} output only).
 \section{bfast bafconvert}
 \label{sec:bafconvert}
 \TT{bfast bafconvert} converts \BAF{s} to the specified output format.
