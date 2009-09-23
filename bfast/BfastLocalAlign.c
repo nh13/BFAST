@@ -60,7 +60,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:chptuF";
+"c:e:f:l:m:n:o:q:s:x:A:L:M:Q:T:chptuF";
 
 	int
 BfastLocalAlign(int argc, char **argv)
