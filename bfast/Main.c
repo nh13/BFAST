@@ -2,7 +2,7 @@
 #include <string.h>
 #include <config.h>
 #include "BError.h"
-#include "main.h"
+#include "Main.h"
 
 static int usage()
 {

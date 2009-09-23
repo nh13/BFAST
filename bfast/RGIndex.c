@@ -9,6 +9,8 @@
 #include <config.h>
 #include <zlib.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
@@ -912,8 +914,9 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 		}
 	}
 
+	/* Test that we sorted correctly */
+	/*
 	if(1 == TEST_RGINDEX_SORT) {
-		/* Test that we sorted correctly */
 		for(i=1;i<index->length;i++) {
 			if(0 < RGIndexCompareAt(index, rg, i-1, i, 0)) {
 				RGIndexCompareAt(index, rg, i-1, i, 1);
@@ -921,6 +924,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 			assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
 		}
 	}
+	*/
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Sorted.\n");
 	}
