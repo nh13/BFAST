@@ -1,42 +1,9 @@
 #ifndef ALIGN_H_
 #define ALIGN_H_
 #include "BLibDefinitions.h"
+#include "AlignMatrix.h"
 
-/* Align.c specific definitions */
-
-/* TODO */
-typedef struct {
-	int32_t score;
-	int32_t from;
-	int32_t length;
-} AlignCellNT;
-
-/* TODO */
-typedef struct {
-	AlignCellNT h;
-	AlignCellNT s;
-	AlignCellNT v;
-} AlignMatrixNT;
-
-typedef struct {
-	/* For A, C, G, T, and N */
-	int32_t score[ALPHABET_SIZE+1];
-	int32_t from[ALPHABET_SIZE+1];
-	int32_t length[ALPHABET_SIZE+1];
-	char colorError[ALPHABET_SIZE+1];
-} AlignCellCS;
-
-/* TODO */
-typedef struct {
-	/* Deletion */
-	AlignCellCS h;
-	/* Match/Mismatch  */
-	AlignCellCS s;
-	/* Insertion */
-	AlignCellCS v;
-} AlignMatrixCS;
-
-/* For the "from" in the struct "AlignCellNT" */
+/* For the "from" for NT data */
 enum {StartNT, /* 0 */
 	DeletionStart, /* 1 */
 	DeletionExtension, /* 2 */
@@ -45,7 +12,7 @@ enum {StartNT, /* 0 */
 	InsertionExtension, /* 5 */
 	NoFromNT}; /* 6 */
 
-/* For the "from" in the struct "AlignCellCS" */
+/* For the "from" for CS data */
 enum {
 	StartCS, /* 0 */
 	DeletionA, /* 1 */
@@ -66,11 +33,13 @@ enum {
 	NoFromCS /* 16 */
 };
 
-int AlignRGMatches(RGMatches*, RGBinary*, AlignedRead*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, AlignMatrixNT***, AlignMatrixCS***, int32_t*, int32_t*);
-void AlignRGMatchesOneEnd(RGMatch*, RGBinary*, AlignedEnd*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, double*, int32_t*, AlignMatrixNT***, AlignMatrixCS***, int32_t*, int32_t*);
-int32_t AlignExact(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, char, int32_t, int32_t);
-void AlignUngapped(char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, uint32_t, char);
-void AlignFullWithBound(char*, char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, char, double, AlignMatrixNT***, AlignMatrixCS***);
+int AlignRGMatches(RGMatches*, RGBinary*, AlignedRead*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, AlignMatrix*);
+void AlignRGMatchesOneEnd(RGMatch*, RGBinary*, AlignedEnd*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, double*, int32_t*, AlignMatrix*);
+int32_t AlignExact(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, int32_t, char);
+void AlignUngapped(char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, int32_t, char);
+void AlignGapped(char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t, char, double);
+void AlignGappedBounded(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, char, double, int32_t, int32_t);
+void AlignGappedConstrained(char*, char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t, char);
 int32_t AlignRGMatchesKeepBestScore(AlignedEnd*, double);
 
 #endif

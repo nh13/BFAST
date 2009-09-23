@@ -21,7 +21,7 @@ void RGMatchReallocate(RGMatch*, int32_t);
 void RGMatchClearMatches(RGMatch*);
 void RGMatchFree(RGMatch*);
 void RGMatchInitialize(RGMatch*);
-void RGMatchCheck(RGMatch*);
+void RGMatchCheck(RGMatch*, RGBinary*);
 void RGMatchFilterOutOfRange(RGMatch*, int32_t);
 char *RGMatchMaskToString(char*, int32_t);
 char *RGMatchStringToMask(char*, int32_t);

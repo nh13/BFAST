@@ -258,7 +258,7 @@ void RGBinaryReadBinaryHeader(RGBinary *rg,
 	char *FnName="RGBinaryReadBinaryHeader";
 	int32_t i;
 	int32_t numCharsPerByte;
-	
+
 	numCharsPerByte=ALPHABET_SIZE/2;
 
 	/* Read RGBinary information */
@@ -699,7 +699,7 @@ void RGBinaryGetReference(RGBinary *rg,
 
 	/* Check contig bounds */
 	if(contig < 1 || contig > rg->numContigs) {
-		PrintError(FnName, NULL, "Contigomosome is out of range", Exit, OutOfRange);
+		PrintError(FnName, NULL, "Contig is out of range", Exit, OutOfRange);
 	}
 
 	/* Check position bounds */
@@ -753,13 +753,14 @@ char RGBinaryGetBase(RGBinary *rg,
 	char curChar=0;
 	uint8_t curByte;
 
+	if(contig < 1 ||
+			contig > rg->numContigs ||
+			position < 1 ||
+			position > rg->contigs[contig-1].sequenceLength) {
+		return 0;
+	}
+
 	if(RGBinaryUnPacked == rg->packed) {
-		if(contig < 1 ||
-				contig > rg->numContigs ||
-				position < 1 ||
-				position > rg->contigs[contig-1].sequenceLength) {
-			return 0;
-		}
 		/* Simple */
 		curChar = rg->contigs[contig-1].sequence[position-1];
 	}
@@ -960,7 +961,7 @@ void RGBinaryPrintInfo(char *brgFileName)
 
 	/* Read in the reference genome */
 	RGBinaryReadBinaryHeader(&rg, fpRG);
-	
+
 	/* Close the output file */
 	gzclose(fpRG);
 

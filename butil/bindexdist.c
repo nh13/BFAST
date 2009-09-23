@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <config.h>
 #include <pthread.h>
+#include <unistd.h>  
 
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BLib.h"

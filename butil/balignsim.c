@@ -7,6 +7,7 @@
 #include <time.h>
 #include <math.h>
 #include <zlib.h>
+#include <unistd.h>  
 
 #include "../bfast/BError.h"
 #include "../bfast/BLib.h"

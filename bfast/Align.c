@@ -35,11 +35,7 @@ int AlignRGMatches(RGMatches *m,
 		int32_t pairedEndLength,
 		int32_t mirroringType,
 		int32_t forceMirroring,
-		AlignMatrixNT ***matrixNT,
-		AlignMatrixCS ***matrixCS,
-		int32_t *maxReadLength,
-		int32_t *maxReferenceLength
-		)
+		AlignMatrix *matrix)
 {
 	double bestScore;
 	int32_t i;
@@ -78,11 +74,7 @@ int AlignRGMatches(RGMatches *m,
 				bestOnly,
 				&bestScore,
 				&numAligned,
-				matrixNT,
-				matrixCS,
-				maxReadLength,
-				maxReferenceLength
-				);
+				matrix);
 		if(BestOnly == bestOnly) {
 			numLocalAlignments += AlignRGMatchesKeepBestScore(&a->ends[i],
 					bestScore);
@@ -106,10 +98,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		int32_t bestOnly,
 		double *bestScore,
 		int32_t *numAligned,
-		AlignMatrixNT ***matrixNT,
-		AlignMatrixCS ***matrixCS,
-		int32_t *maxReadLength,
-		int32_t *maxReferenceLength)
+		AlignMatrix *matrix)
 {
 	char *FnName="AlignRGMatchOneEnd";
 	int32_t i;
@@ -117,8 +106,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	char **masks=NULL;
 	int32_t *referenceLengths=NULL;
 	int32_t *referencePositions=NULL;
+	int32_t *referenceOffsets=NULL;
+	int32_t *readOffsets=NULL;
 	char read[SEQUENCE_LENGTH]="\0";
-	int32_t readLength, updateMatrix=0;
+	int32_t readLength;
 	int32_t ctr=0;
 
 	(*bestScore)=DBL_MIN;
@@ -131,9 +122,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	else {
 		readLength = ConvertReadFromColorSpace(read, m->readLength);
 	}
-	if((*maxReadLength) < readLength) {
-		(*maxReadLength) = readLength;
-		updateMatrix = 1;
+	if(matrix->nrow < readLength+1) {
+		AlignMatrixReallocate(matrix, readLength+1, matrix->ncol);
 	}
 
 	/* Allocate */
@@ -155,12 +145,21 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	if(NULL==referenceLengths) {
 		PrintError(FnName, "referenceLengths", "Could not allocate memory", Exit, MallocMemory);
 	}
+	referenceOffsets = malloc(sizeof(int32_t)*m->numEntries);
+	if(NULL==referenceOffsets) {
+		PrintError(FnName, "referenceOffsets", "Could not allocate memory", Exit, MallocMemory);
+	}
+	readOffsets = malloc(sizeof(int32_t)*m->numEntries);
+	if(NULL==readOffsets) {
+		PrintError(FnName, "readOffsets", "Could not allocate memory", Exit, MallocMemory);
+	}
 	referencePositions = malloc(sizeof(int32_t)*m->numEntries);
 	if(NULL==referencePositions) {
 		PrintError(FnName, "referencePositions", "Could not allocate memory", Exit, MallocMemory);
 	}
 	for((*numAligned)=0,i=0,ctr=0;i<m->numEntries;i++) {
 		references[ctr]=NULL; /* This is needed for RGBinaryGetReference */
+
 		/* Get references */
 		RGBinaryGetReference(rg,
 				m->contigs[i],
@@ -171,6 +170,40 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				readLength,
 				&referenceLengths[ctr],
 				&referencePositions[ctr]);
+
+		// Adjust offsets.  This matters for constrained alignment only
+		if(m->positions[i] - offset == referencePositions[ctr]) {
+			if(FORWARD == m->strands[i]) {
+				referenceOffsets[ctr]=offset;
+				readOffsets[ctr]=0;
+			}
+			else {
+				referenceOffsets[ctr]=referenceLengths[ctr]-offset-readLength;
+				readOffsets[ctr]=0;
+			}
+		}
+		else if(m->positions[i] < 1) {
+			if(FORWARD == m->strands[i]) {
+				referenceOffsets[ctr]=0;
+				readOffsets[ctr]=1-m->positions[i];
+			}
+			else {
+				referenceOffsets[ctr]=offset;
+				readOffsets[ctr]=0;
+			}
+		}
+		else {
+			assert(m->positions[i] - offset < 1);
+			if(FORWARD == m->strands[i]) {
+				referenceOffsets[ctr] = m->positions[i]-1;
+				readOffsets[ctr]=0;
+			}
+			else {
+				referenceOffsets[ctr]=offset;
+				readOffsets[ctr]=0;
+			}
+		}
+
 		assert(referenceLengths[ctr] > 0);
 		/* Initialize entries */
 		if(readLength <= referenceLengths[ctr]) {
@@ -192,9 +225,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			end->entries[ctr].referenceLength = 0;
 			end->entries[ctr].read = end->entries[ctr].reference = end->entries[ctr].colorError = NULL;
 
-			if((*maxReferenceLength) < referenceLengths[ctr]) {
-				(*maxReferenceLength) = referenceLengths[ctr];
-				updateMatrix = 1;
+			if(matrix->ncol < referenceLengths[ctr]+1) {
+				AlignMatrixReallocate(matrix, matrix->nrow, referenceLengths[ctr]+1);
 			}
 
 			(*numAligned)++;
@@ -214,34 +246,6 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				ctr);
 	}
 
-	/* Reallocate matrix */
-	if(1 == updateMatrix) {
-		if(NTSpace == space) {
-			(*matrixNT) = realloc((*matrixNT), sizeof(AlignMatrixNT*)*((*maxReadLength)+1));
-			if(NULL==(*matrixNT)) {
-				PrintError(FnName, "(*matrixNT)", "Could not allocate memory", Exit, MallocMemory);
-			}
-			for(i=0;i<(*maxReadLength)+1;i++) {
-				(*matrixNT)[i] = realloc((*matrixNT)[i], sizeof(AlignMatrixNT)*((*maxReferenceLength)+1));
-				if(NULL==(*matrixNT)[i]) {
-					PrintError(FnName, "(*matrixNT)[i]", "Could not allocate memory", Exit, MallocMemory);
-				}
-			}
-		}
-		else {
-			(*matrixCS) = realloc((*matrixCS), sizeof(AlignMatrixCS*)*((*maxReadLength)+1));
-			if(NULL==(*matrixCS)) {
-				PrintError(FnName, "(*matrixCS)", "Could not allocate memory", Exit, MallocMemory);
-			}
-			for(i=0;i<(*maxReadLength)+1;i++) {
-				(*matrixCS)[i] = realloc((*matrixCS)[i], sizeof(AlignMatrixCS)*((*maxReferenceLength)+1));
-				if(NULL==(*matrixCS)[i]) {
-					PrintError(FnName, "(*matrix)[i]", "Could not allocate memory", Exit, MallocMemory);
-				}
-			}
-		}
-	}
-
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
 	int32_t foundExact;
 	foundExact = 0;
@@ -253,10 +257,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 					referenceLengths[i],
 					sm,
 					&end->entries[i],
-					referencePositions[i],
-					end->entries[i].strand,
 					space,
-					offset)) {
+					referenceOffsets[i],
+					referencePositions[i],
+					end->entries[i].strand)) {
 			foundExact=1;
 			if((*bestScore) < end->entries[i].score) {
 				(*bestScore) = end->entries[i].score;
@@ -274,6 +278,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		free(masks);
 		free(referenceLengths);
 		free(referencePositions);
+		free(referenceOffsets);
+		free(readOffsets);
 		return;
 	}
 #endif
@@ -292,7 +298,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 						sm,
 						&end->entries[i],
 						space,
-						offset,
+						referenceOffsets[i],
 						referencePositions[i],
 						end->entries[i].strand);
 				if((*bestScore) < end->entries[i].score) {
@@ -313,6 +319,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			free(masks);
 			free(referenceLengths);
 			free(referencePositions);
+			free(referenceOffsets);
+			free(readOffsets);
 
 			return;
 			/* These compiler commands aren't necessary, but are here for vim tab indenting */
@@ -324,19 +332,21 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 
 	/* Run Full */
 	for(i=0;i<end->numEntries;i++) {
-		AlignFullWithBound(read,
+		AlignGapped(read,
 				masks[i],
 				readLength,
 				references[i],
 				referenceLengths[i],
+				unconstrained,
 				sm,
 				&end->entries[i],
+				matrix,
 				space,
+				referenceOffsets[i],
+				readOffsets[i],
 				referencePositions[i],
 				end->entries[i].strand,
-				(BestOnly == bestOnly)?(*bestScore):end->entries[i].score,
-				matrixNT,
-				matrixCS);
+				(BestOnly == bestOnly)?(*bestScore):end->entries[i].score);
 		if((*bestScore) < end->entries[i].score) {
 			(*bestScore) = end->entries[i].score;
 		}
@@ -350,6 +360,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	free(masks);
 	free(referenceLengths);
 	free(referencePositions);
+	free(referenceOffsets);
+	free(readOffsets);
 }
 
 /* TODO */
@@ -359,10 +371,10 @@ int32_t AlignExact(char *read,
 		int32_t referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
-		int32_t position,
-		char strand,
 		int32_t space,
-		int32_t offset)
+		int32_t offset,
+		int32_t position,
+		char strand)
 {
 	char *FnName="AlignExact";
 	int32_t i;
@@ -401,7 +413,7 @@ int32_t AlignExact(char *read,
 
 				colorErrorAligned[i] = GAP;
 			}
-			//assert(ToLower(read[i]) == ToLower(reference[i+foundOffset]));
+			assert(ToLower(read[i]) == ToLower(reference[i+foundOffset])); 
 			score += ScoringMatrixGetNTScore(read[i], read[i], sm);
 			referenceAligned[i] = reference[i+foundOffset];
 		}
@@ -431,7 +443,7 @@ void AlignUngapped(char *read,
 		AlignedEntry *a,
 		int32_t space,
 		int32_t offset,
-		uint32_t position,
+		int32_t position,
 		char strand)
 {
 	// Note: we do not allow any wiggle room in ungapped alignment
@@ -469,25 +481,27 @@ void AlignUngapped(char *read,
 	}
 }
 
-void AlignFullWithBound(char *read,
+void AlignGapped(char *read,
 		char *mask,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,
+		int32_t unconstrained,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
+		AlignMatrix *matrix,
 		int32_t space,
+		int32_t referenceOffset,
+		int32_t readOffset,
 		int32_t position,
 		char strand,
-		double lowerBound,
-		AlignMatrixNT ***matrixNT,
-		AlignMatrixCS ***matrixCS) 
+		double lowerBound)
 {
-	char *FnName="AlignFullWithBound";
+	char *FnName="AlignGapped";
 	int64_t maxH, maxV;
 
-	maxV = maxH = 0;
 	/* Get the maximum number of vertical and horizontal moves allowed */
+	maxV = maxH = 0;
 	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {
 		if(NTSpace == space) {
 			/* b = nt match score */
@@ -501,7 +515,7 @@ void AlignFullWithBound(char *read,
 			/* b(N) - x(b) + p + e(x) - e < lowerBound */
 			/* - x(b) + e(x) < lowerBound + e -p - b(N) */
 			/* x < (lowerBound - e - p - b(N) ) / (e - b)*/
-			maxV = GETMAX(0, ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->ntMatch)));
+			maxV = GETMAX(0, (int32_t)ceil((lowerBound - sm->ntMatch*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->ntMatch)));
 		}
 		else {
 			/* c = color match score */
@@ -512,7 +526,7 @@ void AlignFullWithBound(char *read,
 			/* Find x such that (c + b)N + p + e(x - 1) < Bound */
 			maxH = GETMAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / sm->gapExtensionPenalty));
 			/* Find x such that (c + b)(N - x) + p + e(x - 1) < lowerBound */
-			maxV = GETMAX(0, ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
+			maxV = GETMAX(0, (int32_t)ceil((lowerBound - (sm->colorMatch + sm->ntMatch)*readLength  - sm->gapOpenPenalty + sm->gapExtensionPenalty) / (sm->gapExtensionPenalty - sm->colorMatch - sm->ntMatch)));
 		}
 		assert(maxH >= 0 && maxV >= 0);
 	}
@@ -528,45 +542,135 @@ void AlignFullWithBound(char *read,
 		/* Use result from searching only mismatches */
 		return;
 	}
-
-	/* Do full alignment */
-
+	
+	/* Re-bound the maximum number of vertical and horizontal moves */
+	maxH = GETMIN(maxH, readLength);
+	maxV = GETMIN(maxV, readLength);
+	
 	/* Free relevant entries */
 	free(a->read);
 	free(a->reference);
 	free(a->colorError);
 	a->read = a->reference = a->colorError = NULL;
 
-	/* Get the maximum number of vertical and horizontal moves */
-	maxH = GETMIN(maxH, readLength);
-	maxV = GETMIN(maxV, readLength);
-
-	switch(space) {
-		case NTSpace:
-			AlignNTSpaceFullWithBound(read,
+	switch(unconstrained) {
+		case Unconstrained:
+			AlignGappedBounded(read,
 					readLength,
 					reference,
 					referenceLength,
 					sm,
 					a,
+					matrix,
+					space,
+					position,
+					strand,
+					lowerBound,
+					maxH, 
+					maxV);
+		case Constrained:
+			AlignGappedConstrained(read,
+					mask,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					matrix,
+					space,
+					referenceOffset,
+					readOffset,
+					position,
+					strand);
+			break;
+		default:
+			PrintError(FnName, "unconstrained", "Could not understand unconstrained", Exit, OutOfRange);
+			break;
+	}
+}
+
+void AlignGappedBounded(char *read,
+		int32_t readLength,
+		char *reference,
+		int32_t referenceLength,
+		ScoringMatrix *sm,
+		AlignedEntry *a,
+		AlignMatrix *matrix,
+		int32_t space,
+		int32_t position,
+		char strand,
+		double lowerBound,
+		int32_t maxH,
+		int32_t maxV)
+{
+	char *FnName="AlignGappedBounded";
+
+	switch(space) {
+		case NTSpace:
+			AlignNTSpaceGappedBounded(read,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					matrix,
+					position,
+					strand,
 					maxH,
-					maxV,
-					(*matrixNT),
+					maxV);
+			break;
+		case ColorSpace:
+			AlignColorSpaceGappedBounded(read,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					matrix,
+					position,
+					strand,
+					maxH,
+					maxV);
+			break;
+		default:
+			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);
+			break;
+	}
+}
+
+void AlignGappedConstrained(char *read,
+		char *mask,
+		int32_t readLength,
+		char *reference,
+		int32_t referenceLength,
+		ScoringMatrix *sm,
+		AlignedEntry *a,
+		AlignMatrix *matrix,
+		int32_t space,
+		int32_t referenceOffset,
+		int32_t readOffset,
+		int32_t position,
+		char strand)
+{
+	char *FnName="AlignGappedConstrained";
+
+	switch(space) {
+		case NTSpace:
+			AlignNTSpaceGappedConstrained(read,
+					mask,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					matrix,
+					referenceOffset,
+					readOffset,
 					position,
 					strand);
 			break;
 		case ColorSpace:
-			AlignColorSpaceFullWithBound(read,
-					readLength,
-					reference,
-					referenceLength,
-					sm,
-					a,
-					maxH,
-					maxV,
-					(*matrixCS),
-					position,
-					strand);
+			PrintError(FnName, "AlignColorSpaceGappedConstrained", "Function not implemented", Exit, OutOfRange);
 			break;
 		default:
 			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);

@@ -10,7 +10,9 @@ localalign
   score (?)
 - only consider N base (or extra color 4) when necessary (in the read or 
 		reference)
-- remove *ScoreNT
+- Unconstrained can use bounds, constrained cannot.
+- negative positions indicate adaptor problems...
+- allow for the alignment to begin or end with an insertion
 ===============================================================================
 
 ===============================================================================

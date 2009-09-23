@@ -67,7 +67,7 @@ int32_t RGMatchRead(gzFile fp,
 	if(gzread64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
 		PrintError(FnName, "m->contigs", "Could not read in contigs", Exit, ReadFileError);
 	}
-	if(gzread64(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries) {
+	if(gzread64(fp, m->positions, sizeof(int32_t)*m->numEntries)!=sizeof(int32_t)*m->numEntries) {
 		PrintError(FnName, "m->positions", "Could not read in positions", Exit, ReadFileError);
 	}
 	if(gzread64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
@@ -155,7 +155,7 @@ void RGMatchPrint(gzFile fp,
 	assert(m->readLength > 0);
 	assert(m->qualLength > 0);
 	int32_t i;
-	
+
 	/* Print the matches to the output file */
 	/* Print read length, read, maximum reached, and number of entries. */
 	if(gzwrite64(fp, &m->readLength, sizeof(int32_t))!=sizeof(int32_t) ||
@@ -169,7 +169,7 @@ void RGMatchPrint(gzFile fp,
 
 	/* Print the contigs, positions, and strands */
 	if(gzwrite64(fp, m->contigs, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
-			gzwrite64(fp, m->positions, sizeof(uint32_t)*m->numEntries)!=sizeof(uint32_t)*m->numEntries ||
+			gzwrite64(fp, m->positions, sizeof(int32_t)*m->numEntries)!=sizeof(int32_t)*m->numEntries ||
 			gzwrite64(fp, m->strands, sizeof(char)*m->numEntries)!=sizeof(char)*m->numEntries) {
 		PrintError(FnName, NULL, "Could not write contigs, positions and strands", Exit, WriteFileError);
 	}
@@ -476,7 +476,7 @@ void RGMatchAllocate(RGMatch *m, int32_t numEntries)
 	assert(m->numEntries==0);
 	m->numEntries = numEntries;
 	assert(m->positions==NULL);
-	m->positions = malloc(sizeof(uint32_t)*numEntries); 
+	m->positions = malloc(sizeof(int32_t)*numEntries); 
 	if(NULL == m->positions) {
 		PrintError(FnName, "m->positions", "Could not allocate memory", Exit, MallocMemory);
 	}
@@ -510,7 +510,7 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 	if(numEntries > 0) {
 		prevNumEntries = m->numEntries;
 		m->numEntries = numEntries;
-		m->positions = realloc(m->positions, sizeof(uint32_t)*numEntries); 
+		m->positions = realloc(m->positions, sizeof(int32_t)*numEntries); 
 		if(numEntries > 0 && NULL == m->positions) {
 			/*
 			   fprintf(stderr, "numEntries:%d\n", numEntries);
@@ -597,9 +597,11 @@ void RGMatchInitialize(RGMatch *m)
 }
 
 /* TODO */
-void RGMatchCheck(RGMatch *m)
+void RGMatchCheck(RGMatch *m, RGBinary *rg)
 {
 	char *FnName="RGMatchCheck";
+	int32_t i, j;
+
 	/* Basic asserts */
 	assert(m->readLength >= 0);
 	assert(m->qualLength >= 0);
@@ -625,6 +627,145 @@ void RGMatchCheck(RGMatch *m)
 	/* Check that if the number of entries is greater than zero that the entries are not null */
 	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)) {
 		PrintError(FnName, NULL, "m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)", Exit, OutOfRange);
+	}
+
+	/* Check mask */
+	for(i=0;i<m->numEntries;i++) {
+		char *mask = RGMatchMaskToString(m->masks[i], m->readLength);
+		char reference[SEQUENCE_LENGTH]="\0";
+
+		if(m->strands[i] == FORWARD) {
+
+			if(ColorSpace == rg->space) {
+				for(j=1;j<m->readLength;j++) { // ignore leading adaptor
+					reference[j-1] = RGBinaryGetBase(rg, m->contigs[i], m->positions[i] + j - 1);
+					reference[j-1] = (0 == reference[j-1]) ? '-' : ToUpper(reference[j-1]);
+					reference[j-1] = ConvertColorFromStorage(reference[j-1]);
+
+					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j-1]) {
+						reference[j]='\0';
+						char *r=NULL;
+						assert(1 == RGBinaryGetSequence(rg,
+									m->contigs[i],
+									m->positions[i],
+									m->strands[i],
+									&r,
+									m->readLength));
+						ConvertColorsFromStorage(r, m->readLength);
+						fprintf(stderr, "\n%s\n%s\n%s\n%s\n%s\n",
+								BREAK_LINE,
+								reference,
+								r,
+								m->read,
+								mask);
+						fprintf(stderr, "%c:%d:%d\n",
+								FORWARD,
+								m->contigs[i],
+								m->positions[i]);
+						free(r);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+					}
+				}
+			}
+			else {
+				for(j=0;j<m->readLength;j++) {
+					reference[j] = RGBinaryGetBase(rg, m->contigs[i], m->positions[i] + j);
+					reference[j] = (0 == reference[j]) ? '-' : ToUpper(reference[j]);
+
+
+					if('1' == mask[j] && ToUpper(m->read[j]) != reference[j]) {
+						reference[j+1]='\0';
+						char *r=NULL;
+						assert(1 == RGBinaryGetSequence(rg,
+									m->contigs[i],
+									m->positions[i],
+									m->strands[i],
+									&r,
+									m->readLength));
+						fprintf(stderr, "\n%s\n%s\n%s\n%s\n%s\n",
+								BREAK_LINE,
+								reference,
+								r,
+								m->read,
+								mask);
+						fprintf(stderr, "%c:%d:%d\n",
+								FORWARD,
+								m->contigs[i],
+								m->positions[i]);
+						free(r);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+					}
+				}
+			}
+		}
+		else {
+			if(NTSpace == rg->space) {
+				for(j=0;j<m->readLength;j++) {
+					char base = RGBinaryGetBase(rg, 
+							m->contigs[i], 
+							m->positions[i] + m->readLength - 1 - j);
+					reference[j] = (0 == base) ? '-' : ToUpper(base);
+					reference[j] = GetReverseComplimentAnyCaseBase(reference[j]);
+					if('1' == mask[j] && ToUpper(m->read[j]) != reference[j]) {
+						reference[j+1]='\0';
+						char *r=NULL;
+						assert(1 == RGBinaryGetSequence(rg,
+									m->contigs[i],
+									m->positions[i],
+									m->strands[i],
+									&r,
+									m->readLength));
+						fprintf(stderr, "\n%s\n%s\n%s\n%s\n%s\n",
+								BREAK_LINE,
+								reference,
+								r,
+								m->read,
+								mask);
+						fprintf(stderr, "%c:%d:%d\n",
+								REVERSE,
+								m->contigs[i],
+								m->positions[i]);
+						free(r);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+					}
+				}
+			}
+			else {
+				for(j=1;j<m->readLength;j++) { // skip adaptor
+					char base = RGBinaryGetBase(rg, 
+							m->contigs[i], 
+							m->positions[i] + m->readLength - j);
+					reference[j-1] = (0 == base) ? '-' : ToUpper(base);
+					reference[j-1] = ConvertColorFromStorage(reference[j-1]);
+					if('1' == mask[j] && ToUpper(m->read[j]) != reference[j-1]) {
+						fprintf(stderr, "%c:%c\n",
+								ToUpper(m->read[j]),
+								reference[j-1]);
+						reference[j]='\0';
+						char *r=NULL;
+						assert(1 == RGBinaryGetSequence(rg,
+									m->contigs[i],
+									m->positions[i],
+									m->strands[i],
+									&r,
+									m->readLength));
+						fprintf(stderr, "\n%s\n %s\n %s\n%s\n%s\n",
+								BREAK_LINE,
+								reference,
+								r,
+								m->read,
+								mask);
+						fprintf(stderr, "%c:%d:%d\n",
+								REVERSE,
+								m->contigs[i],
+								m->positions[i]);
+						free(r);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+					}
+				}
+			}
+		}
+		free(mask);
 	}
 }
 
@@ -658,14 +799,9 @@ char *RGMatchMaskToString(char *mask,
 		curByteIndex = i % (8*sizeof(char));
 		byte = mask[curByte];
 		byte = byte << (8 - 1 - curByteIndex);
-		byte = byte >> curByteIndex;
-
-		if(0 < byte) {
-			string[i] = '1';
-		}
-		else {
-			string[i] = '0';
-		}
+		byte = byte >> 7;
+		assert(byte == 1 || byte == 0);
+		string[i] = (0 < byte) ? '1' : '0';
 	}
 	string[readLength] = '\0';
 

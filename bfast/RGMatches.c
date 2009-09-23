@@ -60,11 +60,6 @@ int32_t RGMatchesRead(gzFile fp,
 				&m->ends[i]);
 	}
 
-	/* Check m */
-	if(1==RGMATCHES_CHECK) {
-		RGMatchesCheck(m);
-	}
-
 	return 1;
 }
 
@@ -109,11 +104,6 @@ int32_t RGMatchesReadText(FILE *fp,
 				&m->ends[i]);
 	}
 
-	/* Check m */
-	if(1==RGMATCHES_CHECK) {
-		RGMatchesCheck(m);
-	}
-
 	return 1;
 }
 
@@ -124,13 +114,6 @@ void RGMatchesPrint(gzFile fp,
 	char *FnName = "RGMatchesPrint";
 	int32_t i;
 	assert(fp!=NULL);
-
-	/* Check m */
-	/*
-	   if(1==RGMATCHES_CHECK) {
-	   RGMatchesCheck(m);
-	   }
-	   */
 
 	/* Print num ends, read name length, and read name */
 	if(gzwrite64(fp, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t) ||
@@ -152,13 +135,6 @@ void RGMatchesPrintText(FILE *fp,
 	char *FnName = "RGMatchesPrintText";
 	int32_t i;
 	assert(fp!=NULL);
-
-	/* Check m */
-	/*
-	   if(1==RGMATCHES_CHECK) {
-	   RGMatchesCheck(m);
-	   }
-	   */
 
 	/* Print the matches to the output file */
 	/* Print read name length, read name, and num ends*/
@@ -516,12 +492,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 				}
 			}
 		}
-		/* Check m */
-		/*
-		   if(1==RGMATCHES_CHECK) {
-		   RGMatchesCheck(m);
-		   }
-		   */
+		
 		RGMatchesRemoveDuplicates(m, INT_MAX);
 		/* Adjust positions in case they trail off the end of the contigs */
 		for(i=0;i<m->ends[0].numEntries;i++) {
@@ -534,7 +505,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 }
 
 /* TODO */
-void RGMatchesCheck(RGMatches *m) 
+void RGMatchesCheck(RGMatches *m, RGBinary *rg) 
 {
 	char *FnName="RGMatchesCheck";
 	int32_t i;
@@ -545,7 +516,7 @@ void RGMatchesCheck(RGMatches *m)
 		PrintError(FnName, NULL, "strlen(m->readName)) != m->readNameLength", Exit, OutOfRange);
 	}
 	for(i=0;i<m->numEnds;i++) {
-		RGMatchCheck(&m->ends[i]);
+		RGMatchCheck(&m->ends[i], rg);
 	}
 }
 

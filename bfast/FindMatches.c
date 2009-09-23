@@ -874,7 +874,6 @@ void *FindMatchesInIndexThread(void *arg)
 				if(0 < matchQueue[i].ends[j].numEntries && 1 != matchQueue[i].ends[j].maxReached) {
 					foundMatch = 1;
 				}
-
 			}
 			if(1 == foundMatch) {
 				data->numMatches++;

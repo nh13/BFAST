@@ -5,6 +5,7 @@
 #include <time.h>
 #include <config.h>
 #include <zlib.h>
+#include <unistd.h>  
 
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"

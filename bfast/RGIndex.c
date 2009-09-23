@@ -1994,7 +1994,7 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, 
 			if(ColorSpace == space) {
 				/* Must adjust for color space, since removed one color as well as being off by one
 				 * in general for color space */
-				r->offset[r->numEntries-1] = offset + index->width+2;
+				r->offset[r->numEntries-1] = offset + index->width + 2;
 			}
 		}
 	}

@@ -437,13 +437,13 @@ void *RunDynamicProgrammingThread(void *arg)
 	int32_t ctrOne=0;
 	int32_t ctrTwo=0;
 
-	AlignMatrixNT **matrixNT=NULL;
-	AlignMatrixCS **matrixCS=NULL;
-	int32_t maxReadLength=0, maxReferenceLength=0;
+	AlignMatrix matrix;
 	AlignedRead *alignedQueue=NULL;
 	RGMatches *matchQueue=NULL;
 	int32_t matchQueueLength=queueLength;
 	int32_t numMatchesRead=0;
+
+	AlignMatrixInitialize(&matrix);
 
 	/* Allocate match queue */
 	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength);
@@ -487,19 +487,15 @@ void *RunDynamicProgrammingThread(void *arg)
 						pairedEndLength,
 						mirroringType,
 						forceMirroring,
-						&matrixNT,
-						&matrixCS,
-						&maxReadLength,
-						&maxReferenceLength
-						);
+						&matrix);
 
 				/* Output alignment */
-				for(j=wasAligned=0;0==wasAligned && j<alignedQueue[i].numEnds;j++) {
+				for(j=wasAligned=0;j<alignedQueue[i].numEnds;j++) {
 					if(0 < alignedQueue[i].ends[j].numEntries) {
 						wasAligned = 1;
 					}
 				}
-
+				
 				if(1 == wasAligned) {
 					/* Remove duplicates */
 					AlignedReadRemoveDuplicates(&alignedQueue[i],
@@ -539,7 +535,7 @@ void *RunDynamicProgrammingThread(void *arg)
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
 		}
 
-		/* Print32_t */
+		/* Print */
 		for(i=0;i<numMatchesRead;i++) {
 			AlignedReadPrint(&alignedQueue[i],
 					outputFP);
@@ -549,22 +545,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 	}
 	/* Free the matrix, free your mind */
-	if(NTSpace == space) {
-		for(i=0;i<maxReadLength+1;i++) {
-			free(matrixNT[i]);
-			matrixNT[i]=NULL;
-		}
-		free(matrixNT);
-		matrixNT=NULL;
-	}
-	else {
-		for(i=0;i<maxReadLength+1;i++) {
-			free(matrixCS[i]);
-			matrixCS[i]=NULL;
-		}
-		free(matrixCS);
-		matrixCS=NULL;
-	}
+	AlignMatrixFree(&matrix);
 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);

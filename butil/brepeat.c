@@ -4,6 +4,7 @@
 #include <string.h>
 #include <config.h>
 #include <limits.h>
+#include <unistd.h>  
 
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"

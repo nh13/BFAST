@@ -80,12 +80,6 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 				else {
 					m->positions[counter] = index->positions[j] + r->offset[i] - m->readLength;
 				}
-				/* Default position to one if the end of the read matched
-				 * the beginning of the contig
-				 * */
-				if(m->positions[counter] <= 0) {
-					m->positions[counter] = 1;
-				}
 				m->strands[counter] = r->strand[i];
 				if(ColorSpace == space) {
 					/* In color space we removed the first base/color so we need to 
@@ -95,7 +89,14 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 				}
 				for(k=0;k<index->width;k++) {
 					if(1 == index->mask[k]) {
-						RGMatchUpdateMask(m->masks[counter], r->offset[i] + k + ((NTSpace == space) ? 0 : 1));
+						int32_t offset = 0;
+						if(ColorSpace == space) {
+							offset += (FORWARD == m->strands[counter]) ? 1 : 0;
+						}
+						offset += r->offset[i] + k;
+						offset -= (REVERSE == m->strands[counter]) ? index->width : 0; 
+						RGMatchUpdateMask(m->masks[counter], 
+								offset);
 					}
 				}
 				counter++;

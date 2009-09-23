@@ -4,6 +4,7 @@
 #include <config.h>
 #include <assert.h>
 #include <zlib.h>
+#include <unistd.h>  
 
 #include "../bfast/AlignedRead.h"
 #include "../bfast/AlignedEntry.h"

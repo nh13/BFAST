@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <time.h>
 #include <limits.h>
+#include <unistd.h>  
 
 #include "../bfast/BError.h"
 #include "../bfast/BLibDefinitions.h"

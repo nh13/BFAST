@@ -24,5 +24,7 @@ typedef struct {
 } AlignMatrix;
 
 void AlignMatrixInitialize(AlignMatrix*);
+void AlignMatrixFree(AlignMatrix*);
+void AlignMatrixReallocate(AlignMatrix*, int32_t, int32_t);
 
 #endif

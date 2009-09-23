@@ -10,6 +10,7 @@
 #include "AlignedEntry.h"
 #include "ScoringMatrix.h"
 #include "Align.h"
+#include "AlignMatrix.h"
 #include "AlignNTSpace.h"
 
 /* TODO */
@@ -22,7 +23,7 @@ void AlignNTSpaceUngapped(char *read,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
 		int offset,
-		uint32_t position,
+		int32_t position,
 		char strand)
 {
 	//char *FnName = "AlignNTSpaceUngapped";
@@ -71,136 +72,44 @@ void AlignNTSpaceUngapped(char *read,
 }
 
 /* TODO */
-void AlignNTSpaceFull(char *read,
+void AlignNTSpaceGappedBounded(char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		ScoringMatrix *sm,
 		AlignedEntry *a,
-		AlignMatrixNT **matrix,
-		uint32_t position,
-		char strand)
-{
-	//char *FnName = "AlignNTSpaceFull";
-	/* read goes on the rows, reference on the columns */
-	int i, j;
-
-	/* Initialize "the matrix" */
-	/* Row i (i>0) column 0 should be negative infinity since we want to
-	 * align the full read */
-	for(i=1;i<readLength+1;i++) {
-		matrix[i][0].h.score = matrix[i][0].s.score = matrix[i][0].v.score = NEGATIVE_INFINITY;
-		matrix[i][0].h.from = matrix[i][0].s.from = matrix[i][0].v.from = StartNT;
-		matrix[i][0].h.length = matrix[i][0].s.length = matrix[i][0].v.length = 0;
-	}
-	/* Row 0 column j should be zero since we want to find the best
-	 * local alignment within the reference */
-	for(j=0;j<referenceLength+1;j++) {
-		matrix[0][j].s.score = 0;
-		matrix[0][j].h.score = matrix[0][j].v.score = NEGATIVE_INFINITY;
-		matrix[0][j].h.from = matrix[0][j].s.from = matrix[0][j].v.from = StartNT;
-		matrix[0][j].h.length = matrix[0][j].s.length = matrix[0][j].v.length = 0;
-	}
-
-	/* Fill in the matrix according to the recursive rules */
-	for(i=0;i<readLength;i++) { /* read/rows */
-		for(j=0;j<referenceLength;j++) { /* reference/columns */
-			/* Deletion relative to reference across a column */
-			/* Insertion relative to reference is down a row */
-			/* Match/Mismatch is a diagonal */
-
-			/* Update deletion */
-			/* Deletion extension */
-			matrix[i+1][j+1].h.score = matrix[i+1][j].h.score + sm->gapExtensionPenalty; 
-			matrix[i+1][j+1].h.length = matrix[i+1][j].h.length + 1;
-			matrix[i+1][j+1].h.from = DeletionExtension;
-			/* Check if starting a new deletion is better */
-			if(matrix[i+1][j+1].h.score < matrix[i+1][j].s.score + sm->gapOpenPenalty) {
-				matrix[i+1][j+1].h.score = matrix[i+1][j].s.score + sm->gapOpenPenalty;
-				matrix[i+1][j+1].h.length = matrix[i+1][j].s.length + 1;
-				matrix[i+1][j+1].h.from = DeletionStart;
-			}
-
-			/* Update insertion */
-			/* Insertion extension */
-			matrix[i+1][j+1].v.score = matrix[i][j+1].v.score + sm->gapExtensionPenalty; 
-			matrix[i+1][j+1].v.length = matrix[i][j+1].v.length + 1;
-			matrix[i+1][j+1].v.from = InsertionExtension;
-			/* Check if starting a new insertion is better */
-			if(matrix[i+1][j+1].v.score < matrix[i][j+1].s.score + sm->gapOpenPenalty) {
-				matrix[i+1][j+1].v.score = matrix[i][j+1].s.score + sm->gapOpenPenalty;
-				matrix[i+1][j+1].v.length = matrix[i][j+1].s.length + 1;
-				matrix[i+1][j+1].v.from = InsertionStart;
-			}
-
-			/* Update diagonal */
-			/* Get mismatch score */
-			matrix[i+1][j+1].s.score = matrix[i][j].s.score + ScoringMatrixGetNTScore(read[i], reference[j], sm);
-			matrix[i+1][j+1].s.length = matrix[i][j].s.length + 1;
-			matrix[i+1][j+1].s.from = Match;
-			/* Get the maximum score of the three cases: horizontal, vertical and diagonal */
-			if(matrix[i+1][j+1].s.score < matrix[i+1][j+1].h.score) {
-				matrix[i+1][j+1].s.score = matrix[i+1][j+1].h.score;
-				matrix[i+1][j+1].s.length = matrix[i+1][j+1].h.length;
-				matrix[i+1][j+1].s.from = matrix[i+1][j+1].h.from;
-			}
-			if(matrix[i+1][j+1].s.score < matrix[i+1][j+1].v.score) {
-				matrix[i+1][j+1].s.score = matrix[i+1][j+1].v.score;
-				matrix[i+1][j+1].s.length = matrix[i+1][j+1].v.length;
-				matrix[i+1][j+1].s.from = matrix[i+1][j+1].v.from;
-			}
-		}
-	}
-
-	FillAlignedEntryFromMatrixNTSpace(a,
-			matrix,
-			read,
-			readLength,
-			reference,
-			referenceLength,
-			0,
-			position,
-			strand,
-			0);
-}
-
-/* TODO */
-void AlignNTSpaceFullWithBound(char *read,
-		int readLength,
-		char *reference,
-		int referenceLength,
-		ScoringMatrix *sm,
-		AlignedEntry *a,
+		AlignMatrix *matrix,
+		int32_t position,
+		char strand,
 		int32_t maxH,
-		int32_t maxV,
-		AlignMatrixNT **matrix,
-		uint32_t position,
-		char strand)
+		int32_t maxV)
 {
 	//char *FnName = "AlignNTSpaceFullWithBound";
 	/* read goes on the rows, reference on the columns */
 	int i, j;
 
 	assert(maxV >= 0 && maxH >= 0);
+	assert(readLength < matrix->nrow);
+	assert(referenceLength < matrix->ncol);
 
 	/* Initialize "the matrix" */
 	/* Row i (i>0) column 0 should be negative infinity since we want to
 	 * align the full read */
 	for(i=1;i<readLength+1;i++) {
-		matrix[i][0].h.score = matrix[i][0].s.score = matrix[i][0].v.score = NEGATIVE_INFINITY;
-		matrix[i][0].h.from = matrix[i][0].s.from = matrix[i][0].v.from = StartNT;
-		matrix[i][0].h.length = matrix[i][0].s.length = matrix[i][0].v.length = 0;
+		matrix->cells[i][0].h.score[0] = matrix->cells[i][0].s.score[0] = matrix->cells[i][0].v.score[0] = NEGATIVE_INFINITY;
+		matrix->cells[i][0].h.from[0] = matrix->cells[i][0].s.from[0] = matrix->cells[i][0].v.from[0] = StartNT;
+		matrix->cells[i][0].h.length[0] = matrix->cells[i][0].s.length[0] = matrix->cells[i][0].v.length[0] = 0;
 	}
 	/* Row 0 column j should be zero since we want to find the best
 	 * local alignment within the reference */
 	for(j=0;j<referenceLength+1;j++) {
-		matrix[0][j].s.score = 0;
-		matrix[0][j].h.score = matrix[0][j].v.score = NEGATIVE_INFINITY;
-		matrix[0][j].h.from = matrix[0][j].s.from = matrix[0][j].v.from = StartNT;
-		matrix[0][j].h.length = matrix[0][j].s.length = matrix[0][j].v.length = 0;
+		matrix->cells[0][j].s.score[0] = 0;
+		matrix->cells[0][j].h.score[0] = matrix->cells[0][j].v.score[0] = NEGATIVE_INFINITY;
+		matrix->cells[0][j].h.from[0] = matrix->cells[0][j].s.from[0] = matrix->cells[0][j].v.from[0] = StartNT;
+		matrix->cells[0][j].h.length[0] = matrix->cells[0][j].s.length[0] = matrix->cells[0][j].v.length[0] = 0;
 	}
 
-	/* Fill in the matrix according to the recursive rules */
+	/* Fill in the matrix->cells according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
 		for(j=GETMAX(0, i - maxV);
 				j <= GETMIN(referenceLength-1, referenceLength - (readLength - maxH) + i);
@@ -213,62 +122,62 @@ void AlignNTSpaceFullWithBound(char *read,
 
 			/* Update deletion */
 			if(maxV == i - j) {
-				matrix[i+1][j+1].h.score = NEGATIVE_INFINITY;
-				matrix[i+1][j+1].h.length = INT_MIN;
-				matrix[i+1][j+1].h.from = NoFromNT;
+				matrix->cells[i+1][j+1].h.score[0] = NEGATIVE_INFINITY;
+				matrix->cells[i+1][j+1].h.length[0] = INT_MIN;
+				matrix->cells[i+1][j+1].h.from[0] = NoFromNT;
 			}
 			else {
 				/* Deletion extension */
-				matrix[i+1][j+1].h.score = matrix[i+1][j].h.score + sm->gapExtensionPenalty; 
-				matrix[i+1][j+1].h.length = matrix[i+1][j].h.length + 1;
-				matrix[i+1][j+1].h.from = DeletionExtension;
+				matrix->cells[i+1][j+1].h.score[0] = matrix->cells[i+1][j].h.score[0] + sm->gapExtensionPenalty; 
+				matrix->cells[i+1][j+1].h.length[0] = matrix->cells[i+1][j].h.length[0] + 1;
+				matrix->cells[i+1][j+1].h.from[0] = DeletionExtension;
 				/* Check if starting a new deletion is better */
-				if(matrix[i+1][j+1].h.score < matrix[i+1][j].s.score + sm->gapOpenPenalty) {
-					matrix[i+1][j+1].h.score = matrix[i+1][j].s.score + sm->gapOpenPenalty;
-					matrix[i+1][j+1].h.length = matrix[i+1][j].s.length + 1;
-					matrix[i+1][j+1].h.from = DeletionStart;
+				if(matrix->cells[i+1][j+1].h.score[0] < matrix->cells[i+1][j].s.score[0] + sm->gapOpenPenalty) {
+					matrix->cells[i+1][j+1].h.score[0] = matrix->cells[i+1][j].s.score[0] + sm->gapOpenPenalty;
+					matrix->cells[i+1][j+1].h.length[0] = matrix->cells[i+1][j].s.length[0] + 1;
+					matrix->cells[i+1][j+1].h.from[0] = DeletionStart;
 				}
 			}
 
 			/* Update insertion */
 			if(j == referenceLength - (readLength - maxH) + i) {
-				matrix[i+1][j+1].v.score = NEGATIVE_INFINITY;
-				matrix[i+1][j+1].v.length = INT_MIN;
-				matrix[i+1][j+1].v.from = NoFromNT;
+				matrix->cells[i+1][j+1].v.score[0] = NEGATIVE_INFINITY;
+				matrix->cells[i+1][j+1].v.length[0] = INT_MIN;
+				matrix->cells[i+1][j+1].v.from[0] = NoFromNT;
 			}
 			else {
 				/* Insertion extension */
-				matrix[i+1][j+1].v.score = matrix[i][j+1].v.score + sm->gapExtensionPenalty; 
-				matrix[i+1][j+1].v.length = matrix[i][j+1].v.length + 1;
-				matrix[i+1][j+1].v.from = InsertionExtension;
+				matrix->cells[i+1][j+1].v.score[0] = matrix->cells[i][j+1].v.score[0] + sm->gapExtensionPenalty; 
+				matrix->cells[i+1][j+1].v.length[0] = matrix->cells[i][j+1].v.length[0] + 1;
+				matrix->cells[i+1][j+1].v.from[0] = InsertionExtension;
 				/* Check if starting a new insertion is better */
-				if(matrix[i+1][j+1].v.score < matrix[i][j+1].s.score + sm->gapOpenPenalty) {
-					matrix[i+1][j+1].v.score = matrix[i][j+1].s.score + sm->gapOpenPenalty;
-					matrix[i+1][j+1].v.length = matrix[i][j+1].s.length + 1;
-					matrix[i+1][j+1].v.from = InsertionStart;
+				if(matrix->cells[i+1][j+1].v.score[0] < matrix->cells[i][j+1].s.score[0] + sm->gapOpenPenalty) {
+					matrix->cells[i+1][j+1].v.score[0] = matrix->cells[i][j+1].s.score[0] + sm->gapOpenPenalty;
+					matrix->cells[i+1][j+1].v.length[0] = matrix->cells[i][j+1].s.length[0] + 1;
+					matrix->cells[i+1][j+1].v.from[0] = InsertionStart;
 				}
 			}
 
 			/* Update diagonal */
 			/* Get mismatch score */
-			matrix[i+1][j+1].s.score = matrix[i][j].s.score + ScoringMatrixGetNTScore(read[i], reference[j], sm);
-			matrix[i+1][j+1].s.length = matrix[i][j].s.length + 1;
-			matrix[i+1][j+1].s.from = Match;
+			matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i][j].s.score[0] + ScoringMatrixGetNTScore(read[i], reference[j], sm);
+			matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i][j].s.length[0] + 1;
+			matrix->cells[i+1][j+1].s.from[0] = Match;
 			/* Get the maximum score of the three cases: horizontal, vertical and diagonal */
-			if(matrix[i+1][j+1].s.score < matrix[i+1][j+1].h.score) {
-				matrix[i+1][j+1].s.score = matrix[i+1][j+1].h.score;
-				matrix[i+1][j+1].s.length = matrix[i+1][j+1].h.length;
-				matrix[i+1][j+1].s.from = matrix[i+1][j+1].h.from;
+			if(matrix->cells[i+1][j+1].s.score[0] < matrix->cells[i+1][j+1].h.score[0]) {
+				matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i+1][j+1].h.score[0];
+				matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i+1][j+1].h.length[0];
+				matrix->cells[i+1][j+1].s.from[0] = matrix->cells[i+1][j+1].h.from[0];
 			}
-			if(matrix[i+1][j+1].s.score < matrix[i+1][j+1].v.score) {
-				matrix[i+1][j+1].s.score = matrix[i+1][j+1].v.score;
-				matrix[i+1][j+1].s.length = matrix[i+1][j+1].v.length;
-				matrix[i+1][j+1].s.from = matrix[i+1][j+1].v.from;
+			if(matrix->cells[i+1][j+1].s.score[0] < matrix->cells[i+1][j+1].v.score[0]) {
+				matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i+1][j+1].v.score[0];
+				matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i+1][j+1].v.length[0];
+				matrix->cells[i+1][j+1].s.from[0] = matrix->cells[i+1][j+1].v.from[0];
 			}
 		}
 	}
 
-	FillAlignedEntryFromMatrixNTSpace(a,
+	AlignNTSpaceRecoverAlignmentFromMatrix(a,
 			matrix,
 			read,
 			readLength,
@@ -278,60 +187,289 @@ void AlignNTSpaceFullWithBound(char *read,
 			position,
 			strand,
 			0);
+}
 
-	/* Debug code */
-	/*
-	   AlignedEntry tmp;
-	   AlignedEntryInitialize(&tmp);
-	   AlignNTSpaceFull(read,
-	   readLength,
-	   reference,
-	   referenceLength,
-	   sm,
-	   &tmp,
-	   strand,
-	   position);
-	   if(a->score < tmp.score ||
-	   tmp.score < a->score ||
-	   !(a->length == tmp.length) ||
-	   !(a->referenceLength == tmp.referenceLength)) {
-	   fprintf(stderr, "\nreferenceLength=%d\n", referenceLength);
-	   fprintf(stderr, "\nstrand=%c\n", strand);
-	   AlignedEntryPrint(a,
-	   stderr,
-	   ColorSpace,
-	   TextOutput);
-	   AlignedEntryPrint(&tmp,
-	   stderr,
-	   ColorSpace,
-	   TextOutput);
-	   PrintError(FnName, NULL, "Alignments did not match", Exit, OutOfRange);
-	   }
-	   AlignedEntryFree(&tmp);
-	   */
+void AlignNTSpaceGappedConstrained(char *read,
+		char *mask,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		ScoringMatrix *sm,
+		AlignedEntry *a,
+		AlignMatrix *matrix,
+		int32_t referenceOffset,
+		int32_t readOffset,
+		int32_t position,
+		char strand)
+{
+	char *FnName="AlignNTSpaceGappedConstrained";
+	int32_t i, j;
+	int32_t startRow, startCol, endRow, endCol;
 
+	/* Get where to transition */
+	startRow = startCol = endRow = endCol = -1;
+	i=0;
+	while(i<readLength) {
+		if('1' == mask[i]) {
+			startRow=i;
+			startCol=referenceOffset+i;
+			break;
+		}
+		i++;
+	}
+	i=readLength;
+	while(0<=i) {
+		if('1' == mask[i]) {
+			endRow=i;
+			endCol=referenceOffset+i;
+			break;
+		}
+		i--;
+	}
+
+	/* Adjust based off of the read offset */
+	if(0 < readOffset) {
+		startRow += readOffset;
+		endRow += readOffset;
+	}
+
+	assert(0 <= startRow && 0 <= startCol);
+	assert(0 <= endRow && 0 <= endCol);
+
+	/* Step 1 - upper left */
+	AlignNTSpaceGappedRun(read,
+			readLength,
+			reference,
+			referenceLength,
+			sm,
+			matrix,
+			0,
+			0,
+			startRow,
+			startCol);
+
+	/* Step 2 - mask */
+	if('1' == mask[startRow] && ToLower(read[startRow]) != ToLower(reference[startCol])) {
+		PrintError(FnName, NULL, "read and reference did not match (first base)", Exit, OutOfRange);
+	}
+	assert(ToLower(read[startRow]) == ToLower(reference[startCol]));
+	for(i=startRow+1,j=startCol+1;i<=endRow;i++,j++) {
+		assert(j<=endCol);
+		if('1' == mask[i] && ToLower(read[i]) != ToLower(reference[j])) {
+			PrintError(FnName, NULL, "read and reference did not match", Exit, OutOfRange);
+		}
+		/* Update diagonal */
+		/* Get mismatch score */
+		matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i][j].s.score[0] + ScoringMatrixGetNTScore(read[i], reference[j], sm);
+		matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i][j].s.length[0] + 1;
+		matrix->cells[i+1][j+1].s.from[0] = Match;
+	}
+
+	/* Step 3 - lower right */
+	AlignNTSpaceGappedRun(read,
+			readLength,
+			reference,
+			referenceLength,
+			sm,
+			matrix,
+			endRow,
+			endCol,
+			readLength-1,
+			referenceLength-1);
+
+	/* Step 4 - recover alignment */
+	// TODO
+	AlignNTSpaceRecoverAlignmentFromMatrix(a,
+			matrix,
+			read,
+			readLength,
+			reference,
+			referenceLength,
+			endCol,
+			position,
+			strand,
+			0);
 }
 
 /* TODO */
-void FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
-		AlignMatrixNT **matrix,
+// Note: this will always initialize the previous row and column */
+void AlignNTSpaceGappedRun(char *read,
+		int readLength,
+		char *reference,
+		int referenceLength,
+		ScoringMatrix *sm,
+		AlignMatrix *matrix,
+		int32_t startRow,
+		int32_t startCol,
+		int32_t endRow,
+		int32_t endCol)
+{
+	//char *FnName = "AlignNTSpaceGappedRun";
+	/* read goes on the rows, reference on the columns */
+	int i, j;
+
+	assert(0 != startRow || 0 == startCol);
+
+	/* Initialize "the matrix" */
+	if(0 == startRow) {
+		// Normal initialization */
+		/* Allow the alignment to start anywhere in the reference */
+		for(j=startCol;j<endCol+1;j++) {
+			// Allow to start from a match
+			matrix->cells[startRow][j].s.score[0] = 0;
+			// Do not allow to start from an insertion or deletion
+			matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j].v.score[0] = NEGATIVE_INFINITY;
+			matrix->cells[startRow][j].h.from[0] = matrix->cells[startRow][j].s.from[0] = matrix->cells[startRow][j].v.from[0] = StartNT;
+			matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j].s.length[0] = matrix->cells[startRow][j].v.length[0] = 0;
+		}
+		/* Align the full read */
+		for(i=startRow+1;i<endRow+1;i++) {
+			// Allow an insertion
+			if(i == startRow + 1) { // Allow for an insertion start
+				matrix->cells[i][startCol].v.score[0] = matrix->cells[i-1][startCol].s.score[0] + sm->gapOpenPenalty;
+				matrix->cells[i][startCol].v.length[0] = matrix->cells[i-1][startCol].s.length[0] + 1;
+				matrix->cells[i][startCol].v.from[0] = InsertionStart;
+			}
+			else { // Allow for an insertion extension
+				matrix->cells[i][startCol].v.score[0] = matrix->cells[i-1][startCol].v.score[0] + sm->gapExtensionPenalty; 
+				matrix->cells[i][startCol].v.length[0] = matrix->cells[i-1][startCol].v.length[0] + 1;
+				matrix->cells[i][startCol].v.from[0] = InsertionExtension;
+			}
+			// Do not allow a match or a deletion
+			matrix->cells[i][startCol].h.score[0] = matrix->cells[i][startCol].s.score[0] = NEGATIVE_INFINITY;
+			matrix->cells[i][startCol].h.from[0] = matrix->cells[i][startCol].s.from[0] = StartNT;
+			matrix->cells[i][startCol].h.length[0] = matrix->cells[i][startCol].s.length[0] = 0;
+		}
+	}
+	else {
+		// Special initialization
+		for(j=startCol;j<endCol+1;j++) {
+			if(j == startCol) {
+				// Match should already have been filled in
+				assert(Match == matrix->cells[startRow][j].s.from[0]); 
+
+				// Do not allow a deletion or insertion
+				matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j].v.score[0] = NEGATIVE_INFINITY;
+				matrix->cells[startRow][j].h.from[0] = matrix->cells[startRow][j].v.from[0] = StartNT;
+				matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j].s.length[0] = matrix->cells[startRow][j].v.length[0] = 0;
+			}
+			else {
+				if(j == startCol + 1) { // Allow for a deletion start
+					matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j-1].s.score[0] + sm->gapOpenPenalty;
+					matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j-1].s.length[0] + 1;
+					matrix->cells[startRow][j].h.from[0] = DeletionStart;
+				}
+				else { // Allow for a deletion extension
+					/* Deletion extension */
+					matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j-1].h.score[0] + sm->gapExtensionPenalty; 
+					matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j-1].h.length[0] + 1;
+					matrix->cells[startRow][j].h.from[0] = DeletionExtension;
+				}
+
+				// Do not allow an insertion or match
+				matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j].s.score[0] = NEGATIVE_INFINITY;
+				matrix->cells[startRow][j].h.from[0] = matrix->cells[startRow][j].s.from[0] = StartNT;
+				matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j].s.length[0] = 0;
+			}
+		}
+		/* Align the full read */
+		for(i=startRow+1;i<endRow+1;i++) {
+			// Allow an insertion
+			if(i == startRow + 1) { // Allow for an insertion start
+				matrix->cells[i][startCol].v.score[0] = matrix->cells[i-1][startCol].s.score[0] + sm->gapOpenPenalty;
+				matrix->cells[i][startCol].v.length[0] = matrix->cells[i-1][startCol].s.length[0] + 1;
+				matrix->cells[i][startCol].v.from[0] = InsertionStart;
+			}
+			else { // Allow for an insertion extension
+				matrix->cells[i][startCol].v.score[0] = matrix->cells[i-1][startCol].v.score[0] + sm->gapExtensionPenalty; 
+				matrix->cells[i][startCol].v.length[0] = matrix->cells[i-1][startCol].v.length[0] + 1;
+				matrix->cells[i][startCol].v.from[0] = InsertionExtension;
+			}
+
+			// Do not allow a match or an deletion
+			matrix->cells[i][startCol].h.score[0] = matrix->cells[i][startCol].s.score[0] = NEGATIVE_INFINITY;
+			matrix->cells[i][startCol].h.from[0] = matrix->cells[i][startCol].s.from[0] = StartNT;
+			matrix->cells[i][startCol].h.length[0] = matrix->cells[i][startCol].s.length[0] = 0;
+		}
+	}
+
+	/* Fill in the matrix->cells according to the recursive rules */
+	for(i=startRow;i<=endRow;i++) { /* read/rows */
+		for(j=startCol;j<=endCol;j++) { /* reference/columns */
+			/* Deletion relative to reference across a column */
+			/* Insertion relative to reference is down a row */
+			/* Match/Mismatch is a diagonal */
+
+			if(0 < startRow && i == startRow && j == startCol) {
+				// Ignore, this is an extension, and we have already filled in this cell 
+			}
+			else {
+
+				/* Update deletion */
+				/* Deletion extension */
+				matrix->cells[i+1][j+1].h.score[0] = matrix->cells[i+1][j].h.score[0] + sm->gapExtensionPenalty; 
+				matrix->cells[i+1][j+1].h.length[0] = matrix->cells[i+1][j].h.length[0] + 1;
+				matrix->cells[i+1][j+1].h.from[0] = DeletionExtension;
+				/* Check if starting a new deletion is better */
+				if(matrix->cells[i+1][j+1].h.score[0] < matrix->cells[i+1][j].s.score[0] + sm->gapOpenPenalty) {
+					matrix->cells[i+1][j+1].h.score[0] = matrix->cells[i+1][j].s.score[0] + sm->gapOpenPenalty;
+					matrix->cells[i+1][j+1].h.length[0] = matrix->cells[i+1][j].s.length[0] + 1;
+					matrix->cells[i+1][j+1].h.from[0] = DeletionStart;
+				}
+
+				/* Update insertion */
+				/* Insertion extension */
+				matrix->cells[i+1][j+1].v.score[0] = matrix->cells[i][j+1].v.score[0] + sm->gapExtensionPenalty; 
+				matrix->cells[i+1][j+1].v.length[0] = matrix->cells[i][j+1].v.length[0] + 1;
+				matrix->cells[i+1][j+1].v.from[0] = InsertionExtension;
+				/* Check if starting a new insertion is better */
+				if(matrix->cells[i+1][j+1].v.score[0] < matrix->cells[i][j+1].s.score[0] + sm->gapOpenPenalty) {
+					matrix->cells[i+1][j+1].v.score[0] = matrix->cells[i][j+1].s.score[0] + sm->gapOpenPenalty;
+					matrix->cells[i+1][j+1].v.length[0] = matrix->cells[i][j+1].s.length[0] + 1;
+					matrix->cells[i+1][j+1].v.from[0] = InsertionStart;
+				}
+
+				/* Update diagonal */
+				/* Get mismatch score */
+				matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i][j].s.score[0] + ScoringMatrixGetNTScore(read[i], reference[j], sm);
+				matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i][j].s.length[0] + 1;
+				matrix->cells[i+1][j+1].s.from[0] = Match;
+				/* Get the maximum score of the three cases: horizontal, vertical and diagonal */
+				if(matrix->cells[i+1][j+1].s.score[0] < matrix->cells[i+1][j+1].h.score[0]) {
+					matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i+1][j+1].h.score[0];
+					matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i+1][j+1].h.length[0];
+					matrix->cells[i+1][j+1].s.from[0] = matrix->cells[i+1][j+1].h.from[0];
+				}
+				if(matrix->cells[i+1][j+1].s.score[0] < matrix->cells[i+1][j+1].v.score[0]) {
+					matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i+1][j+1].v.score[0];
+					matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i+1][j+1].v.length[0];
+					matrix->cells[i+1][j+1].s.from[0] = matrix->cells[i+1][j+1].v.from[0];
+				}
+			}
+		}
+	}
+}
+
+/* TODO */
+void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
+		AlignMatrix *matrix,
 		char *read,
 		int readLength,
 		char *reference,
 		int referenceLength,
 		int toExclude,
-		uint32_t position,
+		int32_t position,
 		char strand,
 		int debug)
 {
-	char *FnName="FillAlignedEntryFromMatrixNTSpace";
+	char *FnName="AlignNTSpaceRecoverAlignmentFromMatrix";
 	int curRow, curCol, startRow, startCol;
 	char curReadBase;
 	int nextRow, nextCol;
 	char nextReadBase;
 	int curFrom;
 	double maxScore;
-	int i, offset;
+	int32_t i, offset;
 	char readAligned[SEQUENCE_LENGTH]="\0";
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
 	int32_t referenceLengthAligned, length;
@@ -349,8 +487,8 @@ void FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	maxScore = NEGATIVE_INFINITY;
 	for(i=toExclude;i<referenceLength+1;i++) {
 		/* Check only the first cell */
-		if(maxScore < matrix[readLength][i].s.score) {
-			maxScore = matrix[readLength][i].s.score;
+		if(maxScore < matrix->cells[readLength][i].s.score[0]) {
+			maxScore = matrix->cells[readLength][i].s.score[0];
 			startRow = readLength;
 			startCol = i;
 		}
@@ -363,31 +501,48 @@ void FillAlignedEntryFromMatrixNTSpace(AlignedEntry *a,
 	curFrom = Match;
 
 	referenceLengthAligned=0;
-	i=matrix[curRow][curCol].s.length-1; /* Get the length of the alignment */
-	length=matrix[curRow][curCol].s.length; /* Copy over the length */
+	i=matrix->cells[curRow][curCol].s.length[0]-1; /* Get the length of the alignment */
+	length=matrix->cells[curRow][curCol].s.length[0]; /* Copy over the length */
 
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(curRow > 0 && curCol > 0) {
 
+		// HERE
+		//fprintf(stderr, "%d,%d,%d,%d\n", curRow, curCol, i, curFrom);
+
 		/* Where did the current cell come from */
 		switch(curFrom) {
 			case DeletionStart:
-				curFrom = matrix[curRow][curCol].s.from;
+				curFrom = matrix->cells[curRow][curCol].s.from[0];
 				assert(curFrom == Match || curFrom == InsertionExtension);
 				break;
 			case DeletionExtension:
-				curFrom = matrix[curRow][curCol].h.from;
+				curFrom = matrix->cells[curRow][curCol].h.from[0];
+				if(!(curFrom == DeletionStart || curFrom == DeletionExtension)) {
+					fprintf(stderr, "\ncurFrom=%d\n",
+							curFrom);
+					fprintf(stderr, "toExclude=%d\n",
+							toExclude);
+					fprintf(stderr, "readLength=%d\n",
+							readLength);
+					fprintf(stderr, "startRow=%d\nstartCol=%d\n",
+							startRow,
+							startCol);
+					fprintf(stderr, "curRow=%d\ncurCol=%d\n",
+							curRow,
+							curCol);
+				}
 				assert(curFrom == DeletionStart || curFrom == DeletionExtension);
 				break;
 			case Match:
-				curFrom = matrix[curRow][curCol].s.from;
+				curFrom = matrix->cells[curRow][curCol].s.from[0];
 				break;
 			case InsertionStart:
-				curFrom = matrix[curRow][curCol].s.from;
+				curFrom = matrix->cells[curRow][curCol].s.from[0];
 				assert(curFrom == Match || curFrom == DeletionExtension);
 				break;
 			case InsertionExtension:
-				curFrom = matrix[curRow][curCol].v.from;
+				curFrom = matrix->cells[curRow][curCol].v.from[0];
 				if(!(curFrom == InsertionStart || curFrom == InsertionExtension)) {
 					fprintf(stderr, "\ncurFrom=%d\n",
 							curFrom);

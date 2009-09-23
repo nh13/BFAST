@@ -4,7 +4,8 @@
 
 echo "      Running local alignment.";
 
-for SPACE in 0 1
+#for SPACE in 0 1
+for SPACE in 0 
 do
 	echo "        Testing -A "$SPACE;
 	if [ "$SPACE" -eq "0" ]; then
@@ -17,7 +18,8 @@ do
 
 	# Run local alignment
 	CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 -T $TMP_DIR > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
-	eval $CMD 2> /dev/null;
+	#eval $CMD 2> /dev/null;
+	eval $CMD;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		echo $CMD;

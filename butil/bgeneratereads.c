@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <config.h>
 #include <time.h>
+#include <unistd.h>  
 
 #include "../bfast/BError.h"
 #include "../bfast/BLib.h"
