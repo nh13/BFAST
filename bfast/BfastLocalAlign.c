@@ -60,7 +60,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"c:e:f:l:m:n:o:q:s:x:A:L:M:Q:T:chptuF";
+"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:chptuF";
 
 	int
 BfastLocalAlign(int argc, char **argv)
@@ -391,6 +391,8 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 		   fprintf(stderr, "Key is %c and OptErr = %d\n", key, OptErr);
 		   */
 		switch (key) {
+			case 'c':
+				arguments->unconstrained=Unconstrained;break;
 			case 'e':
 				arguments->endReadNum=atoi(optarg);break;
 			case 'f':
