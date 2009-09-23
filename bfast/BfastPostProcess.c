@@ -126,7 +126,7 @@ BfastPostProcess(int argc, char **argv)
 
 		}
 		else {
-			PrintError("PrintError", NULL, "Could not parse command line argumnets", Exit, InputArguments);
+			PrintError("PrintError", NULL, "Could not parse command line arguments", Exit, InputArguments);
 		}
 		/* Free program parameters */
 		BfastPostProcessFreeProgramParameters(&arguments);

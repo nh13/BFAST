@@ -89,7 +89,7 @@ void ValidateArguments(arguments *args)
 {
 	char *FnName="ValidateArguments";
 
-	if(args->algorithm < 0 || args->algorithm > 1) {
+	if(args->algorithm < 0 || args->algorithm > 2) {
 		PrintError(FnName, "Command line argument", "algorithm", Exit, OutOfRange);	}	if(args->readLength <= 0) {		PrintError(FnName, "Command line argument", "readLength", Exit, OutOfRange);	}
 	if(args->numEventsToSample <= 0) {
 		PrintError(FnName, "Command line argument", "numEventsToSample", Exit, OutOfRange);	}	if(args->numIndexesToSample < 0 ||			(args->algorithm == 0 && args->numIndexesToSample <= 0)) {		PrintError(FnName, "Command line argument", "numIndexesToSample", Exit, OutOfRange);

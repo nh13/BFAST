@@ -1,6 +1,5 @@
 #!/bin/sh 
 . test.definitions.sh
-LAYOUT_FILE=$OUTPUT_DIR"layouts.txt";
 
 echo "      Building an index.";
 
