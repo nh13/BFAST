@@ -18,10 +18,13 @@ do
 
 	# Run local alignment
 	# HERE
-	CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 -T $TMP_DIR > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
-	#CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 -T $TMP_DIR > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
-	eval $CMD;
+	for C in "-t -U " "-t "
+	do
+		CMD=$CMD_PREFIX"bfast localalign $C -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 -T $TMP_DIR > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
+		eval $CMD;
+	done
 	exit 1;
+	#CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 -T $TMP_DIR > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
 	#eval $CMD 2> /dev/null;
 	# Get return code
 	if [ "$?" -ne "0" ]; then

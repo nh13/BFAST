@@ -92,6 +92,8 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define GAP_QUALITY -1
 #define NULL_LETTER 'N'
 #define COLOR_SPACE_START_NT 'A'
+// the next define should be the int representation of the previous define
+#define COLOR_SPACE_START_NT_INT 0
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
 

@@ -707,6 +707,7 @@ int UpdateRead(char *read, int readLength, int space)
 			case 'c':
 			case 'g':
 			case 't':
+				break;
 			case 'A':
 			case 'C':
 			case 'G':
@@ -971,30 +972,35 @@ void ConvertSequenceToIntegers(char *seq,
 {
 	int i;
 	for(i=0;i<seqLength;i++) {
-		switch(seq[i]) {
-			case 0:
-			case '0':
-			case 'A':
-			case 'a':
-				dest[i] = 0; break;
-			case 1:
-			case '1':
-			case 'C':
-			case 'c':
-				dest[i] = 1; break;
-			case 2:
-			case '2':
-			case 'G':
-			case 'g':
-				dest[i] = 2; break;
-			case 3:
-			case '3':
-			case 'T':
-			case 't':
-				dest[i] = 3; break;
-			default:
-				dest[i] = 4; break;
-		}
+		dest[i] = BaseToInt(seq[i]);
+	}
+}
+
+int32_t BaseToInt(char base) 
+{
+	switch(base) {
+		case 0:
+		case '0':
+		case 'A':
+		case 'a':
+			return 0;
+		case 1:
+		case '1':
+		case 'C':
+		case 'c':
+			return 1;
+		case 2:
+		case '2':
+		case 'G':
+		case 'g':
+			return 2;
+		case 3:
+		case '3':
+		case 'T':
+		case 't':
+			return 3;
+		default:
+			return 4;
 	}
 }
 
@@ -1224,28 +1230,7 @@ char ConvertIntColorToCharColor(char c)
 /* TODO */
 char ConvertColorFromStorage(char c)
 {
-	switch(c) {
-		case 'a':
-		case 'A':
-			c = '0';
-			break;
-		case 'c':
-		case 'C':
-			c = '1';
-			break;
-		case 'g':
-		case 'G':
-			c = '2';
-			break;
-		case 't':
-		case 'T':
-			c = '3';
-			break;
-		default:
-			c = '4';
-			break;
-	}
-	return c;
+	return ("01234"[BaseToInt(c)]);
 }
 
 /* TODO */
@@ -1799,6 +1784,6 @@ int32_t GetBIFMaximumBin(char *prefix, int32_t indexNumber)
 	if(0 == curExp) {
 		return 0;
 	}
-	
+
 	return (int)pow(ALPHABET_SIZE, curExp-1);
 }

@@ -720,7 +720,18 @@ void AlignGappedConstrained(char *read,
 					strand);
 			break;
 		case ColorSpace:
-			PrintError(FnName, "AlignColorSpaceGappedConstrained", "Function not implemented", Exit, OutOfRange);
+			AlignColorSpaceGappedConstrained(read,
+					mask,
+					readLength,
+					reference,
+					referenceLength,
+					sm,
+					a,
+					matrix,
+					referenceOffset,
+					readOffset,
+					position,
+					strand);
 			break;
 		default:
 			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);

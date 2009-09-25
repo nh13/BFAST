@@ -102,6 +102,7 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 					for(k=0;k<index->width;k++) {
 						if(1 == index->mask[index->width - k - 1]) {
 							int32_t offset = r->offset[i] + k;
+							if(ColorSpace == space) offset--;
 							RGMatchUpdateMask(m->masks[counter], 
 									offset);
 						}

@@ -38,6 +38,7 @@ int UpdateRead(char*, int, int);
 int CheckReadAgainstIndex(RGIndex*, char*, int);
 int CheckReadBase(char);
 void ConvertSequenceToIntegers(char*, int8_t*, int32_t seqLength);
+int32_t BaseToInt(char);
 int ConvertBaseToColorSpace(char, char, char*);
 int ConvertBaseAndColor(char, char, char*);
 int ConvertReadFromColorSpace(char*, int);

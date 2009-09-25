@@ -90,9 +90,12 @@ int32_t AlignNTSpaceUngapped(char *read,
 		return 1;
 	}
 	else {
-		/*
-		fprintf(stderr, "HERE returning NEGATIVE_INFINITY\n");
-		*/
+		/* When can this happen you ask?  This can occur when the read
+		 * has adaptor sequence at the beginning or end of the read. This
+		 * causes it to look like there is an insertion at the beginning
+		 * or end of the read.  This cannot be handled by ungapped local
+		 * alignment.
+		 * */
 		assert(NULL == a->read);
 		assert(NULL == a->reference);
 		return 0;
@@ -134,16 +137,7 @@ void AlignNTSpaceGappedBounded(char *read,
 		}
 	}
 
-	AlignNTSpaceRecoverAlignmentFromMatrix(a,
-			matrix,
-			read,
-			readLength,
-			reference,
-			referenceLength,
-			readLength - maxV,
-			position,
-			strand,
-			0);
+	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, readLength - maxV, position, strand, 0);
 }
 
 void AlignNTSpaceGappedConstrained(char *read,
@@ -292,16 +286,7 @@ void AlignNTSpaceGappedConstrained(char *read,
 	}
 
 	/* Step 4 - recover alignment */
-	AlignNTSpaceRecoverAlignmentFromMatrix(a,
-			matrix,
-			read,
-			readLength,
-			reference,
-			referenceLength,
-			endColStepTwo,
-			position,
-			strand,
-			0);
+	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, endColStepTwo, position, strand, 0);
 
 	// HERE
 	/*
@@ -564,38 +549,37 @@ void AlignNTSpaceInitializeAtStart(AlignMatrix *matrix,
 		int32_t endRow,
 		int32_t endCol)
 {
-	int32_t i, j, startRow, startCol;
+	int32_t i, j;
 
 	// Normal initialization */
-	startRow = startCol = 0;
 	/* Allow the alignment to start anywhere in the reference */
-	for(j=startCol;j<endCol+1;j++) {
+	for(j=0;j<endCol+1;j++) {
 		// Allow to start from a match
-		matrix->cells[startRow][j].s.score[0] = 0;
+		matrix->cells[0][j].s.score[0] = 0;
 		// Do not allow to start from an insertion or deletion
-		matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j].v.score[0] = NEGATIVE_INFINITY;
-		matrix->cells[startRow][j].h.from[0] = matrix->cells[startRow][j].s.from[0] = matrix->cells[startRow][j].v.from[0] = StartNT;
-		matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j].s.length[0] = matrix->cells[startRow][j].v.length[0] = 0;
+		matrix->cells[0][j].h.score[0] = matrix->cells[0][j].v.score[0] = NEGATIVE_INFINITY;
+		matrix->cells[0][j].h.from[0] = matrix->cells[0][j].s.from[0] = matrix->cells[0][j].v.from[0] = StartNT;
+		matrix->cells[0][j].h.length[0] = matrix->cells[0][j].s.length[0] = matrix->cells[0][j].v.length[0] = 0;
 	}
 	/* Align the full read */
-	for(i=startRow+1;i<endRow+1;i++) {
+	for(i=1;i<endRow+1;i++) {
 		// Allow an insertion
-		if(i == startRow + 1) { // Allow for an insertion start
-			assert(0 == matrix->cells[i-1][startCol].s.length[0]);
-			matrix->cells[i][startCol].v.score[0] = matrix->cells[i][startCol].s.score[0] = matrix->cells[i-1][startCol].s.score[0] + sm->gapOpenPenalty;
-			matrix->cells[i][startCol].v.length[0] = matrix->cells[i][startCol].s.length[0] = matrix->cells[i-1][startCol].s.length[0] + 1;
-			matrix->cells[i][startCol].v.from[0] = matrix->cells[i][startCol].s.from[0] = InsertionStart;
+		if(i == 1) { // Allow for an insertion start
+			assert(0 == matrix->cells[i-1][0].s.length[0]);
+			matrix->cells[i][0].v.score[0] = matrix->cells[i][0].s.score[0] = matrix->cells[i-1][0].s.score[0] + sm->gapOpenPenalty;
+			matrix->cells[i][0].v.length[0] = matrix->cells[i][0].s.length[0] = matrix->cells[i-1][0].s.length[0] + 1;
+			matrix->cells[i][0].v.from[0] = matrix->cells[i][0].s.from[0] = InsertionStart;
 		}
 		else { // Allow for an insertion extension
-			assert(0 < matrix->cells[i-1][startCol].v.length[0]);
-			matrix->cells[i][startCol].v.score[0] = matrix->cells[i][startCol].s.score[0] = matrix->cells[i-1][startCol].s.score[0] + sm->gapExtensionPenalty;
-			matrix->cells[i][startCol].v.length[0] = matrix->cells[i][startCol].s.length[0] = matrix->cells[i-1][startCol].s.length[0] + 1;
-			matrix->cells[i][startCol].v.from[0] = matrix->cells[i][startCol].s.from[0] = InsertionExtension;
+			assert(0 < matrix->cells[i-1][0].v.length[0]);
+			matrix->cells[i][0].v.score[0] = matrix->cells[i][0].s.score[0] = matrix->cells[i-1][0].s.score[0] + sm->gapExtensionPenalty;
+			matrix->cells[i][0].v.length[0] = matrix->cells[i][0].s.length[0] = matrix->cells[i-1][0].s.length[0] + 1;
+			matrix->cells[i][0].v.from[0] = matrix->cells[i][0].s.from[0] = InsertionExtension;
 		}
 		// Do not allow a deletion
-		matrix->cells[i][startCol].h.score[0] = NEGATIVE_INFINITY;
-		matrix->cells[i][startCol].h.from[0] = StartNT;
-		matrix->cells[i][startCol].h.length[0] = 0;
+		matrix->cells[i][0].h.score[0] = NEGATIVE_INFINITY;
+		matrix->cells[i][0].h.from[0] = StartNT;
+		matrix->cells[i][0].h.length[0] = 0;
 	}
 }
 

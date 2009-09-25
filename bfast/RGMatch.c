@@ -737,7 +737,7 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 							m->positions[i] + m->readLength - j);
 					reference[j-1] = (0 == base) ? '-' : ToUpper(base);
 					reference[j-1] = ConvertColorFromStorage(reference[j-1]);
-					if('1' == mask[j] && ToUpper(m->read[j]) != reference[j-1]) {
+					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j-1]) {
 						fprintf(stderr, "%c:%c\n",
 								ToUpper(m->read[j]),
 								reference[j-1]);
@@ -749,12 +749,12 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 									m->strands[i],
 									&r,
 									m->readLength));
-						fprintf(stderr, "\n%s%s\n%s\n%s\n%s\n",
+						fprintf(stderr, "\n%s%s\n %s\n%s\n%s\n",
 								BREAK_LINE,
-								reference,
 								r,
-								m->read,
-								mask);
+								reference,
+								mask,
+								m->read);
 						fprintf(stderr, "%c:%d:%d\n",
 								REVERSE,
 								m->contigs[i],
