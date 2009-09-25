@@ -78,9 +78,6 @@ void FindMatches(
 	}
 
 	/* Read in the secondary RGIndex File Names */
-	if(0<=VERBOSE) {
-		fprintf(stderr, "%s", BREAK_LINE);
-	}
 	if(NULL != secondaryIndexes) {
 		if(0<=VERBOSE) {
 			fprintf(stderr, "Searching for secondary indexes...\n");

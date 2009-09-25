@@ -41,6 +41,7 @@ balignsim_SOURCES = \
 					../bfast/Align.c	../bfast/Align.h \
 					../bfast/AlignColorSpace.c	../bfast/AlignColorSpace.h \
 					../bfast/AlignNTSpace.c	../bfast/AlignNTSpace.h \
+					../bfast/AlignMatrix.c ../bfast/AlignMatrix.h \
 					balignsim.c	balignsim.h
 
 balignsim_LDADD = -lz
