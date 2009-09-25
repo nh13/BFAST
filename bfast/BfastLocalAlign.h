@@ -22,7 +22,6 @@ struct arguments
 	int mirroringType;						/* -L */
 	int forceMirroring;						/* -f */
 	int pairedEndLength;					/* -l */
-	char *tmpDir;							/* -T */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

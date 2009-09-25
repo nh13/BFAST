@@ -116,6 +116,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define GETMASKNUMBYTESFROMLENGTH(_l) (((int)((_l + 7)/8)))
 #define GETMASKBYTE(_pos) ((int)(_pos / 8))
 #define ROUND(_x) ((int)((_x) + 0.5))
+#define COLORFROMINT(_c) (COLORS[(int)_c])
 
 /* For FindMatches.c */
 #define FM_ROTATE_NUM 10000
@@ -132,6 +133,8 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 #define DEFAULT_MATCHES_QUEUE_LENGTH 10000
+
+extern char COLORS[5];
 
 enum {KILOBYTES, MEGABYTES, GIGABYTES};
 enum {Contig_8, Contig_32};

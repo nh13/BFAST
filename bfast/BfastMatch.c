@@ -10,7 +10,7 @@
 
 #include "BError.h"
 #include "BLib.h"
-#include "FindMatches.h"
+#include "RunMatch.h"
 #include "BfastMatch.h"
 
 /*

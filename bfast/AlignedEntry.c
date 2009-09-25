@@ -17,7 +17,7 @@ int32_t AlignedEntryPrint(AlignedEntry *a,
 	assert(NULL != a->reference);
 	assert(space == NTSpace ||
 			(space == ColorSpace && NULL != a->colorError));
-
+	
 	if(gzwrite64(outputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)||
 			gzwrite64(outputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
 			gzwrite64(outputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
@@ -36,7 +36,7 @@ int32_t AlignedEntryPrint(AlignedEntry *a,
 			return EOF;
 		}
 	}
-
+	
 	return 1;
 }
 
@@ -170,7 +170,7 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	   assert(strlen(a->reference) == a->length);
 	   assert((int)strlen(a->colorError) == a->length);
 	   */
-
+	
 	return 1;
 }
 

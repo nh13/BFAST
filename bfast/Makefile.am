@@ -18,15 +18,14 @@ bfast_SOURCES = \
 				RGRanges.c RGRanges.h \
 				RGReads.c RGReads.h \
 				ScoringMatrix.c ScoringMatrix.h \
-				FindMatches.c FindMatches.h \
-				MatchesReadInputFiles.c MatchesReadInputFiles.h \
-				RunAligner.c RunAligner.h \
 				Align.c Align.h \
 				AlignNTSpace.c AlignNTSpace.h \
 				AlignColorSpace.c AlignColorSpace.h \
 				AlignMatrix.c AlignMatrix.h \
-				InputOutputToFiles.c InputOutputToFiles.h \
-				FilterAlignments.c FilterAlignments.h \
+				MatchesReadInputFiles.c MatchesReadInputFiles.h \
+				RunMatch.c RunMatch.h \
+				RunLocalAlign.c RunLocalAlign.h \
+				RunPostProcess.c RunPostProcess.h \
 				BfastFasta2BRG.c BfastFasta2BRG.h \
 				BfastIndex.c BfastIndex.h \
 				BfastMatch.c BfastMatch.h \

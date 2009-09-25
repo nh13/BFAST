@@ -366,7 +366,7 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 		int avgMismatchQuality)
 {
 	double bestScore=INT_MIN, nextBestScore=INT_MIN;
-	double bestMappingQuality = 0.0;
+	int32_t bestMappingQuality = 0;
 	int32_t i;
 
 	/* Get best and next best score */
@@ -379,15 +379,17 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 		}
 	}
 
+	/*
 	if(bestScore < 0) {
 		bestScore = 0;
 	}
-	if(nextBestScore < 0) {
+	if(nextBestScore < 0.0) {
 		nextBestScore = 0;
 	}
+	*/
 	assert(nextBestScore <= bestScore);
 
-	bestMappingQuality = ( (bestScore - nextBestScore)/mismatchScore )*avgMismatchQuality;
+	bestMappingQuality = ( (bestScore - nextBestScore) / mismatchScore )*avgMismatchQuality;
 
 	for(i=0;i<a->numEntries;i++) {
 		if(a->entries[i].score < bestScore) {

@@ -11,7 +11,7 @@
 #include "BError.h"
 #include "RGBinary.h"
 #include "BLib.h"
-#include "RunAligner.h"
+#include "RunLocalAlign.h"
 #include "BfastLocalAlign.h"
 
 /*
@@ -22,7 +22,7 @@ enum {
 	DescInputFilesTitle, DescFastaFileName, DescMatchFileName, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescUngapped, DescUnconstrained, DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
-	DescOutputTitle, DescOutputID, DescOutputDir, DescTmpDir, DescTiming, 
+	DescOutputTitle, DescTiming, 
 	DescMiscTitle, DescHelp
 };
 
@@ -51,7 +51,6 @@ static struct argp_option options[] = {
 			"\n\t\t\t3: specifies that we mirror CALs in both directions", 3},
 	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
-	{"tmpDir", 'T', "tmpDir", 0, "Specifies the directory in which to store temporary files", 4},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 5},
@@ -116,7 +115,6 @@ BfastLocalAlign(int argc, char **argv)
 							arguments.pairedEndLength,
 							arguments.mirroringType,
 							arguments.forceMirroring,
-							arguments.tmpDir,
 							&totalReferenceGenomeTime,
 							&totalAlignTime,
 							&totalFileHandlingTime);
@@ -251,11 +249,6 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);	
 	}	
 
-	if(args->tmpDir!=0) {		fprintf(stderr, "Validating tmpDir path %s. \n", 
-			args->tmpDir);
-	if(ValidateFileName(args->tmpDir)==0)
-		PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);	
-	}	
 	/* If this does not hold, we have done something wrong internally */	
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->usePairedEndLength == 0 || args->usePairedEndLength == 1);
@@ -299,11 +292,6 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->mirroringType = NoMirroring;
 	args->forceMirroring = 0;
 
-	args->tmpDir =
-		(char*)malloc(sizeof(DEFAULT_OUTPUT_DIR));
-	assert(args->tmpDir!=0);
-	strcpy(args->tmpDir, DEFAULT_OUTPUT_DIR);
-
 	args->timing = 0;
 
 	return;
@@ -333,7 +321,6 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
 	fprintf(fp, "mirroringType:\t\t\t\t%d\n", args->mirroringType);
 	fprintf(fp, "forceMirroring:\t\t\t\t%d\n", args->forceMirroring);
-	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
 	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
 	fprintf(fp, BREAK_LINE);
 	return;
@@ -349,8 +336,6 @@ void BfastLocalAlignFreeProgramParameters(struct arguments *args)
 	args->matchFileName=NULL;
 	free(args->scoringMatrixFileName);
 	args->scoringMatrixFileName=NULL;
-	free(args->tmpDir);
-	args->tmpDir=NULL;
 }
 
 void
@@ -426,9 +411,6 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 				arguments->maxNumMatches=atoi(optarg);break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
-			case 'T':
-				StringCopyAndReallocate(&arguments->tmpDir, optarg);
-				break;
 			case 'U':
 				arguments->unconstrained=Unconstrained;break;
 			default:

@@ -36,7 +36,7 @@ balignsim_SOURCES = \
 					../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
 					../bfast/RGIndexAccuracy.c	../bfast/RGIndexAccuracy.h \
 					../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-					../bfast/RunAligner.c	../bfast/RunAligner.h \
+					../bfast/RunLocalAlign.c ../bfast/RunLocalAlign.h \
 					../bfast/ScoringMatrix.c	../bfast/ScoringMatrix.h \
 					../bfast/Align.c	../bfast/Align.h \
 					../bfast/AlignColorSpace.c	../bfast/AlignColorSpace.h \

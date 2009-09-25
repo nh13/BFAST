@@ -39,16 +39,6 @@ int32_t AlignNTSpaceUngapped(char *read,
 	char bestReference[SEQUENCE_LENGTH]="\0";
 
 	assert(readLength <= referenceLength);
-	/*
-	char *FnName = "AlignNTSpaceUngapped";
-	fprintf(stderr, "HERE in %s\n", FnName);
-	fprintf(stderr, "offset=%d\n", offset);
-	fprintf(stderr, "%s\n%s\n%s\n%s\n",
-			reference,
-			reference + offset,
-			read,
-			mask);
-			*/
 
 	for(i=offset;i<referenceLength-readLength-offset+1;i++) { // Starting position 
 		curScore = 0.0;
@@ -80,11 +70,6 @@ int32_t AlignNTSpaceUngapped(char *read,
 				read,
 				bestReference,
 				NULL);
-		/*
-		fprintf(stderr, "HERE updating alignent\n");
-		AlignedEntryPrintText(a, stderr, NTSpace);
-		fprintf(stderr, "%s\n", mask);
-		*/
 		return 1;
 	}
 	else {
@@ -185,10 +170,6 @@ void AlignNTSpaceGappedConstrained(char *read,
 	assert(0 <= endRowStepOne && 0 <= endColStepOne);
 	assert(0 <= endRowStepTwo && 0 <= endColStepTwo);
 
-	// DEBUGGING
-	//fprintf(stderr, "%s", BREAK_LINE);
-	//fprintf(stderr, "strand=%c\nposition=%d\n", strand, position);
-
 	/* Step 1 - upper left */
 	AlignNTSpaceInitializeAtStart(matrix, sm, endRowStepOne, endColStepOne);
 	for(i=1;i<endRowStepOne+1;i++) { /* read/rows */ 
@@ -196,18 +177,6 @@ void AlignNTSpaceGappedConstrained(char *read,
 			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, INT_MAX, INT_MAX);
 		}
 	}
-
-	// HERE
-	/*
-	   fprintf(stderr, "[%d,%d]\n", referenceOffset, readOffset);
-	   fprintf(stderr, "%s\n%s\n%s\n",
-	   reference,
-	   read,
-	   mask);
-	   fprintf(stderr, "[%d,%d,%d,%d]\n",
-	   endRowStepOne, endColStepOne,
-	   endRowStepTwo, endColStepTwo);
-	   */
 
 	/* Step 2 - align along the mask */
 	for(i=endRowStepOne,j=endColStepOne;
@@ -221,57 +190,8 @@ void AlignNTSpaceGappedConstrained(char *read,
 		matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i][j].s.score[0] + ScoringMatrixGetNTScore(read[i], reference[j], sm);
 		matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i][j].s.length[0] + 1;
 		matrix->cells[i+1][j+1].s.from[0] = Match;
-		/*
-		   fprintf(stderr, "[i=%d,j=%d]\t%d,%d,%d\t%d+%d\n",
-		   i, j,
-		   matrix->cells[i][j].s.score[0],
-		   matrix->cells[i][j].s.from[0],
-		   matrix->cells[i][j].s.length[0],
-		   matrix->cells[i][j].s.score[0],
-		   ScoringMatrixGetNTScore(read[i], reference[j], sm));
-		   */
 	}
 	assert(Match == matrix->cells[endRowStepTwo][endColStepTwo].s.from[0]);
-	/*
-	   fprintf(stderr, "[i=%d,j=%d]\t%d,%d,%d\t%d+%d\n",
-	   i, j,
-	   matrix->cells[i][j].s.score[0],
-	   matrix->cells[i][j].s.from[0],
-	   matrix->cells[i][j].s.length[0],
-	   matrix->cells[i][j].s.score[0],
-	   ScoringMatrixGetNTScore(read[i], reference[j], sm));
-	   */
-
-	// HERE
-	/*
-	   AlignedEntryInitialize(&tmp);
-	   fprintf(stderr, "Step 2 alignment:\n");
-	   AlignNTSpaceRecoverAlignmentFromMatrix(&tmp,
-	   matrix,
-	   read,
-	   endRowStepTwo+1,
-	   reference,
-	   endColStepTwo+1,
-	   endColStepTwo+1,
-	   position,
-	   strand,
-	   0);
-	   AlignedEntryPrintText(&tmp, stderr, NTSpace);
-	   AlignedEntryFree(&tmp);
-	   */
-
-	/*
-	   fprintf(stderr, "s(score,from,length)=[%d,%d,%d]\n",
-	   matrix->cells[endRowStepOne][endColStepOne].s.score[0],
-	   matrix->cells[endRowStepOne][endColStepOne].s.from[0],
-	   matrix->cells[endRowStepOne][endColStepOne].s.length[0]);
-	   assert(0 < matrix->cells[endRowStepOne][endColStepOne].s.length);
-	   fprintf(stderr, "s(score,from,length)=[%d,%d,%d]\n",
-	   matrix->cells[endRowStepTwo][endColStepTwo].s.score[0],
-	   matrix->cells[endRowStepTwo][endColStepTwo].s.from[0],
-	   matrix->cells[endRowStepTwo][endColStepTwo].s.length[0]);
-	   assert(0 < matrix->cells[endRowStepTwo][endColStepTwo].s.length);
-	   */
 
 	/* Step 3 - lower right */
 	AlignNTSpaceInitializeToExtend(matrix, sm, readLength, referenceLength, endRowStepTwo, endColStepTwo);
@@ -285,13 +205,6 @@ void AlignNTSpaceGappedConstrained(char *read,
 
 	/* Step 4 - recover alignment */
 	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, endColStepTwo, position, strand, 0);
-
-	// HERE
-	/*
-	fprintf(stderr, "Step 3 alignment:\n");
-	AlignedEntryPrintText(a, stderr, NTSpace);
-	*/
-	//exit(1);
 }
 
 /* TODO */
@@ -330,13 +243,6 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	startCol=-1;
 	maxScore = NEGATIVE_INFINITY;
 	for(i=toExclude;i<referenceLength+1;i++) {
-		/*
-		   fprintf(stderr, "Checking [%d,%d] [%d,%d,%d]\n", readLength, i,
-		   matrix->cells[readLength][i].s.score[0],
-		   matrix->cells[readLength][i].s.from[0],
-		   matrix->cells[readLength][i].s.length[0]
-		   );
-		   */
 		assert(StartNT != matrix->cells[readLength][i].s.from[0]);
 		/* Check only the first cell */
 		if(maxScore < matrix->cells[readLength][i].s.score[0]) {
@@ -348,18 +254,6 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	assert(startRow >= 0 && startCol >= 0);
 	assert(StartNT != matrix->cells[startRow][startCol].s.from[0]);
 
-	// HERE
-	/*
-	   fprintf(stderr, "start(%d,%d,%d)\n",
-	   matrix->cells[startRow][startCol].s.score[0],
-	   matrix->cells[startRow][startCol].s.from[0],
-	   matrix->cells[startRow][startCol].s.length[0]);
-
-	   fprintf(stderr, "starting at %d,%d\n",
-	   startRow,
-	   startCol);
-	   */
-
 	/* Initialize variables for the loop */
 	curRow=startRow;
 	curCol=startCol;
@@ -369,16 +263,9 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	i=matrix->cells[curRow][curCol].s.length[0]-1; /* Get the length of the alignment */
 	length=matrix->cells[curRow][curCol].s.length[0]; /* Copy over the length */
 
-	/*
-	   fprintf(stderr, "i=%d\tlength=%d\n", i, length);
-	   */
-
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(0 <= i) {
 		assert(0 <= curRow && 0 <= curCol);
-
-		// HERE
-		//fprintf(stderr, "%d,%d,%d,%d\n", curRow, curCol, i, curFrom);
 
 		/* Where did the current cell come from */
 		switch(curFrom) {
@@ -388,63 +275,17 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 				break;
 			case DeletionExtension:
 				curFrom = matrix->cells[curRow][curCol].h.from[0];
-				if(!(curFrom == DeletionStart || curFrom == DeletionExtension)) {
-					fprintf(stderr, "\ncurFrom=%d\n",
-							curFrom);
-					fprintf(stderr, "toExclude=%d\n",
-							toExclude);
-					fprintf(stderr, "readLength=%d\n",
-							readLength);
-					fprintf(stderr, "startRow=%d\nstartCol=%d\n",
-							startRow,
-							startCol);
-					fprintf(stderr, "curRow=%d\ncurCol=%d\n",
-							curRow,
-							curCol);
-				}
 				assert(curFrom == DeletionStart || curFrom == DeletionExtension);
 				break;
 			case Match:
-				/*
-				   fprintf(stderr, "LENGTH=%d\n",
-				   matrix->cells[curRow][curCol].s.length[0]);
-				   */
 				curFrom = matrix->cells[curRow][curCol].s.from[0];
 				break;
 			case InsertionStart:
 				curFrom = matrix->cells[curRow][curCol].s.from[0];
-				if(!(curFrom == Match || curFrom == DeletionExtension)) {
-					fprintf(stderr, "\ncurFrom=%d\n",
-							curFrom);
-					fprintf(stderr, "toExclude=%d\n",
-							toExclude);
-					fprintf(stderr, "readLength=%d\n",
-							readLength);
-					fprintf(stderr, "startRow=%d\nstartCol=%d\n",
-							startRow,
-							startCol);
-					fprintf(stderr, "curRow=%d\ncurCol=%d\n",
-							curRow,
-							curCol);
-				}
 				assert(curFrom == Match || curFrom == DeletionExtension);
 				break;
 			case InsertionExtension:
 				curFrom = matrix->cells[curRow][curCol].v.from[0];
-				if(!(curFrom == InsertionStart || curFrom == InsertionExtension)) {
-					fprintf(stderr, "\ncurFrom=%d\n",
-							curFrom);
-					fprintf(stderr, "toExclude=%d\n",
-							toExclude);
-					fprintf(stderr, "readLength=%d\n",
-							readLength);
-					fprintf(stderr, "startRow=%d\nstartCol=%d\n",
-							startRow,
-							startCol);
-					fprintf(stderr, "curRow=%d\ncurCol=%d\n",
-							curRow,
-							curCol);
-				}
 				assert(curFrom == InsertionStart || curFrom == InsertionExtension);
 				break;
 			default:
@@ -482,17 +323,6 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
-		// HERE
-		/*
-		   fprintf(stderr, "[%c,%c,%d,%d,%d,%d]\n",
-		   referenceAligned[i],
-		   readAligned[i],
-		   i,
-		   curFrom,
-		   curRow,
-		   curCol);
-		   */
-
 		assert(readAligned[i] != GAP || readAligned[i] != referenceAligned[i]);
 
 		/* Update for next loop iteration */
@@ -501,26 +331,8 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		i--;
 
 	} /* End Loop */
-	if(-1 != i) {
-		fprintf(stderr, "Weird: i=%d\n", i);
-		fprintf(stderr, "CurRow = %d\tCurCol = %d\n",
-				curRow, curCol);
-		fprintf(stderr, "length=%d\n", length);
-		readAligned[length]='\0';
-		referenceAligned[length]='\0';
-		int j;
-		for(j=0;j<=i;j++) {
-			readAligned[j] = referenceAligned[j] = 'X';
-		}
-		fprintf(stderr, "%s\n%s\n",
-				readAligned,
-				referenceAligned);
-	}
 	assert(-1==i);
 	assert(referenceLengthAligned <= length);
-	/*
-	fprintf(stderr, "readLength=%d\tlength=%d\n", readLength, length); // HERE
-	*/
 	assert(readLength <= length);
 
 	readAligned[length]='\0';
@@ -595,13 +407,6 @@ void AlignNTSpaceInitializeToExtend(AlignMatrix *matrix,
 	endRow = readLength;
 	endCol = referenceLength;
 
-	// HERE
-	/*
-	fprintf(stderr, "AlignNTSpaceInitializeToExtend = [%d,%d]\n",
-			startRow,
-			startCol);
-	*/
-
 	// Special initialization 
 
 	/* Initialize the corner cell */
@@ -615,13 +420,6 @@ void AlignNTSpaceInitializeToExtend(AlignMatrix *matrix,
 
 	for(j=startCol+1;j<endCol+1;j++) {  // Columns
 		if(j == startCol + 1) { // Allow for a deletion start
-			/*
-			fprintf(stderr, "AlignNTSpaceInitializeToExtend [%d,%d] h.[%d,%d,%d]\n",
-					startRow, j,
-					matrix->cells[startRow][j-1].s.score[0],
-					matrix->cells[startRow][j-1].s.length[0],
-					matrix->cells[startRow][j-1].s.from[0]);
-					*/
 
 			matrix->cells[startRow][j].h.score[0] = matrix->cells[startRow][j].s.score[0] = matrix->cells[startRow][j-1].s.score[0] + sm->gapOpenPenalty;
 			matrix->cells[startRow][j].h.length[0] = matrix->cells[startRow][j].s.length[0] = matrix->cells[startRow][j-1].s.length[0] + 1;

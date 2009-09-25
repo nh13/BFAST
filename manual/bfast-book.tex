@@ -234,7 +234,7 @@ This option specifies the directory in which to store temporary files.
 For large datasets, the necessary disk space for temporary files may be large and therefore it is useful to to specify the temporary file directory. 
 Be sure to include a trailing backslash or $\backslash$.
 If no option is given, the temporary file directory is defaulted to the current directory.
-This option applies to \TT{bfast index}, \TT{bfast match}, and \TT{bfast localalign}.
+This option applies to \TT{bfast index}, and \TT{bfast match}.
 
 \subsubsection{\TT{-A INTEGER, --space=INTEGER}}
 Specifies the encoding space of the alphabet.
@@ -678,9 +678,6 @@ The number of threads to use for the search.
 \subsubsection{\TT{-A INT}}
 The space in which the reads should be outputted.
 Use \TT{0} for nucleotide space, and \TT{1} for color space.
-
-\subsubsection{\TT{-T DIRECTORY}}
-A temporary file directory to store temporary files.
 
 \subsection{bevalsim}
 \label{sec:bevalsim}

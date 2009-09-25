@@ -16,7 +16,7 @@
 #include "../bfast/RGMatches.h"
 #include "../bfast/AlignedRead.h"
 #include "../bfast/ScoringMatrix.h"
-#include "../bfast/RunAligner.h"
+#include "../bfast/RunLocalAlign.h"
 #include "SimRead.h"
 #include "balignsim.h"
 
@@ -434,7 +434,6 @@ void Run(RGBinary *rg,
 			0,
 			0,
 			0,
-			tmpDir,
 			alignFP,
 			&totalAlignTime,
 			&totalFileHandlingTime);

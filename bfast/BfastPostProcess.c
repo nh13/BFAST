@@ -11,8 +11,7 @@
 #include "BError.h"
 #include "BLibDefinitions.h"
 #include "BLib.h"
-#include "InputOutputToFiles.h"
-#include "RunAligner.h"
+#include "RunPostProcess.h"
 #include "BfastPostProcess.h"
 
 /*

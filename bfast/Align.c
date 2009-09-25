@@ -109,6 +109,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t *referenceOffsets=NULL;
 	int32_t *readOffsets=NULL;
 	char read[SEQUENCE_LENGTH]="\0";
+	char colors[SEQUENCE_LENGTH]="\0";
 	int32_t readLength;
 	int32_t ctr=0;
 	int32_t numberFound = 0;
@@ -122,7 +123,17 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		readLength = m->readLength;
 	}
 	else {
-		readLength = ConvertReadFromColorSpace(read, m->readLength);
+		// Copy over the colors
+		strcpy(colors, m->read);
+		readLength = m->readLength;
+		NormalizeColorSpaceRead(colors, readLength, COLOR_SPACE_START_NT);
+		// This modifies the "read"
+		readLength = ConvertReadFromColorSpace(read, readLength);
+		// Remove the adaptor
+		for(i=0;i<readLength;i++) { 
+			colors[i] = colors[i+1];
+		}
+		// Both read and colors now have the same length
 	}
 	if(matrix->nrow < readLength+1) {
 		AlignMatrixReallocate(matrix, readLength+1, matrix->ncol);
@@ -315,6 +326,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			for(i=0;i<end->numEntries;i++) {
 				if(!(NEGATIVE_INFINITY < end->entries[i].score)) { // If we did not find an exact match
 					numberFound += AlignUngapped(read,
+							colors,
 							masks[i],
 							readLength,
 							references[i],
@@ -381,6 +393,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	/* Run Full */
 	for(i=0;i<end->numEntries;i++) {
 		AlignGapped(read,
+				colors,
 				masks[i],
 				readLength,
 				references[i],
@@ -454,6 +467,7 @@ int32_t AlignExact(char *read,
 				if(0 == ConvertBaseToColorSpace(prevReadBase, read[i], &curColor)) {
 					PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 				}
+				curColor = COLORFROMINT(curColor);
 				/* Add score for color error, if any */
 				score += ScoringMatrixGetColorScore(curColor,
 						curColor,
@@ -482,6 +496,7 @@ int32_t AlignExact(char *read,
 }
 
 int32_t AlignUngapped(char *read,
+		char *colors,
 		char *mask,
 		int32_t readLength,
 		char *reference,
@@ -511,7 +526,7 @@ int32_t AlignUngapped(char *read,
 					strand);
 			break;
 		case ColorSpace:
-			return AlignColorSpaceUngapped(read,
+			return AlignColorSpaceUngapped(colors,
 					mask,
 					readLength,
 					reference,
@@ -531,6 +546,7 @@ int32_t AlignUngapped(char *read,
 }
 
 void AlignGapped(char *read,
+		char *colors,
 		char *mask,
 		int32_t readLength,
 		char *reference,
@@ -605,6 +621,7 @@ void AlignGapped(char *read,
 	switch(unconstrained) {
 		case Unconstrained:
 			AlignGappedBounded(read,
+					colors,
 					readLength,
 					reference,
 					referenceLength,
@@ -620,6 +637,7 @@ void AlignGapped(char *read,
 			break;
 		case Constrained:
 			AlignGappedConstrained(read,
+					colors,
 					mask,
 					readLength,
 					reference,
@@ -640,6 +658,7 @@ void AlignGapped(char *read,
 }
 
 void AlignGappedBounded(char *read,
+		char *colors,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,
@@ -670,7 +689,7 @@ void AlignGappedBounded(char *read,
 					maxV);
 			break;
 		case ColorSpace:
-			AlignColorSpaceGappedBounded(read,
+			AlignColorSpaceGappedBounded(colors,
 					readLength,
 					reference,
 					referenceLength,
@@ -689,6 +708,7 @@ void AlignGappedBounded(char *read,
 }
 
 void AlignGappedConstrained(char *read,
+		char *colors,
 		char *mask,
 		int32_t readLength,
 		char *reference,
@@ -720,7 +740,7 @@ void AlignGappedConstrained(char *read,
 					strand);
 			break;
 		case ColorSpace:
-			AlignColorSpaceGappedConstrained(read,
+			AlignColorSpaceGappedConstrained(colors,
 					mask,
 					readLength,
 					reference,
