@@ -877,6 +877,8 @@ void *FindMatchesInIndexThread(void *arg)
 			}
 			if(1 == foundMatch) {
 				data->numMatches++;
+				//DEBUGGING
+				//RGMatchesCheck(&matchQueue[i], rg);
 			}
 		}
 		if(VERBOSE >= 0) {

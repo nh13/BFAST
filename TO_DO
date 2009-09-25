@@ -6,13 +6,10 @@ General
 localalign
 - use bit string for each match to constrain the local alignment
   - solve how to do this in "gapped" and "ungapped" modes
-- remove duplicates in AlingedEntry should be based on starting position and 
+- remove duplicates in AlignedEntry should be based on starting position and 
   score (?)
-- only consider N base (or extra color 4) when necessary (in the read or 
-		reference)
-- Unconstrained can use bounds, constrained cannot.
-- negative positions indicate adaptor problems...
-- allow for the alignment to begin or end with an insertion
+- (check that we) allow for the alignment to begin or end with an insertion 
+(Color space)
 ===============================================================================
 
 ===============================================================================

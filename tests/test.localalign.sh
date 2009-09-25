@@ -16,8 +16,11 @@ do
 	MATCHES=$OUTPUT_DIR"bfast.matches.file.$OUTPUT_ID.bmf";
 
 	# Run local alignment
+	# HERE
 	CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 -T $TMP_DIR > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
-	eval $CMD 2> /dev/null;
+	eval $CMD;
+	exit 1;
+	#eval $CMD 2> /dev/null;
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		echo $CMD;

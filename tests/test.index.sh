@@ -16,7 +16,7 @@ do
 	DEPTH=`expr 2 \* $DEPTH`;
 
 	# Make an index
-	CMD=$CMD_PREFIX"bfast index -f $RG_FASTA -A $SPACE -m 111111111111111 -w 8 -d $DEPTH -i 1 -T $TMP_DIR";
+	CMD=$CMD_PREFIX"bfast index -f $RG_FASTA -A $SPACE -m 111101111011101111 -w 8 -d $DEPTH -i 1 -T $TMP_DIR";
 	eval $CMD 2> /dev/null;
 
 	# Get return code

@@ -510,7 +510,9 @@ void RGMatchesCheck(RGMatches *m, RGBinary *rg)
 	char *FnName="RGMatchesCheck";
 	int32_t i;
 	/* Basic asserts */
-	assert(m->numEnds == 0 || m->numEnds == 1);
+	if(m->numEnds < 0) { 
+		PrintError(FnName, NULL, "m->numEnds < 0", Exit, OutOfRange);
+	}
 	/* Check that the read name length is the same as the length of the read name */
 	if(((int)strlen(m->readName)) != m->readNameLength) {
 		PrintError(FnName, NULL, "strlen(m->readName)) != m->readNameLength", Exit, OutOfRange);

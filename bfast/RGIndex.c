@@ -1759,6 +1759,7 @@ void RGIndexPrintInfo(char *inputFileName)
 	RGIndex index;
 	char contigType[2][256] = {"1 byte", "4 byte"};
 	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
+	FILE *fpOut=stdout;
 
 
 	/* Open the file */
@@ -1770,27 +1771,27 @@ void RGIndexPrintInfo(char *inputFileName)
 	RGIndexReadHeader(fp, &index);
 
 	/* Print the info */
-	fprintf(stderr, "version:\t\t%s\n", index.packageVersion);
-	fprintf(stderr, "start contig:\t\t%d\n", index.startContig);
-	fprintf(stderr, "start position:\t\t%d\n", index.startPos);
-	fprintf(stderr, "end contig:\t\t%d\n", index.endContig);
-	fprintf(stderr, "end position:\t\t%d\n", index.endPos);
-	fprintf(stderr, "index length:\t\t%lld\n", (long long int)index.length);
-	fprintf(stderr, "contig type:\t\t%d\t\t[%s]\n", index.contigType, contigType[index.contigType]);
-	fprintf(stderr, "repeat masker:\t\t%d\n", index.repeatMasker);
-	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", index.space, Space[index.space]);
-	fprintf(stderr, "depth:\t\t\t%d\n", index.depth);
-	fprintf(stderr, "binNumber:\t\t%d\n", index.binNumber);
-	fprintf(stderr, "indexNumber:\t\t%d\n", index.indexNumber);
-	fprintf(stderr, "hash width:\t\t%u\n", index.hashWidth);
-	fprintf(stderr, "hash length:\t\t%lld\n", (long long int)index.hashLength);
-	fprintf(stderr, "width:\t\t\t%d\n", index.width);
-	fprintf(stderr, "keysize:\t\t%d\n", index.keysize);
-	fprintf(stderr, "mask:\t\t\t");
+	fprintf(fpOut, "version:\t\t%s\n", index.packageVersion);
+	fprintf(fpOut, "start contig:\t\t%d\n", index.startContig);
+	fprintf(fpOut, "start position:\t\t%d\n", index.startPos);
+	fprintf(fpOut, "end contig:\t\t%d\n", index.endContig);
+	fprintf(fpOut, "end position:\t\t%d\n", index.endPos);
+	fprintf(fpOut, "index length:\t\t%lld\n", (long long int)index.length);
+	fprintf(fpOut, "contig type:\t\t%d\t\t[%s]\n", index.contigType, contigType[index.contigType]);
+	fprintf(fpOut, "repeat masker:\t\t%d\n", index.repeatMasker);
+	fprintf(fpOut, "space:\t\t\t%d\t\t[%s]\n", index.space, Space[index.space]);
+	fprintf(fpOut, "depth:\t\t\t%d\n", index.depth);
+	fprintf(fpOut, "binNumber:\t\t%d\n", index.binNumber);
+	fprintf(fpOut, "indexNumber:\t\t%d\n", index.indexNumber);
+	fprintf(fpOut, "hash width:\t\t%u\n", index.hashWidth);
+	fprintf(fpOut, "hash length:\t\t%lld\n", (long long int)index.hashLength);
+	fprintf(fpOut, "width:\t\t\t%d\n", index.width);
+	fprintf(fpOut, "keysize:\t\t%d\n", index.keysize);
+	fprintf(fpOut, "mask:\t\t\t");
 	for(i=0;i<index.width;i++) {
-		fprintf(stderr, "%1d", index.mask[i]);
+		fprintf(fpOut, "%1d", index.mask[i]);
 	}
-	fprintf(stderr, "\n");
+	fprintf(fpOut, "\n");
 
 	/* Free masks and initialize */
 	free(index.mask);
@@ -1994,11 +1995,11 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, 
 			r->endIndex[r->numEntries-1] = endIndexReverse;
 			r->strand[r->numEntries-1] = REVERSE;
 			/* Must adjust for being the reverse */
-			r->offset[r->numEntries-1] = offset + index->width;
+			r->offset[r->numEntries-1] = offset;
 			if(ColorSpace == space) {
 				/* Must adjust for color space, since removed one color as well as being off by one
 				 * in general for color space */
-				r->offset[r->numEntries-1] = offset + index->width + 2;
+				r->offset[r->numEntries-1] += 2;
 			}
 		}
 	}

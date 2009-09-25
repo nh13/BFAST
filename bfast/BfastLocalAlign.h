@@ -9,7 +9,7 @@ struct arguments
 	char *matchFileName;					/* -m */
 	char *scoringMatrixFileName;			/* -x */
 	int ungapped;							/* -u */
-	int unconstrained;						/* -c */
+	int unconstrained;						/* -U */
 	int space;								/* -A */
 	int startReadNum;                       /* -s */
 	int endReadNum;                         /* -e */

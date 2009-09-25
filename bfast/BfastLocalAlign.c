@@ -33,7 +33,7 @@ static struct argp_option options[] = {
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
-	{"unconstrained", 'c', 0, OPTION_NO_USAGE, "Do not use mask constraints from the match step", 2},
+	{"unconstrained", 'U', 0, OPTION_NO_USAGE, "Do not use mask constraints from the match step", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
@@ -60,7 +60,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:chptuF";
+"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
 
 	int
 BfastLocalAlign(int argc, char **argv)
@@ -263,9 +263,6 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 	assert(NoMirroring <= args->mirroringType && args->mirroringType <= MirrorBoth);
 	assert(Ungapped == args->ungapped || Gapped == args->ungapped);
 	assert(Unconstrained == args->unconstrained || Constrained == args->unconstrained);
-	if(Constrained == args->unconstrained) {
-		PrintError(FnName, "Unconstrained", "Constrained local alignment not implemented", Exit, OutOfRange);
-	}
 	if(args->mirroringType != NoMirroring && args->usePairedEndLength == 0) {
 		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using mirroring", Exit, OutOfRange);	
 	}	
@@ -288,7 +285,7 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->scoringMatrixFileName=NULL;
 
 	args->ungapped = Gapped;
-	args->unconstrained = Unconstrained; //
+	args->unconstrained = Constrained; 
 	args->space = NTSpace;
 	args->startReadNum=0;
 	args->endReadNum=INT_MAX;
@@ -391,8 +388,6 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 		   fprintf(stderr, "Key is %c and OptErr = %d\n", key, OptErr);
 		   */
 		switch (key) {
-			case 'c':
-				arguments->unconstrained=Unconstrained;break;
 			case 'e':
 				arguments->endReadNum=atoi(optarg);break;
 			case 'f':
@@ -434,6 +429,8 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 			case 'T':
 				StringCopyAndReallocate(&arguments->tmpDir, optarg);
 				break;
+			case 'U':
+				arguments->unconstrained=Unconstrained;break;
 			default:
 				OptErr=1;
 		} /* while */

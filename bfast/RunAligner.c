@@ -233,7 +233,7 @@ void RunDynamicProgramming(gzFile matchFP,
 			RGMatchesFilterOutOfRange(&m,
 					maxNumMatches);
 
-			/* Print32_t match to temp file */
+			/* Print match to temp file */
 			RGMatchesPrint(data[i].inputFP,
 					&m);
 			/* Increment */
@@ -368,7 +368,7 @@ void RunDynamicProgramming(gzFile matchFP,
 				}
 				ctr++;
 				continueReading=1;
-				/* Print32_t it out */
+				/* Print it out */
 				AlignedReadPrint(&aEntries,
 						outputFP);
 			}
@@ -434,8 +434,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int32_t i, j, wasAligned;
 	int32_t numAlignedRead=0;
 	int32_t numMatches=0;
-	int32_t ctrOne=0;
-	int32_t ctrTwo=0;
+	int32_t ctr=0;
 
 	AlignMatrix matrix;
 	AlignedRead *alignedQueue=NULL;
@@ -463,15 +462,14 @@ void *RunDynamicProgrammingThread(void *arg)
 		for(i=0;i<numMatchesRead;i++) {
 			AlignedReadInitialize(&alignedQueue[i]);
 
+			if(VERBOSE >= 0 && ctr%ALIGN_ROTATE_NUM==0) {
+				fprintf(stderr, "\rthread:%d\t[%d]", threadID, i);
+			}
+
 			wasAligned=0;
 			if(1 == IsValidMatch(&matchQueue[i])) {
 				numMatches++;
 				numAlignedRead = 0;
-				ctrOne=ctrTwo=0;
-
-				if(VERBOSE >= 0 && numMatches%ALIGN_ROTATE_NUM==0) {
-					fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
-				}
 
 				/* Update the number of local alignments performed */
 				data->numLocalAlignments += AlignRGMatches(&matchQueue[i],
@@ -489,22 +487,25 @@ void *RunDynamicProgrammingThread(void *arg)
 						forceMirroring,
 						&matrix);
 
-				/* Output alignment */
 				for(j=wasAligned=0;j<alignedQueue[i].numEnds;j++) {
 					if(0 < alignedQueue[i].ends[j].numEntries) {
+						//fprintf(stderr, "End %d aligned\n", j); // HERE
 						wasAligned = 1;
 					}
+					else {
+						//fprintf(stderr, "End %d not aligned\n", j); // HERE
+					}
 				}
-				
-				if(1 == wasAligned) {
-					/* Remove duplicates */
-					AlignedReadRemoveDuplicates(&alignedQueue[i],
-							AlignedEntrySortByAll);
-					/* Updating mapping quality */
-					AlignedReadUpdateMappingQuality(&alignedQueue[i], 
-							mismatchScore, 
-							avgMismatchQuality);
-				}
+			}
+
+			if(1 == wasAligned) {
+				/* Remove duplicates */
+				AlignedReadRemoveDuplicates(&alignedQueue[i],
+						AlignedEntrySortByAll);
+				/* Updating mapping quality */
+				AlignedReadUpdateMappingQuality(&alignedQueue[i], 
+						mismatchScore, 
+						avgMismatchQuality);
 			}
 			else {
 				/* Copy over to alignedQueue[i] */
@@ -529,14 +530,21 @@ void *RunDynamicProgrammingThread(void *arg)
 
 			/* Free memory */
 			RGMatchesFree(&matchQueue[i]);
+			ctr++;
 		}
 
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatchesRead);
 		}
 
 		/* Print */
 		for(i=0;i<numMatchesRead;i++) {
+			// HERE print Text
+			/*
+			   fprintf(stderr, "HERE printing queue...\n");
+			   AlignedReadPrintText(&alignedQueue[i],
+			   stderr);
+			   */
 			AlignedReadPrint(&alignedQueue[i],
 					outputFP);
 
@@ -548,7 +556,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	AlignMatrixFree(&matrix);
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatches);
+		fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
 	}
 
 	free(matchQueue);

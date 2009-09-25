@@ -470,7 +470,7 @@ In the case that \TT{-A 1} is used, the algorithm will simultaneously correct fo
 For more information on the local aligner, please see \cite{BFAST-local-alignment}.
 
 To align without gaps (deletions and insertions), we can use \TT{-u}.
-The \TT{-c} is used to align without considering seed constraints.  
+The \TT{-U} is used to align without considering seed constraints.  
 Without this option, bases that matched the reference during \TT{bfast match} will be constrained to match during \TT{bfast localalign}.
 
 The \TT{-s}, \TT{-S}, \TT{-e} and \TT{-E} can be used to specify only to consider CALs within a given range.
@@ -492,7 +492,7 @@ Please see \autoref{sec:scoringmatrixfile} for the file format.
 \subsubsection{\TT{-u, --ungapped}}
 Specifies that the local alignment will be ungapped (no deletions and insertions).
 
-\subsubsection{\TT{-c, --unconstrained}}
+\subsubsection{\TT{-U, --unconstrained}}
 Specifies align without considering seed constraints.  
 Without this option, bases that matched the reference during \TT{bfast match} will be constrained to match during \TT{bfast localalign}.
 
@@ -842,7 +842,7 @@ Please use the \TT{-man} option for information on how to use the script.
 Note that the PERL module XML\:\:Simple is required to be installed for compilation and can be found at \url{http://search.cpan.org/dist/XML-Simple}.
 \subsubsection{\TT{-help}}
 Print a brief help message and exits.
-\subsubsection{\TT{-config}}
+\subsubsection{\TT{-schema}}
 Print the configuration XML schema.
 \subsubsection{\TT{-man}}
 Prints the manual page and exits.

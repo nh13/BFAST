@@ -652,7 +652,7 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 									&r,
 									m->readLength));
 						ConvertColorsFromStorage(r, m->readLength);
-						fprintf(stderr, "\n%s\n%s\n%s\n%s\n%s\n",
+						fprintf(stderr, "\n%s%s\n%s\n%s\n%s\n",
 								BREAK_LINE,
 								reference,
 								r,
@@ -682,7 +682,7 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 									m->strands[i],
 									&r,
 									m->readLength));
-						fprintf(stderr, "\n%s\n%s\n%s\n%s\n%s\n",
+						fprintf(stderr, "\n%s%s\n%s\n%s\n%s\n",
 								BREAK_LINE,
 								reference,
 								r,
@@ -715,7 +715,7 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 									m->strands[i],
 									&r,
 									m->readLength));
-						fprintf(stderr, "\n%s\n%s\n%s\n%s\n%s\n",
+						fprintf(stderr, "\n%s%s\n%s\n%s\n%s\n",
 								BREAK_LINE,
 								reference,
 								r,
@@ -749,7 +749,7 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 									m->strands[i],
 									&r,
 									m->readLength));
-						fprintf(stderr, "\n%s\n %s\n %s\n%s\n%s\n",
+						fprintf(stderr, "\n%s%s\n%s\n%s\n%s\n",
 								BREAK_LINE,
 								reference,
 								r,

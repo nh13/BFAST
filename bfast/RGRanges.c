@@ -78,7 +78,7 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 					m->positions[counter] = index->positions[j] - r->offset[i];
 				}
 				else {
-					m->positions[counter] = index->positions[j] + r->offset[i] - m->readLength;
+					m->positions[counter] = index->positions[j] + index->width + r->offset[i] - m->readLength;
 				}
 				m->strands[counter] = r->strand[i];
 				if(ColorSpace == space) {
@@ -87,16 +87,24 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 					 * */
 					m->positions[counter]--;
 				}
-				for(k=0;k<index->width;k++) {
-					if(1 == index->mask[k]) {
-						int32_t offset = 0;
-						if(ColorSpace == space) {
-							offset += (FORWARD == m->strands[counter]) ? 1 : 0;
+				// Update mask
+				if(FORWARD == m->strands[counter]) {
+					for(k=0;k<index->width;k++) {
+						if(1 == index->mask[k]) {
+							int32_t offset = r->offset[i] + k;
+							if(ColorSpace == space) offset++;
+							RGMatchUpdateMask(m->masks[counter], 
+									offset);
 						}
-						offset += r->offset[i] + k;
-						offset -= (REVERSE == m->strands[counter]) ? index->width : 0; 
-						RGMatchUpdateMask(m->masks[counter], 
-								offset);
+					}
+				}
+				else {
+					for(k=0;k<index->width;k++) {
+						if(1 == index->mask[index->width - k - 1]) {
+							int32_t offset = r->offset[i] + k;
+							RGMatchUpdateMask(m->masks[counter], 
+									offset);
+						}
 					}
 				}
 				counter++;

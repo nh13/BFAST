@@ -111,8 +111,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	char read[SEQUENCE_LENGTH]="\0";
 	int32_t readLength;
 	int32_t ctr=0;
+	int32_t numberFound = 0;
+	int32_t prevIndex;
 
-	(*bestScore)=DBL_MIN;
+	(*bestScore)=NEGATIVE_INFINITY;
 
 	strcpy(read, m->read);
 
@@ -208,7 +210,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		/* Initialize entries */
 		if(readLength <= referenceLengths[ctr]) {
 			/* Copy over mask */
-			masks[i] = RGMatchMaskToString(m->masks[i], m->readLength);
+			masks[ctr] = RGMatchMaskToString(m->masks[i], m->readLength);
 			/* Update contig name and strand */
 			end->entries[ctr].contigNameLength = rg->contigs[m->contigs[i]-1].contigNameLength;
 			end->entries[ctr].contigName = malloc(sizeof(char)*(end->entries[ctr].contigNameLength+1));
@@ -220,7 +222,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			end->entries[ctr].strand = m->strands[i];
 			/* The rest should be filled in later */
 			end->entries[ctr].position = -1; 
-			end->entries[ctr].score=DBL_MIN;
+			end->entries[ctr].score=NEGATIVE_INFINITY;
 			end->entries[ctr].length = 0;
 			end->entries[ctr].referenceLength = 0;
 			end->entries[ctr].read = end->entries[ctr].reference = end->entries[ctr].colorError = NULL;
@@ -246,6 +248,22 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				ctr);
 	}
 
+	/* Idea: 
+	 * - do exact
+	 *
+	 * Unconstrained 
+	 *   Ungapped
+	 *     - if exact not found, do ungapped
+	 *   Gapped
+	 *     - if exact not found, do ungapped
+	 *     - bound gapped with ungapped results
+	 * Constrained
+	 *   Ungapped
+	 *     - if exact not found, do ungapped
+	 *   Gapped 
+	 *     - if exact not found, do gapped
+	 *     */
+
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
 	int32_t foundExact;
 	foundExact = 0;
@@ -262,6 +280,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 					referencePositions[i],
 					end->entries[i].strand)) {
 			foundExact=1;
+			numberFound++;
 			if((*bestScore) < end->entries[i].score) {
 				(*bestScore) = end->entries[i].score;
 			}
@@ -287,22 +306,29 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 #ifdef UNOPTIMIZED_SMITH_WATERMAN
 	if(Ungapped == ungapped) {
 #endif
-		for(i=0;i<end->numEntries;i++) {
-			if(!(DBL_MIN < end->entries[i].score)) {
-				AlignUngapped(read,
-						masks[i],
-						readLength,
-						references[i],
-						referenceLengths[i],
-						unconstrained,
-						sm,
-						&end->entries[i],
-						space,
-						referenceOffsets[i],
-						referencePositions[i],
-						end->entries[i].strand);
-				if((*bestScore) < end->entries[i].score) {
-					(*bestScore) = end->entries[i].score;
+		/* Only do ungapped local alignment if we are not doing gapped
+		 * local alignment (i.e. ungapped) or if we are not doing 
+		 * constrained local alignment (i.e unconstrained).  This is because ungapped
+		 * local alignment is not being used to bound the gappel local alignment.
+		 * */
+		if(Gapped != ungapped || Constrained != unconstrained) {
+			for(i=0;i<end->numEntries;i++) {
+				if(!(NEGATIVE_INFINITY < end->entries[i].score)) { // If we did not find an exact match
+					numberFound += AlignUngapped(read,
+							masks[i],
+							readLength,
+							references[i],
+							referenceLengths[i],
+							unconstrained,
+							sm,
+							&end->entries[i],
+							space,
+							referenceOffsets[i],
+							referencePositions[i],
+							end->entries[i].strand);
+					if((*bestScore) < end->entries[i].score) {
+						(*bestScore) = end->entries[i].score;
+					}
 				}
 			}
 		}
@@ -311,6 +337,28 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 #ifndef UNOPTIMIZED_SMITH_WATERMAN
 		if(Ungapped == ungapped) {
 #endif
+			// Remove empty alignments
+			if(numberFound != end->numEntries) {
+				for(prevIndex=i=0;i<end->numEntries;i++) {
+					if(NEGATIVE_INFINITY < end->entries[i].score) { 
+						// Alignment exits
+						if(prevIndex != i) { // We are not going to copy to the same location
+							// Copy to prevIndex
+							AlignedEntryCopy(&end->entries[prevIndex], &end->entries[i]);
+							AlignedEntryFree(&end->entries[i]); // Free
+						}
+						prevIndex++;
+					}
+					else {
+						// No alignment, free
+						AlignedEntryFree(&end->entries[i]);
+					}
+				}
+				assert(prevIndex == numberFound);
+				assert(prevIndex < end->numEntries);
+				// Reallocate
+				AlignedEndReallocate(end, prevIndex);
+			}
 			for(i=0;i<end->numEntries;i++) {
 				free(references[i]);
 				free(masks[i]);
@@ -433,7 +481,7 @@ int32_t AlignExact(char *read,
 	return 1;
 }
 
-void AlignUngapped(char *read,
+int32_t AlignUngapped(char *read,
 		char *mask,
 		int32_t readLength,
 		char *reference,
@@ -450,7 +498,7 @@ void AlignUngapped(char *read,
 	char *FnName="AlignUngapped";
 	switch(space) {
 		case NTSpace:
-			AlignNTSpaceUngapped(read,
+			return AlignNTSpaceUngapped(read,
 					mask,
 					readLength,
 					reference,
@@ -463,7 +511,7 @@ void AlignUngapped(char *read,
 					strand);
 			break;
 		case ColorSpace:
-			AlignColorSpaceUngapped(read,
+			return AlignColorSpaceUngapped(read,
 					mask,
 					readLength,
 					reference,
@@ -479,6 +527,7 @@ void AlignUngapped(char *read,
 			PrintError(FnName, "space", "Could not understand space", Exit, OutOfRange);
 			break;
 	}
+	return 0;
 }
 
 void AlignGapped(char *read,
@@ -542,11 +591,11 @@ void AlignGapped(char *read,
 		/* Use result from searching only mismatches */
 		return;
 	}
-	
+
 	/* Re-bound the maximum number of vertical and horizontal moves */
 	maxH = GETMIN(maxH, readLength);
 	maxV = GETMIN(maxV, readLength);
-	
+
 	/* Free relevant entries */
 	free(a->read);
 	free(a->reference);
@@ -568,6 +617,7 @@ void AlignGapped(char *read,
 					lowerBound,
 					maxH, 
 					maxV);
+			break;
 		case Constrained:
 			AlignGappedConstrained(read,
 					mask,
@@ -688,7 +738,7 @@ int32_t AlignRGMatchesKeepBestScore(AlignedEnd *end,
 	for(curIndex=0, i=0;
 			i<end->numEntries;
 			i++) {
-		if(DBL_MIN < end->entries[i].score) {
+		if(NEGATIVE_INFINITY < end->entries[i].score) {
 			numLocalAlignments++;
 		}
 		if(bestScore < end->entries[i].score) {

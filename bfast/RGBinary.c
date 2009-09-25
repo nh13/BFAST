@@ -953,6 +953,7 @@ void RGBinaryPrintInfo(char *brgFileName)
 	RGBinary rg;
 	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
 	gzFile fpRG;
+	FILE *fp=stdout;
 
 	/* Open output file */
 	if((fpRG=gzopen(brgFileName, "rb"))==0) {
@@ -967,12 +968,12 @@ void RGBinaryPrintInfo(char *brgFileName)
 
 	/* Print details */
 	for(i=0;i<rg.numContigs;i++) {
-		fprintf(stderr, "contig:%6d\tname:\t%s\n", i+1, rg.contigs[i].contigName);
-		fprintf(stderr, "contig:%6d\tlength:\t%d\n", i+1, rg.contigs[i].sequenceLength);
+		fprintf(fp, "contig:%6d\tname:\t%s\n", i+1, rg.contigs[i].contigName);
+		fprintf(fp, "contig:%6d\tlength:\t%d\n", i+1, rg.contigs[i].sequenceLength);
 	}
-	fprintf(stderr, "number of contigs:\t%d\n", rg.numContigs);
-	fprintf(stderr, "version:\t\t%s\n", rg.packageVersion);
-	fprintf(stderr, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
+	fprintf(fp, "number of contigs:\t%d\n", rg.numContigs);
+	fprintf(fp, "version:\t\t%s\n", rg.packageVersion);
+	fprintf(fp, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
 
 	RGBinaryDelete(&rg);
 }

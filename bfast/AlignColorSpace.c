@@ -13,7 +13,7 @@
 #include "AlignColorSpace.h"
 
 /* TODO */
-void AlignColorSpaceUngapped(char *read,
+int32_t AlignColorSpaceUngapped(char *read,
 		char *mask,
 		int readLength,
 		char *reference,
@@ -200,6 +200,8 @@ void AlignColorSpaceUngapped(char *read,
 			readAligned,
 			referenceAligned,
 			colorErrorAligned);
+
+	return 1;
 }
 
 /* TODO */
