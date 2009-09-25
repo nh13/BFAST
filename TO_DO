@@ -10,6 +10,12 @@ localalign
   score (?)
 - (check that we) allow for the alignment to begin or end with an insertion 
 (Color space)
+- for constrained gapped local alignment, we can use the ungapped local 
+alignment to get bounds on the constrained local alignment.  Let L-C-R be the
+constrains, where L is the unconstrained left side of the read, C be the 
+constrained middle portion of the read, and R be the unconstrained right portion
+of the read.  We can get bounds on L and R for gapped local alignmenty by using 
+the L and R values from ungapped local alignment.
 ===============================================================================
 
 ===============================================================================

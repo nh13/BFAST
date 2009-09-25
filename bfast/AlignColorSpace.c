@@ -80,6 +80,24 @@ int32_t AlignColorSpaceUngapped(char *read,
 						curReadBase);
 				PrintError(FnName, "curColor", "Could not convert base to color space", Exit, OutOfRange);
 			}
+			int32_t curReadBaseInt = -1;
+			if(Constrained == unconstrained) {
+				switch(curReadBase) {
+					case 'A':
+						curReadBaseInt=0; break;
+					case 'C':
+						curReadBaseInt=1; break;
+					case 'G':
+						curReadBaseInt=2; break;
+					case 'T':
+						curReadBaseInt=3; break;
+					case 'N':
+						curReadBaseInt=4; break;
+					default:
+						PrintError(FnName, "curReadBase", "Could not understand base", Exit, OutOfRange);
+						break;
+				}
+			}
 			int32_t nextScore[ALPHABET_SIZE+1];
 			char nextNT[ALPHABET_SIZE+1];
 			for(k=0;k<alphabetSize;k++) { /* To NT */
@@ -88,66 +106,32 @@ int32_t AlignColorSpaceUngapped(char *read,
 				int32_t bestScore = NEGATIVE_INFINITY;
 				int bestNT=-1;
 				char bestColor = 'X';
-				int allowedNT[ALPHABET_SIZE+1];
 
-				if(Constrained == unconstrained) {
-					for(l=0;l<alphabetSize;l++) { /* From NT */
-						allowedNT[l]=0;
-					}
-					char base;
-					assert(1 == ConvertBaseAndColor(DNA[k], curColor, &base));
-					switch(ToLower(base)) {
-						case 'a':
-							allowedNT[0] = 1; break;
-						case 'c':
-							allowedNT[1] = 1; break;
-						case 'g':
-							allowedNT[2] = 1; break;
-						case 't':
-							allowedNT[3] = 1; break;
-						case 'n':
-							assert(ALPHABET_SIZE < alphabetSize);
-							allowedNT[4] = 1; break;
-						default:
-							PrintError(FnName, "base", "Could not understand base", Exit, OutOfRange);
-							break;
-					}
+				if(Constrained == unconstrained && '1' == mask[j]) { // If we are to use the constraint and it exists
+					AlignColorSpaceUngappedFillInCell(sm, 
+							prevScore[i],
+							curColor,
+							reference[i+j],
+							k,
+							curReadBaseInt, // Use the current base (as an integer)
+							alphabetSize,
+							&bestScore,
+							&bestNT,
+							&bestColor);
+					break;
 				}
-				else {
+				else { // Ignore constraint, go through all possible transitions
 					for(l=0;l<alphabetSize;l++) { /* From NT */
-						allowedNT[l]=1;
-					}
-				}
-
-				for(l=0;l<alphabetSize;l++) { /* From NT */
-					if(1 == allowedNT[l]) {
-						char convertedColor='X';
-						int32_t curScore = prevScore[l];
-						/* Get color */
-						if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
-							fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
-									l,
-									DNA[l],
-									k,
-									DNA[k]);
-							PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
-						}
-						/* Add score for color error, if any */
-						curScore += ScoringMatrixGetColorScore(curColor,
-								convertedColor,
-								sm);
-						/* Add score for NT */
-						curScore += ScoringMatrixGetNTScore(reference[i+j], DNA[k], sm);
-
-						if(curScore < NEGATIVE_INFINITY/2) {
-							curScore = NEGATIVE_INFINITY;
-						}
-
-						if(bestScore < curScore) {
-							bestScore = curScore;
-							bestNT = l;
-							bestColor = convertedColor;
-						}
+						AlignColorSpaceUngappedFillInCell(sm, 
+								prevScore[i],
+								curColor,
+								reference[i+j],
+								k,
+								l,
+								alphabetSize,
+								&bestScore,
+								&bestNT,
+								&bestColor);
 					}
 				}
 				nextScore[k] = bestScore;
@@ -202,6 +186,48 @@ int32_t AlignColorSpaceUngapped(char *read,
 			colorErrorAligned);
 
 	return 1;
+}
+
+void AlignColorSpaceUngappedFillInCell(
+		ScoringMatrix *sm,
+		int32_t curScore, // previous score (prevScore[l])
+		char curColor, // observed color
+		char refBase, // reference base (reference[i+j])
+		int32_t k, // To NT
+		int32_t l, // From NT
+		int32_t alphabetSize,
+		int32_t *bestScore,
+		int32_t *bestNT,
+		char *bestColor)
+{
+	char *FnName="AlignColorSpaceUngappedFillInCell";
+
+	char convertedColor='X';
+	/* Get color */
+	if(0 == ConvertBaseToColorSpace(DNA[l], DNA[k], &convertedColor)) {
+		fprintf(stderr, "DNA[l=%d]=%c\tDNA[k=%d]=%c\n",
+				l,
+				DNA[l],
+				k,
+				DNA[k]);
+		PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
+	}
+	/* Add score for color error, if any */
+	curScore += ScoringMatrixGetColorScore(curColor,
+			convertedColor,
+			sm);
+	/* Add score for NT */
+	curScore += ScoringMatrixGetNTScore(refBase, DNA[k], sm);
+
+	if(curScore < NEGATIVE_INFINITY/2) {
+		curScore = NEGATIVE_INFINITY;
+	}
+
+	if((*bestScore)< curScore) {
+		(*bestScore) = curScore;
+		(*bestNT) = l;
+		(*bestColor) = convertedColor;
+	}
 }
 
 /* TODO */
