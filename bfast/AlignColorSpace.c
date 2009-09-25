@@ -43,7 +43,6 @@ int32_t AlignColorSpaceUngapped(char *read,
 	int32_t alphabetSize = ALPHABET_SIZE+1;
 
 	assert(readLength <= referenceLength);
-	assert(2*offset + readLength <= referenceLength); 
 
 	alphabetSize = AlignColorSpaceGetAlphabetSize(read, readLength, reference, referenceLength);
 

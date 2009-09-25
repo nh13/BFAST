@@ -39,8 +39,6 @@ int32_t AlignNTSpaceUngapped(char *read,
 	char bestReference[SEQUENCE_LENGTH]="\0";
 
 	assert(readLength <= referenceLength);
-	assert(2*offset <= referenceLength); // should be exact, but this is ok
-
 	/*
 	char *FnName = "AlignNTSpaceUngapped";
 	fprintf(stderr, "HERE in %s\n", FnName);
