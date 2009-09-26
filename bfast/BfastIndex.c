@@ -289,25 +289,29 @@ BfastIndexAssignDefaultValues(struct arguments *args)
 	void 
 BfastIndexPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
-	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "mask:\t\t\t\t\t%s\n", args->mask);
+	fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
+	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+	fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
+	fprintf(fp, "mask:\t\t\t\t\t%s\n", FILEREQUIRED(args->mask));
 	fprintf(fp, "depth:\t\t\t\t\t%d\n", args->depth);
-	fprintf(fp, "hashWidth:\t\t\t\t%d\n", args->hashWidth);
+	if(0 < args->hashWidth) {
+		fprintf(fp, "hashWidth:\t\t\t\t%d\n", args->hashWidth);
+	}
+	else {
+		fprintf(fp, "hashWidth:\t\t\t\t%s\n", FILEREQUIRED(NULL));
+	}
 	fprintf(fp, "indexNumber:\t\t\t\t%d\n", args->indexNumber);
-	fprintf(fp, "repeatMasker:\t\t\t\t%d\n", args->repeatMasker);
+	fprintf(fp, "repeatMasker:\t\t\t\t%s\n", INTUSING(args->repeatMasker));
 	fprintf(fp, "startContig:\t\t\t\t%d\n", args->startContig);
 	fprintf(fp, "startPos:\t\t\t\t%d\n", args->startPos);
 	fprintf(fp, "endContig:\t\t\t\t%d\n", args->endContig);
 	fprintf(fp, "endPos:\t\t\t\t\t%d\n", args->endPos);
-	fprintf(fp, "exonsFileName:\t\t\t\t%s\n", args->exonsFileName);
+	fprintf(fp, "exonsFileName:\t\t\t\t%s\n", FILEUSING(args->exonsFileName));
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
-	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
+	fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
 	fprintf(fp, BREAK_LINE);
 	return;
 }

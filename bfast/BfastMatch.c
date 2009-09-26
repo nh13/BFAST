@@ -235,27 +235,28 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 	void 
 BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char whichStrand[3][64] = {"BothStrands", "ForwardStrand", "ReverseStrand"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
-	fprintf(fp, "mainIndexes\t\t\t\t%s\n", args->mainIndexes);
-	fprintf(fp, "secondaryIndexes\t\t\t%s\n", args->secondaryIndexes);
-	fprintf(fp, "readsFileName:\t\t\t\t%s\n", args->readsFileName);
-	fprintf(fp, "offsets:\t\t\t\t%s\n", args->offsets);
-	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
-	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
-	fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
+	fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
+	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+	fprintf(fp, "mainIndexes\t\t\t\t%s\n", (NULL == args->mainIndexes) ? "[Auto-recognizing]" : args->mainIndexes);
+	fprintf(fp, "secondaryIndexes\t\t\t%s\n", FILEUSING(args->secondaryIndexes));
+	fprintf(fp, "readsFileName:\t\t\t\t%s\n", FILEUSING(args->readsFileName));
+	fprintf(fp, "offsets:\t\t\t\t%s\n", (NULL == args->offsets) ? "[Using All]" : args->offsets);
+	fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
+	if(0 <= args->startReadNum) fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
+	else fprintf(fp, "startReadNum:\t\t\t\t%s\n", INTUSING(0));
+	if(0 <= args->endReadNum) fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
+	else fprintf(fp, "endReadNum:\t\t\t\t%s\n", INTUSING(0));
+	if(0 < args->keySize) fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
+	else fprintf(fp, "keySize:\t\t\t\t%s\n", INTUSING(0));
 	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
 	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
-	fprintf(fp, "whichStrand:\t\t\t\t%d\t[%s]\n", args->whichStrand, whichStrand[args->whichStrand]);
+	fprintf(fp, "whichStrand:\t\t\t\t%s\n", WHICHSTRAND(args->whichStrand));
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
 	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
-	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
+	fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
 	fprintf(fp, BREAK_LINE);
 	return;
 }

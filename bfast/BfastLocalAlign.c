@@ -47,7 +47,7 @@ static struct argp_option options[] = {
 		"\n\t\t\tthis distance will be used to infer the latter read's CALs", 3},
 	{"mirroringType", 'L', "mirroringType", 0, "0: No mirroring should occur"
 		"\n\t\t\t1: specifies that we assume that the first end is before the second end (5'->3')"
-			"\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3)"
+			"\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3')"
 			"\n\t\t\t3: specifies that we mirror CALs in both directions", 3},
 	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
@@ -300,17 +300,15 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	void 
 BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char using[2][64] = {"Not using", "Using"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
-	fprintf(fp, "matchFileName:\t\t\t\t%s\n", args->matchFileName);
-	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", args->scoringMatrixFileName);
-	fprintf(fp, "ungapped:\t\t\t\t%s\n", using[args->ungapped]);
-	fprintf(fp, "unconstrained:\t\t\t\t%s\n", using[args->unconstrained]);
-	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
+	fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
+	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+	fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILEUSING(args->matchFileName));
+	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
+	fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
+	fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));
+	fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
 	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
@@ -318,10 +316,11 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "avgMismatchQuality:\t\t\t%d\n", args->avgMismatchQuality); 
 	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 	fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
-	fprintf(fp, "pairedEndLength:\t\t\t%d\t[%s]\n", args->pairedEndLength, using[args->usePairedEndLength]);
-	fprintf(fp, "mirroringType:\t\t\t\t%d\n", args->mirroringType);
-	fprintf(fp, "forceMirroring:\t\t\t\t%d\n", args->forceMirroring);
-	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
+	if(1 == args->usePairedEndLength) fprintf(fp, "pairedEndLength:\t\t\t%d\n", args->pairedEndLength);
+	else fprintf(fp, "pairedEndLength:\t\t\t%s\n", INTUSING(args->usePairedEndLength));
+	fprintf(fp, "mirroringType:\t\t\t\t%s\n", MIRRORINGTYPE(args->mirroringType));
+	fprintf(fp, "forceMirroring:\t\t\t\t%s\n", INTUSING(args->forceMirroring));
+	fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
 	fprintf(fp, BREAK_LINE);
 	return;
 

@@ -166,13 +166,12 @@ BfastFasta2BRGAssignDefaultValues(struct arguments *args)
 	void 
 BfastFasta2BRGPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", args->fastaFileName);
-	fprintf(fp, "space:\t\t\t\t\t%d\n", args->space);
-	fprintf(fp, "timing:\t\t\t\t\t%d\n", args->timing);
+	fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
+	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+	fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
+	fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
 	fprintf(fp, BREAK_LINE);
 	return;
 }

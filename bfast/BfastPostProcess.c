@@ -165,6 +165,7 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 			args->algorithm > MAX_FILTER) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);	
 	}	
+
 	if(args->queueLength<=0) {		
 		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
 	}
@@ -212,20 +213,19 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	void 
 BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char programmode[3][64] = {"ExecuteGetOptHelp", "ExecuteProgram", "ExecutePrintProgramParameters"};
-	char algorithm[5][64] = {"No Filtering", "Filtering Only", "Unique", "Best Score", "Best Score All"};
-	char outputType[8][32] = {"BRG", "BIF", "BMF", "BAF", "MAF", "GFF", "SAM", "LastFileType"};
+	char algorithm[5][64] = {"[No Filtering]", "[Filtering Only]", "[Unique]", "[Best Score]", "[Best Score All"};
+	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[MAF]", "[GFF]", "[SAM]", "[LastFileType"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t%d\t[%s]\n", args->programMode, programmode[args->programMode]);
-	fprintf(fp, "fastaFileName:\t\t%s\n", args->fastaFileName);
-	fprintf(fp, "alignFileName:\t\t%s\n", args->alignFileName);
-	fprintf(fp, "algorithm:\t\t%d\t[%s]\n", args->algorithm, algorithm[args->algorithm]);
+	fprintf(fp, "programMode:\t\t%s\n", PROGRAMMODE(args->programMode));
+	fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+	fprintf(fp, "alignFileName:\t\t%s\n", FILEUSING(args->alignFileName));
+	fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
 	fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
-	fprintf(fp, "unmappedFileName:\t%s\n", args->unmappedFileName);
-	fprintf(fp, "outputID:\t\t%s\n", args->outputID);
-	fprintf(fp, "timing:\t\t\t%d\n", args->timing);
+	fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
+	fprintf(fp, "outputID:\t\t%s\n", FILEUSING(args->outputID));
+	fprintf(fp, "timing:\t\t\t%s\n", INTUSING(args->timing));
 	fprintf(fp, BREAK_LINE);
 	return;
 }

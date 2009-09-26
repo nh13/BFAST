@@ -106,6 +106,13 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define SCORING_MATRIX_COLOR_MISMATCH -125
 
 /* Macro functions */
+#define FILEREQUIRED(_file) ((NULL == _file) ? "[Required! --> Not Specified]" : _file)
+#define FILEUSING(_file) ((NULL == _file) ? "[Not Using]" : _file)
+#define INTUSING(_int) ((1 != _int) ? "[Not Using]" : "[Using]")
+#define SPACE(_space) ((0 == _space) ? "[NT Space]" : "[Color Space]")
+#define PROGRAMMODE(_mode) ((0 == _mode) ? "[ExecuteGetOptHelp]" : ((1 == _mode) ? "[ExecuteProgram]" : "[ExecutePrintProgramParameters]"))
+#define WHICHSTRAND(_mode) ((0 == _mode) ? "[Both Strands]" : ((1 == _mode) ? "[Forward Strand]" : "[Reverse Strand]"))
+#define MIRRORINGTYPE(_mode) ((0 == _mode) ? "[Not Using]" : ((1 == _mode) ? "[First before the Second]" : ((2 == _mode) ? "[Second before the First]" : "[Both directions]")))
 #define LOWERBOUNDSCORE(_score) (_score = (_score < NEGATIVE_INFINITY) ? NEGATIVE_INFINITY : _score)
 #define GETMIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define GETMAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
