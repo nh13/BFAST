@@ -13,11 +13,11 @@ sh test.postprocess.sh
 md5sum $OUTPUT_DIR/bfast* > $OUTPUT_DIR/tests.md5
 # Archive
 cd $DATA_DIR
-tar -zxvf data.tar.gz
-rm data.tar.gz
+tar -jxvf data.tar.bz2
+rm data.tar.bz2
 mv ../$OUTPUT_DIR/tests.md5 .
 tar -cf data.tar *
-gzip -9 --force data.tar
+bzip2 -9 --force data.tar
 cd ..
 #
 sh test.cleanup.sh
