@@ -31,25 +31,33 @@ static struct argp_option options[] = {
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
-	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
+	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 1},
 	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
 	{"unconstrained", 'U', 0, OPTION_NO_USAGE, "Do not use mask constraints from the match step", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
+	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first" 
+		"\n\t\t\t  startReadNum-1 reads)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"offsetLength", 'o', "offset", 0, "Specifies the number of bases before and after the match to include in the reference genome (used for gapped only)", 2},
-	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate alignment for a given match", 2},
+	{"offsetLength", 'o', "offset", 0, "Specifies the number of bases before and after the match to"
+		"\n\t\t\t  include in the reference genome", 2},
+	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum number of candidates to initiate"
+		"\n\t\t\t  alignment for a given match", 2},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other does not,"
-		"\n\t\t\tthis distance will be used to infer the latter read's CALs", 3},
-	{"mirroringType", 'L', "mirroringType", 0, "0: No mirroring should occur"
-		"\n\t\t\t1: specifies that we assume that the first end is before the second end (5'->3')"
-			"\n\t\t\t2: specifies that we assume that the second end is before the first end (5'->3')"
-			"\n\t\t\t3: specifies that we mirror CALs in both directions", 3},
-	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance from -l", 3},
+	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other"
+		"\n\t\t\t  does not,"
+		"\n\t\t\t  this distance will be used to infer the latter read's CALs", 3},
+	{"mirroringType", 'L', "mirroringType", 0, "Specifies how to infer the other end (with -l)"
+        "\n\t\t\t  0: No mirroring should occur"
+		"\n\t\t\t  1: specifies that we assume that the first end is before the"
+			"\n\t\t\t    second end (5'->3')"
+			"\n\t\t\t  2: specifies that we assume that the second end is before"
+			"\n\t\t\t    the first end (5'->3')"
+			"\n\t\t\t  3: specifies that we mirror CALs in both directions", 3},
+	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance"
+		"\n\t\t\t  from -l", 3},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},

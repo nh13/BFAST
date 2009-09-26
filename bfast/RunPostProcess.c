@@ -97,7 +97,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 			/* Filter */
 			foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
-					algorithm);
+					algorithm,
+					pairedEndInfer,
+					&bins);
 
 			int32_t numEnds=0;
 			if(NoneFound == foundType) {
@@ -210,7 +212,9 @@ int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead)
 
 /* TODO */
 int FilterAlignedRead(AlignedRead *a,
-		int algorithm) 
+		int algorithm,
+		int  pairedEndInfer,
+		PEDBins *b)
 {
 	char *FnName="FilterAlignedRead";
 	int foundType;
@@ -370,7 +374,9 @@ int32_t GetPEDBins(char *inputFileName,
 
 				/* Filter */
 				foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
-						algorithm);
+						algorithm,
+						0,
+						NULL);
 
 				if(Found == foundType) {
 					assert(2 == aBuffer[aBufferIndex].numEnds);

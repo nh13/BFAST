@@ -30,7 +30,7 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
-	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
+	{0, 0, 0, 0, "=========== Algorithm Options: ======================================================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},

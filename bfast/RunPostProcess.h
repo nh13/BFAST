@@ -26,7 +26,9 @@ int32_t GetPEDBins(char*, int, int, PEDBins*);
 int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t);
 
 int FilterAlignedRead(AlignedRead *a,
-		int algorithm);
+		int algorithm,
+		int pairedEndInfer,
+		PEDBins *b);
 
 void PEDBinsInitialize(PEDBins*);
 void PEDBinsFree(PEDBins*);

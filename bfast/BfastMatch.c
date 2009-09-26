@@ -28,18 +28,24 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
-	{"mainIndexes", 'i', "mainIndexes", 0, "Specifies the index numbers for the main bif files (comma separated)", 1},
-	{"secondaryIndexes", 'I', "secondaryIndexes", 0, "Specifies the index numbers for the secondary bif files (comma separated)", 1},
+	{"mainIndexes", 'i', "mainIndexes", 0, "The index numbers for the main bif files (comma separated)", 1},
+	{"secondaryIndexes", 'I', "secondaryIndexes", 0, "The index numbers for the secondary bif files (comma"
+		"\n\t\t\t\t  separated)", 1},
 	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsets", 'o', "offsets", 0, "Specifies the offsets", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
-	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first startReadNum-1 reads)", 2},
+	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first"
+		"\n\t\t\t  startReadNum-1 reads)", 2},
 	{"endReadNum", 'e', "endReadNum", 0, "Specifies the last read to use (inclusive)", 2},
-	{"keySize", 'k', "keySize", 0, "Specifies to truncate all indexes to have the given key size (must be greater than the hash width)", 2},
-	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key is ignored", 2},
-	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider before the read is discarded", 2},
-	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse strand only", 2},
+	{"keySize", 'k', "keySize", 0, "Specifies to truncate all indexes to have the given key size"
+		"\n\t\t\t  (must be greater than the hash width)", 2},
+	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key"
+		"\n\t\t\t is ignored", 2},
+	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider"
+		"\n\t\t\t before the read is discarded", 2},
+	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse"
+		"\n\t\t\t strand only", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},

@@ -30,19 +30,23 @@ static struct argp_option options[] = {
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"alignFileName", 'i', "alignFileName", 0, "Specifies the input file from the balign program", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
-	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end of the read after filtering:"
-		"\n\t\t\t0: Specifies no filtering will occur"
-			"\n\t\t\t1: Specifies that all alignments that pass the filters will be outputted"
-			"\n\t\t\t2: Specifies to only consider reads that have been aligned uniquely"
-			"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
-			"\n\t\t\t4: Specifies to choose all alignments with the best score",
+	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end" 
+		"\n\t\t\t  of the read:"
+		"\n\t\t\t  0: No filtering will occur."
+			"\n\t\t\t  1: All alignments that pass the filters will be outputted"
+			"\n\t\t\t  2: Only consider reads that have been aligned uniquely"
+			"\n\t\t\t  3: Choose uniquely the alignment with the best score"
+			"\n\t\t\t  4: Choose all alignments with the best score",
 		2},
-	{"pairedEndInfer", 'P', 0, OPTION_NO_USAGE, "Specifies to break ties when one end of a paired end read by estimating the insert size distribution.  This works only if the other end is mapped uniquely (-a 2 or -a 3).", 2},
+	{"pairedEndInfer", 'P', 0, OPTION_NO_USAGE, "Specifies to break ties when one end of a paired end read by"
+		"\n\t\t\t  estimating the insert size distribution.  This works only"
+			"\n\t\t\t  if the other end is mapped uniquely (using -a 2 or -a 3).", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
-	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments into this file (always BAF format)", 3},
+	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments"
+		"\n\t\t\t  into this file (always BAF format)", 3},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 3},
-	{"outputID", 'o', "outputID", 0, "Specifies output ID to append to the read name (SAM output only)", 3},
+	{"outputID", 'o', "outputID", 0, "Specifies output ID to append to the read name (SAM only)", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
