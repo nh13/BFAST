@@ -533,7 +533,7 @@ Specifies that we should always mirror CALs using the distance specified in opti
 \BF{bfast postprocess} is a command that takes as input a \BAF{}.
 It can convert the input file to a specified output format as well as help choose the best alignment for each read based on score or uniqueness.
 This utility performs the fifth step in the work flow outlined in \autoref{sec:work-flow}.
-Many other filters can be applied, for example with paired-end reads where we desire only alignments for which BOTH ends align. 
+Many other filters can be applied, for example with paired-end reads where we desire only alignments for which \bf{BOTH} ends align. 
 These filters can be applied by downstream tools such as SAMtools (see \url{http://samtools.sourceforge.net}) or DNAA (see \url{http://dnaa.sourceforge.net}).
 
 The input by default will be read from the standard input stream and must be in the same format as a \BAF{} outputted by \TT{bfast localalign}.
@@ -556,6 +556,9 @@ Options \TT{-a 1}, \TT{-a 2}, and \TT{-a 3}, will for each read select a subset 
 If multiple alignments have the same best score, an alignment is not reported.
 \TT{-a 4} will output only reads that have a best scoring alignment (possibly many best scoring alignments may exist).
 
+Optionally, the \TT{-P} option will try to rescue paired-end (mate-end) when using \TT{-a 3}.
+It will do so by breaking the tie between equally best scoring alignments using the estimated insert size distribution.
+
 \subsection{Usage}
 \subsubsection{\TT{-i FILENAME, --alignedFileName=FILENAME}}
 Specifies the \BAF{} (see \autoref{sec:baf} for the file format).
@@ -568,6 +571,9 @@ The option \TT{-a 2} outputs only reads that have been aligned uniquely.
 The option \TT{-a 3} chooses uniquely the alignment with the best score.
 The option \TT{-a 3} chooses all alignments with the best score.
 
+\subsubsection{\TT{-P, --pairedEndInfer}}
+Specifies to break ties when one end of a paired end read by estimating the insert size distribution.  
+This works only if the other end is mapped uniquely (using \TT{-a 3}).
 \subsubsection{\TT{-O INTEGER, --outputFormat=INTEGER}}
 Specifies the output format.
 \TT{-O 0} specifies the output to be in \BAF{} format (see \autoref{sec:baf} for the file format).

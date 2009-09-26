@@ -40,7 +40,7 @@ static struct argp_option options[] = {
 		2},
 	{"pairedEndInfer", 'P', 0, OPTION_NO_USAGE, "Specifies to break ties when one end of a paired end read by"
 		"\n\t\t\t  estimating the insert size distribution.  This works only"
-			"\n\t\t\t  if the other end is mapped uniquely (using -a 2 or -a 3).", 2},
+			"\n\t\t\t  if the other end is mapped uniquely (using -a 3).", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments"
@@ -190,6 +190,11 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	}	
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->pairedEndInfer == 0 || args->pairedEndInfer == 1);
+
+	if(args->algorithm != BestScore && 1 == args->pairedEndInfer) {
+		PrintError(FnName, "pairedEndInfer", "Command line argument can only be used with -a 3", Exit, OutOfRange);
+	}
+
 	return 1;
 }
 
@@ -229,7 +234,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 	fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
 	fprintf(fp, "alignFileName:\t\t%s\n", FILEUSING(args->alignFileName));
 	fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
-	fprintf(fp, "pairedEndInfer:\t%s\n", INTUSING(args->pairedEndInfer));
+	fprintf(fp, "pairedEndInfer:\t\t%s\n", INTUSING(args->pairedEndInfer));
 	fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
 	fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));

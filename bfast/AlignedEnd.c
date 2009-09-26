@@ -367,6 +367,7 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 {
 	double bestScore=INT_MIN, nextBestScore=INT_MIN;
 	int32_t bestMappingQuality = 0;
+	int32_t foundNextBest = 0;
 	int32_t i;
 
 	/* Get best and next best score */
@@ -376,20 +377,19 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 		}
 		else if(nextBestScore < a->entries[i].score) {
 			nextBestScore = a->entries[i].score;
+			foundNextBest = 1;
 		}
 	}
 
-	/*
-	if(bestScore < 0) {
-		bestScore = 0;
-	}
-	if(nextBestScore < 0.0) {
-		nextBestScore = 0;
-	}
-	*/
 	assert(nextBestScore <= bestScore);
-
-	bestMappingQuality = ( (bestScore - nextBestScore) / mismatchScore )*avgMismatchQuality;
+	if(INT_MIN < nextBestScore) { 
+		assert(1 == foundNextBest);
+		bestMappingQuality = ( (bestScore - nextBestScore) / mismatchScore )*avgMismatchQuality;
+	}
+	else {
+		/* If no other matches was found, give it the max */
+		bestMappingQuality = MAXIMUM_MAPPING_QUALITY;
+	}
 
 	for(i=0;i<a->numEntries;i++) {
 		if(a->entries[i].score < bestScore) {

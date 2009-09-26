@@ -170,7 +170,7 @@ int32_t AlignedEntryRead(AlignedEntry *a,
 	   assert(strlen(a->reference) == a->length);
 	   assert((int)strlen(a->colorError) == a->length);
 	   */
-	
+
 	return 1;
 }
 

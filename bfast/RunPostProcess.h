@@ -28,11 +28,14 @@ int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t);
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
 		int pairedEndInfer,
-		PEDBins *b);
+		PEDBins *b,
+		int32_t *pairedEndInferRescue);
 
 void PEDBinsInitialize(PEDBins*);
 void PEDBinsFree(PEDBins*);
 void PEDBinsInsert(PEDBins*, int32_t);
 void PEDBinsPrintStatistics(PEDBins*, FILE*);
+void PEDBinsMakeIntoProbability(PEDBins*);
+int32_t PEDBinsGetProbability(PEDBins*, int32_t, int32_t, int32_t, int32_t);
 
 #endif

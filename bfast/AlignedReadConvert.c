@@ -537,7 +537,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		mapq = (int32_t)a->ends[endIndex].entries[entriesIndex].mappingQuality;
 	}
 	if(mapq < 0) mapq = 0;
-	if(mapq > 255) mapq = 255;
+	if(mapq > MAXIMUM_MAPPING_QUALITY) mapq = MAXIMUM_MAPPING_QUALITY;
 	if(0>fprintf(fp, "\t%d", mapq)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
