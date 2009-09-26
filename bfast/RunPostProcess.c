@@ -364,14 +364,6 @@ int FilterAlignedRead(AlignedRead *a,
 				AlignedEndReallocate(&tmpA.ends[endTwo], 1);
 				tmpA.ends[endTwo].entries[0].mappingQuality = bestProb * tmpA.ends[endOne].entries[0].mappingQuality / b->numDistances;
 				// Updating the mapping quality (how?)
-				// HERE this should be scaled!!!
-				/*
-				fprintf(stderr, "%d = %d * %d / %d\n",
-						tmpA.ends[endTwo].entries[0].mappingQuality,
-						tmpA.ends[endOne].entries[0].mappingQuality,
-						bestProb,
-						b->numDistances);
-						*/
 				(*pairedEndInferRescued)++;
 			}
 			else { // Remove
@@ -695,14 +687,6 @@ void PEDBinsMakeIntoProbability(PEDBins *b)
 	// Take care of the final case
 	sum += b->bins[mid - b->minDistance];
 	b->bins[mid - b->minDistance] = sum;
-
-	// HERE
-	/*
-	for(i=b->minDistance;i<=b->maxDistance;i++) {
-		fprintf(stderr, "distance=%d\tsum=%d\n",
-				i, b->bins[i-b->minDistance]);
-	}
-	*/
 }
 
 // Not normalized
