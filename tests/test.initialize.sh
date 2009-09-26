@@ -12,7 +12,7 @@ cp $INPUT_DIR/* $OUTPUT_DIR/.
 
 # Unzip any necessary files
 cd $OUTPUT_DIR
-tar -zxvf *tar.gz 2> /dev/null > /dev/null;
+tar -jxvf *tar.bz2 2> /dev/null > /dev/null;
 # Get return code
 if [ "$?" -ne "0" ]; then
 	exit 1

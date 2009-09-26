@@ -390,7 +390,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	}
 #endif
 
-	/* Run Full */
+	/* Run Gapped */
 	for(i=0;i<end->numEntries;i++) {
 		AlignGapped(read,
 				colors,
@@ -564,7 +564,7 @@ void AlignGapped(char *read,
 {
 	char *FnName="AlignGapped";
 	int64_t maxH, maxV;
-
+			
 	/* Get the maximum number of vertical and horizontal moves allowed */
 	maxV = maxH = 0;
 	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {

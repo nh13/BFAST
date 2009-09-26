@@ -106,6 +106,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define SCORING_MATRIX_COLOR_MISMATCH -125
 
 /* Macro functions */
+#define LOWERBOUNDSCORE(_score) (_score = (_score < NEGATIVE_INFINITY) ? NEGATIVE_INFINITY : _score)
 #define GETMIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define GETMAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
 #define QUAL_TO_MAF_QUAL(_X)  (GETMIN( (int)floor(_X/5), 9))

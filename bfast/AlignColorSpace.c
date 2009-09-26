@@ -12,8 +12,6 @@
 #include "Align.h"
 #include "AlignColorSpace.h"
 
-// Do we need to enforce NEGATIVE_INFINITY as a lower bound when adding?
-
 /* TODO */
 int32_t AlignColorSpaceUngapped(char *colors,
 		char *mask,
@@ -50,9 +48,10 @@ int32_t AlignColorSpaceUngapped(char *colors,
 		/* Initialize */
 		for(j=0;j<alphabetSize;j++) {
 			if(DNA[j] == COLOR_SPACE_START_NT) { 
-				prevScore[j] = 0.0;
+				prevScore[j] = 0;
 			}
 			else {
+				prevScore[j] = NEGATIVE_INFINITY;
 			}
 		}
 		for(j=0;j<readLength;j++) { /* Position in the alignment */
@@ -186,11 +185,9 @@ void AlignColorSpaceUngappedGetBest(
 	/* Add score for NT */
 	curScore += ScoringMatrixGetNTScore(refBase, DNA[k], sm);
 
-	if(curScore < NEGATIVE_INFINITY/2) {
-		curScore = NEGATIVE_INFINITY;
-	}
+	LOWERBOUNDSCORE(curScore);
 
-	if((*bestScore)< curScore) {
+	if((*bestScore) < curScore) {
 		(*bestScore) = curScore;
 		(*bestNT) = l;
 		(*bestColor) = convertedColor;
@@ -225,7 +222,7 @@ void AlignColorSpaceGappedBounded(char *colors,
 		/* Get the current color */
 		for(j=GETMAX(0, i - maxV);
 				j <= GETMIN(referenceLength-1, referenceLength - (readLength - maxH) + i);
-				j++) { /* reference/columns */
+		j++) { /* reference/columns */
 			assert(i-maxV <= j && j <= referenceLength - (readLength - maxH) + i);
 			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], maxH, maxV, alphabetSize);
 		}
@@ -352,6 +349,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 					matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 				}
 			}
+			matrix->cells[i+1][j+1].s.score[k] = LOWERBOUNDSCORE(matrix->cells[i+1][j+1].s.score[k]);
 		}
 	}
 	for(k=0;k<alphabetSize;k++) {
@@ -410,7 +408,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	startCol=-1;
 	startCell=-1;
 	maxScore = NEGATIVE_INFINITY-1;
-	for(i=toExclude+1;i<referenceLength+1;i++) {
+	for(i=toExclude+1;i<referenceLength+1;i++) { // ignore the fist column
 		for(j=0;j<alphabetSize;j++) {
 			/* Don't end with a Deletion in the read */
 
@@ -637,6 +635,7 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 					matrix->cells[i][0].v.colorError[k] = GAP;
 
 				}
+				LOWERBOUNDSCORE(matrix->cells[i][0].v.score[k]);
 			}
 			else {
 				matrix->cells[i][0].v.score[k] = NEGATIVE_INFINITY;
@@ -696,6 +695,7 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 				matrix->cells[startRow][j].h.from[k] = k + 1;
 				matrix->cells[startRow][j].h.colorError[k] = GAP;
 			}
+			LOWERBOUNDSCORE(matrix->cells[startRow][j].h.score[k]);
 
 			// Do not allow for a match or an insertion
 			matrix->cells[startRow][j].s.score[k] = matrix->cells[startRow][j].v.score[k] = NEGATIVE_INFINITY;
@@ -736,6 +736,7 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 				matrix->cells[i][startCol].v.from[k] = fromNT + 1 + 2*(ALPHABET_SIZE + 1);
 				matrix->cells[i][startCol].v.colorError[k] = GAP;
 			}
+			LOWERBOUNDSCORE(matrix->cells[i][startCol].v.score[k]);
 		}
 	}
 }
@@ -786,10 +787,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			 * */
 			curScore = matrix->cells[row+1][col].s.score[k] + sm->gapOpenPenalty;
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-				assert(curScore < 0);
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = k + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
@@ -805,9 +803,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			 * deletion.  We will consider the color at the end of the deletion.
 			 * */
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = k + 1; /* see the enum */ 
@@ -853,9 +849,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			/* Add score for color error, if any */
 			curScore += scoreColor;
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = l + 1; /* see the enum */ 
@@ -870,9 +864,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			/* Add score for color error, if any */
 			curScore += scoreColor;
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
@@ -887,9 +879,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			/* Add score for color error, if any */
 			curScore += scoreColor;
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
@@ -945,9 +935,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			   sm);
 			   */
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = fromNT + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
@@ -963,9 +951,7 @@ void AlignColorSpaceFillInCell(char *colors,
 					curColor,
 					sm);
 			/* Make sure we aren't below infinity */
-			if(curScore < NEGATIVE_INFINITY/2) {
-				curScore = NEGATIVE_INFINITY;
-			}
+			LOWERBOUNDSCORE(curScore);
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
