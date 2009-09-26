@@ -18,6 +18,7 @@ do
 	# Run postprocess 
 	CMD=$CMD_PREFIX"bfast postprocess -f $RG_FASTA -i $ALIGN -a 3 > ${OUTPUT_DIR}bfast.reported.file.$OUTPUT_ID.sam";
 	eval $CMD 2> /dev/null;
+
 	# Get return code
 	if [ "$?" -ne "0" ]; then
 		# Run again without piping anything

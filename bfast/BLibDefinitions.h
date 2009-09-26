@@ -97,6 +97,12 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
 
+/* To calculate the paired end insert size distribution in postprocess */
+#define MIN_PEDBINS_SIZE 100
+#define MAX_PEDBINS_SIZE 1000000
+#define MIN_PEDBINS_DISTANCE -20000
+#define MAX_PEDBINS_DISTANCE 20000
+
 /* Scoring matrix defaults */
 #define SCORING_MATRIX_GAP_OPEN -175
 #define SCORING_MATRIX_GAP_EXTEND -50

@@ -12,6 +12,7 @@ struct arguments
 	char *fastaFileName;					/* -f */
 	char *alignFileName;					/* -i */
 	int algorithm;							/* -a */
+	int pairedEndInfer;						/* -P */
 	int queueLength;						/* -Q */
 	int outputFormat;						/* -O */
 	char *outputID;							/* -o */

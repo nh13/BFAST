@@ -20,7 +20,7 @@
    */
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithm, DescQueueLength, 
+	DescAlgoTitle, DescAlgorithm, DescPairedEndInfer, DescQueueLength, 
 	DescOutputTitle, DescOutputFormat, DescOutputID, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -37,6 +37,7 @@ static struct argp_option options[] = {
 			"\n\t\t\t3: Specifies to choose uniquely the alignment with the best score"
 			"\n\t\t\t4: Specifies to choose all alignments with the best score",
 		2},
+	{"pairedEndInfer", 'P', 0, OPTION_NO_USAGE, "Specifies to break ties when one end of a paired end read by estimating the insert size distribution.  This works only if the other end is mapped uniquely (-a 2 or -a 3).", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments into this file (always BAF format)", 3},
@@ -50,7 +51,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:o:u:O:Q:hpt";
+"a:i:f:o:u:O:Q:hptP";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -93,6 +94,7 @@ BfastPostProcess(int argc, char **argv)
 					ReadInputFilterAndOutput(&rg,
 							arguments.alignFileName,
 							arguments.algorithm,
+							arguments.pairedEndInfer,
 							arguments.queueLength,
 							arguments.outputFormat,
 							arguments.outputID,
@@ -183,6 +185,7 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 			PrintError(FnName, "unmappedFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
 	assert(args->timing == 0 || args->timing == 1);
+	assert(args->pairedEndInfer == 0 || args->pairedEndInfer == 1);
 	return 1;
 }
 
@@ -198,6 +201,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->alignFileName = NULL;
 
 	args->algorithm=BestScore;
+	args->pairedEndInfer=0;
 	args->queueLength=DEFAULT_QUEUE_LENGTH;
 
 	args->outputFormat=SAM;
@@ -213,14 +217,15 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	void 
 BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	char algorithm[5][64] = {"[No Filtering]", "[Filtering Only]", "[Unique]", "[Best Score]", "[Best Score All"};
-	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[MAF]", "[GFF]", "[SAM]", "[LastFileType"};
+	char algorithm[5][64] = {"[No Filtering]", "[Filtering Only]", "[Unique]", "[Best Score]", "[Best Score All]"};
+	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[MAF]", "[GFF]", "[SAM]", "[LastFileType]"};
 	fprintf(fp, BREAK_LINE);
 	fprintf(fp, "Printing Program Parameters:\n");
 	fprintf(fp, "programMode:\t\t%s\n", PROGRAMMODE(args->programMode));
 	fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
 	fprintf(fp, "alignFileName:\t\t%s\n", FILEUSING(args->alignFileName));
 	fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
+	fprintf(fp, "pairedEndInfer:\t%s\n", INTUSING(args->pairedEndInfer));
 	fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
 	fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
@@ -318,6 +323,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 						break;
 				}
 				break;
+			case 'P':
+				arguments->pairedEndInfer=1; break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
 			default:
