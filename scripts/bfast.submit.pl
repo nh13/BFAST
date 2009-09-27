@@ -170,6 +170,7 @@ sub Schema {
 				  </xs:restriction>
 				</xs:simpleType>
 			  </xs:element>
+			  <xs:element name="pairedEndInfer" type="xs:integer"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			</xs:sequence>
@@ -268,6 +269,7 @@ sub ValidateData {
 	# postprocess
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 
@@ -512,6 +514,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
+		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -O 3"; # always SAM format
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
