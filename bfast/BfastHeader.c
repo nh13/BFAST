@@ -37,7 +37,6 @@ int BfastHeader(int argc, char *argv[])
 		}
 	}
 	else {
-		fprintf(stderr, "%s %s\n", "bfast ", PACKAGE_VERSION);
 		fprintf(stderr, "\nUsage: %s <files>\n", Name);
 		fprintf(stderr, "\nsend bugs to %s\n",
 				PACKAGE_BUGREPORT);

@@ -17,7 +17,6 @@
  * */
 void BfastBAFConvertUsage()
 {
-	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
 	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
 	fprintf(stderr, "\t-O\t\toutput type:\n"
 			"\t\t\t\t0-BAF text to BAF binary\n"

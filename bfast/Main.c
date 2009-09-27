@@ -8,7 +8,11 @@ static int usage()
 {
 	fprintf(stderr, "\n");
 	fprintf(stderr, "BFAST:   the blat-like fast accurate search tool\n");
+#ifdef GIT_REV
+	fprintf(stderr, "Version: %s git:%s\n", PACKAGE_VERSION, GIT_REV);
+#else
 	fprintf(stderr, "Version: %s\n", PACKAGE_VERSION);
+#endif
 	fprintf(stderr, "Contact: %s\n\n", PACKAGE_BUGREPORT);
 	fprintf(stderr, "Usage:   bfast <command> [options]\n\n"); 
 	fprintf(stderr, "Pre-processing:\n");

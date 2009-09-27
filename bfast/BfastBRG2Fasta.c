@@ -69,7 +69,6 @@ int BfastBRG2Fasta(int argc, char *argv[])
 		fprintf(stderr, "Terminating successfully!\n");
 	}
 	else {
-		fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
 		fprintf(stderr, "\nUsage:%s <bfast reference genome file>\n", Name);
 		fprintf(stderr, "\nsend bugs to %s\n",
 				PACKAGE_BUGREPORT);

@@ -336,8 +336,6 @@ void
 BfastIndexGetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "%s %s\n", "bfast ", PACKAGE_VERSION);
-
 	fprintf(stderr, "\nUsage: bfast index [options]\n");
 	while((*a).group>0) {
 		switch((*a).key) {
