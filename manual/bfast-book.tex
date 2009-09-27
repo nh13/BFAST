@@ -216,6 +216,10 @@ These options include specifying the reference genome FASTA file, specifying the
 
 Other options, such as the options \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} for specifying only a contiguous range should be considered, are shared across some of the commands but have specific implications to each command and are described in the respective command's section.
 
+The BFAST commands \TT{match}, \TT{localalign}, and \TT{postprocess} can all accept their input file from the standard input stream, facilitating the use of these BFAST commands in a pipe-and-filter model.
+For example, this allows the output of \TT{match} to be piped into \TT{localalign}, with the subsequent output be piped into \TT{postprocess}. 
+When the input for these commands comes from the standard input stream, no progress messages of any kind will be outputted (don't panic).
+
 \subsection{Usage}
 \subsubsection{\TT{-f FILENAME, --fastaFileName=FILENAME}}
 Specifies the file name of the FASTA reference genome (see \autoref{sec:rgfastafile} for the file format).
