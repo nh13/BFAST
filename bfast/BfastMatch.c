@@ -83,8 +83,10 @@ BfastMatch(int argc, char **argv)
 					break;
 				case ExecuteProgram:
 					if(BfastMatchValidateInputs(&arguments)) {
-						fprintf(stderr, "**** Input arguments look good!\n");
-						fprintf(stderr, BREAK_LINE);
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "**** Input arguments look good!\n");
+							fprintf(stderr, BREAK_LINE);
+						}
 					}
 					else {
 						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
@@ -119,14 +121,18 @@ BfastMatch(int argc, char **argv)
 						seconds -= hours*3600;
 						int minutes = seconds/60;
 						seconds -= minutes*60;
-						fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 					}
-					fprintf(stderr, "Terminating successfully!\n");
-					fprintf(stderr, "%s", BREAK_LINE);
+					if(0 <= VERBOSE) {
+						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
+					}
 					break;
 				default:
 					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
@@ -150,18 +156,36 @@ int BfastMatchValidateInputs(struct arguments *args) {
 
 	char *FnName="BfastMatchValidateInputs";
 
-	fprintf(stderr, BREAK_LINE);
-	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+	/* Check if we are piping */
+	if(NULL == args->readsFileName) {
+		VERBOSE = -1;
+	}
+
+	if(0<=VERBOSE) {
+		fprintf(stderr, BREAK_LINE);
+		fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+	}
 
 	if(args->fastaFileName!=0) {
-		fprintf(stderr, "Validating fastaFileName %s. \n",
-				args->fastaFileName);
+		if(0<=VERBOSE) {
+			fprintf(stderr, "Validating fastaFileName %s. \n",
+					args->fastaFileName);
+		}
 		if(ValidateFileName(args->fastaFileName)==0)
 			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
 	else {		
 		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);	
 	}
+
+	if(args->readsFileName!=0) {
+		if(0<=VERBOSE) {
+			fprintf(stderr, "Validating readsFileName %s. \n",
+					args->readsFileName);
+		}
+		if(ValidateFileName(args->readsFileName)==0)
+			PrintError(FnName, "readsFileName", "Command line argument", Exit, IllegalFileName);	
+	}	
 
 	if(args->space != NTSpace && args->space != ColorSpace) {
 		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);	
@@ -190,8 +214,10 @@ int BfastMatchValidateInputs(struct arguments *args) {
 		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);	
 	} 	
 	if(args->tmpDir!=0) {		
-		fprintf(stderr, "Validating tmpDir path %s. \n", 
-				args->tmpDir);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating tmpDir path %s. \n", 
+					args->tmpDir);
+		}
 		if(ValidateFileName(args->tmpDir)==0)
 			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);	
 	}	
@@ -241,29 +267,31 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 	void 
 BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	fprintf(fp, BREAK_LINE);
-	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
-	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
-	fprintf(fp, "mainIndexes\t\t\t\t%s\n", (NULL == args->mainIndexes) ? "[Auto-recognizing]" : args->mainIndexes);
-	fprintf(fp, "secondaryIndexes\t\t\t%s\n", FILEUSING(args->secondaryIndexes));
-	fprintf(fp, "readsFileName:\t\t\t\t%s\n", FILEUSING(args->readsFileName));
-	fprintf(fp, "offsets:\t\t\t\t%s\n", (NULL == args->offsets) ? "[Using All]" : args->offsets);
-	fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
-	if(0 <= args->startReadNum) fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
-	else fprintf(fp, "startReadNum:\t\t\t\t%s\n", INTUSING(0));
-	if(0 <= args->endReadNum) fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
-	else fprintf(fp, "endReadNum:\t\t\t\t%s\n", INTUSING(0));
-	if(0 < args->keySize) fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
-	else fprintf(fp, "keySize:\t\t\t\t%s\n", INTUSING(0));
-	fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
-	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
-	fprintf(fp, "whichStrand:\t\t\t\t%s\n", WHICHSTRAND(args->whichStrand));
-	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
-	fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
-	fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
-	fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
-	fprintf(fp, BREAK_LINE);
+	if(0 <= VERBOSE) {
+		fprintf(fp, BREAK_LINE);
+		fprintf(fp, "Printing Program Parameters:\n");
+		fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
+		fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+		fprintf(fp, "mainIndexes\t\t\t\t%s\n", (NULL == args->mainIndexes) ? "[Auto-recognizing]" : args->mainIndexes);
+		fprintf(fp, "secondaryIndexes\t\t\t%s\n", FILEUSING(args->secondaryIndexes));
+		fprintf(fp, "readsFileName:\t\t\t\t%s\n", FILESTDIN(args->readsFileName));
+		fprintf(fp, "offsets:\t\t\t\t%s\n", (NULL == args->offsets) ? "[Using All]" : args->offsets);
+		fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
+		if(0 <= args->startReadNum) fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
+		else fprintf(fp, "startReadNum:\t\t\t\t%s\n", INTUSING(0));
+		if(0 <= args->endReadNum) fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
+		else fprintf(fp, "endReadNum:\t\t\t\t%s\n", INTUSING(0));
+		if(0 < args->keySize) fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
+		else fprintf(fp, "keySize:\t\t\t\t%s\n", INTUSING(0));
+		fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
+		fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
+		fprintf(fp, "whichStrand:\t\t\t\t%s\n", WHICHSTRAND(args->whichStrand));
+		fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
+		fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
+		fprintf(fp, "tmpDir:\t\t\t\t\t%s\n", args->tmpDir);
+		fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
+		fprintf(fp, BREAK_LINE);
+	}
 	return;
 }
 

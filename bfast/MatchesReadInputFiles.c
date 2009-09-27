@@ -9,9 +9,8 @@
 #include "RGMatches.h"
 #include "MatchesReadInputFiles.h"
 
-/* TODO */
 /* Read the next read end from the stream */
-int GetNextRead(FILE *fp, 
+int GetNextRead(FILE *fp,
 		char *readName,
 		char *read,
 		char *qual)
@@ -49,9 +48,7 @@ int GetNextRead(FILE *fp,
 	return 1;
 }
 
-/* TODO */
-/* Read all the ends for the next read from the stream */
-int GetRead(FILE *fp, 
+int GetRead(FILE *fp,
 		RGMatches *m,
 		int space)
 {
@@ -113,7 +110,6 @@ int GetRead(FILE *fp,
 			assert(0 == fsetpos(fp, &curPos));
 		}
 	}
-
 	if(0 == m->numEnds) {
 		if(0 != feof(fp)) {
 			return EOF;
@@ -126,6 +122,133 @@ int GetRead(FILE *fp,
 	}
 
 	return 1;
+}
+
+/* TODO */
+/* Read the next read end from the stream */
+int32_t GetNextReadBuffered(char **buffer,
+		int32_t numLines,
+		char *readName,
+		char *read,
+		char *qual)
+{
+	char *FnName = "GetNextReadBuffered";
+	char comment[SEQUENCE_NAME_LENGTH]="\0";
+
+	if('>' == buffer[0][0]) { // FASTA format
+		// We could support FASTA by just putting in dummy values for the quals (?)
+		PrintError(FnName, "read", "Read was in FASTA format.  Currently not supported", Exit, OutOfRange);
+	}
+
+	/* Move to the beginning of the read name */
+	if(numLines < 4) {
+		return -1;
+	}
+
+	/* Read in read name */
+	strcpy(readName, buffer[0] + 1); // Ignore the '@'
+	StringTrimWhiteSpace(readName);
+	/* Read in sequence */
+	strcpy(read, buffer[1]);
+	StringTrimWhiteSpace(read);
+	/* Read in comment line */
+	strcpy(comment, buffer[2]);
+	/* Read in qualities */
+	strcpy(qual, buffer[3]);
+	StringTrimWhiteSpace(qual);
+
+	return 4;
+}
+
+/* TODO */
+/* Read all the ends for the next read from the buffer */
+int32_t GetReadBuffered(char **buffer,
+		int32_t numLines,
+		RGMatches *m,
+		int space,
+		int32_t abort)
+{
+	char *FnName = "GetReadBuffered";
+	char readName[SEQUENCE_NAME_LENGTH]="\0";
+	char read[SEQUENCE_LENGTH]="\0";
+	char qual[SEQUENCE_LENGTH]="\0";
+	int32_t foundAllEnds, curLine, numLinesRead;
+
+	if(0 == numLines) {
+		return -1;
+	}
+	foundAllEnds=0;
+
+	curLine = 0;
+	while(0 == foundAllEnds && curLine < numLines) {
+		/* Get some reads */
+		numLinesRead = GetNextReadBuffered(buffer + curLine,
+				(numLines - curLine),
+				readName,
+				read,
+				qual);
+		if(numLinesRead < 0) {
+			break;
+		}
+
+		// Add the number of lines read for now
+		curLine += numLinesRead;
+
+		/* Insert read name if this is the first end */
+		if(0 == m->numEnds) {
+			/* Allocate memory */
+			m->readNameLength = strlen(readName);
+			m->readName = malloc(sizeof(char)*(m->readNameLength+1));
+			if(NULL == m->readName) {
+				PrintError(FnName, "m->readName", "Could not allocate memory", Exit, MallocMemory);
+			}
+			strcpy(m->readName, readName);
+		}
+		/* Add end if necessary */
+		if(0 == strcmp(m->readName, readName)) {
+			/* Reallocate */
+			m->numEnds++;
+			m->ends = realloc(m->ends, sizeof(RGMatch)*m->numEnds);
+			if(NULL == m->ends) {
+				PrintError(FnName, "m->ends", "Could not reallocate memory", Exit, ReallocMemory);
+			}
+			RGMatchInitialize(&m->ends[m->numEnds-1]);
+			m->ends[m->numEnds-1].readLength = strlen(read);
+			m->ends[m->numEnds-1].qualLength = strlen(qual);
+			m->ends[m->numEnds-1].read = malloc(sizeof(char)*(m->ends[m->numEnds-1].readLength+1));
+			if(NULL == m->ends[m->numEnds-1].read) {
+				PrintError(FnName, "m->ends[m->numEnds-1].read", "Could not allocate memory", Exit, MallocMemory);
+			}
+			strcpy(m->ends[m->numEnds-1].read, read);
+			m->ends[m->numEnds-1].qual = malloc(sizeof(char)*(m->ends[m->numEnds-1].qualLength+1));
+			if(NULL == m->ends[m->numEnds-1].qual) {
+				PrintError(FnName, "m->ends[m->numEnds-1].qual", "Could not allocate memory", Exit, MallocMemory);
+			}
+			strcpy(m->ends[m->numEnds-1].qual, qual);
+		}
+		else {
+			/* Found all ends */
+			foundAllEnds = 1;
+			// Subtract the number of ends reached since we don't want the last read
+			curLine -= numLinesRead;
+		}
+	}
+	
+	if(0 == m->numEnds) { // No ends found
+		return -1;
+	}
+
+	// Did not find all the ends since there wasn't enough buffer. Signal more buffer.
+	if(0 == foundAllEnds && 0 == abort) { 
+		return -1;
+	}
+
+	// Check read
+	if(0 == IsValidRead(m, space)) {
+		PrintError(FnName, NULL, "The input read was not in the proper format", Exit, OutOfRange);
+	}
+
+	return curLine;
 }
 
 /* TODO */
@@ -161,24 +284,21 @@ void WriteReadsToTempFile(FILE *seqFP,
 	int curSeqFPIndex=0;
 	int curReadNum = 1;
 	RGMatches m;
-	char curLine[MAX_HEADER_LENGTH]="\0";
-	fpos_t curFilePos;
+	char **lineBuffer=NULL;
+	int32_t numLines = 0;
+	int32_t curNumLines, numLinesProcessed, continueReading;
 
-
-	/* Read in any lines that begin with # */
-	do {
-		/* Get current file position */
-		if(0!=fgetpos(seqFP, &curFilePos)) {
-			PrintError(FnName, "fgetpos", "Could not get position in file", Exit, OutOfRange);
-		}
-	} while(NULL!=fgets(curLine, MAX_HEADER_LENGTH, seqFP) && curLine[0]=='#');
-	/* Restore position */
-	if(0!=fsetpos(seqFP, &curFilePos)) {
-		PrintError(FnName, "fsetpos", "Could not set position in the file", Exit, OutOfRange);
+	/* Allocate the buffer */
+	lineBuffer = malloc(sizeof(char*)*READS_BUFFER_LENGTH);
+	if(NULL == lineBuffer) {
+		PrintError(FnName, "lineBuffer", "Could not allocate memory", Exit, MallocMemory);
 	}
-
-	(*numWritten)=0;
-	RGMatchesInitialize(&m);
+	for(i=0;i<READS_BUFFER_LENGTH;i++) {
+		lineBuffer[i] = malloc(sizeof(char)*(1+SEQUENCE_LENGTH));
+		if(NULL == lineBuffer[i]) {
+			PrintError(FnName, "lineBuffer[i]", "Could not allocate memory", Exit, MallocMemory);
+		}
+	}
 
 	/* Open one temporary file, one for each thread */
 	for(i=0;i<numThreads;i++) {
@@ -187,26 +307,77 @@ void WriteReadsToTempFile(FILE *seqFP,
 		assert((*tempSeqFPs)[i] != NULL);
 	}
 
-	while((endReadNum<=0 || endReadNum >= curReadNum) && 
-			EOF != GetRead(seqFP, &m, space)) {
-		/* Get which tmp file to put the read in */
-		curSeqFPIndex = (curReadNum-1)%numThreads;
-
-		/* Print only if we are within the desired limit and the read checks out */
-		if(startReadNum<=0 || curReadNum >= startReadNum) {/* Only if we are within the bounds for the reads */
-
-			/* Print */
-			if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {
-				PrintError(FnName, NULL, "Could not write read", Exit, WriteFileError);
+	/* Get the reads */
+	continueReading = 1;
+	(*numWritten)=0;
+	RGMatchesInitialize(&m);
+	do {
+		/* Read in the buffer */
+		for(i=numLines;i<READS_BUFFER_LENGTH;i++) {
+			if(EOF == fscanf(seqFP, "%s", lineBuffer[i])) {
+				continueReading = 0; break;
 			}
-			(*numWritten)++;
-
+			numLines++;
 		}
-		/* Increment read number */
-		curReadNum++;
-		/* Free memory */
-		RGMatchesFree(&m);
+
+		/* Process the buffer */
+		curNumLines=0;
+		while(curNumLines < numLines) {
+			if(lineBuffer[curNumLines][0] != '#') { // skip comments
+				RGMatchesInitialize(&m);
+
+				/* Read in */
+				numLinesProcessed=GetReadBuffered(lineBuffer + curNumLines, 
+						(numLines - curNumLines),
+						&m,
+						space,
+						continueReading);
+				assert(0 != numLinesProcessed);
+				if(numLinesProcessed < 0) { // exit the loop
+					RGMatchesFree(&m);
+					break;
+				}
+				
+				/* Print only if we are within the desired limit and the read checks out */
+				if((endReadNum<=0 || endReadNum >= curReadNum)) {
+					/* Get which tmp file to put the read in */
+					curSeqFPIndex = (curReadNum-1)%numThreads;
+
+					if(EOF == WriteRead((*tempSeqFPs)[curSeqFPIndex], &m)) {
+						PrintError(FnName, NULL, "Could not write read", Exit, WriteFileError);
+					}
+					(*numWritten)++;
+				}
+
+				curNumLines += numLinesProcessed;
+
+				/* Increment read number */
+				curReadNum++;
+				/* Free memory */
+				RGMatchesFree(&m);
+			}
+			else {
+				curNumLines++;
+			}
+		}
+
+		// DEBUGGING
+		if(0 == continueReading) {
+			assert(curNumLines == numLines);
+		}
+
+		/* Copy over unused */
+		for(i=0;i<(numLines - curNumLines);i++) {
+			strcpy(lineBuffer[i], lineBuffer[curNumLines]);
+		}
+		numLines -= curNumLines;
+	} while(continueReading == 1);
+
+	/* Free the buffer */
+	for(i=0;i<READS_BUFFER_LENGTH;i++) {
+		free(lineBuffer[i]);
 	}
+	free(lineBuffer);
 
 	/* reset pointer to temp files to the beginning of the file */
 	for(i=0;i<numThreads;i++) {
@@ -379,7 +550,7 @@ int GetIndexFileNames(char *fastaFileName,
 				if(0 == FileExists((*fileNames)[numFiles])) {
 					PrintError(FnName, (*fileNames)[numFiles], "Missing Bin: The index does not exist", Exit, OutOfRange);				
 				}				
-			
+
 				(*indexIDs) = realloc((*indexIDs), sizeof(int32_t*)*(1+numFiles));
 				if(NULL == (*indexIDs)) {
 					PrintError(FnName, "(*indexIDs)", "Could not reallocate memory", Exit, ReallocMemory);
@@ -390,7 +561,7 @@ int GetIndexFileNames(char *fastaFileName,
 				}
 				(*indexIDs)[numFiles][0] = i;
 				(*indexIDs)[numFiles][1] = j;
-				
+
 				numFiles++;			
 			}			
 

@@ -23,6 +23,7 @@
 #define ONE_GIGABYTE (int64_t)1073741824
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
 #define RGINDEXLAYOUT_MAX_HASH_WIDTH 18
+#define READS_BUFFER_LENGTH 40000
 
 /* Program Default Command-line parameters */
 #define MAX_KEY_MATCHES 8
@@ -30,8 +31,8 @@
 #define OFFSET_LENGTH 20
 
 /* Testing/Debug */
-// HERE
-#define TEST_RGINDEX_SORT 1
+#define TEST_RGINDEX_SORT 0
+extern int32_t VERBOSE;
 
 /* Sorting */
 #define SHELL_SORT_GAP_DIVIDE_BY 2.2
@@ -81,7 +82,6 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define DEFAULT_RANGE "1-1:2147483647-2147483647"
 
 /* For printing to stderr */
-#define VERBOSE 0
 #define DEBUG 10
 
 /* Algorithm defaults */
@@ -115,6 +115,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 /* Macro functions */
 #define FILEREQUIRED(_file) ((NULL == _file) ? "[Required! --> Not Specified]" : _file)
 #define FILEUSING(_file) ((NULL == _file) ? "[Not Using]" : _file)
+#define FILESTDIN(_file) ((NULL == _file) ? "[STDIN]" : _file)
 #define INTUSING(_int) ((1 != _int) ? "[Not Using]" : "[Using]")
 #define SPACE(_space) ((0 == _space) ? "[NT Space]" : "[Color Space]")
 #define PROGRAMMODE(_mode) ((0 == _mode) ? "[ExecuteGetOptHelp]" : ((1 == _mode) ? "[ExecuteProgram]" : "[ExecutePrintProgramParameters]"))

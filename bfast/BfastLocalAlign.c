@@ -48,10 +48,10 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
 	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other"
 		"\n\t\t\t  does not,"
-		"\n\t\t\t  this distance will be used to infer the latter read's CALs", 3},
+			"\n\t\t\t  this distance will be used to infer the latter read's CALs", 3},
 	{"mirroringType", 'L', "mirroringType", 0, "Specifies how to infer the other end (with -l)"
-        "\n\t\t\t  0: No mirroring should occur"
-		"\n\t\t\t  1: specifies that we assume that the first end is before the"
+		"\n\t\t\t  0: No mirroring should occur"
+			"\n\t\t\t  1: specifies that we assume that the first end is before the"
 			"\n\t\t\t    second end (5'->3')"
 			"\n\t\t\t  2: specifies that we assume that the second end is before"
 			"\n\t\t\t    the first end (5'->3')"
@@ -95,8 +95,10 @@ BfastLocalAlign(int argc, char **argv)
 					break;
 				case ExecuteProgram:
 					if(BfastLocalAlignValidateInputs(&arguments)) {
-						fprintf(stderr, "**** Input arguments look good! *****\n");
-						fprintf(stderr, BREAK_LINE);
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "**** Input arguments look good! *****\n");
+							fprintf(stderr, BREAK_LINE);
+						}
 					}
 					else {
 						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
@@ -134,11 +136,13 @@ BfastLocalAlign(int argc, char **argv)
 						seconds -= hours*3600;
 						minutes = seconds/60;
 						seconds -= minutes*60;
-						fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 
 						/* Output aligning time */
 						seconds = totalAlignTime;
@@ -146,11 +150,13 @@ BfastLocalAlign(int argc, char **argv)
 						seconds -= hours*3600;
 						minutes = seconds/60;
 						seconds -= minutes*60;
-						fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 
 						/* Output file handling time */
 						seconds = totalFileHandlingTime;
@@ -158,11 +164,13 @@ BfastLocalAlign(int argc, char **argv)
 						seconds -= hours*3600;
 						minutes = seconds/60;
 						seconds -= minutes*60;
-						fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 
 						/* Output total time */
 						endTotalTime = time(NULL);
@@ -171,14 +179,18 @@ BfastLocalAlign(int argc, char **argv)
 						seconds -= hours*3600;
 						minutes = seconds/60;
 						seconds -= minutes*60;
-						fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 					}
-					fprintf(stderr, "Terminating successfully!\n");
-					fprintf(stderr, "%s", BREAK_LINE);
+					if(0 <= VERBOSE) {
+						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
+					}
 					break;
 				default:
 					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
@@ -199,13 +211,22 @@ BfastLocalAlign(int argc, char **argv)
 int BfastLocalAlignValidateInputs(struct arguments *args) {
 
 	char *FnName="BfastLocalAlignValidateInputs";
+	
+	/* Check if we are piping */
+	if(NULL == args->matchFileName) {
+		VERBOSE = -1;
+	}
 
-	fprintf(stderr, BREAK_LINE);
-	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+	if(0 <= VERBOSE) {
+		fprintf(stderr, BREAK_LINE);
+		fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+	}
 
 	if(args->fastaFileName!=0) {
-		fprintf(stderr, "Validating fastaFileName %s. \n",
-				args->fastaFileName);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating fastaFileName %s. \n",
+					args->fastaFileName);
+		}
 		if(ValidateFileName(args->fastaFileName)==0)
 			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);        }   
 	else {
@@ -213,14 +234,18 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 	}
 
 	if(args->matchFileName!=0) {
-		fprintf(stderr, "Validating matchFileName%s. \n", 
-				args->matchFileName);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating matchFileName%s. \n", 
+					args->matchFileName);
+		}
 		if(ValidateFileName(args->matchFileName)==0)
 			PrintError(FnName, "matchFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
 	if(args->scoringMatrixFileName!=0) {		
-		fprintf(stderr, "Validating scoringMatrixFileName path %s. \n", 
-				args->scoringMatrixFileName);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating scoringMatrixFileName path %s. \n", 
+					args->scoringMatrixFileName);
+		}
 		if(ValidateFileName(args->scoringMatrixFileName)==0)
 			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
@@ -308,28 +333,30 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	void 
 BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 {
-	fprintf(fp, BREAK_LINE);
-	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
-	fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
-	fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILEUSING(args->matchFileName));
-	fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
-	fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
-	fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));
-	fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
-	fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
-	fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
-	fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
-	fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
-	fprintf(fp, "avgMismatchQuality:\t\t\t%d\n", args->avgMismatchQuality); 
-	fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
-	fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
-	if(1 == args->usePairedEndLength) fprintf(fp, "pairedEndLength:\t\t\t%d\n", args->pairedEndLength);
-	else fprintf(fp, "pairedEndLength:\t\t\t%s\n", INTUSING(args->usePairedEndLength));
-	fprintf(fp, "mirroringType:\t\t\t\t%s\n", MIRRORINGTYPE(args->mirroringType));
-	fprintf(fp, "forceMirroring:\t\t\t\t%s\n", INTUSING(args->forceMirroring));
-	fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
-	fprintf(fp, BREAK_LINE);
+	if(0 <= VERBOSE) {
+		fprintf(fp, BREAK_LINE);
+		fprintf(fp, "Printing Program Parameters:\n");
+		fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
+		fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+		fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
+		fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
+		fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
+		fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));
+		fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
+		fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
+		fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
+		fprintf(fp, "offsetLength:\t\t\t\t%d\n", args->offsetLength);
+		fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
+		fprintf(fp, "avgMismatchQuality:\t\t\t%d\n", args->avgMismatchQuality); 
+		fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
+		fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
+		if(1 == args->usePairedEndLength) fprintf(fp, "pairedEndLength:\t\t\t%d\n", args->pairedEndLength);
+		else fprintf(fp, "pairedEndLength:\t\t\t%s\n", INTUSING(args->usePairedEndLength));
+		fprintf(fp, "mirroringType:\t\t\t\t%s\n", MIRRORINGTYPE(args->mirroringType));
+		fprintf(fp, "forceMirroring:\t\t\t\t%s\n", INTUSING(args->forceMirroring));
+		fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
+		fprintf(fp, BREAK_LINE);
+	}
 	return;
 
 }

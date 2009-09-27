@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <config.h>
+#include <stdint.h>
 #include "BError.h"
 #include "Main.h"
 

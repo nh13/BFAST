@@ -32,7 +32,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 2},
 	{"algorithm", 'a', "algorithm", 0, "Specifies the algorithm to choose the alignment for each end" 
 		"\n\t\t\t  of the read:"
-		"\n\t\t\t  0: No filtering will occur."
+			"\n\t\t\t  0: No filtering will occur."
 			"\n\t\t\t  1: All alignments that pass the filters will be outputted"
 			"\n\t\t\t  2: Only consider reads that have been aligned uniquely"
 			"\n\t\t\t  3: Choose uniquely the alignment with the best score"
@@ -81,8 +81,10 @@ BfastPostProcess(int argc, char **argv)
 					break;
 				case ExecuteProgram:
 					if(BfastPostProcessValidateInputs(&arguments)) {
-						fprintf(stderr, "Input arguments look good!\n");
-						fprintf(stderr, BREAK_LINE);
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "Input arguments look good!\n");
+							fprintf(stderr, BREAK_LINE);
+						}
 					}
 					else {
 						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
@@ -116,14 +118,18 @@ BfastPostProcess(int argc, char **argv)
 						seconds -= hours*3600;
 						int minutes = seconds/60;
 						seconds -= minutes*60;
-						fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
-								hours,
-								minutes,
-								seconds
-							   );
+						if(0 <= VERBOSE) {
+							fprintf(stderr, "Total time elapsed: %d hours, %d minutes and %d seconds.\n",
+									hours,
+									minutes,
+									seconds
+								   );
+						}
 					}
-					fprintf(stderr, "Terminating successfully!\n");
-					fprintf(stderr, "%s", BREAK_LINE);
+					if(0 <= VERBOSE) {
+						fprintf(stderr, "Terminating successfully!\n");
+						fprintf(stderr, "%s", BREAK_LINE);
+					}
 					break;
 				default:
 					PrintError("PrintError", "programMode", "Could not determine program mode", Exit, OutOfRange);
@@ -147,12 +153,21 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 
 	char *FnName="BfastPostProcessValidateInputs";
 
-	fprintf(stderr, BREAK_LINE);
-	fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+	/* Check if we are piping */
+	if(NULL == args->alignFileName) {
+		VERBOSE = -1;
+	}
+
+	if(0 <= VERBOSE) {
+		fprintf(stderr, BREAK_LINE);
+		fprintf(stderr, "Checking input parameters supplied by the user ...\n");
+	}
 
 	if(args->fastaFileName!=0) {
-		fprintf(stderr, "Validating fastaFileName %s. \n",
-				args->fastaFileName);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating fastaFileName %s. \n",
+					args->fastaFileName);
+		}
 		if(ValidateFileName(args->fastaFileName)==0)
 			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
@@ -161,8 +176,10 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	}
 
 	if(args->alignFileName!=0) {		
-		fprintf(stderr, "Validating alignFileName %s. \n", 
-				args->alignFileName);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating alignFileName %s. \n", 
+					args->alignFileName);
+		}
 		if(ValidateFileName(args->alignFileName)==0)
 			PrintError(FnName, "alignFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
@@ -183,8 +200,10 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);	
 	}	
 	if(args->unmappedFileName!=0) {		
-		fprintf(stderr, "Validating alignFileName %s. \n", 
-				args->unmappedFileName);
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating alignFileName %s. \n", 
+					args->unmappedFileName);
+		}
 		if(ValidateFileName(args->unmappedFileName)==0)
 			PrintError(FnName, "unmappedFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
@@ -228,19 +247,21 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char algorithm[5][64] = {"[No Filtering]", "[Filtering Only]", "[Unique]", "[Best Score]", "[Best Score All]"};
 	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[MAF]", "[GFF]", "[SAM]", "[LastFileType]"};
-	fprintf(fp, BREAK_LINE);
-	fprintf(fp, "Printing Program Parameters:\n");
-	fprintf(fp, "programMode:\t\t%s\n", PROGRAMMODE(args->programMode));
-	fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
-	fprintf(fp, "alignFileName:\t\t%s\n", FILEUSING(args->alignFileName));
-	fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
-	fprintf(fp, "pairedEndInfer:\t\t%s\n", INTUSING(args->pairedEndInfer));
-	fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
-	fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
-	fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
-	fprintf(fp, "outputID:\t\t%s\n", FILEUSING(args->outputID));
-	fprintf(fp, "timing:\t\t\t%s\n", INTUSING(args->timing));
-	fprintf(fp, BREAK_LINE);
+	if(0 <= VERBOSE) {
+		fprintf(fp, BREAK_LINE);
+		fprintf(fp, "Printing Program Parameters:\n");
+		fprintf(fp, "programMode:\t\t%s\n", PROGRAMMODE(args->programMode));
+		fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+		fprintf(fp, "alignFileName:\t\t%s\n", FILESTDIN(args->alignFileName));
+		fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
+		fprintf(fp, "pairedEndInfer:\t\t%s\n", INTUSING(args->pairedEndInfer));
+		fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
+		fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
+		fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
+		fprintf(fp, "outputID:\t\t%s\n", FILEUSING(args->outputID));
+		fprintf(fp, "timing:\t\t\t%s\n", INTUSING(args->timing));
+		fprintf(fp, BREAK_LINE);
+	}
 	return;
 }
 
