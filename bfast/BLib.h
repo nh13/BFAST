@@ -77,5 +77,9 @@ char *GetBRGFileName(char*, int32_t);
 char *GetBIFName(char*, int32_t, int32_t, int32_t);
 int32_t FileExists(char*);
 int32_t GetBIFMaximumBin(char*, int32_t);
+int32_t *GetNumbersFromString(char*, int32_t*);
+#ifndef HAVE_STRTOK_R
+char * strtok_r(char *s1, const char *s2, char **lasts);
+#endif
 
 #endif

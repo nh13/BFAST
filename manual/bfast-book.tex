@@ -401,6 +401,9 @@ This corresponds to the \TT{-i} parameter(s) used during index creation.
 By default, all indexes of the \rGFF{} will be automatically detected and used as the main indexes if no main indexes are given.
 See \autoref{sec:bif} for the file format of the \BIF{s}.
 
+For advanced users, the input can be a combination of numbers and ranges.
+For example, \TT{-i 1,5-6,10} will specify that indexes \TT{1}, \TT{5}, \TT{6}, and \TT{10} will be used.
+
 \subsubsection{\TT{-I STRING, --secondaryIndexes=STRING}}
 Specifies the index numbers for the secondary bif files (comma separated).
 This corresponds to the \TT{-i} parameter(s) used during index creation.
@@ -416,6 +419,8 @@ Specifies the offsets to use for all \BIF{s}.
 If no offsets file is given, all possible offsets will be used.
 The offsets can be given as a range (i.e. \TT{-o 0-25}), or as a comma separated list (i.e. \TT{-o 0,1,2,3,4,5}).
 
+For advanced users, the input can also be a combination of numbers and ranges.
+For example, \TT{-i 1,5-6,10} will specify that the offsets \TT{1}, \TT{5}, \TT{6}, and \TT{10} will be used.
 \subsubsection{\TT{-s INTEGER, --startReadNum=INTEGER}}
 Specifies the first read in which to process.
 This may be useful when distributing a large data set across a cluster.

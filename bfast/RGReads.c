@@ -22,7 +22,7 @@ char ALPHABET[ALPHABET_SIZE] = "acgt";
 void RGReadsFindMatches(RGIndex *index, 
 		RGBinary *rg,
 		RGMatch *match,
-		int *offsets,
+		int32_t *offsets,
 		int numOffsets,
 		int space,
 		int numMismatches,

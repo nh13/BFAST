@@ -47,7 +47,7 @@ AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
 AC_CHECK_LIB([z], [gzread])
 AC_CHECK_LIB([z], [gzwrite])
-AC_CHECK_FUNCS([floor pow strstr strpbrk strdup strchr])
+AC_CHECK_FUNCS_ONCE([floor pow strstr strpbrk strdup strchr strtok_r])
 
 # Check types
 AC_CHECK_TYPE(int8_t)

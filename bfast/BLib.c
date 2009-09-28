@@ -1784,3 +1784,99 @@ int32_t GetBIFMaximumBin(char *prefix, int32_t indexNumber)
 
 	return (int)pow(ALPHABET_SIZE, curExp-1);
 }
+
+/* This works for positive numbers only.  Inputing negative
+ * numbers will have weird behavior. */
+int32_t *GetNumbersFromString(char *string, int32_t *length)
+{
+	char *FnName="GetNumbersFromString";
+	char *pch1, *pch2, *tmp=NULL;
+	char *saveptr1, *saveptr2;
+
+	int32_t* numbers=NULL;
+	int32_t prevLength, start, end, state, i, number;
+
+	(*length) = 0;
+	if(NULL == string) {
+		return NULL;
+	}
+
+	pch1 = strtok_r(string, ",", &saveptr1);
+	while(pch1 != NULL) { // Split by commas
+		number=atoi(pch1); // Could be a negative number
+		if(0 <= number && NULL != strchr(pch1, '-')) { // Entry is a range
+			tmp=strdup(pch1);
+			state = 0;
+			pch2 = strtok_r(tmp, "-", &saveptr2);
+			end = start = -1;
+			while(pch2 != NULL) {
+				switch(state) {
+					case 0:
+						start=atoi(pch2); break;
+					case 1:
+						end=atoi(pch2); break;
+					default:
+						PrintError(FnName, pch1, "The range was in improper format", Warn, OutOfRange);
+						// Error, return NULL
+						free(numbers); free(tmp); return NULL;
+				}
+				state++;
+				pch2=strtok_r(NULL, "-", &saveptr2);
+			}
+			free(tmp);tmp=NULL;
+			if(2 != state) {
+				free(numbers); return NULL;
+			}
+			// Error, return NULL
+			if(end < start) {
+				PrintError(FnName, pch1, "The start of the range was greater than the end of the range", Warn, OutOfRange);
+				free(numbers); return NULL;
+			}
+			prevLength = (*length);
+			(*length) += (end - start + 1);
+			numbers=realloc(numbers, sizeof(int32_t)*(*length));
+			if(NULL == numbers) {
+				PrintError(FnName, "numbers", "Could not reallocate memory", Exit, OutOfRange);
+			}
+			for(i=prevLength;i<(*length);i++) {
+				numbers[i] = start + i - prevLength;
+			}
+		}
+		else { // Entry is a number
+			(*length)++;
+			numbers=realloc(numbers, sizeof(int32_t)*(*length));
+			if(NULL == numbers) {
+				PrintError(FnName, "numbers", "Could not reallocate memory", Exit, OutOfRange);
+			}
+			numbers[(*length)-1] = atoi(pch1);
+			if(0 == numbers[(*length)-1] && 0 != strcmp("0", pch1)) {
+				PrintError(FnName, pch1, "The input was not a valid number", Warn, OutOfRange);
+				free(numbers); return NULL;
+			}
+		}
+		pch1 = strtok_r(NULL, ",", &saveptr1);
+	}
+
+	return numbers;
+}
+
+#ifndef HAVE_STRTOK_R
+char * strtok_r(char *s1, const char *s2, char **lasts)
+{
+	char *ret;
+
+	if (s1 == NULL)
+		s1 = *lasts;
+	while(*s1 && strchr(s2, *s1))
+		++s1;
+	if(*s1 == '\0')
+		return NULL;
+	ret = s1;
+	while(*s1 && !strchr(s2, *s1))
+		++s1;
+	if(*s1)
+		*s1++ = '\0';
+	*lasts = s1;
+	return ret;
+}
+#endif

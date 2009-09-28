@@ -45,8 +45,8 @@ void FindMatches(
 	char **secondaryIndexFileNames=NULL;
 	int32_t **secondaryIndexIDs=NULL;
 
-	int *offsets=NULL;
-	int numOffsets=0;
+	int32_t *offsets=NULL;
+	int32_t numOffsets=0;
 
 	FILE *seqFP=NULL;
 	FILE **tempSeqFPs=NULL;
@@ -297,9 +297,6 @@ void FindMatches(
 	free(secondaryIndexFileNames);
 	free(secondaryIndexIDs);
 
-	/* Free the offsets */
-	free(offsets);
-
 	/* Free reference genome */
 	RGBinaryDelete(&rg);
 
@@ -358,7 +355,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int32_t **indexIDs,
 		int numIndexes,
 		RGBinary *rg,
-		int *offsets,
+		int32_t *offsets,
 		int numOffsets,
 		int space,
 		int keySize,
@@ -590,7 +587,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 int FindMatchesInIndex(char *indexFileName,
 		RGBinary *rg,
-		int *offsets,
+		int32_t *offsets,
 		int numOffsets,
 		int space,
 		int keySize,
@@ -812,7 +809,7 @@ void *FindMatchesInIndexThread(void *arg)
 	gzFile tempOutputFP = data->tempOutputFP;
 	RGIndex *index = data->index;
 	RGBinary *rg = data->rg;
-	int *offsets = data->offsets;
+	int32_t *offsets = data->offsets;
 	int numOffsets = data->numOffsets;
 	int space = data->space;
 	int maxKeyMatches = data->maxKeyMatches;

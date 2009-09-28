@@ -15,7 +15,7 @@ void WriteReadsToTempFile(FILE*, FILE***, char***, int, int, int, char*, int*, i
 int ReadTempReadsAndOutput(gzFile, char*, gzFile, FILE*);
 void ReadRGIndex(char*, RGIndex*, int);
 int GetIndexFileNames(char*, int32_t, char*, char***, int32_t***);
-int ReadOffsets(char*, int**);
+int32_t ReadOffsets(char*, int32_t**);
 int32_t GetReads(FILE*, RGMatches*, int32_t, int32_t);
 
 #endif

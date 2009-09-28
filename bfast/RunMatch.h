@@ -20,7 +20,7 @@ typedef struct {
 	gzFile tempOutputFP;
 	RGIndex *index;
 	RGBinary *rg;
-	int *offsets;
+	int32_t *offsets;
 	int numOffsets;
 	int space;
 	int maxKeyMatches;
@@ -53,7 +53,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int32_t **indexIDs,
 		int numRGIndexes,
 		RGBinary *rg,
-		int *offsets,
+		int32_t *offsets,
 		int numOffsets,
 		int colorSpace,
 		int keySize,
@@ -74,7 +74,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int *totalOutputTime);
 int FindMatchesInIndex(char *indexFileName,
 		RGBinary *rg,
-		int *offsets,
+		int32_t *offsets,
 		int numOffsets,
 		int colorSpace,
 		int keySize,

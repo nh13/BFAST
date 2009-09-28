@@ -467,7 +467,6 @@ int GetIndexFileNames(char *fastaFileName,
 	int32_t *indexNumbers=NULL;
 	int32_t numIndexNumbers=0;
 	int32_t maxBin;
-	char *pch=NULL;
 
 	assert(NULL != fastaFileName);
 
@@ -477,21 +476,11 @@ int GetIndexFileNames(char *fastaFileName,
 	strcat(prefix, SPACENAME(space));
 
 	if(NULL != indexes) { // Tokenize
-		pch = strtok(indexes, ",");
-		while(pch != NULL) {
-			numIndexNumbers++;
-			indexNumbers=realloc(indexNumbers, sizeof(int32_t)*numIndexNumbers);
-			if(NULL == indexNumbers) {
-				PrintError(FnName, "indexNumbers", "Could not reallocate memory", Exit, ReallocMemory);			
-			}			
-			indexNumbers[numIndexNumbers-1]=atoi(pch);			
-			if(0 == indexNumbers[numIndexNumbers-1]) {				
-				PrintError(FnName, pch, "Could not understand index number", Exit, OutOfRange);
-			}
-			pch = strtok(NULL, ",");
-		}
-
+		indexNumbers = GetNumbersFromString(indexes, &numIndexNumbers);
 		for(i=0;i<numIndexNumbers;i++) {
+			if(indexNumbers[i] <= 0) {
+				PrintError(FnName, indexes, "Could not understand index number", Exit, OutOfRange);
+			}
 			maxBin = GetBIFMaximumBin(prefix, indexNumbers[i]);
 			if(0 == maxBin) {
 				fprintf(stderr, "Index number: %d\n", indexNumbers[i]);
@@ -587,59 +576,29 @@ int GetIndexFileNames(char *fastaFileName,
 }
 
 /* TODO */
-int ReadOffsets(char *offsetsInput, int **offsets) 
+int32_t ReadOffsets(char *offsetsInput, int32_t **offsets) 
 {
 	char *FnName="ReadOffsets";
 	int numOffsets=0;
-	char *pch=NULL;
-	int start, end, offset;
+	int32_t i;
 
-	if(NULL != strchr(offsetsInput, ',')) { // use comma-separated offsets
-		pch = strtok(offsetsInput, ",");
-		while(pch != NULL) {
-			numOffsets++;
-			(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
-			(*offsets)[numOffsets-1] = atoi(pch);
-			if(0 == (*offsets)[numOffsets-1] && 0 == strcmp("0", pch)) {
-				PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);		
-			}		
-			else if((*offsets)[numOffsets-1] < 0) {			
-				PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);		
-			}
-			pch = strtok(NULL, ",");
-		}
+	(*offsets) = GetNumbersFromString(offsetsInput, &numOffsets);
+
+	if(NULL == (*offsets)) {
+		PrintError(FnName, offsetsInput, "Could not parse the offsets", Exit, OutOfRange);
 	}
-	else if(NULL != strchr(offsetsInput, '-')) { // use %d-%d
-		pch = strtok(offsetsInput, "-");
-		start = end = -1;
-		while(pch != NULL) {
-			offset = atoi(pch);
-			if(0 == offset && strcmp("0", pch)) {
-				PrintError(FnName, pch, "Could not understand offset", Exit, OutOfRange);		
-			}		
-			else if(offset < 0) {
-				PrintError(FnName, pch, "Offset was negative", Exit, OutOfRange);		
-			}
-			if(start < 0) {
-				start = offset;
-			}
-			else if(end < 0) {
-				end = offset;
-			}
-			else {
-				PrintError(FnName, NULL, "Offsets were not given in the correct format", Exit, OutOfRange);
-			}
-			pch = strtok(NULL, "-");
-		}
-		numOffsets=end-start+1;
-		(*offsets)=(int*)realloc((*offsets), sizeof(int)*numOffsets);
-		while(start<=end) {
-			(*offsets)[end-start] = start;
-			start++;
-		}
-	}
-	if(numOffsets <= 0) {
+	else if(numOffsets <= 0) {
 		PrintError(FnName, NULL, "Could not find any offsets", Exit, OutOfRange);
+	}
+
+	// Check input
+	for(i=0;i<numOffsets;i++) {
+		if((*offsets)[i] < 0) {			
+			PrintError(FnName, offsetsInput, "Offset was negative", Exit, OutOfRange);		
+		}
+		else if(0 < i && (*offsets)[i] <= (*offsets)[i-1]) {
+			PrintError(FnName, offsetsInput, "Offset were not in increasing order", Exit, OutOfRange);		
+		}
 	}
 
 	if(VERBOSE>=0) {
