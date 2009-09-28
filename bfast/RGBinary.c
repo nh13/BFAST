@@ -427,8 +427,10 @@ void RGBinaryWriteBinary(RGBinary *rg,
 
 	brgFileName=GetBRGFileName(fastaFileName, space);
 
-	fprintf(stderr, "%s", BREAK_LINE);
-	fprintf(stderr, "Outputting to %s\n", brgFileName);
+	if(0 <= VERBOSE) {
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Outputting to %s\n", brgFileName);
+	}
 
 	/* Open output file */
 	if((fpRG=gzopen(brgFileName, "wb"))==0) {
@@ -438,6 +440,9 @@ void RGBinaryWriteBinary(RGBinary *rg,
 	RGBinaryWriteBinaryHeader(rg, fpRG);
 
 	for(i=0;i<rg->numContigs;i++) {
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Outputting %s\n", rg->contigs[i].contigName);
+		}
 		/* Output RGContig sequence */
 		if(gzwrite64(fpRG, rg->contigs[i].sequence, sizeof(char)*rg->contigs[i].numBytes) != sizeof(char)*rg->contigs[i].numBytes) {
 			PrintError(FnName, NULL, "Could not output rg contig", Exit, WriteFileError);
