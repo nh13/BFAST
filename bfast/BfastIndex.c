@@ -225,8 +225,8 @@ int BfastIndexValidateInputs(struct arguments *args) {
 	if(args->tmpDir!=0) {
 		fprintf(stderr, "Validating tmpDir path %s. \n",
 				args->tmpDir);
-		if(ValidateFileName(args->tmpDir)==0)
-			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalFileName);	
+		if(ValidatePath(args->tmpDir)==0)
+			PrintError(FnName, "tmpDir", "Command line argument", Exit, IllegalPath);	
 	}	
 	/* If this does not hold, we have done something wrong internally */	
 	assert(args->timing == 0 || args->timing == 1);

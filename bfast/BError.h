@@ -10,6 +10,7 @@ enum {
 	OutOfRange, /* e.g. command line args */
 	InputArguments,
 	IllegalFileName,   
+	IllegalPath,
 	OpenFileError,
 	EndOfFile,
 	ReallocMemory,

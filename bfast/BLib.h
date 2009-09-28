@@ -52,6 +52,7 @@ char ConvertColorFromStorage(char);
 char ConvertIntColorToCharColor(char);
 void AdjustBounds(RGBinary*, int32_t*, int32_t*, int32_t*, int32_t*);
 int WillGenerateValidKey(RGIndex*, int8_t*, int);
+int ValidatePath(char*);
 int ValidateFileName(char*);
 void StringCopyAndReallocate(char**, const char*);
 int StringTrimWhiteSpace(char*);

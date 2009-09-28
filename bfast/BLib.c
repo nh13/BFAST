@@ -1317,11 +1317,24 @@ int WillGenerateValidKey(RGIndex *index,
 	return 1;
 }
 
+int ValidatePath(char *Name)
+{
+	/* 
+	 *        Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+/
+	 *                      */
+	// Check it as a file
+	if(0 == ValidateFileName(Name)) return 0;
+	// Must end with a trailing forward slash
+	if('/' != Name[strlen(Name)-1]) return 0;
+
+	return 1;
+}
+
 /* TODO */
 int ValidateFileName(char *Name)
 {
 	/* 
-	 *        Checking that strings are good: FileName = [a-zA-Z_0-9][a-zA-Z0-9-.]+
+	 *        Checking that strings are good: FileName = [a-zA-Z_0-9.][a-zA-Z0-9-.]+
 	 *               FileName can start with only [a-zA-Z_0-9]
 	 *                      */
 
@@ -1333,7 +1346,7 @@ int ValidateFileName(char *Name)
 
 	while(*ptr) {
 		if((isalnum(*ptr) || (*ptr=='_') || (*ptr=='+') ||
-					((*ptr=='.') /* && (counter>0)*/) || /* FileNames can't start  with . or - */
+					((*ptr=='.')) ||
 					((*ptr=='/')) || /* Make sure that we can navigate through folders */
 					((*ptr=='-') && (counter>0)))) {
 			ptr++;

@@ -6,7 +6,7 @@
 int32_t VERBOSE = 0;
 
 static char ErrorString[][20]=
-{ "\0", "OutOfRange", "InputArguments", "IllegalFileName", "OpenFileError", "EndOfFile", "ReallocMemory", "MallocMemory", "ThreadError", "ReadFileError", "WriteFileError", "DeleteFileError"}; 
+{ "\0", "OutOfRange", "InputArguments", "IllegalFileName", "IllegalPath", "OpenFileError", "EndOfFile", "ReallocMemory", "MallocMemory", "ThreadError", "ReadFileError", "WriteFileError", "DeleteFileError"}; 
 static char ActionType[][20]={"Fatal Error", "Warning"};
 
 	void
