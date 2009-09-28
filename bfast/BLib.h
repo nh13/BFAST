@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <zlib.h>
+#include <config.h>
 #include "RGIndex.h"
 #include "BLibDefinitions.h"
 
@@ -80,7 +81,7 @@ int32_t FileExists(char*);
 int32_t GetBIFMaximumBin(char*, int32_t);
 int32_t *GetNumbersFromString(char*, int32_t*);
 #ifndef HAVE_STRTOK_R
-char * strtok_r(char *s1, const char *s2, char **lasts);
+char *strtok_r(char *s1, const char *s2, char **lasts);
 #endif
 
 #endif
