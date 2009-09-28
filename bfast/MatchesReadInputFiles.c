@@ -235,12 +235,12 @@ int32_t GetReadBuffered(char **buffer,
 	}
 	
 	if(0 == m->numEnds) { // No ends found
-		return -1;
+		return 0;
 	}
 
 	// Did not find all the ends since there wasn't enough buffer. Signal more buffer.
 	if(0 == foundAllEnds && 0 == abort) { 
-		return -1;
+		return curLine;
 	}
 
 	// Check read
@@ -332,10 +332,8 @@ void WriteReadsToTempFile(FILE *seqFP,
 						&m,
 						space,
 						continueReading);
-				assert(0 != numLinesProcessed);
-				if(numLinesProcessed < 0) { // exit the loop
-					RGMatchesFree(&m);
-					break;
+				if(0 == numLinesProcessed) {
+					PrintError(FnName, "numLinesProcessed == 0", "Could not read input file", Exit, OutOfRange);
 				}
 				
 				/* Print only if we are within the desired limit and the read checks out */
@@ -355,6 +353,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 				curReadNum++;
 				/* Free memory */
 				RGMatchesFree(&m);
+				
 			}
 			else {
 				curNumLines++;
@@ -363,7 +362,10 @@ void WriteReadsToTempFile(FILE *seqFP,
 
 		// DEBUGGING
 		if(0 == continueReading) {
-			assert(curNumLines == numLines);
+			if(curNumLines != numLines) {
+				fprintf(stderr, "\n%d != %d\n", curNumLines, numLines);
+				PrintError(FnName, "curNumLines != numLines", "Please report", Exit, OutOfRange);
+			}
 		}
 
 		/* Copy over unused */
