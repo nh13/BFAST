@@ -16,3 +16,6 @@ EXTRA_DIST = LICENSE \
 			 tests/test.cleanup.sh
 
 SUBDIRS = bfast butil scripts tests
+
+docdir = ${datadir}/doc/${PACKAGE}
+dist_doc_DATA = LICENSE manual/bfast-book.pdf

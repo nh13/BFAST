@@ -10,3 +10,6 @@ solid2fastq_SOURCES = \
 					  solid2fastq.c
 
 solid2fastq_LDADD = -lm -lz
+
+docdir = $(datadir)/doc/${PACKAGE}/scripts
+dist_doc_DATA = bfast.submit.pl solid2fastq.pl qseq2fastq.pl
