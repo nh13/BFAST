@@ -224,8 +224,6 @@ sub ValidateData {
 	ValidateOptions($data->{'globalOptions'},      'queueType',          \%QUEUETYPES,         REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'space',              \%SPACE,              REQUIRED);
 	ValidateFile($data->{'globalOptions'},         'fastaFileName',                           REQUIRED);
-	ValidateFile($data->{'globalOptions'},         'brgNT',                                    REQUIRED);
-	ValidateFile($data->{'globalOptions'},         'brgCS',                                    REQUIRED) if ("CS" eq $data->{'globalOptions'}->{'space'});
 	ValidateOptions($data->{'globalOptions'},      'timing',             \%TIMING,             OPTIONAL);
 	ValidatePath($data->{'globalOptions'},         'runDirectory',                             REQUIRED); 
 	ValidatePath($data->{'globalOptions'},         'readsDirectory',                           REQUIRED); 
@@ -401,8 +399,14 @@ sub CreateJobsMatch {
 		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}); 
 		for(my $i=0;$i<$num_split_files;$i++) {
 			my $output_id = $read_file; 
-			$output_id =~ s/.*?([^\/]+\d+)\.[^\.]+$/$1/; 
-			$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";
+			$output_id =~ s/.*\///;
+			if($output_id =~ m/(\d+).fastq/) {
+				$output_id = $1;                $output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";            }   
+			else {
+				$output_id =~ s/.fastq//;
+				$output_id = $data->{'globalOptions'}->{'outputID'}.".reads.$i";            
+			}
+
 			my $run_file = CreateRunFile($data, 'match', $output_id);
 			my $bmf_file = GetMatchesFile($data, $output_id);
 			my $cmd = "";
@@ -455,8 +459,10 @@ sub CreateJobsLocalalign {
 			$output_id_read_num_end += $2 + $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'} - 1;
 		}
 		else {
-			die;
-		}
+			$input_id_no_read_num = $input_id;
+			$output_id_read_num_start = 1;
+			$output_id_read_num_end = $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+		} 
 		for(my $j=0;$j<$num_split_files;$j++) {
 			my $output_id = "$input_id_no_read_num.$output_id_read_num_start-$output_id_read_num_end";
 			my $bmf_file = GetMatchesFile($data, $input_id);
