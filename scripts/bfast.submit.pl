@@ -487,7 +487,6 @@ sub CreateJobsLocalalign {
 			$cmd .= " -L ".$data->{'localalignOptions'}->{'mirroringType'}      if defined($data->{'localalignOptions'}->{'mirroringType'});
 			$cmd .= " -F"                                                   if defined($data->{'localalignOptions'}->{'forceMirror'});
 			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
-			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
 			$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
 			$cmd .= " > ".$baf_file;
 
