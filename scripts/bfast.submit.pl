@@ -410,8 +410,8 @@ sub CreateJobsMatch {
 			my $run_file = CreateRunFile($data, 'match', $output_id);
 			my $bmf_file = GetMatchesFile($data, $output_id);
 			my $cmd = "";
-			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/bfast"      if defined($data->{'globalOptions'}->{'bfastBin'});
-			$cmd .= " match";
+			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/"      if defined($data->{'globalOptions'}->{'bfastBin'});
+			$cmd .= "bfast match";
 			$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 			$cmd .= " -i ".$data->{'matchOptions'}->{'mainIndexes'} if defined($data->{'matchOptions'}->{'mainIndexes'});
 			$cmd .= " -I ".$data->{'matchOptions'}->{'secondaryIndexes'} if defined($data->{'matchOptions'}->{'secondaryIndexes'});
@@ -470,8 +470,8 @@ sub CreateJobsLocalalign {
 			my $baf_file = GetAlignFile($data, $output_id);
 
 			my $cmd = "";
-			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/bfast"        if defined($data->{'globalOptions'}->{'bfastBin'});
-			$cmd .= " localalign";
+			$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/"        if defined($data->{'globalOptions'}->{'bfastBin'});
+			$cmd .= "bfast localalign";
 			$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 			$cmd .= " -m $bmf_file";
 			$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
@@ -515,8 +515,8 @@ sub CreateJobsPostprocess {
 		my $sam_file = GetReportedFile($data, $output_id);
 
 		my $cmd = "";
-		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/bfast" if defined($data->{'globalOptions'}->{'bfastBin'});
-		$cmd .= " postprocess";
+		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/" if defined($data->{'globalOptions'}->{'bfastBin'});
+		$cmd .= "bfast postprocess";
 		$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
