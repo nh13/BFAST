@@ -6,9 +6,7 @@
 #include <float.h>
 #include <math.h>
 #include <math.h>
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 #include "BLib.h"
 #include "BLibDefinitions.h"
 #include "BError.h"
@@ -136,7 +134,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		// Both read and colors now have the same length
 	}
 	if(matrix->nrow < readLength+1) {
-		AlignMatrixReallocate(matrix, readLength+1, matrix->ncol);
+		AlignMatrixReallocate(matrix, readLength+1, GETMAX(matrix->ncol, readLength+1));
 	}
 
 	/* Allocate */
