@@ -597,7 +597,7 @@ void RGMatchInitialize(RGMatch *m)
 }
 
 /* TODO */
-void RGMatchCheck(RGMatch *m, RGBinary *rg)
+int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 {
 	char *FnName="RGMatchCheck";
 	int32_t i, j;
@@ -610,23 +610,28 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 	assert(m->numEntries >= 0);
 	/* Check that if the read length is greater than zero the read is not null */
 	if(m->readLength > 0 && m->read == NULL && m->qual == NULL) {
-		PrintError(FnName, NULL, "m->readLength > 0 && m->read == NULL && m->qual == NULL", Exit, OutOfRange);
+		PrintError(FnName, NULL, "m->readLength > 0 && m->read == NULL && m->qual == NULL", Warn, OutOfRange);
+		return 0;
 	}
 	/* Check that the read length matches the read */
 	if(((int)strlen(m->read)) != m->readLength) {
-		PrintError(FnName, NULL, "m->readLength and strlen(m->read) do not match", Exit, OutOfRange);
+		PrintError(FnName, NULL, "m->readLength and strlen(m->read) do not match", Warn, OutOfRange);
+		return 0;
 	}
 	/* Check that the qual length matches the qual */
 	if(((int)strlen(m->qual)) != m->qualLength) {
-		PrintError(FnName, NULL, "m->qualLength and strlen(m->qual) do not match", Exit, OutOfRange);
+		PrintError(FnName, NULL, "m->qualLength and strlen(m->qual) do not match", Warn, OutOfRange);
+		return 0;
 	}
 	/* Check that if the max has been reached then there are no entries */
 	if(1==m->maxReached && m->numEntries > 0) {
-		PrintError(FnName, NULL, "1==m->maxReached and m->numEntries>0", Exit, OutOfRange);
+		PrintError(FnName, NULL, "1==m->maxReached and m->numEntries>0", Warn, OutOfRange);
+		return 0;
 	}
 	/* Check that if the number of entries is greater than zero that the entries are not null */
 	if(m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)) {
-		PrintError(FnName, NULL, "m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)", Exit, OutOfRange);
+		PrintError(FnName, NULL, "m->numEntries > 0 && (m->contigs == NULL || m->positions == NULL || m->strands == NULL)", Warn, OutOfRange);
+		return 0;
 	}
 
 	/* Check mask */
@@ -663,7 +668,8 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 								m->contigs[i],
 								m->positions[i]);
 						free(r);
-						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Warn, OutOfRange);
+						return 0;
 					}
 				}
 			}
@@ -693,7 +699,8 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 								m->contigs[i],
 								m->positions[i]);
 						free(r);
-						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Warn, OutOfRange);
+						return 0;
 					}
 				}
 			}
@@ -726,7 +733,8 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 								m->contigs[i],
 								m->positions[i]);
 						free(r);
-						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Warn, OutOfRange);
+						return 0;
 					}
 				}
 			}
@@ -760,13 +768,15 @@ void RGMatchCheck(RGMatch *m, RGBinary *rg)
 								m->contigs[i],
 								m->positions[i]);
 						free(r);
-						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Exit, OutOfRange);
+						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Warn, OutOfRange);
+						return 0;
 					}
 				}
 			}
 		}
 		free(mask);
 	}
+	return 1;
 }
 
 /* TODO */

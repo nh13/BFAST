@@ -518,7 +518,11 @@ void RGMatchesCheck(RGMatches *m, RGBinary *rg)
 		PrintError(FnName, NULL, "strlen(m->readName)) != m->readNameLength", Exit, OutOfRange);
 	}
 	for(i=0;i<m->numEnds;i++) {
-		RGMatchCheck(&m->ends[i], rg);
+		if(0 == RGMatchCheck(&m->ends[i], rg)) {
+			fprintf(stderr, "End %d failed!\n", i+1);
+			RGMatchesPrintText(stderr, m);
+			PrintError(FnName, "RGMatchCheck", "The match failed the consistency check", Exit, OutOfRange);
+		}
 	}
 }
 
