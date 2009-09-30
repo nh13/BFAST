@@ -66,7 +66,7 @@ void RunAligner(char *fastaFileName,
 		PrintError(FnName, "stdout", "Could not open stdout file for writing", Exit, OpenFileError);
 	}
 
-	if(VERBOSE >= 0) {
+	if(0 <= VERBOSE) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading match file from %s.\n",
 				(NULL == matchFileName) ? "stdin" : matchFileName);
@@ -106,7 +106,7 @@ void RunAligner(char *fastaFileName,
 			totalAlignedTime,
 			totalFileHandlingTime);
 
-	if(VERBOSE >= 0) {
+	if(0 <= VERBOSE) {
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
@@ -201,7 +201,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	pthread_mutex_init(&fdata.matchFP_mutex, NULL);
 	pthread_mutex_lock(&fdata.matchFP_mutex);
 	fdata.matchFP = matchFP;
-	fdata.matchFPctr = 0;
+	fdata.matchFPctr = 1;
 	pthread_mutex_unlock(&fdata.matchFP_mutex);
 	// outputFP
 	pthread_mutex_init(&fdata.outputFP_mutex, NULL);
@@ -212,7 +212,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	// start/end read numbers
 	fdata.startReadNum = startReadNum;
 	fdata.endReadNum = endReadNum;
-	
+
 	// Skip matches
 	pthread_mutex_lock(&fdata.matchFP_mutex);
 	SkipMatches(&fdata);
@@ -242,7 +242,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		data[i].fileTime = 0;
 	}
 
-	if(VERBOSE >= 0) {
+	if(0 <= VERBOSE) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Performing alignment...\n");
 		fprintf(stderr, "Currently on:\n0");
@@ -281,7 +281,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		}
 	}
 
-	if(VERBOSE >= 0) {
+	if(0 <= VERBOSE) {
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Alignment complete.\n");
 	}
@@ -372,7 +372,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		for(i=0;i<numMatchesRead;i++) {
 			AlignedReadInitialize(&alignedQueue[i]);
 
-			if(VERBOSE >= 0 && ctr%ALIGN_ROTATE_NUM==0) {
+			if(0 <= VERBOSE && ctr%ALIGN_ROTATE_NUM==0) {
 				fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
 			}
 
@@ -439,7 +439,7 @@ void *RunDynamicProgrammingThread(void *arg)
 			ctr++;
 		}
 
-		if(VERBOSE >= 0) {
+		if(0 <= VERBOSE) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
 		}
 
@@ -461,7 +461,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	/* Free the matrix, free your mind */
 	AlignMatrixFree(&matrix);
 
-	if(VERBOSE >= 0) {
+	if(0 <= VERBOSE) {
 		fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
 	}
 
@@ -478,19 +478,14 @@ int32_t GetMatches(ThreadFileData *fdata, RGMatches *m, int32_t maxToRead, int32
 	pthread_mutex_lock(&fdata->matchFP_mutex);
 	(*readTime) = time(NULL);
 
-	while(numRead < maxToRead) {
+	assert(fdata->startReadNum <= fdata->matchFPctr);
+
+	while(numRead < maxToRead && fdata->matchFPctr <= fdata->endReadNum) {
 		RGMatchesInitialize(&(m[numRead]));
 		if(EOF == RGMatchesRead(fdata->matchFP, &(m[numRead]))) {
 			break;
 		}
-		if(fdata->startReadNum <= fdata->matchFPctr &&
-				fdata->matchFPctr <= fdata->endReadNum) {
-			numRead++;
-		}
-		else {
-			// ignore
-			RGMatchesFree(&(m[numRead]));
-		}
+		numRead++;
 		fdata->matchFPctr++;
 	}
 	(*readTime) = time(NULL) - (*readTime);
@@ -506,9 +501,19 @@ void SkipMatches(ThreadFileData *fdata)
 		return;
 	}
 
+	if(0 <= VERBOSE) {
+		fprintf(stderr, "Skipping matches...\nCurrently on:\n0");
+	}
+
 	RGMatchesInitialize(&m);
-	while(fdata->matchFPctr < fdata->startReadNum && EOF == RGMatchesRead(fdata->matchFP, &m)) {
+	while(fdata->matchFPctr < fdata->startReadNum && EOF != RGMatchesRead(fdata->matchFP, &m)) {
+		if(0 <= VERBOSE && fdata->matchFPctr%ALIGN_SKIP_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d", fdata->matchFPctr);
+		}
 		RGMatchesFree(&m);
 		fdata->matchFPctr++;
+	}
+	if(0 <= VERBOSE) {
+		fprintf(stderr, "\r%d\n", fdata->matchFPctr);
 	}
 }

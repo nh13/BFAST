@@ -134,6 +134,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		// Both read and colors now have the same length
 	}
 	if(matrix->nrow < readLength+1) {
+		fprintf(stderr, "HERE 1 allocating (%d,%d)\n",
+			readLength+1, GETMAX(matrix->ncol, readLength+1));
 		AlignMatrixReallocate(matrix, readLength+1, GETMAX(matrix->ncol, readLength+1));
 	}
 
@@ -237,6 +239,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			end->entries[ctr].read = end->entries[ctr].reference = end->entries[ctr].colorError = NULL;
 
 			if(matrix->ncol < referenceLengths[ctr]+1) {
+				fprintf(stderr, "HERE 2 allocating (%d,%d)\n",
+						matrix->nrow, referenceLengths[ctr]+1);
 				AlignMatrixReallocate(matrix, matrix->nrow, referenceLengths[ctr]+1);
 			}
 
