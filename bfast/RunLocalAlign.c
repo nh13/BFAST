@@ -368,7 +368,7 @@ void *RunDynamicProgrammingThread(void *arg)
 			AlignedReadInitialize(&alignedQueue[i]);
 
 			if(VERBOSE >= 0 && ctr%ALIGN_ROTATE_NUM==0) {
-				fprintf(stderr, "\rthread:%d\t[%d]", threadID, i);
+				fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
 			}
 
 			wasAligned=0;
@@ -435,7 +435,7 @@ void *RunDynamicProgrammingThread(void *arg)
 		}
 
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rthread:%d\t[%d]", threadID, numMatchesRead);
+			fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
 		}
 
 		/* Print */
