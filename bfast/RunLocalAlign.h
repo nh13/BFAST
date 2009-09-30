@@ -53,4 +53,5 @@ void RunAligner(char*, char*, char*, int32_t, int32_t, int32_t, int32_t, int32_t
 void RunDynamicProgramming(gzFile, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, gzFile, int32_t*, int32_t*);
 void *RunDynamicProgrammingThread(void *);
 int32_t GetMatches(ThreadFileData*, RGMatches*, int32_t, int32_t*);
+void SkipMatches(ThreadFileData*);
 #endif

@@ -212,6 +212,11 @@ void RunDynamicProgramming(gzFile matchFP,
 	// start/end read numbers
 	fdata.startReadNum = startReadNum;
 	fdata.endReadNum = endReadNum;
+	
+	// Skip matches
+	pthread_mutex_lock(&fdata.matchFP_mutex);
+	SkipMatches(&fdata);
+	pthread_mutex_unlock(&fdata.matchFP_mutex);
 
 	/* Create thread arguments */
 	for(i=0;i<numThreads;i++) {
@@ -275,7 +280,7 @@ void RunDynamicProgramming(gzFile matchFP,
 			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
 		}
 	}
-	
+
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\n");
 		fprintf(stderr, "Alignment complete.\n");
@@ -293,7 +298,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		(*totalFileHandlingTime) += data[i].fileTime;
 		(*totalAlignedTime) -= data[i].fileTime; // substract time reading and writing
 	}
-		
+
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Performed %lld local alignments.\n", (long long int)numLocalAlignments);
 		fprintf(stderr, "Outputted alignments for %d reads.\n", numAligned);
@@ -491,4 +496,19 @@ int32_t GetMatches(ThreadFileData *fdata, RGMatches *m, int32_t maxToRead, int32
 	(*readTime) = time(NULL) - (*readTime);
 	pthread_mutex_unlock(&fdata->matchFP_mutex);
 	return numRead;
+}
+
+void SkipMatches(ThreadFileData *fdata) 
+{
+	RGMatches m;
+
+	if(fdata->startReadNum <= 1) {
+		return;
+	}
+
+	RGMatchesInitialize(&m);
+	while(fdata->matchFPctr < fdata->startReadNum && EOF == RGMatchesRead(fdata->matchFP, &m)) {
+		RGMatchesFree(&m);
+		fdata->matchFPctr++;
+	}
 }
