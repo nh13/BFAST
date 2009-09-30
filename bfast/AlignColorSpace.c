@@ -408,7 +408,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	startCol=-1;
 	startCell=-1;
 	maxScore = NEGATIVE_INFINITY-1;
-	for(i=toExclude+1;i<referenceLength+1;i++) { // ignore the fist column
+	for(i=toExclude;i<referenceLength+1;i++) { 
 		for(j=0;j<alphabetSize;j++) {
 			/* Don't end with a Deletion in the read */
 
