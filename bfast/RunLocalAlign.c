@@ -214,9 +214,12 @@ void RunDynamicProgramming(gzFile matchFP,
 	fdata.endReadNum = endReadNum;
 
 	// Skip matches
+	startTime = time(NULL);
 	pthread_mutex_lock(&fdata.matchFP_mutex);
 	SkipMatches(&fdata);
 	pthread_mutex_unlock(&fdata.matchFP_mutex);
+	endTime = time(NULL);
+	(*totalFileHandlingTime) += endTime - startTime;
 
 	/* Create thread arguments */
 	for(i=0;i<numThreads;i++) {
