@@ -578,7 +578,7 @@ sub CreateJobsSamtools {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
-		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
 		if(0 <= $qsub_id) {
 			push(@qsub_ids, $qsub_id);
 		}
@@ -587,9 +587,8 @@ sub CreateJobsSamtools {
 			die;
 		}
 	}
-
-# Merge script(s)
-# Note: there could be too many dependencies, so lets just create dummy jobs to "merge" the dependencies
+	# Merge script(s)
+	# Note: there could be too many dependencies, so lets just create dummy jobs to "merge" the dependencies
 	my $merge_lvl = 0;
 	while(MERGE_LOG_BASE < scalar(@qsub_ids)) { # while we must merge
 		$merge_lvl++;
@@ -607,7 +606,7 @@ sub CreateJobsSamtools {
 			$output_id = "merge.".$data->{'globalOptions'}->{'outputID'}.".$merge_lvl.$ctr";
 			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
 			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
-			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
 			if(0 <= $qsub_id) {
 				push(@qsub_ids, $qsub_id);
 			}
@@ -624,7 +623,7 @@ sub CreateJobsSamtools {
 	$cmd .= "samtools merge";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
-	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
+	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
 	if(0 <= $qsub_id) {
 		push(@qsub_ids, $qsub_id);
 	}
