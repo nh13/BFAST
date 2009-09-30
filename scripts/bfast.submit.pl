@@ -466,7 +466,7 @@ sub CreateJobsLocalalign {
 	for(my $i=0;$i<scalar(@$input_ids);$i++) {
 		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'});
 		my ($output_id_read_num_start, $output_id_read_num_end) = (0, 0);
-		my $dependent_job = $dependent_ids->[$i];
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
 		my $input_id = $input_ids->[$i];
 		my $input_id_no_read_num ="";
 		if($input_id =~ m/(.+)\.(\d+)\-\d+$/) {
@@ -477,7 +477,7 @@ sub CreateJobsLocalalign {
 		else {
 			$input_id_no_read_num = $input_id;
 			$output_id_read_num_start = 1;
-			$output_id_read_num_end = $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'balignSplit'};
+			$output_id_read_num_end = $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 		} 
 		for(my $j=0;$j<$num_split_files;$j++) {
 			my $output_id = "$input_id_no_read_num.$output_id_read_num_start-$output_id_read_num_end";
@@ -507,7 +507,7 @@ sub CreateJobsLocalalign {
 			$cmd .= " > ".$baf_file;
 
 			# Submit the job
-			my @a = (); push(@a, $dependent_job);
+			my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
 			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
 			if(0 <= $qsub_id) {
 				push(@$qsub_ids, $qsub_id);
@@ -527,7 +527,7 @@ sub CreateJobsPostprocess {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		my $output_id = $output_ids->[$i];
-		my $dependent_job = $dependent_ids->[$i];
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
 		my $sam_file = GetReportedFile($data, $output_id);
@@ -545,7 +545,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " > ".$sam_file;
 
 		# Submit the job
-		my @a = (); push(@a, $dependent_job);
+		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
 		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
 		if(0 <= $qsub_id) {
 			push(@$qsub_ids, $qsub_id);
@@ -561,7 +561,7 @@ sub CreateJobsSamtools {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		$output_id = $output_ids->[$i];
-		my $dependent_job = $dependent_ids->[$i];
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
 		my $sam_file = GetReportedFile($data, $output_id);
 		$run_file = CreateRunFile($data, 'samtools', $output_id);
 
@@ -577,7 +577,7 @@ sub CreateJobsSamtools {
 		$cmd .= "bfast.reported.$output_id";
 
 		# Submit the job
-		my @a = (); push(@a, $dependent_job);
+		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
 		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
 		if(0 <= $qsub_id) {
 			push(@qsub_ids, $qsub_id);
@@ -681,6 +681,10 @@ sub SubmitJob {
 		return $qsub_id;
 	}
 	else {
+		if(!$quiet) {
+			print STDERR "[bfast submit] NAME=$output_id QSUBID=Not submitted\n";
+		}
+
 		return -1;
 	}
 }
