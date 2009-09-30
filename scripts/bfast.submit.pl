@@ -23,6 +23,7 @@ my %SPACE = ("NT" => 0, "CS" => 1);
 my %TIMING = ("ON" => 1);
 my %LOCALALIGNMENTTYPE = ("GAPPED" => 0, "UNGAPPED" => 1);
 my %STRAND = ("BOTH" => 0, "FORWARD" => 1, "REVERSE" => 2);
+my %STARTSTEP = ("match" => 0, "localalign" => 1, "postprocess" => 2, "samtools" => 3);
 
 use constant {
 	OPTIONAL => 0,
@@ -32,13 +33,25 @@ use constant {
 };
 
 my $config;
-my ($man, $print_schema, $help, $quiet) = (0, 0, 0, 0);
+my ($man, $print_schema, $help, $quiet, $start_step) = (0, 0, 0, 0, 0);
 my $version = "0.1.1";
 
-GetOptions('help|?' => \$help, man => \$man, 'schema' => \$print_schema, 'quiet' => \$quiet, 'config=s' => \$config) or pod2usage(1);
+GetOptions('help|?' => \$help, 
+	man => \$man, 
+	'schema' => \$print_schema, 
+	'quiet' => \$quiet, 
+	'startstep=s' => \$start_step,
+	'config=s' => \$config)
+	or pod2usage(1);
 Schema() if ($print_schema);
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 pod2usage(1) if ($help or !defined($config));
+
+if(!defined($STARTSTEP{$start_step})) {
+	print STDERR "Error. Illegal value to the option -startstep.\n";
+	pod2usage(1);
+}
+$start_step = $STARTSTEP{$start_step};
 
 if(!$quiet) {
 	print STDOUT BREAKLINE;
@@ -52,7 +65,7 @@ my $data = $xml->XMLin("$config");
 ValidateData($data);
 
 # Submit jobs
-CreateJobs($data, $quiet);
+CreateJobs($data, $quiet, $start_step);
 
 if(!$quiet) {
 	print STDOUT BREAKLINE;
@@ -209,8 +222,8 @@ sub Schema {
   </xs:simpleType>
 </xs:schema>
 END
-print STDOUT $schema;
-exit 1;
+	print STDOUT $schema;
+	exit 1;
 }
 
 sub ValidateData {
@@ -334,7 +347,7 @@ sub GetDirContents {
 }
 
 sub CreateJobs {
-	my ($data, $quiet) = @_;
+	my ($data, $quiet, $start_step) = @_;
 
 	my @match_output_ids = ();
 	my @localalign_output_ids = ();
@@ -348,10 +361,10 @@ sub CreateJobs {
 	mkpath([$data->{'globalOptions'}->{'tmpDirectory'}],    ($quiet) ? 0 : 1, 0755);
 
 	# match
-	CreateJobsMatch($data,     $quiet, \@matchJobIDs,     \@match_output_ids);
-	CreateJobsLocalalign($data,       $quiet, \@matchJobIDs,     \@localalignJobIDs,       \@match_output_ids, \@localalign_output_ids);
-	CreateJobsPostprocess($data, $quiet, \@localalignJobIDs,       \@postprocessJobIDs, \@localalign_output_ids);
-	CreateJobsSamtools($data,     $quiet, \@postprocessJobIDs, \@localalign_output_ids);
+	CreateJobsMatch($data, $quiet, $start_step, \@matchJobIDs,     \@match_output_ids);
+	CreateJobsLocalalign($data, $quiet, $start_step, \@matchJobIDs,     \@localalignJobIDs,       \@match_output_ids, \@localalign_output_ids);
+	CreateJobsPostprocess($data, $quiet, $start_step, \@localalignJobIDs,       \@postprocessJobIDs, \@localalign_output_ids);
+	CreateJobsSamtools($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
 }
 
 sub CreateRunFile {
@@ -385,7 +398,7 @@ sub GetReportedFile {
 }
 
 sub CreateJobsMatch {
-	my ($data, $quiet, $qsub_ids, $output_ids) = @_;
+	my ($data, $quiet, $start_step, $qsub_ids, $output_ids) = @_;
 	my @read_files = ();
 
 	# Get reads
@@ -431,7 +444,10 @@ sub CreateJobsMatch {
 
 			# Submit the job
 			my @a = (); # empty array for job dependencies
-			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'matchOptions', $output_id, \@a));
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $cmd, $data, 'matchOptions', $output_id, \@a);
+			if(0 <= $qsub_id) {
+				push(@$qsub_ids, $qsub_id);
+			}
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
@@ -441,7 +457,7 @@ sub CreateJobsMatch {
 
 # One dependent id for each output id
 sub CreateJobsLocalalign {
-	my ($data, $quiet, $dependent_ids, $qsub_ids, $input_ids, $output_ids) = @_;
+	my ($data, $quiet, $start_step, $dependent_ids, $qsub_ids, $input_ids, $output_ids) = @_;
 
 	# The number of match to perform per read file
 	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
@@ -492,7 +508,10 @@ sub CreateJobsLocalalign {
 
 			# Submit the job
 			my @a = (); push(@a, $dependent_job);
-			push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'localalignOptions', $output_id, \@a));
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
+			if(0 <= $qsub_id) {
+				push(@$qsub_ids, $qsub_id);
+			}
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
@@ -503,7 +522,7 @@ sub CreateJobsLocalalign {
 }
 
 sub CreateJobsPostprocess {
-	my ($data, $quiet, $dependent_ids, $qsub_ids, $output_ids) = @_;
+	my ($data, $quiet, $start_step, $dependent_ids, $qsub_ids, $output_ids) = @_;
 
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
@@ -527,14 +546,17 @@ sub CreateJobsPostprocess {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job);
-		push(@$qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'postprocessOptions', $output_id, \@a));
+		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
+		if(0 <= $qsub_id) {
+			push(@$qsub_ids, $qsub_id);
+		}
 	}
 }
 
 sub CreateJobsSamtools {
-	my ($data, $quiet, $dependent_ids, $output_ids) = @_;
+	my ($data, $quiet, $start_step, $dependent_ids, $output_ids) = @_;
 	my @qsub_ids = ();
-	my ($cmd, $run_file, $output_id);
+	my ($cmd, $run_file, $output_id, $qsub_id);
 
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
@@ -556,11 +578,18 @@ sub CreateJobsSamtools {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job);
-		push(@qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'samtoolsOptions', $output_id, \@a));
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
+		if(0 <= $qsub_id) {
+			push(@qsub_ids, $qsub_id);
+		}
+		else {
+			# currently it must be submitted
+			die;
+		}
 	}
 
-	# Merge script(s)
-	# Note: there could be too many dependencies, so lets just create dummy jobs to "merge" the dependencies
+# Merge script(s)
+# Note: there could be too many dependencies, so lets just create dummy jobs to "merge" the dependencies
 	my $merge_lvl = 0;
 	while(MERGE_LOG_BASE < scalar(@qsub_ids)) { # while we must merge
 		$merge_lvl++;
@@ -578,7 +607,14 @@ sub CreateJobsSamtools {
 			$output_id = "merge.".$data->{'globalOptions'}->{'outputID'}.".$merge_lvl.$ctr";
 			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
 			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
-			push(@qsub_ids, SubmitJob($run_file, $quiet, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs));
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
+			if(0 <= $qsub_id) {
+				push(@qsub_ids, $qsub_id);
+			}
+			else {
+				# currently it must be submitted
+				die;
+			}
 		}
 	}
 
@@ -588,19 +624,28 @@ sub CreateJobsSamtools {
 	$cmd .= "samtools merge";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
-	SubmitJob($run_file , $quiet, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
+	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 0 : 1, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
+	if(0 <= $qsub_id) {
+		push(@qsub_ids, $qsub_id);
+	}
+	else {
+		# currently it must be submitted
+		die;
+	}
 }
 
 sub SubmitJob {
-	my ($run_file, $quiet, $command, $data, $type, $output_id, $dependent_job_ids) = @_;
+	my ($run_file, $quiet, $should_run, $command, $data, $type, $output_id, $dependent_job_ids) = @_;
 	$output_id = "$type.$output_id"; $output_id =~ s/Options//g;
 
 	if(!$quiet) {
 		print STDERR "[bfast submit] RUNFILE=$run_file\n";
 	}
-	open(FH, ">$run_file") or die("Error.  Could not open $run_file for writing!\n");
-	print FH "$command\n";
-	close(FH);
+	if(1 == $should_run) {
+		open(FH, ">$run_file") or die("Error.  Could not open $run_file for writing!\n");
+		print FH "$command\n";
+		close(FH);
+	}
 
 	# Create qsub command
 	my $qsub = "qsub";
@@ -615,24 +660,29 @@ sub SubmitJob {
 	$qsub .= " -q ".$data->{$type}->{'qsubQueue'} if defined($data->{$type}->{'qsubQueue'});
 	$qsub .= " -N $output_id -o $run_file.out -e $run_file.err $run_file";
 
-	# Submit the qsub command
-	my $qsub_id=`$qsub`;
-	chomp($qsub_id);
+	if(1 == $should_run) {
+		# Submit the qsub command
+		my $qsub_id=`$qsub`;
+		chomp($qsub_id);
 
-	# There has to be a better way to get the job ids (?)
-	if($qsub_id =~ m/Your job (\d+)/) {
-		$qsub_id = $1;
-	}
-	die("Error submitting QSUB_COMMAND=$qsub\nQSUB_ID=$qsub_id\n") unless (0 < length($qsub_id));
-	if($qsub_id !~ m/^\S+$/) {
+		# There has to be a better way to get the job ids (?)
+		if($qsub_id =~ m/Your job (\d+)/) {
+			$qsub_id = $1;
+		}
 		die("Error submitting QSUB_COMMAND=$qsub\nQSUB_ID=$qsub_id\n") unless (0 < length($qsub_id));
-	}
+		if($qsub_id !~ m/^\S+$/) {
+			die("Error submitting QSUB_COMMAND=$qsub\nQSUB_ID=$qsub_id\n") unless (0 < length($qsub_id));
+		}
 
-	if(!$quiet) {
-		print STDERR "[bfast submit] NAME=$output_id QSUBID=$qsub_id\n";
-	}
+		if(!$quiet) {
+			print STDERR "[bfast submit] NAME=$output_id QSUBID=$qsub_id\n";
+		}
 
-	return $qsub_id;
+		return $qsub_id;
+	}
+	else {
+		return -1;
+	}
 }
 
 __END__
@@ -655,6 +705,10 @@ Prints the manual page and exits.
 
 =item B<-quiet>
 Do not print any submit messages.
+
+=item B<-startstep>
+Specifies on which step of the alignment process to start (default: match). The
+values can be "match", "localalign", "postprocess", or "samtools".
 
 =item B<-config>
 The XML configuration file.
