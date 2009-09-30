@@ -244,8 +244,8 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 
 	args->space = NTSpace;
 
-	args->startReadNum = -1;
-	args->endReadNum = -1;
+	args->startReadNum = 1;
+	args->endReadNum = INT_MAX;
 	args->keySize = 0;
 	args->maxKeyMatches = MAX_KEY_MATCHES;
 	args->maxNumMatches = MAX_NUM_MATCHES;
@@ -277,10 +277,8 @@ BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "readsFileName:\t\t\t\t%s\n", FILESTDIN(args->readsFileName));
 		fprintf(fp, "offsets:\t\t\t\t%s\n", (NULL == args->offsets) ? "[Using All]" : args->offsets);
 		fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
-		if(0 <= args->startReadNum) fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
-		else fprintf(fp, "startReadNum:\t\t\t\t%s\n", INTUSING(0));
-		if(0 <= args->endReadNum) fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
-		else fprintf(fp, "endReadNum:\t\t\t\t%s\n", INTUSING(0));
+		fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
+		fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
 		if(0 < args->keySize) fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
 		else fprintf(fp, "keySize:\t\t\t\t%s\n", INTUSING(0));
 		fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);

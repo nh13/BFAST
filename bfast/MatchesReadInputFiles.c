@@ -337,7 +337,7 @@ void WriteReadsToTempFile(FILE *seqFP,
 				}
 				
 				/* Print only if we are within the desired limit and the read checks out */
-				if((endReadNum<=0 || endReadNum >= curReadNum)) {
+				if(startReadNum <= curReadNum && curReadNum <= endReadNum) {
 					/* Get which tmp file to put the read in */
 					curSeqFPIndex = (curReadNum-1)%numThreads;
 
