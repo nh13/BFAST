@@ -313,7 +313,7 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->ungapped = Gapped;
 	args->unconstrained = Constrained; 
 	args->space = NTSpace;
-	args->startReadNum=0;
+	args->startReadNum=1;
 	args->endReadNum=INT_MAX;
 	args->offsetLength=OFFSET_LENGTH;
 	args->maxNumMatches=MAX_NUM_MATCHES;
