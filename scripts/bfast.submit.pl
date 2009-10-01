@@ -33,7 +33,7 @@ use constant {
 };
 
 my $config;
-my ($man, $print_schema, $help, $quiet, $start_step) = (0, 0, 0, 0, 0);
+my ($man, $print_schema, $help, $quiet, $start_step) = (0, 0, 0, 0, "match");
 my $version = "0.1.1";
 
 GetOptions('help|?' => \$help, 
