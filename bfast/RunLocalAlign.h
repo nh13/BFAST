@@ -47,6 +47,7 @@ typedef struct {
 	int64_t numAligned;
 	int64_t numNotAligned;
 	int32_t fileTime;
+	int32_t alignTime;
 } ThreadData;
 
 void RunAligner(char*, char*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t*, int32_t*, int32_t*);

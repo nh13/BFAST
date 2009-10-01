@@ -160,6 +160,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	int32_t errCode;
 	void *status;
 	ThreadFileData fdata;
+	int32_t avgFileTime, avgAlignTime;
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
@@ -243,6 +244,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		data[i].numAligned = 0;
 		data[i].numNotAligned = 0;
 		data[i].fileTime = 0;
+		data[i].alignTime = 0;
 	}
 
 	if(0 <= VERBOSE) {
@@ -250,7 +252,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		fprintf(stderr, "Performing alignment...\n");
 		fprintf(stderr, "Currently on:\n0");
 	}
-
+	
 	startTime = time(NULL);
 
 	/* Create threads */
@@ -289,18 +291,22 @@ void RunDynamicProgramming(gzFile matchFP,
 		fprintf(stderr, "Alignment complete.\n");
 	}
 
-	/* End align timer */
 	endTime = time(NULL);
-	(*totalAlignedTime) += endTime - startTime;
 
 	/* Sum up statistics */
+	avgFileTime = avgAlignTime = 0;
 	for(i=0;i<numThreads;i++) {
 		numAligned += data[i].numAligned;
 		numNotAligned += data[i].numNotAligned;
 		numLocalAlignments += data[i].numLocalAlignments;
 		(*totalFileHandlingTime) += data[i].fileTime;
-		(*totalAlignedTime) -= data[i].fileTime; // substract time reading and writing
+		avgFileTime += data[i].fileTime;
+		avgAlignTime += data[i].alignTime;
 	}
+		
+	/* Use the averages */
+	(*totalAlignedTime) += (endTime - startTime)*(avgAlignTime / (avgAlignTime + avgFileTime));
+	(*totalFileHandlingTime) += (endTime - startTime)*(avgFileTime / (avgAlignTime + avgFileTime));
 
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Performed %lld local alignments.\n", (long long int)numLocalAlignments);
@@ -372,6 +378,8 @@ void *RunDynamicProgrammingThread(void *arg)
 
 		data->fileTime += readTime;
 
+		startTime = time(NULL);
+
 		for(i=0;i<numMatchesRead;i++) {
 			AlignedReadInitialize(&alignedQueue[i]);
 
@@ -441,6 +449,9 @@ void *RunDynamicProgrammingThread(void *arg)
 			RGMatchesFree(&matchQueue[i]);
 			ctr++;
 		}
+
+		endTime = time(NULL);
+		data->alignTime += (endTime - startTime);
 
 		if(0 <= VERBOSE) {
 			fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
