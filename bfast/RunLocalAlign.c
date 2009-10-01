@@ -303,10 +303,10 @@ void RunDynamicProgramming(gzFile matchFP,
 		avgFileTime += data[i].fileTime;
 		avgAlignTime += data[i].alignTime;
 	}
-		
-	/* Use the averages */
-	(*totalAlignedTime) += (endTime - startTime)*(avgAlignTime / (avgAlignTime + avgFileTime));
-	(*totalFileHandlingTime) += (endTime - startTime)*(avgFileTime / (avgAlignTime + avgFileTime));
+
+	/* Use the average */
+	(*totalAlignedTime) += (endTime - startTime)*(avgAlignTime / (double)(avgAlignTime + avgFileTime));
+	(*totalFileHandlingTime) += (endTime - startTime)*(avgFileTime / (double)(avgAlignTime + avgFileTime));
 
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Performed %lld local alignments.\n", (long long int)numLocalAlignments);
