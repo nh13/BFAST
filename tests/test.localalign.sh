@@ -4,8 +4,7 @@
 
 echo "      Running local alignment.";
 
-for SPACE in 1
-#for SPACE in 0 1
+for SPACE in 0 1
 do
 	echo "        Testing -A "$SPACE;
 	if [ "$SPACE" -eq "0" ]; then
