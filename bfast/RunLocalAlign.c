@@ -299,7 +299,6 @@ void RunDynamicProgramming(gzFile matchFP,
 		numAligned += data[i].numAligned;
 		numNotAligned += data[i].numNotAligned;
 		numLocalAlignments += data[i].numLocalAlignments;
-		(*totalFileHandlingTime) += data[i].fileTime;
 		avgFileTime += data[i].fileTime;
 		avgAlignTime += data[i].alignTime;
 	}
