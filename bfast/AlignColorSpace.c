@@ -222,7 +222,7 @@ void AlignColorSpaceGappedBounded(char *colors,
 		/* Get the current color */
 		for(j=GETMAX(0, i - maxV);
 				j <= GETMIN(referenceLength-1, referenceLength - (readLength - maxH) + i);
-		j++) { /* reference/columns */
+				j++) { /* reference/columns */
 			assert(i-maxV <= j && j <= referenceLength - (readLength - maxH) + i);
 			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], maxH, maxV, alphabetSize);
 		}
@@ -251,6 +251,22 @@ void AlignColorSpaceGappedConstrained(char *colors,
 
 	assert(0 < readLength);
 	assert(0 < referenceLength);
+
+	if(0 < readOffset) {
+		// Default to the bounded version since this would be difficult
+		AlignColorSpaceGappedBounded(colors,
+				readLength,
+				reference,
+				referenceLength,
+				sm,
+				a,
+				matrix,
+				position,
+				strand,
+				readLength,
+				readLength);
+		return;
+	}
 
 	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
 

@@ -106,7 +106,7 @@ void AlignNTSpaceGappedBounded(char *read,
 	assert(readLength < matrix->nrow);
 	assert(referenceLength < matrix->ncol);
 
-	AlignNTSpaceInitializeAtStart(matrix, sm, readLength, referenceLength);
+	AlignNTSpaceInitializeAtStart(matrix, sm, readLength+1, referenceLength+1);
 
 	/* Fill in the matrix->cells according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
@@ -120,7 +120,7 @@ void AlignNTSpaceGappedBounded(char *read,
 		}
 	}
 
-	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, readLength - maxV, position, strand, 0);
+	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, readLength - maxV + 1, position, strand, 0);
 }
 
 void AlignNTSpaceGappedConstrained(char *read,
@@ -140,6 +140,22 @@ void AlignNTSpaceGappedConstrained(char *read,
 	int32_t i, j;
 	int32_t endRowStepOne, endColStepOne, endRowStepTwo, endColStepTwo;
 
+	if(0 != readOffset) {
+		// Default to the Bounded version since this could be difficult
+		AlignNTSpaceGappedBounded(read,
+				readLength,
+				reference,
+				referenceLength,
+				sm,
+				a,
+				matrix,
+				position,
+				strand,
+				readLength,
+				readLength);
+		return;
+	}
+
 	/* Get where to transition */
 	endRowStepOne = endColStepOne = endRowStepTwo = endColStepTwo = -1;
 	i=0;
@@ -151,22 +167,28 @@ void AlignNTSpaceGappedConstrained(char *read,
 		}
 		i++;
 	}
+	if(referenceLength < endColStepOne) {
+		endColStepOne = referenceLength;
+	}
 	i=readLength;
 	while(0<=i) {
+		endRowStepTwo=i;
+		endColStepTwo=referenceOffset+i;
 		if('1' == mask[i]) {
-			endRowStepTwo=i;
-			endColStepTwo=referenceOffset+i;
 			break;
 		}
 		i--;
 	}
-
-	/* Adjust based off of the read offset */
-	if(0 < readOffset) {
-		endRowStepOne += readOffset;
-		endRowStepTwo += readOffset;
+	if(referenceLength < endColStepTwo) {
+		endColStepTwo = referenceLength;
 	}
 
+	/* Adjust based off of the read offset.  This matters when the begging of
+	 * the read is *before* the beginning of the contig. */
+	if(0 < readOffset) {
+		endRowStepOne = GETMIN(readLength, endRowStepOne+readOffset);
+		endRowStepTwo = GETMIN(readLength, endRowStepTwo+readOffset);
+	}
 	assert(0 <= endRowStepOne && 0 <= endColStepOne);
 	assert(0 <= endRowStepTwo && 0 <= endColStepTwo);
 
@@ -204,7 +226,7 @@ void AlignNTSpaceGappedConstrained(char *read,
 	}
 
 	/* Step 4 - recover alignment */
-	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, endColStepTwo, position, strand, 0);
+	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, endColStepTwo+1, position, strand, 0);
 }
 
 /* TODO */
@@ -319,7 +341,6 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 				nextCol = curCol;
 				break;
 			default:
-				fprintf(stderr, "curFrom=%d\n", curFrom);
 				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
@@ -408,6 +429,8 @@ void AlignNTSpaceInitializeToExtend(AlignMatrix *matrix,
 	endCol = referenceLength;
 
 	// Special initialization 
+
+	assert(0 < startRow && 0 < startCol);
 
 	/* Initialize the corner cell */
 	// Check that the match has been filled in 
