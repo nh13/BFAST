@@ -482,6 +482,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	}
 
 	free(matchQueue);
+	free(alignedQueue);
 
 	return arg;
 }
