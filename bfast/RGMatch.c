@@ -825,7 +825,7 @@ char *RGMatchStringToMask(char *string,
 	assert(readLength == strlen(string));
 	int32_t i, curByte, curByteIndex;
 
-	char *mask = malloc(sizeof(char)*GETMASKNUMBYTESFROMLENGTH(readLength));
+	char *mask = calloc(GETMASKNUMBYTESFROMLENGTH(readLength), sizeof(char));
 	if(NULL == mask) {
 		PrintError(FnName, "mask", "Could not allocate memory", Exit, MallocMemory);
 	}
@@ -834,7 +834,7 @@ char *RGMatchStringToMask(char *string,
 		if('1' == string[i]) {
 			curByte = GETMASKBYTE(i);
 			curByteIndex = i % (8*sizeof(char));
-			mask[curByte] &= (0x01 << curByteIndex);
+			mask[curByte] |= (0x01 << curByteIndex);
 		}
 	}
 
