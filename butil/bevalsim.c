@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if(argc != optind) {
+	if(1 == argc || argc != optind) {
 		return PrintUsage();
 	}
 
