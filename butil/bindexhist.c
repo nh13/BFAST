@@ -63,7 +63,8 @@ int main(int argc, char *argv[])
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
-	if(argc != optind) {
+	
+	if(1 == argc || argc != optind) {
 		return PrintUsage();
 	}
 

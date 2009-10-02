@@ -52,6 +52,11 @@ int main(int argc, char *argv[])
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
+	
+	if(1 == argc || argc != optind) {
+		return PrintUsage();
+	}
+
 	if(NULL == fastaFileName) {
 		PrintError(Name, "fastaFileName", "Command line option", Exit, InputArguments);
 	}
