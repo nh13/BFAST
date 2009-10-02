@@ -5,7 +5,7 @@ EXTRA_DIST = LICENSE \
 			 scripts/qseq2fastq.pl \
 			 scripts/bfast.submit.pl \
 			 tests/test.definitions.sh \
-			 tests/data/data.tar.gz \
+			 tests/data/data.tar.bz2 \
 			 tests/test.initialize.sh \
 			 tests/test.fasta2brg.sh \
 			 tests/test.index.sh \
