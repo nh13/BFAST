@@ -201,7 +201,7 @@ int ReadTypeRead(ReadType *r,
 
 			return EOF;
 		}
-		readName = (char*)m.readName;
+		readName = strdup(m.readName);
 		/* Update the number of entries */
 		r->numOne = m.ends[0].numEntries;
 		r->numTwo = 0;
@@ -213,7 +213,12 @@ int ReadTypeRead(ReadType *r,
 		if(EOF==AlignedReadRead(&a, fp)) {
 			return EOF;
 		}
-		readName = a.readName;
+		readName = malloc(sizeof(char)*(2 + a.readNameLength));
+		if(NULL == readName) {
+			PrintError(FnName, "readName", "Could not allocate memory", Exit, MallocMemory);
+		}
+		readName[0]='@'; readName[1]='\0';
+		strcat(readName, a.readName);
 		/* Update the number of entries */
 		r->numOne = a.ends[0].numEntries;
 		if(1 < a.numEnds) {
@@ -284,6 +289,7 @@ int ReadTypeRead(ReadType *r,
 
 	/* Convert into read type */
 	ReadTypeParseReadName(r, readName);
+	free(readName);
 	readName=NULL;
 
 	/* Delete align entries */
@@ -301,8 +307,10 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 	int i, j;
 	char tempChar;
 	int state;
+	int numRead;
 
-	if(EOF == sscanf(readName, 
+			
+	numRead = sscanf(readName, 
 				"@readNum=%d_strand=%c_contig=%d_pos=%d_numends=%d_pel=%d_rl=%d_wrv=%d_si=%d_il=%d_r1=%s",
 				&r->readNum,
 				&r->strand,
@@ -314,9 +322,19 @@ void ReadTypeParseReadName(ReadType *r, char *readName)
 				&r->whichReadVariants,
 				&r->startIndel,
 				&r->indelLength,
-				tempString)) {
+				tempString);
+	if(11 != numRead) {
 		PrintError(FnName, readName, "Could not parse read name (0)", Exit, OutOfRange);
 	}
+	if(r->numEnds <= 0) {
+		fprintf(stderr, "%s\n", readName); // HERE
+		fprintf(stderr, "r->readNum=%d\n", r->readNum);
+		fprintf(stderr, "r->strand=%c\n", r->strand);
+		fprintf(stderr, "r->contig=%d\n", r->contig);
+		fprintf(stderr, "r->pos=%d\n", r->pos);
+		fprintf(stderr, "r->numEnds=%d\n", r->numEnds);
+	}
+	assert(0 < r->numEnds);
 	if(1 == r->numEnds) {
 		strcpy(r1, tempString);
 	}
@@ -705,7 +723,7 @@ void Evaluate(char *inputFileName,
 {
 	char *FnName="Evaluate";
 	gzFile fpIn;
-	gzFile fpOut;
+	FILE *fpOut;
 	ReadType r;
 	Stats s;
 	int32_t count;
@@ -742,7 +760,7 @@ void Evaluate(char *inputFileName,
 	/* Open the output file */
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "Outputting...\n");
-	if(!(fpOut=gzdopen(fileno(stdout), "wb"))) {
+	if(!(fpOut=fdopen(fileno(stdout), "wb"))) {
 		PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, WriteFileError);
 	}
 
@@ -755,7 +773,7 @@ void Evaluate(char *inputFileName,
 
 	/* Close the files */
 	gzclose(fpIn);
-	gzclose(fpOut);
+	fclose(fpOut);
 }
 
 void ReadInReads(char *readsFile, Stats *s)
