@@ -300,7 +300,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 	assert(0 <= endRowStepOne && 0 <= endColStepOne);
 	assert(0 <= endRowStepTwo && 0 <= endColStepTwo);
 
-
 	/* Step 1 - upper left */
 	AlignColorSpaceInitializeAtStart(colors, matrix, sm, endRowStepOne, endColStepTwo, alphabetSize);
 	for(i=0;i<endRowStepOne;i++) { /* read/rows */
@@ -344,6 +343,8 @@ void AlignColorSpaceGappedConstrained(char *colors,
 			matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].s.length[fromNTInt] + 1;
 			matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 
+			assert(i+1 <= matrix->cells[i+1][j+1].s.length[k]);
+
 			// Consider from an indel on the first extension
 			if(i == endRowStepOne && j == endColStepOne) {
 				int32_t curScore = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
@@ -365,12 +366,14 @@ void AlignColorSpaceGappedConstrained(char *colors,
 					matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 				}
 			}
+
 			matrix->cells[i+1][j+1].s.score[k] = LOWERBOUNDSCORE(matrix->cells[i+1][j+1].s.score[k]);
 		}
 	}
 	for(k=0;k<alphabetSize;k++) {
 		assert(1 + ALPHABET_SIZE < matrix->cells[endRowStepTwo][endColStepTwo].s.from[k] &&
 				matrix->cells[endRowStepTwo][endColStepTwo].s.from[k] <= 2*(ALPHABET_SIZE + 1));
+		assert(endRowStepTwo <= matrix->cells[endRowStepTwo][endColStepTwo].s.length[k]);
 	}
 
 	/* Step 3 - lower right */
@@ -518,8 +521,6 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 				readAligned[i] = GAP;
 				break;
 			default:
-				fprintf(stderr, "curFrom=%d\n",
-						curFrom);
 				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
@@ -645,11 +646,10 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 				}
 				else { // Allow for an insertion extension
 					int32_t fromNT = BaseToInt(prevBase); // previous NT
-					matrix->cells[i][0].v.score[k] = matrix->cells[i-1][0].s.score[fromNT] + sm->gapOpenPenalty;
+					matrix->cells[i][0].v.score[k] = matrix->cells[i-1][0].v.score[fromNT] + sm->gapExtensionPenalty;
 					matrix->cells[i][0].v.from[k] = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */
-					matrix->cells[i][0].v.length[k] = matrix->cells[i-1][0].s.length[fromNT] + 1;
+					matrix->cells[i][0].v.length[k] = matrix->cells[i-1][0].v.length[fromNT] + 1;
 					matrix->cells[i][0].v.colorError[k] = GAP;
-
 				}
 				LOWERBOUNDSCORE(matrix->cells[i][0].v.score[k]);
 			}
@@ -690,7 +690,7 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 				matrix->cells[startRow][startCol].s.from[k] <= 2*(ALPHABET_SIZE + 1));
 		assert(startRow <= matrix->cells[startRow][startCol].s.length[k]);
 		// Do not allow a deletion or insertion
-		matrix->cells[startRow][startCol].h.score[k] = matrix->cells[startRow][startCol].v.score[k] = NEGATIVE_INFINITY;
+		matrix->cells[startRow][startCol].h.score[k] = matrix->cells[startRow][startCol].v.score[k] = NEGATIVE_INFINITY-1;
 		matrix->cells[startRow][startCol].h.from[k] = matrix->cells[startRow][startCol].v.from[k] = StartNT;
 		matrix->cells[startRow][startCol].h.length[k] = matrix->cells[startRow][startCol].v.length[k] = 0;
 		matrix->cells[startRow][startCol].h.colorError[k] = matrix->cells[startRow][startCol].v.colorError[k] = GAP;
@@ -839,10 +839,10 @@ void AlignColorSpaceFillInCell(char *colors,
 		int32_t maxScore = NEGATIVE_INFINITY-1;
 		int maxFrom = -1;
 		char maxColorError = GAP;
-		int maxLength = 0;
+		int maxLength = -1;
 
 		for(l=0;l<alphabetSize;l++) { /* From NT */
-			int32_t curScore=NEGATIVE_INFINITY;
+			int32_t curScore=NEGATIVE_INFINITY+1;
 			int curLength=-1;
 			char convertedColor='X';
 			int32_t scoreNT, scoreColor;

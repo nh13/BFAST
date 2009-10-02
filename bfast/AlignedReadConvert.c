@@ -612,18 +612,6 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			strcpy(read, a->ends[endIndex].read);
 			strcpy(qual, a->ends[endIndex].qual);
 		}
-		/*
-		if(strlen(qual) != strlen(read)) {
-			fprintf(stderr, "\nreadname=%s\nread=%s[%d,%d]\nqual=%s[%d,%d]\n",
-					a->readName,
-					read,
-					a->ends[endIndex].readLength,
-					(int)strlen(read),
-					qual,
-					a->ends[endIndex].qualLength,
-					(int)strlen(qual));
-		}
-		*/
 		assert(strlen(qual) == strlen(read));
 	}
 	else {
@@ -713,11 +701,6 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 						strlen(qual));
 				strcpy(qual, qualRC);
 			}
-		}
-		if(!(strlen(qual) == strlen(read))) {
-			fprintf(stderr, "\nread=[%s]\nqual=[%s]\n",
-					read,
-					qual);
 		}
 		assert(strlen(qual) == strlen(read));
 	}
