@@ -959,6 +959,7 @@ void RGBinaryPrintInfo(char *brgFileName)
 	char Space[3][256] = {"NT Space", "Color Space", "Space Last Type"};
 	gzFile fpRG;
 	FILE *fp=stdout;
+	int64_t totalBases=0;
 
 	/* Open output file */
 	if((fpRG=gzopen(brgFileName, "rb"))==0) {
@@ -973,10 +974,11 @@ void RGBinaryPrintInfo(char *brgFileName)
 
 	/* Print details */
 	for(i=0;i<rg.numContigs;i++) {
-		fprintf(fp, "contig:%6d\tname:\t%s\n", i+1, rg.contigs[i].contigName);
-		fprintf(fp, "contig:%6d\tlength:\t%d\n", i+1, rg.contigs[i].sequenceLength);
+		fprintf(fp, "contig:%6d\tlength:\t%12d\tname:\t%s\n", i+1, rg.contigs[i].sequenceLength, rg.contigs[i].contigName);
+		totalBases+=rg.contigs[i].sequenceLength;
 	}
 	fprintf(fp, "number of contigs:\t%d\n", rg.numContigs);
+	fprintf(fp, "total number of bases:\t%lld\n", (long long int)totalBases);
 	fprintf(fp, "version:\t\t%s\n", rg.packageVersion);
 	fprintf(fp, "space:\t\t\t%d\t\t[%s]\n", rg.space, Space[rg.space]);
 
