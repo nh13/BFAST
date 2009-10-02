@@ -3,6 +3,12 @@ General
 ===============================================================================
 
 ===============================================================================
+match
+- check the implicit file names against the actual content of the indexes when
+read.
+===============================================================================
+
+===============================================================================
 localalign
 - for constrained gapped local alignment, we can use the ungapped local 
 alignment to get bounds on the constrained local alignment.  Let L-C-R be the
@@ -10,12 +16,6 @@ constrains, where L is the unconstrained left side of the read, C be the
 constrained middle portion of the read, and R be the unconstrained right portion
 of the read.  We can get bounds on L and R for gapped local alignment by using 
 the L and R values from ungapped local alignment. How much will this buy us?
-===============================================================================
-
-===============================================================================
-postprocess
-- should we add in a feature to "infer" the insert size distribution and
-  pair accordingly?
 ===============================================================================
 
 ===============================================================================
