@@ -182,46 +182,45 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				&referenceLengths[ctr],
 				&referencePositions[ctr]);
 
-		// Adjust offsets.  This matters for constrained alignment only
-		if(m->positions[i] - offset == referencePositions[ctr]) {
-			if(FORWARD == m->strands[i]) {
-				referenceOffsets[ctr]=offset;
-				readOffsets[ctr]=0;
-			}
-			else {
-				referenceOffsets[ctr]=referenceLengths[ctr]-offset-readLength;
-				readOffsets[ctr]=0;
-			}
-		}
-		else if(m->positions[i] < 1) {
-			if(FORWARD == m->strands[i]) {
-				referenceOffsets[ctr]=0;
-				readOffsets[ctr]=1-m->positions[i];
-			}
-			else {
-				referenceOffsets[ctr]=offset;
-				readOffsets[ctr]=0;
-			}
-		}
-		else {
-			assert(m->positions[i] - offset < 1);
-			if(FORWARD == m->strands[i]) {
-				referenceOffsets[ctr] = m->positions[i]-1;
-				readOffsets[ctr]=0;
-			}
-			else {
-				referenceOffsets[ctr]=offset;
-				readOffsets[ctr]=0;
-			}
-		}
-		assert(0 <= readOffsets[i]);
-		if(matrix->nrow < readLength+readOffsets[i]+1) {
-			AlignMatrixReallocate(matrix, readLength+readOffsets[i]+1, GETMAX(matrix->ncol, readLength+readOffsets[i]+1));
-		}
-
 		assert(referenceLengths[ctr] > 0);
 		/* Initialize entries */
 		if(readLength <= referenceLengths[ctr]) {
+			// Adjust offsets.  This matters for constrained alignment only
+			if(m->positions[i] - offset == referencePositions[ctr]) {
+				if(FORWARD == m->strands[i]) {
+					referenceOffsets[ctr]=offset;
+					readOffsets[ctr]=0;
+				}
+				else {
+					referenceOffsets[ctr]=referenceLengths[ctr]-offset-readLength;
+					readOffsets[ctr]=0;
+				}
+			}
+			else if(m->positions[i] < 1) {
+				if(FORWARD == m->strands[i]) {
+					referenceOffsets[ctr]=0;
+					readOffsets[ctr]=1-m->positions[i];
+				}
+				else {
+					referenceOffsets[ctr]=offset;
+					readOffsets[ctr]=0;
+				}
+			}
+			else {
+				assert(m->positions[i] - offset < 1);
+				if(FORWARD == m->strands[i]) {
+					referenceOffsets[ctr] = m->positions[i]-1;
+					readOffsets[ctr]=0;
+				}
+				else {
+					referenceOffsets[ctr]=offset;
+					readOffsets[ctr]=0;
+				}
+			}
+			assert(0 <= readOffsets[ctr]);
+			if(matrix->nrow < readLength+readOffsets[ctr]+1) {
+				AlignMatrixReallocate(matrix, readLength+readOffsets[ctr]+1, GETMAX(matrix->ncol, readLength+readOffsets[ctr]+1));
+			}
 			/* Copy over mask */
 			masks[ctr] = RGMatchMaskToString(m->masks[i], m->readLength);
 			/* Update contig name and strand */
@@ -566,7 +565,7 @@ void AlignGapped(char *read,
 {
 	char *FnName="AlignGapped";
 	int64_t maxH, maxV;
-			
+
 	/* Get the maximum number of vertical and horizontal moves allowed */
 	maxV = maxH = 0;
 	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {

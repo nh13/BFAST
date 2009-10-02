@@ -305,7 +305,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 	AlignColorSpaceInitializeAtStart(colors, matrix, sm, endRowStepOne, endColStepTwo, alphabetSize);
 	for(i=0;i<endRowStepOne;i++) { /* read/rows */
 		for(j=0;j<endColStepOne;j++) { /* reference/columns */
-			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], INT_MAX, INT_MAX, alphabetSize);
+			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], readLength, readLength, alphabetSize);
 		}
 	}
 
@@ -380,7 +380,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 	for(i=endRowStepTwo;i<readLength;i++) { /* read/rows */
 		/* Get the current color for the read */
 		for(j=endColStepTwo;j<referenceLength;j++) { /* reference/columns */
-			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], INT_MAX, INT_MAX, alphabetSize);
+			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], readLength, readLength, alphabetSize);
 		}
 	}
 

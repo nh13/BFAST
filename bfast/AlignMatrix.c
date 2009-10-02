@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "BLibDefinitions.h"
@@ -12,6 +13,8 @@ void AlignMatrixReallocate(AlignMatrix *m, int32_t nrow, int32_t ncol)
 
 	assert(0 < nrow);
 	assert(0 < ncol);
+	assert(nrow < SEQUENCE_LENGTH);
+	assert(ncol < SEQUENCE_LENGTH);
 
 	prevNRow = m->nrow;
 	prevNCol = m->ncol;

@@ -196,7 +196,7 @@ void AlignNTSpaceGappedConstrained(char *read,
 	AlignNTSpaceInitializeAtStart(matrix, sm, endRowStepOne, endColStepOne);
 	for(i=1;i<endRowStepOne+1;i++) { /* read/rows */ 
 		for(j=1;j<endColStepOne+1;j++) { /* reference/columns */
-			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, INT_MAX, INT_MAX);
+			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, readLength, readLength);
 		}
 	}
 
@@ -221,7 +221,7 @@ void AlignNTSpaceGappedConstrained(char *read,
 	// since we assumed they were filled in by the previous re-initialization
 	for(i=endRowStepTwo+1;i<readLength+1;i++) { /* read/rows */ 
 		for(j=endColStepTwo+1;j<referenceLength+1;j++) { /* reference/columns */
-			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, INT_MAX, INT_MAX);
+			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, readLength, readLength);
 		}
 	}
 
