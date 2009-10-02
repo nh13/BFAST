@@ -22,8 +22,6 @@ int PrintUsage()
 {
 	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
 	fprintf(stderr, "\nUsage:%s [options]\n", Name);
-	fprintf(stderr, "%s %s\n", "bfast", PACKAGE_VERSION);
-	fprintf(stderr, "\nUsage:%s [options] <files>\n", Name);
 	fprintf(stderr, "\t-i\tFILE\tinput specification file\n");
 	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
 	fprintf(stderr, "\t-A\tINT\t0: NT space 1: Color space\n");
@@ -65,13 +63,13 @@ int main(int argc, char *argv[])
 	char c;
 	FILE *fpIn=NULL;
 
-	while((c = getopt(argc, argv, "f:r:A:h")) >= 0) {
+	while((c = getopt(argc, argv, "f:i:A:h")) >= 0) {
 		switch(c) {
 			case 'f': fastaFileName=strdup(optarg);break;
 			case 'h': return PrintUsage();
 			case 'i': inputFileName = strdup(optarg); break;
 			case 'A': space=atoi(optarg); break;
-			default: break;
+			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
 
