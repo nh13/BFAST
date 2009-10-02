@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
 	int pairedEnd = 0;
 	int pairedEndLength = 0;
 	int numReads = 0;
+	int lineNumber = 0;
 	char *inputFileName=NULL;
 	char c;
 	FILE *fpIn=NULL;
@@ -92,6 +93,8 @@ int main(int argc, char *argv[])
 	if(!(fpIn = fopen(inputFileName, "r"))) {
 		PrintError(Name, inputFileName, "Could not open file for reading", Exit, OpenFileError);
 	}
+	fprintf(stderr, "%s", BREAK_LINE);
+	fprintf(stderr, "Currently on [line, read, numReads]:\n0");
 	while(0 == feof(fpIn)) {
 		if(fscanf(fpIn, "%d %d %d %d %d %d %d %d %d",
 					&indel,
@@ -105,6 +108,8 @@ int main(int argc, char *argv[])
 					&numReads) < 0) {
 			break;
 		}
+		lineNumber++;
+
 		/* Generate reads */
 		GenerateReadsFP(&rg,
 				space,
@@ -117,8 +122,11 @@ int main(int argc, char *argv[])
 				(0 == pairedEnd)?1:2,
 				pairedEndLength,
 				numReads,
+				lineNumber,
 				stdout);
 	}
+	fprintf(stderr, "Terminating successfully!\n");
+	fprintf(stderr, "\n%s", BREAK_LINE);
 	fclose(fpIn);
 
 	/* Free */
@@ -237,6 +245,7 @@ void GenerateReadsFP(RGBinary *rg,
 		int numEnds,
 		int pairedEndLength,
 		int numReads,
+		int lineNumber,
 		FILE *fp)
 {
 	char *FnName="GenerateReadsFP";
@@ -256,20 +265,18 @@ void GenerateReadsFP(RGBinary *rg,
 		rgLength += rg->contigs[i].sequenceLength;
 	}
 
-	fprintf(stderr, "%s", BREAK_LINE);
-
 	/* Initialize */
 	r.numEnds = numEnds;
 	r.pairedEndLength = pairedEndLength;
 	SimReadInitialize(&r);
 
 	/* Generate the reads */
-	fprintf(stderr, "%s", BREAK_LINE);
-	fprintf(stderr, "Out of %d reads, currently on:\n0", numReads);
 	for(i=0;i<numReads;i++) {
 		if((i+1) % READS_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%d",
-					(i+1));
+			fprintf(stderr, "\r[%6d,%10d,%10d]",
+					lineNumber,
+					(i+1),
+					numReads);
 		}
 		/* Get the read */
 		SimReadGetRandom(rg,
@@ -292,7 +299,8 @@ void GenerateReadsFP(RGBinary *rg,
 		/* Initialize read */
 		SimReadDelete(&r);
 	}
-	fprintf(stderr, "\r%d\n%s",
+	fprintf(stderr, "\r[%6d,%10d,%10d]",
+			lineNumber,
 			numReads,
-			BREAK_LINE);
+			numReads);
 }
