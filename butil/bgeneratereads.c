@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
 				lineNumber,
 				stdout);
 	}
-	fprintf(stderr, "Terminating successfully!\n");
-	fprintf(stderr, "\n%s", BREAK_LINE);
+	fprintf(stderr, "\nTerminating successfully!\n");
+	fprintf(stderr, "%s", BREAK_LINE);
 	fclose(fpIn);
 
 	/* Free */
