@@ -144,6 +144,7 @@ sub Schema {
 			  <xs:element name="threads" type="positiveInteger"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -169,6 +170,7 @@ sub Schema {
 				</xs:simpleType>
 			  </xs:element>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -186,6 +188,7 @@ sub Schema {
 			  <xs:element name="pairedEndInfer" type="xs:integer"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -194,6 +197,7 @@ sub Schema {
 			<xs:sequence>
 			  <xs:element name="maximumMemory" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -236,7 +240,7 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'qsubBin',                                  OPTIONAL); 
 	ValidateOptions($data->{'globalOptions'},      'queueType',          \%QUEUETYPES,         REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'space',              \%SPACE,              REQUIRED);
-	ValidateFile($data->{'globalOptions'},         'fastaFileName',                           REQUIRED);
+	ValidateFile($data->{'globalOptions'},         'fastaFileName',                            REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'timing',             \%TIMING,             OPTIONAL);
 	ValidatePath($data->{'globalOptions'},         'runDirectory',                             REQUIRED); 
 	ValidatePath($data->{'globalOptions'},         'readsDirectory',                           REQUIRED); 
@@ -261,6 +265,7 @@ sub ValidateData {
 	ValidateOption($data->{'matchOptions'},     'threads',                                  OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'qsubArgs',                                 OPTIONAL);
 
 	# localalign
 	die("The localalign options were not found.\n") unless (defined($data->{'localalignOptions'})); 
@@ -276,6 +281,7 @@ sub ValidateData {
 	ValidateOption($data->{'localalignOptions'},       'forceMirror',                              OPTIONAL);
 	ValidateOption($data->{'localalignOptions'},       'threads',                                  OPTIONAL);
 	ValidateOption($data->{'localalignOptions'},       'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'qsubArgs',                                 OPTIONAL);
 
 	# postprocess
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
@@ -283,11 +289,13 @@ sub ValidateData {
 	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
 
 	# samtools
 	die("The samtools options were not found.\n") unless (defined($data->{'samtoolsOptions'})); 
 	ValidateOption($data->{'samtoolsOptions'},     'maximumMemory',                            OPTIONAL);
 	ValidateOption($data->{'samtoolsOptions'},     'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'samtoolsOptions'},     'qsubArgs',                                 OPTIONAL);
 }
 
 sub ValidateOption {
@@ -657,6 +665,7 @@ sub SubmitJob {
 		$qsub .= " -l nodes=1:ppn=".$data->{$type}->{'threads'} if ("PBS" eq $data->{'globalOptions'}->{'queueType'});;
 	}
 	$qsub .= " -q ".$data->{$type}->{'qsubQueue'} if defined($data->{$type}->{'qsubQueue'});
+	$qsub .= " ".$data->{$type}->{'qsubArgs'} if defined($data->{$type}->{'qsubArgs'});
 	$qsub .= " -N $output_id -o $run_file.out -e $run_file.err $run_file";
 
 	if(1 == $should_run) {
