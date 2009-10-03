@@ -6,7 +6,7 @@
 # -man option.
 
 use strict;
-use warnings;
+use warnings FATAL => qw( all );
 use File::Path;
 use XML::Simple; 
 use Data::Dumper;
@@ -30,6 +30,7 @@ use constant {
 	REQUIRED => 1,
 	BREAKLINE => "************************************************************\n",
 	MERGE_LOG_BASE => 8,
+	QSUBNOJOB => "QSUBNOJOB"
 };
 
 my $config;
@@ -453,7 +454,7 @@ sub CreateJobsMatch {
 			# Submit the job
 			my @a = (); # empty array for job dependencies
 			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $cmd, $data, 'matchOptions', $output_id, \@a);
-			if(0 <= $qsub_id) {
+			if(QSUBNOJOB ne $qsub_id) {
 				push(@$qsub_ids, $qsub_id);
 			}
 			push(@$output_ids, $output_id);
@@ -517,7 +518,7 @@ sub CreateJobsLocalalign {
 			# Submit the job
 			my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
 			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
-			if(0 <= $qsub_id) {
+			if(QSUBNOJOB ne $qsub_id) {
 				push(@$qsub_ids, $qsub_id);
 			}
 			push(@$output_ids, $output_id);
@@ -555,7 +556,7 @@ sub CreateJobsPostprocess {
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
 		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
-		if(0 <= $qsub_id) {
+		if(QSUBNOJOB ne $qsub_id) {
 			push(@$qsub_ids, $qsub_id);
 		}
 	}
@@ -587,7 +588,7 @@ sub CreateJobsSamtools {
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
 		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
-		if(0 <= $qsub_id) {
+		if(QSUBNOJOB ne $qsub_id) {
 			push(@qsub_ids, $qsub_id);
 		}
 		else {
@@ -615,7 +616,7 @@ sub CreateJobsSamtools {
 			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
 			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
 			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
-			if(0 <= $qsub_id) {
+			if(QSUBNOJOB ne $qsub_id) {
 				push(@qsub_ids, $qsub_id);
 			}
 			else {
@@ -632,7 +633,7 @@ sub CreateJobsSamtools {
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
 	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
-	if(0 <= $qsub_id) {
+	if(QSUBNOJOB ne $qsub_id) {
 		push(@qsub_ids, $qsub_id);
 	}
 	else {
@@ -671,6 +672,7 @@ sub SubmitJob {
 	if(1 == $should_run) {
 		# Submit the qsub command
 		my $qsub_id=`$qsub`;
+		$qsub_id = "$qsub_id";
 		chomp($qsub_id);
 
 		# There has to be a better way to get the job ids (?)
@@ -693,7 +695,7 @@ sub SubmitJob {
 			print STDERR "[bfast submit] NAME=$output_id QSUBID=Not submitted\n";
 		}
 
-		return -1;
+		return QSUBNOJOB;
 	}
 }
 
