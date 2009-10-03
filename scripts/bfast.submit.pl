@@ -454,9 +454,7 @@ sub CreateJobsMatch {
 			# Submit the job
 			my @a = (); # empty array for job dependencies
 			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $cmd, $data, 'matchOptions', $output_id, \@a);
-			if(QSUBNOJOB ne $qsub_id) {
-				push(@$qsub_ids, $qsub_id);
-			}
+			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
@@ -516,11 +514,9 @@ sub CreateJobsLocalalign {
 			$cmd .= " > ".$baf_file;
 
 			# Submit the job
-			my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
+			my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
 			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
-			if(QSUBNOJOB ne $qsub_id) {
-				push(@$qsub_ids, $qsub_id);
-			}
+			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
@@ -554,11 +550,9 @@ sub CreateJobsPostprocess {
 		$cmd .= " > ".$sam_file;
 
 		# Submit the job
-		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
+		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
 		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
-		if(QSUBNOJOB ne $qsub_id) {
-			push(@$qsub_ids, $qsub_id);
-		}
+		push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 	}
 }
 
@@ -586,7 +580,7 @@ sub CreateJobsSamtools {
 		$cmd .= "bfast.reported.$output_id";
 
 		# Submit the job
-		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
+		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
 		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
 		if(QSUBNOJOB ne $qsub_id) {
 			push(@qsub_ids, $qsub_id);
