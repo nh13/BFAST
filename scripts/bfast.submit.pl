@@ -622,7 +622,8 @@ sub CreateJobsSamtools {
 
 	$output_id = "merge.".$data->{'globalOptions'}->{'outputID'};
 	$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
-	$cmd = $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
+	$cmd = "";
+	$cmd .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
 	$cmd .= "samtools merge";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
