@@ -6,7 +6,7 @@
 # -man option.
 
 use strict;
-use warnings;
+use warnings FATAL => qw( all );
 use File::Path;
 use XML::Simple; 
 use Data::Dumper;
@@ -30,6 +30,7 @@ use constant {
 	REQUIRED => 1,
 	BREAKLINE => "************************************************************\n",
 	MERGE_LOG_BASE => 8,
+	QSUBNOJOB => "QSUBNOJOB"
 };
 
 my $config;
@@ -144,6 +145,7 @@ sub Schema {
 			  <xs:element name="threads" type="positiveInteger"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -169,6 +171,7 @@ sub Schema {
 				</xs:simpleType>
 			  </xs:element>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -186,6 +189,7 @@ sub Schema {
 			  <xs:element name="pairedEndInfer" type="xs:integer"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -194,6 +198,7 @@ sub Schema {
 			<xs:sequence>
 			  <xs:element name="maximumMemory" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
@@ -222,8 +227,8 @@ sub Schema {
   </xs:simpleType>
 </xs:schema>
 END
-	print STDOUT $schema;
-	exit 1;
+print STDOUT $schema;
+exit 1;
 }
 
 sub ValidateData {
@@ -236,7 +241,7 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'qsubBin',                                  OPTIONAL); 
 	ValidateOptions($data->{'globalOptions'},      'queueType',          \%QUEUETYPES,         REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'space',              \%SPACE,              REQUIRED);
-	ValidateFile($data->{'globalOptions'},         'fastaFileName',                           REQUIRED);
+	ValidateFile($data->{'globalOptions'},         'fastaFileName',                            REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'timing',             \%TIMING,             OPTIONAL);
 	ValidatePath($data->{'globalOptions'},         'runDirectory',                             REQUIRED); 
 	ValidatePath($data->{'globalOptions'},         'readsDirectory',                           REQUIRED); 
@@ -261,6 +266,7 @@ sub ValidateData {
 	ValidateOption($data->{'matchOptions'},     'threads',                                  OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'qsubArgs',                                 OPTIONAL);
 
 	# localalign
 	die("The localalign options were not found.\n") unless (defined($data->{'localalignOptions'})); 
@@ -276,6 +282,7 @@ sub ValidateData {
 	ValidateOption($data->{'localalignOptions'},       'forceMirror',                              OPTIONAL);
 	ValidateOption($data->{'localalignOptions'},       'threads',                                  OPTIONAL);
 	ValidateOption($data->{'localalignOptions'},       'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'localalignOptions'},       'qsubArgs',                                 OPTIONAL);
 
 	# postprocess
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
@@ -283,11 +290,13 @@ sub ValidateData {
 	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
 
 	# samtools
 	die("The samtools options were not found.\n") unless (defined($data->{'samtoolsOptions'})); 
 	ValidateOption($data->{'samtoolsOptions'},     'maximumMemory',                            OPTIONAL);
 	ValidateOption($data->{'samtoolsOptions'},     'qsubQueue',                                OPTIONAL);
+	ValidateOption($data->{'samtoolsOptions'},     'qsubArgs',                                 OPTIONAL);
 }
 
 sub ValidateOption {
@@ -444,10 +453,8 @@ sub CreateJobsMatch {
 
 			# Submit the job
 			my @a = (); # empty array for job dependencies
-			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $cmd, $data, 'matchOptions', $output_id, \@a);
-			if(0 <= $qsub_id) {
-				push(@$qsub_ids, $qsub_id);
-			}
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 0, $cmd, $data, 'matchOptions', $output_id, \@a);
+			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
@@ -466,7 +473,7 @@ sub CreateJobsLocalalign {
 	for(my $i=0;$i<scalar(@$input_ids);$i++) {
 		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'});
 		my ($output_id_read_num_start, $output_id_read_num_end) = (0, 0);
-		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $input_id = $input_ids->[$i];
 		my $input_id_no_read_num ="";
 		if($input_id =~ m/(.+)\.(\d+)\-\d+$/) {
@@ -507,11 +514,9 @@ sub CreateJobsLocalalign {
 			$cmd .= " > ".$baf_file;
 
 			# Submit the job
-			my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
-			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
-			if(0 <= $qsub_id) {
-				push(@$qsub_ids, $qsub_id);
-			}
+			my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, ($STARTSTEP{"match"} <= $start_step) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
+			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
@@ -527,7 +532,7 @@ sub CreateJobsPostprocess {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		my $output_id = $output_ids->[$i];
-		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
 		my $sam_file = GetReportedFile($data, $output_id);
@@ -545,11 +550,9 @@ sub CreateJobsPostprocess {
 		$cmd .= " > ".$sam_file;
 
 		# Submit the job
-		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
-		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
-		if(0 <= $qsub_id) {
-			push(@$qsub_ids, $qsub_id);
-		}
+		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
+		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, ($STARTSTEP{"localalign"} <= $start_step) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
+		push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 	}
 }
 
@@ -561,7 +564,7 @@ sub CreateJobsSamtools {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		$output_id = $output_ids->[$i];
-		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $sam_file = GetReportedFile($data, $output_id);
 		$run_file = CreateRunFile($data, 'samtools', $output_id);
 
@@ -577,9 +580,9 @@ sub CreateJobsSamtools {
 		$cmd .= "bfast.reported.$output_id";
 
 		# Submit the job
-		my @a = (); push(@a, $dependent_job) if(0 <= $dependent_job);
-		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
-		if(0 <= $qsub_id) {
+		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, ($STARTSTEP{"postprocess"} <= $start_step) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
+		if(QSUBNOJOB ne $qsub_id) {
 			push(@qsub_ids, $qsub_id);
 		}
 		else {
@@ -606,8 +609,8 @@ sub CreateJobsSamtools {
 			$output_id = "merge.".$data->{'globalOptions'}->{'outputID'}.".$merge_lvl.$ctr";
 			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
 			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
-			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
-			if(0 <= $qsub_id) {
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, 1, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
+			if(QSUBNOJOB ne $qsub_id) {
 				push(@qsub_ids, $qsub_id);
 			}
 			else {
@@ -623,8 +626,8 @@ sub CreateJobsSamtools {
 	$cmd .= "samtools merge";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
-	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
-	if(0 <= $qsub_id) {
+	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, 1, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
+	if(QSUBNOJOB ne $qsub_id) {
 		push(@qsub_ids, $qsub_id);
 	}
 	else {
@@ -634,7 +637,7 @@ sub CreateJobsSamtools {
 }
 
 sub SubmitJob {
-	my ($run_file, $quiet, $should_run, $command, $data, $type, $output_id, $dependent_job_ids) = @_;
+	my ($run_file, $quiet, $should_run, $should_depend, $command, $data, $type, $output_id, $dependent_job_ids) = @_;
 	$output_id = "$type.$output_id"; $output_id =~ s/Options//g;
 
 	if(!$quiet) {
@@ -648,7 +651,7 @@ sub SubmitJob {
 
 	# Create qsub command
 	my $qsub = "qsub";
-	if(0 < scalar(@$dependent_job_ids)) {
+	if(0 < scalar(@$dependent_job_ids) && 1 == $should_depend) {
 		$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
 		$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
 	}
@@ -657,11 +660,13 @@ sub SubmitJob {
 		$qsub .= " -l nodes=1:ppn=".$data->{$type}->{'threads'} if ("PBS" eq $data->{'globalOptions'}->{'queueType'});;
 	}
 	$qsub .= " -q ".$data->{$type}->{'qsubQueue'} if defined($data->{$type}->{'qsubQueue'});
+	$qsub .= " ".$data->{$type}->{'qsubArgs'} if defined($data->{$type}->{'qsubArgs'});
 	$qsub .= " -N $output_id -o $run_file.out -e $run_file.err $run_file";
 
 	if(1 == $should_run) {
 		# Submit the qsub command
 		my $qsub_id=`$qsub`;
+		$qsub_id = "$qsub_id";
 		chomp($qsub_id);
 
 		# There has to be a better way to get the job ids (?)
@@ -684,7 +689,7 @@ sub SubmitJob {
 			print STDERR "[bfast submit] NAME=$output_id QSUBID=Not submitted\n";
 		}
 
-		return -1;
+		return QSUBNOJOB;
 	}
 }
 

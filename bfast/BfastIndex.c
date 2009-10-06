@@ -266,7 +266,7 @@ BfastIndexAssignDefaultValues(struct arguments *args)
 	args->space = NTSpace;
 	args->mask = NULL;
 	args->hashWidth=0;
-	args->depth=1;
+	args->depth=0;
 	args->indexNumber=1;
 	args->repeatMasker=0;
 	args->startContig=0;
