@@ -227,8 +227,8 @@ sub Schema {
   </xs:simpleType>
 </xs:schema>
 END
-	print STDOUT $schema;
-	exit 1;
+print STDOUT $schema;
+exit 1;
 }
 
 sub ValidateData {
@@ -652,8 +652,17 @@ sub SubmitJob {
 	# Create qsub command
 	my $qsub = "qsub";
 	if(0 < scalar(@$dependent_job_ids)) {
-		$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
-		$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
+		my $legal_id = 1;
+		foreach my $id (@$dependent_job_ids) {
+			if($id < 0) {
+				$legal_id = 0;
+				last;
+			}
+		}
+		if(1 == $legal_id) {
+			$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
+			$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
+		}
 	}
 	if(defined($data->{$type}->{'threads'}) && 1 < $data->{$type}->{'threads'}) {
 		$qsub .= " -pe serial ".$data->{$type}->{'threads'}     if ("SGE" eq $data->{'globalOptions'}->{'queueType'});;
