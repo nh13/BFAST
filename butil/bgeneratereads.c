@@ -37,7 +37,7 @@ int PrintUsage()
 	fprintf(stderr, "\t\t#5 - # of SNPs\n");
 	fprintf(stderr, "\t\t#6 - # of errors\n");
 	fprintf(stderr, "\t\t#7 - read length\n");
-	fprintf(stderr, "\t\t#8 - paired end 0: true 1: false\n");
+	fprintf(stderr, "\t\t#8 - paired end 0: false 1: true\n");
 	fprintf(stderr, "\t\t#9 - paired end length\n");
 	fprintf(stderr, "\t\t#10 - number of reads\n");
 	fprintf(stderr, "\nsend bugs to %s\n",
