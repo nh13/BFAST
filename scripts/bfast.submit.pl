@@ -453,7 +453,7 @@ sub CreateJobsMatch {
 
 			# Submit the job
 			my @a = (); # empty array for job dependencies
-			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $cmd, $data, 'matchOptions', $output_id, \@a);
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 0, $cmd, $data, 'matchOptions', $output_id, \@a);
 			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
@@ -473,7 +473,7 @@ sub CreateJobsLocalalign {
 	for(my $i=0;$i<scalar(@$input_ids);$i++) {
 		my ($cur_read_num_start, $cur_read_num_end) = (1, $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'});
 		my ($output_id_read_num_start, $output_id_read_num_end) = (0, 0);
-		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $input_id = $input_ids->[$i];
 		my $input_id_no_read_num ="";
 		if($input_id =~ m/(.+)\.(\d+)\-\d+$/) {
@@ -515,7 +515,7 @@ sub CreateJobsLocalalign {
 
 			# Submit the job
 			my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, ($STARTSTEP{"match"} <= $start_step) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
 			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
@@ -532,7 +532,7 @@ sub CreateJobsPostprocess {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		my $output_id = $output_ids->[$i];
-		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
 		my $sam_file = GetReportedFile($data, $output_id);
@@ -551,7 +551,7 @@ sub CreateJobsPostprocess {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
+		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, ($STARTSTEP{"localalign"} <= $start_step) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
 		push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 	}
 }
@@ -564,7 +564,7 @@ sub CreateJobsSamtools {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		$output_id = $output_ids->[$i];
-		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : -1;
+		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $sam_file = GetReportedFile($data, $output_id);
 		$run_file = CreateRunFile($data, 'samtools', $output_id);
 
@@ -581,7 +581,7 @@ sub CreateJobsSamtools {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, ($STARTSTEP{"postprocess"} <= $start_step) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
 		if(QSUBNOJOB ne $qsub_id) {
 			push(@qsub_ids, $qsub_id);
 		}
@@ -609,7 +609,7 @@ sub CreateJobsSamtools {
 			$output_id = "merge.".$data->{'globalOptions'}->{'outputID'}.".$merge_lvl.$ctr";
 			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
 			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
-			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, 1, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
 			if(QSUBNOJOB ne $qsub_id) {
 				push(@qsub_ids, $qsub_id);
 			}
@@ -627,7 +627,7 @@ sub CreateJobsSamtools {
 	$cmd .= "samtools merge";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
-	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
+	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, 1, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
 	if(QSUBNOJOB ne $qsub_id) {
 		push(@qsub_ids, $qsub_id);
 	}
@@ -638,7 +638,7 @@ sub CreateJobsSamtools {
 }
 
 sub SubmitJob {
-	my ($run_file, $quiet, $should_run, $command, $data, $type, $output_id, $dependent_job_ids) = @_;
+	my ($run_file, $quiet, $should_run, $should_depend, $command, $data, $type, $output_id, $dependent_job_ids) = @_;
 	$output_id = "$type.$output_id"; $output_id =~ s/Options//g;
 
 	if(!$quiet) {
@@ -652,18 +652,9 @@ sub SubmitJob {
 
 	# Create qsub command
 	my $qsub = "qsub";
-	if(0 < scalar(@$dependent_job_ids)) {
-		my $legal_id = 1;
-		foreach my $id (@$dependent_job_ids) {
-			if($id < 0) {
-				$legal_id = 0;
-				last;
-			}
-		}
-		if(1 == $legal_id) {
-			$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
-			$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
-		}
+	if(0 < scalar(@$dependent_job_ids) && 1 == $should_depend) {
+		$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
+		$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
 	}
 	if(defined($data->{$type}->{'threads'}) && 1 < $data->{$type}->{'threads'}) {
 		$qsub .= " -pe serial ".$data->{$type}->{'threads'}     if ("SGE" eq $data->{'globalOptions'}->{'queueType'});;
