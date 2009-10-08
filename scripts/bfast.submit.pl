@@ -528,7 +528,7 @@ sub CreateJobsLocalalign {
 
 sub CreateJobsPostprocess {
 	my ($data, $quiet, $start_step, $dependent_ids, $qsub_ids, $output_ids) = @_;
-
+	
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		my $output_id = $output_ids->[$i];
@@ -551,7 +551,7 @@ sub CreateJobsPostprocess {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, ($STARTSTEP{"localalign"} <= $start_step) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
+		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $cmd, $data, 'postprocessOptions', $output_id, \@a);
 		push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 	}
 }
@@ -581,7 +581,7 @@ sub CreateJobsSamtools {
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, ($STARTSTEP{"postprocess"} <= $start_step) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
 		if(QSUBNOJOB ne $qsub_id) {
 			push(@qsub_ids, $qsub_id);
 		}
