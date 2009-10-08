@@ -12,7 +12,7 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: qseq2fastq.pl <input .qseq prefix>
+Usage: qseq2fastq.pl [-n <number of reads> -o <output prefix>] <input .qseq prefix>
 
 	This script will convert Illumina output files (*qseq files)
 	to the BFAST fastq multi-end format.  For single-end reads 
@@ -24,7 +24,10 @@ Usage: qseq2fastq.pl <input .qseq prefix>
 	fastq format, but keeps intact the relationships between
 	sequences that all originate from the same peice of DNA.
 	We assume for paired end data that all data is able to be
-	paired.
+	paired.  The -n option is useful to split the output into 
+	separate files each consisting of the specified number of reads.
+	In this case, you will need to also specify an output prefix 
+	using the -o option.
 
 	All .qseq files will be inferred from the specified directory 
 	and accompanying prefix.  For paired end data, reads in
@@ -36,8 +39,25 @@ Usage: qseq2fastq.pl <input .qseq prefix>
 };
 my $ROTATE_NUM = 100000;
 
-getopts('', \%opts);
+getopts('n:o:', \%opts);
 die($usage) if (@ARGV < 1);
+
+my $num_reads = -1;
+my $output_prefix = "";
+if(defined($opts{'n'})) {
+	$num_reads = $opts{'n'};
+	if(!defined($opts{'o'})) {
+		die("Error.  The -o option must be specified when using the -n option.  Terminating!\n");
+	}
+	die if ($num_reads < 1);
+	$output_prefix = $opts{'o'};
+	die if (length($output_prefix) <= 0);
+}
+else {
+	if(defined($opts{'o'})) {
+		die("Error.  The -o option was specified without the -n option.  Terminating!\n");
+	}
+}
 
 my $input_prefix = shift @ARGV;
 
@@ -59,13 +79,30 @@ elsif(0 < scalar(@files_two) && scalar(@files_one) != scalar(@files_two)) {
 @files_two = sort @files_two;
 
 my $FH_index = 0;
+my $output_file_num = 1;
+my $output_num_written = 0;
 
+if(0 < $num_reads) {
+	open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
+}
 if(0 == scalar(@files_two)) { # Single end
 	while($FH_index < scalar(@files_one)) {
 		open(FH_one, "$files_one[$FH_index]") || die;
 		while(defined(my $line = <FH_one>)) {
 			my ($name, $seq, $qual) = parse_line($line, 1);
-			print STDOUT "$name\n$seq\n+\n$qual\n";
+			if(0 < $num_reads) {
+				if($num_reads <= $output_num_written) {
+					close(FHout);
+					$output_file_num++;
+					$output_num_written=0;
+					open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
+				}
+				print FHout "$name\n$seq\n+\n$qual\n";
+				$output_num_written++;
+			}
+			else {
+				print STDOUT "$name\n$seq\n+\n$qual\n";
+			}
 		}
 		close(FH_one);
 		$FH_index++;
@@ -85,13 +122,29 @@ else { # Paired end
 				print STDERR "".$read_one{"NAME"}."\t".$read_two{"NAME"}."\n";
 				die;
 			}
-			print STDOUT "".$read_one{"NAME"}."\n".$read_one{"SEQ"}."\n+\n".$read_one{"QUAL"}."\n";
-			print STDOUT "".$read_two{"NAME"}."\n".$read_two{"SEQ"}."\n+\n".$read_two{"QUAL"}."\n";
+			if(0 < $num_reads) {
+				if($num_reads <= $output_num_written) {
+					close(FHout);
+					$output_file_num++;
+					$output_num_written=0;
+					open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
+				}
+				print FHout "".$read_one{"NAME"}."\n".$read_one{"SEQ"}."\n+\n".$read_one{"QUAL"}."\n";
+				print FHout "".$read_two{"NAME"}."\n".$read_two{"SEQ"}."\n+\n".$read_two{"QUAL"}."\n";
+				$output_num_written++;
+			}
+			else {
+				print STDOUT "".$read_one{"NAME"}."\n".$read_one{"SEQ"}."\n+\n".$read_one{"QUAL"}."\n";
+				print STDOUT "".$read_two{"NAME"}."\n".$read_two{"SEQ"}."\n+\n".$read_two{"QUAL"}."\n";
+			}
 		}
 		close(FH_one);
 		close(FH_two);
 		$FH_index++;
 	}
+}
+if(0 < $num_reads) {
+	close(FHout);
 }
 
 sub cmp_read_names {
@@ -181,7 +234,7 @@ sub parse_line {
 
 	return ($name, $seq, $qual);
 }
-		
+
 sub get_read {
 	my $FH = shift;
 	my $read = shift;
