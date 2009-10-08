@@ -23,6 +23,20 @@ int32_t cmp_read_names(char*, char*);
 void read_name_trim(char*);
 char *strtok_mod(char*, char*, int32_t*);
 
+int print_usage ()
+{
+		fprintf(stderr, "solid2fastq %s\n",
+				PACKAGE_VERSION);
+		fprintf(stderr, "\n");
+		fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <list of .qual files>\n");
+		fprintf(stderr, "\t-c\t\tproduce no output.\n");
+		fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
+		fprintf(stderr, "\t-o\t\toutput prefix.\n");
+		fprintf(stderr, "\t-h\t\tprint this help message.\n");
+		fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
+		return 1;
+}
+
 int main(int argc, char *argv[])
 {
 	char *output_prefix=NULL;
@@ -46,10 +60,12 @@ int main(int argc, char *argv[])
 	char *min_read_name=NULL;
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:c")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:ch")) >= 0) {
 		switch(c) {
 			case 'c':
 				no_output=1; break;
+			case 'h':
+				return print_usage(); break;
 			case 'n':
 				num_reads_per_file=atoi(optarg); break;
 				break;
@@ -64,15 +80,7 @@ int main(int argc, char *argv[])
 	if(argc == optind ||
 			0 != ((argc - optind) % 2) ||
 			(argc - optind) < 2) {
-		fprintf(stderr, "solid2fastq %s\nCopyright 2009.\n",
-				PACKAGE_VERSION);
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <list of .qual files>\n");
-		fprintf(stderr, "\t-c\t\tproduce no output.\n");
-		fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
-		fprintf(stderr, "\t-o\t\toutput prefix.\n");
-		fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
-		return 0;
+		return print_usage();
 	}
 
 	// Copy over the filenames
