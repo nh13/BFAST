@@ -227,8 +227,9 @@ sub Schema {
   </xs:simpleType>
 </xs:schema>
 END
-print STDOUT $schema;
-exit 1;
+
+	print STDOUT $schema;
+	exit 1;
 }
 
 sub ValidateData {
@@ -528,7 +529,7 @@ sub CreateJobsLocalalign {
 
 sub CreateJobsPostprocess {
 	my ($data, $quiet, $start_step, $dependent_ids, $qsub_ids, $output_ids) = @_;
-	
+
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		my $output_id = $output_ids->[$i];
@@ -645,12 +646,26 @@ sub SubmitJob {
 		print STDERR "[bfast submit] RUNFILE=$run_file\n";
 	}
 	if(1 == $should_run) {
+		my $output = <<END_OUTPUT;
+run ()
+{
+	echo "running: \$*";
+	eval \$*;
+	if test \$? != 0 ; then
+	echo "error: while running '\$*'";
+	exit 100;
+	fi
+
+	exit 0;
+}
+END_OUTPUT
+		$output .= "\nrun $command\n";
 		open(FH, ">$run_file") or die("Error.  Could not open $run_file for writing!\n");
-		print FH "$command\n";
+		print FH "$output";
 		close(FH);
 	}
 
-	# Create qsub command
+# Create qsub command
 	my $qsub = "qsub";
 	if(0 < scalar(@$dependent_job_ids) && 1 == $should_depend) {
 		$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
@@ -734,7 +749,7 @@ I<-schema> option.
 
 To use this script to run B<BFAST>, the necessary input files must be created. 
 This includes creating a BFAST reference genome file (with an additional color space version
-for ABI SOLiD data), the BFAST index file(s), the main index(es) list, and a 
+for ABI SOLiD data), the BFAST index file(s), and a 
 samtools indexed reference FASTA file (using 'samtools faidx').  Additionally,
 the reads, if not already in B<FASTQ> format then the input files must be 
 properly reformatted and can be optionally split for parallel processing 
