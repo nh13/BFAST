@@ -181,8 +181,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	if(VERBOSE>=0) {
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Found %10d reads with no ends mapped.\n", mappedEndCounts[0]);
-		assert(numUnmapped == mappedEndCounts[0]);
+		fprintf(stderr, "Found %10lld reads with no ends mapped.\n", 
+				(long long int)numUnmapped);
+		assert(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0]);
 		for(i=1;i<=maxNumEnds;i++) {
 			if(1 == i) fprintf(stderr, "Found %10d reads with %2d end mapped.\n", mappedEndCounts[i], i);
 			else fprintf(stderr, "Found %10d reads with %2d ends mapped.\n", mappedEndCounts[i], i);
