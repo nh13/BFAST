@@ -252,7 +252,7 @@ void RunDynamicProgramming(gzFile matchFP,
 		fprintf(stderr, "Performing alignment...\n");
 		fprintf(stderr, "Currently on:\n0");
 	}
-	
+
 	startTime = time(NULL);
 
 	/* Create threads */
@@ -488,21 +488,26 @@ void *RunDynamicProgrammingThread(void *arg)
 
 int32_t GetMatches(ThreadFileData *fdata, RGMatches *m, int32_t maxToRead, int32_t *readTime) 
 {
+	char *FnName="GetMatches";
 	int32_t numRead = 0;
 
 	/* Get lock */
 	pthread_mutex_lock(&fdata->matchFP_mutex);
 	(*readTime) = time(NULL);
 
-	assert(fdata->startReadNum <= fdata->matchFPctr);
-
-	while(numRead < maxToRead && fdata->matchFPctr <= fdata->endReadNum) {
-		RGMatchesInitialize(&(m[numRead]));
-		if(EOF == RGMatchesRead(fdata->matchFP, &(m[numRead]))) {
-			break;
+	if(fdata->matchFPctr < fdata->startReadNum) {
+		PrintError(FnName, "fdata->matchFPctr < fdata->startReadNum", "The start read number was greater the actual number of reads found", Warn, OutOfRange);
+		numRead=0; // to be explicit
+	}
+	else {
+		while(numRead < maxToRead && fdata->matchFPctr <= fdata->endReadNum) {
+			RGMatchesInitialize(&(m[numRead]));
+			if(EOF == RGMatchesRead(fdata->matchFP, &(m[numRead]))) {
+				break;
+			}
+			numRead++;
+			fdata->matchFPctr++;
 		}
-		numRead++;
-		fdata->matchFPctr++;
 	}
 	(*readTime) = time(NULL) - (*readTime);
 	pthread_mutex_unlock(&fdata->matchFP_mutex);
