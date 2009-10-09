@@ -659,7 +659,7 @@ run ()
 	exit 0;
 }
 END_OUTPUT
-		$output .= "\nrun $command\n";
+		$output .= "\nrun \"$command\"\n";
 		open(FH, ">$run_file") or die("Error.  Could not open $run_file for writing!\n");
 		print FH "$output";
 		close(FH);
