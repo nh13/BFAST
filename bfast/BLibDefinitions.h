@@ -128,7 +128,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define QUAL_TO_MAF_QUAL(_X)  (GETMIN( (int)floor(_X/5), 9))
 #define CHAR2QUAL(c) ((uint8_t)c-33)
 #define QUAL2CHAR(q) (char)(((q<=93)?q:93)+33)
-#define SPACENAME(_space) ((NTSpace == space) ? "nt" : "cs")
+#define SPACENAME(_space) ((NTSpace == _space) ? "nt" : "cs")
 #define GETMASKNUMBYTES(_m) (((int)((_m->readLength + 7)/8)))
 #define GETMASKNUMBYTESFROMLENGTH(_l) (((int)((_l + 7)/8)))
 #define GETMASKBYTE(_pos) ((int)(_pos / 8))
