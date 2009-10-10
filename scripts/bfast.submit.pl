@@ -228,8 +228,8 @@ sub Schema {
 </xs:schema>
 END
 
-	print STDOUT $schema;
-	exit 1;
+print STDOUT $schema;
+exit 1;
 }
 
 sub ValidateData {
@@ -649,7 +649,7 @@ sub SubmitJob {
 		my $output = <<END_OUTPUT;
 run ()
 {
-	echo "running: \$*";
+	echo "running: \$*" 2>&1;
 	eval \$*;
 	if test \$? != 0 ; then
 	echo "error: while running '\$*'";
