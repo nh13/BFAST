@@ -327,18 +327,21 @@ void AlignColorSpaceGappedConstrained(char *colors,
 		for(k=0;k<alphabetSize;k++) { /* To NT */
 			char fromNT;
 			int32_t fromNTInt;
+			int32_t curScore = 0;
 
 			/* Get the from base */
 			if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colors[i]), &fromNT)) { 
 				PrintError(FnName, "fromNT", "Could not convert base and color to base", Exit, OutOfRange);
 			}
 			fromNTInt=BaseToInt(fromNT);
+			
+			// Add color score and nt score
+			curScore = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
+			curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
-			// Add color score
-			matrix->cells[i+1][j+1].s.score[k] = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
 			/* Add score for NT */
 			//Assertion above handles this ... assert(0 < j); // this could be a problem
-			matrix->cells[i+1][j+1].s.score[k] += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
+			matrix->cells[i+1][j+1].s.score[k] = matrix->cells[i][j].s.score[fromNTInt] + curScore;
 			matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + (ALPHABET_SIZE + 1); 
 			matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].s.length[fromNTInt] + 1;
 			matrix->cells[i+1][j+1].s.colorError[k] = GAP;
@@ -347,8 +350,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 
 			// Consider from an indel on the first extension
 			if(i == endRowStepOne && j == endColStepOne) {
-				int32_t curScore = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
-				curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
 				/* From Horizontal - Deletion */
 				if(matrix->cells[i+1][j+1].s.score[k] < curScore + matrix->cells[i][j].h.score[fromNTInt]) { 
