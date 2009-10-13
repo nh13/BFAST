@@ -329,46 +329,88 @@ void AlignColorSpaceGappedConstrained(char *colors,
 			int32_t fromNTInt;
 			int32_t curScore = 0;
 
-			/* Get the from base */
-			if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colors[i]), &fromNT)) { 
-				PrintError(FnName, "fromNT", "Could not convert base and color to base", Exit, OutOfRange);
-			}
-			fromNTInt=BaseToInt(fromNT);
-			
-			// Add color score and nt score
-			curScore = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
-			curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
+			if('1' == mask[i]) { // The mask matched 
+				/* Get the from base */
+				if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colors[i]), &fromNT)) { 
+					PrintError(FnName, "fromNT", "Could not convert base and color to base", Exit, OutOfRange);
+				}
+				fromNTInt=BaseToInt(fromNT);
 
-			/* Add score for NT */
-			//Assertion above handles this ... assert(0 < j); // this could be a problem
-			matrix->cells[i+1][j+1].s.score[k] = matrix->cells[i][j].s.score[fromNTInt] + curScore;
-			matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + (ALPHABET_SIZE + 1); 
-			matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].s.length[fromNTInt] + 1;
-			matrix->cells[i+1][j+1].s.colorError[k] = GAP;
+				// Add color score and nt score
+				curScore = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
+				curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
-			assert(i+1 <= matrix->cells[i+1][j+1].s.length[k]);
+				/* Add score for NT */
+				//Assertion above handles this ... assert(0 < j); // this could be a problem
+				matrix->cells[i+1][j+1].s.score[k] = matrix->cells[i][j].s.score[fromNTInt] + curScore;
+				matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + (ALPHABET_SIZE + 1); 
+				matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].s.length[fromNTInt] + 1;
+				matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 
-			// Consider from an indel on the first extension
-			if(i == endRowStepOne && j == endColStepOne) {
+				assert(i+1 <= matrix->cells[i+1][j+1].s.length[k]);
 
-				/* From Horizontal - Deletion */
-				if(matrix->cells[i+1][j+1].s.score[k] < curScore + matrix->cells[i][j].h.score[fromNTInt]) { 
-					matrix->cells[i+1][j+1].s.score[k] = curScore + matrix->cells[i][j].h.score[fromNTInt];
-					matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1;
-					matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].h.length[fromNTInt] + 1;
-					matrix->cells[i+1][j+1].s.colorError[k] = GAP;
+				// Consider from an indel on the first extension
+				if(i == endRowStepOne && j == endColStepOne) {
+
+					/* From Horizontal - Deletion */
+					if(matrix->cells[i+1][j+1].s.score[k] < curScore + matrix->cells[i][j].h.score[fromNTInt]) { 
+						matrix->cells[i+1][j+1].s.score[k] = curScore + matrix->cells[i][j].h.score[fromNTInt];
+						matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1;
+						matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].h.length[fromNTInt] + 1;
+						matrix->cells[i+1][j+1].s.colorError[k] = GAP;
+					}
+
+					/* From Vertical - Insertion */
+					if(matrix->cells[i+1][j+1].s.score[k] < curScore + matrix->cells[i][j].v.score[fromNTInt]) { 
+						matrix->cells[i+1][j+1].s.score[k] = curScore + matrix->cells[i][j].v.score[fromNTInt];
+						matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + 2*(ALPHABET_SIZE + 1);
+						matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].v.length[fromNTInt] + 1;
+						matrix->cells[i+1][j+1].s.colorError[k] = GAP;
+					}
 				}
 
-				/* From Vertical - Insertion */
-				if(matrix->cells[i+1][j+1].s.score[k] < curScore + matrix->cells[i][j].v.score[fromNTInt]) { 
-					matrix->cells[i+1][j+1].s.score[k] = curScore + matrix->cells[i][j].v.score[fromNTInt];
-					matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + 2*(ALPHABET_SIZE + 1);
-					matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].v.length[fromNTInt] + 1;
-					matrix->cells[i+1][j+1].s.colorError[k] = GAP;
-				}
+				matrix->cells[i+1][j+1].s.score[k] = LOWERBOUNDSCORE(matrix->cells[i+1][j+1].s.score[k]);
 			}
+			else{ // Consider all possible colors as the mask did not match
+				int32_t maxScore = NEGATIVE_INFINITY-1;
+				int maxFrom = -1;
+				char maxColorError = GAP;
+				int maxLength = -1;
 
-			matrix->cells[i+1][j+1].s.score[k] = LOWERBOUNDSCORE(matrix->cells[i+1][j+1].s.score[k]);
+				for(fromNTInt=0;fromNTInt<alphabetSize;fromNTInt++) {
+					curScore=NEGATIVE_INFINITY+1;
+					char convertedColor='X';
+
+					/* Get color */
+					if(0 == ConvertBaseToColorSpace(DNA[fromNTInt], DNA[k], &convertedColor)) {
+						PrintError(FnName, "convertedColor", "Could not convert base to color space", Exit, OutOfRange);
+					}
+					convertedColor=COLORFROMINT(convertedColor);
+
+					// Should not be here if the masks begins with a 1
+					assert(i != endRowStepOne && j != endColStepOne);
+
+					/* Get NT and Color scores */
+					curScore = ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
+					curScore += ScoringMatrixGetColorScore(colors[i],
+							convertedColor,
+							sm);
+					LOWERBOUNDSCORE(curScore);
+
+					/* From Diagonal - Match/Mismatch */
+					if(maxScore < matrix->cells[i][j].s.score[fromNTInt] + curScore) {
+						maxScore = matrix->cells[i][j].s.score[fromNTInt] + curScore;
+						maxFrom = fromNTInt + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
+						maxColorError = (colors[i]  == convertedColor)?GAP:colors[i]; /* Keep original color */
+						maxLength = matrix->cells[i][j].s.length[fromNTInt] + 1;
+					}
+				}
+				/* Update */
+				matrix->cells[i+1][j+1].s.score[k] = maxScore;
+				matrix->cells[i+1][j+1].s.from[k] = maxFrom;
+				matrix->cells[i+1][j+1].s.colorError[k] = maxColorError;
+				matrix->cells[i+1][j+1].s.length[k] = maxLength;
+			}
 		}
 	}
 	for(k=0;k<alphabetSize;k++) {
