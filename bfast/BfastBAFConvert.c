@@ -52,7 +52,7 @@ int BfastBAFConvert(int argc, char *argv[])
 	char fileExtension[256]="\0";
 
 	// Get parameters
-	while((c = getopt(argc, argv, "f:h:o:O:")) >= 0) {
+	while((c = getopt(argc, argv, "f:o:O:h")) >= 0) {
 		switch(c) {
 			case 'O': outputType = atoi(optarg); break;
 			case 'f': strcpy(fastaFileName, optarg); break;
