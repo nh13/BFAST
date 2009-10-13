@@ -171,7 +171,7 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		if(ValidateFileName(args->fastaFileName)==0)
 			PrintError(FnName, "fastaFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
-	else {
+	else if(args->outputFormat != BAF) {
 		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);
 	}
 
