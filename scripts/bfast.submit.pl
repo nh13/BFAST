@@ -578,7 +578,7 @@ sub CreateJobsSamtools {
 		$cmd .= "samtools sort";
 		$cmd .= " -m ".$data->{'samtoolsOptions'}->{'maximumMemory'} if defined($data->{'samtoolsOptions'}->{'maximumMemory'});
 		$cmd .= " - ".$data->{'globalOptions'}->{'outputDirectory'};
-		$cmd .= "bfast.reported.$output_id";
+		$cmd .= "bfast.reported.file.$output_id";
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
