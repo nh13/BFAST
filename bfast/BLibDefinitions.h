@@ -24,7 +24,7 @@
 #define MERGE_MEMORY_LIMIT 12*((int64_t)1073741824) /* In Gigabytes */
 #define RGINDEXLAYOUT_MAX_HASH_WIDTH 18
 #define READS_BUFFER_LENGTH 40000
-#define BFAST_MATCH_THREAD_SLEEP 5
+#define BFAST_MATCH_THREAD_SLEEP 1
 
 /* Program Default Command-line parameters */
 #define MAX_KEY_MATCHES 8
