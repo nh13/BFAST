@@ -17,7 +17,10 @@
 
 typedef struct {
 	FILE *tempSeqFP;
-	gzFile tempOutputFP;
+	pthread_mutex_t *indexOutputFP_mutex;
+	gzFile indexOutputFP;
+	int32_t *indexOutputFP_threadID;
+	int32_t numThreads;
 	RGIndex *index;
 	RGBinary *rg;
 	int32_t *offsets;

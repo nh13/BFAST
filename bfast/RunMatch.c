@@ -606,16 +606,18 @@ int FindMatchesInIndex(char *indexFileName,
 {
 	char *FnName = "FindMatchesInIndex";
 	int i, j;
-	gzFile *tempOutputThreadFPs=NULL;
-	char **tempOutputThreadFileNames=NULL;
 	RGIndex index;
 	int numMatches = 0;
 	time_t startTime, endTime;
-	int seconds, minutes, hours;
 	int errCode;
 	ThreadIndexData *data=NULL;
+	pthread_mutex_t indexOutputFP_mutex;
+	int32_t indexOutputFP_threadID;
 	pthread_t *threads=NULL;
 	void *status;
+
+	// Initialize mutex
+	pthread_mutex_init(&indexOutputFP_mutex, NULL);
 
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
@@ -626,28 +628,6 @@ int FindMatchesInIndex(char *indexFileName,
 	data=malloc(sizeof(ThreadIndexData)*numThreads);
 	if(NULL==data) {
 		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
-	}
-
-	/* Allocate memory for one file pointer per thread */
-	tempOutputThreadFPs=malloc(sizeof(gzFile)*numThreads); 
-	if(NULL == tempOutputThreadFPs) {
-		PrintError(FnName, "tempOutputThreadFPs", "Could not allocate memory", Exit, MallocMemory);
-	}
-	tempOutputThreadFileNames = malloc(sizeof(char*)*numThreads);
-	if(NULL == tempOutputThreadFileNames) {
-		PrintError("FindMatchesInThreades", "tempOutputThreadFileNames", "Could not allocate memory", Exit, MallocMemory);
-	}
-	/* If we have only one thread, output directly to the index fp */
-	if(numThreads > 1) {
-		/* Open files for thread output */
-		for(i=0;i<numThreads;i++) {
-			tempOutputThreadFPs[i] = OpenTmpGZFile(tmpDir, &tempOutputThreadFileNames[i]);
-			assert(tempOutputThreadFPs[i] != NULL);
-		}
-	}
-	else {
-		/* Output directly to the indexe file pointer */
-		tempOutputThreadFPs[0] = indexFP; 
 	}
 
 	/* Initialize index */
@@ -684,7 +664,14 @@ int FindMatchesInIndex(char *indexFileName,
 	startTime = time(NULL);
 	/* Initialize arguments to threads */
 	for(i=0;i<numThreads;i++) {
-		data[i].tempOutputFP = tempOutputThreadFPs[i];
+		// Set the output file
+		pthread_mutex_lock(&indexOutputFP_mutex);
+		data[i].indexOutputFP_mutex = &indexOutputFP_mutex;
+		data[i].indexOutputFP = indexFP;
+		data[i].indexOutputFP_threadID = &indexOutputFP_threadID;
+		data[i].numThreads = numThreads;
+		pthread_mutex_unlock(&indexOutputFP_mutex);
+		// Set the rest of the data
 		data[i].index = &index;
 		data[i].rg = rg;
 		data[i].offsets = offsets;
@@ -726,53 +713,6 @@ int FindMatchesInIndex(char *indexFileName,
 		fprintf(stderr, "\n");
 	}
 
-	/* Merge temp thread output into temp index output */
-	/* Idea: the reads were apportioned in a given order,
-	 * so merge to recover the initial order.
-	 *
-	 * Only do this if we have do not have one thread.
-	 * */
-	if(numThreads > 1) {
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "Merging thread temp files...\n");
-		}
-		/* Close files and open for reading only */
-		for(i=0;i<numThreads;i++) {
-			CloseTmpGZFile(&tempOutputThreadFPs[i], 
-					&tempOutputThreadFileNames[i],
-					0);
-			if(!(tempOutputThreadFPs[i]=gzopen(tempOutputThreadFileNames[i], "rb"))) {
-				PrintError(FnName, tempOutputThreadFileNames[i], "Could not re-open file for reading", Exit, OpenFileError);
-			}
-		}
-		startTime = time(NULL);
-		i=RGMatchesMergeThreadTempFilesIntoOutputTempFile(tempOutputThreadFPs,
-				numThreads,
-				indexFP);
-		endTime = time(NULL);
-		if(VERBOSE >= 0 && timing == 1) {
-			seconds = (int)(endTime - startTime);
-			hours = seconds/3600;
-			seconds -= hours*3600;
-			minutes = seconds/60;
-			seconds -= minutes*60;
-			fprintf(stderr, "Merging matches from threads took: %d hours, %d minutes and %d seconds\n",
-					hours,
-					minutes,
-					seconds);
-		}
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "Merged %d reads from threads.\n", i);
-		}
-
-		/* Close temp thread output */
-		for(i=0;i<numThreads;i++) {
-			CloseTmpGZFile(&tempOutputThreadFPs[i],
-					&tempOutputThreadFileNames[i],
-					1);
-		}
-	}
-
 	/* Free memory of the RGIndex */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Cleaning up index.\n");
@@ -786,9 +726,6 @@ int FindMatchesInIndex(char *indexFileName,
 		fprintf(stderr, "Found %d matches.\n", numMatches);
 	}
 
-	/* Free memory for temporary file pointers */
-	free(tempOutputThreadFPs);
-	free(tempOutputThreadFileNames);
 	/* Free thread data */
 	free(threads);
 	free(data);
@@ -805,8 +742,11 @@ void *FindMatchesInIndexThread(void *arg)
 	int foundMatch = 0;
 	ThreadIndexData *data = (ThreadIndexData*)(arg);
 	/* Function arguments */
+	pthread_mutex_t *indexOutputFP_mutex = data->indexOutputFP_mutex;
+	gzFile indexOutputFP = data->indexOutputFP;
+	int32_t *indexOutputFP_threadID = data->indexOutputFP_threadID;
+	int32_t numThreads = data->numThreads; 
 	FILE *tempSeqFP = data->tempSeqFP;
-	gzFile tempOutputFP = data->tempOutputFP;
 	RGIndex *index = data->index;
 	RGBinary *rg = data->rg;
 	int32_t *offsets = data->offsets;
@@ -882,14 +822,32 @@ void *FindMatchesInIndexThread(void *arg)
 		}
 
 		/* Output to file */
-		for(i=0;i<numMatches;i++) {
-			RGMatchesPrint(tempOutputFP, 
-					&matchQueue[i]);
+		do {
+			// Get output mutex
+			pthread_mutex_lock(indexOutputFP_mutex);
+			if(threadID == (*indexOutputFP_threadID)) {
+				for(i=0;i<numMatches;i++) {
+					RGMatchesPrint(indexOutputFP, 
+							&matchQueue[i]);
+				}
+				// Move to the next thread
+				(*indexOutputFP_threadID) = ((1 + (*indexOutputFP_threadID)) % numThreads);
+				pthread_mutex_unlock(indexOutputFP_mutex);
+				break;
+			}
+			else {
+				pthread_mutex_unlock(indexOutputFP_mutex);
+				// Sleep until we try the lock again
+				sleep(BFAST_MATCH_THREAD_SLEEP);
+			}
+		} while(1);
 
-			/* Free matches */
+		/* Free matches */
+		for(i=0;i<numMatches;i++) {
 			RGMatchesFree(&matchQueue[i]);
 		}
 	}
+
 	assert(0 == numMatches);
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
