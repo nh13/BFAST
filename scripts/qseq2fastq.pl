@@ -12,7 +12,7 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: qseq2fastq.pl [-n <number of reads> -o <output prefix>] <input .qseq prefix>
+Usage: qseq2fastq.pl [-b <bar code length> -n <number of reads> -o <output prefix>] <input .qseq prefix>
 
 	This script will convert Illumina output files (*qseq files)
 	to the BFAST fastq multi-end format.  For single-end reads 
@@ -39,7 +39,7 @@ Usage: qseq2fastq.pl [-n <number of reads> -o <output prefix>] <input .qseq pref
 };
 my $ROTATE_NUM = 100000;
 
-getopts('n:o:', \%opts);
+getopts('b:n:o:', \%opts);
 die($usage) if (@ARGV < 1);
 
 my $num_reads = -1;
@@ -57,6 +57,12 @@ else {
 	if(defined($opts{'o'})) {
 		die("Error.  The -o option was specified without the -n option.  Terminating!\n");
 	}
+}
+
+my $barcode_length = 0;
+if(defined($opts{'b'})) {
+	$barcode_length = $opts{'b'};
+	die if ($barcode_length < 0);
 }
 
 my $input_prefix = shift @ARGV;
@@ -89,7 +95,7 @@ if(0 == scalar(@files_two)) { # Single end
 	while($FH_index < scalar(@files_one)) {
 		open(FH_one, "$files_one[$FH_index]") || die;
 		while(defined(my $line = <FH_one>)) {
-			my ($name, $seq, $qual) = parse_line($line, 1);
+			my ($name, $seq, $qual) = parse_line($line, $barcode_length, 1);
 			if(0 < $num_reads) {
 				if($num_reads <= $output_num_written) {
 					close(FHout);
@@ -116,9 +122,9 @@ else { # Paired end
 		open(FH_two, "$files_two[$FH_index]") || die;
 		my %read_one = ();
 		my %read_two = ();
-		while(1 == get_read(*FH_one, \%read_one, 1) &&
-			1 == get_read(*FH_two, \%read_two, 2)) {
-			if(!($read_one{"NAME"} eq $read_two{"NAME"})) {
+		while(1 == get_read(*FH_one, \%read_one, $barcode_length, 1) &&
+			1 == get_read(*FH_two, \%read_two, $barcode_length, 2)) {
+			if(0 != cmp_read_names($read_one{"NAME"}, $read_two{"NAME"})) {
 				print STDERR "".$read_one{"NAME"}."\t".$read_two{"NAME"}."\n";
 				die;
 			}
@@ -148,8 +154,11 @@ if(0 < $num_reads) {
 }
 
 sub cmp_read_names {
-	my $a = shift;
-	my $b = shift;
+	my ($a, $b) = @_;
+
+	# Remove the bar codes if necessarily
+	$a =~ s/_BC:.+//;
+	$b =~ s/_BC:.+//;
 
 	# characters, the numbers, then characters, then numbers, ...
 	# recursion is for sissies
@@ -188,8 +197,7 @@ sub cmp_read_names {
 }
 
 sub GetDirContents {
-	my $prefix = shift;
-	my $dirs = shift;
+	my ($prefix, $dirs) = @_;
 
 	my $dir = "";
 	if($prefix =~ m/^(.+\/)([^\/]*)/) {
@@ -210,9 +218,25 @@ sub GetDirContents {
 	close(DIR);
 }
 
+sub get_read {
+	my ($FH, $read, $barcode_length, $end) = @_;
+
+	if(defined(my $line = <$FH>)) {
+		my ($name, $seq, $qual) = parse_line($line, $barcode_length, $end);
+
+		$read->{"NAME"} = $name;
+		$read->{"SEQ"} = $seq;
+		$read->{"QUAL"} = $qual;
+
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
 sub parse_line {
-	my $line = shift;
-	my $end = shift;
+	my ($line, $barcode_length, $end) = @_;
 
 	my @arr = split(/\s+/, $line);
 
@@ -226,6 +250,12 @@ sub parse_line {
 	my $name = "@".$arr[0]."_".$arr[1]."_".$arr[2]."_".$arr[3]."_".$arr[4]."_".$arr[5]."_".$arr[6]."";
 	my $seq = $arr[8];
 
+	if(0 < $barcode_length) {
+		$name .= "_BC:".substr($seq, 0, $barcode_length)."";
+		$seq = substr($seq, $barcode_length);
+		$qual = substr($qual, $barcode_length);
+	}
+
 	if(1 != $end) {
 		$seq = reverse($seq);
 		$seq =~ tr/ACGTacgt/TGCAtgca/;
@@ -233,23 +263,4 @@ sub parse_line {
 	}
 
 	return ($name, $seq, $qual);
-}
-
-sub get_read {
-	my $FH = shift;
-	my $read = shift;
-	my $end = shift;
-
-	if(defined(my $line = <$FH>)) {
-		my ($name, $seq, $qual) = parse_line($line, $end);
-
-		$read->{"NAME"} = $name;
-		$read->{"SEQ"} = $seq;
-		$read->{"QUAL"} = $qual;
-
-		return 1;
-	}
-	else {
-		return 0;
-	}
 }
