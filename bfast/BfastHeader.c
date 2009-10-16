@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <config.h>
+#include <unistd.h>
 
 #include "BLibDefinitions.h"
 #include "BError.h"

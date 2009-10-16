@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <zlib.h>
 #include <config.h>
+#include <unistd.h>
 
 #include "RGMatches.h"
 #include "BLibDefinitions.h"
