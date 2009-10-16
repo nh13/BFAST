@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <zlib.h>
 #include <config.h>
+#include <unistd.h>
 #include "BLibDefinitions.h"
 #include "AlignedRead.h"
 #include "AlignedReadConvert.h"

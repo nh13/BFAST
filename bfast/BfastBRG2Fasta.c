@@ -3,6 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <config.h>
+#include <unistd.h>
 #include "BLibDefinitions.h"
 #include "AlignedRead.h"
 #include "AlignedReadConvert.h"
