@@ -503,8 +503,8 @@ sub CreateJobsLocalalign {
 			$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 			$cmd .= " -m $bmf_file";
 			$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
-			$cmd .= " -u " if defined($data->{'localalignOptions'}->{'ungapped'});
-			$cmd .= " -c " if defined($data->{'localalignOptions'}->{'unconstrained'});
+			$cmd .= " -u" if defined($data->{'localalignOptions'}->{'ungapped'});
+			$cmd .= " -c" if defined($data->{'localalignOptions'}->{'unconstrained'});
 			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
 			$cmd .= " -o ".$data->{'localalignOptions'}->{'offset'}             if defined($data->{'localalignOptions'}->{'offset'});
 			$cmd .= " -M ".$data->{'localalignOptions'}->{'maxNumMatches'}      if defined($data->{'localalignOptions'}->{'maxNumMatches'});
@@ -551,7 +551,6 @@ sub CreateJobsPostprocess {
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
-		$cmd .= " -O 3"; # always SAM format
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
 		$cmd .= " > ".$sam_file;
 
