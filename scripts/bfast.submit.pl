@@ -187,6 +187,7 @@ sub Schema {
 				</xs:simpleType>
 			  </xs:element>
 			  <xs:element name="pairedEndInfer" type="xs:integer"/>
+			  <xs:element name="outputFormat" type="xs:integer"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			  <xs:element name="qsubArgs" type="xs:string"/>
@@ -289,6 +290,7 @@ sub ValidateData {
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'outputFormat',                             OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
@@ -370,11 +372,13 @@ sub CreateJobs {
 	mkpath([$data->{'globalOptions'}->{'outputDirectory'}], ($quiet) ? 0 : 1, 0755);
 	mkpath([$data->{'globalOptions'}->{'tmpDirectory'}],    ($quiet) ? 0 : 1, 0755);
 
-	# match
 	CreateJobsMatch($data, $quiet, $start_step, \@matchJobIDs,     \@match_output_ids);
 	CreateJobsLocalalign($data, $quiet, $start_step, \@matchJobIDs,     \@localalignJobIDs,       \@match_output_ids, \@localalign_output_ids);
 	CreateJobsPostprocess($data, $quiet, $start_step, \@localalignJobIDs,       \@postprocessJobIDs, \@localalign_output_ids);
-	CreateJobsSamtools($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
+	if(!defined($data->{'postprocessOptions'}->{'outputFormat'}) ||
+		3 == $data->{'postprocessOptions'}->{'outputFormat'}) {
+		CreateJobsSamtools($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
+	}
 }
 
 sub CreateRunFile {
@@ -545,6 +549,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
+		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -O 3"; # always SAM format
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
