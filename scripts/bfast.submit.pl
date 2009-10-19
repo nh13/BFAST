@@ -24,6 +24,7 @@ my %TIMING = ("ON" => 1);
 my %LOCALALIGNMENTTYPE = ("GAPPED" => 0, "UNGAPPED" => 1);
 my %STRAND = ("BOTH" => 0, "FORWARD" => 1, "REVERSE" => 2);
 my %STARTSTEP = ("match" => 0, "localalign" => 1, "postprocess" => 2, "samtools" => 3);
+my %OUTTYPES = (0 => "baf", 1 => "maf", 2 => "gff", 3 => "sam");
 
 use constant {
 	OPTIONAL => 0,
@@ -229,8 +230,8 @@ sub Schema {
 </xs:schema>
 END
 
-print STDOUT $schema;
-exit 1;
+	print STDOUT $schema;
+	exit 1;
 }
 
 sub ValidateData {
@@ -290,7 +291,7 @@ sub ValidateData {
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
-	ValidateOption($data->{'postprocessOptions'}, 'outputFormat',                             OPTIONAL);
+	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
@@ -404,11 +405,12 @@ sub GetAlignFile {
 }
 
 sub GetReportedFile {
-	my ($data, $output_id) = @_;
+	my ($data, $output_id, $type) = @_;
 
-	return sprintf("%sbfast.reported.file.%s.sam",
+	return sprintf("%sbfast.reported.file.%s.%s",
 		$data->{'globalOptions'}->{'outputDirectory'},
-		$output_id);
+		$output_id,
+		$OUTTYPES{$type});
 }
 
 sub CreateJobsMatch {
@@ -540,7 +542,7 @@ sub CreateJobsPostprocess {
 		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
-		my $sam_file = GetReportedFile($data, $output_id);
+		my $sam_file = GetReportedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
 
 		my $cmd = "";
 		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."bfast/" if defined($data->{'globalOptions'}->{'bfastBin'});
@@ -570,7 +572,7 @@ sub CreateJobsSamtools {
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		$output_id = $output_ids->[$i];
 		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
-		my $sam_file = GetReportedFile($data, $output_id);
+		my $sam_file = GetReportedFile($data, $output_id, 3);
 		$run_file = CreateRunFile($data, 'samtools', $output_id);
 
 		$cmd = "";
