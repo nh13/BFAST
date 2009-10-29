@@ -291,6 +291,7 @@ sub ValidateData {
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
+	ValidateFile($data->{'unmappedFileName'}, 'unmappedFileName',                             OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
@@ -551,6 +552,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
+		$cmd .= " -u ".$data->{'postprocessOptions'}->{'unmappedFileName'}   if defined($data->{'postprocessOptions'}->{'unmappedFileName'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
