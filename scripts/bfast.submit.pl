@@ -559,7 +559,7 @@ sub CreateJobsPostprocess {
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
 		my $sam_file = GetReportedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
-		my $unmapped_file = GetUnmappedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
+		my $unmapped_file = GetUnmappedFile($data, $output_id, 0);
 
 		my $cmd = "";
 		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."" if defined($data->{'globalOptions'}->{'bfastBin'});
@@ -568,7 +568,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
-		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFileName'});
+		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
