@@ -128,6 +128,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 						numEnds++;
 					}
 				}
+				assert(0 < numEnds);
 			}
 			if(maxNumEnds < numEnds) {
 				// Reallocate
@@ -183,6 +184,12 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Found %10lld reads with no ends mapped.\n", 
 				(long long int)numUnmapped);
+		if(!(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0])) {
+			fprintf(stderr, "%d < 1 || %d == %d\n",
+				maxNumEnds,
+				(int)numUnmapped,
+				mappedEndCounts[0]);
+		}
 		assert(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0]);
 		for(i=1;i<=maxNumEnds;i++) {
 			if(1 == i) fprintf(stderr, "Found %10d reads with %2d end mapped.\n", mappedEndCounts[i], i);
@@ -289,7 +296,8 @@ int FilterAlignedRead(AlignedRead *a,
 							&tmpA.ends[i].entries[bestIndex]);
 					AlignedEndReallocate(&tmpA.ends[i], 1);
 				}
-				else if(BestScoreAll == algorithm) {
+				else if(BestScoreAll == algorithm &&
+						1 <= numBest) {
 					foundTypes[i] = Found;
 					ctr=0;
 					for(j=0;j<tmpA.ends[i].numEntries;j++) {
