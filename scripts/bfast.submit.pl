@@ -304,7 +304,7 @@ sub ValidateData {
 		ValidateOption($data->{'samtoolsOptions'},     'qsubArgs',                                 OPTIONAL);
 	}
 	else {
-		warn("The samtools options were not found.\n");
+		warn("The samtools options were not found.  Skipping samtools...\n");
 	}
 }
 
@@ -381,9 +381,11 @@ sub CreateJobs {
 	CreateJobsMatch($data, $quiet, $start_step, \@matchJobIDs,     \@match_output_ids);
 	CreateJobsLocalalign($data, $quiet, $start_step, \@matchJobIDs,     \@localalignJobIDs,       \@match_output_ids, \@localalign_output_ids);
 	CreateJobsPostprocess($data, $quiet, $start_step, \@localalignJobIDs,       \@postprocessJobIDs, \@localalign_output_ids);
-	if(!defined($data->{'postprocessOptions'}->{'outputFormat'}) ||
-		3 == $data->{'postprocessOptions'}->{'outputFormat'}) {
-		CreateJobsSamtools($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
+	if(defined($data->{'samtoolsOptions'})) {
+		if(!defined($data->{'postprocessOptions'}->{'outputFormat'}) ||
+			3 == $data->{'postprocessOptions'}->{'outputFormat'}) {
+			CreateJobsSamtools($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
+		}
 	}
 }
 
@@ -558,7 +560,6 @@ sub CreateJobsPostprocess {
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
 		my $sam_file = GetReportedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
 		my $unmapped_file = GetUnmappedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
-		my
 
 		my $cmd = "";
 		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."" if defined($data->{'globalOptions'}->{'bfastBin'});
