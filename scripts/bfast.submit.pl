@@ -291,17 +291,21 @@ sub ValidateData {
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
-	ValidateFile($data->{'unmappedFileName'}, 'unmappedFileName',                             OPTIONAL);
+	ValidateOption($data->{'unmappedFile'}, 'unmappedFile',                                   OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
 
 	# samtools
-	die("The samtools options were not found.\n") unless (defined($data->{'samtoolsOptions'})); 
-	ValidateOption($data->{'samtoolsOptions'},     'maximumMemory',                            OPTIONAL);
-	ValidateOption($data->{'samtoolsOptions'},     'qsubQueue',                                OPTIONAL);
-	ValidateOption($data->{'samtoolsOptions'},     'qsubArgs',                                 OPTIONAL);
+	if(defined($data->{'samtoolsOptions'})) { 
+		ValidateOption($data->{'samtoolsOptions'},     'maximumMemory',                            OPTIONAL);
+		ValidateOption($data->{'samtoolsOptions'},     'qsubQueue',                                OPTIONAL);
+		ValidateOption($data->{'samtoolsOptions'},     'qsubArgs',                                 OPTIONAL);
+	}
+	else {
+		warn("The samtools options were not found.\n");
+	}
 }
 
 sub ValidateOption {
@@ -409,6 +413,15 @@ sub GetReportedFile {
 	my ($data, $output_id, $type) = @_;
 
 	return sprintf("%sbfast.reported.file.%s.%s",
+		$data->{'globalOptions'}->{'outputDirectory'},
+		$output_id,
+		$OUTTYPES{$type});
+}
+
+sub GetUnmappedFile {
+	my ($data, $output_id, $type) = @_;
+
+	return sprintf("%sbfast.not.reported.file.%s.%s",
 		$data->{'globalOptions'}->{'outputDirectory'},
 		$output_id,
 		$OUTTYPES{$type});
@@ -544,6 +557,8 @@ sub CreateJobsPostprocess {
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
 		my $sam_file = GetReportedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
+		my $unmapped_file = GetUnmappedFile($data, $output_id, (defined($data->{'postprocessOptions'}->{'outputFormat'})) ? $data->{'postprocessOptions'}->{'outputFormat'} : 3);
+		my
 
 		my $cmd = "";
 		$cmd .= $data->{'globalOptions'}->{'bfastBin'}."" if defined($data->{'globalOptions'}->{'bfastBin'});
@@ -552,7 +567,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
-		$cmd .= " -u ".$data->{'postprocessOptions'}->{'unmappedFileName'}   if defined($data->{'postprocessOptions'}->{'unmappedFileName'});
+		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFileName'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
