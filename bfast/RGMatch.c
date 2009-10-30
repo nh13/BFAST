@@ -645,7 +645,7 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 				for(j=1;j<m->readLength;j++) { // ignore leading adaptor
 					reference[j-1] = RGBinaryGetBase(rg, m->contigs[i], m->positions[i] + j - 1);
 					reference[j-1] = (0 == reference[j-1]) ? '-' : ToUpper(reference[j-1]);
-					reference[j-1] = ConvertColorFromStorage(reference[j-1]);
+					reference[j-1] = COLORS[BaseToInt(reference[j-1])];
 
 					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j-1]) {
 						reference[j]='\0';
@@ -657,7 +657,7 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 									&r,
 									m->readLength));
 						ConvertColorsFromStorage(r, m->readLength);
-						fprintf(stderr, "\n%s%s\n%s\n%s\n%s\n",
+						fprintf(stderr, "\n%sCASE1%s\n%s\n%s\n%s\n",
 								BREAK_LINE,
 								reference,
 								r,
@@ -744,7 +744,7 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 							m->contigs[i], 
 							m->positions[i] + m->readLength - j);
 					reference[j-1] = (0 == base) ? '-' : ToUpper(base);
-					reference[j-1] = ConvertColorFromStorage(reference[j-1]);
+					reference[j-1] = COLORS[BaseToInt(reference[j-1])];
 					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j-1]) {
 						fprintf(stderr, "%c:%c\n",
 								ToUpper(m->read[j]),
