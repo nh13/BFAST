@@ -105,7 +105,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t *referenceLengths=NULL;
 	int32_t *referencePositions=NULL;
 	int32_t *referenceOffsets=NULL;
-	int32_t *readOffsets=NULL;
+	int32_t *readStartInsertionLengths=NULL;
+	int32_t *readEndInsertionLengths=NULL;
 	char read[SEQUENCE_LENGTH]="\0";
 	char colors[SEQUENCE_LENGTH]="\0";
 	int32_t readLength;
@@ -160,9 +161,13 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	if(NULL==referenceOffsets) {
 		PrintError(FnName, "referenceOffsets", "Could not allocate memory", Exit, MallocMemory);
 	}
-	readOffsets = malloc(sizeof(int32_t)*m->numEntries);
-	if(NULL==readOffsets) {
-		PrintError(FnName, "readOffsets", "Could not allocate memory", Exit, MallocMemory);
+	readStartInsertionLengths = malloc(sizeof(int32_t)*m->numEntries);
+	if(NULL==readStartInsertionLengths) {
+		PrintError(FnName, "readStartInsertionLengths", "Could not allocate memory", Exit, MallocMemory);
+	}
+	readEndInsertionLengths = malloc(sizeof(int32_t)*m->numEntries);
+	if(NULL==readEndInsertionLengths) {
+		PrintError(FnName, "readEndInsertionLengths", "Could not allocate memory", Exit, MallocMemory);
 	}
 	referencePositions = malloc(sizeof(int32_t)*m->numEntries);
 	if(NULL==referencePositions) {
@@ -184,42 +189,53 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 
 		assert(referenceLengths[ctr] > 0);
 		/* Initialize entries */
-		if(readLength <= referenceLengths[ctr]) {
-			// Adjust offsets.  This matters for constrained alignment only
-			if(m->positions[i] - offset == referencePositions[ctr]) {
-				if(FORWARD == m->strands[i]) {
-					referenceOffsets[ctr]=offset;
-					readOffsets[ctr]=0;
-				}
-				else {
-					referenceOffsets[ctr]=referenceLengths[ctr]-offset-readLength;
-					readOffsets[ctr]=0;
-				}
+		if(readLength <= referenceLengths[ctr] || Gapped == ungapped) {
+			readStartInsertionLengths[ctr]=0;
+			readEndInsertionLengths[ctr]=0;
+			referenceOffsets[ctr]=offset;
+
+			if(referencePositions[ctr] <= m->positions[i] &&
+					m->positions[i] + readLength <= referencePositions[ctr] + referenceLengths[ctr]) {
 			}
-			else if(m->positions[i] < 1) {
-				if(FORWARD == m->strands[i]) {
-					referenceOffsets[ctr]=0;
-					readOffsets[ctr]=1-m->positions[i];
+			else if(FORWARD == m->strands[i]) {
+				if(m->positions[i] < 1) {
+					readStartInsertionLengths[ctr] = 1 - m->positions[i];
 				}
-				else {
-					referenceOffsets[ctr]=offset;
-					readOffsets[ctr]=0;
+				if(referencePositions[ctr] + referenceLengths[ctr] < 
+						m->positions[i] +  readLength) {
+					readEndInsertionLengths[ctr] = m->positions[i] +  readLength -
+						referencePositions[ctr] - referenceLengths[ctr];
 				}
 			}
 			else {
-				assert(m->positions[i] - offset < 1);
-				if(FORWARD == m->strands[i]) {
-					referenceOffsets[ctr] = m->positions[i]-1;
-					readOffsets[ctr]=0;
+				if(m->positions[i] < 1) {
+					readEndInsertionLengths[ctr] = referencePositions[ctr] - m->positions[i];
 				}
-				else {
-					referenceOffsets[ctr]=offset;
-					readOffsets[ctr]=0;
+				if(referencePositions[ctr] + referenceLengths[ctr] < 
+						m->positions[i] +  readLength) {
+					readStartInsertionLengths[ctr] = m->positions[i] +  readLength -
+						referencePositions[ctr] - referenceLengths[ctr];
 				}
 			}
-			assert(0 <= readOffsets[ctr]);
-			if(matrix->nrow < readLength+readOffsets[ctr]+1) {
-				AlignMatrixReallocate(matrix, readLength+readOffsets[ctr]+1, GETMAX(matrix->ncol, readLength+readOffsets[ctr]+1));
+			
+			if(FORWARD == m->strands[i]) {
+				referenceOffsets[ctr] = m->positions[i] - referencePositions[ctr];
+			}
+			else {
+				referenceOffsets[ctr]  = referencePositions[ctr] + referenceLengths[ctr] - 
+					m->positions[i] - readLength; 
+			}
+			referenceOffsets[ctr] += readStartInsertionLengths[ctr];
+
+			if(matrix->nrow < readLength + 
+					readStartInsertionLengths[ctr] + 
+					readEndInsertionLengths[ctr] + 1) {
+				AlignMatrixReallocate(matrix, 
+						readLength + readStartInsertionLengths[ctr] + 
+						readEndInsertionLengths[ctr] + 1,
+						GETMAX(matrix->ncol, 
+							readLength + readStartInsertionLengths[ctr] + 
+							readEndInsertionLengths[ctr] + 1));
 			}
 			/* Copy over mask */
 			masks[ctr] = RGMatchMaskToString(m->masks[i], m->readLength);
@@ -310,7 +326,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		free(referenceLengths);
 		free(referencePositions);
 		free(referenceOffsets);
-		free(readOffsets);
+		free(readStartInsertionLengths);
+		free(readEndInsertionLengths);
 		return;
 	}
 #endif
@@ -381,7 +398,9 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			free(referenceLengths);
 			free(referencePositions);
 			free(referenceOffsets);
-			free(readOffsets);
+			free(referenceOffsets);
+			free(readStartInsertionLengths);
+			free(readEndInsertionLengths);
 
 			return;
 			/* These compiler commands aren't necessary, but are here for vim tab indenting */
@@ -405,7 +424,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 				matrix,
 				space,
 				referenceOffsets[i],
-				readOffsets[i],
+				readStartInsertionLengths[i],
+				readEndInsertionLengths[i],
 				referencePositions[i],
 				end->entries[i].strand,
 				(BestOnly == bestOnly)?(*bestScore):end->entries[i].score);
@@ -423,7 +443,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	free(referenceLengths);
 	free(referencePositions);
 	free(referenceOffsets);
-	free(readOffsets);
+	free(readStartInsertionLengths);
+	free(readEndInsertionLengths);
 }
 
 /* TODO */
@@ -558,7 +579,8 @@ void AlignGapped(char *read,
 		AlignMatrix *matrix,
 		int32_t space,
 		int32_t referenceOffset,
-		int32_t readOffset,
+		int32_t readStartInsertionLength,
+		int32_t readEndInsertionLength,
 		int32_t position,
 		char strand,
 		double lowerBound)
@@ -648,7 +670,8 @@ void AlignGapped(char *read,
 					matrix,
 					space,
 					referenceOffset,
-					readOffset,
+					readStartInsertionLength,
+					readEndInsertionLength,
 					position,
 					strand);
 			break;
@@ -719,7 +742,8 @@ void AlignGappedConstrained(char *read,
 		AlignMatrix *matrix,
 		int32_t space,
 		int32_t referenceOffset,
-		int32_t readOffset,
+		int32_t readStartInsertionLength,
+		int32_t readEndInsertionLength,
 		int32_t position,
 		char strand)
 {
@@ -736,7 +760,8 @@ void AlignGappedConstrained(char *read,
 					a,
 					matrix,
 					referenceOffset,
-					readOffset,
+					readStartInsertionLength,
+					readEndInsertionLength,
 					position,
 					strand);
 			break;
@@ -750,7 +775,8 @@ void AlignGappedConstrained(char *read,
 					a,
 					matrix,
 					referenceOffset,
-					readOffset,
+					readStartInsertionLength,
+					readEndInsertionLength,
 					position,
 					strand);
 			break;

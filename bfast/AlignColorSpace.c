@@ -12,6 +12,9 @@
 #include "Align.h"
 #include "AlignColorSpace.h"
 
+// Remove debugging code
+// Fill in end insertion
+
 /* TODO */
 int32_t AlignColorSpaceUngapped(char *colors,
 		char *mask,
@@ -215,7 +218,7 @@ void AlignColorSpaceGappedBounded(char *colors,
 
 	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
 
-	AlignColorSpaceInitializeAtStart(colors, matrix, sm, readLength, referenceLength, alphabetSize);
+	AlignColorSpaceInitializeAtStart(colors, matrix, sm, readLength, referenceLength, alphabetSize, COLOR_SPACE_START_NT);
 
 	/* Fill in the matrix according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
@@ -228,7 +231,7 @@ void AlignColorSpaceGappedBounded(char *colors,
 		}
 	}
 
-	AlignColorSpaceRecoverAlignmentFromMatrix(a, matrix, colors, readLength, reference, referenceLength, readLength - maxV, position, strand, alphabetSize, 0);
+	AlignColorSpaceRecoverAlignmentFromMatrix(a, matrix, colors, readLength, reference, 0, 0, referenceLength, readLength - maxV, position, strand, alphabetSize, 0);
 }
 
 void AlignColorSpaceGappedConstrained(char *colors,
@@ -240,7 +243,8 @@ void AlignColorSpaceGappedConstrained(char *colors,
 		AlignedEntry *a,
 		AlignMatrix *matrix,
 		int32_t referenceOffset,
-		int32_t readOffset,
+		int32_t readStartInsertionLength,
+		int32_t readEndInsertionLength,
 		int32_t position,
 		char strand)
 {
@@ -248,42 +252,27 @@ void AlignColorSpaceGappedConstrained(char *colors,
 	int i, j, k;
 	int alphabetSize=ALPHABET_SIZE;
 	int32_t endRowStepOne, endColStepOne, endRowStepTwo, endColStepTwo;
-
-	assert(0 < readLength);
-	assert(0 < referenceLength);
-
-	if(0 < readOffset) {
-		// Default to the bounded version since this would be difficult
-		AlignColorSpaceGappedBounded(colors,
-				readLength,
-				reference,
-				referenceLength,
-				sm,
-				a,
-				matrix,
-				position,
-				strand,
-				readLength,
-				readLength);
-		return;
-	}
+	char *colorsAfterInsertion = colors + readStartInsertionLength;
+	char *maskAfterInsertion = mask + readStartInsertionLength;
+	int32_t readAfterInsertionLength = readLength - readStartInsertionLength;
+	char prevBase, curBase;
 
 	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
 
 	/* Get where to transition */
 	endRowStepOne = endColStepOne = endRowStepTwo = endColStepTwo = -1;
 	i=0;
-	while(i<readLength) {
-		if('1' == mask[i]) {
+	while(i<readAfterInsertionLength-readEndInsertionLength) {
+		if('1' == maskAfterInsertion[i]) {
 			endRowStepOne=i;
 			endColStepOne=referenceOffset+i;
 			break;
 		}
 		i++;
 	}
-	i=readLength;
+	i=readAfterInsertionLength-readEndInsertionLength;
 	while(0<=i) {
-		if('1' == mask[i]) {
+		if('1' == maskAfterInsertion[i]) {
 			endRowStepTwo=i;
 			endColStepTwo=referenceOffset+i;
 			break;
@@ -291,20 +280,23 @@ void AlignColorSpaceGappedConstrained(char *colors,
 		i--;
 	}
 
-	/* Adjust based off of the read offset */
-	if(0 < readOffset) {
-		endRowStepOne += readOffset;
-		endRowStepTwo += readOffset;
-	}
-
 	assert(0 <= endRowStepOne && 0 <= endColStepOne);
 	assert(0 <= endRowStepTwo && 0 <= endColStepTwo);
 
+	// Get start NT after insertion
+	prevBase = COLOR_SPACE_START_NT;
+	for(i=0;i<readStartInsertionLength;i++) {
+		if(0 == ConvertBaseAndColor(prevBase, BaseToInt(colors[i-1]), &curBase)) {
+			PrintError(FnName, "curReadBase", "Could not convert base and color", Exit, OutOfRange);
+		}
+		prevBase = curBase;
+	}
+
 	/* Step 1 - upper left */
-	AlignColorSpaceInitializeAtStart(colors, matrix, sm, endRowStepOne, endColStepTwo, alphabetSize);
+	AlignColorSpaceInitializeAtStart(colorsAfterInsertion, matrix, sm, endRowStepOne, endColStepTwo, alphabetSize, prevBase);
 	for(i=0;i<endRowStepOne;i++) { /* read/rows */
 		for(j=0;j<endColStepOne;j++) { /* reference/columns */
-			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], readLength, readLength, alphabetSize);
+			AlignColorSpaceFillInCell(colorsAfterInsertion, readAfterInsertionLength, reference, referenceLength, sm, matrix, i, j, colorsAfterInsertion[i], readAfterInsertionLength, readAfterInsertionLength, alphabetSize);
 		}
 	}
 
@@ -321,7 +313,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 		}
 		curReferenceColor=COLORFROMINT(curReferenceColor);
 		/* Check the colors match */
-		if('1' == mask[i] && colors[i] != curReferenceColor) {
+		if('1' == maskAfterInsertion[i] && colorsAfterInsertion[i] != curReferenceColor) {
 			PrintError(FnName, NULL, "read and reference did not match", Exit, OutOfRange);
 		}
 		for(k=0;k<alphabetSize;k++) { /* To NT */
@@ -331,13 +323,13 @@ void AlignColorSpaceGappedConstrained(char *colors,
 
 			if('1' == mask[i]) { // The mask matched 
 				/* Get the from base */
-				if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colors[i]), &fromNT)) { 
+				if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colorsAfterInsertion[i]), &fromNT)) { 
 					PrintError(FnName, "fromNT", "Could not convert base and color to base", Exit, OutOfRange);
 				}
 				fromNTInt=BaseToInt(fromNT);
 
 				// Add color score and nt score
-				curScore = ScoringMatrixGetColorScore(colors[i], colors[i], sm);
+				curScore = ScoringMatrixGetColorScore(colorsAfterInsertion[i], colorsAfterInsertion[i], sm);
 				curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
 				/* Add score for NT */
@@ -392,7 +384,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 
 					/* Get NT and Color scores */
 					curScore = ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
-					curScore += ScoringMatrixGetColorScore(colors[i],
+					curScore += ScoringMatrixGetColorScore(colorsAfterInsertion[i],
 							convertedColor,
 							sm);
 					LOWERBOUNDSCORE(curScore);
@@ -401,7 +393,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 					if(maxScore < matrix->cells[i][j].s.score[fromNTInt] + curScore) {
 						maxScore = matrix->cells[i][j].s.score[fromNTInt] + curScore;
 						maxFrom = fromNTInt + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-						maxColorError = (colors[i]  == convertedColor)?GAP:colors[i]; /* Keep original color */
+						maxColorError = (colorsAfterInsertion[i]  == convertedColor)?GAP:colorsAfterInsertion[i]; /* Keep original color */
 						maxLength = matrix->cells[i][j].s.length[fromNTInt] + 1;
 					}
 				}
@@ -420,18 +412,21 @@ void AlignColorSpaceGappedConstrained(char *colors,
 	}
 
 	/* Step 3 - lower right */
-	AlignColorSpaceInitializeToExtend(colors, matrix, sm, readLength, referenceLength, endRowStepTwo, endColStepTwo, alphabetSize);
+	AlignColorSpaceInitializeToExtend(colorsAfterInsertion, matrix, sm, readAfterInsertionLength, referenceLength, endRowStepTwo, endColStepTwo, alphabetSize);
 	// Note: we ignore any cells on row==endRowStepTwo or col==endRowStepTwo
 	// since we assumed they were filled in by the previous re-initialization
-	for(i=endRowStepTwo;i<readLength;i++) { /* read/rows */
+	for(i=endRowStepTwo;i<readAfterInsertionLength-readEndInsertionLength;i++) { /* read/rows */
 		/* Get the current color for the read */
 		for(j=endColStepTwo;j<referenceLength;j++) { /* reference/columns */
-			AlignColorSpaceFillInCell(colors, readLength, reference, referenceLength, sm, matrix, i, j, colors[i], readLength, readLength, alphabetSize);
+			AlignColorSpaceFillInCell(colorsAfterInsertion, readAfterInsertionLength, reference, referenceLength, sm, matrix, i, j, colorsAfterInsertion[i], readAfterInsertionLength, readAfterInsertionLength, alphabetSize);
 		}
 	}
 
 	/* Step 4 - recover alignment */
-	AlignColorSpaceRecoverAlignmentFromMatrix(a, matrix, colors, readLength, reference, referenceLength, endColStepTwo, position, strand, alphabetSize, 0);
+	AlignColorSpaceRecoverAlignmentFromMatrix(a, matrix, colors, readLength, reference, referenceLength, 
+			readStartInsertionLength,
+			readEndInsertionLength,
+			endColStepTwo, position, strand, alphabetSize, 0);
 }
 
 void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
@@ -440,6 +435,8 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		int readLength,
 		char *reference,
 		int referenceLength,
+		int32_t readStartInsertionLength,
+		int32_t readEndInsertionLength,
 		int toExclude,
 		int32_t position,
 		char strand,
@@ -450,7 +447,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	int curRow, curCol, startRow, startCol, startCell;
 	char curReadBase;
 	int nextRow, nextCol, nextCell, nextFrom;
-	char nextReadBase;
+	char prevBase, nextReadBase;
 	int curFrom=-1;
 	double maxScore;
 	int i, j;
@@ -458,10 +455,22 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	char readAligned[SEQUENCE_LENGTH]="\0";
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
 	char colorErrorAligned[SEQUENCE_LENGTH]="\0";
-	int32_t referenceLengthAligned, length;
+	int32_t referenceLengthAligned=0, length=0;
 
 	curReadBase = nextReadBase = 'X';
 	nextRow = nextCol = nextCell = -1;
+
+	// Fill in the initial insertion
+	prevBase = COLOR_SPACE_START_NT;
+	for(i=0;i<readStartInsertionLength;i++) {
+		if(0 == ConvertBaseAndColor(prevBase, BaseToInt(colors[i]), &curReadBase)) {
+			PrintError(FnName, "curReadBase", "Could not convert base and color", Exit, OutOfRange);
+		}
+		readAligned[length] = curReadBase;
+		referenceAligned[length] = GAP;
+		prevBase = curReadBase;
+		length++;
+	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then
 	 * trace back.  We choose the best score from the last row since we want to 
@@ -475,17 +484,17 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			/* Don't end with a Deletion in the read */
 
 			/* End with a Match/Mismatch */
-			if(maxScore < matrix->cells[readLength][i].s.score[j]) {
-				maxScore = matrix->cells[readLength][i].s.score[j];
-				startRow = readLength;
+			if(maxScore < matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].s.score[j]) {
+				maxScore = matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].s.score[j];
+				startRow = readLength-readEndInsertionLength-readStartInsertionLength;
 				startCol = i;
 				startCell = j + 1 + (ALPHABET_SIZE + 1);
 			}
 
 			/* End with an Insertion */
-			if(maxScore < matrix->cells[readLength][i].v.score[j]) {
-				maxScore = matrix->cells[readLength][i].v.score[j];
-				startRow = readLength;
+			if(maxScore < matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].v.score[j]) {
+				maxScore = matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].v.score[j];
+				startRow = readLength-readEndInsertionLength-readStartInsertionLength;
 				startCol = i;
 				startCell = j + 1 + 2*(ALPHABET_SIZE + 1);
 			}
@@ -505,16 +514,17 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	/* Init */
 	if(curFrom <= (ALPHABET_SIZE + 1)) {
 		PrintError(FnName, "curFrom", "Cannot end with a deletion", Exit, OutOfRange);
-		length = matrix->cells[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		i = matrix->cells[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)] - 1;
+		length += matrix->cells[curRow][curCol].h.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 	}
 	else if(2*(ALPHABET_SIZE + 1) < curFrom) {
-		length = matrix->cells[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		length += matrix->cells[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		i = matrix->cells[curRow][curCol].v.length[(curFrom - 1) % (ALPHABET_SIZE + 1)] - 1;
 	}
 	else {
-		length = matrix->cells[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		length += matrix->cells[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+		i = matrix->cells[curRow][curCol].s.length[(curFrom - 1) % (ALPHABET_SIZE + 1)] - 1;
 	}
-	assert(readLength <= length);
-	i=length-1;
 
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(0 <= i) {
@@ -538,30 +548,30 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		switch(curFrom) {
 			case MatchA:
 			case InsertionA:
-				readAligned[i] = 'A';
+				readAligned[readStartInsertionLength+i] = 'A';
 				break;
 			case MatchC:
 			case InsertionC:
-				readAligned[i] = 'C';
+				readAligned[readStartInsertionLength+i] = 'C';
 				break;
 			case MatchG:
 			case InsertionG:
-				readAligned[i] = 'G';
+				readAligned[readStartInsertionLength+i] = 'G';
 				break;
 			case MatchT:
 			case InsertionT:
-				readAligned[i] = 'T';
+				readAligned[readStartInsertionLength+i] = 'T';
 				break;
 			case MatchN:
 			case InsertionN:
-				readAligned[i] = 'N';
+				readAligned[readStartInsertionLength+i] = 'N';
 				break;
 			case DeletionA:
 			case DeletionC:
 			case DeletionG:
 			case DeletionT:
 			case DeletionN:
-				readAligned[i] = GAP;
+				readAligned[readStartInsertionLength+i] = GAP;
 				break;
 			default:
 				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
@@ -573,15 +583,15 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			case InsertionG:
 			case InsertionT:
 			case InsertionN:
-				referenceAligned[i] = GAP;
+				referenceAligned[readStartInsertionLength+i] = GAP;
 				break;
 			default:
-				referenceAligned[i] = reference[curCol-1];
+				referenceAligned[readStartInsertionLength+i] = reference[curCol-1];
 				referenceLengthAligned++;
 				break;
 		}
 
-		assert(readAligned[i] != GAP || readAligned[i] != referenceAligned[i]);
+		assert(readAligned[readStartInsertionLength+i] != GAP || readAligned[readStartInsertionLength+i] != referenceAligned[i+readStartInsertionLength]);
 
 		/* Update next row/col */
 		if(curFrom <= (ALPHABET_SIZE + 1)) {
@@ -604,7 +614,18 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		i--;
 	} /* End loop */
 	assert(-1==i);
-	assert(referenceLengthAligned <= length);
+
+	// Fill in the end insertion
+	prevBase = readAligned[length-1];
+	for(i=0;i<readStartInsertionLength;i++) {
+		if(0 == ConvertBaseAndColor(prevBase, BaseToInt(colors[readLength - readEndInsertionLength + i]), &curReadBase)) {
+			PrintError(FnName, "curReadBase", "Could not convert base and color", Exit, OutOfRange);
+		}
+		readAligned[length] = curReadBase;
+		referenceAligned[length] = GAP;
+		prevBase = curReadBase;
+		length++;
+	}
 
 	offset = curCol;
 	readAligned[length]='\0';
@@ -620,7 +641,6 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			readAligned,
 			referenceAligned,
 			colorErrorAligned);
-
 }
 
 void AlignColorSpaceInitializeAtStart(char *colors,
@@ -628,7 +648,8 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 		ScoringMatrix *sm, 
 		int32_t endRow, 
 		int32_t endCol,
-		int32_t alphabetSize)
+		int32_t alphabetSize,
+		char colorSpaceStartNT)
 {
 	char *FnName="AlignColorSpaceInitializeAtStart";
 	int32_t i, j, k;
@@ -642,8 +663,8 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 			matrix->cells[0][j].h.length[k] = 0;
 			matrix->cells[0][j].h.colorError[k] = GAP;
 
-			/* Assumes both DNA and COLOR_SPACE_START_NT are upper case */
-			if(DNA[k] == COLOR_SPACE_START_NT) { 
+			/* Assumes both DNA and colorSpaceStartNT are upper case */
+			if(DNA[k] == colorSpaceStartNT) { 
 				/* Starting adaptor NT */
 				matrix->cells[0][j].s.score[k] = 0;
 			}
@@ -662,7 +683,7 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 	}
 	/* Row i (i>0) column 0 should be negative infinity since we want to
 	 * align the full read */
-	char prevBase = COLOR_SPACE_START_NT;
+	char prevBase = colorSpaceStartNT;
 	for(i=1;i<endRow+1;i++) {
 		char curBase;
 		if(0 == ConvertBaseAndColor(prevBase, BaseToInt(colors[i-1]), &curBase)) {
@@ -682,9 +703,9 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 			// Allow an insertion
 			if(DNA[k] == curBase) { // Must be consistent with the read (no color errors please)
 				if(i == 1) { // Allow for an insertion start
-					matrix->cells[i][0].v.score[k] = matrix->cells[i-1][0].s.score[COLOR_SPACE_START_NT_INT] + sm->gapOpenPenalty;
-					matrix->cells[i][0].v.from[k] = COLOR_SPACE_START_NT_INT + 1 + (ALPHABET_SIZE + 1); /* see the enum */
-					matrix->cells[i][0].v.length[k] = matrix->cells[i-1][0].s.length[COLOR_SPACE_START_NT_INT] + 1;
+					matrix->cells[i][0].v.score[k] = matrix->cells[i-1][0].s.score[BaseToInt(colorSpaceStartNT)] + sm->gapOpenPenalty;
+					matrix->cells[i][0].v.from[k] = BaseToInt(colorSpaceStartNT) + 1 + (ALPHABET_SIZE + 1); /* see the enum */
+					matrix->cells[i][0].v.length[k] = matrix->cells[i-1][0].s.length[BaseToInt(colorSpaceStartNT)] + 1;
 					matrix->cells[i][0].v.colorError[k] = GAP;
 				}
 				else { // Allow for an insertion extension

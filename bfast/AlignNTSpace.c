@@ -13,7 +13,6 @@
 #include "AlignMatrix.h"
 #include "AlignNTSpace.h"
 
-
 // DEBUGGING CODE NEEDS TO BE CLEANED UP
 
 /* TODO */
@@ -120,7 +119,7 @@ void AlignNTSpaceGappedBounded(char *read,
 		}
 	}
 
-	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, readLength - maxV + 1, position, strand, 0);
+	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, 0, 0, readLength - maxV + 1, position, strand, 0);
 }
 
 void AlignNTSpaceGappedConstrained(char *read,
@@ -132,35 +131,23 @@ void AlignNTSpaceGappedConstrained(char *read,
 		AlignedEntry *a,
 		AlignMatrix *matrix,
 		int32_t referenceOffset,
-		int32_t readOffset,
+		int32_t readStartInsertionLength,
+		int32_t readEndInsertionLength,
 		int32_t position,
 		char strand)
 {
 	char *FnName="AlignNTSpaceGappedConstrained";
 	int32_t i, j;
 	int32_t endRowStepOne, endColStepOne, endRowStepTwo, endColStepTwo;
-
-	if(0 != readOffset) {
-		// Default to the Bounded version since this could be difficult
-		AlignNTSpaceGappedBounded(read,
-				readLength,
-				reference,
-				referenceLength,
-				sm,
-				a,
-				matrix,
-				position,
-				strand,
-				readLength,
-				readLength);
-		return;
-	}
+	char *readAfterInsertion = read + readStartInsertionLength;
+	char *maskAfterInsertion = mask + readStartInsertionLength;
+	int32_t readAfterInsertionLength = readLength - readStartInsertionLength;
 
 	/* Get where to transition */
 	endRowStepOne = endColStepOne = endRowStepTwo = endColStepTwo = -1;
 	i=0;
-	while(i<readLength) {
-		if('1' == mask[i]) {
+	while(i<readAfterInsertionLength-readEndInsertionLength) {
+		if('1' == maskAfterInsertion[i]) {
 			endRowStepOne=i;
 			endColStepOne=referenceOffset+i;
 			break;
@@ -170,11 +157,11 @@ void AlignNTSpaceGappedConstrained(char *read,
 	if(referenceLength < endColStepOne) {
 		endColStepOne = referenceLength;
 	}
-	i=readLength;
+	i=readAfterInsertionLength-readEndInsertionLength;
 	while(0<=i) {
 		endRowStepTwo=i;
 		endColStepTwo=referenceOffset+i;
-		if('1' == mask[i]) {
+		if('1' == maskAfterInsertion[i]) {
 			break;
 		}
 		i--;
@@ -183,12 +170,6 @@ void AlignNTSpaceGappedConstrained(char *read,
 		endColStepTwo = referenceLength;
 	}
 
-	/* Adjust based off of the read offset.  This matters when the begging of
-	 * the read is *before* the beginning of the contig. */
-	if(0 < readOffset) {
-		endRowStepOne = GETMIN(readLength, endRowStepOne+readOffset);
-		endRowStepTwo = GETMIN(readLength, endRowStepTwo+readOffset);
-	}
 	assert(0 <= endRowStepOne && 0 <= endColStepOne);
 	assert(0 <= endRowStepTwo && 0 <= endColStepTwo);
 
@@ -196,7 +177,7 @@ void AlignNTSpaceGappedConstrained(char *read,
 	AlignNTSpaceInitializeAtStart(matrix, sm, endRowStepOne, endColStepOne);
 	for(i=1;i<endRowStepOne+1;i++) { /* read/rows */ 
 		for(j=1;j<endColStepOne+1;j++) { /* reference/columns */
-			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, readLength, readLength);
+			AlignNTSpaceFillInCell(readAfterInsertion, readAfterInsertionLength, reference, referenceLength, sm, matrix, i, j, readAfterInsertionLength, readAfterInsertionLength);
 		}
 	}
 
@@ -204,29 +185,33 @@ void AlignNTSpaceGappedConstrained(char *read,
 	for(i=endRowStepOne,j=endColStepOne;
 			i<endRowStepTwo && j<endColStepTwo;
 			i++,j++) {
-		if('1' == mask[i] && ToLower(read[i]) != ToLower(reference[j])) {
+		if('1' == maskAfterInsertion[i] && 
+				ToLower(readAfterInsertion[i]) != ToLower(reference[j])) {
 			PrintError(FnName, NULL, "read and reference did not match", Exit, OutOfRange);
 		}
 		/* Update diagonal */
 		/* Get mismatch score */
-		matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i][j].s.score[0] + ScoringMatrixGetNTScore(read[i], reference[j], sm);
+		matrix->cells[i+1][j+1].s.score[0] = matrix->cells[i][j].s.score[0] + ScoringMatrixGetNTScore(readAfterInsertion[i], reference[j], sm);
 		matrix->cells[i+1][j+1].s.length[0] = matrix->cells[i][j].s.length[0] + 1;
 		matrix->cells[i+1][j+1].s.from[0] = Match;
 	}
 	assert(Match == matrix->cells[endRowStepTwo][endColStepTwo].s.from[0]);
 
 	/* Step 3 - lower right */
-	AlignNTSpaceInitializeToExtend(matrix, sm, readLength, referenceLength, endRowStepTwo, endColStepTwo);
+	AlignNTSpaceInitializeToExtend(matrix, sm, readAfterInsertionLength, referenceLength, endRowStepTwo, endColStepTwo);
 	// Note: we ignore any cells on row==endRowStepTwo or col==endRowStepTwo
 	// since we assumed they were filled in by the previous re-initialization
-	for(i=endRowStepTwo+1;i<readLength+1;i++) { /* read/rows */ 
+	for(i=endRowStepTwo+1;i<readAfterInsertionLength-readEndInsertionLength+1;i++) { /* read/rows */ 
 		for(j=endColStepTwo+1;j<referenceLength+1;j++) { /* reference/columns */
-			AlignNTSpaceFillInCell(read, readLength, reference, referenceLength, sm, matrix, i, j, readLength, readLength);
+			AlignNTSpaceFillInCell(readAfterInsertion, readAfterInsertionLength, reference, referenceLength, sm, matrix, i, j, readAfterInsertionLength, readAfterInsertionLength);
 		}
 	}
 
 	/* Step 4 - recover alignment */
-	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, endColStepTwo+1, position, strand, 0);
+	AlignNTSpaceRecoverAlignmentFromMatrix(a, matrix, read, readLength, reference, referenceLength, 
+			readStartInsertionLength,
+			readEndInsertionLength,
+			endColStepTwo+1, position, strand, 0);
 }
 
 /* TODO */
@@ -236,6 +221,8 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		int readLength,
 		char *reference,
 		int referenceLength,
+		int32_t readStartInsertionLength,
+		int32_t readEndInsertionLength,
 		int toExclude,
 		int32_t position,
 		char strand,
@@ -251,12 +238,19 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	int32_t i, offset;
 	char readAligned[SEQUENCE_LENGTH]="\0";
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
-	int32_t referenceLengthAligned, length;
+	int32_t referenceLengthAligned=0, length=0;
 
 	curReadBase = nextReadBase = 'X';
 	nextRow = nextCol = -1;
 
 	assert(0 <= toExclude);
+
+	/* Fill in the initial insertion */
+	for(i=0;i<readStartInsertionLength;i++) {
+		readAligned[length] = read[i];
+		referenceAligned[length] = GAP;
+		length++;
+	}
 
 	/* Get the best alignment.  We can find the best score in the last row and then
 	 * trace back.  We choose the best score from the last row since we want to 
@@ -265,11 +259,11 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	startCol=-1;
 	maxScore = NEGATIVE_INFINITY;
 	for(i=toExclude;i<referenceLength+1;i++) {
-		assert(StartNT != matrix->cells[readLength][i].s.from[0]);
+		assert(StartNT != matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].s.from[0]);
 		/* Check only the first cell */
-		if(maxScore < matrix->cells[readLength][i].s.score[0]) {
-			maxScore = matrix->cells[readLength][i].s.score[0];
-			startRow = readLength;
+		if(maxScore < matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].s.score[0]) {
+			maxScore = matrix->cells[readLength-readEndInsertionLength-readStartInsertionLength][i].s.score[0];
+			startRow = readLength-readEndInsertionLength-readStartInsertionLength;
 			startCol = i;
 		}
 	}
@@ -283,7 +277,7 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 
 	referenceLengthAligned=0;
 	i=matrix->cells[curRow][curCol].s.length[0]-1; /* Get the length of the alignment */
-	length=matrix->cells[curRow][curCol].s.length[0]; /* Copy over the length */
+	length+=matrix->cells[curRow][curCol].s.length[0]; /* Copy over the length */
 
 	/* Now trace back the alignment using the "from" member in the matrix */
 	while(0 <= i) {
@@ -320,23 +314,23 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		switch(curFrom) {
 			case DeletionStart:
 			case DeletionExtension:
-				readAligned[i] = GAP;
-				referenceAligned[i] = reference[curCol-1];
+				readAligned[readStartInsertionLength+i] = GAP;
+				referenceAligned[readStartInsertionLength+i] = reference[curCol-1];
 				referenceLengthAligned++;
 				nextRow = curRow;
 				nextCol = curCol-1;
 				break;
 			case Match:
-				readAligned[i] = read[curRow-1];
-				referenceAligned[i] = reference[curCol-1];
+				readAligned[readStartInsertionLength+i] = read[readStartInsertionLength+curRow-1];
+				referenceAligned[readStartInsertionLength+i] = reference[curCol-1];
 				referenceLengthAligned++;
 				nextRow = curRow-1;
 				nextCol = curCol-1;
 				break;
 			case InsertionStart:
 			case InsertionExtension:
-				readAligned[i] = read[curRow-1];
-				referenceAligned[i] = GAP;
+				readAligned[readStartInsertionLength+i] = read[readStartInsertionLength+curRow-1];
+				referenceAligned[readStartInsertionLength+i] = GAP;
 				nextRow = curRow-1;
 				nextCol = curCol;
 				break;
@@ -344,7 +338,8 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 				PrintError(FnName, "curFrom", "Could not understand curFrom", Exit, OutOfRange);
 		}
 
-		assert(readAligned[i] != GAP || readAligned[i] != referenceAligned[i]);
+		assert(readAligned[readStartInsertionLength+i] != GAP || 
+				readAligned[readStartInsertionLength+i] != referenceAligned[readStartInsertionLength+i]);
 
 		/* Update for next loop iteration */
 		curRow = nextRow;
@@ -353,8 +348,15 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 
 	} /* End Loop */
 	assert(-1==i);
-	assert(referenceLengthAligned <= length);
-	assert(readLength <= length);
+	readAligned[length]='\0';
+	referenceAligned[length]='\0';
+
+	// Fill in the end insertion
+	for(i=0;i<readEndInsertionLength;i++) {
+		readAligned[length] = read[readLength - readEndInsertionLength + i];
+		referenceAligned[length] = GAP;
+		length++;
+	}
 
 	readAligned[length]='\0';
 	referenceAligned[length]='\0';
