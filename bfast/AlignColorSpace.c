@@ -321,7 +321,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 			int32_t fromNTInt;
 			int32_t curScore = 0;
 
-			if('1' == mask[i]) { // The mask matched 
+			if('1' == maskAfterInsertion[i]) { // The mask matched 
 				/* Get the from base */
 				if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colorsAfterInsertion[i]), &fromNT)) { 
 					PrintError(FnName, "fromNT", "Could not convert base and color to base", Exit, OutOfRange);
