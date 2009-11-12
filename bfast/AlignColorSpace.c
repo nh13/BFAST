@@ -542,7 +542,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			nextFrom = matrix->cells[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
-		colorErrorAligned[readStartInsertionLength+i] = ConvertIntColorToCharColor(colorErrorAligned[i]);
+		colorErrorAligned[readStartInsertionLength+i] = ConvertIntColorToCharColor(colorErrorAligned[i+readStartInsertionLength]);
 
 		switch(curFrom) {
 			case MatchA:
@@ -613,10 +613,10 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		i--;
 	} /* End loop */
 	assert(-1==i);
-
+	
 	// Fill in the end insertion
 	prevBase = readAligned[length-1];
-	for(i=0;i<readStartInsertionLength;i++) {
+	for(i=0;i<readEndInsertionLength;i++) {
 		if(0 == ConvertBaseAndColor(prevBase, BaseToInt(colors[readLength - readEndInsertionLength + i]), &curReadBase)) {
 			PrintError(FnName, "curReadBase", "Could not convert base and color", Exit, OutOfRange);
 		}
@@ -641,6 +641,8 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			readAligned,
 			referenceAligned,
 			colorErrorAligned);
+
+	assert(readLength <= length);
 }
 
 void AlignColorSpaceInitializeAtStart(char *colors,

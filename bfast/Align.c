@@ -217,6 +217,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 						referencePositions[ctr] - referenceLengths[ctr];
 				}
 			}
+			assert(readStartInsertionLengths[ctr] + readEndInsertionLengths[ctr] <= readLength);
 			
 			if(FORWARD == m->strands[i]) {
 				referenceOffsets[ctr] = m->positions[i] - referencePositions[ctr];
@@ -226,7 +227,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 					m->positions[i] - readLength; 
 			}
 			referenceOffsets[ctr] += readStartInsertionLengths[ctr];
-
+			
 			if(matrix->nrow < readLength + 
 					readStartInsertionLengths[ctr] + 
 					readEndInsertionLengths[ctr] + 1) {
@@ -640,7 +641,7 @@ void AlignGapped(char *read,
 	free(a->reference);
 	free(a->colorError);
 	a->read = a->reference = a->colorError = NULL;
-
+	
 	switch(unconstrained) {
 		case Unconstrained:
 			AlignGappedBounded(read,
@@ -748,7 +749,7 @@ void AlignGappedConstrained(char *read,
 		char strand)
 {
 	char *FnName="AlignGappedConstrained";
-
+	
 	switch(space) {
 		case NTSpace:
 			AlignNTSpaceGappedConstrained(read,
