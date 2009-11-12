@@ -466,6 +466,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		}
 		readAligned[length] = curReadBase;
 		referenceAligned[length] = GAP;
+		colorErrorAligned[length]=GAP;
 		prevBase = curReadBase;
 		length++;
 	}
@@ -531,17 +532,17 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		/* Get if there was a color error */
 		if(curFrom <= (ALPHABET_SIZE + 1)) {
 			nextFrom = matrix->cells[curRow][curCol].h.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			colorErrorAligned[i] = matrix->cells[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else if(2*(ALPHABET_SIZE + 1) < curFrom) {
 			nextFrom = matrix->cells[curRow][curCol].v.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			colorErrorAligned[i] = matrix->cells[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else {
 			nextFrom = matrix->cells[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			colorErrorAligned[i] = matrix->cells[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
+			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
-		colorErrorAligned[i] = ConvertIntColorToCharColor(colorErrorAligned[i]);
+		colorErrorAligned[readStartInsertionLength+i] = ConvertIntColorToCharColor(colorErrorAligned[i]);
 
 		switch(curFrom) {
 			case MatchA:
@@ -621,6 +622,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		}
 		readAligned[length] = curReadBase;
 		referenceAligned[length] = GAP;
+		colorErrorAligned[length]=GAP;
 		prevBase = curReadBase;
 		length++;
 	}
