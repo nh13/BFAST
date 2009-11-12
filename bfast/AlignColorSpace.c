@@ -307,8 +307,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 			i++,j++) {
 		char curReferenceColor;
 		/* Get the current color for the reference */
-		assert(0 < j); // this could be a problem since we need more reference
-		if(0 == ConvertBaseToColorSpace(reference[j-1], reference[j], &curReferenceColor)) {
+		if(0 == ConvertBaseToColorSpace((0 == j) ? COLOR_SPACE_START_NT : reference[j-1], reference[j], &curReferenceColor)) {
 			PrintError(FnName, "curReferenceColor", "Could not convert base to color space", Exit, OutOfRange);
 		}
 		curReferenceColor=COLORFROMINT(curReferenceColor);
@@ -333,7 +332,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 				curScore += ScoringMatrixGetNTScore(reference[j], DNA[k], sm);
 
 				/* Add score for NT */
-				//Assertion above handles this ... assert(0 < j); // this could be a problem
 				matrix->cells[i+1][j+1].s.score[k] = matrix->cells[i][j].s.score[fromNTInt] + curScore;
 				matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + (ALPHABET_SIZE + 1); 
 				matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].s.length[fromNTInt] + 1;
