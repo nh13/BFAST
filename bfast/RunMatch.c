@@ -612,7 +612,7 @@ int FindMatchesInIndex(char *indexFileName,
 	int errCode;
 	ThreadIndexData *data=NULL;
 	pthread_mutex_t indexOutputFP_mutex;
-	int32_t indexOutputFP_threadID;
+	int32_t indexOutputFP_threadID=0;
 	pthread_t *threads=NULL;
 	void *status;
 
