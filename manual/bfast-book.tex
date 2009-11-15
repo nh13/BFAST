@@ -863,6 +863,18 @@ Prints the manual page and exits.
 Do not print any submit messages.
 \subsubsection{\TT{-config}}
 The XML configuration file.
+\subsection{bfast.resubmit.pl}
+This script is a companion script to \TT{bfast.submit.pl}.
+If any job fails (for whatever reason), this script can be used to resubmit the failed job and update any other jobs that depend on the failed job.
+\subsubsection{\TT{-help}}
+Print a brief help message and exits.
+\subsubsection{\TT{-man}}
+Prints the manual page and exits.
+\subsubsection{\TT{−username}}
+Process all jobs in the error state from the given username.
+\subsubsection{\TT{-jids}}
+Process all given job ids.
+
 \subsection{qseq2fastq.pl}
 This script will convert Illumina generated QSEQ files to the BFAST FASTQ format.
 Please execute the script with no arguments for more information.
