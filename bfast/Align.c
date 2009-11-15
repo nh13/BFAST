@@ -399,7 +399,6 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			free(referenceLengths);
 			free(referencePositions);
 			free(referenceOffsets);
-			free(referenceOffsets);
 			free(readStartInsertionLengths);
 			free(readEndInsertionLengths);
 
