@@ -201,7 +201,7 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	}	
 	if(args->unmappedFileName!=0) {		
 		if(0 <= VERBOSE) {
-			fprintf(stderr, "Validating alignFileName %s. \n", 
+			fprintf(stderr, "Validating unmappedFileName %s. \n", 
 					args->unmappedFileName);
 		}
 		if(ValidateFileName(args->unmappedFileName)==0)
