@@ -346,7 +346,7 @@ void CheckRGIndexes(char **mainFileNames,
 	/* Read in main indexes */
 	for(i=0;i<numMainFileNames;i++) {
 		/* Open file */
-		if((fp=gzopen(mainFileNames[i], "r"))==0) {
+		if((fp=gzopen(mainFileNames[i], "rb"))==0) {
 			PrintError("CheckRGIndexes", mainFileNames[i], "Could not open file for reading", Exit, OpenFileError);
 		}
 
@@ -392,7 +392,7 @@ void CheckRGIndexes(char **mainFileNames,
 	/* Read in secondary indexes */
 	for(i=0;i<numSecondaryFileNames;i++) {
 		/* Open file */
-		if((fp=gzopen(secondaryFileNames[i], "r"))==0) {
+		if((fp=gzopen(secondaryFileNames[i], "rb"))==0) {
 			PrintError("CheckRGIndexes", "secondaryFileNames[i]", "Could not open file for reading", Exit, OpenFileError);
 		}
 
@@ -727,7 +727,7 @@ int UpdateRead(char *read, int readLength, int space)
 				case '4':
 					break;
 				case '.':
-					read[i] = '0';
+					read[i] = '4';
 					break;
 				case '\r':
 				case '\n':
@@ -1804,7 +1804,7 @@ int32_t *GetNumbersFromString(char *string, int32_t *length)
 {
 	char *FnName="GetNumbersFromString";
 	char *pch1, *pch2, *tmp=NULL;
-	char *saveptr1, *saveptr2;
+	char *saveptr1=NULL, *saveptr2=NULL;
 
 	int32_t* numbers=NULL;
 	int32_t prevLength, start, end, state, i, number;
