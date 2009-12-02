@@ -19,6 +19,14 @@ the L and R values from ungapped local alignment. How much will this buy us?
 ===============================================================================
 
 ===============================================================================
+general
+- MD & NM tag for SAM output.  Would also be useful for CM for # of color mismatches.
+- the postprocess help (manual and help) should state that unmapped reads will
+be included in the SAM output.
+- instead of multiply mapped ends going to the mapped end, choose a random alignment.
+===============================================================================
+
+===============================================================================
 bfast.submit.pl
 - if there is an error while submitting, could we call an error-handling routine
 that will try to delete all the jobs?
