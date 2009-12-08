@@ -28,8 +28,8 @@ int BfastBRG2Fasta(int argc, char *argv[])
 		strcpy(rgFileName, argv[1]);
 		/* Infer the space */
 		strcpy(fastaFileName, rgFileName);
-		assert(0 < strlen(rgFileName) - strlen(BFAST_RG_FILE_EXTENSION));
-		fastaFileName[strlen(rgFileName) - strlen(BFAST_RG_FILE_EXTENSION)] = '\0'; // remove file extension
+		assert(0 < strlen(rgFileName) - strlen(BFAST_RG_FILE_EXTENSION) - 1);
+		fastaFileName[strlen(rgFileName) - strlen(BFAST_RG_FILE_EXTENSION) - 1] = '\0'; // remove file extension
 		assert(strlen(SPACENAME(NTSpace)) == strlen(SPACENAME(ColorSpace))); // must hold for the next comparison to work
 		assert(0 < strlen(fastaFileName)-2);
 		if(0 == strcmp(SPACENAME(NTSpace), fastaFileName + (strlen(fastaFileName)-2))) {
@@ -44,7 +44,7 @@ int BfastBRG2Fasta(int argc, char *argv[])
 		/* Read the BRG */
 		RGBinaryReadBinary(&rg,
 				space,
-				rgFileName);
+				fastaFileName);
 		/* Unpack */
 		RGBinaryUnPack(&rg);
 
