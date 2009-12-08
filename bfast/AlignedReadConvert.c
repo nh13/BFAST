@@ -447,6 +447,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	int32_t i, j;
 	uint64_t flag;
 	int32_t mateEndIndex, mateEntriesIndex, mapq;
+	int32_t numMismatches=0;
 	char read[SEQUENCE_LENGTH]="\0";
 	char readRC[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
@@ -548,7 +549,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	else {
-		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], a->space, fp);
+		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], a->space, &numMismatches, fp);
 	}
 	/* MRNM and MPOS */
 	if(2 == a->numEnds) {
@@ -720,6 +721,17 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
+	/* MQ - optional field */
+	if(2 == a->numEnds && 0 <= mateEndIndex) {
+		if(0>fprintf(fp, "\tMQ:i:%d\n",
+					a->ends[mateEndIndex].entries[mateEntriesIndex].mappingQuality)) {
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+		}
+	}
+	/* NM - optional field */
+	if(0>fprintf(fp, "\tNM:i:%d", numMismatches)) {
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+	}
 	/* NH - optional field */
 	if(0>fprintf(fp, "\tNH:i:%d",
 				(entriesIndex < 0)?1:a->ends[endIndex].numEntries)) {
@@ -735,11 +747,18 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				(entriesIndex < 0)?1:(entriesIndex+1))) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
-	/* CS and CQ - optional field */
+	/* CS, CQ and CM - optional fields */
 	if(ColorSpace == a->space) {
-		if(0>fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s",
+		int32_t numCM=0;
+		if(0 <=entriesIndex) {
+			for(i=0;i<a->ends[endIndex].entries[entriesIndex].length;i++) {
+				if(GAP != a->ends[endIndex].entries[entriesIndex].colorError[i]) numCM++;
+			}
+		}
+		if(0>fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s\tCM:i:%d",
 					a->ends[endIndex].read,
-					a->ends[endIndex].qual)) {
+					a->ends[endIndex].qual,
+					numCM)) {
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
@@ -765,6 +784,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 /* TODO */
 void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		int32_t space,
+		int32_t *numMismatches,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToCIGAR";
@@ -776,6 +796,8 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	int32_t numPrevType=0;
 	int32_t curType=0;
 	int32_t startDel, endDel, startIns, endIns, prevDel, prevIns;
+
+	(*numMismatches) = 0;
 
 	if(0>fprintf(fp, "\t")) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
@@ -904,6 +926,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 			curType = 1;
 		}
 		else {
+			if(ToUpper(read[i]) != ToUpper(reference[i])) (*numMismatches)++;
 			curType = 0;
 		}
 

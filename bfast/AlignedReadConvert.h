@@ -17,6 +17,6 @@ void AlignedReadConvertPrintGFF(AlignedRead*, FILE*);
 void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry*, char*, char*, int, int, int, FILE*);
 void AlignedReadConvertPrintSAM(AlignedRead*, char*, FILE*);
 void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, int32_t, int32_t, char*, FILE*);
-void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry*, int32_t, FILE*);
+void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry*, int32_t, int32_t*, FILE*);
 
 #endif

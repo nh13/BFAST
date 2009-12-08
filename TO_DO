@@ -20,8 +20,7 @@ the L and R values from ungapped local alignment. How much will this buy us?
 
 ===============================================================================
 general
-- MD & NM tag for SAM output.  Would also be useful for CM for # of color mismatches.
-- the postprocess help (manual and help) should state that unmapped reads will
+- MD tag for SAM output.  
 be included in the SAM output.
 - instead of multiply mapped ends going to the mapped end, choose a random alignment.
 ===============================================================================
