@@ -404,7 +404,7 @@ typedef struct {
 typedef struct {
 	int32_t numReads;
 	double *accuracy;
-	int32_t length; /* lenght of correct */
+	int32_t length; /* length of correct */
 	int32_t numSNPs;
 	int32_t numColorErrors;
 	int32_t numAboveThreshold; /* where to start comparisons */
