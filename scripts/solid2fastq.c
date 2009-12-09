@@ -191,7 +191,10 @@ int main(int argc, char *argv[])
 	more_fps_left=number_of_ends;
 	output_count = output_count_total = 0;
 	// Open output file
-	if(0 == no_output) {
+	if(NULL == output_prefix) {
+		fp_output = stdout;
+	}
+	else if(0 == no_output) {
 		fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 	}
 	fprintf(stderr, "Outputting, currently on:\n0");
@@ -269,7 +272,7 @@ int main(int argc, char *argv[])
 			if(1 == reads[i].to_print) {
 				more_fps_left++;
 				num_ends_printed++;
-				if(0 == no_output) {
+				if(0 == no_output && NULL != output_prefix) {
 					fastq_print(&reads[i], fp_output);
 				}
 				reads[i].is_pop = reads[i].to_print = 0;
@@ -285,14 +288,14 @@ int main(int argc, char *argv[])
 		if(0 < num_reads_per_file &&
 				num_reads_per_file <= output_count) {
 			output_suffix_number++;
-			if(0 == no_output) {
+			if(0 == no_output && NULL != output_prefix) {
 				fclose(fp_output);
 				fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 			}
 			output_count=0;
 		}
 	}
-	if(0 < output_count && 0 == no_output) {
+	if(0 < output_count && 0 == no_output && NULL != output_prefix) {
 		fclose(fp_output);
 	}
 	fprintf(stderr, "\r%lld\n",
@@ -309,7 +312,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Free
-	free(output_prefix);
+	if(NULL != output_prefix) free(output_prefix);
 	for(i=0;i<number_of_ends;i++) {
 		free(csfasta_filenames[i]);
 		free(qual_filenames[i]);
