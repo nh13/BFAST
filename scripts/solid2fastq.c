@@ -25,16 +25,16 @@ char *strtok_mod(char*, char*, int32_t*);
 
 int print_usage ()
 {
-		fprintf(stderr, "solid2fastq %s\n",
-				PACKAGE_VERSION);
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <list of .qual files>\n");
-		fprintf(stderr, "\t-c\t\tproduce no output.\n");
-		fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
-		fprintf(stderr, "\t-o\t\toutput prefix.\n");
-		fprintf(stderr, "\t-h\t\tprint this help message.\n");
-		fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
-		return 1;
+	fprintf(stderr, "solid2fastq %s\n",
+			PACKAGE_VERSION);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <list of .qual files>\n");
+	fprintf(stderr, "\t-c\t\tproduce no output.\n");
+	fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
+	fprintf(stderr, "\t-o\t\toutput prefix.\n");
+	fprintf(stderr, "\t-h\t\tprint this help message.\n");
+	fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
+	return 1;
 }
 
 int main(int argc, char *argv[])
@@ -503,27 +503,20 @@ int32_t cmp_read_names(char *name_one, char *name_two)
 
 void read_name_trim(char *name)
 {
-	int32_t i;
+	int32_t l;
 
-	// Trim last _R3 or _F3 or _whatever
+	// Trim last _R3 or _F3 
 
 	if(NULL == name) {
 		return;
 	}
-
-	for(i=strlen(name)-1;0<i;i--) {
-		switch(name[i]) {
-			case '_':
-				// truncate
-				name[i]='\0';
-				//fprintf(stderr, "return i=%d\n%s\n", i, name);
-				return;
-				break;
-			default:
-				break;
-		}
+	l=strlen(name);
+	if(3 < l &&
+			name[l-3]='_' &&
+			(name[l-2]='F' || name[l-2]='R') &&
+			name[l-1]='3') {
+		name[l-3]='\0';
 	}
-
 	assert('_' != name[0]);
 }
 
