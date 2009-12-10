@@ -420,7 +420,7 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, FILE *fp_qual)
 	for(i=1;i<strlen(read->name);i++) {
 		read->name[i-1] = read->name[i];
 	}
-	read->name[i]='\0';
+	read->name[i-1]='\0';
 
 	// Convert SOLiD qualities
 	for(i=0;i<strlen(read->read)-1;i++) {
