@@ -476,7 +476,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 					);
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d) complete...\n", 
-						i+1, numIndexes,
+						indexNum+1, numIndexes,
 						indexIDs[indexNum][0], indexIDs[indexNum][1]);
 			}
 			indexNum++;
@@ -576,6 +576,10 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 			free(tempOutputIndexBinFPs);
 			free(tempOutputIndexBinFileNames);
+			
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "%s", BREAK_LINE);
+			}
 		}
 	}
 
