@@ -439,11 +439,11 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 	indexNum=0;
 	// for each unique index
-	for(uniqueIndexCtr=0;uniqueIndexCtr<numUniqueIndexes;i++) {
+	for(uniqueIndexCtr=0;uniqueIndexCtr<numUniqueIndexes;uniqueIndexCtr++) {
 
 		// get the # of bins for this index
 		numBins = 1;
-		for(i=indexNum+1;indexNum<numIndexes && indexIDs[i-1][0] == indexIDs[i][0];i++) {
+		for(i=indexNum+1;i<numIndexes && indexIDs[i-1][0] == indexIDs[i][0];i++) {
 			numBins++;
 		}
 
@@ -497,6 +497,8 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 			// search each bin
 			for(uniqueIndexBinCtr=0;uniqueIndexBinCtr<numBins;uniqueIndexBinCtr++) {
+
+				assert(indexNum < numIndexes);
 				if(VERBOSE >= 0) {
 					fprintf(stderr, "%s", BREAK_LINE);
 					fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
@@ -525,7 +527,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 						);
 				if(VERBOSE >= 0) {
 					fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d) complete...\n", 
-							i+1, numIndexes,
+							indexNum+1, numIndexes,
 							indexIDs[indexNum][0], indexIDs[indexNum][1]);
 				}
 
@@ -541,6 +543,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 			}
 
 			if(VERBOSE >= 0) {
+				fprintf(stderr, "%s", BREAK_LINE);
 				fprintf(stderr, "Merging the output from each bin...\n");
 			}
 
@@ -564,10 +567,11 @@ int FindMatchesInIndexes(char **indexFileNames,
 			}
 			(*totalOutputTime)+=endTime-startTime;
 
+			// Destroy
 			for(i=0;i<numBins;i++) {
 				CloseTmpGZFile(&tempOutputIndexBinFPs[i],
 						&tempOutputIndexBinFileNames[i],
-						0);
+						1);
 			}
 
 			free(tempOutputIndexBinFPs);
@@ -576,11 +580,11 @@ int FindMatchesInIndexes(char **indexFileNames,
 	}
 
 	/* Merge temporary output from each index and output to the output file. */
-	if(numIndexes > 1) {
+	if(numUniqueIndexes > 1) {
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Merging the output from each index...\n");
 		}
-		for(i=0;i<numIndexes;i++) {
+		for(i=0;i<numUniqueIndexes;i++) {
 			CloseTmpGZFile(&tempOutputIndexFPs[i], 
 					&tempOutputIndexFileNames[i],
 					0);
@@ -592,7 +596,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		startTime=time(NULL);
 		/* Merge the temp index files into the all indexes file */
 		numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
-				numIndexes,
+				numUniqueIndexes,
 				tempOutputFP,
 				maxNumMatches);
 		endTime=time(NULL);
@@ -613,7 +617,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		numMatches = numWritten;
 
 		/* Close the temporary index files */
-		for(i=0;i<numIndexes;i++) {
+		for(i=0;i<numUniqueIndexes;i++) {
 			CloseTmpGZFile(&tempOutputIndexFPs[i],
 					&tempOutputIndexFileNames[i],
 					1);
@@ -622,7 +626,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Found matches for %d reads.\n", numMatches);
 	}
-
 
 	/* Close the temporary read files */
 	for(i=0;i<numThreads;i++) {

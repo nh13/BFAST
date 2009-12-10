@@ -461,6 +461,7 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 /* TODO */
 void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t srcIndex)
 {
+	char *FnName="RGMatchCopyAtIndex";
 	int32_t i;
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
@@ -476,7 +477,12 @@ void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t 
 			dest->masks[destIndex][i] = src->masks[srcIndex][i];
 		}
 		if(NULL != src->offsets) {
-			assert(NULL != dest->offsets);
+			if(NULL == dest->offsets) {
+				dest->offsets = malloc(sizeof(int32_t)*dest->numEntries);
+				if(NULL == dest->offsets) {
+					PrintError(FnName, "dest->offsets", "Could not allocate memory", Exit, MallocMemory);
+				}
+			}
 			dest->offsets[destIndex] = src->offsets[srcIndex];
 		}
 	}
