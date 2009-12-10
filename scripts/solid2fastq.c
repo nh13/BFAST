@@ -515,9 +515,9 @@ void read_name_trim(char *name)
 	}
 	l=strlen(name);
 	if(3 < l &&
-			name[l-3]='_' &&
-			(name[l-2]='F' || name[l-2]='R') &&
-			name[l-1]='3') {
+			name[l-3]=='_' &&
+			(name[l-2]=='F' || name[l-2]=='R') &&
+			name[l-1]=='3') {
 		name[l-3]='\0';
 	}
 	assert('_' != name[0]);
