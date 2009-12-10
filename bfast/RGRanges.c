@@ -50,8 +50,10 @@ int RGRangesRemoveDuplicates(RGRanges *r)
 void RGRangesCopyToRGMatch(RGRanges *r,
 		RGIndex *index,
 		RGMatch *m,
-		int32_t space)
+		int32_t space,
+		int32_t copyOffsets)
 {
+	char *FnName="RGRangesCopyToRGMatch";
 	int64_t i, j, counter;
 	int32_t k;
 
@@ -59,6 +61,12 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 	assert(r->numEntries > 0);
 
 	if(r->numEntries > 0) {
+		if(1 == copyOffsets) {
+			m->offsets = malloc(sizeof(int32_t)*m->numEntries);
+			if(NULL == m->offsets) {
+				PrintError(FnName, "m->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+		}
 		/* Copy over for each range */
 		counter =0;
 		for(i=0;i<r->numEntries;i++) {
@@ -107,6 +115,10 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 									offset);
 						}
 					}
+				}
+				// Copy offsets if necessary
+				if(1 == copyOffsets) {
+					m->offsets[counter] = r->offset[i];
 				}
 				counter++;
 			}

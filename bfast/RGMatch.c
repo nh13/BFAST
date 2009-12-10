@@ -274,7 +274,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		RGMatchReallocate(m, prevIndex+1);
 
 		/* Check to see if we have too many matches */
-		if(maxNumMatches < m->numEntries) {
+		if(NULL == m->offsets && maxNumMatches < m->numEntries) {
 			/* Clear the entries but don't free the read */
 			RGMatchClearMatches(m);
 			m->maxReached = 1;
@@ -302,12 +302,16 @@ void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
 
 		/* Allocate memory for the temp used for swapping */
 		temp=malloc(sizeof(RGMatch));
-		RGMatchInitialize(temp);
-		temp->readLength = m->readLength;
 		if(NULL == temp) {
 			PrintError("RGMatchQuickSort", "temp", "Could not allocate memory", Exit, MallocMemory);
 		}
+		RGMatchInitialize(temp);
+		temp->readLength = m->readLength;
 		RGMatchAllocate(temp, 1);
+		temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
+		if(NULL == temp->offsets) {
+			PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
+		}
 
 		pivot = (low+high)/2;
 
@@ -360,6 +364,10 @@ void RGMatchShellSort(RGMatch *m, int32_t low, int32_t high)
 	RGMatchInitialize(temp);
 	temp->readLength = m->readLength;
 	RGMatchAllocate(temp, 1);
+		temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
+		if(NULL == temp->offsets) {
+			PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
+		}
 
 	while(0 < inc) {
 		for(i=inc + low;i<=high;i++) {
@@ -384,17 +392,19 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 {
 	assert(indexOne >= 0 && indexOne < mOne->numEntries);
 	assert(indexTwo >= 0 && indexTwo < mTwo->numEntries);
-	if(mOne->contigs[indexOne] < mTwo->contigs[indexTwo] ||
-			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] < mTwo->positions[indexTwo]) ||
-			(mOne->contigs[indexOne] == mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strands[indexOne] < mTwo->strands[indexTwo])) {
-		return -1;
+	int32_t cmp[3], i;
+
+	cmp[0] = COMPAREINTS(mOne->contigs[indexOne], mTwo->contigs[indexTwo]);
+	cmp[1] = COMPAREINTS(mOne->positions[indexOne], mTwo->positions[indexTwo]);
+	cmp[2] = COMPAREINTS(mOne->strands[indexOne], mTwo->strands[indexTwo]);
+
+	for(i=0;i<3;i++) {
+		if(0 != cmp[i]) return cmp[i];
 	}
-	else if(mOne->contigs[indexOne] ==  mTwo->contigs[indexTwo] && mOne->positions[indexOne] == mTwo->positions[indexTwo] && mOne->strands[indexOne] == mTwo->strands[indexTwo]) {
-		return 0;
+	if(NULL != mOne->offsets && NULL != mTwo->offsets) {
+		return COMPAREINTS(mOne->offsets[indexOne], mTwo->offsets[indexTwo]);
 	}
-	else {
-		return 1;
-	}
+	return 0;
 }
 
 /* TODO */
@@ -464,6 +474,10 @@ void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t 
 		assert(NULL != src->masks[srcIndex]);
 		for(i=0;i<GETMASKNUMBYTES(dest);i++) {
 			dest->masks[destIndex][i] = src->masks[srcIndex][i];
+		}
+		if(NULL != src->offsets) {
+			assert(NULL != dest->offsets);
+			dest->offsets[destIndex] = src->offsets[srcIndex];
 		}
 	}
 }
@@ -538,6 +552,12 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 				PrintError(FnName, "m->masks[i]", "Could not allocate memory", Exit, MallocMemory);
 			}
 		}
+		if(NULL != m->offsets) {
+			m->offsets = realloc(m->offsets, sizeof(int32_t)*numEntries);
+			if(NULL == m->offsets) {
+				PrintError(FnName, "m->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+		}
 	}
 	else {
 		/* Free just the matches part, not the meta-data */
@@ -562,6 +582,10 @@ void RGMatchClearMatches(RGMatch *m)
 	}
 	free(m->masks);
 	m->masks=NULL;
+	if(NULL != m->offsets) {
+		free(m->offsets);
+		m->offsets=NULL;
+	}
 	m->numEntries=0;
 }
 
@@ -578,6 +602,10 @@ void RGMatchFree(RGMatch *m)
 		free(m->masks[i]);
 	}
 	free(m->masks);
+	if(NULL != m->offsets) {
+		free(m->offsets);
+		m->offsets=NULL;
+	}
 	RGMatchInitialize(m);
 }
 
@@ -594,6 +622,7 @@ void RGMatchInitialize(RGMatch *m)
 	m->positions=NULL;
 	m->strands=NULL;
 	m->masks=NULL;
+	m->offsets=NULL;
 }
 
 /* TODO */

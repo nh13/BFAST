@@ -63,6 +63,31 @@ int32_t RGMatchesRead(gzFile fp,
 	return 1;
 }
 
+/* TODO */
+int32_t RGMatchesReadWithOffsets(gzFile fp,
+		RGMatches *m)
+{
+	char *FnName = "RGMatchesReadWithOffsets";
+	int32_t i;
+
+	if(1 != RGMatchesRead(fp, m)) {
+		return EOF;
+	}
+
+	/* Read each end */
+	for(i=0;i<m->numEnds;i++) {
+		m->ends[i].offsets = malloc(sizeof(int32_t)*m->ends[i].numEntries);
+		if(NULL == m->ends[i].offsets) {
+			PrintError(FnName, "offsets", "Could not allocate memory", Exit, MallocMemory);
+		}
+		if(gzread64(fp, m->ends[i].offsets, sizeof(int32_t)*m->ends[i].numEntries) != sizeof(int32_t)*m->ends[i].numEntries) {
+			PrintError(FnName, "offsets", "Could not read from file", Exit, ReadFileError);
+		}
+	}
+
+	return 1;
+}
+
 int32_t RGMatchesReadText(FILE *fp,
 		RGMatches *m)
 {
@@ -126,6 +151,22 @@ void RGMatchesPrint(gzFile fp,
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchPrint(fp,
 				&m->ends[i]);
+	}
+}
+
+void RGMatchesPrintWithOffsets(gzFile fp,
+		RGMatches *m)
+{
+	char *FnName = "RGMatchesPrintWithOffsets";
+	int32_t i;
+	assert(fp!=NULL);
+
+	RGMatchesPrint(fp, m);
+
+	for(i=0;i<m->numEnds;i++) {
+		if(gzwrite64(fp, m->ends[i].offsets, sizeof(int32_t)*m->ends[i].numEntries) != sizeof(int32_t)*m->ends[i].numEntries) {
+			PrintError(FnName, "keyMatches", "Could not write to file", Exit, WriteFileError);
+		}
 	}
 }
 /* TODO */
@@ -256,83 +297,6 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 	}
 
 	return numMatches;
-}
-
-/* TODO */
-/* Merges matches from different reads */
-int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(gzFile *threadFPs,
-		int32_t numThreads,
-		gzFile outputFP)
-{
-	char *FnName = "RGMatchesMergeThreadTempFilesIntoOutputTempFile";
-	int32_t counter;
-	int32_t i;
-	RGMatches matches;
-	int32_t numFinished;
-	int *finished=NULL;
-
-	/* Initialize matches */
-	RGMatchesInitialize(&matches);
-
-	/* Allocate memory for the finished array */
-	finished = malloc(sizeof(int)*numThreads);
-	if(NULL == finished) {
-		PrintError(FnName, "finished", "Could not allocate memory", Exit, MallocMemory);
-	}
-	/* Initialize finished array */
-	for(i=0;i<numThreads;i++) {
-		finished[i] = 0;
-	}
-
-	counter = 0;
-	numFinished = 0;
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r[%d]", counter);
-	}
-	while(numFinished < numThreads) {
-		/* For each thread */
-		for(i=0;i<numThreads;i++) {
-			/* Only try reading from those that are not finished */
-			if(0 == finished[i]) {
-				if(RGMatchesRead(threadFPs[i],
-							&matches)==EOF) {
-					finished[i] = 1;
-					numFinished++;
-				}
-				else {
-					assert(numFinished < numThreads);
-
-					/*
-					   if(match.numEntries > 0) {
-					   counter++;
-					   }
-					   */
-					if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
-						fprintf(stderr, "\r[%d]", counter);
-					}
-					counter++;
-
-					RGMatchesPrint(outputFP,
-							&matches);
-
-				}
-				/* Free memory */
-				RGMatchesFree(&matches);
-			}
-		}
-	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r[%d]\n", counter);
-	}
-	assert(numFinished == numThreads);
-	for(i=0;i<numThreads;i++) {
-		assert(1==finished[i]);
-	}
-
-	/* Free memory */
-	free(finished);
-
-	return counter;
 }
 
 /* TODO */
@@ -492,7 +456,7 @@ void RGMatchesMirrorPairedEnd(RGMatches *m,
 				}
 			}
 		}
-		
+
 		RGMatchesRemoveDuplicates(m, INT_MAX);
 		/* Adjust positions in case they trail off the end of the contigs */
 		for(i=0;i<m->ends[0].numEntries;i++) {
@@ -534,5 +498,99 @@ void RGMatchesFilterOutOfRange(RGMatches *m,
 	for(i=0;i<m->numEnds;i++) {
 		RGMatchFilterOutOfRange(&m->ends[i],
 				maxNumMatches);
+	}
+}
+
+void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
+		int32_t numBins,
+		gzFile tempOutputIndexFP,
+		int32_t maxKeyMatches,
+		int32_t maxNumMatches) 
+{
+	char *FnName="RGMatchesMergeIndexBins";
+	int32_t i, j, k;
+	int32_t counter;
+	RGMatches matches;
+	RGMatches tempMatches;
+	int32_t numFinished = 0;
+	int32_t numKeyMatches[SEQUENCE_LENGTH];
+
+	/* Initialize matches */
+	RGMatchesInitialize(&matches);
+	RGMatchesInitialize(&tempMatches);
+
+	/* Read in each sequence/match one at a time */
+	counter = 0;
+	if(VERBOSE >=0) {
+		fprintf(stderr, "\r[%d]", 0);
+	}
+	while(numFinished == 0) {
+		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
+			fprintf(stderr, "\r[%d]", counter);
+		}
+		counter++;
+
+		/* Read matches for one read from each file */ 
+		for(i=0;i<numBins;i++) {
+			if(RGMatchesReadWithOffsets(tempOutputIndexBinFPs[i],
+						&tempMatches)==EOF) {
+				numFinished++;
+			}
+			else {
+				if(matches.readName != NULL &&
+						strcmp(matches.readName, tempMatches.readName)!=0) {
+					PrintError(FnName, NULL, "Read names do not match", Exit, OutOfRange);
+				}
+				/* Append temp matches to matches */
+				RGMatchesAppend(&matches, &tempMatches);
+			}
+
+			/* Free temp matches */
+			RGMatchesFree(&tempMatches);
+		}
+		/* We must finish all at the same time */
+		assert(numFinished == 0 || numFinished == numBins);
+
+		if(numFinished == 0) {
+			/* Finalize each end */
+			for(i=0;i<matches.numEnds;i++) {
+				for(j=0;j<matches.ends[i].readLength;j++) { // initialize
+					numKeyMatches[j]=0;
+				}
+				for(j=0;j<matches.ends[i].numEntries;j++) { // count # of matches per offset
+					numKeyMatches[matches.ends[i].offsets[j]]++;
+				}
+				for(j=k=0;j<matches.ends[i].numEntries;j++) { // shift down
+					if(numKeyMatches[matches.ends[i].offsets[j]] <= maxKeyMatches) {
+						// copy
+						if(k != j) {
+							matches.ends[i].contigs[k] = matches.ends[i].contigs[j];
+							matches.ends[i].positions[k] = matches.ends[i].positions[j];
+							matches.ends[i].strands[k] = matches.ends[i].strands[j];
+							// clever ?
+							free(matches.ends[i].masks[k]);
+							matches.ends[i].masks[k] = matches.ends[i].masks[j];
+							matches.ends[i].masks[j] = NULL;
+						}
+						k++;
+					}
+				}
+				// remove offsets
+				free(matches.ends[i].offsets);
+				matches.ends[i].offsets=NULL;
+				// reallocate
+				RGMatchReallocate(&matches.ends[i], k);
+				// check if there were too many matches by removing duplicates
+				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
+			}
+			RGMatchesPrint(tempOutputIndexFP,
+					&matches);
+		}
+		/* Free memory */
+		RGMatchesFree(&matches);
+	}
+
+	if(VERBOSE >=0) {
+		fprintf(stderr, "\r[%d]... completed.\n", counter-1);
 	}
 }

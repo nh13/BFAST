@@ -22,7 +22,8 @@ char ALPHABET[ALPHABET_SIZE] = "acgt";
 void RGReadsFindMatches(RGIndex *index, 
 		RGBinary *rg,
 		RGMatch *match,
-		int32_t *offsets,
+		int copyOffsets,
+		int *offsets,
 		int numOffsets,
 		int space,
 		int numMismatches,
@@ -118,7 +119,8 @@ void RGReadsFindMatches(RGIndex *index,
 		RGRangesCopyToRGMatch(&ranges,
 				index,
 				match,
-				space);
+				space,
+				copyOffsets);
 	}
 
 	/* Remove duplicates */

@@ -19,6 +19,7 @@ typedef struct {
 	FILE *tempSeqFP;
 	pthread_mutex_t *indexOutputFP_mutex;
 	gzFile indexOutputFP;
+	int32_t outputOffsets;
 	int32_t *indexOutputFP_threadID;
 	int32_t numThreads;
 	RGIndex *index;
@@ -87,7 +88,8 @@ int FindMatchesInIndex(char *indexFileName,
 		int numThreads,
 		int queueLength,
 		FILE ***tempSeqFPs,
-		gzFile indexFP,
+		gzFile indexOutputFP,
+		int outputOffsets,
 		char *tmpDir,
 		int timing,
 		int *totalDataStructureTime,

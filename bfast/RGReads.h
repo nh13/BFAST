@@ -6,7 +6,7 @@
 #include "RGMatch.h"
 #include "RGIndex.h"
 
-void RGReadsFindMatches(RGIndex*, RGBinary*, RGMatch*, int*, int, int, int, int, int, int, int, int, int, int);
+void RGReadsFindMatches(RGIndex*, RGBinary*, RGMatch*, int, int*, int, int, int, int, int, int, int, int, int, int);
 void RGReadsGenerateReads(char*, int, RGIndex*, RGReads*, int*, int, int, int, int, int, int, int);
 void RGReadsGeneratePerfectMatch(char*, int, int, RGIndex*, RGReads*);
 void RGReadsGenerateMismatches(char*, int, int, int, RGIndex*, RGReads*);

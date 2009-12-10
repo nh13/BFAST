@@ -135,6 +135,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define GETMASKBYTE(_pos) ((int)(_pos / 8))
 #define ROUND(_x) ((int)((_x) + 0.5))
 #define COLORFROMINT(_c) (COLORS[(int)_c])
+#define COMPAREINTS(_a, _b) ((_a < _b) ? -1 : ((_a == _b) ? 0 : 1))
 
 /* For FindMatches.c */
 #define FM_ROTATE_NUM 10000
@@ -202,6 +203,7 @@ typedef struct {
 	int32_t *positions;
 	char *strands;
 	char **masks;
+	int32_t *offsets; // this is only used when the index is split into pieces
 } RGMatch;
 
 /* TODO */
