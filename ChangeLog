@@ -6,6 +6,10 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.6.2
+* Fixing a bug that did not properly save all constraints. This
+reduced performance.
+* Fixed behaviour differences between when the index(es) are
+split and when they are one piece.
 * solid2fastq (C-version) now can read in bzip2 compressed
 files using the "-j" option.
 
