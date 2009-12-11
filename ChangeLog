@@ -5,6 +5,13 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
+Version 0.6.2
+* solid2fastq (C-version) now can read in bzip2 compressed
+files using the "-j" option.
+
+Version 0.6.1
+* fixing bugs related to the reorganization of the code.
+
 Version 0.6.0
 * complete re-organization of the bfast code and commands
 * supports automatic splitting of the indexes to allow efficient
