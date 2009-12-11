@@ -1,4 +1,4 @@
-#!/bin/perl
+#!/usr/bin/perl
 
 # Please see the LICENSE accompanying this distribution for 
 # # details.  Report all bugs to nhomer@cs.ucla.edu or 
