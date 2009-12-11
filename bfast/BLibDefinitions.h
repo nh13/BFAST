@@ -203,7 +203,9 @@ typedef struct {
 	int32_t *positions;
 	char *strands;
 	char **masks;
-	int32_t *offsets; // this is only used when the index is split into pieces
+	// these are only used when the index is split into pieces
+	int32_t *numOffsets;
+	int32_t **offsets; 
 } RGMatch;
 
 /* TODO */
@@ -219,6 +221,7 @@ typedef struct {
 	int64_t *startIndex;
 	int64_t *endIndex;
 	char *strand;
+	int32_t *numOffsets;
 	int32_t *offset;
 	int32_t numEntries;
 } RGRanges;

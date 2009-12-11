@@ -25,9 +25,17 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 
 	if(r->numEntries > 0) {
 		if(1 == copyOffsets) {
-			m->offsets = malloc(sizeof(int32_t)*m->numEntries);
+			m->numOffsets = malloc(sizeof(int32_t)*m->numEntries);
+			if(NULL == m->numOffsets) {
+				PrintError(FnName, "m->numOffsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			m->offsets = malloc(sizeof(int32_t*)*m->numEntries);
 			if(NULL == m->offsets) {
 				PrintError(FnName, "m->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			for(i=0;i<m->numEntries;i++) {
+				m->numOffsets[i] = 0;
+				m->offsets[i] = NULL;
 			}
 		}
 		/* Copy over for each range */
@@ -81,11 +89,18 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 				}
 				// Copy offsets if necessary
 				if(1 == copyOffsets) {
-					m->offsets[counter] = r->offset[i];
+					assert(0 == m->numOffsets[counter]);
+					m->numOffsets[counter]=1;
+					m->offsets[counter] = malloc(sizeof(int32_t));
+					if(NULL == m->offsets[counter]) {
+						PrintError(FnName, "m->offsets[counter]", "Could not allocate memory", Exit, MallocMemory);
+					}
+					m->offsets[counter][0] = r->offset[i];
 				}
 				counter++;
 			}
 		}
+		assert(counter == m->numEntries);
 	}
 }
 

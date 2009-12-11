@@ -212,11 +212,6 @@ void RGMatchPrintText(FILE *fp,
 		}
 		free(maskString);
 		maskString=NULL;
-		if(NULL != m->offsets) {
-			if(0 > fprintf(fp, "\t%d", m->offsets[i])) {
-				PrintError(FnName, NULL, "Could not write m->offsets[i]", Exit, WriteFileError);
-			}
-		}
 	}
 	if(0 > fprintf(fp, "\n")) {
 		PrintError(FnName, NULL, "Could not write newline", Exit, WriteFileError);
@@ -257,6 +252,20 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 	}
 
 	if(m->numEntries > 0) {
+		/* HERE */
+		if(NULL != m->offsets) {
+			fprintf(stderr, "BEFORE\n");
+			for(i=0;i<m->numEntries;i++) {
+				fprintf(stderr, "%c:%d:%d:%d",
+						m->strands[i], m->contigs[i], m->positions[i], m->numOffsets[i]);
+				int j;
+				for(j=0;j<m->numOffsets[i];j++) {
+					fprintf(stderr, "\t%d", m->offsets[i][j]);
+				}
+				fprintf(stderr, "\n");
+			}
+		}
+
 		/* Quick sort the data structure */
 		RGMatchQuickSort(m, 0, m->numEntries-1);
 
@@ -266,6 +275,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 			if(RGMatchCompareAtIndex(m, prevIndex, m, i)==0) {
 				/* union of masks */
 				RGMatchUnionMasks(m, prevIndex, i);
+				RGMatchUnionOffsets(m, prevIndex, i);
 			}
 			else {
 				prevIndex++;
@@ -277,6 +287,20 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
 		RGMatchReallocate(m, prevIndex+1);
+
+		/* HERE */
+		if(NULL != m->offsets) {
+			fprintf(stderr, "AFTER\n");
+			for(i=0;i<m->numEntries;i++) {
+				fprintf(stderr, "%c:%d:%d",
+						m->strands[i], m->contigs[i], m->positions[i]);
+				int j;
+				for(j=0;j<m->numOffsets[i];j++) {
+					fprintf(stderr, "\t%d", m->offsets[i][j]);
+				}
+				fprintf(stderr, "\n");
+			}
+		}
 
 		/* Check to see if we have too many matches */
 		if(NULL == m->offsets && maxNumMatches < m->numEntries) {
@@ -314,10 +338,16 @@ void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
 		temp->readLength = m->readLength;
 		RGMatchAllocate(temp, 1);
 		if(NULL != m->offsets) {
-			temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
+			temp->numOffsets = malloc(sizeof(int32_t));
+			if(NULL == temp->numOffsets) {
+				PrintError("RGMatchQuickSort", "temp->numOffsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			temp->numOffsets[0]=0;
+			temp->offsets = malloc(sizeof(int32_t*)); // include offsets just in case
 			if(NULL == temp->offsets) {
 				PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
 			}
+			temp->offsets[0]=NULL;
 		}
 
 		pivot = (low+high)/2;
@@ -372,10 +402,16 @@ void RGMatchShellSort(RGMatch *m, int32_t low, int32_t high)
 	temp->readLength = m->readLength;
 	RGMatchAllocate(temp, 1);
 	if(NULL != m->offsets) {
-		temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
+		temp->numOffsets = malloc(sizeof(int32_t));
+		if(NULL == temp->numOffsets) {
+			PrintError("RGMatchQuickSort", "temp->numOffsets", "Could not allocate memory", Exit, MallocMemory);
+		}
+		temp->numOffsets[0]=0;
+		temp->offsets = malloc(sizeof(int32_t*)); // include offsets just in case
 		if(NULL == temp->offsets) {
 			PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
 		}
+		temp->offsets[0]=NULL;
 	}
 
 	while(0 < inc) {
@@ -409,9 +445,6 @@ int32_t RGMatchCompareAtIndex(RGMatch *mOne, int32_t indexOne, RGMatch *mTwo, in
 
 	for(i=0;i<3;i++) {
 		if(0 != cmp[i]) return cmp[i];
-	}
-	if(NULL != mOne->offsets && NULL != mTwo->offsets) {
-		return COMPAREINTS(mOne->offsets[indexOne], mTwo->offsets[indexTwo]);
 	}
 	return 0;
 }
@@ -458,9 +491,18 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 
 		// Must allocate if we had no entries
 		if(0 == start && NULL != src->offsets) {
-			dest->offsets = malloc(sizeof(int32_t)*dest->numEntries);
+			dest->numOffsets = malloc(sizeof(int32_t)*dest->numEntries);
+			if(NULL == dest->numOffsets) {
+				PrintError(FnName, "dest->numOffsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			dest->offsets = malloc(sizeof(int32_t*)*dest->numEntries);
 			if(NULL == dest->offsets) {
 				PrintError(FnName, "dest->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			// initialize
+			for(i=0;i<dest->numEntries;i++) {
+				dest->numOffsets[i] = 0;
+				dest->offsets[i] = NULL;
 			}
 		}
 
@@ -478,6 +520,7 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 /* TODO */
 void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t srcIndex)
 {
+	char *FnName="RGMatchCopyAtIndex";
 	int32_t i;
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
@@ -494,7 +537,15 @@ void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t 
 		}
 		if(NULL != src->offsets) {
 			assert(NULL != dest->offsets);
-			dest->offsets[destIndex] = src->offsets[srcIndex];
+			free(dest->offsets[destIndex]);
+			dest->numOffsets[destIndex]=src->numOffsets[srcIndex];
+			dest->offsets[destIndex] = malloc(sizeof(int32_t)*dest->numOffsets[destIndex]);
+			if(NULL == dest->offsets[destIndex]) {
+				PrintError(FnName, "dest->offsets[destIndex]", "Could not allocate memory", Exit, MallocMemory);
+			}
+			for(i=0;i<src->numOffsets[srcIndex];i++) {
+				dest->offsets[destIndex][i] = src->offsets[srcIndex][i];
+			}
 		}
 	}
 }
@@ -570,9 +621,18 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 			}
 		}
 		if(NULL != m->offsets) {
-			m->offsets = realloc(m->offsets, sizeof(int32_t)*numEntries);
+			for(i=numEntries;i<prevNumEntries;i++) {
+				free(m->offsets[i]);
+				m->offsets[i]=NULL;
+				m->numOffsets[i]=0;
+			}
+			m->offsets = realloc(m->offsets, sizeof(int32_t*)*numEntries);
 			if(NULL == m->offsets) {
 				PrintError(FnName, "m->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			for(i=prevNumEntries;i<m->numEntries;i++) {
+				m->numOffsets[i]=0;
+				m->offsets[i]=NULL;
 			}
 		}
 	}
@@ -600,6 +660,11 @@ void RGMatchClearMatches(RGMatch *m)
 	free(m->masks);
 	m->masks=NULL;
 	if(NULL != m->offsets) {
+		free(m->numOffsets);
+		m->numOffsets=NULL;
+		for(i=0;i<m->numEntries;i++) {
+			free(m->offsets[i]);
+		}
 		free(m->offsets);
 		m->offsets=NULL;
 	}
@@ -620,6 +685,11 @@ void RGMatchFree(RGMatch *m)
 	}
 	free(m->masks);
 	if(NULL != m->offsets) {
+		free(m->numOffsets);
+		m->numOffsets=NULL;
+		for(i=0;i<m->numEntries;i++) {
+			free(m->offsets[i]);
+		}
 		free(m->offsets);
 		m->offsets=NULL;
 	}
@@ -639,6 +709,7 @@ void RGMatchInitialize(RGMatch *m)
 	m->positions=NULL;
 	m->strands=NULL;
 	m->masks=NULL;
+	m->numOffsets=NULL;
 	m->offsets=NULL;
 }
 
@@ -900,5 +971,23 @@ void RGMatchUnionMasks(RGMatch *m, int32_t dest, int32_t src)
 	int32_t i;
 	for(i=0;i<GETMASKNUMBYTES(m);i++) {
 		m->masks[dest][i] |= m->masks[src][i];
+	}
+}
+
+void RGMatchUnionOffsets(RGMatch *m, int32_t dest, int32_t src)
+{
+	char *FnName="RGMatchUnionOffsets";
+	int32_t i, prevNumOffsets;
+
+	if(NULL == m->offsets) return;
+
+	prevNumOffsets=m->numOffsets[dest];
+	m->numOffsets[dest] += m->numOffsets[src];
+	m->offsets[dest] = realloc(m->offsets[dest], sizeof(int32_t)*m->numOffsets[dest]);
+	if(NULL == m->offsets[dest]) {
+		PrintError(FnName, "m->offsets[dest]", "Could not allocate memory", Exit, MallocMemory);
+	}
+	for(i=0;i<m->numOffsets[src];i++) {
+		m->offsets[dest][i+prevNumOffsets] = m->offsets[src][i];
 	}
 }

@@ -27,7 +27,7 @@ char *RGMatchMaskToString(char*, int32_t);
 char *RGMatchStringToMask(char*, int32_t);
 void RGMatchUpdateMask(char*, int32_t);
 void RGMatchUnionMasks(RGMatch*, int32_t, int32_t);
-void RGMatchSumKeyMatches(RGMatch *m, int32_t dest, int32_t src);
+void RGMatchUnionOffsets(RGMatch*, int32_t, int32_t);
 
 #endif
 

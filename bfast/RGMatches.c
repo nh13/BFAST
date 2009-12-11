@@ -68,7 +68,7 @@ int32_t RGMatchesReadWithOffsets(gzFile fp,
 		RGMatches *m)
 {
 	char *FnName = "RGMatchesReadWithOffsets";
-	int32_t i;
+	int32_t i, j;
 
 	if(1 != RGMatchesRead(fp, m)) {
 		return EOF;
@@ -76,12 +76,26 @@ int32_t RGMatchesReadWithOffsets(gzFile fp,
 
 	/* Read each end */
 	for(i=0;i<m->numEnds;i++) {
-		m->ends[i].offsets = malloc(sizeof(int32_t)*m->ends[i].numEntries);
+		m->ends[i].numOffsets = malloc(sizeof(int32_t)*m->ends[i].numEntries);
+		if(NULL == m->ends[i].numOffsets) {
+			PrintError(FnName, "numOffsets", "Could not allocate memory", Exit, MallocMemory);
+		}
+		m->ends[i].offsets = malloc(sizeof(int32_t*)*m->ends[i].numEntries);
 		if(NULL == m->ends[i].offsets) {
 			PrintError(FnName, "offsets", "Could not allocate memory", Exit, MallocMemory);
 		}
-		if(gzread64(fp, m->ends[i].offsets, sizeof(int32_t)*m->ends[i].numEntries) != sizeof(int32_t)*m->ends[i].numEntries) {
-			PrintError(FnName, "offsets", "Could not read from file", Exit, ReadFileError);
+		if(gzread64(fp, m->ends[i].numOffsets, sizeof(int32_t)*m->ends[i].numEntries) != sizeof(int32_t)*m->ends[i].numEntries) {
+			PrintError(FnName, "numOffsets", "Could not read from file", Exit, ReadFileError);
+		}
+		for(j=0;j<m->ends[i].numEntries;j++) {
+			assert(0 < m->ends[i].numOffsets[j]); // HERE
+			m->ends[i].offsets[j] = malloc(sizeof(int32_t)*m->ends[i].numOffsets[j]);
+			if(NULL == m->ends[i].offsets[j]) {
+				PrintError(FnName, "offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+			if(gzread64(fp, m->ends[i].offsets[j], sizeof(int32_t)*m->ends[i].numOffsets[j]) != sizeof(int32_t)*m->ends[i].numOffsets[j]) {
+				PrintError(FnName, "offsets[j]", "Could not read from file", Exit, ReadFileError);
+			}
 		}
 	}
 
@@ -158,14 +172,19 @@ void RGMatchesPrintWithOffsets(gzFile fp,
 		RGMatches *m)
 {
 	char *FnName = "RGMatchesPrintWithOffsets";
-	int32_t i;
+	int32_t i, j;
 	assert(fp!=NULL);
 
 	RGMatchesPrint(fp, m);
 
 	for(i=0;i<m->numEnds;i++) {
-		if(gzwrite64(fp, m->ends[i].offsets, sizeof(int32_t)*m->ends[i].numEntries) != sizeof(int32_t)*m->ends[i].numEntries) {
-			PrintError(FnName, "keyMatches", "Could not write to file", Exit, WriteFileError);
+		if(gzwrite64(fp, m->ends[i].numOffsets, sizeof(int32_t)*m->ends[i].numEntries) != sizeof(int32_t)*m->ends[i].numEntries) {
+			PrintError(FnName, "numOffsets", "Could not write to file", Exit, WriteFileError);
+		}
+		for(j=0;j<m->ends[i].numEntries;j++) {
+			if(gzwrite64(fp, m->ends[i].offsets[j], sizeof(int32_t)*m->ends[i].numOffsets[j]) != sizeof(int32_t)*m->ends[i].numOffsets[j]) {
+				PrintError(FnName, "offsets[j]", "Could not write to file", Exit, WriteFileError);
+			}
 		}
 	}
 }
@@ -508,7 +527,7 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		int32_t maxNumMatches) 
 {
 	char *FnName="RGMatchesMergeIndexBins";
-	int32_t i, j, k;
+	int32_t i, j, k, l;
 	int32_t counter;
 	RGMatches matches;
 	RGMatches tempMatches;
@@ -541,7 +560,7 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 						strcmp(matches.readName, tempMatches.readName)!=0) {
 					PrintError(FnName, NULL, "Read names do not match", Exit, OutOfRange);
 				}
-				
+
 				/* Append temp matches to matches */
 				RGMatchesAppend(&matches, &tempMatches);
 			}
@@ -552,18 +571,49 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		/* We must finish all at the same time */
 		assert(numFinished == 0 || numFinished == numBins);
 
+		fprintf(stderr, "\n");
 		if(numFinished == 0) {
 			/* Finalize each end */
 			for(i=0;i<matches.numEnds;i++) {
+				
+				// HERE is this necessary?:
+				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
+
 				for(j=0;j<matches.ends[i].readLength;j++) { // initialize
 					numKeyMatches[j]=0;
 				}
 				for(j=0;j<matches.ends[i].numEntries;j++) { // count # of matches per offset
-					numKeyMatches[matches.ends[i].offsets[j]]++;
+					fprintf(stderr, "Before %c:%d:%d:%d",
+							matches.ends[i].strands[j],
+							matches.ends[i].contigs[j],
+							matches.ends[i].positions[j],
+							matches.ends[i].numOffsets[j]);
+					for(k=0;k<matches.ends[i].numOffsets[j];k++) {
+						assert(0 <= matches.ends[i].offsets[j][k]);
+						assert(matches.ends[i].offsets[j][k] < matches.ends[i].readLength);
+						fprintf(stderr, "\t%d:%d",
+								matches.ends[i].offsets[j][k],
+								numKeyMatches[matches.ends[i].offsets[j][k]]);
+						numKeyMatches[matches.ends[i].offsets[j][k]]++;
+					}
+					fprintf(stderr, "\n");
 				}
-				for(j=k=0;j<matches.ends[i].numEntries;j++) { // shift down
-					if(numKeyMatches[matches.ends[i].offsets[j]] <= maxKeyMatches) {
-						// copy
+				for(j=k=0;j<matches.ends[i].numEntries;j++) {
+					// Find any offset that is below the bound
+					for(l=0;l<matches.ends[i].numOffsets[j];l++) {
+						if(numKeyMatches[matches.ends[i].offsets[j][l]] <= maxKeyMatches) break;
+					}
+					if(l<matches.ends[i].numOffsets[j]) { // Found one
+						fprintf(stderr, "Copying for %c:%d:%d",
+								matches.ends[i].strands[j],
+								matches.ends[i].contigs[j],
+								matches.ends[i].positions[j]);
+						for(l=0;l<matches.ends[i].numOffsets[j];l++) {
+							fprintf(stderr, "\t%d:%d",
+									matches.ends[i].offsets[j][l],
+									numKeyMatches[matches.ends[i].offsets[j][l]]);
+						}
+						fprintf(stderr, "\n");
 						if(k != j) {
 							matches.ends[i].contigs[k] = matches.ends[i].contigs[j];
 							matches.ends[i].positions[k] = matches.ends[i].positions[j];
@@ -571,16 +621,33 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 							free(matches.ends[i].masks[k]);
 							matches.ends[i].masks[k] = matches.ends[i].masks[j];
 							matches.ends[i].masks[j] = NULL;
-							matches.ends[i].offsets[k] = matches.ends[i].offsets[j];
 						}
 						k++;
 					}
+					else {
+						fprintf(stderr, "Skipping %c:%d:%d",
+								matches.ends[i].strands[j],
+								matches.ends[i].contigs[j],
+								matches.ends[i].positions[j]);
+						for(l=0;l<matches.ends[i].numOffsets[j];l++) {
+							fprintf(stderr, "\t%d:%d",
+									matches.ends[i].offsets[j][l],
+									numKeyMatches[matches.ends[i].offsets[j][l]]);
+						}
+						fprintf(stderr, "\n");
+					}
 				}
 				// remove offsets
+				for(j=0;j<matches.ends[i].numEntries;j++) {
+					free(matches.ends[i].offsets[j]);
+					matches.ends[i].offsets[j]=NULL;
+				}
+				free(matches.ends[i].numOffsets);
+				matches.ends[i].numOffsets=NULL;
 				free(matches.ends[i].offsets);
 				matches.ends[i].offsets=NULL;
 				// reallocate
-				RGMatchReallocate(&matches.ends[i], k);
+				RGMatchReallocate(&matches.ends[i], k); // important that k is preserved up to this point
 				// check if there were too many matches by removing duplicates
 				// this will also union the masks
 				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
