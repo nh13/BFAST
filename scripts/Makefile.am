@@ -9,6 +9,6 @@ solid2fastq_SOURCES = \
 					  ../bfast/RGMatch.c ../bfast/RGMatch.h \
 					  solid2fastq.c
 
-solid2fastq_LDADD = -lm -lz
+solid2fastq_LDADD = -lm -lz -lbz2 
 
 dist_bin_SCRIPTS = bfast.resubmit.pl bfast.submit.pl solid2fastq.pl qseq2fastq.pl

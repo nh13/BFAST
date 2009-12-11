@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59);
-AC_INIT([bfast],[0.6.1d],[bfast-help@lists.sourceforge.net],[bfast])
+AC_INIT([bfast],[0.6.2a],[bfast-help@lists.sourceforge.net],[bfast])
 AC_COPYRIGHT([See LICENSE for copyright information.])
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE([dist-bzip2])
@@ -47,14 +47,16 @@ AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
 AC_CHECK_LIB([z], [gzread])
 AC_CHECK_LIB([z], [gzwrite])
+AC_CHECK_LIB([bz2], [BZ2_bzRead])
 # AC_CHECK_FUNCS_ONCE requires 2.63, which may not be available, so use AC_CHECH_FUNC on each 
 #AC_CHECK_FUNCS_ONCE([floor pow strstr strpbrk strdup strchr strtok_r])
 AC_CHECK_FUNC(floor, [AC_DEFINE(HAVE_FLOOR, 1, [Define 1 if you have the function floor])], [])
 AC_CHECK_FUNC(pow, [AC_DEFINE(HAVE_POW, 1, [Define 1 if you have the function pow])],[])
-AC_CHECK_FUNC(strstr, [AC_DEFINE(HAVE_STRSTR, 1, [Define 1 if you have the function strstr])],[])
-AC_CHECK_FUNC(strpbrk, [AC_DEFINE(HAVE_STRPBRK, 1, [Define 1 if you have the function strpbrk])],[])
-AC_CHECK_FUNC(strdup, [AC_DEFINE(HAVE_STRDUP, 1, [Define 1 if you have the function strdup])],[])
+AC_CHECK_FUNC(sqrt, [AC_DEFINE(HAVE_SQRT, 1, [Define 1 if you have the function pow])],[])
 AC_CHECK_FUNC(strchr, [AC_DEFINE(HAVE_STRCHR, 1, [Define 1 if you have the function strpbr])],[])
+AC_CHECK_FUNC(strdup, [AC_DEFINE(HAVE_STRDUP, 1, [Define 1 if you have the function strdup])],[])
+AC_CHECK_FUNC(strpbrk, [AC_DEFINE(HAVE_STRPBRK, 1, [Define 1 if you have the function strpbrk])],[])
+AC_CHECK_FUNC(strstr, [AC_DEFINE(HAVE_STRSTR, 1, [Define 1 if you have the function strstr])],[])
 AC_CHECK_FUNC(strtok_r, [AC_DEFINE(HAVE_STRTOK_R, 1, [Define 1 if you have the function strpbrk])],[])
 
 # Check types
