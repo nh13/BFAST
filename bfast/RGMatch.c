@@ -494,7 +494,7 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 		assert(start <= dest->numEntries);
 
 		// Must allocate if we had no entries
-		if(0 == start && NULL != src->offsets) {
+		if(0 == start && NULL != src->offsets && NULL == dest->offsets) {
 			dest->numOffsets = malloc(sizeof(int32_t)*dest->numEntries);
 			if(NULL == dest->numOffsets) {
 				PrintError(FnName, "dest->numOffsets", "Could not allocate memory", Exit, MallocMemory);
