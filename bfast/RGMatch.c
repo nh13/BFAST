@@ -626,6 +626,10 @@ void RGMatchReallocate(RGMatch *m, int32_t numEntries)
 				m->offsets[i]=NULL;
 				m->numOffsets[i]=0;
 			}
+			m->numOffsets = realloc(m->numOffsets, sizeof(int32_t)*numEntries);
+			if(NULL == m->numOffsets) {
+				PrintError(FnName, "m->numOffsets", "Could not allocate memory", Exit, MallocMemory);
+			}
 			m->offsets = realloc(m->offsets, sizeof(int32_t*)*numEntries);
 			if(NULL == m->offsets) {
 				PrintError(FnName, "m->offsets", "Could not allocate memory", Exit, MallocMemory);
