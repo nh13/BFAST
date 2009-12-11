@@ -212,6 +212,11 @@ void RGMatchPrintText(FILE *fp,
 		}
 		free(maskString);
 		maskString=NULL;
+		if(NULL != m->offsets) {
+			if(0 > fprintf(fp, "\t%d", m->offsets[i])) {
+				PrintError(FnName, NULL, "Could not write m->offsets[i]", Exit, WriteFileError);
+			}
+		}
 	}
 	if(0 > fprintf(fp, "\n")) {
 		PrintError(FnName, NULL, "Could not write newline", Exit, WriteFileError);
@@ -308,9 +313,11 @@ void RGMatchQuickSort(RGMatch *m, int32_t low, int32_t high)
 		RGMatchInitialize(temp);
 		temp->readLength = m->readLength;
 		RGMatchAllocate(temp, 1);
-		temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
-		if(NULL == temp->offsets) {
-			PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
+		if(NULL != m->offsets) {
+			temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
+			if(NULL == temp->offsets) {
+				PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
 		}
 
 		pivot = (low+high)/2;
@@ -364,10 +371,12 @@ void RGMatchShellSort(RGMatch *m, int32_t low, int32_t high)
 	RGMatchInitialize(temp);
 	temp->readLength = m->readLength;
 	RGMatchAllocate(temp, 1);
+	if(NULL != m->offsets) {
 		temp->offsets = malloc(sizeof(int32_t)); // include offsets just in case
 		if(NULL == temp->offsets) {
 			PrintError("RGMatchQuickSort", "temp->offsets", "Could not allocate memory", Exit, MallocMemory);
 		}
+	}
 
 	while(0 < inc) {
 		for(i=inc + low;i<=high;i++) {
@@ -447,6 +456,14 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 		assert(dest->numEntries == start + src->numEntries);
 		assert(start <= dest->numEntries);
 
+		// Must allocate if we had no entries
+		if(0 == start && NULL != src->offsets) {
+			dest->offsets = malloc(sizeof(int32_t)*dest->numEntries);
+			if(NULL == dest->offsets) {
+				PrintError(FnName, "dest->offsets", "Could not allocate memory", Exit, MallocMemory);
+			}
+		}
+
 		/* Copy over the entries */
 		for(i=start;i<dest->numEntries;i++) {
 			RGMatchCopyAtIndex(dest, i, src, i-start);
@@ -461,7 +478,6 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 /* TODO */
 void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t srcIndex)
 {
-	char *FnName="RGMatchCopyAtIndex";
 	int32_t i;
 	assert(srcIndex >= 0 && srcIndex < src->numEntries);
 	assert(destIndex >= 0 && destIndex < dest->numEntries);
@@ -477,12 +493,7 @@ void RGMatchCopyAtIndex(RGMatch *dest, int32_t destIndex, RGMatch *src, int32_t 
 			dest->masks[destIndex][i] = src->masks[srcIndex][i];
 		}
 		if(NULL != src->offsets) {
-			if(NULL == dest->offsets) {
-				dest->offsets = malloc(sizeof(int32_t)*dest->numEntries);
-				if(NULL == dest->offsets) {
-					PrintError(FnName, "dest->offsets", "Could not allocate memory", Exit, MallocMemory);
-				}
-			}
+			assert(NULL != dest->offsets);
 			dest->offsets[destIndex] = src->offsets[srcIndex];
 		}
 	}

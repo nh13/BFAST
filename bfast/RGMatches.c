@@ -541,6 +541,7 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 						strcmp(matches.readName, tempMatches.readName)!=0) {
 					PrintError(FnName, NULL, "Read names do not match", Exit, OutOfRange);
 				}
+				
 				/* Append temp matches to matches */
 				RGMatchesAppend(&matches, &tempMatches);
 			}
@@ -567,10 +568,10 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 							matches.ends[i].contigs[k] = matches.ends[i].contigs[j];
 							matches.ends[i].positions[k] = matches.ends[i].positions[j];
 							matches.ends[i].strands[k] = matches.ends[i].strands[j];
-							// clever ?
 							free(matches.ends[i].masks[k]);
 							matches.ends[i].masks[k] = matches.ends[i].masks[j];
 							matches.ends[i].masks[j] = NULL;
+							matches.ends[i].offsets[k] = matches.ends[i].offsets[j];
 						}
 						k++;
 					}
@@ -581,6 +582,7 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 				// reallocate
 				RGMatchReallocate(&matches.ends[i], k);
 				// check if there were too many matches by removing duplicates
+				// this will also union the masks
 				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
 			}
 			RGMatchesPrint(tempOutputIndexFP,

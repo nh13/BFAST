@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -82,7 +83,7 @@ void RGReadsFindMatches(RGIndex *index,
 					read + offsets[i],
 					index->width,
 					offsets[i],
-					maxKeyMatches,
+					(0 == copyOffsets) ? maxKeyMatches : INT_MAX,
 					maxNumMatches,
 					space,
 					strands,
@@ -98,7 +99,7 @@ void RGReadsFindMatches(RGIndex *index,
 					read + i,
 					index->width,
 					i,
-					maxKeyMatches,
+					(0 == copyOffsets) ? maxKeyMatches : INT_MAX,
 					maxNumMatches,
 					space,
 					strands,
@@ -106,9 +107,10 @@ void RGReadsFindMatches(RGIndex *index,
 		}
 	}
 
-	/* Remove duplicate ranges */
-	/* This exploits the fact that the ranges are non-overlapping */
-	numEntries = RGRangesRemoveDuplicates(&ranges);
+	numEntries=0;
+	for(i=0;i<ranges.numEntries;i++) {
+		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+	}
 
 	/* Copy over ranges over if necessary */
 	if(0 < numEntries) {
