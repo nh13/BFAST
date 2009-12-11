@@ -648,14 +648,16 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 									if(FORWARD == matches.ends[i].strands[j]) {
 										if(1 == index->mask[i]) {
 											int32_t offset = matches.ends[i].offsets[j][l] + m; 
-											if(ColorSpace == index->space) offset++;
+											// Color space already adjusted
+											//if(ColorSpace == index->space) offset++;
 											RGMatchUpdateMask(matches.ends[i].masks[k], offset); 
 										}
 									}
 									else {
 										if(1 == index->mask[index->width - m - 1]) {
 											int32_t offset = matches.ends[i].offsets[j][l] + m; 
-											if(ColorSpace == index->space) offset--;
+											// Color space already adjusted
+											//if(ColorSpace == index->space) offset--;
 											RGMatchUpdateMask(matches.ends[i].masks[k], offset); 
 										}
 									}

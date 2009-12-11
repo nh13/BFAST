@@ -96,6 +96,11 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 						PrintError(FnName, "m->offsets[counter]", "Could not allocate memory", Exit, MallocMemory);
 					}
 					m->offsets[counter][0] = r->offset[i];
+					// Adjust for color space
+					if(ColorSpace == space) {
+						if(FORWARD == m->strands[counter]) m->offsets[counter][0]++;
+						else m->offsets[counter][0]--;
+					}
 				}
 				counter++;
 			}
