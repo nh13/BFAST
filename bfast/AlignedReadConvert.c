@@ -723,7 +723,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	/* MQ - optional field */
 	if(2 == a->numEnds && 0 <= mateEndIndex) {
-		if(0>fprintf(fp, "\tMQ:i:%d\n",
+		if(0>fprintf(fp, "\tMQ:i:%d",
 					a->ends[mateEndIndex].entries[mateEntriesIndex].mappingQuality)) {
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
