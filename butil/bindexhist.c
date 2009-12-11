@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
-	
+
 	if(1 == argc || argc != optind) {
 		return PrintUsage();
 	}
@@ -515,12 +515,14 @@ int GetMatchesFromContigPos(RGIndex *index,
 	int returnLength, returnPosition;
 	char *read=NULL;
 	RGRanges ranges;
+	RGMatch match;
 	int readLength = index->width;
 	int8_t readInt[SEQUENCE_LENGTH];
-	int32_t i;
+	int32_t i, numEntries;
 
 	/* Initialize */
 	RGRangesInitialize(&ranges);
+	RGMatchInitialize(&match);
 
 	/* Get the read */
 	RGBinaryGetReference(rg,
@@ -548,18 +550,35 @@ int GetMatchesFromContigPos(RGIndex *index,
 			BothStrands,
 			&ranges);
 
-	/* This exploits the fact that the ranges are non-overlapping */
-	RGRangesRemoveDuplicates(&ranges);
-
-	assert(0 < ranges.numEntries);
-	(*numForward) = (*numReverse) = 0;
+	numEntries=0;
 	for(i=0;i<ranges.numEntries;i++) {
-		switch(ranges.strand[i]) {
+		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+	}
+	if(0 < numEntries) {
+		/* Allocate memory for the matches */
+		RGMatchAllocate(&match, numEntries);
+
+		/* Transfer ranges to matches */
+		RGRangesCopyToRGMatch(&ranges,
+				index,
+				&match,
+				rg->space,
+				0);
+	}
+
+	/* Remove duplicates */
+	RGMatchRemoveDuplicates(&match,
+			INT_MAX);
+
+	assert(0 < match.numEntries);
+	(*numForward) = (*numReverse) = 0;
+	for(i=0;i<match.numEntries;i++) {
+		switch(match.strands[i]) {
 			case FORWARD:
-				(*numForward) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				(*numForward)++;
 				break;
 			case REVERSE:
-				(*numReverse) += ranges.endIndex[i] - ranges.startIndex[i] + 1;
+				(*numReverse)++;
 				break;
 			default:
 				PrintError(FnName, NULL, "Could not understand strand", Exit, OutOfRange);
@@ -571,6 +590,7 @@ int GetMatchesFromContigPos(RGIndex *index,
 	assert((*numReverse) >= 0);
 
 	RGRangesFree(&ranges);
+	RGMatchFree(&match);
 	free(read);
 	read=NULL;
 
