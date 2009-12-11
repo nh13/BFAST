@@ -391,6 +391,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 	int32_t indexNum, numBins, uniqueIndexCtr, uniqueIndexBinCtr;
 	gzFile *tempOutputIndexBinFPs=NULL;
 	char **tempOutputIndexBinFileNames=NULL;
+	RGIndex tempIndex;
 
 	/* IDEA: for each index, split search into threads generating one output file per thread.
 	 * After the threads have finished their searches, merge their output into one output file
@@ -547,10 +548,15 @@ int FindMatchesInIndexes(char **indexFileNames,
 				fprintf(stderr, "Merging the output from each bin...\n");
 			}
 
+			//indexFileNames[indexNum-1]
+			RGIndexInitialize(&tempIndex);
+			RGIndexGetHeader(indexFileNames[indexNum-1], &tempIndex);
+
 			startTime=time(NULL);
 			RGMatchesMergeIndexBins(tempOutputIndexBinFPs,
 					numBins,
 					tempOutputIndexFPs[uniqueIndexCtr],
+					&tempIndex,
 					maxKeyMatches,
 					maxNumMatches);
 			endTime=time(NULL);
@@ -566,6 +572,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 						seconds);
 			}
 			(*totalOutputTime)+=endTime-startTime;
+			
 
 			// Destroy
 			for(i=0;i<numBins;i++) {
@@ -574,6 +581,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 						1);
 			}
 
+			RGIndexDelete(&tempIndex);
 			free(tempOutputIndexBinFPs);
 			free(tempOutputIndexBinFileNames);
 			

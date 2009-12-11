@@ -1829,6 +1829,21 @@ void RGIndexPrintHeader(gzFile fp, RGIndex *index)
 	}
 }
 
+void RGIndexGetHeader(char *inputFileName, RGIndex *index)
+{
+	char *FnName="RGIndexGetHeader";
+	gzFile fp=NULL;
+
+	/* Open the file */
+	if(!(fp=gzopen(inputFileName, "rb"))) {
+		PrintError(FnName, inputFileName, "Could not open file for reading", Exit, OpenFileError);
+	}
+
+	RGIndexReadHeader(fp, index);
+
+	gzclose(fp);
+}
+
 /* TODO */
 void RGIndexReadHeader(gzFile fp, RGIndex *index) 
 {
@@ -1962,7 +1977,7 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, 
 	numMatches += (0 < foundIndexReverse)?(endIndexReverse - startIndexReverse + 1):0;
 
 	// HERE
-	fprintf(stderr, "Offset %d found %d matches\n", offset, (int)numMatches);
+	//fprintf(stderr, "Offset %d found %d matches\n", offset, (int)numMatches);
 
 	/* Check if the key has too many matches */
 	if(numMatches <= 0) {

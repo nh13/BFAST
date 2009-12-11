@@ -523,11 +523,12 @@ void RGMatchesFilterOutOfRange(RGMatches *m,
 void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		int32_t numBins,
 		gzFile tempOutputIndexFP,
+		RGIndex *index,
 		int32_t maxKeyMatches,
 		int32_t maxNumMatches) 
 {
 	char *FnName="RGMatchesMergeIndexBins";
-	int32_t i, j, k, l;
+	int32_t i, j, k, l, m;
 	int32_t counter;
 	RGMatches matches;
 	RGMatches tempMatches;
@@ -571,11 +572,13 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		/* We must finish all at the same time */
 		assert(numFinished == 0 || numFinished == numBins);
 
-		fprintf(stderr, "\n");
+		/* HERE
+		   fprintf(stderr, "\n");
+		   */
 		if(numFinished == 0) {
 			/* Finalize each end */
 			for(i=0;i<matches.numEnds;i++) {
-				
+
 				// HERE is this necessary?:
 				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
 
@@ -583,20 +586,26 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 					numKeyMatches[j]=0;
 				}
 				for(j=0;j<matches.ends[i].numEntries;j++) { // count # of matches per offset
-					fprintf(stderr, "Before %c:%d:%d:%d",
-							matches.ends[i].strands[j],
-							matches.ends[i].contigs[j],
-							matches.ends[i].positions[j],
-							matches.ends[i].numOffsets[j]);
+					/* HERE
+					   fprintf(stderr, "Before %c:%d:%d:%d",
+					   matches.ends[i].strands[j],
+					   matches.ends[i].contigs[j],
+					   matches.ends[i].positions[j],
+					   matches.ends[i].numOffsets[j]);
+					   */
 					for(k=0;k<matches.ends[i].numOffsets[j];k++) {
-						assert(0 <= matches.ends[i].offsets[j][k]);
-						assert(matches.ends[i].offsets[j][k] < matches.ends[i].readLength);
-						fprintf(stderr, "\t%d:%d",
-								matches.ends[i].offsets[j][k],
-								numKeyMatches[matches.ends[i].offsets[j][k]]);
+						/* HERE
+						   assert(0 <= matches.ends[i].offsets[j][k]);
+						   assert(matches.ends[i].offsets[j][k] < matches.ends[i].readLength);
+						   fprintf(stderr, "\t%d:%d",
+						   matches.ends[i].offsets[j][k],
+						   numKeyMatches[matches.ends[i].offsets[j][k]]);
+						   */
 						numKeyMatches[matches.ends[i].offsets[j][k]]++;
 					}
-					fprintf(stderr, "\n");
+					/* HERE
+					   fprintf(stderr, "\n");
+					   */
 				}
 				for(j=k=0;j<matches.ends[i].numEntries;j++) {
 					// Find any offset that is below the bound
@@ -604,38 +613,78 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 						if(numKeyMatches[matches.ends[i].offsets[j][l]] <= maxKeyMatches) break;
 					}
 					if(l<matches.ends[i].numOffsets[j]) { // Found one
-						fprintf(stderr, "Copying for %c:%d:%d",
-								matches.ends[i].strands[j],
-								matches.ends[i].contigs[j],
-								matches.ends[i].positions[j]);
-						for(l=0;l<matches.ends[i].numOffsets[j];l++) {
-							fprintf(stderr, "\t%d:%d",
-									matches.ends[i].offsets[j][l],
-									numKeyMatches[matches.ends[i].offsets[j][l]]);
-						}
-						fprintf(stderr, "\n");
+						/*
+						 * HERE
+						 fprintf(stderr, "Copying for %c:%d:%d",
+						 matches.ends[i].strands[j],
+						 matches.ends[i].contigs[j],
+						 matches.ends[i].positions[j]);
+						 for(l=0;l<matches.ends[i].numOffsets[j];l++) {
+						 fprintf(stderr, "\t%d:%d",
+						 matches.ends[i].offsets[j][l],
+						 numKeyMatches[matches.ends[i].offsets[j][l]]);
+						 }
+						 fprintf(stderr, "\n");
+						 */
 						if(k != j) {
 							matches.ends[i].contigs[k] = matches.ends[i].contigs[j];
 							matches.ends[i].positions[k] = matches.ends[i].positions[j];
 							matches.ends[i].strands[k] = matches.ends[i].strands[j];
-							free(matches.ends[i].masks[k]);
-							matches.ends[i].masks[k] = matches.ends[i].masks[j];
-							matches.ends[i].masks[j] = NULL;
 						}
+						// Zero out mask
+						for(l=0;l<GETMASKNUMBYTESFROMLENGTH(matches.ends[i].readLength);l++) {
+							matches.ends[i].masks[k][l] = 0;
+						}
+						/* HERE
+						char *s = RGMatchMaskToString(matches.ends[i].masks[k], matches.ends[i].readLength);
+						fprintf(stderr, "ZERO MASK=%s\n", s);
+						free(s);
+						*/
+						// Copy over masks based on kept offsets
+						for(l=0;l<matches.ends[i].numOffsets[j];l++) { // for each offset
+							if(numKeyMatches[matches.ends[i].offsets[j][l]] <= maxKeyMatches) {
+								// Add ot the mask
+								for(m=0;m<index->width;m++) {
+									if(FORWARD == matches.ends[i].strands[j]) {
+										if(1 == index->mask[i]) {
+											int32_t offset = matches.ends[i].offsets[j][l] + m; 
+											if(ColorSpace == index->space) offset++;
+											RGMatchUpdateMask(matches.ends[i].masks[k], offset); 
+										}
+									}
+									else {
+										if(1 == index->mask[index->width - m - 1]) {
+											int32_t offset = matches.ends[i].offsets[j][l] + m; 
+											if(ColorSpace == index->space) offset--;
+											RGMatchUpdateMask(matches.ends[i].masks[k], offset); 
+										}
+									}
+								}
+							}
+						}
+						/*
+						 * HERE
+						 free(matches.ends[i].masks[k]);
+						 matches.ends[i].masks[k] = matches.ends[i].masks[j];
+						 matches.ends[i].masks[j] = NULL;
+						 */
 						k++;
 					}
-					else {
-						fprintf(stderr, "Skipping %c:%d:%d",
-								matches.ends[i].strands[j],
-								matches.ends[i].contigs[j],
-								matches.ends[i].positions[j]);
-						for(l=0;l<matches.ends[i].numOffsets[j];l++) {
-							fprintf(stderr, "\t%d:%d",
-									matches.ends[i].offsets[j][l],
-									numKeyMatches[matches.ends[i].offsets[j][l]]);
-						}
-						fprintf(stderr, "\n");
-					}
+					/*
+					 * HERE
+					 else {
+					 fprintf(stderr, "Skipping %c:%d:%d",
+					 matches.ends[i].strands[j],
+					 matches.ends[i].contigs[j],
+					 matches.ends[i].positions[j]);
+					 for(l=0;l<matches.ends[i].numOffsets[j];l++) {
+					 fprintf(stderr, "\t%d:%d",
+					 matches.ends[i].offsets[j][l],
+					 numKeyMatches[matches.ends[i].offsets[j][l]]);
+					 }
+					 fprintf(stderr, "\n");
+					 }
+					 */
 				}
 				// remove offsets
 				for(j=0;j<matches.ends[i].numEntries;j++) {
