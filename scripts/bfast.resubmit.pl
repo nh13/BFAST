@@ -14,17 +14,20 @@ use Pod::Usage;
 # depdent jobs to point to this new job.
 
 my $config;
-my ($man, $username, $help, $jids) = (0, "", 0, 0);
+my ($man, $username, $delete, $help, $jids) = (0, "", 0, 0, 0);
 my $version = "0.1.1";
 my $CORE = "[bfast resubmit]";
 
 GetOptions('help|?' => \$help,
 	'man' => \$man,
 	'username=s' => \$username,
-	'jids' => \$jids)
+	'jids' => \$jids,
+	'delete' => \$delete)
 	or pod2usage(1);
 pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 pod2usage(1) if ($help);
+
+my @jids_to_do = ();
 
 if($jids && 0 < length($username)) {
 	print STDERR "Error: both jids and username options cannot be used.\n";
@@ -32,7 +35,7 @@ if($jids && 0 < length($username)) {
 }
 elsif($jids) {
 	foreach my $jid (@ARGV) {
-		resub($jid);
+		push(@jids_to_do, $jid);
 	}
 }
 elsif(0 < length($username)) {
@@ -40,13 +43,14 @@ elsif(0 < length($username)) {
 		print STDERR "Error: jids should not be supplied with the username option.\n";
 		exit(1);
 	}
-	my @jids = get_jids_from_username($username);
-	foreach my $jid (@jids) {
-		resub($jid);
-	}
+	@jids_to_do = get_jids_from_username($username);
 }
 else {
 	pod2usage(1);
+}
+
+while(0 < scalar(@jids_to_do)) {
+	resub(\@jids_to_do, $delete);
 }
 
 sub get_jids_from_username {
@@ -67,43 +71,58 @@ sub get_jids_from_username {
 }
 
 sub resub {
-	my $old_jid = shift;
+	my ($jids, $delete) = @_;
 	my $job_name = "";
 	my $jid_successors = ();
 	my @lines = ();
 	my $new_jid = "";
 	my $out = "";
 	my %params = ();
-	
+	my $old_jid = shift(@$jids);
+
 	printf(STDOUT "%s processing %s\n", $CORE, $old_jid); 
 
 	get_params($old_jid, \%params);
-
+		
 	# Check that job parameters were ok
 	die unless defined($params{'jid_successor_list'});
 
-	# Resub with user hold
-	$new_jid=`qresub -h u $old_jid`;
-	$new_jid =~ s/^.*\n//;
-	$new_jid =~ s/^.*job\s+(\S+).*?$/$1/;
-	chomp($new_jid);
-	printf(STDOUT "%s resubbed with hold on %s\n", $CORE, $new_jid); 
+	if(0 == $delete) {
+		# Resub with user hold
+		$new_jid=`qresub -h u $old_jid`;
+		$new_jid =~ s/^.*\n//;
+		$new_jid =~ s/^.*job\s+(\S+).*?$/$1/;
+		chomp($new_jid);
+		printf(STDOUT "%s resubbed with hold on %s\n", $CORE, $new_jid); 
 
-	# Alter the successors
-	my @jid_successors = split(/,/, $params{'jid_successor_list'});
-	foreach my $jid_successor (@jid_successors) {
-		my $new_hold_list = get_new_hold_list($jid_successor, $old_jid, $new_jid);
-		$out=`qalter $jid_successor -hold_jid $new_hold_list`;
-		printf(STDOUT "%s altered successor %s\n", $CORE, $jid_successor);
+		# Alter the successors
+		my @jid_successors = split(/,/, $params{'jid_successor_list'});
+		foreach my $jid_successor (@jid_successors) {
+			my $new_hold_list = get_new_hold_list($jid_successor, $old_jid, $new_jid);
+			$out=`qalter $jid_successor -hold_jid $new_hold_list`;
+			printf(STDOUT "%s altered successor %s\n", $CORE, $jid_successor);
+		}
+
+		# Delete the old job
+		$out=`qdel $old_jid`;
+		printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
+
+		# Remove user hold
+		$out=`qalter $new_jid -h U`;
+		printf(STDOUT "%s removed hold on %s\n", $CORE, $new_jid); 
 	}
+	else {
+		# Alter the successors
+		my @jid_successors = split(/,/, $params{'jid_successor_list'});
+		foreach my $jid_successor (@jid_successors) {
+			push(@$jids, $jid_successor);
+			printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+		}
 
-	# Delete the old job
-	$out=`qdel $old_jid`;
-	printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
-
-	# Remove user hold
-	$out=`qalter $new_jid -h U`;
-	printf(STDOUT "%s removed hold on %s\n", $CORE, $new_jid); 
+		# Delete the old job
+		$out=`qdel $old_jid`;
+		printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
+	}
 }
 
 sub get_params {
@@ -157,6 +176,9 @@ Process all jobs in the error state from the given username.
 =item B<-jids>
 Process all given job ids.
 
+=item B<-delete>
+Delete all given jobs as well as their successors.
+
 =back
 
 =head1 DESCRIPTION
@@ -164,7 +186,8 @@ Process all given job ids.
 B<bfast.resubmit.pl> will resubmit each of the given jobs and modify any 
 successor job(s) (i.e. jobs dependencies) to hold on the new resubmitted
 job.  This script can process all jobs submitted by a given user, or the
-jobs given by the specified job identifiers.
+jobs given by the specified job identifiers.  If desired, all jobs and
+their successors can be deleted using the B<-delete> option.
 
 Please report all bugs to nhomer@cs.ucla.edu or bfast-help@lists.sourceforge.net.
 
