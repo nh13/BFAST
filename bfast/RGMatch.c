@@ -252,21 +252,6 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 	}
 
 	if(m->numEntries > 0) {
-		/* HERE */
-		/*
-		if(NULL != m->offsets) {
-			fprintf(stderr, "BEFORE\n");
-			for(i=0;i<m->numEntries;i++) {
-				fprintf(stderr, "%c:%d:%d:%d",
-						m->strands[i], m->contigs[i], m->positions[i], m->numOffsets[i]);
-				int j;
-				for(j=0;j<m->numOffsets[i];j++) {
-					fprintf(stderr, "\t%d", m->offsets[i][j]);
-				}
-				fprintf(stderr, "\n");
-			}
-		}
-		*/
 
 		/* Quick sort the data structure */
 		RGMatchQuickSort(m, 0, m->numEntries-1);
@@ -289,22 +274,6 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 		/* Reallocate pair */
 		/* does not make sense if there are no entries */
 		RGMatchReallocate(m, prevIndex+1);
-
-		/* HERE */
-		/*
-		if(NULL != m->offsets) {
-			fprintf(stderr, "AFTER\n");
-			for(i=0;i<m->numEntries;i++) {
-				fprintf(stderr, "%c:%d:%d",
-						m->strands[i], m->contigs[i], m->positions[i]);
-				int j;
-				for(j=0;j<m->numOffsets[i];j++) {
-					fprintf(stderr, "\t%d", m->offsets[i][j]);
-				}
-				fprintf(stderr, "\n");
-			}
-		}
-		*/
 
 		/* Check to see if we have too many matches */
 		if(NULL == m->offsets && maxNumMatches < m->numEntries) {

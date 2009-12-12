@@ -542,7 +542,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 					numBins,
 					tempOutputIndexFPs[uniqueIndexCtr],
 					&tempIndex,
-					rg, // HERE
 					maxKeyMatches,
 					maxNumMatches);
 			endTime=time(NULL);
