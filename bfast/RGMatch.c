@@ -767,32 +767,25 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 		if(m->strands[i] == FORWARD) {
 
 			if(ColorSpace == rg->space) {
+				reference[0]='X';
 				for(j=1;j<m->readLength;j++) { // ignore leading adaptor
-					reference[j-1] = RGBinaryGetBase(rg, m->contigs[i], m->positions[i] + j - 1);
-					reference[j-1] = (0 == reference[j-1]) ? '-' : ToUpper(reference[j-1]);
-					reference[j-1] = COLORS[BaseToInt(reference[j-1])];
+					reference[j] = RGBinaryGetBase(rg, m->contigs[i], m->positions[i] + j - 1);
+					reference[j] = (0 == reference[j]) ? '-' : ToUpper(reference[j]);
+					reference[j] = COLORS[BaseToInt(reference[j])];
+				}
+				reference[j]='\0';
+				for(j=1;j<m->readLength;j++) { // ignore leading adaptor
 
-					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j-1]) {
-						reference[j]='\0';
-						char *r=NULL;
-						assert(1 == RGBinaryGetSequence(rg,
-									m->contigs[i],
-									m->positions[i],
-									m->strands[i],
-									&r,
-									m->readLength));
-						ConvertColorsFromStorage(r, m->readLength);
-						fprintf(stderr, "\n%sCASE1%s\n%s\n%s\n%s\n",
+					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j]) {
+						fprintf(stderr, "\n%s%s\n%s\n%s\n",
 								BREAK_LINE,
 								reference,
-								r,
 								m->read,
 								mask);
 						fprintf(stderr, "%c:%d:%d\n",
 								FORWARD,
 								m->contigs[i],
 								m->positions[i]);
-						free(r);
 						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Warn, OutOfRange);
 						return 0;
 					}
@@ -864,6 +857,15 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 				}
 			}
 			else {
+				reference[0]='X';
+				for(j=1;j<m->readLength;j++) { // skip adaptor
+					char base = RGBinaryGetBase(rg, 
+							m->contigs[i], 
+							m->positions[i] + m->readLength - j);
+					reference[j] = (0 == base) ? '-' : ToUpper(base);
+					reference[j] = COLORS[BaseToInt(reference[j])];
+				}
+				reference[j]='\0';
 				for(j=1;j<m->readLength;j++) { // skip adaptor
 					char base = RGBinaryGetBase(rg, 
 							m->contigs[i], 
@@ -871,20 +873,8 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 					reference[j-1] = (0 == base) ? '-' : ToUpper(base);
 					reference[j-1] = COLORS[BaseToInt(reference[j-1])];
 					if('1' == mask[j-1] && ToUpper(m->read[j]) != reference[j-1]) {
-						fprintf(stderr, "%c:%c\n",
-								ToUpper(m->read[j]),
-								reference[j-1]);
-						reference[j]='\0';
-						char *r=NULL;
-						assert(1 == RGBinaryGetSequence(rg,
-									m->contigs[i],
-									m->positions[i],
-									m->strands[i],
-									&r,
-									m->readLength));
-						fprintf(stderr, "\n%s%s\n %s\n%s\n%s\n",
+						fprintf(stderr, "\n%s%s\n%s\n%s\n",
 								BREAK_LINE,
-								r,
 								reference,
 								mask,
 								m->read);
@@ -892,7 +882,6 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 								REVERSE,
 								m->contigs[i],
 								m->positions[i]);
-						free(r);
 						PrintError(FnName, "m->read[j]) != base", "Inconsistency with the mask", Warn, OutOfRange);
 						return 0;
 					}

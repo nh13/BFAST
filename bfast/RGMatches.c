@@ -520,15 +520,16 @@ void RGMatchesFilterOutOfRange(RGMatches *m,
 	}
 }
 
-void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
+int32_t RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		int32_t numBins,
 		gzFile tempOutputIndexFP,
 		RGIndex *index,
+		RGBinary *rg,
 		int32_t maxKeyMatches,
 		int32_t maxNumMatches) 
 {
 	char *FnName="RGMatchesMergeIndexBins";
-	int32_t i, j, k, l, m;
+	int32_t i, j, k, l, m, numMatches=0;
 	int32_t counter;
 	RGMatches matches;
 	RGMatches tempMatches;
@@ -578,7 +579,6 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		if(numFinished == 0) {
 			/* Finalize each end */
 			for(i=0;i<matches.numEnds;i++) {
-
 				// HERE is this necessary?:
 				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
 
@@ -646,7 +646,7 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 								// Add ot the mask
 								for(m=0;m<index->width;m++) {
 									if(FORWARD == matches.ends[i].strands[j]) {
-										if(1 == index->mask[i]) {
+										if(1 == index->mask[m]) {
 											int32_t offset = matches.ends[i].offsets[j][l] + m; 
 											// Color space already adjusted
 											//if(ColorSpace == index->space) offset++;
@@ -662,6 +662,11 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 										}
 									}
 								}
+								/* HERE
+								if(1 != RGMatchCheck(&matches.ends[i], rg)) {
+									PrintError(FnName, "HERE", "HERE 2", Exit, OutOfRange);
+								}
+								*/
 							}
 						}
 						/*
@@ -703,6 +708,13 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 				// this will also union the masks
 				RGMatchRemoveDuplicates(&matches.ends[i], maxNumMatches);
 			}
+			for(i=0;i<matches.numEnds;i++) {
+				if(0 < matches.ends[i].numEntries) {
+					numMatches++;
+					break;
+				}
+			}
+			RGMatchesCheck(&matches, rg); // HERE
 			RGMatchesPrint(tempOutputIndexFP,
 					&matches);
 		}
@@ -713,4 +725,6 @@ void RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 	if(VERBOSE >=0) {
 		fprintf(stderr, "\r[%d]... completed.\n", counter-1);
 	}
+
+	return numMatches;
 }

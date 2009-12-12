@@ -170,14 +170,6 @@ void FindMatches(
 		PrintError("FindMatches", "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 	}
 
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Processing %d reads using %d main indexes.\n",
-				numReads,
-				numMainIndexes);
-		fprintf(stderr, "%s", BREAK_LINE);
-	}
-
 	/* Do step 1: search the main indexes for all reads */
 	numMatches=FindMatchesInIndexes(mainIndexFileNames,
 			mainIndexIDs,
@@ -209,11 +201,6 @@ void FindMatches(
 	if(0 < numSecondaryIndexes) { /* Only if there are secondary indexes */
 		if(0 < numReads - numMatches) { /* Only if enough reads are left */
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "%s", BREAK_LINE);
-				fprintf(stderr, "%s", BREAK_LINE);
-				fprintf(stderr, "Processing remaining %d reads using %d secondary indexes.\n",
-						numReads - numMatches,
-						numSecondaryIndexes);
 				fprintf(stderr, "%s", BREAK_LINE);
 			}
 
@@ -501,12 +488,12 @@ int FindMatchesInIndexes(char **indexFileNames,
 
 				assert(indexNum < numIndexes);
 				if(VERBOSE >= 0) {
-					fprintf(stderr, "%s", BREAK_LINE);
+					if(1 == indexIDs[indexNum][1]) fprintf(stderr, "%s", BREAK_LINE);
 					fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
 							indexNum+1, numIndexes,
 							indexIDs[indexNum][0], indexIDs[indexNum][1]);
 				}
-				numMatches = FindMatchesInIndex(indexFileNames[indexNum],
+				FindMatchesInIndex(indexFileNames[indexNum],
 						rg,
 						offsets,
 						numOffsets,
@@ -544,19 +531,18 @@ int FindMatchesInIndexes(char **indexFileNames,
 			}
 
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "%s", BREAK_LINE);
 				fprintf(stderr, "Merging the output from each bin...\n");
 			}
 
-			//indexFileNames[indexNum-1]
 			RGIndexInitialize(&tempIndex);
-			RGIndexGetHeader(indexFileNames[indexNum-1], &tempIndex);
+			RGIndexGetHeader(indexFileNames[indexNum-1], &tempIndex); // use previous
 
 			startTime=time(NULL);
-			RGMatchesMergeIndexBins(tempOutputIndexBinFPs,
+			numMatches = RGMatchesMergeIndexBins(tempOutputIndexBinFPs,
 					numBins,
 					tempOutputIndexFPs[uniqueIndexCtr],
 					&tempIndex,
+					rg, // HERE
 					maxKeyMatches,
 					maxNumMatches);
 			endTime=time(NULL);
@@ -572,7 +558,6 @@ int FindMatchesInIndexes(char **indexFileNames,
 						seconds);
 			}
 			(*totalOutputTime)+=endTime-startTime;
-			
 
 			// Destroy
 			for(i=0;i<numBins;i++) {
@@ -584,16 +569,17 @@ int FindMatchesInIndexes(char **indexFileNames,
 			RGIndexDelete(&tempIndex);
 			free(tempOutputIndexBinFPs);
 			free(tempOutputIndexBinFileNames);
-			
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "%s", BREAK_LINE);
-			}
+
 		}
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "Found %d matches.\n", numMatches);
+			}
 	}
 
 	/* Merge temporary output from each index and output to the output file. */
 	if(numUniqueIndexes > 1) {
 		if(VERBOSE >= 0) {
+			fprintf(stderr, "%s", BREAK_LINE);
 			fprintf(stderr, "Merging the output from each index...\n");
 		}
 		for(i=0;i<numUniqueIndexes;i++) {
@@ -850,10 +836,6 @@ int FindMatchesInIndex(char *indexFileName,
 	RGIndexDelete(&index);
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
-
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Found %d matches.\n", numMatches);
-	}
 
 	/* Free thread data */
 	free(threads);

@@ -24,7 +24,7 @@ void RGMatchesInitialize(RGMatches*);
 void RGMatchesMirrorPairedEnd(RGMatches*, RGBinary *rg, int32_t, int32_t, int32_t);
 void RGMatchesCheck(RGMatches*, RGBinary*);
 void RGMatchesFilterOutOfRange(RGMatches*, int32_t);
-void RGMatchesMergeIndexBins(gzFile*, int32_t, gzFile, RGIndex*, int32_t, int32_t);
+int32_t RGMatchesMergeIndexBins(gzFile*, int32_t, gzFile, RGIndex*, RGBinary*, int32_t, int32_t); // HERE -> RGBinary
 
 #endif
 
