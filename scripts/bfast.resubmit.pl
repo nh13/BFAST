@@ -53,6 +53,7 @@ while(0 < scalar(@jids_to_do)) {
 	resub(\@jids_to_do, $delete);
 }
 
+
 sub get_jids_from_username {
 	my $username = shift;
 
@@ -83,9 +84,6 @@ sub resub {
 	printf(STDOUT "%s processing %s\n", $CORE, $old_jid); 
 
 	get_params($old_jid, \%params);
-		
-	# Check that job parameters were ok
-	die unless defined($params{'jid_successor_list'});
 
 	if(0 == $delete) {
 		# Resub with user hold
@@ -95,12 +93,14 @@ sub resub {
 		chomp($new_jid);
 		printf(STDOUT "%s resubbed with hold on %s\n", $CORE, $new_jid); 
 
-		# Alter the successors
-		my @jid_successors = split(/,/, $params{'jid_successor_list'});
-		foreach my $jid_successor (@jid_successors) {
-			my $new_hold_list = get_new_hold_list($jid_successor, $old_jid, $new_jid);
-			$out=`qalter $jid_successor -hold_jid $new_hold_list`;
-			printf(STDOUT "%s altered successor %s\n", $CORE, $jid_successor);
+		if(defined($params{'jid_successor_list'})) {
+			# Alter the successors
+			my @jid_successors = split(/,/, $params{'jid_successor_list'});
+			foreach my $jid_successor (@jid_successors) {
+				my $new_hold_list = get_new_hold_list($jid_successor, $old_jid, $new_jid);
+				$out=`qalter $jid_successor -hold_jid $new_hold_list`;
+				printf(STDOUT "%s altered successor %s\n", $CORE, $jid_successor);
+			}
 		}
 
 		# Delete the old job
@@ -112,11 +112,14 @@ sub resub {
 		printf(STDOUT "%s removed hold on %s\n", $CORE, $new_jid); 
 	}
 	else {
-		# Alter the successors
-		my @jid_successors = split(/,/, $params{'jid_successor_list'});
-		foreach my $jid_successor (@jid_successors) {
-			push(@$jids, $jid_successor);
-			printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+
+		if(defined($params{'jid_successor_list'})) {
+			# Alter the successors
+			my @jid_successors = split(/,/, $params{'jid_successor_list'});
+			foreach my $jid_successor (@jid_successors) {
+				push(@$jids, $jid_successor);
+				printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+			}
 		}
 
 		# Delete the old job
