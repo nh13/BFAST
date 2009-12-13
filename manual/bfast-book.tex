@@ -595,7 +595,7 @@ Specifies the output format.
 \subsubsection{\TT{-u, --unmappedFileName}}
 Dump unmapped reads including all their alignments into this file (always \BAF{} format).
 \subsubsection{\TT{-o STRING, --outputID=STRING}}
-Specifies output ID to append to the read name (\BSAMF{} output only).
+Specifies output ID to prepend to the read name (\BSAMF{} output only).
 \section{bfast bafconvert}
 \label{sec:bafconvert}
 \TT{bfast bafconvert} converts \BAF{s} to the specified output format.
@@ -1066,6 +1066,28 @@ Depending on the options used to generate this file (see \autoref{sec:postproces
 Paired end reads have each end outputted individually.
 Alignment score, paired end information including to which end the alignment belong, contig name and optionally color error information is printed on the \QU{a} line.
 The next two \QU{s} lines follow the defined format conventions.
+
+\subsection{\BSAMF{}}
+BFAST is able to produce alignments in the SAM format.
+Some data may not be able to be represented by the SAM format, for example triple-end or quad-end data (instead of paired-end etc.)..
+
+BFAST produces a mapping quality for each read, which depends on the {\TT -q} parameter to {\TT bfast postprocess} (\autoref{sec:localalign}).
+If a read is unmapped, due to having no CALs, too many CALs, or being filtered (see \autoref{sec:postprocess} for the latter), then the mapping quality is zero.
+If a read has one alignment, then the mapping quality is set to $255$.
+This also indicates a mapping quality for an alignment could not be computed accurately.
+If a read has a mapping quality of zero, this means that there exists another alignment that has a better alignment score.
+Otherwise, the mapping quality indicates the number edits away the current alignment is away from the next-best alignment in terms of alignment score.
+This is calculated by taking the current alignment's alignment score minus the next-best alignment's alignment score, then dividing by the alignment score of an atomic edit (a nucleotide change in nucleotide space and a color change for color space). 
+Mapping quality should be calibrated on a experimental basis and is highly sensitive to the sensitivity settings of alignment.
+In general, the mapping quality is more accurately assessed under higher sensitivity scenarios.
+
+BFAST also produces optional fields.
+The optional fields produced by BFAST documented in the SAM format include: AS, MQ, NM, IH, HI, MD, CS, CQ, CM, CC, and CP.
+BFAST also produces three aligner-specific optional fields: XA, XN, and XE.
+XA gives the postprocessing algorithm from {\TT bfast postprocess} if used (see \autoref{sec:postprocess}).
+XN gives the number of alignments found after {\TT bfast localalign} (\autoref{sec:localalign}). 
+XE gives a string indicating where color errors occurred on the forward genomic strand and has the regular expression: $([0-4\-])+$.
+If a color error occurred, then this gives the original color from the color sequence.
 
 \section{Example Input Files}
 \label{sec:examplefiles}
