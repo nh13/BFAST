@@ -75,6 +75,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		FILE *fp,
 		gzFile fpGZ,
 		char *outputID,
+		int32_t postprocessAlgorithm,
 		int32_t outputFormat,
 		int32_t binaryOutput)
 {
@@ -95,7 +96,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			AlignedReadConvertPrintGFF(a, fp);
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, outputID, fp);
+			AlignedReadConvertPrintSAM(a, postprocessAlgorithm, outputID, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -402,6 +403,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 
 /* TODO */
 void AlignedReadConvertPrintSAM(AlignedRead *a,
+		int32_t postprocessAlgorithm,
 		char *outputID,
 		FILE *fp)
 {
@@ -421,6 +423,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 			AlignedReadConvertPrintAlignedEntryToSAM(a,
 					i,
 					-1,
+					postprocessAlgorithm,
 					outputID,
 					fp);
 		}
@@ -429,6 +432,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 				AlignedReadConvertPrintAlignedEntryToSAM(a,
 						i,
 						j,
+						postprocessAlgorithm,
 						outputID,
 						fp);
 			}
@@ -440,6 +444,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		int32_t endIndex,
 		int32_t entriesIndex,
+		int32_t postprocessAlgorithm,
 		char *outputID,
 		FILE *fp) 
 {
@@ -452,6 +457,8 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	char readRC[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
 	char qualRC[SEQUENCE_LENGTH]="\0";
+	char colorError[SEQUENCE_LENGTH]="\0";
+	char MD[SEQUENCE_LENGTH]="*";
 
 	/* Get mate end and mate index if they exist */
 	mateEndIndex=mateEntriesIndex=-1;
@@ -549,7 +556,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	else {
-		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], a->space, &numMismatches, fp);
+		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], a->space, colorError, MD, &numMismatches, fp);
 	}
 	/* MRNM and MPOS */
 	if(2 == a->numEnds) {
@@ -747,6 +754,10 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				(entriesIndex < 0)?1:(entriesIndex+1))) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
+	/* MD - optional field */
+	if(0>fprintf(fp, "\tMD:Z:%s", MD)) {
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+	}
 	/* CS, CQ and CM - optional fields */
 	if(ColorSpace == a->space) {
 		int32_t numCM=0;
@@ -775,6 +786,15 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
+	/* BFAST specific fields */
+	if(0>fprintf(fp, "\tXA:i:%d\tXN:i:%d", postprocessAlgorithm, a->ends[endIndex].numEntries)) { 
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+	}
+	if(ColorSpace == a->space && 0 <= postprocessAlgorithm) {
+		if(0>fprintf(fp, "\tXE:Z:%s", colorError)) {
+			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+		}
+	}
 
 	if(0>fprintf(fp, "\n")) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
@@ -784,14 +804,15 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 /* TODO */
 void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		int32_t space,
+		char *colorError,
+		char *MD,
 		int32_t *numMismatches,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToCIGAR";
 	char read[SEQUENCE_LENGTH]="\0";
 	char reference[SEQUENCE_LENGTH]="\0";
-	char colorError[SEQUENCE_LENGTH]="\0";
-	int32_t i;
+	int32_t i, MDi, MDNumMatches=0;
 	int32_t prevType=0;
 	int32_t numPrevType=0;
 	int32_t curType=0;
@@ -916,17 +937,43 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	/* Convert to cigar format */
 	prevType = 0; /* 0 - MM, 1 - I, 2 - D */
 	numPrevType = 0;
+	MDi = MDNumMatches = 0;
+	MD[MDi]='\0';
 	for(i=0;i<a->length;i++) {
 		assert(0 == prevIns || 0 == prevDel);
 
-		if(GAP == read[i]) {
+		if(GAP == read[i]) { 
+			if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+				PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+			}
+			MDi+=(int)(1+log10(0.1+MDNumMatches));
+			MDNumMatches = 0;
 			curType = 2;
+			// ignore MD
 		}
 		else if(GAP == reference[i]) {
 			curType = 1;
+			if(1 != prevType) {
+				MD[MDi]='^';
+				MDi++;
+			}
+			MD[MDi]=ToUpper(read[i]);
+			MDi++;
 		}
-		else {
-			if(ToUpper(read[i]) != ToUpper(reference[i])) (*numMismatches)++;
+		else { // Match/Mismatch
+			if(ToUpper(read[i]) != ToUpper(reference[i])) {
+				(*numMismatches)++;
+				if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+					PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+				}
+				MDi+=(int)(1+log10(0.1+MDNumMatches));
+				MDNumMatches = 0;
+				MD[MDi]=ToUpper(reference[i]);
+				MDi++;
+			}
+			else {
+				MDNumMatches++;
+			}
 			curType = 0;
 		}
 
@@ -954,4 +1001,10 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
+	if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+		PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+	}
+	MDi+=(int)(1+log10(0.1+MDNumMatches));
+	MDNumMatches=0;
+	MD[MDi]='\0';
 }

@@ -155,7 +155,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 		/* Print to Output file */
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
-			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, outputFormat, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, algorithm, outputFormat, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&aBuffer[aBufferIndex]);
