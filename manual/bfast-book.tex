@@ -1374,7 +1374,7 @@ We assume that in the sequence data some of the C bases have been converted to T
 In this case, we wish to align the sequence data to a reference genome, tolerating the fact that a fair number of mismatches when aligned will come from the fact that Cs have been converted to Ts.
 
 BFAST can support this type of alignment.
-In brief, we will ``methylate'' the reference genome, methylate the sequence reads to be aligned (and annotate where those conversions were made), align the converted reads to the reference genome, then finally convert the reads back to their original state using the annotations.
+In brief, we will convert all Cs to Ts in the reference genome, convert all Cs to Ts in the sequence reads to be aligned (and annotate where those conversions were made), align the converted reads to the reference genome, then finally convert the reads back to their original state using the annotations.
 
 Suppose we have $25$ contigs representing the $25$ chromosomes of the Human Genome.
 We convert each strand of each chromosome by changing every C to a T, for a total of $50$ final methylated contigs (this must be done independently by the user). 
