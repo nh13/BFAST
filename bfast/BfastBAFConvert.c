@@ -29,7 +29,8 @@ void BfastBAFConvertUsage()
 		   );
 	fprintf(stderr, "\t-f\t\tSpecifies the file name of the FASTA reference genome\n");
 	fprintf(stderr, "\t-o\t\toutput ID to append to the read name (SAM only)\n");
-	fprintf(stderr, "\t-r\t\tread group to add to the SAM header and reads (SAM only)\n");
+	fprintf(stderr, "\t-r\t\tSpecifies the file that contains the read group" 
+			"\n\t\t\t  to add to the SAM header and reads (SAM only)\n");
 	fprintf(stderr, "\t-h\t\tprints this help message\n");
 	fprintf(stderr, "\nsend bugs to %s\n",
 			PACKAGE_BUGREPORT);
@@ -44,7 +45,7 @@ int BfastBAFConvert(int argc, char *argv[])
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char fastaFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputID[MAX_FILENAME_LENGTH]="\0";
-	char *readGroup=NULL, *readGroupString=NULL;
+	char *readGroupFileName=NULL, *readGroup=NULL, *readGroupString=NULL;
 	char *last;
 	int outputType=1; // BAF2TEXT
 	int outputSubType=TextOutput;
@@ -60,7 +61,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			case 'O': outputType = atoi(optarg); break;
 			case 'f': strcpy(fastaFileName, optarg); break;
 			case 'o': strcpy(outputID, optarg); break;
-			case 'r': readGroup=strdup(optarg); break;
+			case 'r': readGroupFileName=strdup(optarg); break;
 			case 'h':
 					  BfastBAFConvertUsage(); return 1;
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
@@ -120,6 +121,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			inputType=BinaryInput;
 			outputSubType=TextOutput;
 			strcat(fileExtension, BFAST_SAM_FILE_EXTENSION);
+			readGroup=ReadInReadGroup(readGroupFileName);
 			readGroupString=ParseReadGroup(readGroup);
 			break;
 		default:
@@ -214,6 +216,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			SAM == outputType) {
 		RGBinaryDelete(&rg);
 	}
+	free(readGroupFileName);
 	free(readGroup);
 	free(readGroupString);
 

@@ -83,6 +83,7 @@ int32_t *GetNumbersFromString(char*, int32_t*);
 #ifndef HAVE_STRTOK_R
 char *strtok_r(char *s1, const char *s2, char **lasts);
 #endif
+char *ReadInReadGroup(char *);
 char *ParseReadGroup(char*);
 
 #endif

@@ -17,7 +17,7 @@ struct arguments
 	char *unmappedFileName;					/* -i */
 	int outputFormat;						/* -O */
 	char *outputID;							/* -o */
-	char *readGroup;						/* -r */
+	char *RGFileName;						/* -r */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

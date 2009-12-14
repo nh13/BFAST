@@ -21,7 +21,7 @@
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
 	DescAlgoTitle, DescAlgorithm, DescPairedEndInfer, DescQueueLength, 
-	DescOutputTitle, DescOutputFormat, DescOutputID, DescReadGroup, DescTiming,
+	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -47,7 +47,9 @@ static struct argp_option options[] = {
 		"\n\t\t\t  into this file (always BAF format)", 3},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies output ID to prepend to the read name (SAM only)", 3},
-	{"readGroup", 'r', "readGroup", 0, "Specifies to add the given RG to the SAM header and updates the\n\t\t\t RG tag (and LB tag if present) in the reads (SAM only)", 3},
+	{"RGFileName", 'r', "RGFileName", 0, "Specifies to add the RG in the specified file to the SAM"
+		"\n\t\t\t  header and updates the RG tag (and LB tag if present) in"
+		"\n\t\t\t  the reads (SAM only)", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -65,6 +67,7 @@ BfastPostProcess(int argc, char **argv)
 	time_t startTime = time(NULL);
 	time_t endTime;
 	RGBinary rg;
+	char *readGroup=NULL;
 
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
@@ -97,6 +100,9 @@ BfastPostProcess(int argc, char **argv)
 						RGBinaryReadBinary(&rg,
 								NTSpace,
 								arguments.fastaFileName);
+						if(SAM == arguments.outputFormat && NULL != arguments.RGFileName) {
+							readGroup = ReadInReadGroup(arguments.RGFileName);
+						}
 					}
 					ReadInputFilterAndOutput(&rg,
 							arguments.alignFileName,
@@ -105,13 +111,15 @@ BfastPostProcess(int argc, char **argv)
 							arguments.queueLength,
 							arguments.outputFormat,
 							arguments.outputID,
-							arguments.readGroup,
+							readGroup,
 							arguments.unmappedFileName);
 					if(BAF != arguments.outputFormat) {
 						/* Free rg binary */
 						RGBinaryDelete(&rg);
+						if(SAM == arguments.outputFormat && NULL != arguments.RGFileName) {
+							free(readGroup);
+						}
 					}
-
 					if(arguments.timing == 1) {
 						/* Get the time information */
 						endTime = time(NULL);
@@ -215,8 +223,8 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	if(args->algorithm != BestScore && 1 == args->pairedEndInfer) {
 		PrintError(FnName, "pairedEndInfer", "Command line argument can only be used with -a 3", Exit, OutOfRange);
 	}
-	if(SAM != args->outputFormat && NULL != args->readGroup) {
-		PrintError(FnName, "readGroup", "Command line argument can only be used when outputting to SAM format", Exit, OutOfRange);
+	if(SAM != args->outputFormat && NULL != args->RGFileName) {
+		PrintError(FnName, "RGFileName", "Command line argument can only be used when outputting to SAM format", Exit, OutOfRange);
 	}
 
 	return 1;
@@ -240,7 +248,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->outputFormat=SAM;
 	args->unmappedFileName=NULL;
 	args->outputID=NULL;
-	args->readGroup=NULL;
+	args->RGFileName=NULL;
 
 	args->timing = 0;
 
@@ -265,7 +273,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
 		fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
 		fprintf(fp, "outputID:\t\t%s\n", FILEUSING(args->outputID));
-		fprintf(fp, "readGroup:\t\t%s\n", FILEUSING(args->readGroup));
+		fprintf(fp, "RGFileName:\t\t%s\n", FILEUSING(args->RGFileName));
 		fprintf(fp, "timing:\t\t\t%s\n", INTUSING(args->timing));
 		fprintf(fp, BREAK_LINE);
 	}
@@ -283,8 +291,8 @@ void BfastPostProcessFreeProgramParameters(struct arguments *args)
 	args->unmappedFileName=NULL;
 	free(args->outputID);
 	args->outputID=NULL;
-	free(args->readGroup);
-	args->readGroup=NULL;
+	free(args->RGFileName);
+	args->RGFileName=NULL;
 }
 
 /* TODO */
@@ -338,7 +346,7 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 			case 'p':
 				arguments->programMode=ExecutePrintProgramParameters;break;
 			case 'r':
-				arguments->readGroup=strdup(optarg);break;
+				arguments->RGFileName=strdup(optarg);break;
 			case 't':
 				arguments->timing = 1;break;
 			case 'u':

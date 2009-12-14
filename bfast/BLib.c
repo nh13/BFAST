@@ -1894,6 +1894,25 @@ char * strtok_r(char *s1, const char *s2, char **lasts)
 }
 #endif
 
+char *ReadInReadGroup(char *readGroupFileName)
+{
+	char *FnName="readInReadGroup";
+	FILE *fp=NULL;
+	char readGroup[4096]="\0";
+
+	if(!(fp=fopen(readGroupFileName, "r"))) {
+		PrintError(FnName, readGroupFileName, "Could not open file for reading", Exit, OpenFileError);
+	}
+	if(NULL == fgets(readGroup, 4096, fp)) {
+		PrintError(FnName, readGroupFileName, "Could not open read from file", Exit, ReadFileError);
+	}
+	fclose(fp);
+
+	StringTrimWhiteSpace(readGroup);
+
+	return strdup(readGroup);
+}
+
 char *ParseReadGroup(char *readGroup)
 {
 	char *FnName="ParseReadGroup";
@@ -1902,8 +1921,6 @@ char *ParseReadGroup(char *readGroup)
 	char *readGroupString=NULL;
 	char *tmpReadGroup=NULL;
 	char ID[32]="\0";
-
-	fprintf(stderr, "readGroup=%s\n", readGroup);
 
 	tmpReadGroup=strdup(readGroup);
 	if(NULL == tmpReadGroup) {

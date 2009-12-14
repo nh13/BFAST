@@ -599,8 +599,8 @@ Specifies the output format.
 Dump unmapped reads including all their alignments into this file (always \BAF{} format).
 \subsubsection{\TT{-o STRING, --outputID=STRING}}
 Specifies output ID to prepend to the read name (\BSAMF{} output only).
-\subsubsection{\TT{-r STRING, --readGroup=STRING}}
-Specifies output read group (@RG) line to add to the header.
+\subsubsection{\TT{-r STRING, --readGroupFileName=STRING}}
+Specifies to add the read group (@RG) line to add to the header, which is given in the specified file.
 Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
 \section{bfast bafconvert}
 \label{sec:bafconvert}
@@ -623,8 +623,8 @@ This option is not required for \BAF{} output.
 Specifies an output ID, which will be prepended to the name of each read.
 This option is only used for for \BSAMF{} output only.
 
-\subsubsection{\TT{-r STRING, --readGroup=STRING}}
-Specifies output read group (@RG) line to add to the header.
+\subsubsection{\TT{-r STRING, --readGroupFileName=STRING}}
+Specifies to add the read group (@RG) line to add to the header, which is given in the specified file.
 Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
 \section{bfast header}
 \label{sec:header}
