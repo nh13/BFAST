@@ -12,6 +12,7 @@ struct arguments
 	char *secondaryIndexes;					/* -I */
 	char *readsFileName;					/* -r */
 	char *offsets;							/* -o */
+	int loadAllIndexes;						/* -l */
 	int space;								/* -A */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */

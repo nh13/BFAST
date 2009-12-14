@@ -165,6 +165,7 @@ enum {StrandSame, StrandOpposite, StrandBoth}; /* brepair.c */
 enum {BFASTReferenceGenomeFile, BFASTIndexFile};
 enum {RGBinaryPacked, RGBinaryUnPacked};
 enum {NoMirroring, MirrorForward, MirrorReverse, MirrorBoth};
+enum {IndexesMemorySerial, IndexesMemoryAll};
 /* For RGIndexAccuracy */
 enum {SearchForRGIndexAccuracies, EvaluateRGIndexAccuracies, ProgramParameters};
 enum {NO_EVENT, MISMATCH, INSERTION, DELETION};

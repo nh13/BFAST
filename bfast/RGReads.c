@@ -37,7 +37,6 @@ void RGReadsFindMatches(RGIndex *index,
 		int strands)
 {
 	int64_t i;
-	int64_t numEntries = 0;
 	int readLength=0;
 	int8_t read[SEQUENCE_LENGTH];
 	RGReads reads;
@@ -107,23 +106,12 @@ void RGReadsFindMatches(RGIndex *index,
 		}
 	}
 
-	numEntries=0;
-	for(i=0;i<ranges.numEntries;i++) {
-		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-	}
-
-	/* Copy over ranges over if necessary */
-	if(0 < numEntries) {
-		/* Allocate memory for the matches */
-		RGMatchAllocate(match, numEntries);
-
-		/* Transfer ranges to matches */
-		RGRangesCopyToRGMatch(&ranges,
-				index,
-				match,
-				space,
-				copyOffsets);
-	}
+	/* Transfer ranges to matches */
+	RGRangesCopyToRGMatch(&ranges,
+			index,
+			match,
+			space,
+			copyOffsets);
 
 	/* Remove duplicates */
 	RGMatchRemoveDuplicates(match,

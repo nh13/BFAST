@@ -18,12 +18,13 @@
 #include "RunMatch.h"
 
 /* TODO */
-void FindMatches(
+void RunMatch(
 		char *fastaFileName,
 		char *mainIndexes,
 		char *secondaryIndexes,
 		char *readFileName, 
 		char *offsetsInput,
+		int loadAllIndexes,
 		int space,
 		int startReadNum,
 		int endReadNum,
@@ -171,11 +172,12 @@ void FindMatches(
 	}
 
 	/* Do step 1: search the main indexes for all reads */
-	numMatches=FindMatchesInIndexes(mainIndexFileNames,
+	numMatches=FindMatchesInIndexSet(mainIndexFileNames,
 			mainIndexIDs,
 			numMainIndexes,
 			&rg,
 			offsets,
+			loadAllIndexes,
 			numOffsets,
 			space,
 			keySize,
@@ -205,11 +207,12 @@ void FindMatches(
 			}
 
 			/* Do step 2: search the indexes for all reads */
-			numMatches+=FindMatchesInIndexes(secondaryIndexFileNames,
+			numMatches+=FindMatchesInIndexSet(secondaryIndexFileNames,
 					secondaryIndexIDs,
 					numSecondaryIndexes,
 					&rg,
 					offsets,
+					loadAllIndexes,
 					numOffsets,
 					space,
 					keySize,
@@ -338,12 +341,13 @@ void FindMatches(
 	}
 }
 
-int FindMatchesInIndexes(char **indexFileNames,
+int FindMatchesInIndexSet(char **indexFileNames,
 		int32_t **indexIDs,
 		int numIndexes,
 		RGBinary *rg,
 		int32_t *offsets,
 		int numOffsets,
+		int loadAllIndexes,
 		int space,
 		int keySize,
 		int maxKeyMatches,
@@ -362,7 +366,7 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int *totalSearchTime,
 		int *totalOutputTime)
 {
-	char *FnName = "FindMatchesInIndexes";
+	char *FnName = "FindMatchesInIndexSet";
 	int i;
 	gzFile tempOutputFP;
 	char *tempOutputFileName=NULL;
@@ -414,89 +418,73 @@ int FindMatchesInIndexes(char **indexFileNames,
 		tempOutputFP=outputFP;
 	}
 
-	/* If we have only one index, output the temp output file */
-	if(numUniqueIndexes > 1) {
+	/* If we have only one index or if we are processing all indexes at once, output the temp output file */
+	if(1 == numUniqueIndexes || IndexesMemoryAll == loadAllIndexes) {
+		tempOutputIndexFPs[0] = tempOutputFP;
+	}
+	else {
 		/* Open tmp files for each index */
 		for(i=0;i<numUniqueIndexes;i++) {
 			tempOutputIndexFPs[i] = OpenTmpGZFile(tmpDir, &tempOutputIndexFileNames[i]); 
 		}
 	}
-	else {
-		tempOutputIndexFPs[0] = tempOutputFP;
-	}
 
-	indexNum=0;
-	// for each unique index
-	for(uniqueIndexCtr=0;uniqueIndexCtr<numUniqueIndexes;uniqueIndexCtr++) {
-
-		// get the # of bins for this index
-		numBins = 1;
-		for(i=indexNum+1;i<numIndexes && indexIDs[i-1][0] == indexIDs[i][0];i++) {
-			numBins++;
+	/* Only if there are more than one index, otherwise this defaults below */
+	if(1 < numIndexes && IndexesMemoryAll == loadAllIndexes) {
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Searching index files 1-%d...\n", numIndexes);
 		}
-
-		if(1 == numBins) { // don't bother storing since we have one bin 
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "%s", BREAK_LINE);
-				fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
-						indexNum+1, numIndexes,
-						indexIDs[indexNum][0], indexIDs[indexNum][1]);
-			}
-			numMatches = FindMatchesInIndex(indexFileNames[indexNum],
-					rg,
-					offsets,
-					numOffsets,
-					space,
-					keySize,
-					maxKeyMatches,
-					maxNumMatches,
-					whichStrand,
-					numThreads,
-					queueLength,
-					tempSeqFPs,
-					tempOutputIndexFPs[uniqueIndexCtr],
-					0,
-					tmpDir,
-					timing,
-					totalDataStructureTime,
-					totalSearchTime,
-					totalOutputTime
+		// Process all indexes at once
+		numMatches = FindMatches(indexFileNames,
+				numIndexes,
+				rg,
+				offsets,
+				numOffsets,
+				loadAllIndexes,
+				space,
+				keySize,
+				maxKeyMatches,
+				maxNumMatches,
+				whichStrand,
+				numThreads,
+				queueLength,
+				tempSeqFPs,
+				tempOutputFP,
+				0,
+				tmpDir,
+				timing,
+				totalDataStructureTime,
+				totalSearchTime,
+				totalOutputTime
 					);
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d) complete...\n", 
-						indexNum+1, numIndexes,
-						indexIDs[indexNum][0], indexIDs[indexNum][1]);
-			}
-			indexNum++;
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "Searching index files 1-%d... complete\n", numIndexes);
 		}
-		else {
-			tempOutputIndexBinFPs = malloc(sizeof(gzFile)*numBins);
-			if(NULL == tempOutputIndexBinFPs) {
-				PrintError(FnName, "tempOutputIndexBinFPs", "Could not allocate memory", Exit, MallocMemory);
-			}
-			tempOutputIndexBinFileNames = malloc(sizeof(char*)*numBins);
-			if(NULL == tempOutputIndexBinFileNames) {
-				PrintError(FnName, "tempOutputIndexBinFileNames", "Could not allocate memory", Exit, MallocMemory);
-			}
+	}
+	else {
+		indexNum=0;
+		// for each unique index
+		for(uniqueIndexCtr=0;uniqueIndexCtr<numUniqueIndexes;uniqueIndexCtr++) {
 
-			for(i=0;i<numBins;i++) {
-				tempOutputIndexBinFPs[i]=OpenTmpGZFile(tmpDir, &tempOutputIndexBinFileNames[i]);
+			// get the # of bins for this index
+			numBins = 1;
+			for(i=indexNum+1;i<numIndexes && indexIDs[i-1][0] == indexIDs[i][0];i++) {
+				numBins++;
 			}
 
-			// search each bin
-			for(uniqueIndexBinCtr=0;uniqueIndexBinCtr<numBins;uniqueIndexBinCtr++) {
-
-				assert(indexNum < numIndexes);
+			if(1 == numBins) { // don't bother storing since we have one bin 
 				if(VERBOSE >= 0) {
-					if(1 == indexIDs[indexNum][1]) fprintf(stderr, "%s", BREAK_LINE);
+					fprintf(stderr, "%s", BREAK_LINE);
 					fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
 							indexNum+1, numIndexes,
 							indexIDs[indexNum][0], indexIDs[indexNum][1]);
 				}
-				FindMatchesInIndex(indexFileNames[indexNum],
+				numMatches = FindMatches(&indexFileNames[indexNum],
+						1,
 						rg,
 						offsets,
 						numOffsets,
+						loadAllIndexes,
 						space,
 						keySize,
 						maxKeyMatches,
@@ -505,44 +493,149 @@ int FindMatchesInIndexes(char **indexFileNames,
 						numThreads,
 						queueLength,
 						tempSeqFPs,
-						tempOutputIndexBinFPs[uniqueIndexBinCtr],
-						1,
+						tempOutputIndexFPs[uniqueIndexCtr],
+						0,
 						tmpDir,
 						timing,
 						totalDataStructureTime,
 						totalSearchTime,
 						totalOutputTime
-						);
+							);
 				if(VERBOSE >= 0) {
 					fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d) complete...\n", 
 							indexNum+1, numIndexes,
 							indexIDs[indexNum][0], indexIDs[indexNum][1]);
 				}
-
-				// seek to start for merge
-				CloseTmpGZFile(&tempOutputIndexBinFPs[uniqueIndexBinCtr],
-						&tempOutputIndexBinFileNames[uniqueIndexBinCtr],
-						0);
-				if(!(tempOutputIndexBinFPs[uniqueIndexBinCtr]=gzopen(tempOutputIndexBinFileNames[uniqueIndexBinCtr], "rb"))) {
-					PrintError(FnName, tempOutputIndexBinFileNames[uniqueIndexBinCtr], "Could not re-open file for reading", Exit, OpenFileError);
-				}
-
 				indexNum++;
 			}
+			else {
+				tempOutputIndexBinFPs = malloc(sizeof(gzFile)*numBins);
+				if(NULL == tempOutputIndexBinFPs) {
+					PrintError(FnName, "tempOutputIndexBinFPs", "Could not allocate memory", Exit, MallocMemory);
+				}
+				tempOutputIndexBinFileNames = malloc(sizeof(char*)*numBins);
+				if(NULL == tempOutputIndexBinFileNames) {
+					PrintError(FnName, "tempOutputIndexBinFileNames", "Could not allocate memory", Exit, MallocMemory);
+				}
 
+				for(i=0;i<numBins;i++) {
+					tempOutputIndexBinFPs[i]=OpenTmpGZFile(tmpDir, &tempOutputIndexBinFileNames[i]);
+				}
+
+				// search each bin
+				for(uniqueIndexBinCtr=0;uniqueIndexBinCtr<numBins;uniqueIndexBinCtr++) {
+
+					assert(indexNum < numIndexes);
+					if(VERBOSE >= 0) {
+						if(1 == indexIDs[indexNum][1]) fprintf(stderr, "%s", BREAK_LINE);
+						fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d)...\n", 
+								indexNum+1, numIndexes,
+								indexIDs[indexNum][0], indexIDs[indexNum][1]);
+					}
+					FindMatches(&indexFileNames[indexNum],
+							1,
+							rg,
+							offsets,
+							numOffsets,
+							loadAllIndexes,
+							space,
+							keySize,
+							maxKeyMatches,
+							maxNumMatches,
+							whichStrand,
+							numThreads,
+							queueLength,
+							tempSeqFPs,
+							tempOutputIndexBinFPs[uniqueIndexBinCtr],
+							1,
+							tmpDir,
+							timing,
+							totalDataStructureTime,
+							totalSearchTime,
+							totalOutputTime
+								);
+					if(VERBOSE >= 0) {
+						fprintf(stderr, "Searching index file %d/%d (index #%d, bin #%d) complete...\n", 
+								indexNum+1, numIndexes,
+								indexIDs[indexNum][0], indexIDs[indexNum][1]);
+					}
+
+					// seek to start for merge
+					CloseTmpGZFile(&tempOutputIndexBinFPs[uniqueIndexBinCtr],
+							&tempOutputIndexBinFileNames[uniqueIndexBinCtr],
+							0);
+					if(!(tempOutputIndexBinFPs[uniqueIndexBinCtr]=gzopen(tempOutputIndexBinFileNames[uniqueIndexBinCtr], "rb"))) {
+						PrintError(FnName, tempOutputIndexBinFileNames[uniqueIndexBinCtr], "Could not re-open file for reading", Exit, OpenFileError);
+					}
+
+					indexNum++;
+				}
+
+				if(VERBOSE >= 0) {
+					fprintf(stderr, "Merging the output from each bin...\n");
+				}
+
+				RGIndexInitialize(&tempIndex);
+				RGIndexGetHeader(indexFileNames[indexNum-1], &tempIndex); // use previous
+
+				startTime=time(NULL);
+				numMatches = RGMatchesMergeIndexBins(tempOutputIndexBinFPs,
+						numBins,
+						tempOutputIndexFPs[uniqueIndexCtr],
+						&tempIndex,
+						maxKeyMatches,
+						maxNumMatches);
+				endTime=time(NULL);
+				if(VERBOSE >= 0 && timing == 1) {
+					seconds = (int)(endTime - startTime);
+					hours = seconds/3600;
+					seconds -= hours*3600;
+					minutes = seconds/60;
+					seconds -= minutes*60;
+					fprintf(stderr, "Merging matches from the index bins took: %d hours, %d minutes and %d seconds\n",
+							hours,
+							minutes,
+							seconds);
+				}
+				(*totalOutputTime)+=endTime-startTime;
+
+				// Destroy
+				for(i=0;i<numBins;i++) {
+					CloseTmpGZFile(&tempOutputIndexBinFPs[i],
+							&tempOutputIndexBinFileNames[i],
+							1);
+				}
+
+				RGIndexDelete(&tempIndex);
+				free(tempOutputIndexBinFPs);
+				free(tempOutputIndexBinFileNames);
+
+			}
 			if(VERBOSE >= 0) {
-				fprintf(stderr, "Merging the output from each bin...\n");
+				fprintf(stderr, "Found %d matches.\n", numMatches);
+			}
+		}
+
+		/* Merge temporary output from each index and output to the output file. */
+		if(numUniqueIndexes > 1) {
+			if(VERBOSE >= 0) {
+				fprintf(stderr, "%s", BREAK_LINE);
+				fprintf(stderr, "Merging the output from each index...\n");
+			}
+			for(i=0;i<numUniqueIndexes;i++) {
+				CloseTmpGZFile(&tempOutputIndexFPs[i], 
+						&tempOutputIndexFileNames[i],
+						0);
+				if(!(tempOutputIndexFPs[i]=gzopen(tempOutputIndexFileNames[i], "rb"))) {
+					PrintError(FnName, tempOutputIndexFileNames[i], "Could not re-open file for reading", Exit, OpenFileError);
+				}
 			}
 
-			RGIndexInitialize(&tempIndex);
-			RGIndexGetHeader(indexFileNames[indexNum-1], &tempIndex); // use previous
-
 			startTime=time(NULL);
-			numMatches = RGMatchesMergeIndexBins(tempOutputIndexBinFPs,
-					numBins,
-					tempOutputIndexFPs[uniqueIndexCtr],
-					&tempIndex,
-					maxKeyMatches,
+			/* Merge the temp index files into the all indexes file */
+			numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
+					numUniqueIndexes,
+					tempOutputFP,
 					maxNumMatches);
 			endTime=time(NULL);
 			if(VERBOSE >= 0 && timing == 1) {
@@ -551,73 +644,22 @@ int FindMatchesInIndexes(char **indexFileNames,
 				seconds -= hours*3600;
 				minutes = seconds/60;
 				seconds -= minutes*60;
-				fprintf(stderr, "Merging matches from the index bins took: %d hours, %d minutes and %d seconds\n",
+				fprintf(stderr, "Merging matches from the indexes took: %d hours, %d minutes and %d seconds\n",
 						hours,
 						minutes,
 						seconds);
 			}
 			(*totalOutputTime)+=endTime-startTime;
 
-			// Destroy
-			for(i=0;i<numBins;i++) {
-				CloseTmpGZFile(&tempOutputIndexBinFPs[i],
-						&tempOutputIndexBinFileNames[i],
+			/* If we had more than one index, then this is the total merged number of matches */
+			numMatches = numWritten;
+
+			/* Close the temporary index files */
+			for(i=0;i<numUniqueIndexes;i++) {
+				CloseTmpGZFile(&tempOutputIndexFPs[i],
+						&tempOutputIndexFileNames[i],
 						1);
 			}
-
-			RGIndexDelete(&tempIndex);
-			free(tempOutputIndexBinFPs);
-			free(tempOutputIndexBinFileNames);
-
-		}
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "Found %d matches.\n", numMatches);
-			}
-	}
-
-	/* Merge temporary output from each index and output to the output file. */
-	if(numUniqueIndexes > 1) {
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "%s", BREAK_LINE);
-			fprintf(stderr, "Merging the output from each index...\n");
-		}
-		for(i=0;i<numUniqueIndexes;i++) {
-			CloseTmpGZFile(&tempOutputIndexFPs[i], 
-					&tempOutputIndexFileNames[i],
-					0);
-			if(!(tempOutputIndexFPs[i]=gzopen(tempOutputIndexFileNames[i], "rb"))) {
-				PrintError(FnName, tempOutputIndexFileNames[i], "Could not re-open file for reading", Exit, OpenFileError);
-			}
-		}
-
-		startTime=time(NULL);
-		/* Merge the temp index files into the all indexes file */
-		numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
-				numUniqueIndexes,
-				tempOutputFP,
-				maxNumMatches);
-		endTime=time(NULL);
-		if(VERBOSE >= 0 && timing == 1) {
-			seconds = (int)(endTime - startTime);
-			hours = seconds/3600;
-			seconds -= hours*3600;
-			minutes = seconds/60;
-			seconds -= minutes*60;
-			fprintf(stderr, "Merging matches from the indexes took: %d hours, %d minutes and %d seconds\n",
-					hours,
-					minutes,
-					seconds);
-		}
-		(*totalOutputTime)+=endTime-startTime;
-
-		/* If we had more than one index, then this is the total merged number of matches */
-		numMatches = numWritten;
-
-		/* Close the temporary index files */
-		for(i=0;i<numUniqueIndexes;i++) {
-			CloseTmpGZFile(&tempOutputIndexFPs[i],
-					&tempOutputIndexFileNames[i],
-					1);
 		}
 	}
 	if(VERBOSE >= 0) {
@@ -697,10 +739,12 @@ int FindMatchesInIndexes(char **indexFileNames,
 	return numMatches;
 }
 
-int FindMatchesInIndex(char *indexFileName,
+int FindMatches(char **indexFileName,
+		int32_t numIndexes,
 		RGBinary *rg,
 		int32_t *offsets,
 		int numOffsets,
+		int loadAllIndexes,
 		int space,
 		int keySize,
 		int maxKeyMatches,
@@ -709,7 +753,7 @@ int FindMatchesInIndex(char *indexFileName,
 		int numThreads,
 		int queueLength,
 		FILE ***tempSeqFPs,
-		gzFile indexOutputFP,
+		gzFile outputFP,
 		int outputOffsets,
 		char *tmpDir,
 		int timing,
@@ -717,20 +761,20 @@ int FindMatchesInIndex(char *indexFileName,
 		int *totalSearchTime,
 		int *totalOutputTime)
 {
-	char *FnName = "FindMatchesInIndex";
-	int i, j;
-	RGIndex index;
+	char *FnName = "FindMatches";
+	int i, j, k;
+	RGIndex *indexes=NULL;
 	int numMatches = 0;
 	time_t startTime, endTime;
 	int errCode;
 	ThreadIndexData *data=NULL;
-	pthread_mutex_t indexOutputFP_mutex;
-	int32_t indexOutputFP_threadID=0;
+	pthread_mutex_t outputFP_mutex;
+	int32_t outputFP_threadID=0;
 	pthread_t *threads=NULL;
 	void *status;
 
 	// Initialize mutex
-	pthread_mutex_init(&indexOutputFP_mutex, NULL);
+	pthread_mutex_init(&outputFP_mutex, NULL);
 
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
@@ -742,26 +786,38 @@ int FindMatchesInIndex(char *indexFileName,
 	if(NULL==data) {
 		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
 	}
-
-	/* Initialize index */
-	RGIndexInitialize(&index);
+	/* Allocate memory for the indexes */
+	indexes=malloc(sizeof(RGIndex)*numIndexes);
+	if(NULL==indexes) {
+		PrintError(FnName, "indexes", "Could not allocate memory", Exit, MallocMemory);
+	}
+	/* Initialize indexes */
+	for(i=0;i<numIndexes;i++) {
+		RGIndexInitialize(&indexes[i]);
+	}
 
 	/* Read in the RG Index */
 	startTime = time(NULL);
-	ReadRGIndex(indexFileName, &index, space);
-	/* Adjust if necessary */
-	if(0 < keySize &&
-			index.hashWidth <= keySize &&
-			keySize < index.keysize) {
-		/* Adjust key size and width */
-		for(j=i=0;i < index.width && j < keySize;i++) {
-			if(1 == index.mask[i]) {
-				j++;
-			}
+	for(i=0;i<numIndexes;i++) {
+		ReadRGIndex(indexFileName[i], &indexes[i], space);
+		if(IndexesMemoryAll == loadAllIndexes && 0 < indexes[i].depth) {
+			PrintError(FnName, "index[i].depth", "Cannot use binned indexes when loading all into memory", Exit, OutOfRange);
 		}
-		assert(j == keySize);
-		index.width = i;
-		index.keysize = keySize;
+		/* Check that depth = 0 if we have more than one index */
+		/* Adjust if necessary */
+		if(0 < keySize &&
+				indexes[i].hashWidth <= keySize &&
+				keySize < indexes[i].keysize) {
+			/* Adjust key size and width */
+			for(j=k=0;k < indexes[i].width && j < keySize;k++) {
+				if(1 == indexes[i].mask[k]) {
+					j++;
+				}
+			}
+			assert(j == keySize);
+			indexes[i].width = k;
+			indexes[i].keysize = keySize;
+		}
 	}
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
@@ -778,15 +834,16 @@ int FindMatchesInIndex(char *indexFileName,
 	/* Initialize arguments to threads */
 	for(i=0;i<numThreads;i++) {
 		// Set the output file
-		pthread_mutex_lock(&indexOutputFP_mutex);
-		data[i].indexOutputFP_mutex = &indexOutputFP_mutex;
-		data[i].indexOutputFP = indexOutputFP;
-		data[i].outputOffsets = outputOffsets,
-			data[i].indexOutputFP_threadID = &indexOutputFP_threadID;
+		pthread_mutex_lock(&outputFP_mutex);
+		data[i].outputFP_mutex = &outputFP_mutex;
+		data[i].outputFP = outputFP;
+		data[i].outputOffsets = outputOffsets;
+		data[i].outputFP_threadID = &outputFP_threadID;
 		data[i].numThreads = numThreads;
-		pthread_mutex_unlock(&indexOutputFP_mutex);
+		pthread_mutex_unlock(&outputFP_mutex);
 		// Set the rest of the data
-		data[i].index = &index;
+		data[i].indexes = indexes;
+		data[i].numIndexes = numIndexes;
 		data[i].rg = rg;
 		data[i].offsets = offsets;
 		data[i].numOffsets = numOffsets;
@@ -804,7 +861,7 @@ int FindMatchesInIndex(char *indexFileName,
 		/* Start thread */
 		errCode = pthread_create(&threads[i], /* thread struct */
 				NULL, /* default thread attributes */
-				FindMatchesInIndexThread, /* start routine */
+				FindMatchesThread, /* start routine */
 				&data[i]); /* data to routine */
 		if(0!=errCode) {
 			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
@@ -832,7 +889,10 @@ int FindMatchesInIndex(char *indexFileName,
 		fprintf(stderr, "Cleaning up index.\n");
 	}
 	startTime = time(NULL);
-	RGIndexDelete(&index);
+	for(i=0;i<numIndexes;i++) {
+		RGIndexDelete(&indexes[i]);
+	}
+	free(indexes);
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
 
@@ -844,21 +904,22 @@ int FindMatchesInIndex(char *indexFileName,
 }
 
 /* TODO */
-void *FindMatchesInIndexThread(void *arg)
+void *FindMatchesThread(void *arg)
 {
-	char *FnName="FindMatchesInIndexThread";
-	int32_t i, j;
+	char *FnName="FindMatchesThread";
+	int32_t i, j, k;
 	int numRead = 0;
 	int foundMatch = 0;
 	ThreadIndexData *data=(ThreadIndexData*)arg;
 	/* Function arguments */
-	pthread_mutex_t *indexOutputFP_mutex = data->indexOutputFP_mutex;
-	gzFile indexOutputFP = data->indexOutputFP;
+	pthread_mutex_t *outputFP_mutex = data->outputFP_mutex;
+	gzFile outputFP = data->outputFP;
 	int32_t outputOffsets = data->outputOffsets;
-	int32_t *indexOutputFP_threadID = data->indexOutputFP_threadID;
+	int32_t *outputFP_threadID = data->outputFP_threadID;
 	int32_t numThreads = data->numThreads; 
 	FILE *tempSeqFP = data->tempSeqFP;
-	RGIndex *index = data->index;
+	RGIndex *indexes = data->indexes;
+	int32_t numIndexes = data->numIndexes;
 	RGBinary *rg = data->rg;
 	int32_t *offsets = data->offsets;
 	int numOffsets = data->numOffsets;
@@ -902,21 +963,42 @@ void *FindMatchesInIndexThread(void *arg)
 			/* Read */
 			foundMatch = 0;
 			for(j=0;j<matchQueue[i].numEnds;j++) {
-				RGReadsFindMatches(index,
-						rg,
-						&matchQueue[i].ends[j],
-						outputOffsets,
-						offsets,
-						numOffsets,
-						space,
-						0,
-						0,
-						0,
-						0,
-						0,
-						maxKeyMatches,
-						maxNumMatches,
-						whichStrand);
+				if(1 == numIndexes) {
+					RGReadsFindMatches(&indexes[0],
+							rg,
+							&matchQueue[i].ends[j], 
+							outputOffsets,
+							offsets,
+							numOffsets,
+							space,
+							0,
+							0,
+							0,
+							0,
+							0,
+							maxKeyMatches,
+							maxNumMatches,
+							whichStrand);
+				}
+				else {
+					for(k=0;k<numIndexes && 1!=matchQueue[i].ends[j].maxReached;k++) {
+						RGReadsFindMatches(&indexes[k],
+								rg,
+								&matchQueue[i].ends[j], 
+								outputOffsets,
+								offsets,
+								numOffsets,
+								space,
+								0,
+								0,
+								0,
+								0,
+								0,
+								maxKeyMatches,
+								maxNumMatches,
+								whichStrand);
+					}
+				}
 				if(0 < matchQueue[i].ends[j].numEntries && 1 != matchQueue[i].ends[j].maxReached) {
 					foundMatch = 1;
 				}
@@ -936,25 +1018,25 @@ void *FindMatchesInIndexThread(void *arg)
 		/* Output to file */
 		do {
 			// Get output mutex
-			pthread_mutex_lock(indexOutputFP_mutex);
-			if(threadID == (*indexOutputFP_threadID)) {
+			pthread_mutex_lock(outputFP_mutex);
+			if(threadID == (*outputFP_threadID)) {
 				for(i=0;i<numMatches;i++) {
 					if(0 == outputOffsets) {
-						RGMatchesPrint(indexOutputFP, 
+						RGMatchesPrint(outputFP, 
 								&matchQueue[i]);
 					}
 					else {
-						RGMatchesPrintWithOffsets(indexOutputFP, 
+						RGMatchesPrintWithOffsets(outputFP, 
 								&matchQueue[i]);
 					}
 				}
 				// Move to the next thread
-				(*indexOutputFP_threadID) = ((1 + (*indexOutputFP_threadID)) % numThreads);
-				pthread_mutex_unlock(indexOutputFP_mutex);
+				(*outputFP_threadID) = ((1 + (*outputFP_threadID)) % numThreads);
+				pthread_mutex_unlock(outputFP_mutex);
 				break;
 			}
 			else {
-				pthread_mutex_unlock(indexOutputFP_mutex);
+				pthread_mutex_unlock(outputFP_mutex);
 				// Sleep until we try the lock again
 				sleep(BFAST_MATCH_THREAD_SLEEP);
 			}

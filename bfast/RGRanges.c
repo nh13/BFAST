@@ -17,14 +17,17 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 		int32_t copyOffsets)
 {
 	char *FnName="RGRangesCopyToRGMatch";
-	int64_t i, j, counter;
+	int64_t i, j, counter, numEntries, prevNumEntries;
 	int32_t k;
 
-	assert(m->numEntries > 0);
-	assert(r->numEntries > 0);
-
-	if(r->numEntries > 0) {
-		if(1 == copyOffsets) {
+	if(0 < r->numEntries) {
+		prevNumEntries = m->numEntries;
+		for(i=numEntries=0;i<r->numEntries;i++) {
+			numEntries += r->endIndex[i] - r->startIndex[i] + 1;
+		}
+		RGMatchReallocate(m, prevNumEntries + numEntries); 
+		if(1 == copyOffsets && NULL == m->offsets) {
+			assert(0 == prevNumEntries);
 			m->numOffsets = malloc(sizeof(int32_t)*m->numEntries);
 			if(NULL == m->numOffsets) {
 				PrintError(FnName, "m->numOffsets", "Could not allocate memory", Exit, MallocMemory);
@@ -39,7 +42,7 @@ void RGRangesCopyToRGMatch(RGRanges *r,
 			}
 		}
 		/* Copy over for each range */
-		counter =0;
+		counter = prevNumEntries;
 		for(i=0;i<r->numEntries;i++) {
 			/* Copy over for the given range */
 			for(j=r->startIndex[i];j<=r->endIndex[i];j++) {

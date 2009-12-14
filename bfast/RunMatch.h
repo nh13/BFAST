@@ -17,12 +17,13 @@
 
 typedef struct {
 	FILE *tempSeqFP;
-	pthread_mutex_t *indexOutputFP_mutex;
-	gzFile indexOutputFP;
+	pthread_mutex_t *outputFP_mutex;
+	gzFile outputFP;
 	int32_t outputOffsets;
-	int32_t *indexOutputFP_threadID;
+	int32_t *outputFP_threadID;
 	int32_t numThreads;
-	RGIndex *index;
+	RGIndex *indexes;
+	int32_t numIndexes;
 	RGBinary *rg;
 	int32_t *offsets;
 	int numOffsets;
@@ -35,12 +36,13 @@ typedef struct {
 	int threadID;
 } ThreadIndexData;
 
-void FindMatches(
+void RunMatch(
 		char *fastaFileName,
 		char *mainIndexes,
 		char *secondaryIndexes,
 		char *readFileName,
 		char *offsets,
+		int loadAllIndexes,
 		int space,
 		int startReadNum,
 		int endReadNum,
@@ -53,12 +55,13 @@ void FindMatches(
 		char *tmpDir,
 		int timing
 		);
-int FindMatchesInIndexes(char **indexFileNames,
+int FindMatchesInIndexSet(char **indexFileNames,
 		int32_t **indexIDs,
 		int numRGIndexes,
 		RGBinary *rg,
 		int32_t *offsets,
 		int numOffsets,
+		int loadAllIndexes,
 		int colorSpace,
 		int keySize,
 		int maxKeyMatches,
@@ -76,10 +79,12 @@ int FindMatchesInIndexes(char **indexFileNames,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
 		int *totalOutputTime);
-int FindMatchesInIndex(char *indexFileName,
+int FindMatches(char **indexFileName,
+		int32_t numIndexes,
 		RGBinary *rg,
 		int32_t *offsets,
 		int numOffsets,
+		int loadAllIndexes,
 		int colorSpace,
 		int keySize,
 		int maxKeyMatches,
@@ -88,13 +93,13 @@ int FindMatchesInIndex(char *indexFileName,
 		int numThreads,
 		int queueLength,
 		FILE ***tempSeqFPs,
-		gzFile indexOutputFP,
+		gzFile outputFP,
 		int outputOffsets,
 		char *tmpDir,
 		int timing,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
 		int *totalOutputTime);
-void *FindMatchesInIndexThread(void *arg);
+void *FindMatchesThread(void *arg);
 
 #endif

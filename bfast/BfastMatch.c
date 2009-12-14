@@ -18,7 +18,7 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets, 
+	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets,  DescLoadAllIndexes,
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescTmpDir, DescTiming,
@@ -33,6 +33,7 @@ static struct argp_option options[] = {
 		"\n\t\t\t\t  separated)", 1},
 	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsets", 'o', "offsets", 0, "Specifies the offsets", 1},
+	{"loadAllIndexes", 'l', "loadAllIndexes", 0, "Specifies to load all main or secondary indexes into memory", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first"
@@ -58,7 +59,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hpt";
+"e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hlpt";
 
 	int
 BfastMatch(int argc, char **argv)
@@ -96,12 +97,13 @@ BfastMatch(int argc, char **argv)
 					/* Execute Program */
 
 					/* Run Matches */
-					FindMatches(
+					RunMatch(
 							arguments.fastaFileName,
 							arguments.mainIndexes,
 							arguments.secondaryIndexes,
 							arguments.readsFileName,
 							arguments.offsets,
+							arguments.loadAllIndexes,
 							arguments.space,
 							arguments.startReadNum,
 							arguments.endReadNum,
@@ -223,6 +225,7 @@ int BfastMatchValidateInputs(struct arguments *args) {
 	}	
 	/* If this does not hold, we have done something wrong internally */	
 	assert(args->timing == 0 || args->timing == 1);
+	assert(IndexesMemorySerial == args->loadAllIndexes || IndexesMemoryAll == args->loadAllIndexes);
 
 	return 1;
 }
@@ -241,6 +244,7 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 	args->secondaryIndexes = NULL;
 	args->readsFileName = NULL;
 	args->offsets = NULL;
+	args->loadAllIndexes = IndexesMemorySerial;
 
 	args->space = NTSpace;
 
@@ -276,6 +280,7 @@ BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "secondaryIndexes\t\t\t%s\n", FILEUSING(args->secondaryIndexes));
 		fprintf(fp, "readsFileName:\t\t\t\t%s\n", FILESTDIN(args->readsFileName));
 		fprintf(fp, "offsets:\t\t\t\t%s\n", (NULL == args->offsets) ? "[Using All]" : args->offsets);
+		fprintf(fp, "loadAllIndexes:\t\t\t\t%s\n", INTUSING(args->loadAllIndexes));
 		fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
 		fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 		fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
@@ -348,39 +353,41 @@ BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 		   */
 		switch (key) {
 			case 'e':
-				arguments->endReadNum = atoi(optarg);break;
+				arguments->endReadNum = atoi(optarg); break;
 			case 'f':
-				arguments->fastaFileName = strdup(optarg);break;
+				arguments->fastaFileName = strdup(optarg); break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp; break;
 			case 'i':
 				arguments->mainIndexes=strdup(optarg); break;
 			case 'k':
-				arguments->keySize = atoi(optarg);break;
+				arguments->keySize = atoi(optarg); break;
+			case 'l':
+				arguments->loadAllIndexes = IndexesMemoryAll; break;
 			case 'n':
-				arguments->numThreads=atoi(optarg);break;
+				arguments->numThreads=atoi(optarg); break;
 			case 'o':
 				arguments->offsets=strdup(optarg); break;
 			case 'p':
-				arguments->programMode=ExecutePrintProgramParameters;break;
+				arguments->programMode=ExecutePrintProgramParameters; break;
 			case 'r':
-				arguments->readsFileName=strdup(optarg);break;
+				arguments->readsFileName=strdup(optarg); break;
 			case 's':
-				arguments->startReadNum = atoi(optarg);break;
+				arguments->startReadNum = atoi(optarg); break;
 			case 't':
-				arguments->timing = 1;break;
+				arguments->timing = 1; break;
 			case 'w':
-				arguments->whichStrand = atoi(optarg);break;
+				arguments->whichStrand = atoi(optarg); break;
 			case 'A':
-				arguments->space=atoi(optarg);break;
+				arguments->space=atoi(optarg); break;
 			case 'I':
 				arguments->secondaryIndexes=strdup(optarg); break;
 			case 'K':
-				arguments->maxKeyMatches=atoi(optarg);break;
+				arguments->maxKeyMatches=atoi(optarg); break;
 			case 'M':
-				arguments->maxNumMatches=atoi(optarg);break;
+				arguments->maxNumMatches=atoi(optarg); break;
 			case 'Q':
-				arguments->queueLength=atoi(optarg);break;
+				arguments->queueLength=atoi(optarg); break;
 			case 'T':
 				StringCopyAndReallocate(&arguments->tmpDir, optarg); break;
 			default:
