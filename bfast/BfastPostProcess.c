@@ -46,7 +46,7 @@ static struct argp_option options[] = {
 	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments"
 		"\n\t\t\t  into this file (always BAF format)", 3},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 3},
-	{"outputID", 'o', "outputID", 0, "Specifies output ID to append to the read name (SAM only)", 3},
+	{"outputID", 'o', "outputID", 0, "Specifies output ID to prepend to the read name (SAM only)", 3},
 	{"readGroup", 'r', "readGroup", 0, "Specifies to add the given RG to the SAM header and updates the\n\t\t\t RG tag (and LB tag if present) in the reads (SAM only)", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
