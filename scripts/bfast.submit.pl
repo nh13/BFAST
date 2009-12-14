@@ -131,6 +131,7 @@ sub Schema {
 			  <xs:element name="mainIndexes" type="xs:string"/>
 			  <xs:element name="secondaryIndexes" type="xs:string"/>
 			  <xs:element name="offsets" type="xs:string"/>
+			  <xs:element name="loadAllIndexes" type="xs:integer"/>
 			  <xs:element name="keySize" type="positiveInteger"/>
 			  <xs:element name="maxKeyMatches" type="positiveInteger"/>
 			  <xs:element name="maxNumMatches" type="positiveInteger"/>
@@ -262,6 +263,7 @@ sub ValidateData {
 	ValidateOption($data->{'matchOptions'},     'mainIndexes',                              OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'secondaryIndexes',                         OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'offsets',                                  OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'loadAllOffsets',                                  OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'keySize',                                  OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'maxKeyMatches',                            OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'maxNumMatches',                            OPTIONAL);
@@ -462,6 +464,7 @@ sub CreateJobsMatch {
 			$cmd .= " -I ".$data->{'matchOptions'}->{'secondaryIndexes'} if defined($data->{'matchOptions'}->{'secondaryIndexes'});
 			$cmd .= " -r ".$read_file;
 			$cmd .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
+			$cmd .= " -l " if defined($data->{'matchOptions'}->{'loadAllOffsets'});
 			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
 			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
 			$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
