@@ -9,14 +9,14 @@
 #include "AlignedEntry.h"
 #include "BError.h"
 
-void AlignedReadConvertPrintHeader(FILE*, RGBinary*, int);
-void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, gzFile, char*, int, int*, int, int);
+void AlignedReadConvertPrintHeader(FILE*, RGBinary*, int, char*);
+void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, gzFile, char*, char*, int, int*, int, int);
 void AlignedReadConvertPrintMAF(AlignedRead*, RGBinary*, FILE*);
 void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry*, RGBinary*, char*, char*, int, int, int, FILE*);
 void AlignedReadConvertPrintGFF(AlignedRead*, FILE*);
 void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry*, char*, char*, int, int, int, FILE*);
-void AlignedReadConvertPrintSAM(AlignedRead*, int32_t, int32_t*, char*, FILE*);
-void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, int32_t, int32_t, int32_t, int32_t*, char*, FILE*);
+void AlignedReadConvertPrintSAM(AlignedRead*, int32_t, int32_t*, char*, char*, FILE*);
+void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, int32_t, int32_t, int32_t, int32_t*, char*, char*, FILE*);
 void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry*, int32_t, char*, char*, int32_t*, FILE*);
 
 #endif

@@ -18,7 +18,9 @@
 /* TODO */
 void AlignedReadConvertPrintHeader(FILE *fp,
 		RGBinary *rg,
-		int32_t outputFormat) 
+		int32_t outputFormat,
+		char *readGroup
+		) 
 {
 	char *FnName = "AlignedReadConvertPrintHeader";
 	int32_t i;
@@ -55,7 +57,10 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 					PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 				}
 			}
-			/* Ignore read group */
+			/* Print read group */
+			if(NULL != readGroup && 0>fprintf(fp, "%s\n", readGroup)) {
+				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
+			}
 			/* Program */
 			if(0>fprintf(fp, "@PG\tID:%s\tVN:%s\n",
 						PACKAGE_NAME,
@@ -75,6 +80,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		FILE *fp,
 		gzFile fpGZ,
 		char *outputID,
+		char *readGroupString,
 		int32_t postprocessAlgorithm,
 		int32_t *numOriginalEntries,
 		int32_t outputFormat,
@@ -97,7 +103,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			AlignedReadConvertPrintGFF(a, fp);
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, postprocessAlgorithm, numOriginalEntries, outputID, fp);
+			AlignedReadConvertPrintSAM(a, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -407,6 +413,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 		int32_t postprocessAlgorithm,
 		int32_t *numOriginalEntries,
 		char *outputID,
+		char *readGroupString,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintSAM";
@@ -428,6 +435,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 					postprocessAlgorithm,
 					numOriginalEntries,
 					outputID,
+					readGroupString,
 					fp);
 		}
 		else {
@@ -438,6 +446,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 						postprocessAlgorithm,
 						numOriginalEntries,
 						outputID,
+						readGroupString,
 						fp);
 			}
 		}
@@ -451,6 +460,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		int32_t postprocessAlgorithm,
 		int32_t *numOriginalEntries,
 		char *outputID,
+		char *readGroupString,
 		FILE *fp) 
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
@@ -720,6 +730,16 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(0>fprintf(fp, "\t%s\t%s",
 				read,
 				qual)) {
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+	}
+	/* RG - optional field */
+	/* LB - optional field */
+	/* PU - optional field */
+	if(NULL != readGroupString && 0>fprintf(fp, "%s", readGroupString)) {
+		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+	}
+	/* PG - optional field */
+	if(0>fprintf(fp, "\tPG:Z:%s", PACKAGE_NAME)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* AS - optional field */

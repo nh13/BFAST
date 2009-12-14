@@ -19,6 +19,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int queueLength,
 		int outputFormat,
 		char *outputID,
+		char *readGroup,
 		char *unmappedFileName);
 
 int32_t GetPEDBins(char*, int, int, PEDBins*);

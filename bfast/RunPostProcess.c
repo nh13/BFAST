@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <math.h>
 #include "BLibDefinitions.h"
+#include "BLib.h"
 #include "BError.h"
 #include "AlignedRead.h"
 #include "AlignedEnd.h"
@@ -21,6 +22,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int queueLength,
 		int outputFormat,
 		char *outputID,
+		char *readGroup,
 		char *unmappedFileName)
 {
 	char *FnName="ReadInputFilterAndOutput";
@@ -39,6 +41,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	int32_t pairedEndInferRescued=0;
 	int32_t **numEntries=NULL;
 	int32_t *numEntriesN=NULL;
+	char *readGroupString=NULL;
+
+	if(NULL != readGroup) {
+		readGroupString=ParseReadGroup(readGroup);
+	}
 
 	/* Get the PEDBins if necessary */
 	if(1 == pairedEndInfer) {
@@ -76,7 +83,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		}
 	}
 
-	AlignedReadConvertPrintHeader(fpReported, rg, outputFormat);
+	AlignedReadConvertPrintHeader(fpReported, rg, outputFormat, readGroup);
 
 	aBufferLength=queueLength;
 	aBuffer=malloc(sizeof(AlignedRead)*aBufferLength);
@@ -181,7 +188,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 		/* Print to Output file */
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
-			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, algorithm, numEntries[aBufferIndex], outputFormat, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[aBufferIndex], outputFormat, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&aBuffer[aBufferIndex]);
@@ -240,6 +247,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	}
 	free(numEntries);
 	free(numEntriesN);
+	free(readGroupString);
 }
 
 int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead)

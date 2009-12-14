@@ -28,7 +28,8 @@ void BfastBAFConvertUsage()
 			BFAST_SAM_VERSION
 		   );
 	fprintf(stderr, "\t-f\t\tSpecifies the file name of the FASTA reference genome\n");
-	fprintf(stderr, "\t-o\t\toutput ID to append to the read name (SAM output only)\n");
+	fprintf(stderr, "\t-o\t\toutput ID to append to the read name (SAM only)\n");
+	fprintf(stderr, "\t-r\t\tread group to add to the SAM header and reads (SAM only)\n");
 	fprintf(stderr, "\t-h\t\tprints this help message\n");
 	fprintf(stderr, "\nsend bugs to %s\n",
 			PACKAGE_BUGREPORT);
@@ -43,6 +44,7 @@ int BfastBAFConvert(int argc, char *argv[])
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char fastaFileName[MAX_FILENAME_LENGTH]="\0";
 	char outputID[MAX_FILENAME_LENGTH]="\0";
+	char *readGroup=NULL, *readGroupString=NULL;
 	char *last;
 	int outputType=1; // BAF2TEXT
 	int outputSubType=TextOutput;
@@ -53,11 +55,12 @@ int BfastBAFConvert(int argc, char *argv[])
 	char fileExtension[256]="\0";
 
 	// Get parameters
-	while((c = getopt(argc, argv, "f:o:O:h")) >= 0) {
+	while((c = getopt(argc, argv, "f:o:r:O:h")) >= 0) {
 		switch(c) {
 			case 'O': outputType = atoi(optarg); break;
 			case 'f': strcpy(fastaFileName, optarg); break;
 			case 'o': strcpy(outputID, optarg); break;
+			case 'r': readGroup=strdup(optarg); break;
 			case 'h':
 					  BfastBAFConvertUsage(); return 1;
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
@@ -117,6 +120,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			inputType=BinaryInput;
 			outputSubType=TextOutput;
 			strcat(fileExtension, BFAST_SAM_FILE_EXTENSION);
+			readGroupString=ParseReadGroup(readGroup);
 			break;
 		default:
 			PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);
@@ -163,7 +167,7 @@ int BfastBAFConvert(int argc, char *argv[])
 		fprintf(stderr, "Input:%s\nOutput:%s\n", inputFileName, outputFileName);
 
 		/* Print Header */
-		AlignedReadConvertPrintHeader(fpOut, &rg, outputType);
+		AlignedReadConvertPrintHeader(fpOut, &rg, outputType, readGroup);
 		/* Initialize */
 		AlignedReadInitialize(&a);
 		counter = 0;
@@ -182,6 +186,7 @@ int BfastBAFConvert(int argc, char *argv[])
 					fpOut,
 					fpOutGZ,
 					outputID,
+					readGroupString,
 					-1,
 					NULL,
 					outputType,
@@ -209,6 +214,8 @@ int BfastBAFConvert(int argc, char *argv[])
 			SAM == outputType) {
 		RGBinaryDelete(&rg);
 	}
+	free(readGroup);
+	free(readGroupString);
 
 	fprintf(stderr, "Terminating successfully!\n");
 	return 0;

@@ -1893,3 +1893,71 @@ char * strtok_r(char *s1, const char *s2, char **lasts)
 	return ret;
 }
 #endif
+
+char *ParseReadGroup(char *readGroup)
+{
+	char *FnName="ParseReadGroup";
+	int32_t m=1, state, foundReadGroupID=0;
+	char *pch=NULL, *saveptr=NULL, *ptr=NULL;
+	char *readGroupString=NULL;
+	char *tmpReadGroup=NULL;
+	char ID[32]="\0";
+
+	fprintf(stderr, "readGroup=%s\n", readGroup);
+
+	tmpReadGroup=strdup(readGroup);
+	if(NULL == tmpReadGroup) {
+		PrintError(FnName, "tmpReadGroup", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	// INitialize
+	readGroupString=malloc(sizeof(char)*m);
+	if(NULL == readGroupString) {
+		PrintError(FnName, "readGroupString", "Could not allocate memory", Exit, MallocMemory);
+	}
+	readGroupString[0]='\0';
+
+	pch = strtok_r(tmpReadGroup, "\t", &saveptr);
+	if(NULL == pch) {
+		PrintError(FnName, "readGroup", "Could not parse read group", Exit, OutOfRange);
+	}
+	strcpy(readGroup, pch);
+	pch = strtok_r(NULL, "\t", &saveptr);
+	while(NULL != pch) {
+		strcat(readGroup, "\t");
+		strcat(readGroup, pch);
+		state = 0;
+		if(NULL != (ptr = strstr(pch, "ID:"))  && ptr == pch) {
+			state = foundReadGroupID = 1;
+			strcpy(ID, "RG:Z:");
+		}
+		else if(NULL != (ptr = strstr(pch, "LB:"))  && ptr == pch) {
+			state = 2;
+			strcpy(ID, "LB:Z:");
+		}
+		else if(NULL != (ptr = strstr(pch, "PU:"))  && ptr == pch) {
+			state = 3;
+			strcpy(ID, "PU:Z:");
+		}
+		if(0 < state) {
+			// Found ID
+			m += 1 + strlen(ID) + strlen(pch);  // tab, Tag + ':' + Type + ':', Tag value
+			readGroupString=realloc(readGroupString, sizeof(char)*m);
+			if(NULL == readGroupString) {
+				PrintError(FnName, "readGroupString", "Could not allocate memory", Exit, MallocMemory);
+			}
+			strcat(readGroupString, "\t");
+			strcat(readGroupString, ID);
+			strcat(readGroupString, pch+3);
+		}
+		pch = strtok_r(NULL, "\t", &saveptr);
+	}
+
+	if(0 == foundReadGroupID) {
+		PrintError(FnName, "readGroupString", "Could not parse read group", Exit, OutOfRange);
+	}
+	
+	free(tmpReadGroup);
+
+	return readGroupString;
+}

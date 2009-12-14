@@ -14,9 +14,10 @@ struct arguments
 	int algorithm;							/* -a */
 	int pairedEndInfer;						/* -P */
 	int queueLength;						/* -Q */
+	char *unmappedFileName;					/* -i */
 	int outputFormat;						/* -O */
 	char *outputID;							/* -o */
-	char *unmappedFileName;					/* -i */
+	char *readGroup;						/* -r */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

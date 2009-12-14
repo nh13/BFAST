@@ -599,6 +599,9 @@ Specifies the output format.
 Dump unmapped reads including all their alignments into this file (always \BAF{} format).
 \subsubsection{\TT{-o STRING, --outputID=STRING}}
 Specifies output ID to prepend to the read name (\BSAMF{} output only).
+\subsubsection{\TT{-r STRING, --readGroup=STRING}}
+Specifies output read group (@RG) line to add to the header.
+Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
 \section{bfast bafconvert}
 \label{sec:bafconvert}
 \TT{bfast bafconvert} converts \BAF{s} to the specified output format.
@@ -620,6 +623,9 @@ This option is not required for \BAF{} output.
 Specifies an output ID, which will be prepended to the name of each read.
 This option is only used for for \BSAMF{} output only.
 
+\subsubsection{\TT{-r STRING, --readGroup=STRING}}
+Specifies output read group (@RG) line to add to the header.
+Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
 \section{bfast header}
 \label{sec:header}
 \TT{header} prints the header of a \BRGF{} or a \BIF{}.
@@ -1085,7 +1091,8 @@ Mapping quality should be calibrated on a experimental basis and is highly sensi
 In general, the mapping quality is more accurately assessed under higher sensitivity scenarios.
 
 BFAST also produces optional fields.
-The optional fields produced by BFAST documented in the SAM format include: AS, MQ, NM, IH, HI, MD, CS, CQ, CM, CC, and CP.
+The optional fields produced by BFAST documented in the SAM format include: RG, LB, PU, PG, AS, MQ, NM, IH, HI, MD, CS, CQ, CM, CC, and CP.
+Some fields are produced only when optional arguments are given to BFAST.
 BFAST also produces two aligner-specific optional fields: XA, and XE.
 XA gives the postprocessing algorithm from {\TT bfast postprocess} if used (see \autoref{sec:postprocess}).
 XE gives a string indicating where color errors occurred on the forward genomic strand and has the regular expression: $([0-4\-])+$.
