@@ -1086,9 +1086,8 @@ In general, the mapping quality is more accurately assessed under higher sensiti
 
 BFAST also produces optional fields.
 The optional fields produced by BFAST documented in the SAM format include: AS, MQ, NM, IH, HI, MD, CS, CQ, CM, CC, and CP.
-BFAST also produces three aligner-specific optional fields: XA, XN, and XE.
+BFAST also produces two aligner-specific optional fields: XA, and XE.
 XA gives the postprocessing algorithm from {\TT bfast postprocess} if used (see \autoref{sec:postprocess}).
-XN gives the number of alignments found after {\TT bfast localalign} (\autoref{sec:localalign}). 
 XE gives a string indicating where color errors occurred on the forward genomic strand and has the regular expression: $([0-4\-])+$.
 If a color error occurred, then this gives the original color from the color sequence.
 

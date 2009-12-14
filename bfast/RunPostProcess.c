@@ -12,7 +12,7 @@
 #include "AlignedReadConvert.h"
 #include "ScoringMatrix.h"
 #include "RunPostProcess.h"
-				
+
 /* TODO */
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
@@ -37,6 +37,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	int32_t *mappedEndCounts=NULL;
 	int32_t maxNumEnds=-1;
 	int32_t pairedEndInferRescued=0;
+	int32_t **numEntries=NULL;
+	int32_t *numEntriesN=NULL;
 
 	/* Get the PEDBins if necessary */
 	if(1 == pairedEndInfer) {
@@ -81,6 +83,18 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	if(NULL == aBuffer) {
 		PrintError(FnName, "aBuffer", "Could not allocate memory", Exit, MallocMemory);
 	}
+	numEntries=malloc(sizeof(int32_t*)*aBufferLength);
+	if(NULL == numEntries) {
+		PrintError(FnName, "numEntries", "Could not allocate memory", Exit, MallocMemory);
+	}
+	numEntriesN=malloc(sizeof(int32_t)*aBufferLength);
+	if(NULL == numEntriesN) {
+		PrintError(FnName, "numEntriesN", "Could not allocate memory", Exit, MallocMemory);
+	}
+	for(i=0;i<aBufferLength;i++) {
+		numEntries[i] = NULL;
+		numEntries[i] = 0;
+	}
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
@@ -95,6 +109,18 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
 				fprintf(stderr, "\r%lld",
 						(long long int)counter);
+			}
+
+			// Store the original # of entries for SAM output
+			if(aBuffer[aBufferIndex].numEnds < numEntriesN[aBufferIndex]) {
+				numEntriesN[aBufferIndex] = aBuffer[aBufferIndex].numEnds;
+				numEntries[aBufferIndex]=realloc(numEntries[aBufferIndex], sizeof(int32_t)*numEntriesN[aBufferIndex]);
+				if(NULL == numEntries[aBufferIndex]) {
+					PrintError(FnName, "numEntries[aBufferIndex]", "Could not reallocate memory", Exit, ReallocMemory);
+				}
+				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
+					numEntries[aBufferIndex][i] = aBuffer[aBufferIndex].ends[i].numEntries;
+				}
 			}
 
 			/* Filter */
@@ -155,7 +181,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 		/* Print to Output file */
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
-			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, algorithm, outputFormat, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, algorithm, numEntries[aBufferIndex], outputFormat, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&aBuffer[aBufferIndex]);
@@ -186,9 +212,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				(long long int)numUnmapped);
 		if(!(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0])) {
 			fprintf(stderr, "%d < 1 || %d == %d\n",
-				maxNumEnds,
-				(int)numUnmapped,
-				mappedEndCounts[0]);
+					maxNumEnds,
+					(int)numUnmapped,
+					mappedEndCounts[0]);
 		}
 		assert(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0]);
 		for(i=1;i<=maxNumEnds;i++) {
@@ -209,7 +235,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		PEDBinsFree(&bins);
 	}
 	free(mappedEndCounts);
-
+	for(i=0;i<aBufferLength;i++) {
+		free(numEntries[i]);
+	}
+	free(numEntries);
+	free(numEntriesN);
 }
 
 int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead)
@@ -687,9 +717,9 @@ void PEDBinsMakeIntoProbability(PEDBins *b)
 			b->bins[mid - distance - b->minDistance] = sum;
 		}
 		/*
-		fprintf(stderr, "distance=%d\tsum=%d\n",
-				distance, sum);
-				*/
+		   fprintf(stderr, "distance=%d\tsum=%d\n",
+		   distance, sum);
+		   */
 		// Decrement the distance
 		distance--;
 	}

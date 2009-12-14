@@ -76,6 +76,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		gzFile fpGZ,
 		char *outputID,
 		int32_t postprocessAlgorithm,
+		int32_t *numOriginalEntries,
 		int32_t outputFormat,
 		int32_t binaryOutput)
 {
@@ -96,7 +97,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			AlignedReadConvertPrintGFF(a, fp);
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, postprocessAlgorithm, outputID, fp);
+			AlignedReadConvertPrintSAM(a, postprocessAlgorithm, numOriginalEntries, outputID, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -404,6 +405,7 @@ void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
 /* TODO */
 void AlignedReadConvertPrintSAM(AlignedRead *a,
 		int32_t postprocessAlgorithm,
+		int32_t *numOriginalEntries,
 		char *outputID,
 		FILE *fp)
 {
@@ -424,6 +426,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 					i,
 					-1,
 					postprocessAlgorithm,
+					numOriginalEntries,
 					outputID,
 					fp);
 		}
@@ -433,6 +436,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 						i,
 						j,
 						postprocessAlgorithm,
+						numOriginalEntries,
 						outputID,
 						fp);
 			}
@@ -445,6 +449,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		int32_t endIndex,
 		int32_t entriesIndex,
 		int32_t postprocessAlgorithm,
+		int32_t *numOriginalEntries,
 		char *outputID,
 		FILE *fp) 
 {
@@ -741,7 +746,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	/* NH - optional field */
 	if(0>fprintf(fp, "\tNH:i:%d",
-				(entriesIndex < 0)?1:a->ends[endIndex].numEntries)) {
+				(NULL == numOriginalEntries) ? ((entriesIndex < 0)?1:a->ends[endIndex].numEntries) : numOriginalEntries[endIndex])) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* IH - optional field */
@@ -788,9 +793,6 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	/* BFAST specific fields */
 	if(0 <= postprocessAlgorithm && 0>fprintf(fp, "\tXA:i:%d\n", postprocessAlgorithm)) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-	if(0>fprintf(fp, "\tXN:i:%d", a->ends[endIndex].numEntries)) { 
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	if(ColorSpace == a->space && 0 <= postprocessAlgorithm) {
