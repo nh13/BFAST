@@ -6,6 +6,9 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.6.2
+* Adding in an option to "bfast match" that will load all main
+or secondary indexes into memory to avoid storing temporary files.
+This is particularly useful on high-memory machines.
 * Fixing a bug that did not properly save all constraints. This
 reduced performance.
 * Fixed behaviour differences between when the index(es) are

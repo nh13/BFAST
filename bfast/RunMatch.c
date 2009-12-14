@@ -68,7 +68,7 @@ void RunMatch(
 	RGMatches tempMatches;
 	RGBinary rg;
 	int startChr, startPos, endChr, endPos;
-
+			
 	/* Read in the main RGIndex File Names */
 	if(0<=VERBOSE) {
 		fprintf(stderr, "Searching for main indexes...\n");
@@ -177,8 +177,8 @@ void RunMatch(
 			numMainIndexes,
 			&rg,
 			offsets,
-			loadAllIndexes,
 			numOffsets,
+			loadAllIndexes,
 			space,
 			keySize,
 			maxKeyMatches,
@@ -212,8 +212,8 @@ void RunMatch(
 					numSecondaryIndexes,
 					&rg,
 					offsets,
-					loadAllIndexes,
 					numOffsets,
+					loadAllIndexes,
 					space,
 					keySize,
 					maxKeyMatches,
@@ -314,7 +314,8 @@ void RunMatch(
 		seconds -= hours*3600;
 		minutes = seconds/60;
 		seconds -= minutes*60;
-		fprintf(stderr, "Total time loading and deleting indexes: %d hour, %d minutes and %d seconds.\n",
+		fprintf(stderr, "Total time loading and deleting index%s: %d hour, %d minutes and %d seconds.\n",
+				(1 == numMainIndexes + numSecondaryIndexes) ? "" : "es",
 				hours,
 				minutes,
 				seconds);
@@ -324,7 +325,8 @@ void RunMatch(
 		seconds -= hours*3600;
 		minutes = seconds/60;
 		seconds -= minutes*60;
-		fprintf(stderr, "Total time searching indexes: %d hour, %d minutes and %d seconds.\n",
+		fprintf(stderr, "Total time searching index%s: %d hour, %d minutes and %d seconds.\n",
+				(1 == numMainIndexes + numSecondaryIndexes) ? "" : "es",
 				hours,
 				minutes,
 				seconds);
@@ -729,10 +731,12 @@ int FindMatchesInIndexSet(char **indexFileNames,
 
 	if(VERBOSE >= 0) {
 		if(MainIndexes == indexesType) {
-			fprintf(stderr, "Searching main indexes complete.\n");
+			fprintf(stderr, "Searching main index%s complete.\n",
+					(1 == numIndexes) ? "" : "es");
 		}
 		else {
-			fprintf(stderr, "Searching secondary indexes complete.\n");
+			fprintf(stderr, "Searching secondary index%s complete.\n",
+					(1 == numIndexes) ? "" : "es");
 		}
 	}
 
@@ -886,7 +890,8 @@ int FindMatches(char **indexFileName,
 
 	/* Free memory of the RGIndex */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Cleaning up index.\n");
+		fprintf(stderr, "Cleaning up index%s.\n",
+				(1 == numIndexes) ? "" : "es");
 	}
 	startTime = time(NULL);
 	for(i=0;i<numIndexes;i++) {
