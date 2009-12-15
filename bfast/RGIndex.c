@@ -2082,7 +2082,8 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	//assert(low==0 || 0 < RGIndexCompareRead(index, rg, read, low-1, 0, NULL, 0));
 	//assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0, NULL, 0) < 0); 
 
-	lowNumBasesEqual=highNumBasesEqual=midNumBasesEqual=index->hashWidth;
+	// Assume that the first X # of bases are the same given the hash width and depth
+	lowNumBasesEqual=highNumBasesEqual=midNumBasesEqual=index->hashWidth+index->depth;
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
 		cmp = RGIndexCompareRead(index, rg, read, mid, GETMIN(lowNumBasesEqual, highNumBasesEqual), &midNumBasesEqual, 0);
