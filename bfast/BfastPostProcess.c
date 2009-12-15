@@ -48,7 +48,7 @@ static struct argp_option options[] = {
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies output ID to prepend to the read name (SAM only)", 3},
 	{"RGFileName", 'r', "RGFileName", 0, "Specifies to add the RG in the specified file to the SAM"
-		"\n\t\t\t  header and updates the RG tag (and LB tag if present) in"
+		"\n\t\t\t  header and updates the RG tag (and LB/PU tags if present) in"
 		"\n\t\t\t  the reads (SAM only)", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
