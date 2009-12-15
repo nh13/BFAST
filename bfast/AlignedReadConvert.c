@@ -815,7 +815,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(0 <= postprocessAlgorithm && 0>fprintf(fp, "\tXA:i:%d", postprocessAlgorithm)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
-	if(ColorSpace == a->space && 0 <= postprocessAlgorithm) {
+	if(ColorSpace == a->space && 0 < strlen(colorError)) {
 		if(0>fprintf(fp, "\tXE:Z:%s", colorError)) {
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
