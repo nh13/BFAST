@@ -594,10 +594,6 @@ void RGIndexCreateHelper(RGIndex *index,
 							/* Update position in bases */
 							curBasesPos = (curBasesPos+1)%index->width;
 						}
-						/* Debugging */
-						assert(0 <= binNumber);
-						assert(binNumber < pow(ALPHABET_SIZE, index->depth));
-						assert(NULL != tmpFPs[binNumber]);
 
 						/* Print to the Bin */
 						if(index->contigType == Contig_8) {
@@ -1921,11 +1917,13 @@ int64_t RGIndexGetRanges(RGIndex *index, RGBinary *rg, int8_t *read, int32_t rea
 			readLength,
 			startIndex,
 			endIndex);
+	/*
 	if(foundIndex > 0) {
 		assert((*endIndex) >= (*startIndex));
 		assert((*startIndex) >= 0 && (*startIndex) < index->length);
 		assert((*endIndex) >= 0 && (*endIndex) < index->length);
 	}
+	*/
 	return foundIndex;
 }
 
@@ -1959,7 +1957,7 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, 
 			ReverseReadFourBit(read, reverseRead, readLength);
 		}
 		else {
-			assert(space==NTSpace);
+			//assert(space==NTSpace);
 			/* Get the reverse compliment */
 			GetReverseComplimentFourBit(read, reverseRead, readLength);
 		}
@@ -1983,18 +1981,18 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, 
 	}
 	else if(maxKeyMatches < numMatches) {
 		/* Ignore the key since it had too many matches */
-		assert(0 < numMatches);
+		//assert(0 < numMatches);
 		return 0;
 	}
 	else if(maxNumMatches < numMatches) {
 		/* Too many matches, return 1 */
-		assert(0 < numMatches);
+		//assert(0 < numMatches);
 		return 1;
 	}
 	else {
 		toAdd = (0 < foundIndexForward)?1:0;
 		toAdd += (0 < foundIndexReverse)?1:0;
-		assert(1 <= toAdd && toAdd <= 2);
+		//assert(1 <= toAdd && toAdd <= 2);
 		/* (Re)Allocate memory for the new range */
 		RGRangesReallocate(r, r->numEntries + toAdd);
 		/* Copy over to the range list */
@@ -2028,11 +2026,12 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		int64_t *startIndex,
 		int64_t *endIndex)
 {
-	int64_t mid=-1;
 	int32_t cmp;
 	int32_t cont = 1;
 	int64_t tmpLow, tmpMid, tmpHigh;
-	int64_t low, high;
+	int32_t tmpLowNumBasesEqual, tmpHighNumBasesEqual, tmpMidNumBasesEqual;
+	int64_t low, high, mid=-1;
+	int32_t lowNumBasesEqual, highNumBasesEqual, midNumBasesEqual;
 	uint32_t hashIndex;
 
 	/* Use hash to restrict low and high */
@@ -2041,7 +2040,7 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		/* Did not fall in this bin */
 		return 0;
 	}
-	assert(0 <= hashIndex && hashIndex < index->hashLength);
+	//assert(0 <= hashIndex && hashIndex < index->hashLength);
 	if(UINT_MAX == index->starts[hashIndex]) {
 		/* The hash from this point on does not index anything */
 		return 0;
@@ -2079,13 +2078,14 @@ int64_t RGIndexGetIndex(RGIndex *index,
 	   fprintf(stderr, "hashIndex=%u\n", hashIndex);
 	   */
 
-	assert(low <= high);
-	assert(low==0 || 0 < RGIndexCompareRead(index, rg, read, low-1, 0));
-	assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
+	//assert(low <= high);
+	//assert(low==0 || 0 < RGIndexCompareRead(index, rg, read, low-1, 0, NULL, 0));
+	//assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0, NULL, 0) < 0); 
 
+	lowNumBasesEqual=highNumBasesEqual=midNumBasesEqual=index->hashWidth;
 	while(low <= high && cont==1) {
 		mid = (low+high)/2;
-		cmp = RGIndexCompareRead(index, rg, read, mid, 0);
+		cmp = RGIndexCompareRead(index, rg, read, mid, GETMIN(lowNumBasesEqual, highNumBasesEqual), &midNumBasesEqual, 0);
 		if(VERBOSE >= DEBUG) {
 			fprintf(stderr, "low:%lld\tmid:%lld\thigh:%lld\tcmp:%d\n",
 					(long long int)low,
@@ -2098,19 +2098,24 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		}
 		else if(cmp < 0) {
 			high = mid-1;
+			highNumBasesEqual = midNumBasesEqual;
 		}
 		else {
 			low = mid + 1;
+			lowNumBasesEqual = midNumBasesEqual;
 		}
 	}
 	/* If we found an entry that matches, get the bounds (start and end indexes */
 	if(cont == 0) {
-		assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0) > 0);
-		assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0) < 0); 
-		assert(RGIndexCompareRead(index, rg, read, mid, 0) == 0);
+		//assert(low==0 || RGIndexCompareRead(index, rg, read, low-1, 0, NULL, 0) > 0);
+		//assert(high==index->length-1 || RGIndexCompareRead(index, rg, read, high+1, 0, NULL, 0) < 0); 
+		//assert(RGIndexCompareRead(index, rg, read, mid, 0, NULL, 0) == 0);
 		tmpLow = low;
 		tmpMid = mid;
 		tmpHigh = high;
+		tmpLowNumBasesEqual=lowNumBasesEqual;
+		tmpHighNumBasesEqual=highNumBasesEqual;
+		tmpMidNumBasesEqual=midNumBasesEqual;
 		/*
 		   fprintf(stderr, "Getting start and end:\t%lld\t%lld\t%lld\n",
 		   low,
@@ -2120,10 +2125,12 @@ int64_t RGIndexGetIndex(RGIndex *index,
 		/* Get lower start Index */
 		low = tmpLow;
 		high = tmpMid;
+		lowNumBasesEqual = tmpLowNumBasesEqual;
+		highNumBasesEqual = tmpMidNumBasesEqual;
 		while(low < high) {
 			mid = (low+high)/2;
-			cmp = RGIndexCompareRead(index, rg, read, mid, 0);
-			assert(cmp >= 0);
+			cmp = RGIndexCompareRead(index, rg, read, mid, GETMIN(lowNumBasesEqual, highNumBasesEqual), &midNumBasesEqual, 0);
+			//assert(cmp >= 0);
 			/*
 			   fprintf(stderr, "start:%lld\t%lld\t%lld\t%d\n",
 			   low,
@@ -2133,23 +2140,27 @@ int64_t RGIndexGetIndex(RGIndex *index,
 			   */
 			if(cmp == 0) {
 				high = mid;
+				highNumBasesEqual = midNumBasesEqual;
 			}
 			else {
 				/* mid is less than */
 				low = mid+1;
+				lowNumBasesEqual = midNumBasesEqual;
 			}
 		}
 		(*startIndex) = low;
-		assert(low == high);
-		assert(RGIndexCompareRead(index, rg, read, (*startIndex), 0)==0);
-		assert((*startIndex) == 0 || RGIndexCompareRead(index, rg, read, (*startIndex)-1, 0)>0);
+		//assert(low == high);
+		//assert(RGIndexCompareRead(index, rg, read, (*startIndex), 0, NULL, 0)==0);
+		//assert((*startIndex) == 0 || RGIndexCompareRead(index, rg, read, (*startIndex)-1, 0, NULL, 0)>0);
 		/* Get upper start Index */
 		low = tmpMid;
 		high = tmpHigh;
+		lowNumBasesEqual = tmpMidNumBasesEqual;
+		highNumBasesEqual = tmpHighNumBasesEqual;
 		while(low < high) {
 			mid = (low+high)/2+1;
-			cmp = RGIndexCompareRead(index, rg, read, mid, 0);
-			assert(cmp <= 0);
+			cmp = RGIndexCompareRead(index, rg, read, mid, GETMIN(lowNumBasesEqual, highNumBasesEqual), &midNumBasesEqual, 0);
+			//assert(cmp <= 0);
 			/*
 			   fprintf(stderr, "end:%lld\t%lld\t%lld\t%d\n",
 			   low,
@@ -2159,17 +2170,19 @@ int64_t RGIndexGetIndex(RGIndex *index,
 			   */
 			if(cmp == 0) {
 				low = mid;
+				lowNumBasesEqual = midNumBasesEqual;
 			}
 			else {
 				/* mid is less than */
 				high = mid-1;
+				highNumBasesEqual = midNumBasesEqual;
 			}
 		}
-		assert(low == high);
+		//assert(low == high);
 		/* adjust endIndex */
 		(*endIndex) = low;
-		assert(RGIndexCompareRead(index, rg, read, (*endIndex), 0)==0);
-		assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1, 0)<0);
+		//assert(RGIndexCompareRead(index, rg, read, (*endIndex), 0, NULL, 0)==0);
+		//assert((*endIndex) == index->length-1 || RGIndexCompareRead(index, rg, read, (*endIndex)+1, 0, NULL, 0)<0);
 		return 1;
 	}
 	else {
@@ -2267,14 +2280,14 @@ int32_t RGIndexCompareContigPos(RGIndex *index,
 	char aBase;
 	char bBase;
 
-	if(!(aContig >= index->startContig && aContig <= index->endContig)) {
-	}
+	/*
 	assert(aContig >= index->startContig && aContig <= index->endContig);
 	assert( (aContig != index->startContig || aPos >= index->startPos) &&
 			(aContig != index->endContig || aPos <= index->endPos));
 	assert(bContig >= index->startContig && bContig <= index->endContig);
 	assert( (bContig != index->startContig || bPos >= index->startPos) &&
 			(bContig != index->endContig || bPos <= index->endPos));
+			*/
 
 	/* Initialize for color space */
 
@@ -2333,8 +2346,10 @@ int32_t RGIndexCompareAt(RGIndex *index,
 		int64_t b, 
 		int debug)
 {
+	/*
 	assert(a>=0 && a<index->length);
 	assert(b>=0 && b<index->length);
+	*/
 
 	if(index->contigType == Contig_8) {
 		return RGIndexCompareContigPos(index,
@@ -2361,10 +2376,12 @@ int32_t RGIndexCompareRead(RGIndex *index,
 		RGBinary *rg,
 		int8_t* read,
 		int64_t a,
+		int32_t skip, // skip this number of bases in the prefix assuming they are equal
+		int32_t *numBasesEqual, // returns the number of bases that were equal
 		int debug)
 {
 	char *FnName="RGIndexCompareRead";
-	assert(a>=0 && a<index->length);
+	//assert(a>=0 && a<index->length);
 
 	int32_t i;
 	uint32_t aContig = (index->contigType==Contig_8)?index->contigs_8[a]:index->contigs_32[a];
@@ -2384,7 +2401,11 @@ int32_t RGIndexCompareRead(RGIndex *index,
 	   */
 
 	/* Go across the mask */
-	for(i=0;i<index->width;i++) {
+	//for(i=0;i<index->width;i++) {
+	if(NULL != numBasesEqual) {
+		(*numBasesEqual) = skip;
+	}
+	for(i=skip;i<index->width;i++) { // we do not need to compare the bases used by the hash 
 		switch(index->mask[i]) {
 			case 0:
 				/* Ignore base */
@@ -2399,6 +2420,9 @@ int32_t RGIndexCompareRead(RGIndex *index,
 				}
 				else if(read[i] > aBase) {
 					return 1;
+				}
+				else if(NULL != numBasesEqual) {
+					(*numBasesEqual) = i+1;
 				}
 				break;
 			default:
@@ -2416,7 +2440,7 @@ uint32_t RGIndexGetHashIndex(RGIndex *index,
 		uint32_t a, // index in the index
 		int debug)
 {
-	assert(a>=0 && a<index->length);
+	//assert(a>=0 && a<index->length);
 
 	char *FnName = "RGIndexGetHashIndex";
 
@@ -2503,7 +2527,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 				case 1:
 					/* Only works with a four letter alphabet */
 					hashIndex = hashIndex << 2;
-					assert(0 <= read[i] && read[i] <= 3); // Debugging
 					hashIndex += read[i];
 					cur--;
 					break;
@@ -2525,7 +2548,6 @@ uint32_t RGIndexGetHashIndexFromRead(RGIndex *index,
 			case 1:
 				/* Only works with a four letter alphabet */
 				hashIndex = hashIndex << 2;
-				assert(0 <= read[i] && read[i] <= 3); // Debugging
 				hashIndex += read[i];
 				cur--;
 				break;
