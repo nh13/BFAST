@@ -812,7 +812,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	/* BFAST specific fields */
-	if(0 <= postprocessAlgorithm && 0>fprintf(fp, "\tXA:i:%d\n", postprocessAlgorithm)) {
+	if(0 <= postprocessAlgorithm && 0>fprintf(fp, "\tXA:i:%d", postprocessAlgorithm)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	if(ColorSpace == a->space && 0 <= postprocessAlgorithm) {
