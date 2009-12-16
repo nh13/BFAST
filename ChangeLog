@@ -6,6 +6,8 @@ See COPYING for copying conditions.
 Please send bfast bug reports to nhomer@cs.ucla.edu
 
 Version 0.6.2
+* Changed qseq2fastq.pl to ill2fastq.pl to support Illumina both
+QSEQ and SEQUENCE files.
 * Optimized the binary search within the index search.  Should
 be faster.
 * Adding in an option to "bfast match" that will load all main
