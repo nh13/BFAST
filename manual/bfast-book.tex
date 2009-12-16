@@ -887,7 +887,7 @@ Process all jobs in the error state from the given username.
 Process all given job ids.
 
 \subsection{qseq2fastq.pl}
-This script will convert Illumina generated QSEQ files to the BFAST FASTQ format.
+This script will convert Illumina generated QSEQ files or Illumina generated SEQUENCE files to the BFAST FASTQ format.
 Please execute the script with no arguments for more information.
 \subsection{solid2fastq}
 This program will convert ABI SOLiD generated CSFASTA and QUAL files to the BFAST format.
@@ -1547,7 +1547,7 @@ For reads greater than or equal to $40$bp, the main indexes should be:\\
 Given the above, the commands we should execute are:
 \\\\
 Convert the reads:\\
-{\tt \scriptsize \$perl bfast-\Version{}/scripts/qseq2fastq.pl s\_<N>\\}
+{\tt \scriptsize \$perl bfast-\Version{}/scripts/qseq2fastq.pl -q s\_<N>\\}
 Convert the reference:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast/bfast fasta2brg -f hg18.fa\\}
 Create the indexes:\\

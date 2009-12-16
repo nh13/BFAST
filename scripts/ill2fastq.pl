@@ -12,38 +12,43 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: qseq2fastq.pl [-b <bar code length> -n <number of reads> -o <output prefix>] <input .qseq prefix>
+Usage: ill2fastq.pl [-b <bar code length> -n <number of reads> -o <output prefix> -q -s] <input prefix>
 
-	This script will convert Illumina output files (*qseq files)
-	to the BFAST fastq multi-end format.  For single-end reads 
-	that do not have more than one end (neither mate-end nor
-	paired end), the output format is strictly fastq format.
-	For multi-end data (mate-end, paired end ect.) each end is
-	outputted consecutively in 5'->3' ordering in fastq blocks.
-	Therefore, the output reamins strictly conforming to the 
-	fastq format, but keeps intact the relationships between
-	sequences that all originate from the same peice of DNA.
-	We assume for paired end data that all data is able to be
-	paired.  The -n option is useful to split the output into 
-	separate files each consisting of the specified number of reads.
-	In this case, you will need to also specify an output prefix 
-	using the -o option.
+This script will convert Illumina output files (*qseq.txt or 
+*sequence files) to the BFAST fastq multi-end format.  For 
+single-end reads that do not have more than one end (neither 
+mate-end nor paired end), the output format is strictly fastq 
+format.  For multi-end data (mate-end, paired end ect.) each 
+end is outputted consecutively in 5'->3' ordering in fastq 
+blocks.  Therefore, the output reamins strictly conforming 
+to the fastq format, but keeps intact the relationships between
+sequences that all originate from the same peice of DNA.
+We assume for paired end data that all data is able to be
+paired.  The -n option is useful to split the output into 
+separate files each consisting of the specified number of reads.
+In this case, you will need to also specify an output prefix 
+using the -o option.
 
-	All .qseq files will be inferred from the specified directory 
-	and accompanying prefix.  For paired end data, reads in
-		<prefix>_1_XXXX_qseq.txt and <prefix>_2_XXXX_qseq.txt will be
-	paired.  For example, if we wish to create a paired end fastq
-	file the first lane, the command should be:
 
-		qseq2fastq.pl s_1
+All *qseq.txt or *sequence.txt files will be inferred from the 
+specified directory and accompanying prefix.  For paired end data, 
+reads in
+<prefix>_1_XXXX_qseq.txt and <prefix>_2_XXXX_qseq.txt will be
+paired (similarly for *sequence.txt).  For example, if we wish 
+to create a paired end fastq file the first lane, the command 
+should be:
+
+ill2fastq.pl s_1
 };
 my $ROTATE_NUM = 100000;
 
-getopts('b:n:o:', \%opts);
+getopts('b:n:o:sq', \%opts);
 die($usage) if (@ARGV < 1);
 
 my $num_reads = -1;
 my $output_prefix = "";
+my $input_suffix = "";
+my $input_suffix_state = -1; # 0 - qseq, 1 -> sequence
 if(defined($opts{'n'})) {
 	$num_reads = $opts{'n'};
 	if(!defined($opts{'o'})) {
@@ -57,6 +62,20 @@ else {
 	if(defined($opts{'o'})) {
 		die("Error.  The -o option was specified without the -n option.  Terminating!\n");
 	}
+}
+if(defined($opts{'q'}) && defined($opts{'s'})) {
+	die("Error.  Both -q and -s options were specified.  Terminating!\n");
+}
+elsif(defined($opts{'q'})) {
+	$input_suffix = "qseq.txt";
+	$input_suffix_state = 0;
+}
+elsif(defined($opts{'s'})) {
+	$input_suffix = "sequence.txt";
+	$input_suffix_state = 1;
+}
+else {
+	die("Error.  The -q or -s option must be specified.  Terminating!\n");
 }
 
 my $barcode_length = 0;
@@ -94,8 +113,8 @@ if(0 < $num_reads) {
 if(0 == scalar(@files_two)) { # Single end
 	while($FH_index < scalar(@files_one)) {
 		open(FH_one, "$files_one[$FH_index]") || die;
-		while(defined(my $line = <FH_one>)) {
-			my ($name, $seq, $qual) = parse_line($line, $barcode_length, 1);
+		my %read = ();
+		while(1 == get_read(*FH_one, \%read, $barcode_length, 1, $input_suffix_state)) {
 			if(0 < $num_reads) {
 				if($num_reads <= $output_num_written) {
 					close(FHout);
@@ -103,12 +122,13 @@ if(0 == scalar(@files_two)) { # Single end
 					$output_num_written=0;
 					open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
 				}
-				print FHout "$name\n$seq\n+\n$qual\n";
+				print FHout "".$read{"NAME"}."\n".$read{"SEQ"}."\n+\n".$read{"QUAL"}."\n";
 				$output_num_written++;
 			}
 			else {
-				print STDOUT "$name\n$seq\n+\n$qual\n";
+				print STDOUT "".$read{"NAME"}."\n".$read{"SEQ"}."\n+\n".$read{"QUAL"}."\n";
 			}
+			%read = ();
 		}
 		close(FH_one);
 		$FH_index++;
@@ -122,8 +142,8 @@ else { # Paired end
 		open(FH_two, "$files_two[$FH_index]") || die;
 		my %read_one = ();
 		my %read_two = ();
-		while(1 == get_read(*FH_one, \%read_one, $barcode_length, 1) &&
-			1 == get_read(*FH_two, \%read_two, $barcode_length, 2)) {
+		while(1 == get_read(*FH_one, \%read_one, $barcode_length, 1, $input_suffix_state) &&
+			1 == get_read(*FH_two, \%read_two, $barcode_length, 2, $input_suffix_state)) {
 			if(0 != cmp_read_names($read_one{"NAME"}, $read_two{"NAME"})) {
 				print STDERR "".$read_one{"NAME"}."\t".$read_two{"NAME"}."\n";
 				die;
@@ -211,7 +231,7 @@ sub GetDirContents {
 	local *DIR;
 	opendir(DIR, "$dir") || die("Error.  Could not open $dir.  Terminating!\n");
 	@$dirs = grep !/^\.\.?$/, readdir DIR;
-	@$dirs = grep /^$prefix.*qseq\.txt/, @$dirs;
+	@$dirs = grep /^$prefix.*$input_suffix/, @$dirs;
 	for(my $i=0;$i<scalar(@$dirs);$i++) {
 		@$dirs[$i] = $dir."".@$dirs[$i];
 	}
@@ -219,23 +239,35 @@ sub GetDirContents {
 }
 
 sub get_read {
-	my ($FH, $read, $barcode_length, $end) = @_;
+	my ($FH, $read, $barcode_length, $end, $input_suffix_state) = @_;
 
-	if(defined(my $line = <$FH>)) {
-		my ($name, $seq, $qual) = parse_line($line, $barcode_length, $end);
-
-		$read->{"NAME"} = $name;
-		$read->{"SEQ"} = $seq;
-		$read->{"QUAL"} = $qual;
-
-		return 1;
+	if(0 == $input_suffix_state) {
+		if(defined(my $line = <$FH>)) {
+			chomp($line);
+			($read->{"NAME"}, $read->{"SEQ"}, $read->{"QUAL"}) = parse_qseq_line($line, $barcode_length, $end);
+			return 1;
+		}
+	}
+	elsif(1 == $input_suffix_state) {
+		if(defined($read->{"NAME"} = <$FH>) &&
+			defined($read->{"SEQ"} = <$FH>) &&
+			defined(my $comment = <$FH>) &&
+			defined($read->{"QUAL"} = <$FH>)) {
+			chomp($read->{"NAME"});
+			chomp($read->{"SEQ"});
+			chomp($read->{"QUAL"});
+			# strip end ID off of read name
+			$read->{"NAME"} =~ s/\/$end$//;
+			return 1;
+		}
 	}
 	else {
-		return 0;
+		die("Error.  Could not understand input suffix state: $input_suffix_state.  Terminating!\n");
 	}
+	return 0;
 }
 
-sub parse_line {
+sub parse_qseq_line {
 	my ($line, $barcode_length, $end) = @_;
 
 	my @arr = split(/\s+/, $line);
