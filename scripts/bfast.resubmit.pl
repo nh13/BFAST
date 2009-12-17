@@ -123,8 +123,13 @@ sub resub {
 			# Alter the successors
 			my @jid_successors = split(/,/, $params{'jid_successor_list'});
 			foreach my $jid_successor (@jid_successors) {
-				push(@$jids, $jid_successor);
-				printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+				if(!defined($jids_completed->{$jid_successor})) {
+					push(@$jids, $jid_successor);
+					printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+				}
+				else {
+					printf(STDOUT "%s successor is queued for deletion %s\n", $CORE, $jid_successor);
+				}
 			}
 		}
 
