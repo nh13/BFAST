@@ -34,12 +34,12 @@ int PrintUsage()
 	fprintf(stderr, "\t\t#1 - 0: no indel 1: deletion 2: insertion\n");
 	fprintf(stderr, "\t\t#2 - indel length (if #2 is an indel)\n");
 	fprintf(stderr, "\t\t#3 - include errors within insertion 0: false 1: true\n");
-	fprintf(stderr, "\t\t#5 - # of SNPs\n");
-	fprintf(stderr, "\t\t#6 - # of errors\n");
-	fprintf(stderr, "\t\t#7 - read length\n");
-	fprintf(stderr, "\t\t#8 - paired end 0: false1: true\n");
-	fprintf(stderr, "\t\t#9 - paired end length\n");
-	fprintf(stderr, "\t\t#10 - number of reads\n");
+	fprintf(stderr, "\t\t#4 - # of SNPs\n");
+	fprintf(stderr, "\t\t#5 - # of errors\n");
+	fprintf(stderr, "\t\t#6 - read length\n");
+	fprintf(stderr, "\t\t#7 - paired end 0: false1: true\n");
+	fprintf(stderr, "\t\t#8 - paired end length\n");
+	fprintf(stderr, "\t\t#9 - number of reads\n");
 	fprintf(stderr, "\nsend bugs to %s\n",
 			PACKAGE_BUGREPORT);
 	return 1;
