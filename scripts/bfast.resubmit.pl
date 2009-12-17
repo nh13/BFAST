@@ -28,6 +28,7 @@ pod2usage(-exitstatus => 0, -verbose => 2) if $man;
 pod2usage(1) if ($help);
 
 my @jids_to_do = ();
+my %jids_completed = ();
 
 if($jids && 0 < length($username)) {
 	print STDERR "Error: both jids and username options cannot be used.\n";
@@ -50,7 +51,7 @@ else {
 }
 
 while(0 < scalar(@jids_to_do)) {
-	resub(\@jids_to_do, $delete);
+	resub(\@jids_to_do, \%jids_completed, $delete);
 }
 
 
@@ -72,7 +73,7 @@ sub get_jids_from_username {
 }
 
 sub resub {
-	my ($jids, $delete) = @_;
+	my ($jids, $jids_completed, $delete) = @_;
 	my $job_name = "";
 	my $jid_successors = ();
 	my @lines = ();
@@ -80,6 +81,11 @@ sub resub {
 	my $out = "";
 	my %params = ();
 	my $old_jid = shift(@$jids);
+
+	# ignore previously processed ids
+	if(defined($jids_completed{$old_jid})) {
+		return;
+	}
 
 	printf(STDOUT "%s processing %s\n", $CORE, $old_jid); 
 
@@ -126,6 +132,7 @@ sub resub {
 		$out=`qdel $old_jid`;
 		printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
 	}
+	$jids_completed->{$old_jid} = 1;
 }
 
 sub get_params {
