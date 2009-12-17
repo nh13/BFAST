@@ -11,4 +11,4 @@ solid2fastq_SOURCES = \
 
 solid2fastq_LDADD = -lm -lz -lbz2 
 
-dist_bin_SCRIPTS = bfast.resubmit.pl bfast.submit.pl solid2fastq.pl qseq2fastq.pl
+dist_bin_SCRIPTS = bfast.resubmit.pl bfast.submit.pl solid2fastq.pl ill2fastq.pl
