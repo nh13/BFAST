@@ -5,6 +5,7 @@
 #include <zlib.h>
 #include <limits.h>
 #include <math.h>
+#include <pthread.h>
 #include "BLibDefinitions.h"
 #include "BLib.h"
 #include "BError.h"
@@ -19,6 +20,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
 		int pairedEndInfer,
+		int numThreads,
 		int queueLength,
 		int outputFormat,
 		char *outputID,
@@ -27,21 +29,21 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 {
 	char *FnName="ReadInputFilterAndOutput";
 	gzFile fp=NULL;
-	int32_t i, j;
-	int64_t counter, foundType, numUnmapped, numReported;
-	AlignedRead *aBuffer;
-	int32_t aBufferLength=0;
-	int32_t numRead, aBufferIndex;
+	int32_t i;
+	int32_t numUnmapped=0, numReported=0;
 	gzFile fpReportedGZ=NULL;
 	FILE *fpReported=NULL;
 	gzFile fpUnmapped=NULL;
 	PEDBins bins;
 	int32_t *mappedEndCounts=NULL;
-	int32_t maxNumEnds=-1;
+	int32_t mappedEndCountsNumEnds=-1;
 	int32_t pairedEndInferRescued=0;
-	int32_t **numEntries=NULL;
-	int32_t *numEntriesN=NULL;
 	char *readGroupString=NULL;
+	pthread_mutex_t inputFP_mutex, outputFP_mutex;
+	pthread_t *threads=NULL;
+	int errCode;
+	void *status=NULL;
+	PostProcessThreadData *data=NULL;
 
 	if(NULL != readGroup) {
 		readGroupString=ParseReadGroup(readGroup);
@@ -85,6 +87,157 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	AlignedReadConvertPrintHeader(fpReported, rg, outputFormat, readGroup);
 
+	// Initialize mutex
+	pthread_mutex_init(&outputFP_mutex, NULL);
+	pthread_mutex_init(&inputFP_mutex, NULL);
+
+	/* Allocate memory for threads */
+	threads=malloc(sizeof(pthread_t)*numThreads);
+	if(NULL==threads) {
+		PrintError(FnName, "threads", "Could not allocate memory", Exit, MallocMemory);
+	}
+	/* Allocate memory to pass data to threads */
+	data=malloc(sizeof(PostProcessThreadData)*numThreads);
+	if(NULL==data) {
+		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	/* Initialize thread data */
+	for(i=0;i<numThreads;i++) {
+		data[i].rg = rg;
+		data[i].bins = &bins;
+		data[i].algorithm = algorithm;
+		data[i].pairedEndInfer = pairedEndInfer;
+		data[i].queueLength = queueLength;
+		data[i].outputFormat = outputFormat;
+		data[i].readGroupString = readGroupString;
+		data[i].outputID = outputID;
+		data[i].mappedEndCounts = &mappedEndCounts;
+		data[i].mappedEndCountsNumEnds = &mappedEndCountsNumEnds;
+		data[i].numReported = &numReported;
+		data[i].numUnmapped = &numUnmapped;
+		data[i].pairedEndInferRescued = &pairedEndInferRescued;
+
+		data[i].inputFP_mutex = &inputFP_mutex;
+		data[i].outputFP_mutex = &inputFP_mutex;
+		data[i].fpIn = fp;
+		data[i].fpReported = fpReported;
+		data[i].fpReportedGZ = fpReportedGZ;
+		data[i].fpUnmapped = fpUnmapped;
+		data[i].threadID = i+1;
+	}
+
+	/* Go through each read */
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "Processing reads, currently on:\n");
+	}
+
+	/* Open threads */
+	for(i=0;i<numThreads;i++) {
+		/* Start thread */
+		errCode = pthread_create(&threads[i], /* thread struct */
+				NULL, /* default thread attributes */
+				ReadInputFilterAndOutputThread, /* start routine */
+				&data[i]); /* data to routine */
+		if(0!=errCode) {
+			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
+		}
+	}
+	/* Wait for threads to return */
+	for(i=0;i<numThreads;i++) {
+		/* Wait for the given thread to return */
+		errCode = pthread_join(threads[i],
+				&status);
+		/* Check the return code of the thread */
+		if(0!=errCode) {
+			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
+		}
+	}
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\n");
+	}
+
+	/* Close output files, if necessary */
+	if(BAF == outputFormat) {
+		gzclose(fpReportedGZ);
+	}
+	else {
+		fclose(fpReported);
+	}
+	if(NULL != unmappedFileName) {
+		gzclose(fpUnmapped);
+	}
+	/* Close the input file */
+	gzclose(fp);
+
+	if(VERBOSE>=0) {
+		fprintf(stderr, "%s", BREAK_LINE);
+		fprintf(stderr, "Found %10lld reads with no ends mapped.\n", 
+				(long long int)numUnmapped);
+		if(!(mappedEndCountsNumEnds < 1 || numUnmapped == mappedEndCounts[0])) {
+			fprintf(stderr, "%d < 1 || %d == %d\n",
+					mappedEndCountsNumEnds,
+					(int)numUnmapped,
+					mappedEndCounts[0]);
+		}
+		assert(mappedEndCountsNumEnds < 1 || numUnmapped == mappedEndCounts[0]);
+		for(i=1;i<=mappedEndCountsNumEnds;i++) {
+			if(1 == i) fprintf(stderr, "Found %10d reads with %2d end mapped.\n", mappedEndCounts[i], i);
+			else fprintf(stderr, "Found %10d reads with %2d ends mapped.\n", mappedEndCounts[i], i);
+		}
+		fprintf(stderr, "Found %10lld reads with at least one end mapping.\n",
+				(long long int)numReported);
+		if(1 == pairedEndInfer) {
+			fprintf(stderr, "Rescued %d ends using the paired end insert distribution.\n",
+					pairedEndInferRescued);
+		}
+		fprintf(stderr, "%s", BREAK_LINE);
+	}
+
+	/* Free */
+	if(1 == pairedEndInfer) {
+		PEDBinsFree(&bins);
+	}
+	free(mappedEndCounts);
+	free(readGroupString);
+	free(threads);
+	free(data);
+}
+
+void *ReadInputFilterAndOutputThread(void *arg)
+{
+	char *FnName="ReadInputFilterAndOutputThread";
+	PostProcessThreadData *data = (PostProcessThreadData*)arg;
+	PEDBins *bins = data->bins;
+	RGBinary *rg = data->rg;
+	int algorithm = data->algorithm;
+	int pairedEndInfer = data->pairedEndInfer;
+	int queueLength = data->queueLength;
+	int outputFormat = data->outputFormat;
+	char *outputID = data->outputID;
+	char *readGroupString = data->readGroupString;
+	int32_t **mappedEndCounts = data->mappedEndCounts;
+	int32_t *mappedEndCountsNumEnds = data->mappedEndCountsNumEnds;
+	int32_t *numReported = data->numReported;
+	int32_t *numUnmapped = data->numUnmapped;
+	int32_t *pairedEndInferRescued = data->pairedEndInferRescued;
+	pthread_mutex_t *inputFP_mutex = data->inputFP_mutex;
+	gzFile fpIn = data->fpIn;
+	FILE *fpReported = data->fpReported;
+	gzFile fpReportedGZ = data->fpReportedGZ;
+	gzFile fpUnmapped = data->fpUnmapped;
+	pthread_mutex_t *outputFP_mutex = data->outputFP_mutex;
+	int32_t threadID = data->threadID;
+
+	int32_t i, j;
+	int32_t numEnds=0;
+	int64_t counter, foundType;
+	AlignedRead *aBuffer=NULL;
+	int32_t aBufferLength=0;
+	int32_t numRead, aBufferIndex;
+	int32_t **numEntries=NULL;
+	int32_t *numEntriesN=NULL;
+
 	aBufferLength=queueLength;
 	aBuffer=malloc(sizeof(AlignedRead)*aBufferLength);
 	if(NULL == aBuffer) {
@@ -103,18 +256,15 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		numEntries[i] = 0;
 	}
 
-	/* Go through each read */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "Processing reads, currently on:\n0");
-	}
-	counter = numReported = numUnmapped = numRead = 0;
+	counter = numRead = 0;
 
-	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength))) {
+	while(0 != (numRead = GetAlignedReads(fpIn, aBuffer, aBufferLength, inputFP_mutex))) {
 
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
 
 			if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
-				fprintf(stderr, "\r%lld",
+				fprintf(stderr, "\rthreadID:%d\t[%lld]",
+						threadID,
 						(long long int)counter);
 			}
 
@@ -134,16 +284,16 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
 					algorithm,
 					pairedEndInfer,
-					&bins,
-					&pairedEndInferRescued);
+					bins,
+					pairedEndInferRescued);
 
-			int32_t numEnds=0;
+			numEnds=0;
 			if(NoneFound == foundType) {
 				/* Print to Not Reported file */
-				if(NULL != unmappedFileName) {
+				if(NULL != fpUnmapped) {
 					AlignedReadPrint(&aBuffer[aBufferIndex], fpUnmapped);
 				}
-				numUnmapped++;
+				(*numUnmapped)++;
 
 				/* Free the alignments for output */
 				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
@@ -154,112 +304,77 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				}
 			}
 			else {
-				numReported++;
-
-				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
-					if(0 < aBuffer[aBufferIndex].ends[i].numEntries) {
-						numEnds++;
-					}
-				}
-				assert(0 < numEnds);
+				(*numReported)++;
 			}
-			if(maxNumEnds < numEnds) {
-				// Reallocate
-				mappedEndCounts = realloc(mappedEndCounts, sizeof(int32_t)*(1+numEnds));
-				if(NULL == mappedEndCounts) {
-					PrintError(FnName, "mappedEndCounts", "Could not reallocate memory", Exit, ReallocMemory);
-				}
-				// Initialize
-				for(i=1+maxNumEnds;i<=numEnds;i++) {
-					mappedEndCounts[i] = 0;
-				}
-				maxNumEnds = numEnds;
-			}
-			mappedEndCounts[numEnds]++;
 
 			/* Increment counter */
 			counter++;
 		}
 
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r%lld",
-					(long long int)counter);
-		}
-
 		/* Print to Output file */
+		pthread_mutex_lock(outputFP_mutex);
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
+			// Get the # of ends
+			numEnds = 0;
+			for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
+				if(0 < aBuffer[aBufferIndex].ends[i].numEntries) {
+					numEnds++;
+				}
+			}
+			// Clean up
+			if((*mappedEndCountsNumEnds) < numEnds) {
+				// Reallocate
+				(*mappedEndCounts) = realloc((*mappedEndCounts), sizeof(int32_t)*(1+numEnds));
+				if(NULL == (*mappedEndCounts)) {
+					PrintError(FnName, "mappedEndCounts", "Could not reallocate memory", Exit, ReallocMemory);
+				}
+				// Initialize
+				for(i=1+(*mappedEndCountsNumEnds);i<=numEnds;i++) {
+					(*mappedEndCounts)[i] = 0;
+				}
+				(*mappedEndCountsNumEnds) = numEnds;
+			}
+			(*mappedEndCounts)[numEnds]++;
+
 			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[aBufferIndex], outputFormat, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&aBuffer[aBufferIndex]);
 		}
+		pthread_mutex_unlock(outputFP_mutex);
+		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
+			fprintf(stderr, "\rthreadID:%d\t[%lld]",
+					threadID,
+					(long long int)counter);
+		}
 	}
-	if(VERBOSE>=0) {
-		fprintf(stderr, "\r%lld\n",
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "\rthreadID:%d\t[%lld]",
+				threadID,
 				(long long int)counter);
 	}
 
-	/* Close output files, if necessary */
-	if(BAF == outputFormat) {
-		gzclose(fpReportedGZ);
-	}
-	else {
-		fclose(fpReported);
-	}
-	if(NULL != unmappedFileName) {
-		gzclose(fpUnmapped);
-	}
-	/* Close the input file */
-	gzclose(fp);
 	free(aBuffer);
-
-	if(VERBOSE>=0) {
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Found %10lld reads with no ends mapped.\n", 
-				(long long int)numUnmapped);
-		if(!(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0])) {
-			fprintf(stderr, "%d < 1 || %d == %d\n",
-					maxNumEnds,
-					(int)numUnmapped,
-					mappedEndCounts[0]);
-		}
-		assert(maxNumEnds < 1 || numUnmapped == mappedEndCounts[0]);
-		for(i=1;i<=maxNumEnds;i++) {
-			if(1 == i) fprintf(stderr, "Found %10d reads with %2d end mapped.\n", mappedEndCounts[i], i);
-			else fprintf(stderr, "Found %10d reads with %2d ends mapped.\n", mappedEndCounts[i], i);
-		}
-		fprintf(stderr, "Found %10lld reads with at least one end mapping.\n",
-				(long long int)numReported);
-		if(1 == pairedEndInfer) {
-			fprintf(stderr, "Rescued %d ends using the paired end insert distribution.\n",
-					pairedEndInferRescued);
-		}
-		fprintf(stderr, "%s", BREAK_LINE);
-	}
-
-	/* Free */
-	if(1 == pairedEndInfer) {
-		PEDBinsFree(&bins);
-	}
-	free(mappedEndCounts);
 	for(i=0;i<aBufferLength;i++) {
 		free(numEntries[i]);
 	}
 	free(numEntries);
 	free(numEntriesN);
-	free(readGroupString);
+	return arg;
 }
 
-int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead)
+int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead, pthread_mutex_t *inputFP_mutex)
 {
+	if(NULL != inputFP_mutex) pthread_mutex_lock(inputFP_mutex);
 	int32_t numRead=0;
 	while(numRead < maxToRead) {
 		AlignedReadInitialize(&aBuffer[numRead]);
 		if(EOF == AlignedReadRead(&aBuffer[numRead], fp)) {
-			return numRead;
+			break;
 		}
 		numRead++;
 	}
+	if(NULL != inputFP_mutex) pthread_mutex_unlock(inputFP_mutex);
 	return numRead;
 }
 
@@ -494,7 +609,9 @@ int32_t GetPEDBins(char *inputFileName,
 	}
 	counter = numRead = 0;
 
-	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength))) {
+	// TODO: make this multi-threaded
+
+	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength, NULL))) {
 
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
 

@@ -13,6 +13,7 @@ struct arguments
 	char *alignFileName;					/* -i */
 	int algorithm;							/* -a */
 	int pairedEndInfer;						/* -P */
+	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
 	char *unmappedFileName;					/* -i */
 	int outputFormat;						/* -O */
