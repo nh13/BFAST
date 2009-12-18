@@ -192,6 +192,7 @@ sub Schema {
 			  <xs:element name="outputFormat" type="xs:integer"/>
 			  <xs:element name="unmappedFile" type="xs:string"/>
 			  <xs:element name="readGroup" type="xs:string"/>
+			  <xs:element name="threads" type="positiveInteger"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			  <xs:element name="qsubArgs" type="xs:string"/>
@@ -298,6 +299,7 @@ sub ValidateData {
 	ValidateOption($data->{'unmappedFile'}, 'unmappedFile',                                   OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'readGroup',                                OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'threads',                                  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
@@ -577,6 +579,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -r \"".$data->{'postprocessOptions'}->{'readGroup'}."\""   if defined($data->{'postprocessOptions'}->{'readGroup'});
+		$cmd .= " -n ".$data->{'postprocessOptions'}->{'threads'}          if defined($data->{'postprocessOptions'}->{'threads'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
 		$cmd .= " > ".$sam_file;
