@@ -20,7 +20,7 @@
    */
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithm, DescPairedEndInfer, DescQueueLength, 
+	DescAlgoTitle, DescAlgorithm, DescPairedEndInfer, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -41,6 +41,7 @@ static struct argp_option options[] = {
 	{"pairedEndInfer", 'P', 0, OPTION_NO_USAGE, "Specifies to break ties when one end of a paired end read by"
 		"\n\t\t\t  estimating the insert size distribution.  This works only"
 			"\n\t\t\t  if the other end is mapped uniquely (using -a 3).", 2},
+	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments"
@@ -58,7 +59,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:o:r:u:O:Q:hptP";
+"a:i:f:n:o:r:u:O:Q:hptP";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -108,6 +109,7 @@ BfastPostProcess(int argc, char **argv)
 							arguments.alignFileName,
 							arguments.algorithm,
 							arguments.pairedEndInfer,
+							arguments.numThreads,
 							arguments.queueLength,
 							arguments.outputFormat,
 							arguments.outputID,
@@ -199,6 +201,10 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);	
 	}	
 
+	if(args->numThreads <= 0) {
+		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
+	}
+
 	if(args->queueLength<=0) {		
 		PrintError(FnName, "queueLength", "Command line argument", Exit, OutOfRange);
 	}
@@ -243,6 +249,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 
 	args->algorithm=BestScore;
 	args->pairedEndInfer=0;
+	args->numThreads=1;
 	args->queueLength=DEFAULT_QUEUE_LENGTH;
 
 	args->outputFormat=SAM;
@@ -269,6 +276,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "alignFileName:\t\t%s\n", FILESTDIN(args->alignFileName));
 		fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
 		fprintf(fp, "pairedEndInfer:\t\t%s\n", INTUSING(args->pairedEndInfer));
+		fprintf(fp, "numThreads:\t\t%d\n", args->numThreads);
 		fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 		fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
 		fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
@@ -341,6 +349,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 			case 'i':
 				arguments->alignFileName=strdup(optarg);break;
 				break;
+			case 'n':
+				arguments->numThreads=atoi(optarg); break;
 			case 'o':
 				arguments->outputID=strdup(optarg);break;
 			case 'p':
