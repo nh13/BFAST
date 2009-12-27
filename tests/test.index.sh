@@ -40,7 +40,7 @@ do
 		RG_FASTA=$OUTPUT_DIR$REF_ID".fa";
 
 		# Make an index
-		CMD=$CMD_PREFIX"bfast index -f $RG_FASTA -A $SPACE -m $MASK -w $WIDTH -d $DEPTH -i 1 -T $TMP_DIR";
+		CMD=$CMD_PREFIX"bfast index -f $RG_FASTA -A $SPACE -m $MASK -w $WIDTH -d $DEPTH -i 1 -n $NUM_THREADS -T $TMP_DIR";
 		eval $CMD 2> /dev/null;
 
 		# Get return code

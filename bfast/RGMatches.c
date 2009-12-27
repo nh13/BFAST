@@ -263,7 +263,7 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 	/* Read in each sequence/match one at a time */
 	counter = 0;
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r[0]");
+		fputs("\r[0]", stderr);
 	}
 	while(numFinished == 0) {
 		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {

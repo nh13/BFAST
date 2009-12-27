@@ -197,7 +197,9 @@ int main(int argc, char *argv[])
 					//fprintf(stderr, "EOF\n");
 					if(1 == use_bz2) {
 						BZ2_bzReadClose(&bzerror, bz2s_csfasta[i]);
+						if(bzerror != BZ_OK) PrintError(Name, "BZ2_bzReadClose", "Could not close BZ2 file", Exit, OutOfRange);
 						BZ2_bzReadClose(&bzerror, bz2s_qual[i]);
+						if(bzerror != BZ_OK) PrintError(Name, "BZ2_bzReadClose", "Could not close BZ2 file", Exit, OutOfRange);
 						bz2s_csfasta[i] = bz2s_qual[i] = NULL;
 					}
 					fclose(fps_csfasta[i]);
@@ -356,6 +358,7 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, BZFILE *bz2_csfasta, FILE *fp_q
 			NULL == bz2_csfasta &&
 			NULL == fp_qual &&
 			NULL == bz2_qual) {
+		//fprintf(stderr, "return 1\n"); // HERE
 		return;
 	}
 
@@ -364,6 +367,7 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, BZFILE *bz2_csfasta, FILE *fp_q
 			read_line(fp_csfasta, bz2_csfasta, read->read) < 0 ||
 			read_line(fp_qual, bz2_qual, qual_name) < 0 ||
 			read_line(fp_qual, bz2_qual, qual_line) < 0) {
+		//fprintf(stderr, "return 2\n"); // HERE
 		return;
 	}
 	StringTrimWhiteSpace(read->name);
@@ -380,7 +384,6 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, BZFILE *bz2_csfasta, FILE *fp_q
 
 	// Check that the read name and csfasta name match
 	if(0 != strcmp(read->name, qual_name)) {
-		fprintf(stderr, "csfasta_name=[%s]\nqual_name=[%s]\n", read->name, qual_name);
 		PrintError(FnName, "read->name != qual_name", "Read names did not match", Exit, OutOfRange);
 	}
 	// Remove leading '@' from the read name
@@ -512,8 +515,9 @@ char *strtok_mod(char *str, char *delim, int32_t *index)
 
 int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
 {
-	char c;
-	int32_t i=0, p=0, bzerror;
+	char *FnName="read_line";
+	char c=0;
+	int32_t i=0, p=0, bzerror=BZ_OK;
 
 	int32_t state=0;
 
@@ -525,19 +529,25 @@ int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
 	// Read a character at a time
 	while((bz2 != NULL && sizeof(char) == BZ2_bzRead(&bzerror, bz2, &c, sizeof(char))) ||
 			(NULL == bz2 && 0 != (c = fgetc(fp)))) {
-		if((bz2 != NULL && BZ_OK != bzerror) ||
+		if(bz2 != NULL && BZ_OK != bzerror && BZ_STREAM_END != bzerror) {
+			PrintError(FnName, "bzerror", "BZ2_bzRead returned an unexpected error", Exit, OutOfRange);
+		}
+		else if((bz2 != NULL && BZ_OK != bzerror) ||
 				(NULL == bz2 && EOF == c)) {
 			if(0 < i) { // characters have been read
-				line[i+1]='\0';
+				line[i]='\0';
+				//fprintf(stderr, "return read_line 1\n");
 				return  1;
 			}
 			else { // nothing to report
+				//fprintf(stderr, "return read_line 2\n");
 				return -1;
 			}
 		}
 		else if('\n' == c) { // endline
 			if(1 == state) { // end of the valid line
 				line[i]='\0';
+				//fprintf(stderr, "return read_line 3\n");
 				return 1;
 			}
 			i=state=0;
@@ -565,6 +575,46 @@ int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
 			}
 		}
 	}
+	/*
+	switch(bzerror) {
+		case BZ_PARAM_ERROR:
+			fprintf(stderr, "BZ_PARAM_ERROR\n"); break;
+		case BZ_SEQUENCE_ERROR:
+			fprintf(stderr, "BZ_SEQUENCE_ERROR\n"); break;
+		case BZ_IO_ERROR:
+			fprintf(stderr, "BZ_IO_ERROR\n"); break;
+		case BZ_UNEXPECTED_EOF:
+			fprintf(stderr, "BZ_UNEXPECTED_EOF\n"); break;
+		case BZ_DATA_ERROR:
+			fprintf(stderr, "BZ_DATA_ERROR\n"); break;
+		case BZ_DATA_ERROR_MAGIC:
+			fprintf(stderr, "BZ_DATA_ERROR_MAGIC\n"); break;
+		case BZ_MEM_ERROR:
+			fprintf(stderr, "BZ_MEM_ERROR\n"); break;
+		case BZ_STREAM_END:
+			fprintf(stderr, "BZ_STREAM_END\n"); break;
+		default:
+			fprintf(stderr, "Unkown Error\n");
+			break;
+	}
+	*/
+	if(bz2 != NULL && BZ_OK != bzerror && BZ_STREAM_END != bzerror) {
+		PrintError(FnName, "bzerror", "BZ2_bzRead exited with an unexpected error", Exit, OutOfRange);
+	}
 	// must have hit eof
+	if(0 < i) { // characters have been read
+		line[i]='\0';
+		//fprintf(stderr, "return read_line 4\n");
+		return  1;
+	}
+	/*
+	if(bz2 != NULL && BZ_OK != bzerror) {
+		fprintf(stderr, "return read_line 5.1\n");
+	}
+	if(NULL == bz2 && EOF == c) {
+		fprintf(stderr, "return read_line 5.2\n");
+	}
+	fprintf(stderr, "return read_line 5\n");
+	*/
 	return -1;
 }

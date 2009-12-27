@@ -32,7 +32,7 @@ do
 		MATCHES=$OUTPUT_DIR"bfast.matches.file.$OUTPUT_ID.bmf";
 
 		# Run local alignment
-		CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -o 15 > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
+		CMD=$CMD_PREFIX"bfast localalign -f $RG_FASTA -m $MATCHES -A $SPACE -n $NUM_THREADS -o 15 > ${OUTPUT_DIR}bfast.aligned.file.$OUTPUT_ID.baf";
 		eval $CMD 2> /dev/null;
 
 		# Get return code
