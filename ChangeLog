@@ -3,9 +3,11 @@ BFAST -- History of visible changes.
 See LICENSE for details
 See COPYING for copying conditions.
 
-Please send bfast bug reports to nhomer@cs.ucla.edu
+Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
 Version 0.6.2
+* Adding more optional tag fields to SAM output, most notably the 
+MD field.  The supported fields are detailed in the bfast book.
 * Adding multi-threading to "bfast postprocess"
 * Changed qseq2fastq.pl to ill2fastq.pl to support Illumina both
 QSEQ and SEQUENCE files.
