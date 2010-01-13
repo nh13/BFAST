@@ -203,7 +203,7 @@ sub Schema {
 		<xs:element name="samOptions">
 		  <xs:complexType>
 			<xs:sequence>
-			  <xs:element name="samtools" type="integer"/>
+			  <xs:element name="samtools" type="integer" use="required"/>
 			  <xs:element name="maximumMemory" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			  <xs:element name="qsubArgs" type="xs:string"/>
@@ -318,6 +318,7 @@ sub ValidateData {
 
 	# samtools/picard
 	if(defined($data->{'samOptions'})) {
+		ValidateOption($data->{'samOptions'},     'samtools',								  REQUIRED);
 		ValidateOption($data->{'samOptions'},     'maximumMemory',                            OPTIONAL);
 		ValidateOption($data->{'samOptions'},     'qsubQueue',                                OPTIONAL);
 		ValidateOption($data->{'samOptions'},     'qsubArgs',                                 OPTIONAL);
