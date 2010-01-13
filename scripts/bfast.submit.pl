@@ -87,6 +87,7 @@ sub Schema {
 			  <xs:element name="bfastBin" type="directoryPath"/>
 			  <xs:element name="samtoolsBin" type="directoryPath"/>
 			  <xs:element name="picardBin" type="directoryPath"/>
+			  <xs:element name="javaBin" type="directoryPath"/>
 			  <xs:element name="qsubBin" type="directoryPath"/>
 			  <xs:element name="fastaFileName" type="filePath" use="required"/>
 			  <xs:element name="runDirectory" type="directoryPath" use="required">
@@ -210,15 +211,6 @@ sub Schema {
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
-		<xs:element name="picardOptions">
-		  <xs:complexType>
-			<xs:sequence>
-			  <xs:element name="maximumMemory" type="positiveInteger"/>
-			  <xs:element name="qsubQueue" type="xs:string"/>
-			  <xs:element name="qsubArgs" type="xs:string"/>
-			</xs:sequence>
-		  </xs:complexType>
-		</xs:element>
 	  </xs:sequence>
 	</xs:complexType>
   </xs:element>
@@ -257,6 +249,7 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'bfastBin',                                 OPTIONAL); 
 	ValidatePath($data->{'globalOptions'},         'samtoolsBin',                              OPTIONAL); 
 	ValidatePath($data->{'globalOptions'},         'picardBin',                                OPTIONAL); 
+	ValidatePath($data->{'globalOptions'},         'javaBin',                                OPTIONAL); 
 	ValidatePath($data->{'globalOptions'},         'qsubBin',                                  OPTIONAL); 
 	ValidateOptions($data->{'globalOptions'},      'queueType',          \%QUEUETYPES,         REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'space',              \%SPACE,              REQUIRED);
@@ -611,6 +604,10 @@ sub CreateJobsSAM {
 
 	my $type = ($data->{'samOptions'}->{'samtools'} == 0) ? 'picard' : 'samtools';
 	my @reported_bams = ();
+	if(0 == $data->{'samOptions'}->{'samtools'}) {
+		if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
+		if(!defined($data->{'globalOptions'}->{'javaBin'})) { die("Java bin required") };
+	}
 
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
@@ -620,9 +617,8 @@ sub CreateJobsSAM {
 		$run_file = CreateRunFile($data, $type, $output_id);
 
 		if(0 == $data->{'samOptions'}->{'samtools'}) {
-			if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
-			$cmd = "java";
-			$cmd .= " -Xmx".$data->{'samOptions'}->{'maximumMemory'} if defined($data->{'samOptions'}->{'maximumMemory'});
+			$cmd = $data->{'globalOptions'}->{'javaBin'}."java";
+			$cmd .= " -Xmx2g";
 			$cmd .= " -jar ".$data->{'globalOptions'}->{'picardBin'}."SortSam.jar";
 			$cmd .= " I=$sam_file";
 			$cmd .= " O=".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam";
@@ -644,7 +640,7 @@ sub CreateJobsSAM {
 			$cmd .= "bfast.reported.file.$output_id";
 		}
 
-		# Submit the job
+# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
 		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'samOptions', $output_id, \@a);
 		if(QSUBNOJOB ne $qsub_id) {
@@ -689,8 +685,8 @@ sub CreateJobsSAM {
 	$run_file = $data->{'globalOptions'}->{'runDirectory'}."$type.".$output_id.".sh";
 	if(0 == $data->{'samOptions'}->{'samtools'}) {
 		if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
-		$cmd = "java";
-		$cmd .= " -Xmx".$data->{'samOptions'}->{'maximumMemory'} if defined($data->{'samOptions'}->{'maximumMemory'});
+		$cmd = $data->{'globalOptions'}->{'javaBin'}."java";
+		$cmd .= " -Xmx2g";
 		$cmd .= " -jar ".$data->{'globalOptions'}->{'picardBin'}."MergeSamFiles.jar";
 		foreach my $bam (@reported_bams) {
 			$cmd .= " I=$bam";
