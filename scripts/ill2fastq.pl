@@ -231,7 +231,7 @@ sub GetDirContents {
 	local *DIR;
 	opendir(DIR, "$dir") || die("Error.  Could not open $dir.  Terminating!\n");
 	@$dirs = grep !/^\.\.?$/, readdir DIR;
-	@$dirs = grep /^$prefix.*$input_suffix/, @$dirs;
+	@$dirs = sort grep /^$prefix.*$input_suffix/, @$dirs;
 	for(my $i=0;$i<scalar(@$dirs);$i++) {
 		@$dirs[$i] = $dir."".@$dirs[$i];
 	}

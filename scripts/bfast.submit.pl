@@ -23,7 +23,7 @@ my %SPACE = ("NT" => 0, "CS" => 1);
 my %TIMING = ("ON" => 1);
 my %LOCALALIGNMENTTYPE = ("GAPPED" => 0, "UNGAPPED" => 1);
 my %STRAND = ("BOTH" => 0, "FORWARD" => 1, "REVERSE" => 2);
-my %STARTSTEP = ("match" => 0, "localalign" => 1, "postprocess" => 2, "samtools" => 3);
+my %STARTSTEP = ("match" => 0, "localalign" => 1, "postprocess" => 2, "sam" => 3);
 my %OUTTYPES = (0 => "baf", 1 => "maf", 2 => "gff", 3 => "sam");
 
 use constant {
@@ -86,6 +86,7 @@ sub Schema {
 			<xs:sequence>
 			  <xs:element name="bfastBin" type="directoryPath"/>
 			  <xs:element name="samtoolsBin" type="directoryPath"/>
+			  <xs:element name="picardBin" type="directoryPath"/>
 			  <xs:element name="qsubBin" type="directoryPath"/>
 			  <xs:element name="fastaFileName" type="filePath" use="required"/>
 			  <xs:element name="runDirectory" type="directoryPath" use="required">
@@ -199,7 +200,17 @@ sub Schema {
 			</xs:sequence>
 		  </xs:complexType>
 		</xs:element>
-		<xs:element name="samtoolsOptions">
+		<xs:element name="samOptions">
+		  <xs:complexType>
+			<xs:sequence>
+			  <xs:element name="samtools" type="integer"/>
+			  <xs:element name="maximumMemory" type="positiveInteger"/>
+			  <xs:element name="qsubQueue" type="xs:string"/>
+			  <xs:element name="qsubArgs" type="xs:string"/>
+			</xs:sequence>
+		  </xs:complexType>
+		</xs:element>
+		<xs:element name="picardOptions">
 		  <xs:complexType>
 			<xs:sequence>
 			  <xs:element name="maximumMemory" type="positiveInteger"/>
@@ -234,8 +245,8 @@ sub Schema {
 </xs:schema>
 END
 
-	print STDOUT $schema;
-	exit 1;
+print STDOUT $schema;
+exit 1;
 }
 
 sub ValidateData {
@@ -245,6 +256,7 @@ sub ValidateData {
 	die("The global options were not found.\n") unless (defined($data->{'globalOptions'})); 
 	ValidatePath($data->{'globalOptions'},         'bfastBin',                                 OPTIONAL); 
 	ValidatePath($data->{'globalOptions'},         'samtoolsBin',                              OPTIONAL); 
+	ValidatePath($data->{'globalOptions'},         'picardBin',                                OPTIONAL); 
 	ValidatePath($data->{'globalOptions'},         'qsubBin',                                  OPTIONAL); 
 	ValidateOptions($data->{'globalOptions'},      'queueType',          \%QUEUETYPES,         REQUIRED);
 	ValidateOptions($data->{'globalOptions'},      'space',              \%SPACE,              REQUIRED);
@@ -304,14 +316,14 @@ sub ValidateData {
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
 
-	# samtools
-	if(defined($data->{'samtoolsOptions'})) { 
-		ValidateOption($data->{'samtoolsOptions'},     'maximumMemory',                            OPTIONAL);
-		ValidateOption($data->{'samtoolsOptions'},     'qsubQueue',                                OPTIONAL);
-		ValidateOption($data->{'samtoolsOptions'},     'qsubArgs',                                 OPTIONAL);
+	# samtools/picard
+	if(defined($data->{'samOptions'})) {
+		ValidateOption($data->{'samOptions'},     'maximumMemory',                            OPTIONAL);
+		ValidateOption($data->{'samOptions'},     'qsubQueue',                                OPTIONAL);
+		ValidateOption($data->{'samOptions'},     'qsubArgs',                                 OPTIONAL);
 	}
 	else {
-		warn("The samtools options were not found.  Skipping samtools...\n");
+		warn("The SAM options were not found.  Skipping SAM...\n");
 	}
 }
 
@@ -388,10 +400,10 @@ sub CreateJobs {
 	CreateJobsMatch($data, $quiet, $start_step, \@matchJobIDs,     \@match_output_ids);
 	CreateJobsLocalalign($data, $quiet, $start_step, \@matchJobIDs,     \@localalignJobIDs,       \@match_output_ids, \@localalign_output_ids);
 	CreateJobsPostprocess($data, $quiet, $start_step, \@localalignJobIDs,       \@postprocessJobIDs, \@localalign_output_ids);
-	if(defined($data->{'samtoolsOptions'})) {
+	if(defined($data->{'samOptions'})) {
 		if(!defined($data->{'postprocessOptions'}->{'outputFormat'}) ||
 			3 == $data->{'postprocessOptions'}->{'outputFormat'}) {
-			CreateJobsSamtools($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
+			CreateJobsSAM($data, $quiet, $start_step, \@postprocessJobIDs, \@localalign_output_ids);
 		}
 	}
 }
@@ -591,32 +603,49 @@ sub CreateJobsPostprocess {
 	}
 }
 
-sub CreateJobsSamtools {
+sub CreateJobsSAM {
 	my ($data, $quiet, $start_step, $dependent_ids, $output_ids) = @_;
 	my @qsub_ids = ();
 	my ($cmd, $run_file, $output_id, $qsub_id);
+
+	my $type = ($data->{'samOptions'}->{'samtools'} == 0) ? 'picard' : 'samtools';
+	my @reported_bams = ();
 
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		$output_id = $output_ids->[$i];
 		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $sam_file = GetReportedFile($data, $output_id, 3);
-		$run_file = CreateRunFile($data, 'samtools', $output_id);
+		$run_file = CreateRunFile($data, $type, $output_id);
 
-		$cmd = "";
-		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
-		$cmd .= "samtools view -S -b";
-		$cmd .= " -T ".$data->{'globalOptions'}->{'fastaFileName'};
-		$cmd .= " $sam_file | ";
-		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
-		$cmd .= "samtools sort";
-		$cmd .= " -m ".$data->{'samtoolsOptions'}->{'maximumMemory'} if defined($data->{'samtoolsOptions'}->{'maximumMemory'});
-		$cmd .= " - ".$data->{'globalOptions'}->{'outputDirectory'};
-		$cmd .= "bfast.reported.file.$output_id";
+		if(0 == $data->{'samOptions'}->{'samtools'}) {
+			if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
+			$cmd = "java";
+			$cmd .= " -Xmx".$data->{'samOptions'}->{'maximumMemory'} if defined($data->{'samOptions'}->{'maximumMemory'});
+			$cmd .= " -jar ".$data->{'globalOptions'}->{'picardBin'}."SortSam.jar";
+			$cmd .= " I=$sam_file";
+			$cmd .= " O=".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam";
+			$cmd .= " SO=coordinate";
+			$cmd .= " TMP_DIR=".$data->{'globalOptions'}->{'tmpDirectory'};
+			$cmd .= " VALIDATION_STRINGENCY=SILENT";
+			push(@reported_bams, $data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam");
+		}
+		else {
+			$cmd = "";
+			$cmd .= "".$data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
+			$cmd .= "samtools view -S -b";
+			$cmd .= " -T ".$data->{'globalOptions'}->{'fastaFileName'};
+			$cmd .= " $sam_file | ";
+			$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
+			$cmd .= "samtools sort";
+			$cmd .= " -m ".$data->{'samOptions'}->{'maximumMemory'} if defined($data->{'samOptions'}->{'maximumMemory'});
+			$cmd .= " - ".$data->{'globalOptions'}->{'outputDirectory'};
+			$cmd .= "bfast.reported.file.$output_id";
+		}
 
 		# Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'samtoolsOptions', $output_id, \@a);
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $cmd, $data, 'samOptions', $output_id, \@a);
 		if(QSUBNOJOB ne $qsub_id) {
 			push(@qsub_ids, $qsub_id);
 		}
@@ -642,9 +671,9 @@ sub CreateJobsSamtools {
 			}
 			# Create the command
 			$output_id = "merge.".$data->{'globalOptions'}->{'outputID'}.".$merge_lvl.$ctr";
-			$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
+			$run_file = $data->{'globalOptions'}->{'runDirectory'}."$type.".$output_id.".sh";
 			$cmd = "echo \"Merging $merge_lvl / $ctr\"\n";
-			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, 1, $cmd, $data, 'samtoolsOptions', $output_id, \@dependent_jobs);
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, 1, $cmd, $data, 'samOptions', $output_id, \@dependent_jobs);
 			if(QSUBNOJOB ne $qsub_id) {
 				push(@qsub_ids, $qsub_id);
 			}
@@ -656,13 +685,29 @@ sub CreateJobsSamtools {
 	}
 
 	$output_id = "merge.".$data->{'globalOptions'}->{'outputID'};
-	$run_file = $data->{'globalOptions'}->{'runDirectory'}."samtools.".$output_id.".sh";
-	$cmd = "";
-	$cmd .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
-	$cmd .= "samtools merge";
-	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
-	$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
-	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"samtools"}) ? 1 : 0, 1, $cmd, $data, 'samtoolsOptions', $output_id, \@qsub_ids);
+	$run_file = $data->{'globalOptions'}->{'runDirectory'}."$type.".$output_id.".sh";
+	if(0 == $data->{'samOptions'}->{'samtools'}) {
+		if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
+		$cmd = "java";
+		$cmd .= " -Xmx".$data->{'samOptions'}->{'maximumMemory'} if defined($data->{'samOptions'}->{'maximumMemory'});
+		$cmd .= " -jar ".$data->{'globalOptions'}->{'picardBin'}."MergeSamFiles.jar";
+		foreach my $bam (@reported_bams) {
+			$cmd .= " I=$bam";
+		}
+		$cmd .= " O=".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
+		$cmd .= " SO=coordinate";
+		$cmd .= " AS=true";
+		$cmd .= " TMP_DIR=".$data->{'globalOptions'}->{'tmpDirectory'};
+		$cmd .= " VALIDATION_STRINGENCY=SILENT";
+	}
+	else {
+		$cmd = "";
+		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
+		$cmd .= "samtools merge";
+		$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
+		$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
+	}
+	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, 1, $cmd, $data, 'samOptions', $output_id, \@qsub_ids);
 	if(QSUBNOJOB ne $qsub_id) {
 		push(@qsub_ids, $qsub_id);
 	}
@@ -766,7 +811,7 @@ Do not print any submit messages.
 
 =item B<-startstep>
 Specifies on which step of the alignment process to start (default: match). The
-values can be "match", "localalign", "postprocess", or "samtools".
+values can be "match", "localalign", "postprocess", or "sam".
 
 =item B<-config>
 The XML configuration file.
@@ -796,7 +841,8 @@ The behaviour of this script is as follows.  For each B<FASTQ> file found in the
 reads directory, one index search process using B<bfast match>, one local alignment
 process using B<bfast align> will be performed, one post-processing process using 
 B<bfast postprocess>, and one import to the B<SAM> format using B<SAMtools> (see 
-http://samtools.sourceforge.net) will be performed.  Finally, we merge all B<SAM> 
+http://samtools.sourceforge.net) or B<Picard> (see 
+http://picard.sourceforge.net) will be performed.  Finally, we merge all B<SAM> 
 files that have been created for each input B<FASTQ> file.  Observe that all the
 B<SAM> files will be sorted by location.  We submit each job separately using
 the job dependency capabilities of the cluster scheduler.  All output files
