@@ -45,7 +45,7 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 			break;
 		case SAM:
 			/* Header */
-			if(0>fprintf(fp, "@HD\tVN:%s\n",
+			if(0>fprintf(fp, "@HD\tVN:%s\tSO:unsorted\tGO:none\n",
 						BFAST_SAM_VERSION)) {
 				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
 			}
