@@ -118,7 +118,7 @@ int GetRead(FILE *fp,
 	}
 
 	if(0 == IsValidRead(m, space)) {
-		PrintError(FnName, NULL, "The input read was not in the proper format", Exit, OutOfRange);
+		PrintError(FnName, m->readName, "The input read was not in the proper format", Exit, OutOfRange);
 	}
 
 	return 1;
@@ -245,7 +245,7 @@ int32_t GetReadBuffered(char **buffer,
 
 	// Check read
 	if(0 == IsValidRead(m, space)) {
-		PrintError(FnName, NULL, "The input read was not in the proper format", Exit, OutOfRange);
+		PrintError(FnName, m->readName, "The input read was not in the proper format", Exit, OutOfRange);
 	}
 
 	return curLine;
