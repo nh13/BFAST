@@ -121,8 +121,10 @@ int BfastBAFConvert(int argc, char *argv[])
 			inputType=BinaryInput;
 			outputSubType=TextOutput;
 			strcat(fileExtension, BFAST_SAM_FILE_EXTENSION);
-			readGroup=ReadInReadGroup(readGroupFileName);
-			readGroupString=ParseReadGroup(readGroup);
+			if(NULL != readGroupFileName) {
+				readGroup=ReadInReadGroup(readGroupFileName);
+				readGroupString=ParseReadGroup(readGroup);
+			}
 			break;
 		default:
 			PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);
