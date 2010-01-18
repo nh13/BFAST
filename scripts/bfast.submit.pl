@@ -552,7 +552,7 @@ sub CreateJobsLocalalign {
 
 			# Submit the job
 			my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
-			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, ($STARTSTEP{"match"} <= $start_step) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $cmd, $data, 'localalignOptions', $output_id, \@a);
 			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
 			push(@$output_ids, $output_id);
 			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
