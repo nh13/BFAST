@@ -27,4 +27,6 @@ general
 bfast.submit.pl
 - if there is an error while submitting, could we call an error-handling routine
 that will try to delete all the jobs?
+- add options for 'samtools index' as well as 'dbamfilter -D'
+- add option for RG field in sam on a per FASTQ basis.
 ===============================================================================
