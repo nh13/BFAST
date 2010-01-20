@@ -738,12 +738,11 @@ run ()
 	echo "error: while running '\$*'";
 	exit 100;
 	fi
-
-	exit 0;
 }
 END_OUTPUT
-		$output .= "\nrun \"hostname\"\n";
-		$output .= "\nrun \"$command\"\n";
+		$output .= "\nrun \"hostname\";\n";
+		$output .= "run \"$command\";\n";
+		$output .= "exit 0;\n";
 		open(FH, ">$run_file") or die("Error.  Could not open $run_file for writing!\n");
 		print FH "$output";
 		close(FH);
