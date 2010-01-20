@@ -237,8 +237,8 @@ sub Schema {
 </xs:schema>
 END
 
-print STDOUT $schema;
-exit 1;
+  print STDOUT $schema;
+  exit 1;
 }
 
 sub ValidateData {
@@ -683,26 +683,33 @@ sub CreateJobsSAM {
 
 	$output_id = "merge.".$data->{'globalOptions'}->{'outputID'};
 	$run_file = $data->{'globalOptions'}->{'runDirectory'}."$type.".$output_id.".sh";
-	if(0 == $data->{'samOptions'}->{'samtools'}) {
-		if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
-		$cmd = $data->{'globalOptions'}->{'javaBin'}."java";
-		$cmd .= " -Xmx2g";
-		$cmd .= " -jar ".$data->{'globalOptions'}->{'picardBin'}."MergeSamFiles.jar";
-		foreach my $bam (@reported_bams) {
-			$cmd .= " I=$bam";
+	if(1 < scalar(@qsub_ids)) {
+		if(0 == $data->{'samOptions'}->{'samtools'}) {
+			if(!defined($data->{'globalOptions'}->{'picardBin'})) { die("Picard bin required") };
+			$cmd = $data->{'globalOptions'}->{'javaBin'}."java";
+			$cmd .= " -Xmx2g";
+			$cmd .= " -jar ".$data->{'globalOptions'}->{'picardBin'}."MergeSamFiles.jar";
+			foreach my $bam (@reported_bams) {
+				$cmd .= " I=$bam";
+			}
+			$cmd .= " O=".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
+			$cmd .= " SO=coordinate";
+			$cmd .= " AS=true";
+			$cmd .= " TMP_DIR=".$data->{'globalOptions'}->{'tmpDirectory'};
+			$cmd .= " VALIDATION_STRINGENCY=SILENT";
 		}
-		$cmd .= " O=".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
-		$cmd .= " SO=coordinate";
-		$cmd .= " AS=true";
-		$cmd .= " TMP_DIR=".$data->{'globalOptions'}->{'tmpDirectory'};
-		$cmd .= " VALIDATION_STRINGENCY=SILENT";
+		else {
+			$cmd = "";
+			$cmd .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
+			$cmd .= "samtools merge";
+			$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
+			$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
+		}
 	}
 	else {
-		$cmd = "";
-		$cmd .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
-		$cmd .= "samtools merge";
-		$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
-		$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
+		my $output_id = $output_ids->[0];
+		my $sam_file = $data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam";
+		$cmd = "cp -v $sam_file ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	}
 	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, 1, $cmd, $data, 'samOptions', $output_id, \@qsub_ids);
 	if(QSUBNOJOB ne $qsub_id) {
