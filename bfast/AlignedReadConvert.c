@@ -576,10 +576,19 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	/* MRNM and MPOS */
 	if(2 == a->numEnds) {
 		if(0 <= mateEndIndex) {
+			if(0 <= entriesIndex &&
+					0 == strcmp(a->ends[mateEndIndex].entries[mateEntriesIndex].contigName, a->ends[endIndex].entries[entriesIndex].contigName)) {
+			if(0>fprintf(fp, "\t=\t%d",
+						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+			}
+			}
+			else {
 			if(0>fprintf(fp, "\t%s\t%d",
 						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
 						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
 				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+			}
 			}
 		}
 		else {
@@ -591,8 +600,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				}
 			}
 			else { /* Current is mapped */
-				if(0>fprintf(fp, "\t%s\t%d",
-							a->ends[endIndex].entries[entriesIndex].contigName,
+				if(0>fprintf(fp, "\t=\t%d",
 							a->ends[endIndex].entries[entriesIndex].position)) {
 					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 				}
