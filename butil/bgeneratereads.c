@@ -30,7 +30,7 @@ int PrintUsage()
 	fprintf(stderr, "\nInput specification file:\n");
 	fprintf(stderr, "\tThe input specification file is line-orientated.  Each line\n");
 	fprintf(stderr, "\tcontains the specification for one set of simulated reads.\n");
-	fprintf(stderr, "\tEach set of reads has 10 fields (all specified on one line).\n");
+	fprintf(stderr, "\tEach set of reads has 9 fields (all specified on one line).\n");
 	fprintf(stderr, "\t\t#1 - 0: no indel 1: deletion 2: insertion\n");
 	fprintf(stderr, "\t\t#2 - indel length (if #2 is an indel)\n");
 	fprintf(stderr, "\t\t#3 - include errors within insertion 0: false 1: true\n");
