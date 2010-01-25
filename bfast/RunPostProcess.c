@@ -293,7 +293,6 @@ void *ReadInputFilterAndOutputThread(void *arg)
 				if(NULL != fpUnmapped) {
 					AlignedReadPrint(&aBuffer[aBufferIndex], fpUnmapped);
 				}
-				(*numUnmapped)++;
 
 				/* Free the alignments for output */
 				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
@@ -320,6 +319,9 @@ void *ReadInputFilterAndOutputThread(void *arg)
 				if(0 < aBuffer[aBufferIndex].ends[i].numEntries) {
 					numEnds++;
 				}
+			}
+			if(0 == numEnds) {
+				(*numUnmapped)++;
 			}
 			// Clean up
 			if((*mappedEndCountsNumEnds) < numEnds) {
