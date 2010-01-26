@@ -9,6 +9,7 @@
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"
 #include "../bfast/BLib.h"
+#include "aflib.h"
 
 #define Name "solid2fastq"
 
@@ -22,11 +23,11 @@ typedef struct {
 
 FILE *open_output_file(char*, int32_t, int32_t);
 void fastq_print(fastq_t*, FILE*);
-void fastq_read(fastq_t*, FILE*, BZFILE*, FILE*, BZFILE*);
+void fastq_read(fastq_t*, AFILE*, AFILE*);
 int32_t cmp_read_names(char*, char*);
 void read_name_trim(char*);
 char *strtok_mod(char*, char*, int32_t*);
-int32_t read_line(FILE *fp, BZFILE *bz2, char *line);
+int32_t read_line(AFILE *afp, char *line);
 
 int print_usage ()
 {
@@ -37,6 +38,7 @@ int print_usage ()
 	fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
 	fprintf(stderr, "\t-o\t\toutput prefix.\n");
 	fprintf(stderr, "\t-j\t\tinput files are bzip2 compressed.\n");
+	fprintf(stderr, "\t-z\t\tinput files are gzip compressed.\n");
 	fprintf(stderr, "\t-h\t\tprint this help message.\n");
 	fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
 	return 1;
@@ -52,37 +54,36 @@ int main(int argc, char *argv[])
 	int64_t *end_counts=NULL;
 	char **csfasta_filenames=NULL;
 	char **qual_filenames=NULL;
-	FILE **fps_csfasta=NULL;
-	int32_t use_bz2=0;
-	BZFILE **bz2s_csfasta=NULL;
-	FILE **fps_qual=NULL;
-	BZFILE **bz2s_qual=NULL;
+	AFILE **afps_csfasta=NULL;
+	AFILE **afps_qual=NULL;
 	FILE *fp_output=NULL;
+	int32_t in_comp=AFILE_NO_COMPRESSION;
 	int32_t output_suffix_number;
 	char c;
 	int32_t i, j;
 	fastq_t *reads=NULL;
-	int32_t more_fps_left=1;
+	int32_t more_afps_left=1;
 	int64_t output_count=0;
 	int64_t output_count_total=0;
-	int32_t bzerror;
 	char *min_read_name=NULL;
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:chj")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:chjz")) >= 0) {
 		switch(c) {
 			case 'c':
 				no_output=1; break;
 			case 'h':
 				return print_usage(); break;
 			case 'j':
-				use_bz2=1; break;
+				in_comp=AFILE_BZ2_COMPRESSION; break;
 			case 'n':
 				num_reads_per_file=atoi(optarg); break;
 				break;
 			case 'o':
 				output_prefix=strdup(optarg); break;
 				break;
+			case 'z':
+				in_comp=AFILE_GZ_COMPRESSION; break;
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
@@ -117,40 +118,22 @@ int main(int argc, char *argv[])
 	}
 
 	// Allocate memory for input file pointers
-	fps_csfasta = malloc(sizeof(FILE*)*number_of_ends);
-	if(NULL == fps_csfasta) {
-		PrintError(Name, "fps_csfasta", "Could not allocate memory", Exit, MallocMemory);
+	afps_csfasta = malloc(sizeof(AFILE*)*number_of_ends);
+	if(NULL == afps_csfasta) {
+		PrintError(Name, "afps_csfasta", "Could not allocate memory", Exit, MallocMemory);
 	}
-	fps_qual = malloc(sizeof(FILE*)*number_of_ends);
-	if(NULL == fps_qual) {
-		PrintError(Name, "fps_qual", "Could not allocate memory", Exit, MallocMemory);
-	}
-	if(1 == use_bz2) {
-		bz2s_csfasta = malloc(sizeof(BZFILE*)*number_of_ends);
-		if(NULL == bz2s_csfasta) {
-			PrintError(Name, "bz2s_csfasta", "Could not allocate memory", Exit, MallocMemory);
-		}
-		bz2s_qual = malloc(sizeof(BZFILE*)*number_of_ends);
-		if(NULL == bz2s_qual) {
-			PrintError(Name, "bz2s_qual", "Could not allocate memory", Exit, MallocMemory);
-		}
+	afps_qual = malloc(sizeof(AFILE*)*number_of_ends);
+	if(NULL == afps_qual) {
+		PrintError(Name, "afps_qual", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	// Open input files
 	for(i=0;i<number_of_ends;i++) {
-		if(!(fps_csfasta[i] = fopen(csfasta_filenames[i], "rb"))) {
+		if(!(afps_csfasta[i] = AFILE_afopen(csfasta_filenames[i], "rb", in_comp))) {
 			PrintError(Name, csfasta_filenames[i], "Could not open file for reading", Exit, OpenFileError);
 		}
-		if(!(fps_qual[i] = fopen(qual_filenames[i], "rb"))) {
+		if(!(afps_qual[i] = AFILE_afopen(qual_filenames[i], "rb", in_comp))) {
 			PrintError(Name, qual_filenames[i], "Could not open file for reading", Exit, OpenFileError);
-		}
-		if(1 == use_bz2) {
-			if(!(bz2s_csfasta[i] = BZ2_bzReadOpen(&bzerror, fps_csfasta[i], 0, 0, NULL, 0)) || bzerror != BZ_OK) {
-				PrintError(Name, csfasta_filenames[i], "Could not open file for reading", Exit, OpenFileError);
-			}
-			if(!(bz2s_qual[i] = BZ2_bzReadOpen(&bzerror, fps_qual[i], 0, 0, NULL, 0)) || bzerror != BZ_OK) {
-				PrintError(Name, qual_filenames[i], "Could not open file for reading", Exit, OpenFileError);
-			}
 		}
 	}
 
@@ -165,7 +148,7 @@ int main(int argc, char *argv[])
 	}
 
 	output_suffix_number = 1;
-	more_fps_left=number_of_ends;
+	more_afps_left=number_of_ends;
 	output_count = output_count_total = 0;
 	// Open output file
 	if(NULL == output_prefix) {
@@ -177,34 +160,26 @@ int main(int argc, char *argv[])
 		fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
 	}
 	fprintf(stderr, "Outputting, currently on:\n0");
-	while(0 < more_fps_left) { // while an input file is still open
+	while(0 < more_afps_left) { // while an input file is still open
 
 		if(0 == (output_count_total % 100000)) {
 			fprintf(stderr, "\r%lld", (long long int)output_count_total);
 		}
 		/*
-		   fprintf(stderr, "more_fps_left=%d\n", more_fps_left);
+		   fprintf(stderr, "more_afps_left=%d\n", more_afps_left);
 		   */
 		// Get all with min read name
 		for(i=0;i<number_of_ends;i++) {
 			// populate read if necessary
 			if(0 == reads[i].is_pop &&
-					NULL != fps_csfasta[i] &&
-					NULL != fps_qual[i]) {
-				if(0 == use_bz2) fastq_read(&reads[i], fps_csfasta[i], NULL, fps_qual[i], NULL); // Get read name
-				else fastq_read(&reads[i], NULL, bz2s_csfasta[i], NULL, bz2s_qual[i]); // Get read name
+					NULL != afps_csfasta[i] &&
+					NULL != afps_qual[i]) {
+				fastq_read(&reads[i], afps_csfasta[i], afps_qual[i]); // Get read name
 				if(0 == reads[i].is_pop) { // was not populated
 					//fprintf(stderr, "EOF\n");
-					if(1 == use_bz2) {
-						BZ2_bzReadClose(&bzerror, bz2s_csfasta[i]);
-						if(bzerror != BZ_OK) PrintError(Name, "BZ2_bzReadClose", "Could not close BZ2 file", Exit, OutOfRange);
-						BZ2_bzReadClose(&bzerror, bz2s_qual[i]);
-						if(bzerror != BZ_OK) PrintError(Name, "BZ2_bzReadClose", "Could not close BZ2 file", Exit, OutOfRange);
-						bz2s_csfasta[i] = bz2s_qual[i] = NULL;
-					}
-					fclose(fps_csfasta[i]);
-					fclose(fps_qual[i]);
-					fps_csfasta[i] = fps_qual[i] = NULL;
+					AFILE_afclose(afps_csfasta[i]);
+					AFILE_afclose(afps_qual[i]);
+					afps_csfasta[i] = afps_qual[i] = NULL;
 					reads[i].to_print = 0;
 				}
 			}
@@ -247,11 +222,11 @@ int main(int argc, char *argv[])
 		min_read_name=NULL;
 
 		// Print all with min read name
-		more_fps_left = 0;
+		more_afps_left = 0;
 		num_ends_printed = 0;
 		for(i=0;i<number_of_ends;i++) {
 			if(1 == reads[i].to_print) {
-				more_fps_left++;
+				more_afps_left++;
 				num_ends_printed++;
 				if(0 == no_output) {
 					fastq_print(&reads[i], fp_output);
@@ -280,9 +255,7 @@ int main(int argc, char *argv[])
 		fclose(fp_output);
 	}
 	fprintf(stderr, "\r%lld\n", (long long int)output_count_total);
-
 	fprintf(stderr, "Found\n%16s\t%16s\n", "number_of_ends", "number_of_reads");
-
 	for(i=0;i<number_of_ends;i++) {
 		fprintf(stderr, "%16d\t%16lld\n", i+1, (long long int)end_counts[i]);
 	}
@@ -296,12 +269,8 @@ int main(int argc, char *argv[])
 	free(csfasta_filenames);
 	free(qual_filenames);
 	free(end_counts);
-	free(fps_csfasta);
-	free(fps_qual);
-	if(1 == use_bz2) {
-		free(bz2s_csfasta);
-		free(bz2s_qual);
-	}
+	free(afps_csfasta);
+	free(afps_qual);
 	free(reads);
 
 	return 0;
@@ -342,7 +311,7 @@ void fastq_print(fastq_t *read, FILE *output_fp)
 	fprintf(output_fp, "\n");
 }
 
-void fastq_read(fastq_t *read, FILE *fp_csfasta, BZFILE *bz2_csfasta, FILE *fp_qual, BZFILE *bz2_qual) 
+void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual)
 {
 	char *FnName="fastq_read";
 	char qual_name[SEQUENCE_NAME_LENGTH]="\0";
@@ -354,19 +323,17 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, BZFILE *bz2_csfasta, FILE *fp_q
 	assert(0 == read->is_pop);
 	assert(0 == read->to_print);
 
-	if(NULL == fp_csfasta &&
-			NULL == bz2_csfasta &&
-			NULL == fp_qual &&
-			NULL == bz2_qual) {
+	if(NULL == afp_csfasta &&
+			NULL == afp_qual) {
 		//fprintf(stderr, "return 1\n"); // HERE
 		return;
 	}
 
 	// Read in
-	if(read_line(fp_csfasta, bz2_csfasta, read->name) < 0 || 
-			read_line(fp_csfasta, bz2_csfasta, read->read) < 0 ||
-			read_line(fp_qual, bz2_qual, qual_name) < 0 ||
-			read_line(fp_qual, bz2_qual, qual_line) < 0) {
+	if(read_line(afp_csfasta, read->name) < 0 || 
+			read_line(afp_csfasta, read->read) < 0 ||
+			read_line(afp_qual, qual_name) < 0 ||
+			read_line(afp_qual, qual_line) < 0) {
 		//fprintf(stderr, "return 2\n"); // HERE
 		return;
 	}
@@ -384,6 +351,7 @@ void fastq_read(fastq_t *read, FILE *fp_csfasta, BZFILE *bz2_csfasta, FILE *fp_q
 
 	// Check that the read name and csfasta name match
 	if(0 != strcmp(read->name, qual_name)) {
+		fprintf(stderr, "read->name=%s\nqual_name=%s\n", read->name, qual_name);
 		PrintError(FnName, "read->name != qual_name", "Read names did not match", Exit, OutOfRange);
 	}
 	// Remove leading '@' from the read name
@@ -513,13 +481,15 @@ char *strtok_mod(char *str, char *delim, int32_t *index)
 	}
 }
 
-int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
+int32_t read_line(AFILE *afp, char *line)
 {
-	char *FnName="read_line";
+	//char *FnName="read_line";
 	char c=0;
-	int32_t i=0, p=0, bzerror=BZ_OK;
+	int32_t i=0, p=0;
 
 	int32_t state=0;
+
+	if(NULL == afp) return 0;
 
 	// States:
 	// 0 - no characteres in line
@@ -527,13 +497,8 @@ int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
 	// 2 - reading comment line
 
 	// Read a character at a time
-	while((bz2 != NULL && sizeof(char) == BZ2_bzRead(&bzerror, bz2, &c, sizeof(char))) ||
-			(NULL == bz2 && 0 != (c = fgetc(fp)))) {
-		if(bz2 != NULL && BZ_OK != bzerror && BZ_STREAM_END != bzerror) {
-			PrintError(FnName, "bzerror", "BZ2_bzRead returned an unexpected error", Exit, OutOfRange);
-		}
-		else if((bz2 != NULL && BZ_OK != bzerror) ||
-				(NULL == bz2 && EOF == c)) {
+	while(0 != AFILE_afread(&c, sizeof(char), 1, afp)) {
+		if(EOF == c) {
 			if(0 < i) { // characters have been read
 				line[i]='\0';
 				//fprintf(stderr, "return read_line 1\n");
@@ -570,36 +535,9 @@ int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
 					line[i]=c;
 					i++;
 					p=IsWhiteSpace(c);
-
 				}
 			}
 		}
-	}
-	/*
-	switch(bzerror) {
-		case BZ_PARAM_ERROR:
-			fprintf(stderr, "BZ_PARAM_ERROR\n"); break;
-		case BZ_SEQUENCE_ERROR:
-			fprintf(stderr, "BZ_SEQUENCE_ERROR\n"); break;
-		case BZ_IO_ERROR:
-			fprintf(stderr, "BZ_IO_ERROR\n"); break;
-		case BZ_UNEXPECTED_EOF:
-			fprintf(stderr, "BZ_UNEXPECTED_EOF\n"); break;
-		case BZ_DATA_ERROR:
-			fprintf(stderr, "BZ_DATA_ERROR\n"); break;
-		case BZ_DATA_ERROR_MAGIC:
-			fprintf(stderr, "BZ_DATA_ERROR_MAGIC\n"); break;
-		case BZ_MEM_ERROR:
-			fprintf(stderr, "BZ_MEM_ERROR\n"); break;
-		case BZ_STREAM_END:
-			fprintf(stderr, "BZ_STREAM_END\n"); break;
-		default:
-			fprintf(stderr, "Unkown Error\n");
-			break;
-	}
-	*/
-	if(bz2 != NULL && BZ_OK != bzerror && BZ_STREAM_END != bzerror) {
-		PrintError(FnName, "bzerror", "BZ2_bzRead exited with an unexpected error", Exit, OutOfRange);
 	}
 	// must have hit eof
 	if(0 < i) { // characters have been read
@@ -607,14 +545,5 @@ int32_t read_line(FILE *fp, BZFILE *bz2, char *line)
 		//fprintf(stderr, "return read_line 4\n");
 		return  1;
 	}
-	/*
-	if(bz2 != NULL && BZ_OK != bzerror) {
-		fprintf(stderr, "return read_line 5.1\n");
-	}
-	if(NULL == bz2 && EOF == c) {
-		fprintf(stderr, "return read_line 5.2\n");
-	}
-	fprintf(stderr, "return read_line 5\n");
-	*/
 	return -1;
 }

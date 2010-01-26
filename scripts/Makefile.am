@@ -7,6 +7,7 @@ solid2fastq_SOURCES = \
 					  ../bfast/RGBinary.c ../bfast/RGBinary.h \
 					  ../bfast/RGRanges.c ../bfast/RGRanges.h \
 					  ../bfast/RGMatch.c ../bfast/RGMatch.h \
+					  aflib.c aflib.h \
 					  solid2fastq.c
 
 solid2fastq_LDADD = -lm -lz -lbz2 
