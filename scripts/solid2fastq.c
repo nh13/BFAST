@@ -21,8 +21,8 @@ typedef struct {
 	char qual[SEQUENCE_LENGTH];
 } fastq_t;
 
-FILE *open_output_file(char*, int32_t, int32_t);
-void fastq_print(fastq_t*, FILE*);
+AFILE *open_output_file(char*, int32_t, int32_t, int32_t);
+void fastq_print(fastq_t*, AFILE*);
 void fastq_read(fastq_t*, AFILE*, AFILE*);
 int32_t cmp_read_names(char*, char*);
 void read_name_trim(char*);
@@ -39,6 +39,8 @@ int print_usage ()
 	fprintf(stderr, "\t-o\t\toutput prefix.\n");
 	fprintf(stderr, "\t-j\t\tinput files are bzip2 compressed.\n");
 	fprintf(stderr, "\t-z\t\tinput files are gzip compressed.\n");
+	fprintf(stderr, "\t-J\t\toutput files are bzip2 compressed.\n");
+	fprintf(stderr, "\t-Z\t\toutput files are gzip compressed.\n");
 	fprintf(stderr, "\t-h\t\tprint this help message.\n");
 	fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
 	return 1;
@@ -56,8 +58,9 @@ int main(int argc, char *argv[])
 	char **qual_filenames=NULL;
 	AFILE **afps_csfasta=NULL;
 	AFILE **afps_qual=NULL;
-	FILE *fp_output=NULL;
+	AFILE *afp_output=NULL;
 	int32_t in_comp=AFILE_NO_COMPRESSION;
+	int32_t out_comp=AFILE_NO_COMPRESSION;
 	int32_t output_suffix_number;
 	char c;
 	int32_t i, j;
@@ -68,7 +71,7 @@ int main(int argc, char *argv[])
 	char *min_read_name=NULL;
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:chjz")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:chjzJZ")) >= 0) {
 		switch(c) {
 			case 'c':
 				no_output=1; break;
@@ -84,6 +87,10 @@ int main(int argc, char *argv[])
 				break;
 			case 'z':
 				in_comp=AFILE_GZ_COMPRESSION; break;
+			case 'J':
+				out_comp=AFILE_BZ2_COMPRESSION; break;
+			case 'Z':
+				out_comp=AFILE_GZ_COMPRESSION; break;
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
@@ -152,12 +159,12 @@ int main(int argc, char *argv[])
 	output_count = output_count_total = 0;
 	// Open output file
 	if(NULL == output_prefix) {
-		if(!(fp_output=fdopen(fileno(stdout), "w"))) {
+		if(!(afp_output=AFILE_afdopen(fileno(stdout), "wb", out_comp))) {
 			PrintError(Name, "stdout", "Could not open for writing", Exit, WriteFileError);
 		}
 	}
 	else if(0 == no_output) {
-		fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+		afp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file, out_comp); 
 	}
 	fprintf(stderr, "Outputting, currently on:\n0");
 	while(0 < more_afps_left) { // while an input file is still open
@@ -229,7 +236,7 @@ int main(int argc, char *argv[])
 				more_afps_left++;
 				num_ends_printed++;
 				if(0 == no_output) {
-					fastq_print(&reads[i], fp_output);
+					fastq_print(&reads[i], afp_output);
 				}
 				reads[i].is_pop = reads[i].to_print = 0;
 			}
@@ -245,14 +252,14 @@ int main(int argc, char *argv[])
 				num_reads_per_file <= output_count) {
 			output_suffix_number++;
 			if(0 == no_output && NULL != output_prefix) {
-				fclose(fp_output);
-				fp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file); 
+				AFILE_afclose(afp_output);
+				afp_output = open_output_file(output_prefix, output_suffix_number, num_reads_per_file, out_comp); 
 			}
 			output_count=0;
 		}
 	}
 	if(0 < output_count && 0 == no_output) {
-		fclose(fp_output);
+		AFILE_afclose(afp_output);
 	}
 	fprintf(stderr, "\r%lld\n", (long long int)output_count_total);
 	fprintf(stderr, "Found\n%16s\t%16s\n", "number_of_ends", "number_of_reads");
@@ -276,11 +283,11 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-FILE *open_output_file(char *output_prefix, int32_t output_suffix_number, int32_t num_reads_per_file)
+AFILE *open_output_file(char *output_prefix, int32_t output_suffix_number, int32_t num_reads_per_file, int32_t out_comp)
 {
 	char *FnName="open_output_file";
-	char output_filename[1024]="\0";
-	FILE *fp_out=NULL;
+	char output_filename[4096]="\0";
+	AFILE *afp_out=NULL;
 
 	// Create output file name
 	if(0 < num_reads_per_file) {
@@ -290,25 +297,54 @@ FILE *open_output_file(char *output_prefix, int32_t output_suffix_number, int32_
 		assert(0 < sprintf(output_filename, "%s.fastq", output_prefix));
 	}
 
+	// Only if compression is used
+	switch(out_comp) {
+		case AFILE_GZ_COMPRESSION:
+			strcat(output_filename, ".gz"); break;
+		case AFILE_BZ2_COMPRESSION:
+			strcat(output_filename, ".bz2"); break;
+		default: 
+			break;
+	}
+
 	// Open an output file
-	if(!(fp_out = fopen(output_filename, "w"))) {
+	if(!(afp_out = AFILE_afopen(output_filename, "wb", out_comp))) {
 		PrintError(FnName, output_filename, "Could not open file for writing", Exit, OpenFileError);
 	}
 
-	return fp_out;
+	return afp_out;
 }
 
-void fastq_print(fastq_t *read, FILE *output_fp)
+void fastq_print(fastq_t *read, AFILE *afp_output)
 {
 	//char *FnName="fastq_print";
 	int32_t i;
+	char at = '@';
+	char plus = '+';
+	char new_line = '\n';
 
-	// Print out
-	fprintf(output_fp, "@%s\n%s\n+\n", read->name, read->read);
-	for(i=0;i<strlen(read->read)-1;i++) {
-		fprintf(output_fp, "%c", read->qual[i]);
+	// Name
+	AFILE_afwrite(&at, sizeof(char), 1, afp_output);
+	for(i=0;i>strlen(read->name);i++) {
+		AFILE_afwrite(&read->name[i], sizeof(char), 1, afp_output);
 	}
-	fprintf(output_fp, "\n");
+	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
+	
+	// Sequence
+	for(i=0;i>strlen(read->read);i++) {
+		AFILE_afwrite(&read->read[i], sizeof(char), 1, afp_output);
+	}
+	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
+
+	// Comment
+	AFILE_afwrite(&plus, sizeof(char), 1, afp_output);
+	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
+
+	// Quality
+	for(i=0;i>strlen(read->qual);i++) {
+		AFILE_afwrite(&read->qual[i], sizeof(char), 1, afp_output);
+	}
+	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
 }
 
 void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual)
