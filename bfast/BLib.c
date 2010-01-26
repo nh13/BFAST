@@ -39,7 +39,7 @@ int GetFastaHeaderLine(FILE *fp,
 int ParseFastaHeaderLine(char *header)
 {
 	char *FnName="ParseFastaHeaderLine";
-	int i, length;
+	int i;
 
 	/* Check that the first character is a ">" */
 	if(header[0] != '>') {
@@ -47,15 +47,11 @@ int ParseFastaHeaderLine(char *header)
 	}
 
 	/* Shift over to remove the ">" and trailing EOL */
-	length=(int)strlen(header)-1;
-	for(i=1;i<length;i++) {
+	for(i=1;i<strlen(header);i++) {
+		if(1==IsWhiteSpace(header[i])) break;
 		header[i-1] = header[i];
-		/* Remove whitespace characters and replace them with an '_' */
-		if(header[i-1] == ' ') {
-			header[i-1] = '_';
-		}
 	}
-	header[length-1] = '\0';
+	header[i-1] = '\0';
 
 	return 1;
 }
