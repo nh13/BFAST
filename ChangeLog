@@ -8,6 +8,9 @@ Please send bfast bug reports to bfast-help@lists.sourceforge.net
 Version 0.6.2b
 * The mate's reference name is now set to "=" when it matches
 the current reads reference name when outputting to the SAM format.
+* All characters are ignored after the leading whitespace when reading
+in the names of the contigs in the reference FASTA file.  Previously,
+whitespaces where converted to '_'.
 
 Version 0.6.2a
 * Adding more optional tag fields to SAM output, most notably the 
