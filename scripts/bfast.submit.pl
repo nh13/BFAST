@@ -458,7 +458,7 @@ sub CreateJobsMatch {
 	my @read_files = ();
 
 	# Get reads
-	my $file_ext = ".fastq";
+	my $file_ext = "fastq";
 	$file_ext = "".$data->{'matchOptions'}->{'readCompression'} if(defined($data->{'matchOptions'}->{'readCompression'}));
 	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, $file_ext);
 
