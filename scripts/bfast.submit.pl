@@ -459,7 +459,7 @@ sub CreateJobsMatch {
 
 	# Get reads
 	my $file_ext = ".fastq";
-	$file_ext = "".$data->{'matchOptions'}->{'readCompression'} if(defined($COMPRESSION{$data->{'matchOptions'}->{'readCompression'}));
+	$file_ext = "".$data->{'matchOptions'}->{'readCompression'} if(defined($COMPRESSION{$data->{'matchOptions'}->{'readCompression'}}));
 	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, $file_ext);
 
 	# The number of match to perform per read file
@@ -473,7 +473,8 @@ sub CreateJobsMatch {
 			$output_id =~ s/.*\///;
 			if($output_id =~ m/(\d+).$file_ext/) {
 				$output_id = $1;                
-				$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";            }   
+				$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";            
+			}   
 			else {
 				$output_id =~ s/.$file_ext//;
 				$output_id = $data->{'globalOptions'}->{'outputID'}.".reads.$i";            
@@ -490,7 +491,7 @@ sub CreateJobsMatch {
 			$cmd .= " -r ".$read_file;
 			$cmd .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
 			$cmd .= " -l " if defined($data->{'matchOptions'}->{'loadAllIndexes'});
-			$cmd .= " ".$COMPRESSION{$data->{'matchOptions'}->{'readCompression'}} if(defined($COMPRESSION{$data->{'matchOptions'}->{'readCompression'}));
+			$cmd .= " ".$COMPRESSION{$data->{'matchOptions'}->{'readCompression'}} if(defined($COMPRESSION{$data->{'matchOptions'}->{'readCompression'}}));
 			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
 			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
 			$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
