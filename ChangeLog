@@ -13,6 +13,7 @@ in the names of the contigs in the reference FASTA file.  Previously,
 whitespaces where converted to '_'.
 * Adding for reading .gz and .bz2 files in solid2fastq (C-version).
 Also, the ability to write to .gz and .bz2 files is supported.
+* Adding in the ability to read .gz and .bz2 files in 'bfast match'.
 
 Version 0.6.2a
 * Adding more optional tag fields to SAM output, most notably the 

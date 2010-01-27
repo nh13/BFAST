@@ -155,6 +155,7 @@ void AFILE_afclose(AFILE *afp)
 	free(afp);
 }
 
+
 size_t AFILE_afread(void *ptr, size_t size, size_t count, AFILE *afp) 
 {
 	int32_t nbuf=0, i;
@@ -209,6 +210,11 @@ size_t AFILE_afread(void *ptr, size_t size, size_t count, AFILE *afp)
 			break;
 	}
 	return 0;
+}
+
+int AFILE_afread2(AFILE *afp, void *ptr, unsigned int len)
+{
+	return AFILE_afread(ptr, sizeof(char), (size_t)len, afp);
 }
 
 size_t AFILE_afwrite(void *ptr, size_t size, size_t count, AFILE *afp) 

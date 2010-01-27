@@ -11,6 +11,7 @@
 #include "BError.h"
 #include "BLib.h"
 #include "RunMatch.h"
+#include "aflib.h"
 #include "BfastMatch.h"
 
 /*
@@ -18,7 +19,7 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets,  DescLoadAllIndexes,
+	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets,  DescLoadAllIndexes, DescCompressionBZ2, DescCompressionGZ,
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescTmpDir, DescTiming,
@@ -34,6 +35,8 @@ static struct argp_option options[] = {
 	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsets", 'o', "offsets", 0, "Specifies the offsets", 1},
 	{"loadAllIndexes", 'l', "loadAllIndexes", 0, "Specifies to load all main or secondary indexes into memory", 1},
+	{"bz2", 'j', "bz2", 0, "Specifies that the input reads are bz2 compressed (bzip2)", 1},
+	{"gz", 'z', "gz", 0, "Specifies that the input reads are gz compressed (gzip)", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"startReadNum", 's', "startReadNum", 0, "Specifies the read to begin with (skip the first"
@@ -59,7 +62,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hlpt";
+"e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hjlptz";
 
 	int
 BfastMatch(int argc, char **argv)
@@ -104,6 +107,7 @@ BfastMatch(int argc, char **argv)
 							arguments.readsFileName,
 							arguments.offsets,
 							arguments.loadAllIndexes,
+							arguments.compression,
 							arguments.space,
 							arguments.startReadNum,
 							arguments.endReadNum,
@@ -245,6 +249,7 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 	args->readsFileName = NULL;
 	args->offsets = NULL;
 	args->loadAllIndexes = IndexesMemorySerial;
+	args->compression = AFILE_NO_COMPRESSION;
 
 	args->space = NTSpace;
 
@@ -281,6 +286,7 @@ BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "readsFileName:\t\t\t\t%s\n", FILESTDIN(args->readsFileName));
 		fprintf(fp, "offsets:\t\t\t\t%s\n", (NULL == args->offsets) ? "[Using All]" : args->offsets);
 		fprintf(fp, "loadAllIndexes:\t\t\t\t%s\n", INTUSING(args->loadAllIndexes));
+		fprintf(fp, "compression:\t\t\t\t%s\n", COMPRESSION(args->compression));
 		fprintf(fp, "space:\t\t\t\t\t%s\n", SPACE(args->space));
 		fprintf(fp, "startReadNum:\t\t\t\t%d\n", args->startReadNum);
 		fprintf(fp, "endReadNum:\t\t\t\t%d\n", args->endReadNum);
@@ -360,6 +366,8 @@ BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->programMode=ExecuteGetOptHelp; break;
 			case 'i':
 				arguments->mainIndexes=strdup(optarg); break;
+			case 'j':
+				arguments->compression=AFILE_BZ2_COMPRESSION; break;
 			case 'k':
 				arguments->keySize = atoi(optarg); break;
 			case 'l':
@@ -378,6 +386,8 @@ BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->timing = 1; break;
 			case 'w':
 				arguments->whichStrand = atoi(optarg); break;
+			case 'z':
+				arguments->compression=AFILE_GZ_COMPRESSION; break;
 			case 'A':
 				arguments->space=atoi(optarg); break;
 			case 'I':

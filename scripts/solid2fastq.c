@@ -9,7 +9,7 @@
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"
 #include "../bfast/BLib.h"
-#include "aflib.h"
+#include "../bfast/aflib.h"
 
 #define Name "solid2fastq"
 

@@ -35,6 +35,8 @@ bfast_SOURCES = \
 				BfastHeader.c \
 				BfastBMFConvert.c \
 				BfastBRG2Fasta.c \
+				kseq.h \
+				aflib.c aflib.h \
 				Main.c Main.h
 
-bfast_LDADD = -lm -lz
+bfast_LDADD = -lm -lz -lbz2
