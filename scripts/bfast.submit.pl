@@ -25,6 +25,7 @@ my %LOCALALIGNMENTTYPE = ("GAPPED" => 0, "UNGAPPED" => 1);
 my %STRAND = ("BOTH" => 0, "FORWARD" => 1, "REVERSE" => 2);
 my %STARTSTEP = ("match" => 0, "localalign" => 1, "postprocess" => 2, "sam" => 3);
 my %OUTTYPES = (0 => "baf", 1 => "maf", 2 => "gff", 3 => "sam");
+my %COMPRESSION = ("none" => ".fastq", "gz" => "-z", "bz2" => "-z");
 
 use constant {
 	OPTIONAL => 0,
@@ -134,6 +135,15 @@ sub Schema {
 			  <xs:element name="secondaryIndexes" type="xs:string"/>
 			  <xs:element name="offsets" type="xs:string"/>
 			  <xs:element name="loadAllIndexes" type="xs:integer"/>
+			  <xs:element name="readsCompression">
+				<xs:simpleType>
+				  <xs:restriction base="xs:string">
+					<xs:enumeration value="none"/>
+					<xs:enumeration value="gz"/>
+					<xs:enumeration value="bz2"/>
+				  </xs:restriction>
+				</xs:simpleType>
+              </xs:element>
 			  <xs:element name="keySize" type="positiveInteger"/>
 			  <xs:element name="maxKeyMatches" type="positiveInteger"/>
 			  <xs:element name="maxNumMatches" type="positiveInteger"/>
@@ -271,7 +281,8 @@ sub ValidateData {
 	ValidateOption($data->{'matchOptions'},     'mainIndexes',                              OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'secondaryIndexes',                         OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'offsets',                                  OPTIONAL);
-	ValidateOption($data->{'matchOptions'},     'loadAllOffsets',                                  OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'loadAllIndexes',                           OPTIONAL);
+	ValidateOptions($data->{'matchOptions'},    'readCompression',       \%COMPRESSION,     OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'keySize',                                  OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'maxKeyMatches',                            OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'maxNumMatches',                            OPTIONAL);
@@ -447,7 +458,9 @@ sub CreateJobsMatch {
 	my @read_files = ();
 
 	# Get reads
-	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, 'fastq');
+	my $file_ext = ".fastq";
+	$file_ext = "".$data->{'matchOptions'}->{'readCompression'} if(defined($COMPRESSION{$data->{'matchOptions'}->{'readCompression'}));
+	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, $file_ext);
 
 	# The number of match to perform per read file
 	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
@@ -458,10 +471,11 @@ sub CreateJobsMatch {
 		for(my $i=0;$i<$num_split_files;$i++) {
 			my $output_id = $read_file; 
 			$output_id =~ s/.*\///;
-			if($output_id =~ m/(\d+).fastq/) {
-				$output_id = $1;                $output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";            }   
+			if($output_id =~ m/(\d+).$file_ext/) {
+				$output_id = $1;                
+				$output_id = $data->{'globalOptions'}->{'outputID'}.".$output_id.reads.$cur_read_num_start-$cur_read_num_end";            }   
 			else {
-				$output_id =~ s/.fastq//;
+				$output_id =~ s/.$file_ext//;
 				$output_id = $data->{'globalOptions'}->{'outputID'}.".reads.$i";            
 			}
 
@@ -475,7 +489,8 @@ sub CreateJobsMatch {
 			$cmd .= " -I ".$data->{'matchOptions'}->{'secondaryIndexes'} if defined($data->{'matchOptions'}->{'secondaryIndexes'});
 			$cmd .= " -r ".$read_file;
 			$cmd .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
-			$cmd .= " -l " if defined($data->{'matchOptions'}->{'loadAllOffsets'});
+			$cmd .= " -l " if defined($data->{'matchOptions'}->{'loadAllIndexes'});
+			$cmd .= " ".$COMPRESSION{$data->{'matchOptions'}->{'readCompression'}} if(defined($COMPRESSION{$data->{'matchOptions'}->{'readCompression'}));
 			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
 			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
 			$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
