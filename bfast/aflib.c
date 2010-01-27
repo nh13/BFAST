@@ -145,7 +145,7 @@ void AFILE_afclose(AFILE *afp)
 			fclose(afp->fp);
 			break;
 		case AFILE_GZ_COMPRESSION:
-			gzclose(afp->fp);
+			gzclose(afp->gz);
 			break;
 		default:
 			AFILE_print_error("Could not recognize compresssion\n");
