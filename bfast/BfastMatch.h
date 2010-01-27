@@ -13,6 +13,7 @@ struct arguments
 	char *readsFileName;					/* -r */
 	char *offsets;							/* -o */
 	int loadAllIndexes;						/* -l */
+	int compression;						/* -j, -z */ 
 	int space;								/* -A */
 	int startReadNum;						/* -s */
 	int endReadNum;							/* -e */

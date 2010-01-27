@@ -74,7 +74,9 @@ AC_CHECK_SIZEOF([long int])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h float.h zlib.h fcntl.h])
+AC_CHECK_HEADERS([limits.h stdint.h stdlib.h string.h sys/time.h unistd.h float.h zlib.h bzlib.h fcntl.h])
+
+AC_C_INLINE
 
 AC_CONFIG_FILES([Makefile
 				 bfast/Makefile

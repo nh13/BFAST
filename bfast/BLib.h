@@ -30,6 +30,7 @@ FILE *OpenTmpFile(char*, char**);
 void CloseTmpFile(FILE **, char**);
 gzFile OpenTmpGZFile(char*, char**);
 void CloseTmpGZFile(gzFile*, char**, int32_t);
+void ReopenTmpGZFile(gzFile*, char**);
 void PrintPercentCompleteShort(double);
 void PrintPercentCompleteLong(double);
 int PrintContigPos(FILE*, int32_t, int32_t);

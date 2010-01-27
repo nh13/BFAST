@@ -9,7 +9,7 @@
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"
 #include "../bfast/BLib.h"
-#include "aflib.h"
+#include "../bfast/aflib.h"
 
 #define Name "solid2fastq"
 
@@ -325,13 +325,13 @@ void fastq_print(fastq_t *read, AFILE *afp_output)
 
 	// Name
 	AFILE_afwrite(&at, sizeof(char), 1, afp_output);
-	for(i=0;i>strlen(read->name);i++) {
+	for(i=0;i<strlen(read->name);i++) {
 		AFILE_afwrite(&read->name[i], sizeof(char), 1, afp_output);
 	}
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
 	
 	// Sequence
-	for(i=0;i>strlen(read->read);i++) {
+	for(i=0;i<strlen(read->read);i++) {
 		AFILE_afwrite(&read->read[i], sizeof(char), 1, afp_output);
 	}
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
@@ -341,7 +341,7 @@ void fastq_print(fastq_t *read, AFILE *afp_output)
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
 
 	// Quality
-	for(i=0;i>strlen(read->qual);i++) {
+	for(i=0;i<strlen(read->qual);i++) {
 		AFILE_afwrite(&read->qual[i], sizeof(char), 1, afp_output);
 	}
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);

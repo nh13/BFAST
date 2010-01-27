@@ -16,7 +16,7 @@
 #include "BLibDefinitions.h"
 
 typedef struct {
-	FILE *tempSeqFP;
+	gzFile tempRGMatchesFP;
 	pthread_mutex_t *outputFP_mutex;
 	gzFile outputFP;
 	int32_t outputOffsets;
@@ -43,6 +43,7 @@ void RunMatch(
 		char *readFileName,
 		char *offsets,
 		int loadAllIndexes,
+		int compression,
 		int space,
 		int startReadNum,
 		int endReadNum,
@@ -69,8 +70,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		FILE ***tempSeqFPs,
-		char ***tempSeqFileNames,
+		gzFile *tempRGMatchesFPs,
+		char **tempRGMatchesFileNames,
 		gzFile outputFP,
 		int copyForNextSearch,
 		int indexesType,
@@ -92,7 +93,8 @@ int FindMatches(char **indexFileName,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		FILE ***tempSeqFPs,
+		gzFile *tempRGMatchesFPs,
+		char **tempRGMatchesFileNames,
 		gzFile outputFP,
 		int outputOffsets,
 		char *tmpDir,

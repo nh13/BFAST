@@ -585,6 +585,15 @@ void CloseTmpGZFile(gzFile *fp,
 	}
 }
 
+void ReopenTmpGZFile(gzFile *fp, char **tmpFileName)
+{
+	char *FnName="ReopenTmpGZFile";
+	CloseTmpGZFile(fp, tmpFileName, 0);
+	if(!((*fp) = gzopen((*tmpFileName), "rb"))) {
+		PrintError(FnName, (*tmpFileName), "Could not re-open file for reading", Exit, OpenFileError);
+	}
+}
+
 /* TODO */
 void PrintPercentCompleteShort(double percent)
 {

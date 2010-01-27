@@ -123,6 +123,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define PROGRAMMODE(_mode) ((0 == _mode) ? "[ExecuteGetOptHelp]" : ((1 == _mode) ? "[ExecuteProgram]" : "[ExecutePrintProgramParameters]"))
 #define WHICHSTRAND(_mode) ((0 == _mode) ? "[Both Strands]" : ((1 == _mode) ? "[Forward Strand]" : "[Reverse Strand]"))
 #define MIRRORINGTYPE(_mode) ((0 == _mode) ? "[Not Using]" : ((1 == _mode) ? "[First before the Second]" : ((2 == _mode) ? "[Second before the First]" : "[Both directions]")))
+#define COMPRESSION(_c) ((AFILE_NO_COMPRESSION == _c) ? "[Not Using]" : ((AFILE_GZ_COMPRESSION == _c) ? "[gzip]" : ((AFILE_BZ2_COMPRESSION == _c) ? "[bzip2]" : "[Unknown]")))
 #define LOWERBOUNDSCORE(_score) (_score = (_score < NEGATIVE_INFINITY) ? NEGATIVE_INFINITY : _score)
 #define GETMIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define GETMAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
