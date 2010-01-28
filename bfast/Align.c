@@ -131,8 +131,17 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		// Remove the adaptor from the colors
 		for(i=0;i<readLength;i++) { 
 			// remember to convert to '4's
-			colors[i] = (48 <= ((int)colors[i+1]) && ((int)colors[i+1]) <= 52) ? colors[i+1] : '4';
+			switch(colors[i+1]) {
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+					colors[i] = colors[i+1]; break;
+				default:
+					colors[i] = '4';
+			}
 		}
+		colors[i]='\0';
 		// Both read and colors now have the same length
 	}
 	if(matrix->nrow < readLength+1) {

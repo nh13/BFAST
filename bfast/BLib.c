@@ -1134,11 +1134,8 @@ void NormalizeColorSpaceRead(char *read,
 		case '3':
 			firstColor=3;
 			break;
-		case '4':
-			firstColor=4;
-			break;
 		default:
-			PrintError(FnName, "read[1]", "Could not recognize first color", Exit, OutOfRange);
+			firstColor=4;
 			break;
 	}
 
