@@ -142,7 +142,6 @@ int main(int argc, char *argv[])
 	fclose(fpIn);
 	free(inputFileName);
 	free(scoringMatrixFileName);
-	free(tmpDir);
 	return 0;
 }
 
