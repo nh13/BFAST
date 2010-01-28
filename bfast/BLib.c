@@ -928,8 +928,8 @@ int ConvertReadFromColorSpace(char *read,
 
 	if(readLength <= 0) return 0;
 
-	/* Convert character numbers to 8-bit ints */
-	for(i=0;i<readLength;i++) {
+	/* Convert color character numbers to 8-bit ints */
+	for(i=1;i<readLength;i++) { // ignore the adaptor
 		switch(read[i]) {
 			case '0':
 				read[i] = 0;
@@ -943,11 +943,8 @@ int ConvertReadFromColorSpace(char *read,
 			case '3':
 				read[i] = 3;
 				break;
-			case '4':
-				read[i] = 4;
-				break;
 			default:
-				/* Ignore */
+				read[i] = 4;
 				break;
 		}
 	}

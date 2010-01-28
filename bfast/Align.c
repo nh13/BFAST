@@ -128,9 +128,10 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		NormalizeColorSpaceRead(colors, readLength, COLOR_SPACE_START_NT);
 		// This modifies the "read"
 		readLength = ConvertReadFromColorSpace(read, readLength);
-		// Remove the adaptor
+		// Remove the adaptor from the colors
 		for(i=0;i<readLength;i++) { 
-			colors[i] = colors[i+1];
+			// remember to convert to '4's
+			colors[i] = (48 <= ((int)colors[i+1]) && ((int)colors[i+1]) <= 52) ? colors[i+1] : '4';
 		}
 		// Both read and colors now have the same length
 	}
