@@ -841,6 +841,9 @@ Do not print any submit messages.
 Specifies on which step of the alignment process to start (default: match). The
 values can be "match", "localalign", "postprocess", or "sam".
 
+=item B<-dryrun>
+Do everything but submit the jobs.
+
 =item B<-config>
 The XML configuration file.
 
