@@ -38,7 +38,8 @@ void RunMatch(
 		int numThreads,
 		int queueLength,
 		char *tmpDir,
-		int timing
+		int timing,
+		FILE *fpOut
 		)
 {
 	char *FnName="RunMatch";
@@ -171,7 +172,7 @@ void RunMatch(
 	assert(numReads >= numThreads);
 
 	/* Open output file */
-	if(0 == (outputFP=gzdopen(fileno(stdout), "wb"))) {
+	if(0 == (outputFP=gzdopen(fileno(fpOut), "wb"))) {
 		PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 	}
 

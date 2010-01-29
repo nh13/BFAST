@@ -54,7 +54,8 @@ void RunMatch(
 		int numThreads,
 		int queueLength,
 		char *tmpDir,
-		int timing
+		int timing,
+		FILE *fpOut
 		);
 int FindMatchesInIndexSet(char **indexFileNames,
 		int32_t **indexIDs,

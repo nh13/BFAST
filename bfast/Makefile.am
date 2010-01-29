@@ -26,6 +26,7 @@ bfast_SOURCES = \
 				RunMatch.c RunMatch.h \
 				RunLocalAlign.c RunLocalAlign.h \
 				RunPostProcess.c RunPostProcess.h \
+				RunAlign.c RunAlign.h \
 				BfastFasta2BRG.c BfastFasta2BRG.h \
 				BfastIndex.c BfastIndex.h \
 				BfastMatch.c BfastMatch.h \
@@ -35,6 +36,7 @@ bfast_SOURCES = \
 				BfastHeader.c \
 				BfastBMFConvert.c \
 				BfastBRG2Fasta.c \
+				BfastAlign.c BfastAlign.h \
 				kseq.h \
 				aflib.c aflib.h \
 				Main.c Main.h

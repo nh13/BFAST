@@ -10,5 +10,6 @@ int BfastBAFConvert(int argc, char *argv[]);
 int BfastHeader(int argc, char *argv[]);
 int BfastBMFConvert(int argc, char *argv[]);
 int BfastBRG2Fasta(int argc, char *argv[]);
+int BfastAlign(int argc, char *argv[]);
 
 #endif

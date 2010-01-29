@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 	else if (0 == strcmp("header", argv[1])) return BfastHeader(argc-1, argv+1);
 	else if (0 == strcmp("bmfconvert", argv[1])) return BfastBMFConvert(argc-1, argv+1);
 	else if (0 == strcmp("brg2fasta", argv[1])) return BfastBRG2Fasta(argc-1, argv+1);
+	else if (0 == strcmp("simplealign", argv[1])) return BfastAlign(argc-1, argv+1);
 	else {
 		PrintError("bfast", argv[1], "Unknown command", Exit, OutOfRange);
 	}

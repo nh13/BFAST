@@ -75,9 +75,6 @@ BfastLocalAlign(int argc, char **argv)
 	struct arguments arguments;
 	time_t startTotalTime = time(NULL);
 	time_t endTotalTime;
-	int totalReferenceGenomeTime = 0; /* Total time to load and delete the reference genome */
-	int totalAlignTime = 0; /* Total time to align the reads */
-	int totalFileHandlingTime = 0; /* Total time partitioning and merging matches and alignments respectively */
 	int seconds, minutes, hours;
 	if(argc>1) {
 		/* Set argument defaults. (overriden if user specifies them)  */ 
@@ -125,52 +122,10 @@ BfastLocalAlign(int argc, char **argv)
 							arguments.pairedEndLength,
 							arguments.mirroringType,
 							arguments.forceMirroring,
-							&totalReferenceGenomeTime,
-							&totalAlignTime,
-							&totalFileHandlingTime);
+							arguments.timing,
+							stdout);
 
 					if(arguments.timing == 1) {
-						/* Output loading reference genome time */
-						seconds = totalReferenceGenomeTime;
-						hours = seconds/3600;
-						seconds -= hours*3600;
-						minutes = seconds/60;
-						seconds -= minutes*60;
-						if(0 <= VERBOSE) {
-							fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n",
-									hours,
-									minutes,
-									seconds
-								   );
-						}
-
-						/* Output aligning time */
-						seconds = totalAlignTime;
-						hours = seconds/3600;
-						seconds -= hours*3600;
-						minutes = seconds/60;
-						seconds -= minutes*60;
-						if(0 <= VERBOSE) {
-							fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
-									hours,
-									minutes,
-									seconds
-								   );
-						}
-
-						/* Output file handling time */
-						seconds = totalFileHandlingTime;
-						hours = seconds/3600;
-						seconds -= hours*3600;
-						minutes = seconds/60;
-						seconds -= minutes*60;
-						if(0 <= VERBOSE) {
-							fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
-									hours,
-									minutes,
-									seconds
-								   );
-						}
 
 						/* Output total time */
 						endTotalTime = time(NULL);
@@ -319,7 +274,7 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->maxNumMatches=MAX_NUM_MATCHES;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads = 1;
-	args->queueLength = DEFAULT_MATCHES_QUEUE_LENGTH;
+	args->queueLength = DEFAULT_LOCALALIGN_QUEUE_LENGTH;
 	args->usePairedEndLength = 0;
 	args->pairedEndLength = 0;
 	args->mirroringType = NoMirroring;

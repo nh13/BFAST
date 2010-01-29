@@ -35,15 +35,18 @@ void RunAligner(char *fastaFileName,
 		int32_t pairedEndLength,
 		int32_t mirroringType,
 		int32_t forceMirroring,
-		int32_t *totalReferenceGenomeTime,
-		int32_t *totalAlignedTime,
-		int32_t *totalFileHandlingTime)
+		int32_t timing,
+		FILE *fpOut)
 {
 	char *FnName = "RunAligner";
 	gzFile outputFP=NULL;
 	gzFile matchFP=NULL;
 	int32_t startTime, endTime;
 	RGBinary rg;
+	int32_t totalReferenceGenomeTime;
+	int32_t totalAlignedTime;
+	int32_t totalFileHandlingTime;
+	int32_t seconds, minutes, hours;
 
 	startTime = time(NULL);
 	RGBinaryReadBinary(&rg,
@@ -54,7 +57,7 @@ void RunAligner(char *fastaFileName,
 	/*
 	   RGBinaryUnPack(&rg);
 	   */
-	(*totalReferenceGenomeTime) = endTime - startTime;
+	totalReferenceGenomeTime = endTime - startTime;
 
 	/* Check rg to make sure it is in NT Space */
 	if(rg.space != NTSpace) {
@@ -62,7 +65,7 @@ void RunAligner(char *fastaFileName,
 	}
 
 	/* Open output file */
-	if((outputFP=gzdopen(fileno(stdout), "wb"))==0) {
+	if((outputFP=gzdopen(fileno(fpOut), "wb"))==0) {
 		PrintError(FnName, "stdout", "Could not open stdout file for writing", Exit, OpenFileError);
 	}
 
@@ -103,8 +106,8 @@ void RunAligner(char *fastaFileName,
 			mirroringType,
 			forceMirroring,
 			outputFP,
-			totalAlignedTime,
-			totalFileHandlingTime);
+			&totalAlignedTime,
+			&totalFileHandlingTime);
 
 	if(0 <= VERBOSE) {
 		fprintf(stderr, "%s", BREAK_LINE);
@@ -118,6 +121,52 @@ void RunAligner(char *fastaFileName,
 
 	/* Free the Reference Genome */
 	RGBinaryDelete(&rg);
+
+	if(1 == timing) {
+		/* Output loading reference genome time */                        
+		seconds = totalReferenceGenomeTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Reference Genome loading time took: %d hours, %d minutes and %d seconds.\n"
+					,
+					hours,
+					minutes,
+					seconds
+				   );
+		}
+
+		/* Output aligning time */
+		seconds = totalAlignedTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Align time took: %d hours, %d minutes and %d seconds.\n",
+					hours,
+					minutes,
+					seconds
+				   );
+		}
+
+		/* Output file handling time */
+		seconds = totalFileHandlingTime;
+		hours = seconds/3600;
+		seconds -= hours*3600;
+		minutes = seconds/60;
+		seconds -= minutes*60;
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "File handling time took: %d hours, %d minutes and %d seconds.\n",
+					hours,
+					minutes,
+					seconds
+				   );
+
+		}
+	}
 }
 
 /* TODO */
@@ -186,7 +235,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	}
 	/* End file handling timer */
 	endTime = time(NULL);
-	(*totalFileHandlingTime) += endTime - startTime;
+	totalFileHandlingTime += endTime - startTime;
 
 	/* Calculate mismatch score */
 	/* Assumes all match scores are the same and all substitution scores are the same */

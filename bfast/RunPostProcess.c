@@ -25,7 +25,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int outputFormat,
 		char *outputID,
 		char *readGroup,
-		char *unmappedFileName)
+		char *unmappedFileName,
+		FILE *fpOut)
 {
 	char *FnName="ReadInputFilterAndOutput";
 	gzFile fp=NULL;
@@ -70,12 +71,12 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	/* Open output files, if necessary */
 	if(BAF == outputFormat) {
-		if(!(fpReportedGZ=gzdopen(fileno(stdout), "wb"))) {
+		if(!(fpReportedGZ=gzdopen(fileno(fpOut), "wb"))) {
 			PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 		}
 	}
 	else {
-		if(!(fpReported=fdopen(fileno(stdout), "wb"))) {
+		if(!(fpReported=fdopen(fileno(fpOut), "wb"))) {
 			PrintError(FnName, "stdout", "Could not open stdout for writing", Exit, OpenFileError);
 		}
 	}

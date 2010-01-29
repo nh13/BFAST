@@ -45,7 +45,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int outputFormat,
 		char *outputID,
 		char *readGroup,
-		char *unmappedFileName);
+		char *unmappedFileName,
+		FILE *fpOut);
 
 void *ReadInputFilterAndOutputThread(void*);
 

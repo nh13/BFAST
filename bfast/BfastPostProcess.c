@@ -114,7 +114,8 @@ BfastPostProcess(int argc, char **argv)
 							arguments.outputFormat,
 							arguments.outputID,
 							readGroup,
-							arguments.unmappedFileName);
+							arguments.unmappedFileName,
+							stdout);
 					if(BAF != arguments.outputFormat) {
 						/* Free rg binary */
 						RGBinaryDelete(&rg);
