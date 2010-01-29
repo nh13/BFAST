@@ -5,7 +5,7 @@
 #  or with explicit permission from, Nils Homer.
 
 AC_PREREQ(2.59);
-AC_INIT([bfast],[0.6.2b],[bfast-help@lists.sourceforge.net],[bfast])
+AC_INIT([bfast],[0.6.3a],[bfast-help@lists.sourceforge.net],[bfast])
 AC_COPYRIGHT([See LICENSE for copyright information.])
 AC_CONFIG_AUX_DIR(config)
 AM_INIT_AUTOMAKE([dist-bzip2])
