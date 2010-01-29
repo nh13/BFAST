@@ -14,6 +14,8 @@ whitespaces where converted to '_'.
 * Adding for reading .gz and .bz2 files in solid2fastq (C-version).
 Also, the ability to write to .gz and .bz2 files is supported.
 * Adding in the ability to read .gz and .bz2 files in 'bfast match'.
+* Fixed bug related to calculating the mapping quality.  This may 
+explain the high occurrence of 255 mapping qualities in the SAM output.
 
 Version 0.6.2a
 * Adding more optional tag fields to SAM output, most notably the 
