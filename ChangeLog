@@ -6,6 +6,9 @@ See COPYING for copying conditions.
 Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
 Version 0.6.3b
+* Added the 'bfast easyalign' command that will run bfast with the 
+default parameters ('bfast match', 'bfast localalign', and 
+'bfast postprocess').
 
 Version 0.6.3a
 * The mate's reference name is now set to "=" when it matches
