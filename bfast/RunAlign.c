@@ -19,7 +19,7 @@
 #include "aflib.h"
 #include "RunMatch.h"
 #include "RunLocalAlign.h"
-#include "RunPostprocess.h"
+#include "RunPostProcess.h"
 #include "RunAlign.h"
 
 /* TODO */
