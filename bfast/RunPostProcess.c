@@ -254,7 +254,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	}
 	for(i=0;i<aBufferLength;i++) {
 		numEntries[i] = NULL;
-		numEntries[i] = 0;
+		numEntriesN[i] = 0;
 	}
 
 	counter = numRead = 0;
