@@ -16,6 +16,8 @@ Also, the ability to write to .gz and .bz2 files is supported.
 * Adding in the ability to read .gz and .bz2 files in 'bfast match'.
 * Fixed bug related to calculating the mapping quality.  This may 
 explain the high occurrence of 255 mapping qualities in the SAM output.
+* Fixed a bug in the calculating the NH tag when using -a 3 in 
+'bfast postprocess'.
 
 Version 0.6.2a
 * Adding more optional tag fields to SAM output, most notably the 
