@@ -774,7 +774,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	/* NH - optional field */
 	if(0>fprintf(fp, "\tNH:i:%d",
-				(NULL == numOriginalEntries) ? ((entriesIndex < 0)?1:a->ends[endIndex].numEntries) : numOriginalEntries[endIndex])) {
+				(NULL == numOriginalEntries) ? ((entriesIndex < 0) ? 1:a->ends[endIndex].numEntries) : numOriginalEntries[endIndex])) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* IH - optional field */

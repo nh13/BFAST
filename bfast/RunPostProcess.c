@@ -270,15 +270,15 @@ void *ReadInputFilterAndOutputThread(void *arg)
 			}
 
 			// Store the original # of entries for SAM output
-			if(aBuffer[aBufferIndex].numEnds < numEntriesN[aBufferIndex]) {
+			if(numEntriesN[aBufferIndex] < aBuffer[aBufferIndex].numEnds) {
 				numEntriesN[aBufferIndex] = aBuffer[aBufferIndex].numEnds;
 				numEntries[aBufferIndex]=realloc(numEntries[aBufferIndex], sizeof(int32_t)*numEntriesN[aBufferIndex]);
 				if(NULL == numEntries[aBufferIndex]) {
 					PrintError(FnName, "numEntries[aBufferIndex]", "Could not reallocate memory", Exit, ReallocMemory);
 				}
-				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
-					numEntries[aBufferIndex][i] = aBuffer[aBufferIndex].ends[i].numEntries;
-				}
+			}
+			for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
+				numEntries[aBufferIndex][i] = aBuffer[aBufferIndex].ends[i].numEntries;
 			}
 
 			/* Filter */
