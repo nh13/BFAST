@@ -247,7 +247,7 @@ void
 BfastAlignGetOptHelp() {
 
 	struct argp_option *a=options;
-	fprintf(stderr, "\nUsage: bfast match [options]\n");
+	fprintf(stderr, "\nUsage: bfast easyalign [options]\n");
 	while((*a).group>0) {
 		switch((*a).key) {
 			case 0:
