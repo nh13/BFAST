@@ -402,7 +402,7 @@ void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual)
 		   fprintf(stderr, "%c -> %c\n%d -> %d\n", qual[i], (qual[i] <= 93 ? qual[i] : 93) + 33, qual[i], (qual[i] <= 93 ? qual[i] : 93) + 33);
 		   exit(1);
 		   */
-		qual[i] = 33 + (qual[i] <= 0 ? 1 : (qual[i] <= 93 ? qual[i] : 93));
+		qual[i] = 33 + (qual[i] <= 0 ? 0 : (qual[i] <= 93 ? qual[i] : 93));
 		read->qual[i] = (char)qual[i];
 	}
 
