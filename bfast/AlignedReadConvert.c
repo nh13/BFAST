@@ -659,12 +659,18 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				else {
 					/* How do we determine this? This does not make sense but for now
 					 * SAM requires it. For now we will take the average */
-					qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(a->ends[endIndex].qual[i-1])/-10.0, 
+					if(0 == CHAR2QUAL(a->ends[endIndex].qual[i-1]) ||
+							0 == CHAR2QUAL(a->ends[endIndex].qual[i])) {
+						qual[i] = 0; // Default to 0 even though we may be able to recover?
+					}
+					else {
+						qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(a->ends[endIndex].qual[i-1])/-10.0, 
 									CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
-					qual[i] = QUAL2CHAR(qual[i]);
+						qual[i] = QUAL2CHAR(qual[i]);
+					}
 				}
 				if(qual[i] <= 0) {
-					qual[i] = QUAL2CHAR(1);
+					qual[i] = QUAL2CHAR(0);
 				}
 				else if(qual[i] > 63) {
 					qual[i] = QUAL2CHAR(63);
