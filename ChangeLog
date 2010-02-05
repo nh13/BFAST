@@ -5,6 +5,11 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
+Version 0.6.3c
+* NM tag now fixed to include indels as edits.
+* MD tag was not considering leading matches when the read included 
+an indel.
+
 Version 0.6.3b
 * Added the 'bfast easyalign' command that will run bfast with the 
 default parameters ('bfast match', 'bfast localalign', and 
