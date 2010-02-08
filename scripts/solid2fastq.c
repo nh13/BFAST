@@ -23,7 +23,7 @@ typedef struct {
 
 AFILE *open_output_file(char*, int32_t, int32_t, int32_t);
 void fastq_print(fastq_t*, AFILE*);
-void fastq_read(fastq_t*, AFILE*, AFILE*);
+void fastq_read(fastq_t*, AFILE*, AFILE*, int32_t);
 int32_t cmp_read_names(char*, char*);
 void read_name_trim(char*);
 char *strtok_mod(char*, char*, int32_t*);
@@ -35,12 +35,13 @@ int print_usage ()
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Usage: solid2fastq [options] <list of .csfasta files> <list of .qual files>\n");
 	fprintf(stderr, "\t-c\t\tproduce no output.\n");
-	fprintf(stderr, "\t-n\t\tnumber of reads per file.\n");
-	fprintf(stderr, "\t-o\t\toutput prefix.\n");
+	fprintf(stderr, "\t-n\tINT\tnumber of reads per file.\n");
+	fprintf(stderr, "\t-o\tSTRING\toutput prefix.\n");
 	fprintf(stderr, "\t-j\t\tinput files are bzip2 compressed.\n");
 	fprintf(stderr, "\t-z\t\tinput files are gzip compressed.\n");
 	fprintf(stderr, "\t-J\t\toutput files are bzip2 compressed.\n");
 	fprintf(stderr, "\t-Z\t\toutput files are gzip compressed.\n");
+	fprintf(stderr, "\t-t\tINT\ttrim INT bases from the 3' end of the reads.\n");
 	fprintf(stderr, "\t-h\t\tprint this help message.\n");
 	fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
 	return 1;
@@ -64,6 +65,7 @@ int main(int argc, char *argv[])
 	int32_t output_suffix_number;
 	char c;
 	int32_t i, j;
+	int32_t trim_end = 0;
 	fastq_t *reads=NULL;
 	int32_t more_afps_left=1;
 	int64_t output_count=0;
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
 	char *min_read_name=NULL;
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:chjzJZ")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:t:chjzJZ")) >= 0) {
 		switch(c) {
 			case 'c':
 				no_output=1; break;
@@ -85,6 +87,8 @@ int main(int argc, char *argv[])
 			case 'o':
 				output_prefix=strdup(optarg); break;
 				break;
+			case 't':
+				trim_end=atoi(optarg); break;
 			case 'z':
 				in_comp=AFILE_GZ_COMPRESSION; break;
 			case 'J':
@@ -181,7 +185,7 @@ int main(int argc, char *argv[])
 			if(0 == reads[i].is_pop &&
 					NULL != afps_csfasta[i] &&
 					NULL != afps_qual[i]) {
-				fastq_read(&reads[i], afps_csfasta[i], afps_qual[i]); // Get read name
+				fastq_read(&reads[i], afps_csfasta[i], afps_qual[i], trim_end); // Get read name
 				if(0 == reads[i].is_pop) { // was not populated
 					//fprintf(stderr, "EOF\n");
 					AFILE_afclose(afps_csfasta[i]);
@@ -347,7 +351,7 @@ void fastq_print(fastq_t *read, AFILE *afp_output)
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
 }
 
-void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual)
+void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, int32_t trim_end)
 {
 	char *FnName="fastq_read";
 	char qual_name[SEQUENCE_NAME_LENGTH]="\0";
@@ -408,6 +412,15 @@ void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual)
 
 	// Trim last _R3 or _F3 or _whatever
 	read_name_trim(read->name);
+
+	// Trim last few colors
+	if(0 < trim_end) {
+		if(strlen(read->read) + 1 <= trim_end) {
+			PrintError(FnName, "-t", "Trimming all the colors", Exit, OutOfRange);
+		}
+		read->read[strlen(read->read)-trim_end]='\0';
+		read->qual[strlen(read->qual)-trim_end]='\0';
+	}
 
 	read->is_pop = 1;
 }
