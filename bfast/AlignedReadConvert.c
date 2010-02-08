@@ -473,7 +473,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	char qual[SEQUENCE_LENGTH]="\0";
 	char qualRC[SEQUENCE_LENGTH]="\0";
 	char colorError[SEQUENCE_LENGTH]="\0";
-	char MD[SEQUENCE_LENGTH]="*";
+	char MD[SEQUENCE_LENGTH]="\0";
 
 	/* Get mate end and mate index if they exist */
 	mateEndIndex=mateEntriesIndex=-1;
@@ -775,7 +775,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	/* NM - optional field */
-	if(0>fprintf(fp, "\tNM:i:%d", numEdits)) {
+	if(0 <= entriesIndex && 0>fprintf(fp, "\tNM:i:%d", numEdits)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* NH - optional field */
@@ -794,7 +794,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* MD - optional field */
-	if(0>fprintf(fp, "\tMD:Z:%s", MD)) {
+	if(0 <= entriesIndex && 0>fprintf(fp, "\tMD:Z:%s", MD)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 	}
 	/* CS, CQ and CM - optional fields */
