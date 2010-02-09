@@ -274,7 +274,7 @@ sub ValidateData {
 	ValidateOption($data->{'globalOptions'},       'outputID',                                 REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'numReadsPerFASTQ',                         REQUIRED);
 	die "Attribute matchSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
-	die "Attribute matchSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
+	die "Attribute localalignSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
 	die "Attribute matchSplit must be <= numReadsPerFASTQ\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'});
 	die "Attribute localalignSplit must be <= matchSplit\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'});
 
