@@ -599,7 +599,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
-		$cmd .= " -a ".$data->{'postprocessOptions'}->{'pairedEndInfer'}   if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
+		$cmd .= " -P " if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -r ".$data->{'postprocessOptions'}->{'readGroupFile'}.""   if defined($data->{'postprocessOptions'}->{'readGroupFile'});
