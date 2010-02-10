@@ -12,7 +12,7 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: ill2fastq.pl [-b <bar code length> -n <number of reads> -o <output prefix> -q -s] <input prefix>
+Usage: ill2fastq.pl [[ -b <bar code length> | -B ] -n <number of reads> -o <output prefix> -q -s] <input prefix>
 
 This script will convert Illumina output files (*qseq.txt or 
 *sequence files) to the BFAST fastq multi-end format.  For 
@@ -39,10 +39,15 @@ to create a paired end fastq file the first lane, the command
 should be:
 
 ill2fastq.pl s_1
+
+Using the -B option will try to determine the barcode length 
+automatically using some simple heuristics. This will be much
+slower because it makes several passes through the datafiles.
 };
+
 my $ROTATE_NUM = 100000;
 
-getopts('b:n:o:sq', \%opts);
+getopts('b:Cn:o:sqB', \%opts);
 die($usage) if (@ARGV < 1);
 
 my $num_reads = -1;
@@ -78,10 +83,19 @@ else {
 	die("Error.  The -q or -s option must be specified.  Terminating!\n");
 }
 
+if(defined($opts{'B'}) && defined($opts{'b'})) {
+	die("Error. Both -b and -B options were specified. Terminating!\n");
+}
+
+my $infer_barcode_length = 0;
+if(defined($opts{'B'})) {
+	$infer_barcode_length = 1;
+}
+
 my $barcode_length = 0;
 if(defined($opts{'b'})) {
 	$barcode_length = $opts{'b'};
-	die if ($barcode_length < 0);
+	die "barcode length is not a number. Terminating!\n" unless($barcode_length =~ /\d+/);
 }
 
 my $input_prefix = shift @ARGV;
@@ -102,6 +116,12 @@ elsif(0 < scalar(@files_two) && scalar(@files_one) != scalar(@files_two)) {
 # Sort the file names
 @files_one = sort @files_one;
 @files_two = sort @files_two;
+
+# If '-B' was specified. Try to figure out what the barcode length is
+if($infer_barcode_length) {
+	# Check every 1000th read.
+	$barcode_length = &infer_barcode_len(1000);
+}
 
 my $FH_index = 0;
 my $output_file_num = 1;
@@ -296,3 +316,77 @@ sub parse_qseq_line {
 
 	return ($name, $seq, $qual);
 }
+
+sub infer_barcode_len() {
+	my ($skip_reads) = @_;
+
+	my @reads; # collect sample reads;
+
+	my $seen_reads = 0;
+	my $barcode_length = 0; # required by get_read()
+	my $FH_index = 0;
+
+	if(0 == scalar(@files_two)) { # Single end
+		while($FH_index < scalar(@files_one)) {
+			open(FH_one, "$files_one[$FH_index]") || die;
+			my %read = ();
+			while(1 == get_read(*FH_one, \%read, $barcode_length, 1, $input_suffix_state)) {
+				$seen_reads++;
+				unless($seen_reads % $skip_reads) { # grab one read for every $skip_reads
+					push(@reads, $read{"SEQ"});
+				}
+				%read = ();
+			}
+			close(FH_one);
+			$FH_index++;
+		}
+	} else {                      # Paired end
+		while($FH_index < scalar(@files_one)) {
+			open(FH_one, "$files_one[$FH_index]") || die;
+			open(FH_two, "$files_two[$FH_index]") || die;
+			my %read_one = ();
+			my %read_two = ();
+
+			# Notice we pass '1' as the 4th argument -- we do not want get_read() to do a reverse
+			# compliment when trying to deterime the barcode.
+			while(1 == get_read(*FH_one, \%read_one, $barcode_length, 1, $input_suffix_state) &&
+				1 == get_read(*FH_two, \%read_two, $barcode_length, 1, $input_suffix_state)) {
+				if(0 != cmp_read_names($read_one{"NAME"}, $read_two{"NAME"})) {
+					print STDERR "".$read_one{"NAME"}."\t".$read_two{"NAME"}."\n";
+					die;
+				}
+				$seen_reads++;
+				unless($seen_reads % $skip_reads) {
+					push(@reads, $read_one{"SEQ"});
+					push(@reads, $read_two{"SEQ"});
+				}
+			}
+			close(FH_one);
+			close(FH_two);
+			$FH_index++;
+		}
+	}
+
+	# Once the reads have been sampled check the heuristic.
+	my $num_reads = scalar(@reads);
+
+	if($num_reads < 1000) {
+		die("Not enough reads to guess barcode length. Terminating!");
+	}
+
+	# barcodes are between 11 and 3 bases
+	for my $num_bc_bases (qw(10 9 8 7 6 5 4 3 2)) {
+		my $t_count = 0; # number of T's at given bp position accross the sample reads
+		for my $read (@reads) {
+			my @bases = split(//, $read);
+			$t_count++ if($bases[$num_bc_bases] =~ /([Tt])/);
+		}
+
+		if( ( $t_count / $num_reads) > 0.66) { # this is probably the barcode
+			return $num_bc_bases + 1;
+		}
+	}
+
+	return 0; # Doesn't seem to have a barcode.
+}
+
