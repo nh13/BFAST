@@ -94,7 +94,6 @@ int BfastBAFConvert(int argc, char *argv[])
 			outputType=BAF;
 			inputType=TextInput;
 			outputSubType=BinaryOutput;
-			strcat(fileExtension, "binary.");
 			strcat(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
 			break;
 		case 1:
@@ -136,7 +135,10 @@ int BfastBAFConvert(int argc, char *argv[])
 		last = StrStrGetLast(inputFileName,
 				BFAST_ALIGNED_FILE_EXTENSION);
 		if(NULL == last) {
-			PrintError(Name, inputFileName, "Could not recognize file extension", Exit, OutOfRange);
+			last = StrStrGetLast(inputFileName, "txt");
+			if(NULL == last) {
+				PrintError(Name, inputFileName, "Could not recognize file extension", Exit, OutOfRange);
+			}
 		}
 
 		outputFileName[0]='\0';

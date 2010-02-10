@@ -65,7 +65,6 @@ int BfastBMFConvert(int argc, char *argv[])
 			case 0:
 				binaryInput = TextInput;
 				binaryOutput = BinaryOutput;
-				strcat(fileExtension, "binary.");
 				strcat(fileExtension, BFAST_MATCHES_FILE_EXTENSION);
 				break;
 			case 1:
@@ -90,8 +89,11 @@ int BfastBMFConvert(int argc, char *argv[])
 		last = StrStrGetLast(inputFileName,
 				BFAST_MATCHES_FILE_EXTENSION);
 		if(NULL == last) {
-			PrintError(Name, inputFileName, "Could not recognize file extension", Exit, OutOfRange);		
-		} 		
+			last = StrStrGetLast(inputFileName, "txt");
+			if(NULL == last) {
+				PrintError(Name, inputFileName, "Could not recognize file extension", Exit, OutOfRange);		
+			} 		
+		}
 		outputFileName[0]='\0';
 		strncpy(outputFileName, inputFileName, (last - inputFileName));		
 		outputFileName[(last-inputFileName)]='\0';
