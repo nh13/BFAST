@@ -101,8 +101,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			outputType=BAF;
 			inputType=BinaryInput;
 			outputSubType=TextOutput;
-			strcat(fileExtension, "text.");
-			strcat(fileExtension, BFAST_ALIGNED_FILE_EXTENSION);
+			strcat(fileExtension, "txt");
 			break;
 		case 2:
 			outputType=MAF;

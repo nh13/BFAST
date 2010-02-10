@@ -71,8 +71,7 @@ int BfastBMFConvert(int argc, char *argv[])
 			case 1:
 				binaryInput = BinaryInput;
 				binaryOutput = TextOutput;
-				strcat(fileExtension, "text.");
-				strcat(fileExtension, BFAST_MATCHES_FILE_EXTENSION);
+				strcat(fileExtension, "txt");
 				break;
 			case 2:
 				binaryInput = BinaryInput;
