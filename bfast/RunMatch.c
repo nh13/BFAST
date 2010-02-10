@@ -900,7 +900,7 @@ int FindMatches(char **indexFileName,
 	(*totalOutputTime)+=endTime - startTime;
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rReads processed: %d", returnNumMatches);
+		fprintf(stderr, "\rReads processed: %d\n", returnNumMatches);
 	}
 
 	/* Free memory of the RGIndex */
