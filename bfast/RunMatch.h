@@ -16,11 +16,8 @@
 #include "BLibDefinitions.h"
 
 typedef struct {
-	gzFile tempRGMatchesFP;
-	pthread_mutex_t *outputFP_mutex;
-	gzFile outputFP;
-	int32_t outputOffsets;
-	int32_t *outputFP_threadID;
+	RGMatches *matchQueue;
+	int32_t matchQueueLength;
 	int32_t numThreads;
 	RGIndex *indexes;
 	int32_t numIndexes;
@@ -32,7 +29,7 @@ typedef struct {
 	int maxNumMatches;
 	int whichStrand;
 	int numMatches;
-	int queueLength;
+	int outputOffsets;
 	int threadID;
 } ThreadIndexData;
 
@@ -71,8 +68,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		gzFile *tempRGMatchesFPs,
-		char **tempRGMatchesFileNames,
+		gzFile *tmpSeqFP,
+		char **tmpSeqFileName,
 		gzFile outputFP,
 		int copyForNextSearch,
 		int indexesType,
@@ -94,8 +91,8 @@ int FindMatches(char **indexFileName,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		gzFile *tempRGMatchesFPs,
-		char **tempRGMatchesFileNames,
+		gzFile *tmpSeqFP,
+		char **tmpSeqFileName,
 		gzFile outputFP,
 		int outputOffsets,
 		char *tmpDir,

@@ -55,8 +55,8 @@ void RunMatch(
 	int32_t numOffsets=0;
 
 	AFILE *seqFP=NULL;
-	gzFile *tempRGMatchesFPs=NULL;
-	char **tempRGMatchesFileNames=NULL;
+	gzFile tmpSeqFP=NULL; // for secondary index search
+	char *tmpSeqFileName=NULL; // for secondary index search
 	gzFile outputFP;
 	int i;
 
@@ -135,19 +135,6 @@ void RunMatch(
 			PrintError(FnName, readFileName, "Could not open readFileName for reading", Exit, OpenFileError);
 		}
 	}
-	/* Allocate memory for the temp file pointers - one for each thread */
-	tempRGMatchesFPs=malloc(sizeof(gzFile)*numThreads);
-	if(NULL==tempRGMatchesFPs) {
-		PrintError(FnName, "tempRGMatchesFPs", "Could not allocate memory", Exit, MallocMemory);
-	}
-	tempRGMatchesFileNames=malloc(sizeof(char*)*numThreads);
-	if(NULL==tempRGMatchesFileNames) {
-		PrintError(FnName, "tempRGMatchesFileNames", "Could not allocate memory", Exit, MallocMemory);
-	}
-	for(i=0;i<numThreads;i++) {
-		tempRGMatchesFPs[i] = NULL;
-		tempRGMatchesFileNames[i] = NULL;
-	}
 	/* Read the reads to the thread temp files */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reading %s into temp files.\n",
@@ -155,11 +142,10 @@ void RunMatch(
 	}
 	/* This will close the reads file */
 	WriteReadsToTempFile(seqFP,
-			tempRGMatchesFPs,
-			tempRGMatchesFileNames,
+			&tmpSeqFP,
+			&tmpSeqFileName,
 			startReadNum,
 			endReadNum,
-			numThreads,
 			tmpDir,
 			&numReads,
 			space);
@@ -191,8 +177,8 @@ void RunMatch(
 			whichStrand,
 			numThreads,
 			queueLength,
-			tempRGMatchesFPs,
-			tempRGMatchesFileNames,
+			&tmpSeqFP,
+			&tmpSeqFileName,
 			outputFP,
 			(0 < numSecondaryIndexes)?CopyForNextSearch:EndSearch,
 			MainIndexes,
@@ -226,8 +212,8 @@ void RunMatch(
 					whichStrand,
 					numThreads,
 					queueLength,
-					tempRGMatchesFPs,
-					tempRGMatchesFileNames,
+					&tmpSeqFP,
+					&tmpSeqFileName,
 					outputFP,
 					EndSearch,
 					SecondaryIndexes,
@@ -239,29 +225,15 @@ void RunMatch(
 						);
 		}
 		else {
-			/* Output the reads not aligned and close the temporary read files */
-			for(i=0;i<numThreads;i++) {
-				/* Go to the beginning of the temp file */
-				ReopenTmpGZFile(&tempRGMatchesFPs[i], &tempRGMatchesFileNames[i]);
-
-				/* Initialize */
-				RGMatchesInitialize(&tempRGMatches);
-
-				/* Read in the reads */
-				while(EOF!=RGMatchesRead(tempRGMatchesFPs[i], &tempRGMatches)) {
-					/* Print the match to the output file */
-					RGMatchesPrint(outputFP,
-							&tempRGMatches);
-					/* Free the matches data structure */
-					RGMatchesFree(&tempRGMatches);
-				}
-
-				/* Close the temp file */
-				CloseTmpGZFile(&tempRGMatchesFPs[i],
-						&tempRGMatchesFileNames[i],
-						1);
+			// Output the reads not aligned and close the temporary read files
+			ReopenTmpGZFile(&tmpSeqFP, &tmpSeqFileName);
+			RGMatchesInitialize(&tempRGMatches);
+			while(EOF!=RGMatchesRead(tmpSeqFP, &tempRGMatches)) {
+				RGMatchesPrint(outputFP,
+						&tempRGMatches);
+				RGMatchesFree(&tempRGMatches);
 			}
-			/* Close the output file */
+			CloseTmpGZFile(&tmpSeqFP, &tmpSeqFileName, 1);
 			gzclose(outputFP);
 		}
 	}
@@ -296,9 +268,6 @@ void RunMatch(
 
 	/* Free offsets */
 	free(offsets);
-
-	free(tempRGMatchesFPs);
-	free(tempRGMatchesFileNames);
 
 	/* Print timing */
 	if(timing == 1) {
@@ -361,8 +330,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		gzFile *tempRGMatchesFPs,
-		char **tempRGMatchesFileNames,
+		gzFile *tmpSeqFP,
+		char **tmpSeqFileName,
 		gzFile outputFP,
 		int copyForNextSearch,
 		int indexesType,
@@ -454,8 +423,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 				whichStrand,
 				numThreads,
 				queueLength,
-				tempRGMatchesFPs,
-				tempRGMatchesFileNames,
+				tmpSeqFP,
+				tmpSeqFileName,
 				tempOutputFP,
 				0,
 				tmpDir,
@@ -499,8 +468,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 						whichStrand,
 						numThreads,
 						queueLength,
-						tempRGMatchesFPs,
-				tempRGMatchesFileNames,
+						tmpSeqFP,
+						tmpSeqFileName,
 						tempOutputIndexFPs[uniqueIndexCtr],
 						0,
 						tmpDir,
@@ -553,8 +522,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 							whichStrand,
 							numThreads,
 							queueLength,
-							tempRGMatchesFPs,
-				tempRGMatchesFileNames,
+							tmpSeqFP,
+							tmpSeqFileName,
 							tempOutputIndexBinFPs[uniqueIndexBinCtr],
 							1,
 							tmpDir,
@@ -668,10 +637,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 	}
 
 	/* Close the temporary read files */
-	for(i=0;i<numThreads;i++) {
-		/* Close temporary file */
-		CloseTmpGZFile(&(tempRGMatchesFPs[i]), &(tempRGMatchesFileNames[i]), 1);
-	}
+	CloseTmpGZFile(tmpSeqFP, tmpSeqFileName, 1);
 
 	if(CopyForNextSearch == copyForNextSearch) {
 		/* Go through the temporary output file and output those reads that have 
@@ -706,11 +672,10 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		 * searching the secondary indexes 
 		 * */
 		WriteReadsToTempFile(&tempRGMatchesAFP,
-				tempRGMatchesFPs,
-				tempRGMatchesFileNames,
+				tmpSeqFP,
+				tmpSeqFileName,
 				0,
 				INT_MAX,
-				numThreads,
 				tmpDir,
 				&numReads,
 				space);
@@ -757,8 +722,8 @@ int FindMatches(char **indexFileName,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		gzFile *tempRGMatchesFPs,
-		char **tempRGMatchesFileNames,
+		gzFile *tmpSeqFP,
+		char **tmpSeqFileName,
 		gzFile outputFP,
 		int outputOffsets,
 		char *tmpDir,
@@ -774,13 +739,11 @@ int FindMatches(char **indexFileName,
 	time_t startTime, endTime;
 	int errCode;
 	ThreadIndexData *data=NULL;
-	pthread_mutex_t outputFP_mutex;
-	int32_t outputFP_threadID=0;
 	pthread_t *threads=NULL;
 	void *status;
-
-	// Initialize mutex
-	pthread_mutex_init(&outputFP_mutex, NULL);
+	RGMatches *matchQueue=NULL;
+	int32_t matchQueueLength=queueLength;
+	int32_t returnNumMatches=0;
 
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
@@ -829,63 +792,105 @@ int FindMatches(char **indexFileName,
 	(*totalDataStructureTime)+=endTime - startTime;	
 
 	/* Set position to read from the beginning of the file */
-	for(i=0;i<numThreads;i++) {
-		ReopenTmpGZFile(&tempRGMatchesFPs[i], &tempRGMatchesFileNames[i]);
+	ReopenTmpGZFile(tmpSeqFP, tmpSeqFileName);
+
+	/* Allocate match queue */
+	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength); 
+	if(NULL == matchQueue) {
+		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
 
-	/* Execute */
+	/* Initialize match structures */
+	for(i=0;i<matchQueueLength;i++) {
+		RGMatchesInitialize(&matchQueue[i]);
+	}
+
+	/* For each read */
+	if(VERBOSE >= 0) {
+		fprintf(stderr, "0");
+	}
+
+	// Run
 	startTime = time(NULL);
-	/* Initialize arguments to threads */
-	for(i=0;i<numThreads;i++) {
-		// Set the output file
-		pthread_mutex_lock(&outputFP_mutex);
-		data[i].outputFP_mutex = &outputFP_mutex;
-		data[i].outputFP = outputFP;
-		data[i].outputOffsets = outputOffsets;
-		data[i].outputFP_threadID = &outputFP_threadID;
-		data[i].numThreads = numThreads;
-		pthread_mutex_unlock(&outputFP_mutex);
-		// Set the rest of the data
-		data[i].indexes = indexes;
-		data[i].numIndexes = numIndexes;
-		data[i].rg = rg;
-		data[i].offsets = offsets;
-		data[i].numOffsets = numOffsets;
-		data[i].space = space;
-		data[i].maxKeyMatches = maxKeyMatches;
-		data[i].maxNumMatches = maxNumMatches;
-		data[i].queueLength = queueLength;
-		data[i].whichStrand = whichStrand;
-		data[i].threadID = i;
-		data[i].tempRGMatchesFP = tempRGMatchesFPs[i];
-	}
+	while(0!=(numMatches = GetReads((*tmpSeqFP), matchQueue, matchQueueLength, space))) { // Read in data
+		endTime = time(NULL);
+		(*totalOutputTime)+=endTime - startTime;
 
-	/* Open threads */
-	for(i=0;i<numThreads;i++) {
-		/* Start thread */
-		errCode = pthread_create(&threads[i], /* thread struct */
-				NULL, /* default thread attributes */
-				FindMatchesThread, /* start routine */
-				&data[i]); /* data to routine */
-		if(0!=errCode) {
-			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
+		// Initialize arguments to threads 
+		for(i=0;i<numThreads;i++) {
+			data[i].matchQueue = matchQueue;
+			data[i].matchQueueLength = numMatches;
+			data[i].numThreads = numThreads;
+			data[i].indexes = indexes;
+			data[i].numIndexes = numIndexes;
+			data[i].rg = rg;
+			data[i].offsets = offsets;
+			data[i].numOffsets = numOffsets;
+			data[i].space = space;
+			data[i].maxKeyMatches = maxKeyMatches;
+			data[i].maxNumMatches = maxNumMatches;
+			data[i].whichStrand = whichStrand;
+			data[i].outputOffsets = outputOffsets;
+			data[i].threadID = i;
 		}
-	}
-	/* Wait for threads to return */
-	for(i=0;i<numThreads;i++) {
-		/* Wait for the given thread to return */
-		errCode = pthread_join(threads[i],
-				&status);
-		/* Check the return code of the thread */
-		if(0!=errCode) {
-			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
+		// Spawn threads
+		startTime = time(NULL);
+		/* Open threads */
+		for(i=0;i<numThreads;i++) {
+			/* Start thread */
+			errCode = pthread_create(&threads[i], /* thread struct */
+					NULL, /* default thread attributes */
+					FindMatchesThread, /* start routine */
+					&data[i]); /* data to routine */
+			if(0!=errCode) {
+				PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
+			}
 		}
-		numMatches += data[i].numMatches;
+		/* Wait for threads to return */
+		for(i=0;i<numThreads;i++) {
+			/* Wait for the given thread to return */
+			errCode = pthread_join(threads[i],
+					&status);
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
+			}
+			returnNumMatches += data[i].numMatches;
+		}
+		endTime = time(NULL);
+		(*totalSearchTime)+=endTime - startTime;
+
+		/* Output to file */
+		startTime = time(NULL);
+		for(i=0;i<numMatches;i++) {
+			if(0 == outputOffsets) {
+				RGMatchesPrint(outputFP, 
+						&matchQueue[i]);
+			}
+			else {
+				RGMatchesPrintWithOffsets(outputFP, 
+						&matchQueue[i]);
+			}
+		}
+		endTime = time(NULL);
+		(*totalOutputTime)+=endTime - startTime;
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\r%d", returnNumMatches); 
+		}
+
+		/* Free matches */
+		for(i=0;i<numMatches;i++) {
+			RGMatchesFree(&matchQueue[i]);
+		}
+
+		// For reading
+		startTime = time(NULL);
 	}
 	endTime = time(NULL);
-	(*totalSearchTime)+=endTime - startTime;
+	(*totalOutputTime)+=endTime - startTime;
+
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\n");
+		fprintf(stderr, "\r%d\n", returnNumMatches); 
 	}
 
 	/* Free memory of the RGIndex */
@@ -901,28 +906,27 @@ int FindMatches(char **indexFileName,
 	endTime = time(NULL);
 	(*totalDataStructureTime)+=endTime - startTime;	
 
+	// Free match queue
+	free(matchQueue);
+
 	/* Free thread data */
 	free(threads);
 	free(data);
 
-	return numMatches;
+	return returnNumMatches;
 }
 
 /* TODO */
 void *FindMatchesThread(void *arg)
 {
-	char *FnName="FindMatchesThread";
+	//char *FnName="FindMatchesThread";
 	int32_t i, j, k;
-	int numRead = 0;
 	int foundMatch = 0;
 	ThreadIndexData *data=(ThreadIndexData*)arg;
 	/* Function arguments */
-	pthread_mutex_t *outputFP_mutex = data->outputFP_mutex;
-	gzFile outputFP = data->outputFP;
-	int32_t outputOffsets = data->outputOffsets;
-	int32_t *outputFP_threadID = data->outputFP_threadID;
+	RGMatches *matchQueue = data->matchQueue;
+	int32_t matchQueueLength = data->matchQueueLength;
 	int32_t numThreads = data->numThreads; 
-	gzFile tempRGMatchesFP = data->tempRGMatchesFP;
 	RGIndex *indexes = data->indexes;
 	int32_t numIndexes = data->numIndexes;
 	RGBinary *rg = data->rg;
@@ -931,40 +935,13 @@ void *FindMatchesThread(void *arg)
 	int space = data->space;
 	int maxKeyMatches = data->maxKeyMatches;
 	int maxNumMatches = data->maxNumMatches;
-	int queueLength = data->queueLength;
 	int whichStrand = data->whichStrand;
+	int outputOffsets = data->outputOffsets;
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
-	RGMatches *matchQueue=NULL;
-	int32_t matchQueueLength=queueLength;
-	int32_t numMatches=0;
-
-	/* Allocate match queue */
-	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength); 
-	if(NULL == matchQueue) {
-		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
-	}
-
-	/* Initialize match structures */
 	for(i=0;i<matchQueueLength;i++) {
-		RGMatchesInitialize(&matchQueue[i]);
-	}
-
-	/* For each read */
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
-				threadID,
-				numRead);
-	}
-	while(0!=(numMatches = GetReads(tempRGMatchesFP, matchQueue, matchQueueLength, space))) {
-		for(i=0;i<numMatches;i++) {
-			numRead++;
-			if(VERBOSE >= 0 && numRead%FM_ROTATE_NUM==0) {
-				fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
-						threadID,
-						numRead);
-			}
+		if(threadID == (i % numThreads)) { 
 			/* Read */
 			foundMatch = 0;
 			for(j=0;j<matchQueue[i].numEnds;j++) {
@@ -1014,53 +991,9 @@ void *FindMatchesThread(void *arg)
 				//RGMatchesCheck(&matchQueue[i], rg);
 			}
 		}
-		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
-					threadID,
-					numRead);
-		}
 
-		/* Output to file */
-		do {
-			// Get output mutex
-			pthread_mutex_lock(outputFP_mutex);
-			if(threadID == (*outputFP_threadID)) {
-				for(i=0;i<numMatches;i++) {
-					if(0 == outputOffsets) {
-						RGMatchesPrint(outputFP, 
-								&matchQueue[i]);
-					}
-					else {
-						RGMatchesPrintWithOffsets(outputFP, 
-								&matchQueue[i]);
-					}
-				}
-				// Move to the next thread
-				(*outputFP_threadID) = ((1 + (*outputFP_threadID)) % numThreads);
-				pthread_mutex_unlock(outputFP_mutex);
-				break;
-			}
-			else {
-				pthread_mutex_unlock(outputFP_mutex);
-				// Sleep until we try the lock again
-				sleep(BFAST_MATCH_THREAD_SLEEP);
-			}
-		} while(1);
 
-		/* Free matches */
-		for(i=0;i<numMatches;i++) {
-			RGMatchesFree(&matchQueue[i]);
-		}
 	}
-
-	assert(0 == numMatches);
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthreadID:%d\tnumRead:[%d]",
-				threadID,
-				numRead);
-	}
-
-	free(matchQueue);
 
 	return arg;
 }

@@ -140,7 +140,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 
 /* For FindMatches.c */
 #define FM_ROTATE_NUM 10000
-#define DEFAULT_MATCHES_QUEUE_LENGTH 10000
+#define DEFAULT_MATCHES_QUEUE_LENGTH 250000
 
 #define NEGATIVE_INFINITY INT_MIN/16 /* cannot make this too small, otherwise we will not have numerical stability, i.e. become positive */
 #define VERY_NEGATIVE_INFINITY (INT_MIN/16)-1000 /* cannot make this too small, otherwise we will not have numerical stability, i.e. become positive */

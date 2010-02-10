@@ -9,7 +9,7 @@
 
 int WriteRead(FILE*, RGMatches*);
 int WriteReadAFILE(AFILE*, RGMatches*);
-void WriteReadsToTempFile(AFILE*, gzFile*, char**, int, int, int, char*, int*, int32_t);
+void WriteReadsToTempFile(AFILE*, gzFile*, char**, int, int, char*, int*, int32_t);
 int ReadTempReadsAndOutput(gzFile, char*, gzFile, AFILE*); 
 void ReadRGIndex(char*, RGIndex*, int);
 int GetIndexFileNames(char*, int32_t, char*, char***, int32_t***);

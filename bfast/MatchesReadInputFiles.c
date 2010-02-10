@@ -104,25 +104,20 @@ static void kseq_AppendToRGMatches(RGMatches *m,
 
 /* TODO */
 void WriteReadsToTempFile(AFILE *seqFP,
-		gzFile *tempRGMatchesFPs, /* One for each thread */ 
-		char **tempRGMatchesFileNames,
+		gzFile *tmpSeqFP, 
+		char **tmpSeqFileName,
 		int startReadNum, 
 		int endReadNum, 
-		int numThreads,
 		char *tmpDir,
 		int *numWritten,
 		int32_t space)
 {
-	int i;
-	int curSeqFPIndex=0;
 	int curReadNum = 1;
 	RGMatches m;
 	kseq_t *seq=NULL;
 
-	/* Open one temporary file, one for each thread */
-	for(i=0;i<numThreads;i++) {
-		tempRGMatchesFPs[i] = OpenTmpGZFile(tmpDir, &tempRGMatchesFileNames[i]);
-	}
+	// Open temporary file
+	(*tmpSeqFP) = OpenTmpGZFile(tmpDir, tmpSeqFileName);
 
 	seq = kseq_init(seqFP);
 	RGMatchesInitialize(&m);
@@ -137,8 +132,7 @@ void WriteReadsToTempFile(AFILE *seqFP,
 		else {
 			// print
 			if(startReadNum <= curReadNum && curReadNum <= endReadNum) {
-				curSeqFPIndex = (curReadNum-1)%numThreads;
-				RGMatchesPrint(tempRGMatchesFPs[curSeqFPIndex], &m);
+				RGMatchesPrint((*tmpSeqFP), &m);
 				(*numWritten)++;
 			}
 			curReadNum++;
@@ -151,8 +145,7 @@ void WriteReadsToTempFile(AFILE *seqFP,
 	}
 	if(0 < m.numEnds) {
 		if(startReadNum <= curReadNum && curReadNum <= endReadNum) {
-			curSeqFPIndex = (curReadNum-1)%numThreads;
-			RGMatchesPrint(tempRGMatchesFPs[curSeqFPIndex], &m);
+			RGMatchesPrint((*tmpSeqFP), &m);
 			(*numWritten)++;
 		}
 		curReadNum++;
@@ -162,9 +155,7 @@ void WriteReadsToTempFile(AFILE *seqFP,
 	}
 
 	/* reset pointer to temp files to the beginning of the file */
-	for(i=0;i<numThreads;i++) {
-		ReopenTmpGZFile(&tempRGMatchesFPs[i], &tempRGMatchesFileNames[i]);
-	}
+	ReopenTmpGZFile(tmpSeqFP, tmpSeqFileName);
 
 	// destroy
 	kseq_destroy(seq);
