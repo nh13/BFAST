@@ -17,6 +17,7 @@
 
 typedef struct {
 	RGMatches *matchQueue;
+	int32_t *matchQueueThreadIDs;
 	int32_t matchQueueLength;
 	int32_t numThreads;
 	RGIndex *indexes;

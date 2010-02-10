@@ -19,6 +19,8 @@
 #include "aflib.h"
 #include "RunMatch.h"
 
+static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* TODO */
 void RunMatch(
 		char *fastaFileName,
@@ -742,6 +744,7 @@ int FindMatches(char **indexFileName,
 	pthread_t *threads=NULL;
 	void *status;
 	RGMatches *matchQueue=NULL;
+	int32_t *matchQueueThreadIDs=NULL; // TODO: could make this more memory efficient
 	int32_t matchQueueLength=queueLength;
 	int32_t returnNumMatches=0;
 
@@ -799,15 +802,20 @@ int FindMatches(char **indexFileName,
 	if(NULL == matchQueue) {
 		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
+	matchQueueThreadIDs = malloc(sizeof(int32_t)*matchQueueLength); 
+	if(NULL == matchQueueThreadIDs) {
+		PrintError(FnName, "matchQueueThreadIDs", "Could not allocate memory", Exit, MallocMemory);
+	}
 
 	/* Initialize match structures */
 	for(i=0;i<matchQueueLength;i++) {
 		RGMatchesInitialize(&matchQueue[i]);
+		matchQueueThreadIDs[i] = -1;
 	}
 
 	/* For each read */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "0");
+		fprintf(stderr, "Reads processed: 0");
 	}
 
 	// Run
@@ -819,6 +827,7 @@ int FindMatches(char **indexFileName,
 		// Initialize arguments to threads 
 		for(i=0;i<numThreads;i++) {
 			data[i].matchQueue = matchQueue;
+			data[i].matchQueueThreadIDs = matchQueueThreadIDs;
 			data[i].matchQueueLength = numMatches;
 			data[i].numThreads = numThreads;
 			data[i].indexes = indexes;
@@ -875,12 +884,13 @@ int FindMatches(char **indexFileName,
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\r%d", returnNumMatches); 
+			fprintf(stderr, "\rReads processed: %d", returnNumMatches);
 		}
 
 		/* Free matches */
 		for(i=0;i<numMatches;i++) {
 			RGMatchesFree(&matchQueue[i]);
+			matchQueueThreadIDs[i] = -1;
 		}
 
 		// For reading
@@ -890,7 +900,7 @@ int FindMatches(char **indexFileName,
 	(*totalOutputTime)+=endTime - startTime;
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\r%d\n", returnNumMatches); 
+		fprintf(stderr, "\rReads processed: %d", returnNumMatches);
 	}
 
 	/* Free memory of the RGIndex */
@@ -908,6 +918,7 @@ int FindMatches(char **indexFileName,
 
 	// Free match queue
 	free(matchQueue);
+	free(matchQueueThreadIDs);
 
 	/* Free thread data */
 	free(threads);
@@ -920,11 +931,12 @@ int FindMatches(char **indexFileName,
 void *FindMatchesThread(void *arg)
 {
 	//char *FnName="FindMatchesThread";
-	int32_t i, j, k;
+	int32_t i, j, k, l;
 	int foundMatch = 0;
 	ThreadIndexData *data=(ThreadIndexData*)arg;
 	/* Function arguments */
 	RGMatches *matchQueue = data->matchQueue;
+	int32_t *matchQueueThreadIDs = data->matchQueueThreadIDs;
 	int32_t matchQueueLength = data->matchQueueLength;
 	int32_t numThreads = data->numThreads; 
 	RGIndex *indexes = data->indexes;
@@ -940,8 +952,28 @@ void *FindMatchesThread(void *arg)
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
-	for(i=0;i<matchQueueLength;i++) {
-		if(threadID == (i % numThreads)) { 
+	i=0;
+	while(i<matchQueueLength) {
+		if(1 < numThreads) {
+			pthread_mutex_lock(&matchQueueMutex);
+			if(matchQueueThreadIDs[i] < 0) {
+				// mark this block
+				for(j=i;j<matchQueueLength && j<i+BFAST_MATCH_THREAD_BLOCK_SIZE;j++) {
+					matchQueueThreadIDs[j] = threadID;
+				}
+			}
+			else if(matchQueueThreadIDs[i] != threadID) {
+				pthread_mutex_unlock(&matchQueueMutex);
+				i+=BFAST_MATCH_THREAD_BLOCK_SIZE;
+				// skip this block
+				continue;
+			}
+			pthread_mutex_unlock(&matchQueueMutex);
+		}
+
+		// Process the block
+		for(l=0;l<BFAST_MATCH_THREAD_BLOCK_SIZE && i<matchQueueLength;l++,i++) {
+			assert(numThreads <= 1 || matchQueueThreadIDs[i] == threadID); 
 			/* Read */
 			foundMatch = 0;
 			for(j=0;j<matchQueue[i].numEnds;j++) {
