@@ -30,7 +30,7 @@
 #include <string.h>
 #include <zlib.h>
 #include "bntseq.h"
-#include "main.h"
+//#include "main.h"
 #include "utils.h"
 
 #include "kseq.h"
