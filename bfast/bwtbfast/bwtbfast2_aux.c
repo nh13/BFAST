@@ -191,7 +191,7 @@ static inline int int_log2(uint32_t v)
 	return c;
 }
 
-void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t space, int32_t alg, int32_t seed_len, int32_t max_mm, int32_t max_hits, bfast2_stack_t *stack) 
+void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t space, int32_t alg, int32_t seed_len, int32_t max_mm, int32_t max_seed_hits, int32_t max_hits, bfast2_stack_t *stack) 
 {
 	char *fn_name="bfast2_match";
 	int i;
@@ -243,7 +243,7 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 		fprintf(stderr, "e.n_mm=%d e.next_i=%d e.k=%d e.l=%d e.offset=%d e.bases_used=%d\n",
 				e.n_mm, e.next_i, e.k, e.l, e.offset, e.bases_used);
 				*/
-		
+
 		if(max_mm < e.n_mm) break; // too many mismatches
 
 		// only report all matches with the same minimum # of mismatches
@@ -254,19 +254,24 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 		// only continue if there are more hits to be had or we have 
 		// reached the maximum # of hits and are beyond the best mm.
 		if(max_hits <= best_hits && best_n_mm < e.n_mm) break;
-		
-		if(seed_len == e.bases_used) {
-			// Found -> report
-			bfast2_rg_match_t_add(tmp_match, bwt, bns, space, seed_len, &e);
 
-			if(0 == alg) break; // only report the first match
-			if(best_n_mm < 0) best_n_mm = e.n_mm; // store the best number of mismatches
-			if(best_n_mm == e.n_mm) best_hits += e.l - e.k + 1;
+		if(seed_len == e.bases_used) {
+
+			// ignore uninformative seeds
+			if(e.l - e.k + 1 <= max_seed_hits) {
+
+				// Found -> report
+				bfast2_rg_match_t_add(tmp_match, bwt, bns, space, seed_len, &e);
+
+				if(0 == alg) break; // only report the first match
+				if(best_n_mm < 0) best_n_mm = e.n_mm; // store the best number of mismatches
+				if(best_n_mm == e.n_mm) best_hits += e.l - e.k + 1;
+			}
 		}
 		else if(0 <= e.next_i) { // bases left
-		
+
 			cur_base = (e.strand == FORWARD) ? match->read_int[e.next_i] : match->read_rc_int[e.next_i];
-			
+
 			if(0 == e.n_mm - max_mm) { // exact
 				if(4 != cur_base) { // no missing bases
 					bwt_2occ(bwt, e.k-1, e.l, cur_base, &k, &l);
@@ -343,6 +348,7 @@ void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, i
 		match->masks[i] = my_calloc(len, sizeof(char), fn_name);
 		memcpy(match->masks[i], e->mask, len);
 		i++;
+
 	}
 	match->num_entries = num_entries;
 }
