@@ -302,6 +302,8 @@ sub parse_qseq_line {
 	my $name = "@".$arr[0]."_".$arr[1]."_".$arr[2]."_".$arr[3]."_".$arr[4]."_".$arr[5]."_".$arr[6]."";
 	my $seq = $arr[8];
 
+	$seq =~ tr/\./N/; # 'bfast postprocess' bails on '.'
+
 	if(0 < $barcode_length) {
 		$name .= "_BC:".substr($seq, 0, $barcode_length)."";
 		$seq = substr($seq, $barcode_length);
