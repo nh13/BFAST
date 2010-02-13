@@ -6,7 +6,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <pthread.h>
-#include "config.h"
+#include <config.h>
 #include "BError.h"
 #include "BLibDefinitions.h"
 #include "util.h"
@@ -25,7 +25,7 @@
 #define THREAD_BLOCK_SIZE 102
 #endif
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 static pthread_mutex_t bfast_g_seq_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
@@ -213,7 +213,8 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		t = clock();
 
 		fprintf(stderr, "[bwtbfast2_core] matching... ");
-#ifdef HAVE_PTHREAD
+			
+#ifdef HAVE_LIBPTHREAD
 		if(n_threads <= 1) {
 			// no threads
 			bwtbfast2_core_worker(0, bwt, bns, n_matches, matches, space, 1, alg, seed_len, max_mm, max_hits);
@@ -272,7 +273,7 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 	gzclose(fp_out);
 }
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 void *bwtbfast2_thread_worker(void *data)
 {
 	bwtbfast2_thread_t *d = (bwtbfast2_thread_t*)data;
@@ -290,7 +291,7 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 	stack = bfast2_init_stack(max_mm);
 
 	for (i = 0; i != n_matches; ++i) {
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 		if(1 < n_threads) {
 			pthread_mutex_lock(&bfast_g_seq_lock);
 			if (matches[i].tid < 0) { // unassigned

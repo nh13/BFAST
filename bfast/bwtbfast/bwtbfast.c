@@ -22,7 +22,7 @@
 #define THREAD_BLOCK_SIZE 102
 #endif
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 static pthread_mutex_t bfast_g_seq_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
@@ -151,7 +151,7 @@ void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t sp
 		t = clock();
 
 		fprintf(stderr, "[bwtbfast_core] matching... ");
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 		if(n_threads <= 1) {
 			// no threads
 			bwtbfast_core_worker(0, bwt, bns, n_matches, matches, space, 1, masks, max_key_matches, max_num_matches);
@@ -209,7 +209,7 @@ void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t sp
 	gzclose(fp_out);
 }
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 void *bwtbfast_thread_worker(void *data)
 {
 	bwtbfast_thread_t *d = (bwtbfast_thread_t*)data;
@@ -225,7 +225,7 @@ void bwtbfast_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bfa
 	occ_results_t results_f, results_r;
 
 	for (i = 0; i != n_matches; ++i) {
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 		if(1 < n_threads) {
 			pthread_mutex_lock(&bfast_g_seq_lock);
 			if (matches[i].tid < 0) { // unassigned
