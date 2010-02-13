@@ -303,6 +303,10 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 	//char *fn_name="bwtbfast2_core_worker";
 	int32_t i, eff_max_mm=0;
 	bfast2_stack_t *stack=NULL;
+		
+	// set the mismatch rate
+	if(0 <= max_mm) eff_max_mm = max_mm;
+	else eff_max_mm = 1 + (int)(seed_len * max_mm_err_rate);
 
 	// TODO
 	stack = bfast2_init_stack(16);
@@ -322,10 +326,6 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 			pthread_mutex_unlock(&bfast_g_seq_lock);
 		}
 #endif
-		// set the mismatch rate
-		if(0 <= max_mm) eff_max_mm = max_mm;
-		else eff_max_mm = 1 + (int)(matches[i].read_int_length * max_mm_err_rate);
-
 		// bfast
 		bfast2_match(&matches[i],
 				bwt,
