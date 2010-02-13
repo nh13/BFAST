@@ -8,7 +8,7 @@
 #define BWTBFAST_QUEUE_LENGTH 10000
 #define BWTBFAST_THREAD_SLEEP 1
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 typedef struct {
 	int tid;
 	bwt_t *bwt;
@@ -27,7 +27,7 @@ typedef struct {
 int bwtbfast_usage(int32_t space, int32_t max_key_matches, int32_t max_num_matches, int32_t num_threads, int32_t queue_length);
 int bwtbfast(int argc, char *argv[]);
 void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t space, int32_t max_key_matches, int32_t max_num_matches, int32_t num_threads, int32_t queue_length);
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 void *bwtbfast_thread_worker(void *data);
 #endif
 void bwtbfast_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bfast_rg_match_t *matches, int32_t space, int n_threads, bfast_masks_t *masks, int32_t max_key_matches, int32_t max_num_matches);

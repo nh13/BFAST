@@ -10,7 +10,7 @@
 #include "bwtgap.h"
 #include "utils.h"
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 #define THREAD_BLOCK_SIZE 1024
 #include <pthread.h>
 static pthread_mutex_t g_seq_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -95,7 +95,7 @@ static void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq
 	w[0] = w[1] = 0;
 	for (i = 0; i != n_seqs; ++i) {
 		bwa_seq_t *p = seqs + i;
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 		if (opt->n_threads > 1) {
 			pthread_mutex_lock(&g_seq_lock);
 			if (p->tid < 0) { // unassigned
@@ -135,7 +135,7 @@ static void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq
 	gap_destroy_stack(stack);
 }
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 typedef struct {
 	int tid;
 	bwt_t *bwt[2];
@@ -178,7 +178,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
 		fprintf(stderr, "[bwa_aln_core] calculate SA coordinate... ");
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_LIBPTHREAD
 		if (opt->n_threads <= 1) { // no multi-threading at all
 			bwa_cal_sa_reg_gap(0, bwt, n_seqs, seqs, opt);
 		} else {
