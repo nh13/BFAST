@@ -74,7 +74,13 @@ int bwtindex(int argc, char *argv[])
 	if(space != NTSpace || space != ColorSpace) {
 		PrintError("bwtindex", "-A", "Option out of range", Exit, OutOfRange);
 	}
-	if (prefix == 0) prefix = strdup(argv[optind]);
+
+	// create the prefix
+	prefix = (char*)calloc(strlen(prefix) + 3, 1);
+	strcpy(prefix, argv[optind]);
+	strcat(prefix, ".");
+	strcat(prefix, SPACENAME(space));
+
 	str  = (char*)calloc(strlen(prefix) + 10, 1);
 	str2 = (char*)calloc(strlen(prefix) + 10, 1);
 	str3 = (char*)calloc(strlen(prefix) + 10, 1);
