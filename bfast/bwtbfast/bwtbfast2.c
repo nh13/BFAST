@@ -197,7 +197,6 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		char prefix[1024]="\0";
 		strcpy(prefix, ref_fn); 
 		strcat(prefix, "."); strcat(prefix, SPACENAME(space));
-		fprintf(stderr, "prefix=%s\n", prefix);
 		strcpy(str, prefix); strcat(str, ".bwt");
 		bwt = bwt_restore_bwt(str);
 		// load BNS
