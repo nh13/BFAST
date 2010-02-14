@@ -364,11 +364,20 @@ void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, i
 	}
 	if(0 < n_skipped) {
 		num_entries -= n_skipped;
-		// reallocate memory
-		match->contigs = my_realloc(match->contigs, sizeof(uint32_t)*num_entries, fn_name);
-		match->positions = my_realloc(match->positions, sizeof(int32_t)*num_entries, fn_name);
-		match->strands = my_realloc(match->strands, sizeof(char)*num_entries, fn_name);
-		match->masks = my_realloc(match->masks, sizeof(char*)*num_entries, fn_name);
+		if(0 == num_entries) {
+			// free memory
+			free(match->contigs); match->contigs=NULL;
+			free(match->positions); match->positions=NULL;
+			free(match->strands); match->strands=NULL;
+			free(match->masks); match->masks=NULL;
+		}
+		else {
+			// reallocate memory
+			match->contigs = my_realloc(match->contigs, sizeof(uint32_t)*num_entries, fn_name);
+			match->positions = my_realloc(match->positions, sizeof(int32_t)*num_entries, fn_name);
+			match->strands = my_realloc(match->strands, sizeof(char)*num_entries, fn_name);
+			match->masks = my_realloc(match->masks, sizeof(char*)*num_entries, fn_name);
+		}
 	}
 	match->num_entries = num_entries;
 }
