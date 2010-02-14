@@ -37,6 +37,11 @@ bfast_SOURCES = \
 				BfastBMFConvert.c \
 				BfastBRG2Fasta.c \
 				BfastAlign.c BfastAlign.h \
+				bwtbfast/bwtindex.c \
+				bwtbfast/bwt_gen.c bwtbfast/bwt_gen.h \
+				bwtbfast/QSufSort.c bwtbfast/QSufSort.h \
+				bwtbfast/is.c \
+				bwtbfast/bwtmisc.c \
 				bwtbfast/bwaseqio.c \
 				bwtbfast/bwtio.c \
 				bwtbfast/utils.c bwtbfast/utils.h \
