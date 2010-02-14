@@ -22,6 +22,8 @@ the L and R values from ungapped local alignment. How much will this buy us?
 bwtbfast2
 - update the manual to include a description including pre-requisites (i.e. 
 build the index with BWA).
+- add "-t" option.
+- add "-p" option.
 ===============================================================================
 
 ===============================================================================
