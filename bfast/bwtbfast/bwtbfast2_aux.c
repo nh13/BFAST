@@ -240,9 +240,9 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 		bfast2_pop(stack, &e); 
 
 		/*
-		fprintf(stderr, "e.n_mm=%d e.next_i=%d e.k=%d e.l=%d e.offset=%d e.bases_used=%d\n",
-				e.n_mm, e.next_i, e.k, e.l, e.offset, e.bases_used);
-				*/
+		   fprintf(stderr, "e.n_mm=%d e.next_i=%d e.k=%d e.l=%d e.offset=%d e.bases_used=%d\n",
+		   e.n_mm, e.next_i, e.k, e.l, e.offset, e.bases_used);
+		   */
 
 		if(max_mm < e.n_mm) break; // too many mismatches
 
@@ -310,6 +310,7 @@ void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, i
 	int32_t num_entries;
 	bwtint_t pos;
 	int seqid;
+	int32_t n_skipped=0;
 
 	if(e->l < e->k) return; // control should not reach here
 
@@ -333,6 +334,15 @@ void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, i
 		pos = bwt_sa(bwt, j);
 		bns_coor_pac2real(bns, pos, 1, &seqid);
 
+		// corner case checking
+		{
+			// check if hit spans two sequences
+			if(bns->anns[seqid].len < pos + seed_len + e->n_mm) {
+				n_skipped++;
+				continue;
+			}
+		}
+
 		//contig
 		match->contigs[i] = seqid+1;
 		// position
@@ -347,8 +357,18 @@ void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, i
 		// mask
 		match->masks[i] = my_calloc(len, sizeof(char), fn_name);
 		memcpy(match->masks[i], e->mask, len);
+
+
 		i++;
 
+	}
+	if(0 < n_skipped) {
+		num_entries -= n_skipped;
+		// reallocate memory
+		match->contigs = my_realloc(match->contigs, sizeof(uint32_t)*num_entries, fn_name);
+		match->positions = my_realloc(match->positions, sizeof(int32_t)*num_entries, fn_name);
+		match->strands = my_realloc(match->strands, sizeof(char)*num_entries, fn_name);
+		match->masks = my_realloc(match->masks, sizeof(char*)*num_entries, fn_name);
 	}
 	match->num_entries = num_entries;
 }

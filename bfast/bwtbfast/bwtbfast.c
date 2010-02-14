@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include "config.h"
 #include "BError.h"
+#include "BLibDefinitions.h"
 #include "bwt.h"
 #include "util.h"
 #include "aflib.h"
@@ -29,7 +30,7 @@ static pthread_mutex_t bfast_g_seq_lock = PTHREAD_MUTEX_INITIALIZER;
 int bwtbfast_usage(int32_t space, int32_t max_key_matches, int32_t max_num_matches, int32_t num_threads, int32_t queue_length)
 {
 	fprintf(stderr, "\nUsage:%s %s [options]\n", PACKAGE_NAME, Name);
-	fprintf(stderr, "\t-f\t\tSpecifies the file name of the FASTA reference genome (or prefix)\n");
+	fprintf(stderr, "\t-f\t\tSpecifies the file name of the FASTA reference genome\n");
 	fprintf(stderr, "\t-r\t\tread file name\n");
 	fprintf(stderr, "\t-m\t\tbfast mask\n");
 	fprintf(stderr, "\t-A\t\tspace (0: NT space 1: Color space) [%d]\n", space);
@@ -138,12 +139,16 @@ void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t sp
 
 	{ 
 		// load BWT
-		char str[1024];
-		strcpy(str, ref_fn); strcat(str, ".bwt"); bwt = bwt_restore_bwt(str);
+		char str[1024]="\0";
+		char prefix[1024]="\0";
+		strcpy(prefix, ref_fn); 
+		strcat(prefix, "."); strcat(prefix, SPACENAME(space));
+		strcpy(str, prefix); strcat(str, ".bwt");
+		bwt = bwt_restore_bwt(str);
 		// load BNS
-		bns = bns_restore(ref_fn);
+		bns = bns_restore(prefix);
 		// load SA
-		strcpy(str, ref_fn); strcat(str, ".sa"); bwt_restore_sa(str, bwt);
+		strcpy(str, prefix); strcat(str, ".sa"); bwt_restore_sa(str, bwt);
 	}
 
 	while ((matches = bfast_rg_match_read(ks, queue_length, &n_matches, space, 0)) != 0) {

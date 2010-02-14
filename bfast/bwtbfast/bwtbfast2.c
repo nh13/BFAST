@@ -33,7 +33,7 @@ int bwtbfast2_usage(int32_t alg, int32_t space, int32_t seed_len, int32_t max_mm
 {
 	fprintf(stderr, "\nUsage:%s %s [options]\n", PACKAGE_NAME, Name);
 	fprintf(stderr, "\n=========== Input Files =============================================================\n");
-	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome (or prefix)\n");
+	fprintf(stderr, "\t-f\tFILE\tSpecifies the file name of the FASTA reference genome\n");
 	fprintf(stderr, "\t-r\tFILE\tread file name\n");
 	fprintf(stderr, "\t-j\t\tSpecifies that the input reads are bz2 compressed (bzip2)\n");
 	fprintf(stderr, "\t-z\t\tSpecifies that the input reads are gz compressed (gzip)\n");
@@ -193,12 +193,17 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 	if(NULL == fp_out) PrintError(fn_name, "stdout", "Coult not open for writing", Exit, OpenFileError);
 	{ 
 		// load BWT
-		char str[1024];
-		strcpy(str, ref_fn); strcat(str, ".bwt"); bwt = bwt_restore_bwt(str);
+		char str[1024]="\0";
+		char prefix[1024]="\0";
+		strcpy(prefix, ref_fn); 
+		strcat(prefix, "."); strcat(prefix, SPACENAME(space));
+		fprintf(stderr, "prefix=%s\n", prefix);
+		strcpy(str, prefix); strcat(str, ".bwt");
+		bwt = bwt_restore_bwt(str);
 		// load BNS
-		bns = bns_restore(ref_fn);
+		bns = bns_restore(prefix);
 		// load SA
-		strcpy(str, ref_fn); strcat(str, ".sa"); bwt_restore_sa(str, bwt);
+		strcpy(str, prefix); strcat(str, ".sa"); bwt_restore_sa(str, bwt);
 	}
 
 	// Skip over start_num_reads

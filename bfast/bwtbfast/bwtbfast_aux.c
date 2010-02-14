@@ -85,11 +85,20 @@ void bfast_rg_match_t_copy_results(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t
 	s = my_malloc(sizeof(char)*n, fn_name);
 
 	// copy over c/p/s
+	int32_t n_skipped = 0;
 	ctr=0;
 	for(i=0;i<results_f->n;i++) {
 		for(j=results_f->r_l[i];j<=results_f->r_u[i];j++) {
 			pos = bwt_sa(bwt, j);
 			bns_coor_pac2real(bns, pos, 1, &seqid); // third argument ?
+			// corner case checking
+			{
+				// check if hit spans two sequences
+				if(bns->anns[seqid].len < pos + bfast_mask->l) {
+					n_skipped++;
+					continue;
+				}
+			}
 			c[ctr] = seqid+1; 
 			p[ctr] = pos - bns->anns[seqid].offset + 1;
 			p[ctr] -= offset;
@@ -101,12 +110,28 @@ void bfast_rg_match_t_copy_results(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t
 		for(j=results_r->r_l[i];j<=results_r->r_u[i];j++) {
 			pos = bwt_sa(bwt, j);
 			bns_coor_pac2real(bns, pos, 1, &seqid); // third argument ?
+			// corner case checking
+			{
+				// check if hit spans two sequences
+				if(bns->anns[seqid].len < pos + bfast_mask->l) {
+					n_skipped++;
+					continue;
+				}
+			}
 			c[ctr] = seqid+1;
 			p[ctr] = pos - bns->anns[seqid].offset + 1;
 			p[ctr] += bfast_mask->l + offset - match->read_length;
 			s[ctr]=REVERSE;
 			ctr++;
 		}
+	}
+
+	if(0 < n_skipped) {
+		n-=n_skipped;
+		// reallocate
+		c = my_realloc(c, sizeof(uint8_t)*n, fn_name);
+		p = my_realloc(p, sizeof(uint32_t)*n, fn_name);
+		s = my_realloc(s, sizeof(char)*n, fn_name);
 	}
 
 	if(1 < n) {
