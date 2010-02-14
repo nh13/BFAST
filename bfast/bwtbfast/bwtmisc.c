@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include "bntseq.h"
 #include "utils.h"
-#include "main.h"
+//#include "main.h"
 #include "bwt.h"
 
 #ifdef _DIVBWT

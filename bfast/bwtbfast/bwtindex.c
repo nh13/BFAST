@@ -35,7 +35,7 @@
 #include "BError.h"
 #include "bntseq.h"
 #include "bwt.h"
-#include "main.h"
+//#include "main.h"
 #include "utils.h"
 
 bwt_t *bwt_pac2bwt(const char *fn_pac, int use_is);
