@@ -39,8 +39,10 @@ int bwtbfast2_usage(int32_t alg, int32_t space, int32_t seed_len, int32_t max_mm
 	fprintf(stderr, "\t-z\t\tSpecifies that the input reads are gz compressed (gzip)\n");
 	fprintf(stderr, "\n=========== Algorithm Options =======================================================\n");
 	fprintf(stderr, "\t-A\tINT\tspace (0: NT space 1: Color space) [%d]\n", space);
+	/*
 	fprintf(stderr, "\t-s\tINT\tSpecifies the read to begin with (skip the first startReadNum-1 reads)\n");
 	fprintf(stderr, "\t-e\tINT\tSpecifies the last read to use (inclusive)\n");
+	*/
 	fprintf(stderr, "\t-a\tINT\talgorithm mode 0: first 1: all min mm 2: all min mm+1 3: all [%d]\n", alg);
 	fprintf(stderr, "\t-l\tINT\tseed length [%d]\n", seed_len);
 	fprintf(stderr, "\t-m\tNUM\tmaximum number of mismatches [%d] or error rate [%lf]\n", 
@@ -84,7 +86,8 @@ int bwtbfast2(int argc, char *argv[])
 	int32_t queue_length = 0x40000;
 
 	// Get parameters
-	while((c = getopt(argc, argv, "a:e:f:l:m:n:r:s:A:Q:K:M:hjz")) >= 0) {
+	//while((c = getopt(argc, argv, "a:e:f:l:m:n:r:s:A:Q:K:M:hjz")) >= 0) { // includes s & e
+	while((c = getopt(argc, argv, "a:f:l:m:n:r:A:Q:K:M:hjz")) >= 0) {
 		switch(c) {
 			case 'a': alg=atoi(optarg); break;
 			case 'f': ref_fn=strdup(optarg); break;
@@ -98,8 +101,8 @@ int bwtbfast2(int argc, char *argv[])
 			case 'j': compression=AFILE_BZ2_COMPRESSION; break;
 			case 'z': compression=AFILE_GZ_COMPRESSION; break;
 			case 'A': space=atoi(optarg); break;
-			case 's': start_read_num=atoi(optarg); break;
-			case 'e': end_read_num=atoi(optarg); break;
+			//case 's': start_read_num=atoi(optarg); break;
+			//case 'e': end_read_num=atoi(optarg); break;
 			case 'K': max_seed_hits=atoi(optarg); break;
 			case 'M': max_hits=atoi(optarg); break;
 			case 'Q': queue_length=atoi(optarg); break;
@@ -197,7 +200,6 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		char prefix[1024]="\0";
 		strcpy(prefix, ref_fn); 
 		strcat(prefix, "."); strcat(prefix, SPACENAME(space));
-		fprintf(stderr, "prefix=%s\n", prefix);
 		strcpy(str, prefix); strcat(str, ".bwt");
 		bwt = bwt_restore_bwt(str);
 		// load BNS
@@ -207,6 +209,7 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 	}
 
 	// Skip over start_num_reads
+	/*
 	if(1 < start_read_num) {
 		fprintf(stderr, "[bwtbfast2_core] skipping over %d reads... ", start_read_num);
 		t = clock();
@@ -224,6 +227,7 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		}
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
 	}
+	*/
 	n_matches_left = end_read_num - start_read_num + 1;
 
 	tot_matches = 0;
