@@ -301,6 +301,7 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 
 	// destroy
 	bfast_rg_match_t_destroy(tmp_match);
+	free(tmp_match);
 }
 
 void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t space, int32_t seed_len, bfast2_entry_t *e)
