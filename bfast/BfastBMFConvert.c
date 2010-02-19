@@ -6,6 +6,7 @@
 #include <config.h>
 #include <unistd.h>
 
+#include "AlignedReadConvert.h"
 #include "RGMatches.h"
 #include "BLibDefinitions.h"
 #include "BError.h"
@@ -24,7 +25,10 @@ int BfastBMFConvertUsage()
 		fprintf(stderr, "\t-O\t\toutput type:\n"
 				"\t\t\t\t0-BMF text to BMF binary\n"
 				"\t\t\t\t1-BMF binary to BMF text\n"
-				"\t\t\t\t2-BMF binary to FASTQ\n");
+				"\t\t\t\t2-BMF binary to FASTQ\n"
+				"\t\t\t\t3-BMF binary to SAM (simplified)\n");
+		fprintf(stderr, "\t-f\t\tSpecifies the file name of the FASTA reference genome\n");
+		fprintf(stderr, "\t-A\t\t0: NT space 1: Color space\n");
 		fprintf(stderr, "\t-h\t\tprints this help message\n");
 		fprintf(stderr, "\nsend bugs to %s\n",
 				PACKAGE_BUGREPORT);
@@ -40,20 +44,28 @@ int BfastBMFConvert(int argc, char *argv[])
 	long long int counter;
 	char *inputFileName=NULL;
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
+	char fastaFileName[MAX_FILENAME_LENGTH]="\0";
 	int outputType = 1;
-	int c, argnum;
+	int c, argnum, space;
 	char *last;
 	RGMatches m;
+	RGBinary rg;
 	char fileExtension[256]="\0";
 
 	// Get parameters
-	while((c = getopt(argc, argv, "O:h")) >= 0) {
+	while((c = getopt(argc, argv, "f:A:O:h")) >= 0) {
 		switch(c) {
+			case 'f': strcpy(fastaFileName, optarg); break;
+			case 'A': space=atoi(optarg); break;
 			case 'O': outputType=atoi(optarg); break;
 			case 'h':
 					  BfastBMFConvertUsage(); return 1;
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
+	}
+
+	if(NTSpace != space && ColorSpace != space) {
+		PrintError(Name, "-A", "Out of Range", Exit, OutOfRange);
 	}
 
 	if(argc == optind) {
@@ -75,6 +87,12 @@ int BfastBMFConvert(int argc, char *argv[])
 			case 2:
 				binaryInput = BinaryInput;
 				strcat(fileExtension, BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION);
+				break;
+			case 3:
+				binaryInput = BinaryInput;
+				binaryOutput = TextOutput;
+				strcat(fileExtension, BFAST_SAM_FILE_EXTENSION);
+				RGBinaryReadBinary(&rg, NTSpace, fastaFileName);
 				break;
 			default:
 				PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);		
@@ -121,6 +139,11 @@ int BfastBMFConvert(int argc, char *argv[])
 				PrintError(Name, outputFileName, "Could not open file for writing", Exit, OpenFileError);			
 			}		
 		}	
+
+		if(3 == outputType) {
+			AlignedReadConvertPrintHeader(fpOut, &rg, SAM, NULL); // TODO: should move this function to BLib.c
+		}
+
 		/* Initialize */
 		RGMatchesInitialize(&m);
 		counter = 0;
@@ -145,6 +168,9 @@ int BfastBMFConvert(int argc, char *argv[])
 				case 2:
 					RGMatchesPrintFastq(fpOut, &m);
 					break;
+				case 3:
+					RGMatchesPrintSAM(fpOut, &rg, space, &m);
+					break;
 				default:
 					PrintError(Name, NULL, "Could not understand output type", Exit, OutOfRange);		
 			}		
@@ -167,6 +193,10 @@ int BfastBMFConvert(int argc, char *argv[])
 			gzclose(fpOutGZ);
 		}
 		free(inputFileName);
+	}
+
+	if(3 == outputType) {
+		RGBinaryDelete(&rg);
 	}
 
 	fprintf(stderr, "Terminating successfully!\n");
