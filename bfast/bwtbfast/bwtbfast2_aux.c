@@ -253,7 +253,12 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 
 		// only continue if there are more hits to be had or we have 
 		// reached the maximum # of hits and are beyond the best mm.
-		if(max_hits <= best_hits && best_n_mm < e.n_mm) break;
+		if(max_hits <= best_hits && best_n_mm < e.n_mm) {
+			// merge duplicates to check if we have too many hits
+			bfast2_rg_match_t_merge_duplicates(tmp_match);
+			best_hits = tmp_match->num_entries;
+			if(max_hits <= best_hits) break;
+		}
 
 		if(seed_len == e.bases_used) {
 
@@ -298,6 +303,9 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 
 	// add tmp match
 	bfast_rg_match_t_append(match, tmp_match);
+
+	// remove duplicates
+	bfast2_rg_match_t_merge_duplicates(match);
 
 	// destroy
 	bfast_rg_match_t_destroy(tmp_match);

@@ -347,9 +347,6 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 				max_hits,
 				stack);
 
-		// remove duplicates
-		bfast2_rg_match_t_merge_duplicates(&matches[i]);
-
 		// free -> we don't need these anymore
 		free(matches[i].read_int); matches[i].read_int = NULL;
 		free(matches[i].read_rc_int); matches[i].read_rc_int = NULL;
