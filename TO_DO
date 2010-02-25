@@ -3,6 +3,11 @@ General
 ===============================================================================
 
 ===============================================================================
+bfast bmfconvert
+- document support for bmf2sam.
+===============================================================================
+
+===============================================================================
 match
 - check the implicit file names against the actual content of the indexes when
 read.
@@ -16,6 +21,14 @@ constrains, where L is the unconstrained left side of the read, C be the
 constrained middle portion of the read, and R be the unconstrained right portion
 of the read.  We can get bounds on L and R for gapped local alignment by using 
 the L and R values from ungapped local alignment. How much will this buy us?
+===============================================================================
+
+===============================================================================
+bwtbfast2
+- update the manual to include a description including pre-requisites (i.e. 
+build the index with BWA).
+- add "-t" option.
+- add "-p" option.
 ===============================================================================
 
 ===============================================================================

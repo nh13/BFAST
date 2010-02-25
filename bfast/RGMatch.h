@@ -10,6 +10,7 @@ int32_t RGMatchReadText(FILE*, RGMatch*);
 void RGMatchPrint(gzFile, RGMatch*);
 void RGMatchPrintText(FILE*, RGMatch*);
 void RGMatchPrintFastq(FILE*, char*, RGMatch*);
+void RGMatchPrintSAM(FILE*, char*, int32_t, RGBinary *rg, int32_t, RGMatch*);
 void RGMatchRemoveDuplicates(RGMatch*, int32_t);
 void RGMatchQuickSort(RGMatch*, int32_t, int32_t);
 void RGMatchShellSort(RGMatch*, int32_t, int32_t);

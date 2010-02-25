@@ -229,6 +229,24 @@ void RGMatchesPrintFastq(FILE *fp,
 	}
 }
 
+void RGMatchesPrintSAM(FILE *fp,
+		RGBinary *rg,
+		int32_t space,
+		RGMatches *m)
+{
+	int32_t i;
+	assert(fp!=NULL);
+
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchPrintSAM(fp,
+				m->readName,
+				i,
+				rg,
+				space,
+				&m->ends[i]);
+	}
+}
+
 /* TODO */
 void RGMatchesRemoveDuplicates(RGMatches *m,
 		int32_t maxNumMatches)
