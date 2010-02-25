@@ -12,6 +12,7 @@ void RGMatchesPrint(gzFile, RGMatches*);
 void RGMatchesPrintWithOffsets(gzFile, RGMatches*);
 void RGMatchesPrintText(FILE*, RGMatches*);
 void RGMatchesPrintFastq(FILE*, RGMatches*);
+void RGMatchesPrintSAM(FILE*, RGBinary*, int32_t, RGMatches*);
 void RGMatchesRemoveDuplicates(RGMatches*, int32_t);
 int32_t RGMatchesMergeFilesAndOutput(gzFile*, int32_t, gzFile, int32_t);
 int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(gzFile*, int32_t, gzFile);
