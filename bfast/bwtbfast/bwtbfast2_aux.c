@@ -199,7 +199,6 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 	uint8_t cur_base;
 	bwtint_t cntk[4], cntl[4];
 	int32_t best_n_mm=-1;
-	int32_t best_hits=0;
 
 	assert(match->read_int_length <= BWTBFAST2_AUX_MASK_BYTES*8);
 
@@ -243,7 +242,6 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 		   fprintf(stderr, "e.n_mm=%d e.next_i=%d e.k=%d e.l=%d e.offset=%d e.bases_used=%d\n",
 		   e.n_mm, e.next_i, e.k, e.l, e.offset, e.bases_used);
 		   */
-
 		if(max_mm < e.n_mm) break; // too many mismatches
 
 		// only report all matches with the same minimum # of mismatches
@@ -253,24 +251,28 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 
 		// only continue if there are more hits to be had or we have 
 		// reached the maximum # of hits and are beyond the best mm.
-		if(max_hits <= best_hits && best_n_mm < e.n_mm) {
-			// merge duplicates to check if we have too many hits
-			bfast2_rg_match_t_merge_duplicates(tmp_match);
-			best_hits = tmp_match->num_entries;
-			if(max_hits <= best_hits) break;
+		if(0 < max_hits && max_hits < tmp_match->num_entries) {
+				// clear and set that the max has been reached
+				bfast_rg_match_t_clear(tmp_match);
+				tmp_match->max_reached = 1;
+				break;
 		}
 
 		if(seed_len == e.bases_used) {
-
 			// ignore uninformative seeds
-			if(e.l - e.k + 1 <= max_seed_hits) {
+			if(max_seed_hits < 0 || e.l - e.k + 1 <= max_seed_hits) {
+
+				if(0 < max_hits && max_hits < e.l - e.k + 1) { // too many will be added
+					bfast_rg_match_t_clear(tmp_match);
+					tmp_match->max_reached = 1;
+					break;
+				}
 
 				// Found -> report
 				bfast2_rg_match_t_add(tmp_match, bwt, bns, space, seed_len, &e);
 
 				if(0 == alg) break; // only report the first match
 				if(best_n_mm < 0) best_n_mm = e.n_mm; // store the best number of mismatches
-				if(best_n_mm == e.n_mm) best_hits += e.l - e.k + 1;
 			}
 		}
 		else if(0 <= e.next_i) { // bases left
@@ -303,9 +305,6 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 
 	// add tmp match
 	bfast_rg_match_t_append(match, tmp_match);
-
-	// remove duplicates
-	bfast2_rg_match_t_merge_duplicates(match);
 
 	// destroy
 	bfast_rg_match_t_destroy(tmp_match);
@@ -389,6 +388,11 @@ void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, i
 		}
 	}
 	match->num_entries = num_entries;
+				
+	if(0 < match->num_entries) {
+		// merge duplicates
+		bfast2_rg_match_t_merge_duplicates(match);
+	}
 }
 
 void bfast2_rg_match_t_sort(bfast_rg_match_t *match) 

@@ -47,8 +47,8 @@ int bwtbfast2_usage(int32_t alg, int32_t space, int32_t seed_len, int32_t max_mm
 	fprintf(stderr, "\t-l\tINT\tseed length [%d]\n", seed_len);
 	fprintf(stderr, "\t-m\tNUM\tmaximum number of mismatches [%d] or error rate [%lf]\n", 
 			max_mm, max_mm_err_rate);
-	fprintf(stderr, "\t-K\tINT\tignore seeds that have >INT hits [%d]\n", max_seed_hits);
-	fprintf(stderr, "\t-M\tINT\tstop searching when there are >INT equally best hits [%d]\n", max_hits);
+	fprintf(stderr, "\t-K\tINT\tignore seeds that have >INT hits (-1 not using) [%d]\n", max_seed_hits);
+	fprintf(stderr, "\t-M\tINT\tignore reads that have >INT hits (-1 not using) [%d]\n", max_hits);
 	fprintf(stderr, "\t-n\tINT\tnumber of threads [%d]\n", num_threads);
 	fprintf(stderr, "\t-Q\tINT\tnumber of reads to process at one time [%d]\n", queue_length);
 	// TODO
@@ -80,7 +80,7 @@ int bwtbfast2(int argc, char *argv[])
 	int32_t seed_len = 22;
 	double max_mm_err_rate = 0.05;
 	int32_t max_mm = -1;
-	int32_t max_seed_hits = 8;
+	int32_t max_seed_hits = -1;
 	int32_t max_hits = 384;
 	int32_t num_threads = 0;
 	int32_t queue_length = 0x40000;
@@ -157,10 +157,10 @@ int bwtbfast2(int argc, char *argv[])
 	if(num_threads < 0) {
 		PrintError(fn_name, "-n", "Option is out of range", Exit, OutOfRange);
 	}
-	if(max_seed_hits <= 0) {
+	if(max_seed_hits == 0) {
 		PrintError(fn_name, "-K", "Option is out of range", Exit, OutOfRange);
 	}
-	if(max_hits <= 0) {
+	if(max_hits == 0) {
 		PrintError(fn_name, "-M", "Option is out of range", Exit, OutOfRange);
 	}
 	if(queue_length <= 0) {
