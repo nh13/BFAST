@@ -721,7 +721,7 @@ sub CreateJobsSAM {
 			$cmd .= $data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
 			$cmd .= "samtools merge";
 			$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
-			$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.*bam";
+			$cmd .= " ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.".$data->{'globalOptions'}->{'outputID'}."*bam";
 		}
 	}
 	else {
