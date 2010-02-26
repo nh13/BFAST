@@ -746,7 +746,7 @@ int FindMatches(char **indexFileName,
 	RGMatches *matchQueue=NULL;
 	int32_t *matchQueueThreadIDs=NULL; // TODO: could make this more memory efficient
 	int32_t matchQueueLength=queueLength;
-	int32_t returnNumMatches=0;
+	int32_t returnNumMatches=0, numReadsProcessed=0;
 
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
@@ -883,8 +883,10 @@ int FindMatches(char **indexFileName,
 		}
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
+
+		numReadsProcessed += numMatches;
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rReads processed: %d", returnNumMatches);
+			fprintf(stderr, "\rReads processed: %d", numReadsProcessed);
 		}
 
 		/* Free matches */
@@ -900,7 +902,7 @@ int FindMatches(char **indexFileName,
 	(*totalOutputTime)+=endTime - startTime;
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rReads processed: %d\n", returnNumMatches);
+		fprintf(stderr, "\rReads processed: %d\n", numReadsProcessed);
 	}
 
 	/* Free memory of the RGIndex */
