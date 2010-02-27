@@ -766,8 +766,11 @@ END_OUTPUT
 		close(FH);
 	}
 
-# Create qsub command
-	my $qsub = "qsub";
+	# Create qsub command
+	my $qsub = "";
+	$qsub .= $data->{'globalOptions'}->{'qsubBin'} if defined($data->{'globalOptions'}->{'qsubBin'});
+	$qsub .= "qsub";
+
 	if(0 < scalar(@$dependent_job_ids) && 1 == $should_depend) {
 		$qsub .= " -hold_jid ".join(",", @$dependent_job_ids)         if ("SGE" eq $data->{'globalOptions'}->{'queueType'});
 		$qsub .= " -W depend=afterok:".join(":", @$dependent_job_ids) if ("PBS" eq $data->{'globalOptions'}->{'queueType'});
