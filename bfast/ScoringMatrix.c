@@ -75,6 +75,20 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm,
 		PrintError(FnName, "sm->gapExtensionPenalty < sm->gapOpenPenalty", "Gap extend must be greater than gap open", Exit, OutOfRange);
 	}
 
+	if(sm->gapExtensionPenalty < sm->ntMismatch) {
+		PrintError(FnName, "sm->gapExtensionPenalty < sm->ntMismatch", "Gap extend must be greater than mismatch", Exit, OutOfRange);
+	}
+
+	if(sm->ntMismatch <= (sm->gapOpenPenalty + sm->gapExtensionPenalty)) {
+		PrintError(FnName, "sm->ntMismatch <= (sm->gapOpenPenalty + sm->gapExtensionPenalty)", "Mismatch must be greater than one-base gap", Exit, OutOfRange);
+	}
+
+	if((sm->ntMismatch * 2) < ( sm->gapOpenPenalty + sm->gapExtensionPenalty )) {
+		PrintError(FnName, "(sm->ntMismatch * 2) < ( m->gapOpenPenalty + sm->gapExtensionPenalty )", "Adjacent Mismatch must be less than two base gap", Exit, OutOfRange);
+	}
+
+
+
 	if(sm->ntMatch < 0) {
 		PrintError(FnName, "sm->ntMatch", "Must be greater than or equal to zero", Exit, OutOfRange);
 	}
