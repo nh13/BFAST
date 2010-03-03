@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 	int minLength=-1;
 	char unit[MAX_UNIT_LENGTH+1]="\0";
 	RGBinary rg;
-	char c;
+	int c;
 
 	while((c = getopt(argc, argv, "f:m:r:M:h")) >= 0) {
 		switch(c) {

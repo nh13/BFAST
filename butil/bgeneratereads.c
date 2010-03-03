@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	int numReads = 0;
 	int lineNumber = 0;
 	char *inputFileName=NULL;
-	char c;
+	int c;
 	FILE *fpIn=NULL;
 
 	while((c = getopt(argc, argv, "f:i:A:h")) >= 0) {

@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 	int numThreads = 1;
 	int whichStrand = 0;
 	int space = NTSpace;
-	char c;
+	int c;
 	RGBinary rg;
 	RGIndex index;
 

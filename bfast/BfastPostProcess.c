@@ -334,7 +334,7 @@ BfastPostProcessGetOptHelp() {
 	int
 BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct arguments* arguments) 
 {
-	char key;
+	int key;
 	int OptErr=0;
 	while((OptErr==0) && ((key = getopt (argc, argv, OptionString)) != -1)) {
 		/*

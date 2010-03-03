@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	int numThreads = 1;
 	char tmpDir[MAX_FILENAME_LENGTH]="./";
 	char *inputFileName=NULL;
-	char c;
+	int c;
 	FILE *fpIn=NULL;
 
 	while((c = getopt(argc, argv, "f:i:n:x:A:T:h")) >= 0) {
