@@ -71,6 +71,9 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm,
 	if(0 < sm->gapExtensionPenalty) {
 		PrintError(FnName, "sm->gapExtensionPenalty", "Must be less than or equal to zero", Exit, OutOfRange);
 	}
+	if(sm->gapExtensionPenalty < sm->gapOpenPenalty) {
+		PrintError(FnName, "sm->gapExtensionPenalty < sm->gapOpenPenalty", "Gap extend must be greater than gap open", Exit, OutOfRange);
+	}
 
 	if(sm->ntMatch < 0) {
 		PrintError(FnName, "sm->ntMatch", "Must be greater than or equal to zero", Exit, OutOfRange);
