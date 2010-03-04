@@ -29,6 +29,7 @@ char *RGMatchStringToMask(char*, int32_t);
 void RGMatchUpdateMask(char*, int32_t);
 void RGMatchUnionMasks(RGMatch*, int32_t, int32_t);
 void RGMatchUnionOffsets(RGMatch*, int32_t, int32_t);
+void RGMatchFixConstraints(RGMatch*, RGBinary*);
 
 #endif
 

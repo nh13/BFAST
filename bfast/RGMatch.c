@@ -1058,3 +1058,45 @@ void RGMatchUnionOffsets(RGMatch *m, int32_t dest, int32_t src)
 		m->offsets[dest][i+prevNumOffsets] = m->offsets[src][i];
 	}
 }
+
+void RGMatchFixConstraints(RGMatch *m, RGBinary *rg)
+{
+	int32_t i, j, diff=0;
+	char *mask=NULL;
+	char *ref=NULL;
+
+	for(i=0;i<m->numEntries;i++) {
+		diff = 0;
+		mask = RGMatchMaskToString(m->masks[i], m->readLength);
+		assert(1 == RGBinaryGetSequence(rg, m->contigs[i], m->positions[i], m->strands[i], &ref, m->readLength));
+
+		if(NTSpace == rg->space) {
+			for(j=0;j<m->readLength;j++) {
+				if('1' == mask[j]) { // match
+					if(RGBinaryIsBaseN(ref[j])) {
+						mask[j] = '0';
+						diff = 1;
+					}
+				}
+			}
+		}
+		else {
+			for(j=0;j<m->readLength-1;j++) {
+				if('1' == mask[j+1]) { // match
+					if(RGBinaryIsBaseN(ref[j])) {
+						mask[j+1] = '0';
+						diff = 1;
+					}
+				}
+			}
+		}
+
+		if(1 == diff) {
+			free(m->masks[i]);
+			m->masks[i] = RGMatchStringToMask(mask, m->readLength);
+		}
+
+		free(ref);
+		free(mask);
+	}
+}

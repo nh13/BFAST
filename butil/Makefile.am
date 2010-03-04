@@ -4,6 +4,7 @@ bin_PROGRAMS = balignmentscoredistribution \
 			   bgeneratereads \
 			   bindexdist \
 			   bindexhist \
+			   bmffix \
 			   brepeat \
 			   btestindexes 
 
@@ -100,6 +101,22 @@ bindexhist_SOURCES = \
 					 bindexhist.c	bindexhist.h
 
 bindexhist_LDADD = -lz
+
+bmffix_SOURCES = \
+									  ../bfast/BError.c	../bfast/BError.h \
+									  ../bfast/RGIndex.c	../bfast/RGIndex.h \
+									  ../bfast/BLib.c	../bfast/BLib.h \
+									  ../bfast/RGBinary.c ../bfast/RGBinary.h \
+									  ../bfast/RGRanges.c ../bfast/RGRanges.h \
+									  ../bfast/RGMatch.c ../bfast/RGMatch.h \
+									  ../bfast/RGMatches.c ../bfast/RGMatches.h \
+									  ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
+									  ../bfast/AlignedReadConvert.c	../bfast/AlignedReadConvert.h \
+									  ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
+									  ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
+									  bmffix.c
+
+bmffix_LDADD = -lz
 
 brepeat_SOURCES = \
 				  ../bfast/BError.c	../bfast/BError.h \

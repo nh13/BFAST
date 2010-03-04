@@ -678,3 +678,11 @@ int32_t RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 
 	return numMatches;
 }
+
+void RGMatchesFixConstraints(RGMatches *m, RGBinary *rg) 
+{
+	int32_t i;
+	for(i=0;i<m->numEnds;i++) {
+		RGMatchFixConstraints(&m->ends[i], rg);
+	}
+}
