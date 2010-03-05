@@ -162,7 +162,6 @@ size_t AFILE_afread(void *ptr, size_t size, size_t count, AFILE *afp)
 	void *unused_tmp_void=NULL;
 	char *unused_tmp=NULL;
 
-
 	switch(afp->c) {
 		case AFILE_NO_COMPRESSION:
 			return fread(ptr, size, count, afp->fp);

@@ -4,6 +4,7 @@
 
 #include "../kseq.h"
 #include "../aflib.h"
+
 KSEQ_INIT(AFILE*, AFILE_afread2)
 //KSEQ_INIT(gzFile, gzread)
 

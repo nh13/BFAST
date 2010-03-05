@@ -226,6 +226,9 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 	bwtint_t cntk[4], cntl[4];
 	int32_t best_n_mm=-1;
 
+	// DEBUG vars
+	int32_t max_stack_size = 0;
+
 	assert(match->read_int_length <= BWTBFAST2_AUX_MASK_BYTES*8);
 
 	// initialize tmp match
@@ -298,9 +301,9 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 		}
 
 		// seed 5' end
-		for(i=0;i<=max_mm;i++) {
+		for(i=match->read_int_length-seed_len-max_mm;i < match->read_int_length - seed_len + 1;i++) {
 			// forward
-			cur_base = match->read_int[seed_len + i - 1];
+			cur_base = match->read_int[match->read_int_length-i-1];
 			if(4 != cur_base) { // no missing bases
 				bwt_2occ(bwt, -1, bwt->seq_len, cur_base, &k, &l);
 				k = bwt->L2[cur_base] + k + 1;
@@ -308,12 +311,12 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 				if(k <= l) {
 					assert(0 <= k && k <= bwt->seq_len);
 					assert(0 <= l && l <= bwt->seq_len);
-					bfast2_seed(stack, seed_len + i, match->read_int_length - seed_len + i, FORWARD, k, l);
+					bfast2_seed(stack, match->read_int_length - i, i, FORWARD, k, l);
 				}
 			}
 
 			// reverse
-			cur_base = match->read_rc_int[seed_len + i - 1];
+			cur_base = match->read_rc_int[match->read_int_length-i-1];
 			if(4 != cur_base) { // no missing bases
 				bwt_2occ(bwt, -1, bwt->seq_len, cur_base, &k, &l);
 				k = bwt->L2[cur_base] + k + 1;
@@ -321,7 +324,7 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 				if(k <= l) {
 					assert(0 <= k && k <= bwt->seq_len);
 					assert(0 <= l && l <= bwt->seq_len);
-					bfast2_seed(stack, seed_len + i, match->read_int_length - seed_len + i, REVERSE, k, l);
+					bfast2_seed(stack, match->read_int_length - i, i, REVERSE, k, l);
 				}
 			}
 		}
@@ -330,15 +333,15 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 	while(0 < stack->n_entries) {
 		bfast2_entry_t e;
 
+		// DEBUG
+		if(max_stack_size < stack->n_entries) {
+			max_stack_size = stack->n_entries;
+		}
+
 		// get the best entry
 		bfast2_pop(stack, &e); 
 
-		if(!(0 <= e.k && e.k <= bwt->seq_len) ||
-				!(0 <= e.l && e.l <= bwt->seq_len)) {
-			fprintf(stderr, "e.n_mm=%d e.next_i=%d e.k=%d e.l=%d e.offset=%d e.bases_used=%d\n",
-					e.n_mm, e.next_i, e.k, e.l, e.offset, e.bases_used);
-			bfast2_stack_print(stack); // DEBUG
-		}
+		// DEBUG
 		assert(0 <= e.k && e.k <= bwt->seq_len);
 		assert(0 <= e.l && e.l <= bwt->seq_len);
 
@@ -409,6 +412,8 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 			}
 		}
 	}
+	// DEBUG
+	//fprintf(stderr, "max_stack_size=%d\n", max_stack_size);
 
 	// add tmp match
 	bfast_rg_match_t_append(match, tmp_match);
