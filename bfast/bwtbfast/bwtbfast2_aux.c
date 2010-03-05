@@ -105,7 +105,7 @@ static inline void bfast2_push(bfast2_stack_t *stack,
 		)
 {
 	char *fn_name="bfast2_push";
-	int32_t i, j;
+	int32_t i;
 	bfast2_entry_t *p=NULL;
 	bfast2_stack1_t *q=NULL;
 
@@ -114,25 +114,12 @@ static inline void bfast2_push(bfast2_stack_t *stack,
 	}
 
 	q = stack->stacks + prev->n_mm + is_mm;
-	if (q->n_entries == q->m_entries) {
+	if (q->n_entries == q->m_entries) { // increase stack size
 		q->m_entries <<= 1;
 		q->entries = (bfast2_entry_t*)my_realloc(q->entries, sizeof(bfast2_entry_t) * q->m_entries, fn_name);
 	}
 
-	// sort by # of bases used (low to high):
-	p = q->entries;
-	for(i=q->n_entries;0<i;i--) {
-		p = q->entries + i - 1;
-		if(p->bases_used <= prev->bases_used - is_mm + 1) {
-			// shift over
-			for(j=i;j<q->n_entries;j++) {
-				q->entries[j+1] = q->entries[j];
-			}
-			p = q->entries + i;
-			break;
-		}
-	}
-
+	p = q->entries + q->n_entries;
 	p->k = k; p->l = l; 
 	p->n_mm = prev->n_mm + is_mm; 
 	p->offset = prev->offset;
@@ -152,7 +139,20 @@ static inline void bfast2_push(bfast2_stack_t *stack,
 
 	++(q->n_entries);
 	++(stack->n_entries);
-	if (stack->best < p->n_mm) stack->best = p->n_mm;
+	if (p->n_mm < stack->best) stack->best = p->n_mm;
+	
+	// move the current entry such that this stack is sorted 
+	// by # of bases used (high to low):
+	for(i=q->n_entries-1;0<i;i--) {
+		//if(q->entries[i].bases_used < q->entries[i-1].bases_used) {
+		if(q->entries[i-1].bases_used < q->entries[i].bases_used) {
+			// swap
+			bfast2_entry_t e;
+			e = q->entries[i];
+			q->entries[i] = q->entries[i-1];
+			q->entries[i-1] = e;
+		}
+	}
 }
 
 static inline void bfast2_pop(bfast2_stack_t *stack, bfast2_entry_t *e)
@@ -162,22 +162,34 @@ static inline void bfast2_pop(bfast2_stack_t *stack, bfast2_entry_t *e)
 	(*e) = q->entries[q->n_entries - 1];
 	--(q->n_entries);
 	--(stack->n_entries);
+
 	if(q->n_entries == 0 && 0 < stack->n_entries) { // reset best
 		int i;
-		for (i = stack->best; 0 <= i; --i) {
-			if (0 < stack->stacks[i].n_entries) {
+
+		for(i=stack->best+1;i<stack->n_stacks;i++) {
+			if(0 < stack->stacks[i].n_entries) {
 				stack->best = i;
 				break;
 			}
 		}
-		stack->best = i;
-		if(i < 0) {
+		if(stack->n_stacks <= i) {
 			// should not reach here
 			PrintError("bfast2_pop", NULL, "Control reached unexpected line", Exit, OutOfRange); 
 		}
 	} else if (stack->n_entries == 0) {
 		stack->best = 0;
 	}
+}
+
+static inline void bfast2_stack_print(bfast2_stack_t *stack) 
+{
+	int32_t i;
+
+	fprintf(stderr, "stack->best=%d", stack->best);
+	for(i=0;i<stack->n_stacks;i++) {
+		fprintf(stderr, "\t%d:%d:%d", i, stack->stacks[i].n_entries, stack->stacks[i].m_entries);
+	}
+	fprintf(stderr, "\n");
 }
 
 static inline int int_log2(uint32_t v)
@@ -234,7 +246,7 @@ void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t sp
 
 	while(0 < stack->n_entries) {
 		bfast2_entry_t e;
-
+		
 		// get the best entry
 		bfast2_pop(stack, &e); 
 
