@@ -168,6 +168,10 @@ static inline void bfast2_push(bfast2_stack_t *stack,
 			q->entries[i] = q->entries[i-1];
 			q->entries[i-1] = e;
 		}
+		else {
+			// no need to swap
+			break;
+		}
 	}
 }
 
