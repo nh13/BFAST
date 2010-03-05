@@ -35,7 +35,7 @@ extern "C" {
 	bfast2_stack_t *bfast2_init_stack(int max_mm);
 	void bfast2_destroy_stack(bfast2_stack_t *stack);
 
-	void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t space, int32_t alg, int32_t seed_len, int32_t max_mm, int32_t max_seed_hits, int32_t max_hits, bfast2_stack_t *stack);
+	void bfast2_match(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t space, int32_t alg, int32_t seed_len, int32_t max_mm, int32_t max_seed_hits, int32_t max_hits, int32_t seed_ends_only, bfast2_stack_t *stack);
 
 	void bfast2_rg_match_t_add(bfast_rg_match_t *match, bwt_t *bwt, bntseq_t *bns, int32_t space, int32_t seed_len, bfast2_entry_t *e);
 	void bfast2_rg_match_t_sort(bfast_rg_match_t *match);

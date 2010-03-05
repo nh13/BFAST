@@ -49,6 +49,7 @@ int bwtbfast2_usage(int32_t alg, int32_t space, int32_t seed_len, int32_t max_mm
 			max_mm, max_mm_err_rate);
 	fprintf(stderr, "\t-K\tINT\tignore seeds that have >INT hits (-1 not using) [%d]\n", max_seed_hits);
 	fprintf(stderr, "\t-M\tINT\tignore reads that have >INT hits (-1 not using) [%d]\n", max_hits);
+	fprintf(stderr, "\t-E\t\tSpecifies to seed the beg/end of reads only\n");
 	fprintf(stderr, "\t-n\tINT\tnumber of threads [%d]\n", num_threads);
 	fprintf(stderr, "\t-Q\tINT\tnumber of reads to process at one time [%d]\n", queue_length);
 	// TODO
@@ -82,12 +83,13 @@ int bwtbfast2(int argc, char *argv[])
 	int32_t max_mm = -1;
 	int32_t max_seed_hits = -1;
 	int32_t max_hits = 384;
+	int32_t seed_ends_only = 0;
 	int32_t num_threads = 0;
 	int32_t queue_length = 0x40000;
 
 	// Get parameters
 	//while((c = getopt(argc, argv, "a:e:f:l:m:n:r:s:A:Q:K:M:hjz")) >= 0) { // includes s & e
-	while((c = getopt(argc, argv, "a:f:l:m:n:r:A:Q:K:M:hjz")) >= 0) {
+	while((c = getopt(argc, argv, "a:f:l:m:n:r:A:Q:K:M:hjzE")) >= 0) {
 		switch(c) {
 			case 'a': alg=atoi(optarg); break;
 			case 'f': ref_fn=strdup(optarg); break;
@@ -101,6 +103,7 @@ int bwtbfast2(int argc, char *argv[])
 			case 'j': compression=AFILE_BZ2_COMPRESSION; break;
 			case 'z': compression=AFILE_GZ_COMPRESSION; break;
 			case 'A': space=atoi(optarg); break;
+			case 'E': seed_ends_only=1; break;
 			//case 's': start_read_num=atoi(optarg); break;
 			//case 'e': end_read_num=atoi(optarg); break;
 			case 'K': max_seed_hits=atoi(optarg); break;
@@ -168,7 +171,7 @@ int bwtbfast2(int argc, char *argv[])
 	}
 
 	// bfast
-	bwtbfast2_core(ref_fn, read_fn, compression, alg, seed_len, max_mm, max_mm_err_rate, space, start_read_num, end_read_num, max_seed_hits, max_hits, num_threads, queue_length);
+	bwtbfast2_core(ref_fn, read_fn, compression, alg, seed_len, max_mm, max_mm_err_rate, space, start_read_num, end_read_num, max_seed_hits, max_hits, seed_ends_only, num_threads, queue_length);
 
 	// free file names
 	free(ref_fn);
@@ -177,7 +180,7 @@ int bwtbfast2(int argc, char *argv[])
 	return 0;
 }
 
-void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t alg, int32_t seed_len, int32_t max_mm, double max_mm_err_rate, int32_t space, int32_t start_read_num, int32_t end_read_num, int32_t max_seed_hits, int32_t max_hits, int32_t n_threads, int32_t queue_length)
+void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t alg, int32_t seed_len, int32_t max_mm, double max_mm_err_rate, int32_t space, int32_t start_read_num, int32_t end_read_num, int32_t max_seed_hits, int32_t max_hits, int32_t seed_ends_only, int32_t n_threads, int32_t queue_length)
 {
 	char *fn_name="bwtbfast2_core";
 	int i;
@@ -241,7 +244,7 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 #ifdef HAVE_LIBPTHREAD
 		if(n_threads <= 1) {
 			// no threads
-			bwtbfast2_core_worker(0, bwt, bns, n_matches, matches, space, 1, alg, seed_len, max_mm, max_mm_err_rate, max_seed_hits, max_hits);
+			bwtbfast2_core_worker(0, bwt, bns, n_matches, matches, space, 1, alg, seed_len, max_mm, max_mm_err_rate, max_seed_hits, max_hits, seed_ends_only);
 		}
 		else {
 			// threads
@@ -261,6 +264,7 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 				data[j].max_mm = max_mm; data[j].max_mm_err_rate = max_mm_err_rate;
 				data[j].space = space;
 				data[j].max_seed_hits = max_seed_hits; data[j].max_hits = max_hits;
+				data[j].seed_ends_only = seed_ends_only;
 				pthread_create(&tid[j], &attr, bwtbfast2_thread_worker, data + j);
 			}
 			for (j = 0; j < n_threads; ++j) pthread_join(tid[j], 0);
@@ -268,7 +272,7 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		}
 #else
 		// no threads
-		bwtbfast2_core_worker(0, bwt, bns, n_matches, matches, space, 1, alg, seed_len, max_mm, max_mm_err_rate, max_seed_hits, max_hits);
+		bwtbfast2_core_worker(0, bwt, bns, n_matches, matches, space, 1, alg, seed_len, max_mm, max_mm_err_rate, max_seed_hits, max_hits, seed_ends_only);
 #endif
 
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
@@ -302,12 +306,12 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 void *bwtbfast2_thread_worker(void *data)
 {
 	bwtbfast2_thread_t *d = (bwtbfast2_thread_t*)data;
-	bwtbfast2_core_worker(d->tid, d->bwt, d->bns, d->n_matches, d->matches, d->space, d->n_threads, d->alg, d->seed_len, d->max_mm, d->max_mm_err_rate, d->max_seed_hits, d->max_hits);
+	bwtbfast2_core_worker(d->tid, d->bwt, d->bns, d->n_matches, d->matches, d->space, d->n_threads, d->alg, d->seed_len, d->max_mm, d->max_mm_err_rate, d->max_seed_hits, d->max_hits, d->seed_ends_only);
 	return 0;
 }
 #endif
 
-void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bfast_rg_match_t *matches, int32_t space, int n_threads, int32_t alg, int32_t seed_len, int32_t max_mm, double max_mm_err_rate, int32_t max_seed_hits, int32_t max_hits) 
+void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bfast_rg_match_t *matches, int32_t space, int n_threads, int32_t alg, int32_t seed_len, int32_t max_mm, double max_mm_err_rate, int32_t max_seed_hits, int32_t max_hits, int32_t seed_ends_only) 
 {
 	//char *fn_name="bwtbfast2_core_worker";
 	int32_t i, eff_max_mm=0;
@@ -345,6 +349,7 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 				eff_max_mm,
 				max_seed_hits,
 				max_hits,
+				seed_ends_only,
 				stack);
 
 		// free -> we don't need these anymore
