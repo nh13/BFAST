@@ -118,9 +118,30 @@ elsif(0 < scalar(@files_two) && scalar(@files_one) != scalar(@files_two)) {
 @files_two = sort @files_two;
 
 # If '-B' was specified. Try to figure out what the barcode length is
+my $has_illumina_barcode = 0;
 if($infer_barcode_length) {
-	# Check every 1000th read.
-	$barcode_length = &infer_barcode_len(1000);
+        # Check if there are illuminia barcodes.
+        my $qseq_dir = $input_prefix;
+        $qseq_dir =~ /([^\/]+)$/;
+	$qseq_dir =~ s/$1$//;
+
+
+	if( -e "$qseq_dir/config.xml" ) {
+	        open(FH, "$qseq_dir/config.xml") || die;
+                while(<FH>) {
+			if(/<Barcode>/) {
+                                $has_illumina_barcode = 1;
+                                last;
+                        }
+		}
+                close(FH) || die;
+	}
+
+	if(0 == $has_illumina_barcode) {
+	        # Check every 1000th read
+	        $barcode_length = &infer_barcode_len(1000);
+	}
+
 }
 
 my $FH_index = 0;
@@ -130,7 +151,45 @@ my $output_num_written = 0;
 if(0 < $num_reads) {
 	open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
 }
-if(0 == scalar(@files_two)) { # Single end
+
+if(1 == $has_illumina_barcode) { # Illumina barcodes in second qseq file.
+	while($FH_index < scalar(@files_one)) {
+		my $min_read_name = "";
+
+		open(FH_one, "$files_one[$FH_index]") || die;
+		open(FH_two, "$files_two[$FH_index]") || die;
+		my %read_one = ();
+		my %read_two = ();
+		while(1 == get_read(*FH_one, \%read_one, $barcode_length, 1, $input_suffix_state) &&
+			1 == get_read(*FH_two, \%read_two, $barcode_length, 2, $input_suffix_state)) {
+			if(0 != cmp_read_names($read_one{"NAME"}, $read_two{"NAME"})) {
+				print STDERR "".$read_one{"NAME"}."\t".$read_two{"NAME"}."\n";
+				die;
+			}
+			if(0 < $num_reads) {
+				if($num_reads <= $output_num_written) {
+					close(FHout);
+					$output_file_num++;
+					$output_num_written=0;
+					open(FHout, ">$output_prefix.$output_file_num.fastq") || die;
+				}
+				print FHout "".$read_one{"NAME"}."_BC:".$read_two{"SEQ"}."\n".$read_one{"SEQ"}."\n+\n".$read_one{"QUAL"}."\n";
+
+				$output_num_written++;
+			}
+			else {
+				print STDOUT "".$read_one{"NAME"}."_BC:".$read_two{"SEQ"}."\n".$read_one{"SEQ"}."\n+\n".$read_one{"QUAL"}."\n";
+#				print STDOUT "".$read_two{"NAME"}."\n".$read_two{"SEQ"}."\n+\n".$read_two{"QUAL"}."\n";
+			}
+		}
+		close(FH_one);
+		close(FH_two);
+		$FH_index++;
+	}
+
+
+}
+elsif(0 == scalar(@files_two)) { # Single end
 	while($FH_index < scalar(@files_one)) {
 		open(FH_one, "$files_one[$FH_index]") || die;
 		my %read = ();
