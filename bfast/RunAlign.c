@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <zlib.h>
-#include <bzlib.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"

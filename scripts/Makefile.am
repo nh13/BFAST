@@ -10,6 +10,6 @@ solid2fastq_SOURCES = \
 					  ../bfast/aflib.c ../bfast/aflib.h \
 					  solid2fastq.c
 
-solid2fastq_LDADD = -lm -lz -lbz2 
+solid2fastq_LDADD = 
 
 dist_bin_SCRIPTS = bfast.resubmit.pl bfast.submit.pl solid2fastq.pl ill2fastq.pl

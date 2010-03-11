@@ -20,7 +20,7 @@ balignmentscoredistribution_SOURCES = \
 									  ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
 									  balignmentscoredistribution.c balignmentscoredistribution.h
 
-balignmentscoredistribution_LDADD = -lz
+balignmentscoredistribution_LDADD =
 
 balignsim_SOURCES = \
 					SimRead.c	SimRead.h \
@@ -44,7 +44,7 @@ balignsim_SOURCES = \
 					../bfast/AlignMatrix.c ../bfast/AlignMatrix.h \
 					balignsim.c	balignsim.h
 
-balignsim_LDADD = -lz
+balignsim_LDADD =
 
 bevalsim_SOURCES = \
 				   ../bfast/BError.c	../bfast/BError.h \
@@ -60,7 +60,7 @@ bevalsim_SOURCES = \
 				   ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
 				   bevalsim.c	bevalsim.h
 
-bevalsim_LDADD = -lz 
+bevalsim_LDADD = 
 
 bgeneratereads_SOURCES = \
 						 ../bfast/BError.c	../bfast/BError.h \
@@ -73,7 +73,7 @@ bgeneratereads_SOURCES = \
 						 SimRead.c	SimRead.h \
 						 bgeneratereads.c	bgeneratereads.h 
 
-bgeneratereads_LDADD = -lz  
+bgeneratereads_LDADD =  
 
 bindexdist_SOURCES = \
 					 ../bfast/BError.c	../bfast/BError.h \
@@ -86,7 +86,7 @@ bindexdist_SOURCES = \
 					 ../bfast/RGReads.c	../bfast/RGReads.h \
 					 bindexdist.c	bindexdist.h
 
-bindexdist_LDADD = -lz
+bindexdist_LDADD =
 
 bindexhist_SOURCES = \
 					 ../bfast/BError.c	../bfast/BError.h \
@@ -99,7 +99,7 @@ bindexhist_SOURCES = \
 					 ../bfast/RGReads.c	../bfast/RGReads.h \
 					 bindexhist.c	bindexhist.h
 
-bindexhist_LDADD = -lz
+bindexhist_LDADD =
 
 brepeat_SOURCES = \
 				  ../bfast/BError.c	../bfast/BError.h \
@@ -111,7 +111,7 @@ brepeat_SOURCES = \
 				  ../bfast/RGRanges.c ../bfast/RGRanges.h \
 				  brepeat.c	brepeat.h
 
-brepeat_LDADD = -lz 
+brepeat_LDADD = 
 
 btestindexes_SOURCES = \
 					   ../bfast/RGMatch.c ../bfast/RGMatch.h \
@@ -123,4 +123,4 @@ btestindexes_SOURCES = \
 					   ../bfast/BLib.c	../bfast/BLib.h \
 					   btestindexes.c	btestindexes.h
 
-btestindexes_LDADD = -lz
+btestindexes_LDADD =

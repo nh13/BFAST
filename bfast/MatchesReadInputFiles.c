@@ -3,7 +3,6 @@
 #include <assert.h>
 #include <time.h>
 #include <zlib.h>
-#include <bzlib.h>
 #include "BError.h"
 #include "BLib.h"
 #include "RGMatch.h"

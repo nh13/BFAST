@@ -36,6 +36,7 @@ AC_DEFINE_UNQUOTED(GIT_REV, "${GITREV}", [Define to be the git revision number])
 
 AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such as Xeon and Core2], [extended_CFLAGS="${extended_CFLAGS} -mtune=nocona"], [])
 AC_ARG_ENABLE(unoptimized-sw, [  --enable-unoptimized-sw         use the unoptimized smith waterman algorithm (use for benchmarking only)], [AC_DEFINE(UNOPTIMIZED_SMITH_WATERMAN,1,[Define 1 if we want to use the unoptimized smith waterman (use for benchmarking only)])], [])
+AC_ARG_ENABLE(bz2, [  --disable-bz2         use this option to disable bz2 support], [AC_DEFINE(DISABLE_BZ2,1,[Define 1 if we want to disable bz2 support])], [AC_CHECK_LIB([bz2], [BZ2_bzRead])])
 
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}";
 
@@ -46,8 +47,6 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
 AC_CHECK_LIB([z], [gzread])
-AC_CHECK_LIB([z], [gzwrite])
-AC_CHECK_LIB([bz2], [BZ2_bzRead])
 # AC_CHECK_FUNCS_ONCE requires 2.63, which may not be available, so use AC_CHECH_FUNC on each 
 #AC_CHECK_FUNCS_ONCE([floor pow strstr strpbrk strdup strchr strtok_r])
 AC_CHECK_FUNC(floor, [AC_DEFINE(HAVE_FLOOR, 1, [Define 1 if you have the function floor])], [])

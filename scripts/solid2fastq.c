@@ -4,7 +4,6 @@
 #include <config.h>
 #include <unistd.h>
 #include <string.h>
-#include <bzlib.h>
 #include <ctype.h>
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"

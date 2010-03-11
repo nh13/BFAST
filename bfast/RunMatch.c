@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <zlib.h>
-#include <bzlib.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -651,7 +650,10 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		}
 
 		/* Open a new temporary read file */
-		tempRGMatchesAFP.fp = NULL; tempRGMatchesAFP.gz = NULL; tempRGMatchesAFP.bz2 = NULL;
+		tempRGMatchesAFP.fp = NULL; tempRGMatchesAFP.gz = NULL; 
+#ifndef DISABLE_BZ2
+		tempRGMatchesAFP.bz2 = NULL;
+#endif
 		tempRGMatchesAFP.c = AFILE_GZ_COMPRESSION;
 		tempRGMatchesAFP.gz = OpenTmpGZFile(tmpDir, &tempRGMatchesFileName);
 
