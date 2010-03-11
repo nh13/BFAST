@@ -375,7 +375,6 @@ BfastIndexGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->endContig=atoi(optarg);break;
 			case 'f':
 				arguments->fastaFileName = strdup(optarg); break;
-				break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp;break;
 			case 'i':
