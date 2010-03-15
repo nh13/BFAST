@@ -160,7 +160,6 @@ int bwtindex(int argc, char *argv[])
 		bwt_destroy(bwt);
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	/*
 	{
 		bwt_t *bwt;
 		strcpy(str, prefix); strcat(str, ".rbwt");
@@ -172,7 +171,6 @@ int bwtindex(int argc, char *argv[])
 		bwt_destroy(bwt);
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	*/
 	{
 		bwt_t *bwt;
 		strcpy(str, prefix); strcat(str, ".bwt");
@@ -185,7 +183,6 @@ int bwtindex(int argc, char *argv[])
 		bwt_destroy(bwt);
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	/*
 	{
 		bwt_t *bwt;
 		strcpy(str, prefix); strcat(str, ".rbwt");
@@ -198,7 +195,6 @@ int bwtindex(int argc, char *argv[])
 		bwt_destroy(bwt);
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	*/
 	free(str3); free(str2); free(str); free(prefix);
 	return 0;
 }

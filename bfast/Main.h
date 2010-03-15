@@ -7,6 +7,7 @@ int BfastMatch(int argc, char *argv[]);
 int bwtindex(int argc, char *argv[]);
 int bwtbfast(int argc, char *argv[]);
 int bwtbfast2(int argc, char *argv[]);
+int bwa_aln(int argc, char *argv[]);
 int BfastLocalAlign(int argc, char *argv[]);
 int BfastPostProcess(int argc, char *argv[]);
 int BfastBAFConvert(int argc, char *argv[]);

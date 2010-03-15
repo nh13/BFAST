@@ -36,8 +36,8 @@ extern "C" {
 #endif
 
 typedef struct {
-	char *read_name;
 	int32_t read_name_length;
+	char *read_name;
 	int32_t read_length;
 	char *read;
 	int32_t qual_length;

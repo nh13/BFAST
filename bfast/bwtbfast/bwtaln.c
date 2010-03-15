@@ -5,10 +5,14 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
+#include <assert.h>
 #include "../aflib.h"
 #include "bwtaln.h"
 #include "bwtgap.h"
 #include "utils.h"
+#include "util.h"
+#include "bwtbfast_aux.h"
+#include "../BLibDefinitions.h"
 
 #ifdef HAVE_LIBPTHREAD
 #define THREAD_BLOCK_SIZE 1024
@@ -81,6 +85,7 @@ static void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq
 	gap_stack_t *stack;
 	bwt_width_t *w[2], *seed_w[2];
 	const ubyte_t *seq[2];
+	int32_t len;
 	gap_opt_t local_opt = *opt;
 
 	// initiate priority stack
@@ -111,24 +116,31 @@ static void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq
 #endif
 		p->sa = 0; p->type = BWA_TYPE_NO_MATCH; p->c1 = p->c2 = 0; p->n_aln = 0; p->aln = 0;
 		seq[0] = p->seq; seq[1] = p->rseq;
-		if (max_l < p->len) {
-			max_l = p->len;
+		len = p->len;
+		if(!(BWA_MODE_COMPREAD & opt->mode)) { // adjust color space
+			// ignore adaptor and first color
+			len -= 2; 
+			seq[0] += 2;
+		}
+		if (max_l < len) {
+			max_l = len;
 			w[0] = (bwt_width_t*)calloc(max_l + 1, sizeof(bwt_width_t));
 			w[1] = (bwt_width_t*)calloc(max_l + 1, sizeof(bwt_width_t));
 		}
-		bwt_cal_width(bwt[0], p->len, seq[0], w[0]);
-		bwt_cal_width(bwt[1], p->len, seq[1], w[1]);
-		if (opt->fnr > 0.0) local_opt.max_diff = bwa_cal_maxdiff(p->len, BWA_AVG_ERR, opt->fnr);
-		local_opt.seed_len = opt->seed_len < p->len? opt->seed_len : 0x7fffffff;
-		if (p->len > opt->seed_len) {
-			bwt_cal_width(bwt[0], opt->seed_len, seq[0] + (p->len - opt->seed_len), seed_w[0]);
-			bwt_cal_width(bwt[1], opt->seed_len, seq[1] + (p->len - opt->seed_len), seed_w[1]);
+		bwt_cal_width(bwt[0], len, seq[0], w[0]);
+		bwt_cal_width(bwt[1], len, seq[1], w[1]);
+		if (opt->fnr > 0.0) local_opt.max_diff = bwa_cal_maxdiff(len, BWA_AVG_ERR, opt->fnr);
+		local_opt.seed_len = opt->seed_len < len? opt->seed_len : 0x7fffffff;
+		if (len > opt->seed_len) {
+			bwt_cal_width(bwt[0], opt->seed_len, seq[0] + (len - opt->seed_len), seed_w[0]);
+			bwt_cal_width(bwt[1], opt->seed_len, seq[1] + (len - opt->seed_len), seed_w[1]);
 		}
 		// core function
-		p->aln = bwt_match_gap(bwt, p->len, seq, w, p->len <= opt->seed_len? 0 : seed_w, &local_opt, &p->n_aln, stack);
+		p->aln = bwt_match_gap(bwt, len, seq, w, len <= opt->seed_len? 0 : seed_w, &local_opt, &p->n_aln, stack);
 		// store the alignment
-		free(p->name); free(p->seq); free(p->rseq); free(p->qual);
-		p->name = 0; p->seq = p->rseq = p->qual = 0;
+		// free(p->name); we need the name 
+		//free(p->seq); free(p->rseq); free(p->qual);
+		//p->seq = p->rseq = p->qual = 0;
 	}
 	free(seed_w[0]); free(seed_w[1]);
 	free(w[0]); free(w[1]);
@@ -159,19 +171,37 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 	bwa_seqio_t *ks;
 	clock_t t;
 	bwt_t *bwt[2];
+	gzFile fp_out=NULL;
+	    bntseq_t *bns=NULL;
+		int32_t space = (opt->mode & BWA_MODE_COMPREAD) ? NTSpace : ColorSpace;
+		char *str = (char*)calloc(strlen(prefix) + 16, 1);
 
 	// initialization
 	ks = bwa_seq_open(fn_fa, AFILE_GZ_COMPRESSION);
 
 	{ // load BWT
-		char *str = (char*)calloc(strlen(prefix) + 10, 1);
-		strcpy(str, prefix); strcat(str, ".bwt");  bwt[0] = bwt_restore_bwt(str);
-		strcpy(str, prefix); strcat(str, ".rbwt"); bwt[1] = bwt_restore_bwt(str);
+
+		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
+		strcat(str, ".bwt");  bwt[0] = bwt_restore_bwt(str);
+
+		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
+		strcat(str, ".rbwt"); bwt[1] = bwt_restore_bwt(str);
+
+		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
+		bns = bns_restore(str);
+
+		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
+		strcat(str, ".sa"); bwt_restore_sa(str, bwt[0]);
+		
+		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
+		strcat(str, ".rsa"); bwt_restore_sa(str, bwt[1]);
+
 		free(str);
 	}
 
+	fp_out = err_xzopen_core("bwa_aln_core", "-", "wb"); 
+
 	// core loop
-	fwrite(opt, sizeof(gap_opt_t), 1, stdout);
 	while ((seqs = bwa_read_seq(ks, 0x40000, &n_seqs, opt->mode & BWA_MODE_COMPREAD, opt->trim_qual)) != 0) {
 		tot_seqs += n_seqs;
 		t = clock();
@@ -208,8 +238,86 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 		fprintf(stderr, "[bwa_aln_core] write to the disk... ");
 		for (i = 0; i < n_seqs; ++i) {
 			bwa_seq_t *p = seqs + i;
-			fwrite(&p->n_aln, 4, 1, stdout);
-			if (p->n_aln) fwrite(p->aln, sizeof(bwt_aln1_t), p->n_aln, stdout);
+			// BWA to BMF
+			{
+				bfast_rg_match_t match;
+				int j, k, ctr=0, n_skipped=0, seqid, pos;
+
+				assert(NULL != p->seq);
+				seq_reverse(p->len, p->seq, 0);
+
+				match.read_name = p->name;
+				match.read_name_length = strlen(p->name);
+				match.read_length = p->len;
+				match.read = my_malloc(sizeof(char)*(1+p->len), "bwa_aln_core");
+				for(j=0;j<p->len;j++) {
+					match.read[j] = "ACGTN"[p->seq[j]];
+				}
+				match.qual = (char*)p->qual;
+				match.qual_length = strlen(match.qual);
+				match.max_reached = 0;
+
+				match.num_entries = 0;
+				for(j=0;j<p->n_aln;j++) {
+					match.num_entries += p->aln[j].l - p->aln[j].k + 1;
+				}
+				match.contigs = my_malloc(sizeof(uint32_t)*match.num_entries, "bwa_aln_core");
+				match.positions = my_malloc(sizeof(int32_t)*match.num_entries, "bwa_aln_core");
+				match.strands = my_malloc(sizeof(char)*match.num_entries, "bwa_aln_core");
+				match.masks = my_malloc(sizeof(char*)*match.num_entries, "bwa_aln_core");
+
+				for(j=ctr=0;j<p->n_aln;j++) {
+					for(k=p->aln[j].k;k<=p->aln[j].l;k++) {
+						// p->aln[j].a == 1 means it is the reverse 
+
+						// use suffix array
+						if(p->aln[j].a) { // reverse
+							pos = bwt_sa(bwt[0], k);
+						}
+						else {
+							pos = bwt[1]->seq_len - (bwt_sa(bwt[1], k) + p->len);
+						}
+						bns_coor_pac2real(bns, pos, 1, &seqid);
+
+						// check if hit spans two sequences
+						if(bns->anns[seqid].len < pos) {
+							n_skipped++;
+							continue;
+						}
+
+						match.contigs[ctr] = seqid+1; //contig
+						match.positions[ctr] = pos+1; // position
+						match.strands[ctr] = (0 == p->aln[j].a) ? FORWARD : REVERSE; // strand
+						match.masks[ctr] = my_calloc(GETMASKNUMBYTESFROMLENGTH(match.read_length), sizeof(char), "bwa_aln_core"); // mask
+
+						// adjust position
+						if(ColorSpace == space) {
+							if(FORWARD == match.strands[ctr]) pos--;
+							else pos++;
+						}
+
+						ctr++;
+					}
+				}
+				if(0 < n_skipped) {
+					match.num_entries -= n_skipped;
+					match.contigs = my_realloc(match.contigs, sizeof(uint32_t)*match.num_entries, "bwa_aln_core");
+					match.positions = my_realloc(match.positions, sizeof(int32_t)*match.num_entries, "bwa_aln_core");
+					match.strands = my_realloc(match.strands, sizeof(char)*match.num_entries, "bwa_aln_core");
+					match.masks = my_realloc(match.masks, sizeof(char*)*match.num_entries, "bwa_aln_core");
+				}
+
+				// print
+				bfast_rg_matches_t_print(&match, 0, 0, fp_out);
+				// free
+				for(j=0;j<match.num_entries;j++) {
+					free(match.masks[j]);
+				}
+				free(match.contigs);
+				free(match.positions);
+				free(match.strands);
+				free(match.masks);
+			}
 		}
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
 
@@ -217,8 +325,11 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 		fprintf(stderr, "[bwa_aln_core] %d sequences have been processed.\n", tot_seqs);
 	}
 
+	gzclose(fp_out);
+
 	// destroy
 	bwt_destroy(bwt[0]); bwt_destroy(bwt[1]);
+	bns_destroy(bns);
 	bwa_seq_close(ks);
 }
 
@@ -230,27 +341,27 @@ int bwa_aln(int argc, char *argv[])
 	opt = gap_init_opt();
 	while ((c = getopt(argc, argv, "n:o:e:i:d:l:k:cLR:m:t:NM:O:E:q:")) >= 0) {
 		switch (c) {
-		case 'n':
-			if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
-			else opt->max_diff = atoi(optarg), opt->fnr = -1.0;
-			break;
-		case 'o': opt->max_gapo = atoi(optarg); break;
-		case 'e': opte = atoi(optarg); break;
-		case 'M': opt->s_mm = atoi(optarg); break;
-		case 'O': opt->s_gapo = atoi(optarg); break;
-		case 'E': opt->s_gape = atoi(optarg); break;
-		case 'd': opt->max_del_occ = atoi(optarg); break;
-		case 'i': opt->indel_end_skip = atoi(optarg); break;
-		case 'l': opt->seed_len = atoi(optarg); break;
-		case 'k': opt->max_seed_diff = atoi(optarg); break;
-		case 'm': opt->max_entries = atoi(optarg); break;
-		case 't': opt->n_threads = atoi(optarg); break;
-		case 'L': opt->mode |= BWA_MODE_LOGGAP; break;
-		case 'R': opt->max_top2 = atoi(optarg); break;
-		case 'q': opt->trim_qual = atoi(optarg); break;
-		case 'c': opt->mode &= ~BWA_MODE_COMPREAD; break;
-		case 'N': opt->mode |= BWA_MODE_NONSTOP; opt->max_top2 = 0x7fffffff; break;
-		default: return 1;
+			case 'n':
+				if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
+				else opt->max_diff = atoi(optarg), opt->fnr = -1.0;
+				break;
+			case 'o': opt->max_gapo = atoi(optarg); break;
+			case 'e': opte = atoi(optarg); break;
+			case 'M': opt->s_mm = atoi(optarg); break;
+			case 'O': opt->s_gapo = atoi(optarg); break;
+			case 'E': opt->s_gape = atoi(optarg); break;
+			case 'd': opt->max_del_occ = atoi(optarg); break;
+			case 'i': opt->indel_end_skip = atoi(optarg); break;
+			case 'l': opt->seed_len = atoi(optarg); break;
+			case 'k': opt->max_seed_diff = atoi(optarg); break;
+			case 'm': opt->max_entries = atoi(optarg); break;
+			case 't': opt->n_threads = atoi(optarg); break;
+			case 'L': opt->mode |= BWA_MODE_LOGGAP; break;
+			case 'R': opt->max_top2 = atoi(optarg); break;
+			case 'q': opt->trim_qual = atoi(optarg); break;
+			case 'c': opt->mode &= ~BWA_MODE_COMPREAD; break;
+			case 'N': opt->mode |= BWA_MODE_NONSTOP; opt->max_top2 = 0x7fffffff; break;
+			default: return 1;
 		}
 	}
 	if (opte > 0) {

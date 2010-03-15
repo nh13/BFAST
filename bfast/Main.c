@@ -25,9 +25,10 @@ static int usage()
 	fprintf(stderr, "         localalign\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "BWT Bfast:\n");
-	//fprintf(stderr, "         bwtbfast\n");
+	fprintf(stderr, "         bwtbfast\n");
 	fprintf(stderr, "         bwtindex\n");
 	fprintf(stderr, "         bwtbfast2\n");
+	fprintf(stderr, "         bwaaln\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Post-processing:\n");
 	fprintf(stderr, "         postprocess\n");
@@ -50,7 +51,8 @@ int main(int argc, char *argv[])
 	else if (0 == strcmp("index", argv[1])) return BfastIndex(argc-1, argv+1);
 	else if (0 == strcmp("match", argv[1])) return BfastMatch(argc-1, argv+1);
 	else if (0 == strcmp("bwtindex", argv[1])) return bwtindex(argc-1, argv+1);
-//	else if (0 == strcmp("bwtbfast", argv[1])) return bwtbfast(argc-1, argv+1);
+	else if (0 == strcmp("bwtbfast", argv[1])) return bwtbfast(argc-1, argv+1);
+	else if (0 == strcmp("bwaaln", argv[1])) return bwa_aln(argc-1, argv+1);
 	else if (0 == strcmp("bwtbfast2", argv[1])) return bwtbfast2(argc-1, argv+1);
 	else if (0 == strcmp("localalign", argv[1])) return BfastLocalAlign(argc-1, argv+1);
 	else if (0 == strcmp("postprocess", argv[1])) return BfastPostProcess(argc-1, argv+1);
