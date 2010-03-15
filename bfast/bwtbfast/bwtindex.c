@@ -109,7 +109,6 @@ int bwtindex(int argc, char *argv[])
 			fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 		}
 	}
-	/*
 	{
 		strcpy(str, prefix); strcat(str, ".pac");
 		strcpy(str2, prefix); strcat(str2, ".rpac");
@@ -118,7 +117,6 @@ int bwtindex(int argc, char *argv[])
 		bwa_pac_rev_core(str, str2);
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	*/
 	{
 		strcpy(str, prefix); strcat(str, ".pac");
 		strcpy(str2, prefix); strcat(str2, ".bwt");
@@ -133,7 +131,6 @@ int bwtindex(int argc, char *argv[])
 		}
 		fprintf(stderr, "[bfast bwtindex] %.2f seconds elapse.\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	/*
 	{
 		strcpy(str, prefix); strcat(str, ".rpac");
 		strcpy(str2, prefix); strcat(str2, ".rbwt");
@@ -148,7 +145,6 @@ int bwtindex(int argc, char *argv[])
 		}
 		fprintf(stderr, "[bfast bwtindex] %.2f seconds elapse.\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	}
-	*/
 	{
 		bwt_t *bwt;
 		strcpy(str, prefix); strcat(str, ".bwt");

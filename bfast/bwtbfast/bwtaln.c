@@ -121,8 +121,9 @@ static void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq
 			// ignore adaptor and first color
 			len -= 2; 
 			seq[0] += 2;
+			// reverse adaptor and first color ignored by length decrement
 		}
-		if (max_l < len) {
+		if (max_l < len) { // should not go here?
 			max_l = len;
 			w[0] = (bwt_width_t*)calloc(max_l + 1, sizeof(bwt_width_t));
 			w[1] = (bwt_width_t*)calloc(max_l + 1, sizeof(bwt_width_t));
@@ -292,8 +293,8 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
 						// adjust position
 						if(ColorSpace == space) {
-							if(FORWARD == match.strands[ctr]) pos--;
-							else pos++;
+							if(FORWARD == match.strands[ctr]) match.positions[ctr]+=3;
+							else match.positions[ctr]--;
 						}
 
 						ctr++;
