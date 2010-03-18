@@ -499,7 +499,7 @@ sub CreateJobsMatch {
 			$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
 			$cmd .= " -K ".$data->{'matchOptions'}->{'maxKeyMatches'}    if defined($data->{'matchOptions'}->{'maxKeyMatches'});
 			$cmd .= " -M ".$data->{'matchOptions'}->{'maxNumMatches'}    if defined($data->{'matchOptions'}->{'maxNumMatches'});
-			$cmd .= " -w ".$data->{'matchOptions'}->{'strand'}           if defined($data->{'matchOptions'}->{'strand'});
+			$cmd .= " -w ".$STRAND{$data->{'matchOptions'}->{'strand'}}           if defined($data->{'matchOptions'}->{'strand'});
 			$cmd .= " -n ".$data->{'matchOptions'}->{'threads'}          if defined($data->{'matchOptions'}->{'threads'});
 			$cmd .= " -Q ".$data->{'matchOptions'}->{'queueLength'}      if defined($data->{'matchOptions'}->{'queueLength'});
 			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
