@@ -105,7 +105,7 @@ void AlignNTSpaceGappedBounded(char *read,
 	assert(readLength < matrix->nrow);
 	assert(referenceLength < matrix->ncol);
 
-	AlignNTSpaceInitializeAtStart(matrix, sm, readLength+1, referenceLength+1);
+	AlignNTSpaceInitializeAtStart(matrix, sm, readLength, referenceLength);
 
 	/* Fill in the matrix->cells according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */

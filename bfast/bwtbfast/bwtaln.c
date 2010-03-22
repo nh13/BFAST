@@ -167,18 +167,22 @@ static void *worker(void *data)
 
 void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 {
+	char *fn_name="bwa_aln_core";
 	int i, n_seqs, tot_seqs = 0;
 	bwa_seq_t *seqs;
 	bwa_seqio_t *ks;
 	clock_t t;
 	bwt_t *bwt[2];
 	gzFile fp_out=NULL;
-	    bntseq_t *bns=NULL;
-		int32_t space = (opt->mode & BWA_MODE_COMPREAD) ? NTSpace : ColorSpace;
-		char *str = (char*)calloc(strlen(prefix) + 16, 1);
+	bntseq_t *bns=NULL;
+	int32_t space = (opt->mode & BWA_MODE_COMPREAD) ? NTSpace : ColorSpace;
+	char *str = (char*)calloc(strlen(prefix) + 16, 1);
+	bfast_rg_match_t *matches=NULL;
+	int32_t n_matches = 0;
 
 	// initialization
-	ks = bwa_seq_open(fn_fa, AFILE_GZ_COMPRESSION);
+	ks = bwa_seq_open(fn_fa, AFILE_NO_COMPRESSION);
+	//ks = bwa_seq_open(fn_fa, AFILE_GZ_COMPRESSION);
 
 	{ // load BWT
 
@@ -193,17 +197,17 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
 		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
 		strcat(str, ".sa"); bwt_restore_sa(str, bwt[0]);
-		
+
 		strcpy(str, prefix); strcat(str, "."); strcat(str, SPACENAME(space));
 		strcat(str, ".rsa"); bwt_restore_sa(str, bwt[1]);
 
 		free(str);
 	}
 
-	fp_out = err_xzopen_core("bwa_aln_core", "-", "wb"); 
+	fp_out = err_xzopen_core(fn_name, "-", "wb"); 
 
 	// core loop
-	while ((seqs = bwa_read_seq(ks, 0x40000, &n_seqs, opt->mode & BWA_MODE_COMPREAD, opt->trim_qual)) != 0) {
+	while ((seqs = bwa_read_seq(ks, 0x40000, &n_seqs, 1-space, opt->trim_qual)) != 0) {
 		tot_seqs += n_seqs;
 		t = clock();
 
@@ -237,35 +241,36 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
 		t = clock();
 		fprintf(stderr, "[bwa_aln_core] write to the disk... ");
+		matches = my_realloc(matches, sizeof(bfast_rg_match_t)*(n_matches + n_seqs), fn_name);
 		for (i = 0; i < n_seqs; ++i) {
 			bwa_seq_t *p = seqs + i;
 			// BWA to BMF
 			{
-				bfast_rg_match_t match;
 				int j, k, ctr=0, n_skipped=0, seqid, pos;
 
 				assert(NULL != p->seq);
 				seq_reverse(p->len, p->seq, 0);
-
-				match.read_name = p->name;
-				match.read_name_length = strlen(p->name);
-				match.read_length = p->len;
-				match.read = my_malloc(sizeof(char)*(1+p->len), "bwa_aln_core");
+				matches[i+n_matches].read_name_length = strlen(p->name);
+				matches[i+n_matches].read_name = my_malloc(sizeof(char)*(1+matches[i+n_matches].read_name_length), fn_name);
+				strcpy(matches[i+n_matches].read_name, p->name);
+				matches[i+n_matches].read_length = p->len;
+				matches[i+n_matches].read = my_malloc(sizeof(char)*(1+p->len), fn_name);
 				for(j=0;j<p->len;j++) {
-					match.read[j] = "ACGTN"[p->seq[j]];
+					matches[i+n_matches].read[j] = "ACGTN"[p->seq[j]];
 				}
-				match.qual = (char*)p->qual;
-				match.qual_length = strlen(match.qual);
-				match.max_reached = 0;
+				matches[i+n_matches].qual_length = (NTSpace == space) ? matches[i+n_matches].read_length : matches[i+n_matches].read_length-1;
+				matches[i+n_matches].qual = my_malloc(sizeof(char)*(1+matches[i+n_matches].qual_length), fn_name);
+				strcpy(matches[i+n_matches].qual, (char*)p->qual);
+				matches[i+n_matches].max_reached = 0;
 
-				match.num_entries = 0;
+				matches[i+n_matches].num_entries = 0;
 				for(j=0;j<p->n_aln;j++) {
-					match.num_entries += p->aln[j].l - p->aln[j].k + 1;
+					matches[i+n_matches].num_entries += p->aln[j].l - p->aln[j].k + 1;
 				}
-				match.contigs = my_malloc(sizeof(uint32_t)*match.num_entries, "bwa_aln_core");
-				match.positions = my_malloc(sizeof(int32_t)*match.num_entries, "bwa_aln_core");
-				match.strands = my_malloc(sizeof(char)*match.num_entries, "bwa_aln_core");
-				match.masks = my_malloc(sizeof(char*)*match.num_entries, "bwa_aln_core");
+				matches[i+n_matches].contigs = my_malloc(sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
+				matches[i+n_matches].positions = my_malloc(sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
+				matches[i+n_matches].strands = my_malloc(sizeof(char)*matches[i+n_matches].num_entries, fn_name);
+				matches[i+n_matches].masks = my_malloc(sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
 
 				for(j=ctr=0;j<p->n_aln;j++) {
 					for(k=p->aln[j].k;k<=p->aln[j].l;k++) {
@@ -286,45 +291,41 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 							continue;
 						}
 
-						match.contigs[ctr] = seqid+1; //contig
-						match.positions[ctr] = pos+1; // position
-						match.strands[ctr] = (0 == p->aln[j].a) ? FORWARD : REVERSE; // strand
-						match.masks[ctr] = my_calloc(GETMASKNUMBYTESFROMLENGTH(match.read_length), sizeof(char), "bwa_aln_core"); // mask
+						matches[i+n_matches].contigs[ctr] = seqid+1; //contig
+						matches[i+n_matches].positions[ctr] = pos+1; // position
+						matches[i+n_matches].strands[ctr] = (0 == p->aln[j].a) ? FORWARD : REVERSE; // strand
+						matches[i+n_matches].masks[ctr] = my_calloc(GETMASKNUMBYTESFROMLENGTH(matches[i+n_matches].read_length), sizeof(char), fn_name); // mask
 
 						// adjust position
 						if(ColorSpace == space) {
-							if(FORWARD == match.strands[ctr]) match.positions[ctr]+=3;
-							else match.positions[ctr]--;
+							if(FORWARD == matches[i+n_matches].strands[ctr]) matches[i+n_matches].positions[ctr]+=3;
+							else matches[i+n_matches].positions[ctr]--;
 						}
 
 						ctr++;
 					}
 				}
 				if(0 < n_skipped) {
-					match.num_entries -= n_skipped;
-					match.contigs = my_realloc(match.contigs, sizeof(uint32_t)*match.num_entries, "bwa_aln_core");
-					match.positions = my_realloc(match.positions, sizeof(int32_t)*match.num_entries, "bwa_aln_core");
-					match.strands = my_realloc(match.strands, sizeof(char)*match.num_entries, "bwa_aln_core");
-					match.masks = my_realloc(match.masks, sizeof(char*)*match.num_entries, "bwa_aln_core");
+					matches[i+n_matches].num_entries -= n_skipped;
+					matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
+					matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
+					matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
+					matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
 				}
-
-				// print
-				bfast_rg_matches_t_print(&match, 0, 0, fp_out);
-				// free
-				for(j=0;j<match.num_entries;j++) {
-					free(match.masks[j]);
-				}
-				free(match.contigs);
-				free(match.positions);
-				free(match.strands);
-				free(match.masks);
 			}
 		}
+		n_matches += n_seqs;
+		// print
+		n_matches = bfast_rg_match_t_print_queue(matches, n_matches, fp_out, 0);
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
 
 		bwa_free_read_seq(n_seqs, seqs);
 		fprintf(stderr, "[bwa_aln_core] %d sequences have been processed.\n", tot_seqs);
 	}
+
+	// flush
+	n_matches = bfast_rg_match_t_print_queue(matches, n_matches, fp_out, 1);
+	assert(0 == n_matches);
 
 	gzclose(fp_out);
 

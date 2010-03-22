@@ -123,8 +123,7 @@ int bwtbfast(int argc, char *argv[])
 void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t space, int32_t max_key_matches, int32_t max_num_matches, int32_t n_threads, int32_t queue_length)
 {
 	char *fn_name="bwtbfast_core";
-	int i;
-	int n_matches, tot_matches= 0;
+	int n_matches=0, tot_matches= 0, is_eof = 0;
 	bfast_rg_match_t *matches=NULL;
 	bwa_seqio_t *ks;
 	clock_t t;
@@ -151,7 +150,15 @@ void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t sp
 		strcpy(str, prefix); strcat(str, ".sa"); bwt_restore_sa(str, bwt);
 	}
 
-	while ((matches = bfast_rg_match_read(ks, queue_length, &n_matches, space, 0)) != 0) {
+	matches = my_malloc(sizeof(bfast_rg_match_t)*queue_length, fn_name);
+
+	while(1) {
+		// read
+		is_eof = bfast_rg_match_read(ks, queue_length, matches, &n_matches, space, 0);
+
+		// continue only if matches exist
+		if(0 == n_matches) break;
+		
 		tot_matches += n_matches;
 		t = clock();
 
@@ -194,20 +201,15 @@ void bwtbfast_core(char *ref_fn, char *read_fn, bfast_masks_t *masks, int32_t sp
 		// Print
 		t = clock();
 		fprintf(stderr, "[bwtbfast_core] write to the disk... ");
-		bfast_rg_match_t_print_queue(matches, n_matches, fp_out);
+		n_matches = bfast_rg_match_t_print_queue(matches, n_matches, fp_out, is_eof);
+		tot_matches -= n_matches;
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
-
-		// Free
-		for(i=0;i<n_matches;i++) {
-			bfast_rg_match_t_destroy(&matches[i]);
-		}
-		free(matches); matches = NULL;
-
 		fprintf(stderr, "[bwtbfast_core] %d sequences have been processed.\n", tot_matches);
 
 	}
 
 	// destroy
+	free(matches); matches = NULL;
 	bwt_destroy(bwt);
 	bns_destroy(bns);
 	bwa_seq_close(ks);
@@ -283,9 +285,6 @@ void bwtbfast_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bfa
 
 			}
 		}
-		// free -> we don't need these anymore
-		free(matches[i].read_int); matches[i].read_int = NULL;
-		free(matches[i].read_rc_int); matches[i].read_rc_int = NULL;
 	}
 }
 

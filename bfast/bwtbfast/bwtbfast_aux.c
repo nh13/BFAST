@@ -380,20 +380,67 @@ void bfast_rg_match_t_clear(bfast_rg_match_t *match)
 	match->masks = NULL;
 }
 
-void bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len, gzFile fp)
+int32_t bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len, gzFile fp, int32_t flush)
 {
-	int32_t i, prev_i;
+	int32_t i, prev_i, j;
 
 	for(i=prev_i=0;i<len;i++) {
 		if(i != prev_i && 0 != strcmp(match_queue[prev_i].read_name, match_queue[i].read_name)) {
 			// print prev_i to i-1
 			bfast_rg_matches_t_print(match_queue, prev_i, i-1, fp);
+			// free
+			for(j=prev_i;j<=i-1;j++) {
+			free(match_queue[j].read_int); free(match_queue[j].read_rc_int);
+				bfast_rg_match_t_destroy(&match_queue[j]);
+			}
+
 			// update prev
 			prev_i = i;
 		}
 	}
-	// print prev_i to len-1
-	bfast_rg_matches_t_print(match_queue, prev_i, len-1, fp);
+	if(1 == flush) {
+		// print prev_i to len-1
+		bfast_rg_matches_t_print(match_queue, prev_i, len-1, fp);
+		for(j=prev_i;j<=len-1;j++) {
+			free(match_queue[j].read_int); free(match_queue[j].read_rc_int);
+			bfast_rg_match_t_destroy(&match_queue[j]);
+		}
+		return 0;
+	}
+	else {
+		// copy to the front
+		for(j=prev_i;j<=len-1;j++) {
+			match_queue[j-prev_i].read_int = match_queue[j].read_int;
+			match_queue[j].read_int = NULL;
+			match_queue[j-prev_i].read_rc_int = match_queue[j].read_rc_int;
+			match_queue[j].read_rc_int = NULL;
+			match_queue[j-prev_i].read_name_length = match_queue[j].read_name_length;
+			match_queue[j].read_name_length=0;
+			match_queue[j-prev_i].read_name = match_queue[j].read_name;
+			match_queue[j].read_name=NULL;
+			match_queue[j-prev_i].read_length = match_queue[j].read_length;
+			match_queue[j].read_length=0;
+			match_queue[j-prev_i].read = match_queue[j].read;
+			match_queue[j].read=NULL;
+			match_queue[j-prev_i].qual_length = match_queue[j].qual_length;
+			match_queue[j].qual_length=0;
+			match_queue[j-prev_i].qual = match_queue[j].qual;
+			match_queue[j].qual=NULL;
+			match_queue[j-prev_i].max_reached = match_queue[j].max_reached;
+			match_queue[j].max_reached=0;
+			match_queue[j-prev_i].num_entries = match_queue[j].num_entries;
+			match_queue[j].num_entries=0;
+			match_queue[j-prev_i].contigs = match_queue[j].contigs;
+			match_queue[j].contigs=NULL;
+			match_queue[j-prev_i].positions = match_queue[j].positions;
+			match_queue[j].positions=NULL;
+			match_queue[j-prev_i].strands = match_queue[j].strands;
+			match_queue[j].strands=NULL;
+			match_queue[j-prev_i].masks = match_queue[j].masks;
+			match_queue[j].masks=NULL;
+		}
+		return len-prev_i;
+	}
 }
 
 void bfast_rg_matches_t_print(bfast_rg_match_t *match_queue, int32_t from, int32_t to, gzFile fp)
@@ -535,28 +582,27 @@ void bfast_rg_match_t_copy_from_bwa(bfast_rg_match_t *m, bwa_seq_t *seq, int32_t
 	m->tid = seq->tid;
 }
 
-bfast_rg_match_t *bfast_rg_match_read(bwa_seqio_t *bs, int n_needed, int *n, int space, int trim_qual)
+int32_t bfast_rg_match_read(bwa_seqio_t *bs, int n_needed, bfast_rg_match_t *m, int *n, int space, int trim_qual)
 {
-	char *fn_name="bfast_rg_match_t";
-	bfast_rg_match_t *m=NULL;
+	//char *fn_name="bfast_rg_match_t";
 	bwa_seq_t *seqs=NULL;
-	int32_t i;
+	int32_t i, prev_n;
 
 	// Use BWA built-in
-	seqs = bwa_read_seq(bs, n_needed, n, 1-space, trim_qual);
-
-	if(NULL == seqs) return NULL;
-
-	m = my_malloc(sizeof(bfast_rg_match_t)*(*n), fn_name);
+	prev_n = (*n);
+	seqs = bwa_read_seq(bs, n_needed - prev_n, n, 1-space, trim_qual);
 
 	for(i=0;i<(*n);i++) {
-		bfast_rg_match_t_init(&m[i], NULL);
+		bfast_rg_match_t_init(&m[i+prev_n], NULL);
 		seq_reverse(seqs[i].len, seqs[i].seq, 0); // reverse back sequence
-		bfast_rg_match_t_copy_from_bwa(&m[i], &seqs[i], space);
+		bfast_rg_match_t_copy_from_bwa(&m[i+prev_n], &seqs[i], space);
 	}
 
 	// Free
 	bwa_free_read_seq((*n), seqs);
 
-	return m;
+	(*n) += prev_n;
+
+	if((*n) == prev_n) return 1;
+	else return 0;
 }

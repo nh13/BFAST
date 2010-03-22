@@ -71,14 +71,14 @@ extern "C" {
 	void bfast_rg_match_t_destroy(bfast_rg_match_t *match);
 	void bfast_rg_match_t_append(bfast_rg_match_t *dest, bfast_rg_match_t *src);
 	void bfast_rg_match_t_clear(bfast_rg_match_t *match);
-	void bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len, gzFile fp);
+	int32_t bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len, gzFile fp, int32_t flush);
 	void bfast_rg_matches_t_print(bfast_rg_match_t *match_queue, int32_t from, int32_t to, gzFile fp);
 	void bfast_rg_match_t_print(bfast_rg_match_t *match, gzFile fp);
 	char *bfast_rg_match_create_mask(bfast_string_t *bfast_mask, int32_t space, int32_t offset, int32_t strand, int32_t read_length);
 	char *bfast_rg_match_string_to_mask(bfast_string_t *bfast_mask, int32_t read_length);
 	void bfast_rg_match_t_print_text(bfast_rg_match_t *match, FILE *fp); // DEBUGGING FUNCTION
 	void bfast_rg_match_t_copy_from_bwa(bfast_rg_match_t *m, bwa_seq_t *seq, int32_t space);
-	bfast_rg_match_t *bfast_rg_match_read(bwa_seqio_t *bs, int n_needed, int *n, int space, int trim_qual);
+	int32_t bfast_rg_match_read(bwa_seqio_t *bs, int n_needed, bfast_rg_match_t *matches, int *n, int space, int trim_qual);
 #ifdef __cplusplus
 }
 #endif

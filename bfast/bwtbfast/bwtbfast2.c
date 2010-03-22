@@ -40,9 +40,9 @@ int bwtbfast2_usage(int32_t alg, int32_t space, int32_t seed_len, int32_t max_mm
 	fprintf(stderr, "\n=========== Algorithm Options =======================================================\n");
 	fprintf(stderr, "\t-A\tINT\tspace (0: NT space 1: Color space) [%d]\n", space);
 	/*
-	fprintf(stderr, "\t-s\tINT\tSpecifies the read to begin with (skip the first startReadNum-1 reads)\n");
-	fprintf(stderr, "\t-e\tINT\tSpecifies the last read to use (inclusive)\n");
-	*/
+	   fprintf(stderr, "\t-s\tINT\tSpecifies the read to begin with (skip the first startReadNum-1 reads)\n");
+	   fprintf(stderr, "\t-e\tINT\tSpecifies the last read to use (inclusive)\n");
+	   */
 	fprintf(stderr, "\t-a\tINT\talgorithm mode 0: first 1: all min mm 2: all min mm+1 3: all [%d]\n", alg);
 	fprintf(stderr, "\t-l\tINT\tseed length [%d]\n", seed_len);
 	fprintf(stderr, "\t-m\tNUM\tmaximum number of mismatches [%d] or error rate [%lf]\n", 
@@ -104,8 +104,8 @@ int bwtbfast2(int argc, char *argv[])
 			case 'z': compression=AFILE_GZ_COMPRESSION; break;
 			case 'A': space=atoi(optarg); break;
 			case 'E': seed_ends_only=1; break;
-			//case 's': start_read_num=atoi(optarg); break;
-			//case 'e': end_read_num=atoi(optarg); break;
+					  //case 's': start_read_num=atoi(optarg); break;
+					  //case 'e': end_read_num=atoi(optarg); break;
 			case 'K': max_seed_hits=atoi(optarg); break;
 			case 'M': max_hits=atoi(optarg); break;
 			case 'Q': queue_length=atoi(optarg); break;
@@ -183,9 +183,7 @@ int bwtbfast2(int argc, char *argv[])
 void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t alg, int32_t seed_len, int32_t max_mm, double max_mm_err_rate, int32_t space, int32_t start_read_num, int32_t end_read_num, int32_t max_seed_hits, int32_t max_hits, int32_t seed_ends_only, int32_t n_threads, int32_t queue_length)
 {
 	char *fn_name="bwtbfast2_core";
-	int i;
-	int n_matches, tot_matches= 0;
-	int32_t n_matches_left=0;
+	int n_matches=0, tot_matches= 0, is_eof = 0;
 	bfast_rg_match_t *matches=NULL;
 	bwa_seqio_t *ks;
 	clock_t t;
@@ -210,37 +208,21 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		// load SA
 		strcpy(str, prefix); strcat(str, ".sa"); bwt_restore_sa(str, bwt);
 	}
-
-	// Skip over start_num_reads
-	/*
-	if(1 < start_read_num) {
-		fprintf(stderr, "[bwtbfast2_core] skipping over %d reads... ", start_read_num);
-		t = clock();
-		tot_matches = start_read_num;
-		while (0 < tot_matches &&
-				(matches = bfast_rg_match_read(ks, GETMIN(queue_length, tot_matches), &n_matches, space, 0)) != 0) {
-			// Free
-			for(i=0;i<n_matches;i++) {
-				bfast_rg_match_t_destroy(&matches[i]);
-			}
-			free(matches); matches = NULL;
-
-			tot_matches -= n_matches;
-			n_matches_left -= n_matches;
-		}
-		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
-	}
-	*/
-	n_matches_left = end_read_num - start_read_num + 1;
+	    
+	matches = my_malloc(sizeof(bfast_rg_match_t)*queue_length, fn_name);
 
 	tot_matches = 0;
-	while (0 < n_matches_left &&
-			(matches = bfast_rg_match_read(ks, GETMIN(n_matches_left, queue_length), &n_matches, space, 0)) != 0) {
+	while(1) {
+		// read
+		is_eof = bfast_rg_match_read(ks, queue_length, matches, &n_matches, space, 0);
+
+		// continue only if matches exist
+		if(0 == n_matches) break;
 		tot_matches += n_matches;
 		t = clock();
 
 		fprintf(stderr, "[bwtbfast2_core] matching... ");
-			
+
 #ifdef HAVE_LIBPTHREAD
 		if(n_threads <= 1) {
 			// no threads
@@ -280,22 +262,14 @@ void bwtbfast2_core(char *ref_fn, char *read_fn, int32_t compression, int32_t al
 		// Print
 		t = clock();
 		fprintf(stderr, "[bwtbfast2_core] write to the disk... ");
-		bfast_rg_match_t_print_queue(matches, n_matches, fp_out);
+		n_matches = bfast_rg_match_t_print_queue(matches, n_matches, fp_out, is_eof);
+		tot_matches -= n_matches;
 		fprintf(stderr, "%.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC); t = clock();
-
-		// Free
-		for(i=0;i<n_matches;i++) {
-			bfast_rg_match_t_destroy(&matches[i]);
-		}
-		free(matches); matches = NULL;
-			
-		n_matches_left -= n_matches;
-
 		fprintf(stderr, "[bwtbfast2_core] %d sequences have been processed.\n", tot_matches);
-
 	}
 
 	// destroy
+	free(matches); matches = NULL;
 	bwt_destroy(bwt);
 	bns_destroy(bns);
 	bwa_seq_close(ks);
@@ -316,7 +290,7 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 	//char *fn_name="bwtbfast2_core_worker";
 	int32_t i, eff_max_mm=0;
 	bfast2_stack_t *stack=NULL;
-		
+
 	// set the mismatch rate
 	if(0 <= max_mm) eff_max_mm = max_mm;
 	else eff_max_mm = 1 + (int)(seed_len * max_mm_err_rate);
@@ -351,10 +325,6 @@ void bwtbfast2_core_worker(int tid, bwt_t *bwt, bntseq_t *bns, int n_matches, bf
 				max_hits,
 				seed_ends_only,
 				stack);
-
-		// free -> we don't need these anymore
-		free(matches[i].read_int); matches[i].read_int = NULL;
-		free(matches[i].read_rc_int); matches[i].read_rc_int = NULL;
 	}
 	bfast2_destroy_stack(stack);
 }
