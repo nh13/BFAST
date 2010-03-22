@@ -256,7 +256,12 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 				matches[i+n_matches].read_length = p->len;
 				matches[i+n_matches].read = my_malloc(sizeof(char)*(1+p->len), fn_name);
 				for(j=0;j<p->len;j++) {
-					matches[i+n_matches].read[j] = "ACGTN"[p->seq[j]];
+					if(0 == j || NTSpace == space) {
+						matches[i+n_matches].read[j] = "ACGTN"[p->seq[j]];
+					}
+					else {
+						matches[i+n_matches].read[j] = "01234"[p->seq[j]];
+					}
 				}
 				matches[i+n_matches].qual_length = (NTSpace == space) ? matches[i+n_matches].read_length : matches[i+n_matches].read_length-1;
 				matches[i+n_matches].qual = my_malloc(sizeof(char)*(1+matches[i+n_matches].qual_length), fn_name);
