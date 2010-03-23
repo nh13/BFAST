@@ -3,27 +3,33 @@
 
 #include "AlignedRead.h"
 
+
 /* Paired End Distance Bins */
 // This distance of the second end minus the first end
 typedef struct {
 	int32_t minDistance;
 	int32_t maxDistance;
-	int32_t *bins;
+	int32_t bins[MAX_PEDBINS_DISTANCE - MIN_PEDBINS_DISTANCE + 1];
 	int32_t numDistances;
+	double std;
+	double avg;
+	int32_t inversionCount;
 } PEDBins;
 
 typedef struct {
 	RGBinary *rg;
 	PEDBins *bins;
 	int algorithm;
-	int pairedEndInfer;
+	int unpaired;
+	int avgMismatchQuality;
+	int mismatchScore;
 	int queueLength;
 	int outputFormat;
 	char *readGroupString;
 	char *outputID;
 	int32_t **mappedEndCounts;
 	int32_t *mappedEndCountsNumEnds;
-	int32_t *numReported, *numUnmapped, *pairedEndInferRescued;
+	int32_t *numReported, *numUnmapped;
 
 	pthread_mutex_t *inputFP_mutex;
 	int32_t *input_threadID;
@@ -39,7 +45,10 @@ typedef struct {
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
-		int pairedEndInfer,
+		int space,
+		int unpaired,
+		int avgMismatchQuality,
+		char *scoringMatrixFileName,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
@@ -56,15 +65,14 @@ int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t, pthread_mutex_t*);
 
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
-		int pairedEndInfer,
-		PEDBins *b,
-		int32_t *pairedEndInferRescue);
+		int unpairedInfer,
+		int avgMismatchQuality,
+		int mismatchScore,
+		PEDBins *b);
 
 void PEDBinsInitialize(PEDBins*);
 void PEDBinsFree(PEDBins*);
-void PEDBinsInsert(PEDBins*, int32_t);
+void PEDBinsInsert(PEDBins*, char, char, int32_t);
 void PEDBinsPrintStatistics(PEDBins*, FILE*);
-void PEDBinsMakeIntoProbability(PEDBins*);
-int32_t PEDBinsGetProbability(PEDBins*, int32_t, int32_t, int32_t, int32_t);
 
 #endif

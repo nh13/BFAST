@@ -20,7 +20,8 @@
    */
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithm, DescPairedEndInfer, DescNumThreads, DescQueueLength, 
+	DescAlgoTitle, DescAlgorithm, DescSpace, DescUnpaired, DescAvgMismatchQuality, 
+	DescScoringMatrixFileName, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -38,9 +39,10 @@ static struct argp_option options[] = {
 			"\n\t\t\t  3: Choose uniquely the alignment with the best score"
 			"\n\t\t\t  4: Choose all alignments with the best score",
 		2},
-	{"pairedEndInfer", 'P', 0, OPTION_NO_USAGE, "Specifies to break ties when one end of a paired end read by"
-		"\n\t\t\t  estimating the insert size distribution.  This works only"
-			"\n\t\t\t  if the other end is mapped uniquely (using -a 3).", 2},
+	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
+	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies that pairing should not be performed", 2},
+	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
+	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
@@ -50,7 +52,7 @@ static struct argp_option options[] = {
 	{"outputID", 'o', "outputID", 0, "Specifies output ID to prepend to the read name (SAM only)", 3},
 	{"RGFileName", 'r', "RGFileName", 0, "Specifies to add the RG in the specified file to the SAM"
 		"\n\t\t\t  header and updates the RG tag (and LB/PU tags if present) in"
-		"\n\t\t\t  the reads (SAM only)", 3},
+			"\n\t\t\t  the reads (SAM only)", 3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -59,7 +61,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:n:o:r:u:O:Q:hptP";
+"a:i:f:n:o:q:r:u:x:A:O:Q:hptU";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -108,7 +110,10 @@ BfastPostProcess(int argc, char **argv)
 					ReadInputFilterAndOutput(&rg,
 							arguments.alignFileName,
 							arguments.algorithm,
-							arguments.pairedEndInfer,
+							arguments.space,
+							arguments.unpaired,
+							arguments.avgMismatchQuality,
+							arguments.scoringMatrixFileName,
 							arguments.numThreads,
 							arguments.queueLength,
 							arguments.outputFormat,
@@ -202,6 +207,23 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "algorithm", "Command line argument", Exit, OutOfRange);	
 	}	
 
+	if(args->space != NTSpace && args->space != ColorSpace) {
+		PrintError(FnName, "space", "Command line argument", Exit, OutOfRange);
+	}
+
+	if(args->scoringMatrixFileName!=0) {
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating scoringMatrixFileName path %s. \n",
+					args->scoringMatrixFileName);
+		}
+		if(ValidateFileName(args->scoringMatrixFileName)==0)
+			PrintError(FnName, "scoringMatrixFileName", "Command line argument", Exit, IllegalFileName);
+	}
+	if(args->avgMismatchQuality <= 0) {
+		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, OutOfRange);
+	}
+
+
 	if(args->numThreads <= 0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	}
@@ -225,11 +247,8 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 			PrintError(FnName, "unmappedFileName", "Command line argument", Exit, IllegalFileName);	
 	}	
 	assert(args->timing == 0 || args->timing == 1);
-	assert(args->pairedEndInfer == 0 || args->pairedEndInfer == 1);
+	assert(args->unpaired == 0 || args->unpaired == 1);
 
-	if(args->algorithm != BestScore && 1 == args->pairedEndInfer) {
-		PrintError(FnName, "pairedEndInfer", "Command line argument can only be used with -a 3", Exit, OutOfRange);
-	}
 	if(SAM != args->outputFormat && NULL != args->RGFileName) {
 		PrintError(FnName, "RGFileName", "Command line argument can only be used when outputting to SAM format", Exit, OutOfRange);
 	}
@@ -249,9 +268,12 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->alignFileName = NULL;
 
 	args->algorithm=BestScore;
-	args->pairedEndInfer=0;
+	args->space = NTSpace;
+	args->unpaired=0;
+	args->scoringMatrixFileName=NULL;
+	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads=1;
-	args->queueLength=DEFAULT_QUEUE_LENGTH;
+	args->queueLength=DEFAULT_POSTPROCESS_QUEUE_LENGTH;
 
 	args->outputFormat=SAM;
 	args->unmappedFileName=NULL;
@@ -276,7 +298,10 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
 		fprintf(fp, "alignFileName:\t\t%s\n", FILESTDIN(args->alignFileName));
 		fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
-		fprintf(fp, "pairedEndInfer:\t\t%s\n", INTUSING(args->pairedEndInfer));
+		fprintf(fp, "space:\t\t\t%s\n", SPACE(args->space));
+		fprintf(fp, "unpaired:\t\t%s\n", INTUSING(args->unpaired));
+		fprintf(fp, "scoringMatrixFileName:\t%s\n", FILEUSING(args->scoringMatrixFileName));
+		fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
 		fprintf(fp, "numThreads:\t\t%d\n", args->numThreads);
 		fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 		fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
@@ -302,6 +327,8 @@ void BfastPostProcessFreeProgramParameters(struct arguments *args)
 	args->outputID=NULL;
 	free(args->RGFileName);
 	args->RGFileName=NULL;
+	free(args->scoringMatrixFileName);
+	args->scoringMatrixFileName=NULL;
 }
 
 /* TODO */
@@ -356,12 +383,19 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				arguments->outputID=strdup(optarg);break;
 			case 'p':
 				arguments->programMode=ExecutePrintProgramParameters;break;
+			case 'q':
+				arguments->avgMismatchQuality = atoi(optarg); break;
 			case 'r':
 				arguments->RGFileName=strdup(optarg);break;
 			case 't':
 				arguments->timing = 1;break;
 			case 'u':
 				arguments->unmappedFileName=strdup(optarg);break;
+			case 'x':
+				StringCopyAndReallocate(&arguments->scoringMatrixFileName, optarg);
+				break;
+			case 'A':
+				arguments->space=atoi(optarg);break;
 			case 'O':
 				switch(atoi(optarg)) {
 					case 0:
@@ -382,10 +416,10 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 						break;
 				}
 				break;
-			case 'P':
-				arguments->pairedEndInfer=1; break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
+			case 'U':
+				arguments->unpaired=1; break;
 			default:
 				OptErr=1;
 		} /* while */

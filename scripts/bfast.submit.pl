@@ -202,7 +202,7 @@ sub Schema {
 				  </xs:restriction>
 				</xs:simpleType>
 			  </xs:element>
-			  <xs:element name="pairedEndInfer" type="xs:integer"/>
+			  <xs:element name="unpaired" type="xs:integer"/>
 			  <xs:element name="outputFormat" type="xs:integer"/>
 			  <xs:element name="unmappedFile" type="xs:string"/>
 			  <xs:element name="readGroupFile" type="xs:string"/>
@@ -313,7 +313,7 @@ sub ValidateData {
 	# postprocess
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
-	ValidateOption($data->{'postprocessOptions'}, 'pairedEndInfer',                           OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'unpaired',                                  OPTIONAL);
 	ValidateOption($data->{'unmappedFile'}, 'unmappedFile',                                   OPTIONAL);
 	ValidateFile($data->{'postprocessOptions'}, 'readGroupFile',                              OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
@@ -599,7 +599,10 @@ sub CreateJobsPostprocess {
 		$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
-		$cmd .= " -P " if defined($data->{'postprocessOptions'}->{'pairedEndInfer'});
+		$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
+		$cmd .= " -U" if defined($deta->{'postprocessOptions'}->{'unpaired'});
+		$cmd .= " -q ".$data->{'localalignOptions'}->{'mismatchQuality'}    if defined($data->{'localalignOptions'}->{'mismatchQuality'});
+		$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -r ".$data->{'postprocessOptions'}->{'readGroupFile'}.""   if defined($data->{'postprocessOptions'}->{'readGroupFile'});

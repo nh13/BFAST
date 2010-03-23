@@ -100,12 +100,13 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define COLOR_SPACE_START_NT_INT 0
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
+#define MAX_STD 4
 
 /* To calculate the paired end insert size distribution in postprocess */
 #define MIN_PEDBINS_SIZE 100
-#define MAX_PEDBINS_SIZE 1000000
 #define MIN_PEDBINS_DISTANCE -20000
 #define MAX_PEDBINS_DISTANCE 20000
+#define MAX_PEDBINS_DISTANCES 10000
 
 /* Scoring matrix defaults */
 #define SCORING_MATRIX_GAP_OPEN -175
@@ -154,8 +155,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 #define DEFAULT_LOCALALIGN_QUEUE_LENGTH 10000
-
-#define DEFAULT_QUEUE_LENGTH 10000
+#define DEFAULT_POSTPROCESS_QUEUE_LENGTH 1000
 
 extern char COLORS[5];
 

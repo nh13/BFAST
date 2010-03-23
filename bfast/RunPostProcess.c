@@ -15,11 +15,14 @@
 #include "ScoringMatrix.h"
 #include "RunPostProcess.h"
 
-/* TODO */
+// TODO: change hte meaning of unpaired
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
-		int pairedEndInfer,
+		int space,
+		int unpaired,
+		int avgMismatchQuality,
+		char *scoringMatrixFileName,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
@@ -38,23 +41,37 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	PEDBins bins;
 	int32_t *mappedEndCounts=NULL;
 	int32_t mappedEndCountsNumEnds=-1;
-	int32_t pairedEndInferRescued=0;
 	char *readGroupString=NULL;
 	pthread_mutex_t inputFP_mutex, outputFP_mutex;
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status=NULL;
 	PostProcessThreadData *data=NULL;
+	ScoringMatrix sm;
+	int32_t mismatchScore;
+
+	/* Read in scoring matrix */
+	ScoringMatrixInitialize(&sm);
+	if(NULL != scoringMatrixFileName) {
+		ScoringMatrixRead(scoringMatrixFileName, &sm, space);
+	}
+	/* Calculate mismatch score */
+	/* Assumes all match scores are the same and all substitution scores are the same */
+	if(space == NTSpace) {
+		mismatchScore = sm.ntMatch - sm.ntMismatch;
+	}
+	else {
+		mismatchScore = sm.colorMatch - sm.colorMismatch;
+	}
 
 	if(NULL != readGroup) {
 		readGroupString=ParseReadGroup(readGroup);
 	}
 
 	/* Get the PEDBins if necessary */
-	if(1 == pairedEndInfer) {
+	if(0 == unpaired) {
 		PEDBinsInitialize(&bins);
-		pairedEndInfer = GetPEDBins(inputFileName, algorithm, queueLength, &bins);
-		PEDBinsMakeIntoProbability(&bins);
+		unpaired = GetPEDBins(inputFileName, algorithm, queueLength, &bins);
 	}
 
 	/* Open the input file */
@@ -108,7 +125,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		data[i].rg = rg;
 		data[i].bins = &bins;
 		data[i].algorithm = algorithm;
-		data[i].pairedEndInfer = pairedEndInfer;
+		data[i].unpaired = unpaired;
+		data[i].avgMismatchQuality = avgMismatchQuality;
+		data[i].mismatchScore = mismatchScore;
 		data[i].queueLength = queueLength;
 		data[i].outputFormat = outputFormat;
 		data[i].readGroupString = readGroupString;
@@ -117,7 +136,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		data[i].mappedEndCountsNumEnds = &mappedEndCountsNumEnds;
 		data[i].numReported = &numReported;
 		data[i].numUnmapped = &numUnmapped;
-		data[i].pairedEndInferRescued = &pairedEndInferRescued;
 
 		data[i].inputFP_mutex = &inputFP_mutex;
 		data[i].outputFP_mutex = &inputFP_mutex;
@@ -188,15 +206,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		}
 		fprintf(stderr, "Found %10lld reads with at least one end mapping.\n",
 				(long long int)numReported);
-		if(1 == pairedEndInfer) {
-			fprintf(stderr, "Rescued %d ends using the paired end insert distribution.\n",
-					pairedEndInferRescued);
-		}
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
 	/* Free */
-	if(1 == pairedEndInfer) {
+	if(0 == unpaired) {
 		PEDBinsFree(&bins);
 	}
 	free(mappedEndCounts);
@@ -212,7 +226,9 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	PEDBins *bins = data->bins;
 	RGBinary *rg = data->rg;
 	int algorithm = data->algorithm;
-	int pairedEndInfer = data->pairedEndInfer;
+	int unpaired = data->unpaired;
+	int avgMismatchQuality = data->avgMismatchQuality;
+	int mismatchScore = data->mismatchScore;
 	int queueLength = data->queueLength;
 	int outputFormat = data->outputFormat;
 	char *outputID = data->outputID;
@@ -221,7 +237,6 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	int32_t *mappedEndCountsNumEnds = data->mappedEndCountsNumEnds;
 	int32_t *numReported = data->numReported;
 	int32_t *numUnmapped = data->numUnmapped;
-	int32_t *pairedEndInferRescued = data->pairedEndInferRescued;
 	pthread_mutex_t *inputFP_mutex = data->inputFP_mutex;
 	gzFile fpIn = data->fpIn;
 	FILE *fpReported = data->fpReported;
@@ -284,9 +299,10 @@ void *ReadInputFilterAndOutputThread(void *arg)
 			/* Filter */
 			foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
 					algorithm,
-					pairedEndInfer,
-					bins,
-					pairedEndInferRescued);
+					unpaired,
+					avgMismatchQuality,
+					mismatchScore,
+					bins);
 
 			numEnds=0;
 			if(NoneFound == foundType) {
@@ -381,12 +397,12 @@ int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead, pthr
 	return numRead;
 }
 
-/* TODO */
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
-		int  pairedEndInfer,
-		PEDBins *b,
-		int32_t *pairedEndInferRescued)
+		int unpaired,
+		int avgMismatchQuality,
+		int mismatchScore,
+		PEDBins *b)
 {
 	char *FnName="FilterAlignedRead";
 	int foundType;
@@ -394,7 +410,6 @@ int FilterAlignedRead(AlignedRead *a,
 	AlignedRead tmpA;
 	int32_t i, j, ctr;
 	int32_t best, bestIndex, numBest;
-	int32_t prob, bestProb;
 
 	AlignedReadInitialize(&tmpA);
 
@@ -413,159 +428,199 @@ int FilterAlignedRead(AlignedRead *a,
 
 	/* If we are going to use the paired end to infer the other end, then
 	 * use the BestScoreAll algorithm and try to infer. */
-	if(1 == pairedEndInfer && 2 == tmpA.numEnds) {
-		assert(BestScore == algorithm);
-		algorithm = BestScoreAll;
-	}
+	// Only for di-end reads and best scoring, for now
+	if(0 == unpaired && 2 == tmpA.numEnds && BestScore == algorithm &&
+			0 < tmpA.ends[0].numEntries && 0 < tmpA.ends[1].numEntries) {
+		int32_t bestIndexSE[2] = {-1, -1};
+		int32_t bestScoreSE[2] = {INT_MIN, INT_MIN};
+		int32_t bestIndex[2] = {-1, -1};
+		int32_t bestScore = INT_MIN;
+		int32_t bestNum = 0;
+		int32_t penultimateIndex[2] = {-1, -1};
+		int32_t penultimateScore = INT_MIN;
+		int32_t penultimateNum = 0;
 
-	/* Pick alignment for each end individually (is this a good idea?) */
-	for(i=0;i<tmpA.numEnds;i++) {
-		/* Choose each end */
-		switch(algorithm) {
-			case NoFiltering:
-			case AllNotFiltered:
-				foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
-				break;
-			case Unique:
-				foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
-				break;
-			case BestScore:
-			case BestScoreAll:
-				best = INT_MIN;
-				bestIndex = -1;
-				numBest = 0;
-				for(j=0;j<tmpA.ends[i].numEntries;j++) {
-					if(best < tmpA.ends[i].entries[j].score) {
-						best = tmpA.ends[i].entries[j].score;
-						bestIndex = j;
-						numBest = 1;
-					}
-					else if(best == tmpA.ends[i].entries[j].score) {
-						numBest++;
-					}
+		// TODO
+		//avgMismatchQuality = AVG_MISMATCH_QUALITY; // TODO: user input
+		//mismatchScore = (tmpA.space == NTSpace) ? SCORING_MATRIX_NT_MATCH - SCORING_MATRIX_NT_MISMATCH : SCORING_MATRIX_COLOR_MATCH - SCORING_MATRIX_COLOR_MISMATCH; // TODO: user input
+		int32_t max_STD = MAX_STD; // TODO: user input
+		
+		// Get "best score"
+		for(i=0;i<2;i++) {
+			for(j=0;j<tmpA.ends[i].numEntries;j++) {
+				if(-1 == bestIndexSE[i] || bestScoreSE[i] < tmpA.ends[i].entries[j].score) {
+					bestScoreSE[i] = tmpA.ends[i].entries[j].score;
+					bestIndexSE[i] = j;
 				}
-				if(BestScore == algorithm &&
-						1 == numBest) {
-					foundTypes[i] = Found;
-					/* Copy to front */
-					AlignedEntryCopy(&tmpA.ends[i].entries[0], 
-							&tmpA.ends[i].entries[bestIndex]);
-					AlignedEndReallocate(&tmpA.ends[i], 1);
-				}
-				else if(BestScoreAll == algorithm &&
-						1 <= numBest) {
-					foundTypes[i] = Found;
-					ctr=0;
-					for(j=0;j<tmpA.ends[i].numEntries;j++) {
-						if(tmpA.ends[i].entries[j].score == best) {
-							if(ctr != j) {
-								AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
-										&tmpA.ends[i].entries[j]);
-							}
-							ctr++;
-						}
-					}
-					assert(ctr == numBest);
-					AlignedEndReallocate(&tmpA.ends[i], numBest);
-				}
-				break;
-			default:
-				PrintError(FnName, "algorithm", "Could not understand algorithm", Exit, OutOfRange);
-				break;
+			}
 		}
-		/* Free if not found */
-		if(NoneFound == foundTypes[i]) {
-			AlignedEndReallocate(&tmpA.ends[i],
-					0);
-		}
-	}
 
-	/* Now see if need to infer one end using the other */
-	if(1 == pairedEndInfer && 2 == tmpA.numEnds) {
-		if(1 == tmpA.ends[0].numEntries &&
-				1 == tmpA.ends[1].numEntries) {
-			foundType = Found;
+		// all pairs
+		// This could be more efficient:
+		// 	- only search within a co-ordinate window etc. based on penalty/score
+		for(i=0;i<tmpA.ends[0].numEntries;i++) {
+			for(j=0;j<tmpA.ends[1].numEntries;j++) {
+				int32_t s = (int)(tmpA.ends[0].entries[i].score + tmpA.ends[1].entries[j].score);
+				if(tmpA.ends[0].entries[i].strand != tmpA.ends[1].entries[j].strand) { // inversion penalty
+					// log10(P) * mismatchScore
+					s += (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
+				}
+
+				// add penalty for insert size -- assumes normality
+				if(tmpA.ends[0].entries[i].contig != tmpA.ends[1].entries[j].contig) { // chimera/inter-chr-translocation
+					// TODO: make this a constant
+					s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
+				}
+				else { // same chr
+					int32_t l = tmpA.ends[1].entries[j].position - tmpA.ends[0].entries[i].position;
+					// penalty times probability of observing etc.
+					if(fabs(l - b->avg) / b->std <= max_STD) { 
+						s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * fabs(l - b->avg) / b->std)) + 0.499);
+					}
+					else {
+						// TODO: make this a constant
+						s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
+					}
+				}
+
+				if(-1 == bestIndex[0] || bestScore < s) { // current is the best
+					if(-1 != bestIndex[0]) { // there was a previous
+						penultimateIndex[0] = bestIndex[0];
+						penultimateIndex[1] = bestIndex[1];
+						penultimateScore = bestScore;
+						penultimateNum = bestNum;
+					}
+					// reset
+					bestIndex[0] = i; bestIndex[1] = j;
+					bestScore = s;
+					bestNum = 1;
+				}
+				else if(bestScore == s) { // equal to the best
+					bestNum++;
+				}
+				else if(-1 == penultimateIndex[0] || penultimateScore < s) { // current is next best
+					penultimateIndex[0] = i; penultimateIndex[1] = j;
+					penultimateScore = s;
+					penultimateNum = 1;
+				}
+				else { // current is equal to the next best
+					penultimateNum++;
+				}
+			}
 		}
-		else if((1 == tmpA.ends[0].numEntries && 1 < tmpA.ends[1].numEntries) ||
-				(1 < tmpA.ends[0].numEntries && 1 == tmpA.ends[1].numEntries)) {
-			int32_t endOne, endTwo;
-			if(1 == tmpA.ends[0].numEntries &&
-					1 < tmpA.ends[1].numEntries) {
-				endOne = 0;
-				endTwo = 1;
-			}
-			else {
-				endOne = 1;
-				endTwo = 0;
-			}
-			// Get entry with the highest probability
-			bestIndex = -1;
-			bestProb = -1.0;
-			numBest = 0;
-			for(i=0;i<tmpA.ends[endTwo].numEntries;i++) {
-				prob = PEDBinsGetProbability(b,
-						tmpA.ends[endOne].entries[0].contig,
-						tmpA.ends[endOne].entries[0].position,
-						tmpA.ends[endTwo].entries[i].contig,
-						tmpA.ends[endTwo].entries[i].position);
-				if(bestProb < prob) {
-					bestProb = prob;
-					bestIndex = i;
-					numBest = 1;
-				}
-				else if(prob < bestProb) {
-					// Ignore
-				}
-				else {
-					numBest++;
-				}
-			}
-			// Check if this helped
-			if(1 == numBest) { // Keep
-				/* Copy to front */
-				foundTypes[endTwo] = Found;
-				AlignedEntryCopy(&tmpA.ends[endTwo].entries[0],
-						&tmpA.ends[endTwo].entries[bestIndex]);
-				AlignedEndReallocate(&tmpA.ends[endTwo], 1);
-				tmpA.ends[endTwo].entries[0].mappingQuality = bestProb * tmpA.ends[endOne].entries[0].mappingQuality / b->numDistances;
-				// Updating the mapping quality (how?)
-				(*pairedEndInferRescued)++;
-			}
-			else { // Remove
-				AlignedEndReallocate(&tmpA.ends[endTwo], 0);
-				foundTypes[endTwo] = NoneFound;
-			}
-			foundType = Found; // We found at least one end!
+		assert(-1 != bestIndex[0]);
+		assert(1 <= bestNum);
+
+		// set new mapping quality (?)
+		// TODO: set single end mapping quality
+		if(1 < bestNum) { // more than one found
+			// clear
+			foundTypes[0] = NoneFound;
+			AlignedEndReallocate(&tmpA.ends[0], 0);
+			foundTypes[1] = NoneFound;
+			AlignedEndReallocate(&tmpA.ends[1], 0);
 		}
 		else {
-			/* Check each end individually */
-			foundType=NoneFound;
-			for(i=0;i<tmpA.numEnds;i++) {
-				if(1 == tmpA.ends[i].numEntries) { // Keep
-					foundTypes[i] = foundType = Found;
-				}
-				else { // Remove
-					AlignedEndReallocate(&tmpA.ends[i], 0);
-					foundTypes[i] = NoneFound;
-				}
+			// copy to the front and reallocate
+			AlignedEntryCopy(&tmpA.ends[0].entries[0], &tmpA.ends[0].entries[bestIndex[0]]);
+			AlignedEndReallocate(&tmpA.ends[0], 1);
+			foundTypes[0] = Found;
+			AlignedEntryCopy(&tmpA.ends[1].entries[0], &tmpA.ends[1].entries[bestIndex[1]]);
+			AlignedEndReallocate(&tmpA.ends[1], 1);
+			foundTypes[1] = Found;
+
+			double mapq = MAXIMUM_MAPPING_QUALITY;
+			if(-1 != penultimateIndex[0]) { // next best pairing found
+				mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
 			}
+
+			if(tmpA.ends[0].entries[0].score < bestScoreSE[0]) { // changed alignment
+				// update mapping quality
+				tmpA.ends[0].entries[0].mappingQuality = mapq;
+			}
+			if(tmpA.ends[1].entries[0].score < bestScoreSE[1]) { // changed alignment 
+				// update mapping quality
+				tmpA.ends[1].entries[0].mappingQuality = mapq;
+			}
+			// TODO set single end mapq flag
 		}
 	}
-	else if(1 == tmpA.numEnds) {
-		foundType=foundTypes[0];
-	}
 	else {
-		/* Call found if at least one has been found */
-		foundType=NoneFound;
-		for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
-			if(Found == foundTypes[i]) {
-				foundType=Found;
-				break;
+		// can we use Smith-Waterman to recover one end from the other?
+
+		/* Pick alignment for each end individually (is this a good idea?) */
+		for(i=0;i<tmpA.numEnds;i++) {
+			/* Choose each end */
+			switch(algorithm) {
+				case NoFiltering:
+				case AllNotFiltered:
+					foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
+					break;
+				case Unique:
+					foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
+					break;
+				case BestScore:
+				case BestScoreAll:
+					best = INT_MIN;
+					bestIndex = -1;
+					numBest = 0;
+					for(j=0;j<tmpA.ends[i].numEntries;j++) {
+						if(best < tmpA.ends[i].entries[j].score) {
+							best = tmpA.ends[i].entries[j].score;
+							bestIndex = j;
+							numBest = 1;
+						}
+						else if(best == tmpA.ends[i].entries[j].score) {
+							numBest++;
+						}
+					}
+					if(BestScore == algorithm &&
+							1 == numBest) {
+						foundTypes[i] = Found;
+						/* Copy to front */
+						AlignedEntryCopy(&tmpA.ends[i].entries[0], 
+								&tmpA.ends[i].entries[bestIndex]);
+						AlignedEndReallocate(&tmpA.ends[i], 1);
+					}
+					else if(BestScoreAll == algorithm &&
+							1 <= numBest) {
+						foundTypes[i] = Found;
+						ctr=0;
+						for(j=0;j<tmpA.ends[i].numEntries;j++) {
+							if(tmpA.ends[i].entries[j].score == best) {
+								if(ctr != j) {
+									AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
+											&tmpA.ends[i].entries[j]);
+								}
+								ctr++;
+							}
+						}
+						assert(ctr == numBest);
+						AlignedEndReallocate(&tmpA.ends[i], numBest);
+					}
+					break;
+				default:
+					PrintError(FnName, "algorithm", "Could not understand algorithm", Exit, OutOfRange);
+					break;
+			}
+			/* Free if not found */
+			if(NoneFound == foundTypes[i]) {
+				AlignedEndReallocate(&tmpA.ends[i],
+						0);
 			}
 		}
 	}
 
-	/* If we found, then copy back */
+	// Found if one end is found
+	foundType=NoneFound;
+	for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
+		if(Found == foundTypes[i]) {
+			foundType=Found;
+			break;
+		}
+	}
+
+	/* copy back */
 	if(NoneFound != foundType) {
 		AlignedReadFree(a);
 		AlignedReadCopy(a, &tmpA);
@@ -613,23 +668,23 @@ int32_t GetPEDBins(char *inputFileName,
 	counter = numRead = 0;
 
 	// TODO: make this multi-threaded
-
 	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength, NULL))) {
 
 		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
 
 			if(2 == aBuffer[aBufferIndex].numEnds) { // Only paired end data
 
-				if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
+				if(VERBOSE >= 0 && counter%1000==0) {
 					fprintf(stderr, "\r%lld",
 							(long long int)counter);
 				}
 
-				/* Filter */
+				// Filter base ond best scoring
 				foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
-						algorithm,
-						0,
-						NULL,
+						BestScore,
+						1,
+						INT_MIN,
+						INT_MIN,
 						NULL);
 
 				if(Found == foundType) {
@@ -641,9 +696,16 @@ int32_t GetPEDBins(char *inputFileName,
 							1 == aBuffer[aBufferIndex].ends[1].numEntries &&
 							aBuffer[aBufferIndex].ends[0].entries[0].contig == aBuffer[aBufferIndex].ends[1].entries[0].contig) {
 						PEDBinsInsert(b, 
+								aBuffer[aBufferIndex].ends[0].entries[0].strand,
+								aBuffer[aBufferIndex].ends[1].entries[0].strand,
 								fabs(aBuffer[aBufferIndex].ends[1].entries[0].position - aBuffer[aBufferIndex].ends[0].entries[0].position));
 					}
 				}
+			}
+
+			// break if we have found enough
+			if(MAX_PEDBINS_DISTANCES <= b->numDistances) {
+				break;
 			}
 
 			/* Increment counter */
@@ -661,10 +723,11 @@ int32_t GetPEDBins(char *inputFileName,
 			AlignedReadFree(&aBuffer[aBufferIndex]);
 		}
 
-		/* Do we really need this many? */
-		if(MAX_PEDBINS_SIZE < counter) {
+		// break if we have found enough
+		if(MAX_PEDBINS_DISTANCES <= b->numDistances) {
 			break;
 		}
+
 	}
 	if(VERBOSE>=0) {
 		fprintf(stderr, "\r%lld\n",
@@ -679,89 +742,60 @@ int32_t GetPEDBins(char *inputFileName,
 		fprintf(stderr, "Found only %d distances to infer the insert size distribution\n", b->numDistances);
 		PrintError(FnName, "b->numDistances", "Not enough distances to infer insert size distribution", Warn, OutOfRange);
 		PEDBinsFree(b);
-		return 0;
+		return 1;
 	}
 
 	if(VERBOSE>=0) {
 		// Print Statistics
 		PEDBinsPrintStatistics(b, stderr);
 	}
-	return 1;
+
+	return 0;
 }
 
 void PEDBinsInitialize(PEDBins *b)
 {
+	int32_t i;
 	b->minDistance = INT_MAX;
 	b->maxDistance = INT_MIN;
-	b->bins = NULL;
+	for(i=0;i<MAX_PEDBINS_DISTANCE - MIN_PEDBINS_DISTANCE+1;i++) {
+		b->bins[i] = 0;
+	}
 	b->numDistances = 0;
+	b->inversionCount = 0;
+	b->avg = 0;
+	b->std = 0;
 }
 
 void PEDBinsFree(PEDBins *b) {
-	free(b->bins);
 	PEDBinsInitialize(b);
 }
 
 void PEDBinsInsert(PEDBins *b,
+		char strandOne,
+		char strandTwo,
 		int32_t distance)
 {
-	char *FnName="PEDBinsInsert";
-	int32_t prevMinDistance, prevMaxDistance;
-	int32_t i;
-
-	// TODO: there is a bug here with an off-by-one error
-	// such that b->numDistances does not equal the sum of
-	// all the bins.
-
 	if(distance < MIN_PEDBINS_DISTANCE ||
 			MAX_PEDBINS_DISTANCE < distance) {
 		return;
 	}
 
+	/// Update inversion count
+	if(strandOne != strandTwo) {
+		b->inversionCount++;
+	}
+
 	if(distance < b->minDistance) {
-		if(INT_MIN < b->maxDistance) { // Bins exist
-			prevMinDistance = b->minDistance;
-			b->minDistance = distance;
-			b->bins = realloc(b->bins, sizeof(int32_t)*(b->maxDistance - b->minDistance + 1));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			// Move over old bins
-			for(i=b->maxDistance - prevMinDistance;0<=i;i--) {
-				b->bins[i + (prevMinDistance - b->minDistance)] = b->bins[i];
-			}
-			// Initialize new bins
-			for(i=0;i < prevMinDistance - b->minDistance;i++) {
-				b->bins[i] = 0;
-			}
-		}
-		else { // No bins
+		b->minDistance = distance;
+		if(0 == b->numDistances) { // First one!
 			b->minDistance = b->maxDistance = distance;
-			b->bins = malloc(sizeof(int32_t));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not allocate memory", Exit, MallocMemory);
-			}
 		}
 	}
 	else if(b->maxDistance < distance) {
-		if(b->minDistance < INT_MAX) { // Bins exist
-			prevMaxDistance = b->maxDistance;
-			b->maxDistance = distance;
-			b->bins = realloc(b->bins, sizeof(int32_t)*(b->maxDistance - b->minDistance + 1));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			// Initialize new bins
-			for(i=prevMaxDistance-b->minDistance+1;i<b->maxDistance-b->minDistance+1;i++) {
-				b->bins[i] = 0;
-			}
-		}
-		else { // No bins
-			b->minDistance = b->maxDistance = distance;
-			b->bins = malloc(sizeof(int32_t));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not allocate memory", Exit, MallocMemory);
-			}
+		b->maxDistance = distance;
+		if(0 == b->numDistances) { // First one!
+			b->minDistance = distance;
 		}
 	}
 
@@ -774,22 +808,21 @@ void PEDBinsPrintStatistics(PEDBins *b, FILE *fp)
 {
 	// Mean, Range, and SD
 	int32_t i;
-	double mean, sd;
 
 	// Mean
-	mean = 0.0;
+	b->avg = 0.0;
 	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		mean += (b->minDistance + i)*b->bins[i];
+		b->avg += (b->minDistance + i)*b->bins[i];
 	}
-	mean /= b->numDistances;
+	b->avg /= b->numDistances;
 
 	// SD
-	sd = 0.0;
+	b->std = 0.0;
 	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		sd += b->bins[i]*((b->minDistance + i) - mean)*((b->minDistance + i) - mean);
+		b->std += b->bins[i]*((b->minDistance + i) - b->avg)*((b->minDistance + i) - b->avg);
 	}
-	sd /= b->numDistances-1;
-	sd = sqrt(sd);
+	b->std /= b->numDistances-1;
+	b->std = sqrt(b->std);
 
 	if(0<=VERBOSE) {
 		fprintf(stderr, "Used %d paired end distances to infer the insert size distribution.\n",
@@ -797,83 +830,9 @@ void PEDBinsPrintStatistics(PEDBins *b, FILE *fp)
 		fprintf(stderr, "The paired end distance range was from %d to %d.\n",
 				b->minDistance, b->maxDistance);
 		fprintf(stderr, "The paired end distance mean and standard deviation was %.2lf and %.2lf.\n",
-				mean, sd);
+				b->avg, b->std);
+		fprintf(stderr, "The inversion ratio was %lf.\n",
+				b->inversionCount * 1.0 / ((double)b->numDistances));
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
-}
-
-void PEDBinsMakeIntoProbability(PEDBins *b)
-{
-	// Mean, Range, and SD
-	int32_t i;
-	double mean;
-	int32_t distance, mid, sum;
-
-	// Mean
-	mean = 0.0;
-	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		mean += (b->minDistance + i)*b->bins[i];
-	}
-	mean /= b->numDistances;
-
-	mid = (int)mean;
-	if(b->maxDistance - mid < mid - b->minDistance) {
-		distance = mid - b->minDistance + 1;
-	}
-	else {
-		distance = b->maxDistance - mid + 1;
-	}
-
-	sum=0;
-	while(0 != distance) {
-		// Compute sum
-		if(distance <= b->maxDistance - mid) {
-			assert(mid + distance - b->minDistance < b->maxDistance - b->minDistance + 1);
-			sum += b->bins[mid + distance - b->minDistance];
-		}
-		if(distance <= mid - b->minDistance) {
-			assert(0 <= mid - distance - b->minDistance);
-			sum += b->bins[mid - distance - b->minDistance];
-		}
-		// Put in sum
-		if(distance <= b->maxDistance - mid) {
-			assert(mid + distance - b->minDistance < b->maxDistance - b->minDistance + 1);
-			b->bins[mid + distance - b->minDistance] = sum;
-		}
-		if(distance <= mid - b->minDistance) {
-			assert(0 <= mid - distance - b->minDistance);
-			b->bins[mid - distance - b->minDistance] = sum;
-		}
-		/*
-		   fprintf(stderr, "distance=%d\tsum=%d\n",
-		   distance, sum);
-		   */
-		// Decrement the distance
-		distance--;
-	}
-	// Take care of the final case
-	sum += b->bins[mid - b->minDistance];
-	b->bins[mid - b->minDistance] = sum;
-}
-
-// Not normalized
-int32_t PEDBinsGetProbability(PEDBins *b, int32_t contigA, int32_t positionA, int32_t contigB, int32_t positionB)
-{
-	int32_t distance;
-
-	// Must be on the same contig
-	if(contigA != contigB) {
-		return 0.0;
-	}
-
-	// Get the distance
-	distance = (int)fabs(positionA - positionB);
-
-	// Distance is out of bounds
-	if(distance < b->minDistance ||
-			b->maxDistance < distance) {
-		return 0.0;
-	}
-
-	return b->bins[distance - b->minDistance];
 }
