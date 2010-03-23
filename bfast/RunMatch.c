@@ -38,7 +38,7 @@ void RunMatch(
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		char *tmpDir,
+		char *tempDir,
 		int timing,
 		FILE *fpOut
 		)
@@ -56,8 +56,8 @@ void RunMatch(
 	int32_t numOffsets=0;
 
 	AFILE *seqFP=NULL;
-	gzFile tmpSeqFP=NULL; // for secondary index search
-	char *tmpSeqFileName=NULL; // for secondary index search
+	gzFile tempSeqFP=NULL; // for secondary index search
+	char *tempSeqFileName=NULL; // for secondary index search
 	gzFile outputFP;
 	int i;
 
@@ -143,11 +143,11 @@ void RunMatch(
 	}
 	/* This will close the reads file */
 	WriteReadsToTempFile(seqFP,
-			&tmpSeqFP,
-			&tmpSeqFileName,
+			&tempSeqFP,
+			&tempSeqFileName,
 			startReadNum,
 			endReadNum,
-			tmpDir,
+			tempDir,
 			&numReads,
 			space);
 	/* Close the read file */
@@ -178,12 +178,12 @@ void RunMatch(
 			whichStrand,
 			numThreads,
 			queueLength,
-			&tmpSeqFP,
-			&tmpSeqFileName,
+			&tempSeqFP,
+			&tempSeqFileName,
 			outputFP,
 			(0 < numSecondaryIndexes)?CopyForNextSearch:EndSearch,
 			MainIndexes,
-			tmpDir,
+			tempDir,
 			timing,
 			&totalDataStructureTime,
 			&totalSearchTime,
@@ -213,12 +213,12 @@ void RunMatch(
 					whichStrand,
 					numThreads,
 					queueLength,
-					&tmpSeqFP,
-					&tmpSeqFileName,
+					&tempSeqFP,
+					&tempSeqFileName,
 					outputFP,
 					EndSearch,
 					SecondaryIndexes,
-					tmpDir,
+					tempDir,
 					timing,
 					&totalDataStructureTime,
 					&totalSearchTime,
@@ -227,14 +227,14 @@ void RunMatch(
 		}
 		else {
 			// Output the reads not aligned and close the temporary read files
-			ReopenTmpGZFile(&tmpSeqFP, &tmpSeqFileName);
+			ReopenTmpGZFile(&tempSeqFP, &tempSeqFileName);
 			RGMatchesInitialize(&tempRGMatches);
-			while(EOF!=RGMatchesRead(tmpSeqFP, &tempRGMatches)) {
+			while(EOF!=RGMatchesRead(tempSeqFP, &tempRGMatches)) {
 				RGMatchesPrint(outputFP,
 						&tempRGMatches);
 				RGMatchesFree(&tempRGMatches);
 			}
-			CloseTmpGZFile(&tmpSeqFP, &tmpSeqFileName, 1);
+			CloseTmpGZFile(&tempSeqFP, &tempSeqFileName, 1);
 			gzclose(outputFP);
 		}
 	}
@@ -331,12 +331,12 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		gzFile *tmpSeqFP,
-		char **tmpSeqFileName,
+		gzFile *tempSeqFP,
+		char **tempSeqFileName,
 		gzFile outputFP,
 		int copyForNextSearch,
 		int indexesType,
-		char *tmpDir,
+		char *tempDir,
 		int timing,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
@@ -346,8 +346,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 	int i;
 	gzFile tempOutputFP;
 	char *tempOutputFileName=NULL;
-	gzFile *tempOutputIndexFPs=NULL;
-	char **tempOutputIndexFileNames=NULL;
+	gzFile tempOutputIndexFP=NULL;
+	char *tempOutputIndexFileName=NULL;
 	int numWritten=0, numReads=0;
 	int numMatches = 0;
 	time_t startTime, endTime;
@@ -372,21 +372,12 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		}
 	}
 
-	/* Allocate memory for the index specific file pointers */
-	tempOutputIndexFPs = malloc(sizeof(gzFile)*numUniqueIndexes);
-	if(NULL == tempOutputIndexFPs) {
-		PrintError(FnName, "tempOutputIndexFPs", "Could not allocate memory", Exit, MallocMemory);
-	}
-	tempOutputIndexFileNames = malloc(sizeof(char*)*numUniqueIndexes);
-	if(NULL == tempOutputIndexFileNames) {
-		PrintError(FnName, "tempOutputIndexFileNames", "Could not allocate memory", Exit, MallocMemory);
-	}
 	/* If we are ending the search, output to the final output file.  Otherwise,
 	 * output to a temporary file.
 	 * */
 	if(CopyForNextSearch == copyForNextSearch) {
 		/* Open temporary file for the entire index search */
-		tempOutputFP=OpenTmpGZFile(tmpDir, &tempOutputFileName);
+		tempOutputFP=OpenTmpGZFile(tempDir, &tempOutputFileName);
 	}
 	else {
 		assert(EndSearch == copyForNextSearch);
@@ -394,19 +385,9 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		tempOutputFP=outputFP;
 	}
 
-	/* If we have only one index or if we are processing all indexes at once, output the temp output file */
-	if(1 == numUniqueIndexes || IndexesMemoryAll == loadAllIndexes) {
-		tempOutputIndexFPs[0] = tempOutputFP;
-	}
-	else {
-		/* Open tmp files for each index */
-		for(i=0;i<numUniqueIndexes;i++) {
-			tempOutputIndexFPs[i] = OpenTmpGZFile(tmpDir, &tempOutputIndexFileNames[i]); 
-		}
-	}
-
 	/* Only if there are more than one index, otherwise this defaults below */
 	if(1 < numIndexes && IndexesMemoryAll == loadAllIndexes) {
+		tempOutputIndexFP = tempOutputFP;
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "Searching index files 1-%d...\n", numIndexes);
 		}
@@ -424,11 +405,11 @@ int FindMatchesInIndexSet(char **indexFileNames,
 				whichStrand,
 				numThreads,
 				queueLength,
-				tmpSeqFP,
-				tmpSeqFileName,
+				tempSeqFP,
+				tempSeqFileName,
 				tempOutputFP,
 				0,
-				tmpDir,
+				tempDir,
 				timing,
 				totalDataStructureTime,
 				totalSearchTime,
@@ -443,6 +424,14 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		// for each unique index
 		for(uniqueIndexCtr=0;uniqueIndexCtr<numUniqueIndexes;uniqueIndexCtr++) {
 
+			// Decide where to output
+				if(uniqueIndexCtr+1 == numUniqueIndexes) { // last index, output directly
+					tempOutputIndexFP = tempOutputFP;
+				}
+				else { // Open a temporary output file
+					tempOutputIndexFP = OpenTmpGZFile(tempDir, &tempOutputIndexFileName);
+				}
+
 			// get the # of bins for this index
 			numBins = 1;
 			for(i=indexNum+1;i<numIndexes && indexIDs[i-1][0] == indexIDs[i][0];i++) {
@@ -456,6 +445,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 							indexNum+1, numIndexes,
 							indexIDs[indexNum][0], indexIDs[indexNum][1]);
 				}
+				
 				numMatches = FindMatches(&indexFileNames[indexNum],
 						1,
 						rg,
@@ -469,11 +459,11 @@ int FindMatchesInIndexSet(char **indexFileNames,
 						whichStrand,
 						numThreads,
 						queueLength,
-						tmpSeqFP,
-						tmpSeqFileName,
-						tempOutputIndexFPs[uniqueIndexCtr],
+						tempSeqFP,
+						tempSeqFileName,
+						tempOutputIndexFP,
 						0,
-						tmpDir,
+						tempDir,
 						timing,
 						totalDataStructureTime,
 						totalSearchTime,
@@ -497,7 +487,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 				}
 
 				for(i=0;i<numBins;i++) {
-					tempOutputIndexBinFPs[i]=OpenTmpGZFile(tmpDir, &tempOutputIndexBinFileNames[i]);
+					tempOutputIndexBinFPs[i]=OpenTmpGZFile(tempDir, &tempOutputIndexBinFileNames[i]);
 				}
 
 				// search each bin
@@ -523,11 +513,11 @@ int FindMatchesInIndexSet(char **indexFileNames,
 							whichStrand,
 							numThreads,
 							queueLength,
-							tmpSeqFP,
-							tmpSeqFileName,
+							tempSeqFP,
+							tempSeqFileName,
 							tempOutputIndexBinFPs[uniqueIndexBinCtr],
 							1,
-							tmpDir,
+							tempDir,
 							timing,
 							totalDataStructureTime,
 							totalSearchTime,
@@ -553,10 +543,12 @@ int FindMatchesInIndexSet(char **indexFileNames,
 				RGIndexInitialize(&tempIndex);
 				RGIndexGetHeader(indexFileNames[indexNum-1], &tempIndex); // use previous
 
+				ReopenTmpGZFile(tempSeqFP, tempSeqFileName); // important to do this before next
 				startTime=time(NULL);
 				numMatches = RGMatchesMergeIndexBins(tempOutputIndexBinFPs,
+						tempSeqFP,
 						numBins,
-						tempOutputIndexFPs[uniqueIndexCtr],
+						tempOutputIndexFP,
 						&tempIndex,
 						maxKeyMatches,
 						maxNumMatches);
@@ -586,59 +578,37 @@ int FindMatchesInIndexSet(char **indexFileNames,
 				free(tempOutputIndexBinFileNames);
 
 			}
+
+			// Decide if we should copy results for next input
+			if(uniqueIndexCtr+1 < numUniqueIndexes) { // not the last index
+					// close tempSeqFP and remove it
+					gzclose((*tempSeqFP)); // close
+					if(0!=remove((*tempSeqFileName))) { // remove
+						PrintError(FnName, (*tempSeqFileName),"Could not delete temporary file", Exit, DeleteFileError);
+					}
+					// close tempOutputIndexFP
+					gzclose(tempOutputIndexFP);
+					if(0 != rename(tempOutputIndexFileName, (*tempSeqFileName))) { // rename output as input
+						PrintError(FnName, NULL, "Could not rename temporary file", Exit, OutOfRange);
+					}
+					// reopen
+					if(!((*tempSeqFP) = gzopen((*tempSeqFileName), "rb"))) {
+						PrintError(FnName, (*tempSeqFileName), "Could not re-open file for reading", Exit, OpenFileError);
+					}
+				}
+
 			if(VERBOSE >= 0) {
 				fprintf(stderr, "Found %d matches.\n", numMatches);
 			}
 		}
-
-		/* Merge temporary output from each index and output to the output file. */
-		if(numUniqueIndexes > 1) {
-			if(VERBOSE >= 0) {
-				fprintf(stderr, "%s", BREAK_LINE);
-				fprintf(stderr, "Merging the output from each index...\n");
-			}
-			for(i=0;i<numUniqueIndexes;i++) {
-				ReopenTmpGZFile(&tempOutputIndexFPs[i], 
-						&tempOutputIndexFileNames[i]);
-			}
-
-			startTime=time(NULL);
-			/* Merge the temp index files into the all indexes file */
-			numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
-					numUniqueIndexes,
-					tempOutputFP,
-					maxNumMatches);
-			endTime=time(NULL);
-			if(VERBOSE >= 0 && timing == 1) {
-				seconds = (int)(endTime - startTime);
-				hours = seconds/3600;
-				seconds -= hours*3600;
-				minutes = seconds/60;
-				seconds -= minutes*60;
-				fprintf(stderr, "Merging matches from the indexes took: %d hours, %d minutes and %d seconds\n",
-						hours,
-						minutes,
-						seconds);
-			}
-			(*totalOutputTime)+=endTime-startTime;
-
-			/* If we had more than one index, then this is the total merged number of matches */
-			numMatches = numWritten;
-
-			/* Close the temporary index files */
-			for(i=0;i<numUniqueIndexes;i++) {
-				CloseTmpGZFile(&tempOutputIndexFPs[i],
-						&tempOutputIndexFileNames[i],
-						1);
-			}
-		}
 	}
+	// TODO: update numMatches ? 
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Found matches for %d reads.\n", numMatches);
 	}
 
 	/* Close the temporary read files */
-	CloseTmpGZFile(tmpSeqFP, tmpSeqFileName, 1);
+	CloseTmpGZFile(tempSeqFP, tempSeqFileName, 1);
 
 	if(CopyForNextSearch == copyForNextSearch) {
 		/* Go through the temporary output file and output those reads that have 
@@ -655,7 +625,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		tempRGMatchesAFP.bz2 = NULL;
 #endif
 		tempRGMatchesAFP.c = AFILE_GZ_COMPRESSION;
-		tempRGMatchesAFP.gz = OpenTmpGZFile(tmpDir, &tempRGMatchesFileName);
+		tempRGMatchesAFP.gz = OpenTmpGZFile(tempDir, &tempRGMatchesFileName);
 
 		startTime=time(NULL);
 		assert(tempOutputFP != outputFP); // this is very important
@@ -676,11 +646,11 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		 * searching the secondary indexes 
 		 * */
 		WriteReadsToTempFile(&tempRGMatchesAFP,
-				tmpSeqFP,
-				tmpSeqFileName,
+				tempSeqFP,
+				tempSeqFileName,
 				0,
 				INT_MAX,
-				tmpDir,
+				tempDir,
 				&numReads,
 				space);
 		/* In this case, all the reads should be valid so we should apportion all reads */
@@ -695,9 +665,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		gzclose(tempOutputFP);
 	}
 
-	/* Free memory for temporary file pointers */
-	free(tempOutputIndexFPs);
-	free(tempOutputIndexFileNames);
+	// HERE
+	free(tempOutputIndexFileName);
 
 	if(VERBOSE >= 0) {
 		if(MainIndexes == indexesType) {
@@ -726,11 +695,11 @@ int FindMatches(char **indexFileName,
 		int whichStrand,
 		int numThreads,
 		int queueLength,
-		gzFile *tmpSeqFP,
-		char **tmpSeqFileName,
+		gzFile *tempSeqFP,
+		char **tempSeqFileName,
 		gzFile outputFP,
 		int outputOffsets,
-		char *tmpDir,
+		char *tempDir,
 		int timing,
 		int *totalDataStructureTime,
 		int *totalSearchTime,
@@ -797,7 +766,7 @@ int FindMatches(char **indexFileName,
 	(*totalDataStructureTime)+=endTime - startTime;	
 
 	/* Set position to read from the beginning of the file */
-	ReopenTmpGZFile(tmpSeqFP, tmpSeqFileName);
+	ReopenTmpGZFile(tempSeqFP, tempSeqFileName);
 
 	/* Allocate match queue */
 	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength); 
@@ -822,9 +791,17 @@ int FindMatches(char **indexFileName,
 
 	// Run
 	startTime = time(NULL);
-	while(0!=(numMatches = GetReads((*tmpSeqFP), matchQueue, matchQueueLength, space))) { // Read in data
+	while(0!=(numMatches = GetReads((*tempSeqFP), matchQueue, matchQueueLength, space))) { // Read in data
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
+
+		if(outputOffsets == 1) { // clear matches
+			for(i=0;i<numMatches;i++) {
+				for(j=0;j<matchQueue[i].numEnds;j++) {
+					RGMatchClearMatches(&matchQueue[i].ends[j]);
+				}
+			}
+		}
 
 		// Initialize arguments to threads 
 		for(i=0;i<numThreads;i++) {
