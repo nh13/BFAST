@@ -153,7 +153,7 @@ int32_t AlignedEntryReadText(AlignedEntry *a,
 		FILE *inputFP)
 {
 	char *FnName = "AlignedEntryReadText";
-	int32_t i, tmp;
+	int32_t i, tmp, len;
 	char alnRead[1024]="\0";
 	assert(NULL != a);
 
@@ -168,7 +168,8 @@ int32_t AlignedEntryReadText(AlignedEntry *a,
 	}
 	a->mappingQuality = tmp;
 
-	a->alnRead = calloc(sizeof(uint8_t), ((int)(a->alnReadLength/2 + 1)));
+	len = (int)(a->alnReadLength/2 + 1);
+	a->alnRead = calloc(sizeof(uint8_t), len);
 	if(NULL == a->alnRead) {
 		PrintError(FnName, "a->alnRead", "Could not allocate memory", Exit, MallocMemory);
 	}
@@ -368,7 +369,7 @@ void AlignedEntryCopyAtIndex(AlignedEntry *dest, int32_t destIndex, AlignedEntry
 void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 {
 	char *FnName = "AlignedEntryCopy";
-	int32_t i;
+	int32_t i, len;
 	if(src != dest) {
 		/* Metadata */
 		dest->contig = src->contig;
@@ -377,12 +378,18 @@ void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 		dest->score = src->score;
 		dest->mappingQuality = src->mappingQuality;
 		// alnRead
+		if(0 < dest->alnReadLength) {
+			free(dest->alnRead);
+			dest->alnRead=NULL;
+			dest->alnReadLength=0;
+		}
 		dest->alnReadLength = src->alnReadLength;
-		dest->alnRead = malloc(sizeof(uint8_t)*((int)(dest->alnReadLength/2 + 1)));
+		len = (int)(dest->alnReadLength/2 + 1);
+		dest->alnRead = calloc(sizeof(uint8_t), len);
 		if(NULL == dest->alnRead) {
 			PrintError(FnName, "dest->alnRead", "Could not allocate memory", Exit, MallocMemory);
 		}
-		for(i=0;i<(int)(dest->alnReadLength/2 + 1);i++) {
+		for(i=0;i<len;i++) {
 			dest->alnRead[i] = src->alnRead[i];
 		}
 	}
@@ -470,7 +477,7 @@ void AlignedEntryUpdateAlignment(AlignedEntry *a,
 		char *reference)
 {
 	char *FnName="AlignedEntryAllocate";
-	int32_t i;
+	int32_t i, len;
 
 	// contig updated earlier (I hope)
 	a->position = position;
@@ -479,7 +486,8 @@ void AlignedEntryUpdateAlignment(AlignedEntry *a,
 
 	// make a->alnRead
 	a->alnReadLength = length;
-	a->alnRead = calloc(sizeof(uint8_t), ((int)(a->alnReadLength/2 + 1)));
+	len = (int)(a->alnReadLength/2 + 1);
+	a->alnRead = calloc(sizeof(uint8_t), len);
 	if(NULL == a->alnRead) {
 		PrintError(FnName, "a->alnRead", "Could not allocate memory", Exit, MallocMemory);
 	}
