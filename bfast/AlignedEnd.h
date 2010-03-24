@@ -7,10 +7,10 @@
 #include "BLibDefinitions.h"
 #include "RGBinary.h"
 
-int32_t AlignedEndPrint(AlignedEnd*, gzFile, int32_t);
-int32_t AlignedEndPrintText(AlignedEnd*, FILE*, int32_t);
-int32_t AlignedEndRead(AlignedEnd*, gzFile, int32_t);
-int32_t AlignedEndReadText(AlignedEnd*, FILE*, int32_t);
+int32_t AlignedEndPrint(AlignedEnd*, gzFile);
+int32_t AlignedEndPrintText(AlignedEnd*, FILE*);
+int32_t AlignedEndRead(AlignedEnd*, gzFile);
+int32_t AlignedEndReadText(AlignedEnd*, FILE*);
 int32_t AlignedEndRemoveDuplicates(AlignedEnd*, int32_t);
 void AlignedEndQuickSort(AlignedEnd*, int32_t, int32_t);
 int32_t AlignedEndCompare(AlignedEnd*, AlignedEnd*, int32_t);

@@ -67,8 +67,7 @@ int32_t AlignNTSpaceUngapped(char *read,
 				readLength, 
 				readLength,
 				read,
-				bestReference,
-				NULL);
+				bestReference);
 		return 1;
 	}
 	else {
@@ -78,8 +77,6 @@ int32_t AlignNTSpaceUngapped(char *read,
 		 * or end of the read.  This cannot be handled by ungapped local
 		 * alignment.
 		 * */
-		assert(NULL == a->read);
-		assert(NULL == a->reference);
 		return 0;
 	}
 }
@@ -370,8 +367,7 @@ void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			referenceLengthAligned,
 			length,
 			readAligned,
-			referenceAligned,
-			NULL);
+			referenceAligned);
 }
 
 /* endRow and endCol should be the last row and column in the matrix 

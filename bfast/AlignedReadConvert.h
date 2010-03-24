@@ -11,12 +11,8 @@
 
 void AlignedReadConvertPrintHeader(FILE*, RGBinary*, int, char*);
 void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, gzFile, char*, char*, int, int*, int, int);
-void AlignedReadConvertPrintMAF(AlignedRead*, RGBinary*, FILE*);
-void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry*, RGBinary*, char*, char*, int, int, int, FILE*);
-void AlignedReadConvertPrintGFF(AlignedRead*, FILE*);
-void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry*, char*, char*, int, int, int, FILE*);
-void AlignedReadConvertPrintSAM(AlignedRead*, int32_t, int32_t*, char*, char*, FILE*);
-void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, int32_t, int32_t, int32_t, int32_t*, char*, char*, FILE*);
-void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry*, int32_t, char*, char*, int32_t*, FILE*);
+void AlignedReadConvertPrintSAM(AlignedRead*, RGBinary*, int32_t, int32_t*, char*, char*, FILE*);
+void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, RGBinary*, int32_t, int32_t, int32_t, int32_t*, char*, char*, FILE*);
+void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry*, char alignment[3][SEQUENCE_LENGTH], int32_t, int32_t, char*, char*, int32_t*, FILE*);
 
 #endif

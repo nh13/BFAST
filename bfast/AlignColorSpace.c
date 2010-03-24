@@ -40,7 +40,7 @@ int32_t AlignColorSpaceUngapped(char *colors,
 	char DNA[ALPHABET_SIZE+1] = "ACGTN";
 	char readAligned[SEQUENCE_LENGTH]="\0";
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
-	char colorErrorAligned[SEQUENCE_LENGTH]="\0";
+	char Aligned[SEQUENCE_LENGTH]="\0";
 	int32_t alphabetSize = ALPHABET_SIZE+1;
 
 	assert(readLength <= referenceLength);
@@ -138,9 +138,9 @@ int32_t AlignColorSpaceUngapped(char *colors,
 					readAligned[i],
 					&c[1]);
 			c[1] = COLORFROMINT(c[1]);
-			colorErrorAligned[i] = ConvertIntColorToCharColor((c[0] == c[1])?GAP:c[0]); /* Keep original color */
+			Aligned[i] = ConvertIntColorToCharColor((c[0] == c[1])?GAP:c[0]); /* Keep original color */
 		}
-		readAligned[readLength]=referenceAligned[readLength]=colorErrorAligned[readLength]='\0';
+		readAligned[readLength]=referenceAligned[readLength]=Aligned[readLength]='\0';
 
 		/* Copy over */
 		AlignedEntryUpdateAlignment(a,
@@ -149,8 +149,7 @@ int32_t AlignColorSpaceUngapped(char *colors,
 				readLength,
 				readLength,
 				readAligned,
-				referenceAligned,
-				colorErrorAligned);
+				referenceAligned);
 		return 1;
 	}
 	else {
@@ -335,7 +334,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 				matrix->cells[i+1][j+1].s.score[k] = matrix->cells[i][j].s.score[fromNTInt] + curScore;
 				matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + (ALPHABET_SIZE + 1); 
 				matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].s.length[fromNTInt] + 1;
-				matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 
 				assert(i+1 <= matrix->cells[i+1][j+1].s.length[k]);
 
@@ -347,7 +345,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 						matrix->cells[i+1][j+1].s.score[k] = curScore + matrix->cells[i][j].h.score[fromNTInt];
 						matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1;
 						matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].h.length[fromNTInt] + 1;
-						matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 					}
 
 					/* From Vertical - Insertion */
@@ -355,7 +352,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 						matrix->cells[i+1][j+1].s.score[k] = curScore + matrix->cells[i][j].v.score[fromNTInt];
 						matrix->cells[i+1][j+1].s.from[k] = fromNTInt + 1 + 2*(ALPHABET_SIZE + 1);
 						matrix->cells[i+1][j+1].s.length[k] = matrix->cells[i][j].v.length[fromNTInt] + 1;
-						matrix->cells[i+1][j+1].s.colorError[k] = GAP;
 					}
 				}
 
@@ -364,7 +360,7 @@ void AlignColorSpaceGappedConstrained(char *colors,
 			else{ // Consider all possible colors as the mask did not match
 				int32_t maxScore = NEGATIVE_INFINITY-1;
 				int maxFrom = -1;
-				char maxColorError = GAP;
+				char max = GAP;
 				int maxLength = -1;
 
 				for(fromNTInt=0;fromNTInt<alphabetSize;fromNTInt++) {
@@ -391,14 +387,14 @@ void AlignColorSpaceGappedConstrained(char *colors,
 					if(maxScore < matrix->cells[i][j].s.score[fromNTInt] + curScore) {
 						maxScore = matrix->cells[i][j].s.score[fromNTInt] + curScore;
 						maxFrom = fromNTInt + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-						maxColorError = (colorsAfterInsertion[i]  == convertedColor)?GAP:colorsAfterInsertion[i]; /* Keep original color */
+						max = (colorsAfterInsertion[i]  == convertedColor)?GAP:colorsAfterInsertion[i]; /* Keep original color */
 						maxLength = matrix->cells[i][j].s.length[fromNTInt] + 1;
 					}
 				}
 				/* Update */
 				matrix->cells[i+1][j+1].s.score[k] = maxScore;
 				matrix->cells[i+1][j+1].s.from[k] = maxFrom;
-				matrix->cells[i+1][j+1].s.colorError[k] = maxColorError;
+				//matrix->cells[i+1][j+1].s.[k] = maxColorError;
 				matrix->cells[i+1][j+1].s.length[k] = maxLength;
 			}
 		}
@@ -452,7 +448,6 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	int offset;
 	char readAligned[SEQUENCE_LENGTH]="\0";
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
-	char colorErrorAligned[SEQUENCE_LENGTH]="\0";
 	int32_t referenceLengthAligned=0, length=0;
 
 	curReadBase = nextReadBase = 'X';
@@ -466,7 +461,6 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		}
 		readAligned[length] = curReadBase;
 		referenceAligned[length] = GAP;
-		colorErrorAligned[length]=GAP;
 		prevBase = curReadBase;
 		length++;
 	}
@@ -532,17 +526,13 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		/* Get if there was a color error */
 		if(curFrom <= (ALPHABET_SIZE + 1)) {
 			nextFrom = matrix->cells[curRow][curCol].h.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].h.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else if(2*(ALPHABET_SIZE + 1) < curFrom) {
 			nextFrom = matrix->cells[curRow][curCol].v.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].v.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
 		else {
 			nextFrom = matrix->cells[curRow][curCol].s.from[(curFrom - 1) % (ALPHABET_SIZE + 1)];
-			colorErrorAligned[readStartInsertionLength+i] = matrix->cells[curRow][curCol].s.colorError[(curFrom - 1) % (ALPHABET_SIZE + 1)];
 		}
-		colorErrorAligned[readStartInsertionLength+i] = ConvertIntColorToCharColor(colorErrorAligned[i+readStartInsertionLength]);
 
 		switch(curFrom) {
 			case MatchA:
@@ -622,7 +612,6 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 		}
 		readAligned[length] = curReadBase;
 		referenceAligned[length] = GAP;
-		colorErrorAligned[length]=GAP;
 		prevBase = curReadBase;
 		length++;
 	}
@@ -630,7 +619,6 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 	offset = curCol;
 	readAligned[length]='\0';
 	referenceAligned[length]='\0';
-	colorErrorAligned[length]='\0';
 
 	/* Copy over */
 	AlignedEntryUpdateAlignment(a,
@@ -639,8 +627,7 @@ void AlignColorSpaceRecoverAlignmentFromMatrix(AlignedEntry *a,
 			referenceLengthAligned,
 			length,
 			readAligned,
-			referenceAligned,
-			colorErrorAligned);
+			referenceAligned);
 
 	assert(readLength <= length);
 }
@@ -663,7 +650,6 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 			matrix->cells[0][j].h.score[k] = NEGATIVE_INFINITY;
 			matrix->cells[0][j].h.from[k] = StartCS;
 			matrix->cells[0][j].h.length[k] = 0;
-			matrix->cells[0][j].h.colorError[k] = GAP;
 
 			/* Assumes both DNA and colorSpaceStartNT are upper case */
 			if(DNA[k] == colorSpaceStartNT) { 
@@ -675,12 +661,10 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 			}
 			matrix->cells[0][j].s.from[k] = StartCS;
 			matrix->cells[0][j].s.length[k] = 0;
-			matrix->cells[0][j].s.colorError[k] = GAP;
 
 			matrix->cells[0][j].v.score[k] = NEGATIVE_INFINITY;
 			matrix->cells[0][j].v.from[k] = StartCS;
 			matrix->cells[0][j].v.length[k] = 0;
-			matrix->cells[0][j].v.colorError[k] = GAP;
 		}
 	}
 	/* Row i (i>0) column 0 should be negative infinity since we want to
@@ -695,12 +679,10 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 			matrix->cells[i][0].h.score[k] = NEGATIVE_INFINITY;
 			matrix->cells[i][0].h.from[k] = StartCS;
 			matrix->cells[i][0].h.length[k] = 0;
-			matrix->cells[i][0].h.colorError[k] = GAP;
 
 			matrix->cells[i][0].s.score[k] = NEGATIVE_INFINITY;
 			matrix->cells[i][0].s.from[k] = StartCS;
 			matrix->cells[i][0].s.length[k] = 0;
-			matrix->cells[i][0].s.colorError[k] = GAP;
 
 			// Allow an insertion
 			if(DNA[k] == curBase) { // Must be consistent with the read (no color errors please)
@@ -708,14 +690,12 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 					matrix->cells[i][0].v.score[k] = matrix->cells[i-1][0].s.score[BaseToInt(colorSpaceStartNT)] + sm->gapOpenPenalty;
 					matrix->cells[i][0].v.from[k] = BaseToInt(colorSpaceStartNT) + 1 + (ALPHABET_SIZE + 1); /* see the enum */
 					matrix->cells[i][0].v.length[k] = matrix->cells[i-1][0].s.length[BaseToInt(colorSpaceStartNT)] + 1;
-					matrix->cells[i][0].v.colorError[k] = GAP;
 				}
 				else { // Allow for an insertion extension
 					int32_t fromNT = BaseToInt(prevBase); // previous NT
 					matrix->cells[i][0].v.score[k] = matrix->cells[i-1][0].v.score[fromNT] + sm->gapExtensionPenalty;
 					matrix->cells[i][0].v.from[k] = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */
 					matrix->cells[i][0].v.length[k] = matrix->cells[i-1][0].v.length[fromNT] + 1;
-					matrix->cells[i][0].v.colorError[k] = GAP;
 				}
 				LOWERBOUNDSCORE(matrix->cells[i][0].v.score[k]);
 			}
@@ -723,7 +703,6 @@ void AlignColorSpaceInitializeAtStart(char *colors,
 				matrix->cells[i][0].v.score[k] = NEGATIVE_INFINITY;
 				matrix->cells[i][0].v.from[k] = StartCS;
 				matrix->cells[i][0].v.length[k] = 0;
-				matrix->cells[i][0].v.colorError[k] = GAP;
 			}
 		}
 		prevBase = curBase;
@@ -759,7 +738,6 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 		matrix->cells[startRow][startCol].h.score[k] = matrix->cells[startRow][startCol].v.score[k] = NEGATIVE_INFINITY-1;
 		matrix->cells[startRow][startCol].h.from[k] = matrix->cells[startRow][startCol].v.from[k] = StartNT;
 		matrix->cells[startRow][startCol].h.length[k] = matrix->cells[startRow][startCol].v.length[k] = 0;
-		matrix->cells[startRow][startCol].h.colorError[k] = matrix->cells[startRow][startCol].v.colorError[k] = GAP;
 	}
 
 	// TODO
@@ -769,13 +747,11 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 				matrix->cells[startRow][j].h.score[k] = matrix->cells[startRow][j-1].s.score[k] + sm->gapOpenPenalty;
 				matrix->cells[startRow][j].h.length[k] = matrix->cells[startRow][j-1].s.length[k] + 1;
 				matrix->cells[startRow][j].h.from[k] = k + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-				matrix->cells[startRow][j].h.colorError[k] = GAP;
 			}
 			else { // Allow for a deletion extension
 				matrix->cells[startRow][j].h.score[k] = matrix->cells[startRow][j-1].h.score[k] + sm->gapExtensionPenalty;
 				matrix->cells[startRow][j].h.length[k] = matrix->cells[startRow][j-1].h.length[k] + 1;
 				matrix->cells[startRow][j].h.from[k] = k + 1;
-				matrix->cells[startRow][j].h.colorError[k] = GAP;
 			}
 			LOWERBOUNDSCORE(matrix->cells[startRow][j].h.score[k]);
 
@@ -783,7 +759,6 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 			matrix->cells[startRow][j].s.score[k] = matrix->cells[startRow][j].v.score[k] = NEGATIVE_INFINITY;
 			matrix->cells[startRow][j].s.from[k] = matrix->cells[startRow][j].v.from[k] = StartNT;
 			matrix->cells[startRow][j].s.length[k] = matrix->cells[startRow][j].v.length[k] = 0;
-			matrix->cells[startRow][j].s.colorError[k] = matrix->cells[startRow][j].v.colorError[k] = GAP;
 		}
 	}
 
@@ -798,7 +773,6 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 			matrix->cells[i][startCol].h.score[k] = matrix->cells[i][startCol].s.score[k] = NEGATIVE_INFINITY;
 			matrix->cells[i][startCol].h.from[k] = matrix->cells[i][startCol].s.from[k] = StartNT;
 			matrix->cells[i][startCol].h.length[k] = matrix->cells[i][startCol].s.length[k] = 0;
-			matrix->cells[i][startCol].h.colorError[k] = matrix->cells[i][startCol].s.colorError[k] = GAP;
 
 			/* Get from base for extending an insertion */
 			if(0 == ConvertBaseAndColor(DNA[k], BaseToInt(colors[i-1]), &base)) {
@@ -810,13 +784,11 @@ void AlignColorSpaceInitializeToExtend(char *colors,
 				matrix->cells[i][startCol].v.score[k] = matrix->cells[i-1][startCol].s.score[fromNT] + sm->gapOpenPenalty;
 				matrix->cells[i][startCol].v.length[k] = matrix->cells[i-1][startCol].s.length[fromNT] + 1;
 				matrix->cells[i][startCol].v.from[k] = fromNT + 1 + (ALPHABET_SIZE + 1);
-				matrix->cells[i][startCol].v.colorError[k] = GAP;
 			}
 			else { // Allow for an insertion extension
 				matrix->cells[i][startCol].v.score[k] = matrix->cells[i-1][startCol].v.score[fromNT] + sm->gapExtensionPenalty;
 				matrix->cells[i][startCol].v.length[k] = matrix->cells[i-1][startCol].v.length[fromNT] + 1;
 				matrix->cells[i][startCol].v.from[k] = fromNT + 1 + 2*(ALPHABET_SIZE + 1);
-				matrix->cells[i][startCol].v.colorError[k] = GAP;
 			}
 			LOWERBOUNDSCORE(matrix->cells[i][startCol].v.score[k]);
 		}
@@ -845,7 +817,6 @@ void AlignColorSpaceFillInCell(char *colors,
 			/* Update */
 			matrix->cells[row+1][col+1].h.score[k] = NEGATIVE_INFINITY-1;
 			matrix->cells[row+1][col+1].h.from[k] = NoFromCS;
-			matrix->cells[row+1][col+1].h.colorError[k] = GAP;
 			matrix->cells[row+1][col+1].h.length[k] = INT_MIN;
 		}
 	}
@@ -853,7 +824,7 @@ void AlignColorSpaceFillInCell(char *colors,
 		for(k=0;k<alphabetSize;k++) { /* To NT */
 			int32_t maxScore = NEGATIVE_INFINITY-1;
 			int maxFrom = -1;
-			char maxColorError = GAP;
+			char max = GAP;
 			int maxLength = 0;
 
 			int32_t curScore=NEGATIVE_INFINITY;
@@ -873,7 +844,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = k + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-				maxColorError = GAP;
+				max = GAP;
 				maxLength = curLength;
 			}
 
@@ -889,13 +860,13 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = k + 1; /* see the enum */ 
-				maxColorError = GAP;
+				max = GAP;
 				maxLength = curLength;
 			}
 			/* Update */
 			matrix->cells[row+1][col+1].h.score[k] = maxScore;
 			matrix->cells[row+1][col+1].h.from[k] = maxFrom;
-			matrix->cells[row+1][col+1].h.colorError[k] = maxColorError;
+			//matrix->cells[row+1][col+1].h.[k] = maxColorError;
 			matrix->cells[row+1][col+1].h.length[k] = maxLength;
 		}
 	}
@@ -904,7 +875,7 @@ void AlignColorSpaceFillInCell(char *colors,
 	for(k=0;k<alphabetSize;k++) { /* To NT */
 		int32_t maxScore = NEGATIVE_INFINITY-1;
 		int maxFrom = -1;
-		char maxColorError = GAP;
+		char max = GAP;
 		int maxLength = -1;
 
 		for(l=0;l<alphabetSize;l++) { /* From NT */
@@ -935,7 +906,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = l + 1; /* see the enum */ 
-				maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
+				max = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 				maxLength = curLength;
 			}
 
@@ -950,7 +921,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = l + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
-				maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
+				max = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 				maxLength = curLength;
 			}
 
@@ -965,14 +936,14 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = l + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-				maxColorError = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
+				max = (curColor == convertedColor)?GAP:curColor; /* Keep original color */
 				maxLength = curLength;
 			}
 		}
 		/* Update */
 		matrix->cells[row+1][col+1].s.score[k] = maxScore;
 		matrix->cells[row+1][col+1].s.from[k] = maxFrom;
-		matrix->cells[row+1][col+1].s.colorError[k] = maxColorError;
+		//matrix->cells[row+1][col+1].s.[k] = maxColorError;
 		matrix->cells[row+1][col+1].s.length[k] = maxLength;
 	}
 
@@ -983,7 +954,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			/* Update */
 			matrix->cells[row+1][col+1].v.score[k] = NEGATIVE_INFINITY-1;
 			matrix->cells[row+1][col+1].v.from[k] = NoFromCS;
-			matrix->cells[row+1][col+1].v.colorError[k] = GAP;
+			//matrix->cells[row+1][col+1].v.[k] = GAP;
 			matrix->cells[row+1][col+1].v.length[k] = INT_MIN;
 		}
 	}
@@ -991,7 +962,7 @@ void AlignColorSpaceFillInCell(char *colors,
 		for(k=0;k<alphabetSize;k++) { /* To NT */
 			int32_t maxScore = NEGATIVE_INFINITY-1;
 			int maxFrom = -1;
-			char maxColorError = GAP;
+			char max = GAP;
 			int maxLength = 0;
 
 			int32_t curScore=NEGATIVE_INFINITY;
@@ -1021,7 +992,7 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = fromNT + 1 + (ALPHABET_SIZE + 1); /* see the enum */ 
-				maxColorError = GAP;
+				max = GAP;
 				maxLength = curLength;
 			}
 
@@ -1037,14 +1008,14 @@ void AlignColorSpaceFillInCell(char *colors,
 			if(curScore > maxScore) {
 				maxScore = curScore;
 				maxFrom = fromNT + 1 + 2*(ALPHABET_SIZE + 1); /* see the enum */ 
-				maxColorError = GAP;
+				max = GAP;
 				maxLength = curLength;
 			}
 
 			/* Update */
 			matrix->cells[row+1][col+1].v.score[k] = maxScore;
 			matrix->cells[row+1][col+1].v.from[k] = maxFrom;
-			matrix->cells[row+1][col+1].v.colorError[k] = maxColorError;
+			//matrix->cells[row+1][col+1].v.[k] = maxColorError;
 			matrix->cells[row+1][col+1].v.length[k] = maxLength;
 		}
 	}
