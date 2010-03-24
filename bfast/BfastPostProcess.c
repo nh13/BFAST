@@ -48,7 +48,7 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
 	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments"
 		"\n\t\t\t  into this file (always BAF format)", 3},
-	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: MAF 2: GFF 3: SAM", 3},
+	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: SAM", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies output ID to prepend to the read name (SAM only)", 3},
 	{"RGFileName", 'r', "RGFileName", 0, "Specifies to add the RG in the specified file to the SAM"
 		"\n\t\t\t  header and updates the RG tag (and LB/PU tags if present) in"
@@ -233,8 +233,6 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	}
 
 	if(!(args->outputFormat == BAF ||				
-				args->outputFormat == MAF ||
-				args->outputFormat == GFF ||
 				args->outputFormat == SAM)) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);	
 	}	
@@ -290,7 +288,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char algorithm[5][64] = {"[No Filtering]", "[Filtering Only]", "[Unique]", "[Best Score]", "[Best Score All]"};
-	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[MAF]", "[GFF]", "[SAM]", "[LastFileType]"};
+	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[SAM]", "[LastFileType]"};
 	if(0 <= VERBOSE) {
 		fprintf(fp, BREAK_LINE);
 		fprintf(fp, "Printing Program Parameters:\n");
@@ -402,12 +400,6 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 						arguments->outputFormat = BAF;
 						break;
 					case 1:
-						arguments->outputFormat = MAF;
-						break;
-					case 2:
-						arguments->outputFormat = GFF;
-						break;
-					case 3:
 						arguments->outputFormat = SAM;
 						break;
 					default:

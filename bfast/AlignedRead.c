@@ -27,8 +27,7 @@ void AlignedReadPrint(AlignedRead *a,
 
 	for(i=0;i<a->numEnds;i++) {
 		if(EOF == AlignedEndPrint(&a->ends[i],
-					outputFP,
-					a->space)) {
+					outputFP)) {
 			PrintError(FnName, "a->ends[i]", "Could not write to file", Exit, WriteFileError);
 		}
 	}
@@ -51,8 +50,7 @@ void AlignedReadPrintText(AlignedRead *a,
 
 	for(i=0;i<a->numEnds;i++) {
 		if(EOF == AlignedEndPrintText(&a->ends[i],
-					outputFP,
-					a->space)) {
+					outputFP)) {
 			PrintError(FnName, "a->ends[i]", "Could not write to file", Exit, WriteFileError);
 		}
 	}
@@ -112,8 +110,7 @@ int32_t AlignedReadRead(AlignedRead *a,
 	for(i=0;i<a->numEnds;i++) {
 		AlignedEndInitialize(&a->ends[i]);
 		if(EOF==AlignedEndRead(&a->ends[i],
-					inputFP,
-					a->space)) {
+					inputFP)) {
 			PrintError(FnName, NULL, "Could not read a->ends[i]", Exit, EndOfFile);
 		}
 	}
@@ -172,8 +169,7 @@ int32_t AlignedReadReadText(AlignedRead *a,
 	for(i=0;i<a->numEnds;i++) {
 		AlignedEndInitialize(&a->ends[i]);
 		if(EOF==AlignedEndReadText(&a->ends[i],
-					inputFP,
-					a->space)) {
+					inputFP)) {
 			PrintError(FnName, NULL, "Could not read a->ends[i]", Exit, EndOfFile);
 		}
 	}

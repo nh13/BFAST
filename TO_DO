@@ -11,6 +11,8 @@ tests
 manual
 - update based on postproces changes ("unpaired", "space", "scoringMatrixFileName",
 and "avgMismatchQuality").
+- update tests upon release.
+- change description of BAF file.
 ===============================================================================
 
 ===============================================================================

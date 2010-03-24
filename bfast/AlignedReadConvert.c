@@ -29,20 +29,6 @@ void AlignedReadConvertPrintHeader(FILE *fp,
 		case BAF:
 			/* Do nothing */
 			break;
-		case MAF:
-			if(0>fprintf(fp, "##maf version=%s scoring=%s\n",
-						PACKAGE_VERSION,
-						PROGRAM_NAME)) {
-				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
-			}
-			break;
-		case GFF:
-			if(0>fprintf(fp, "##gff version=%s scoring=%s\n",
-						PACKAGE_VERSION,
-						PROGRAM_NAME)) {
-				PrintError(FnName, "header", "Could not write to file", Exit, WriteFileError);
-			}
-			break;
 		case SAM:
 			/* Header */
 			if(0>fprintf(fp, "@HD\tVN:%s\tSO:unsorted\tGO:none\n",
@@ -96,14 +82,8 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 				AlignedReadPrintText(a, fp);
 			}
 			break;
-		case MAF:
-			AlignedReadConvertPrintMAF(a, rg, fp);
-			break;
-		case GFF:
-			AlignedReadConvertPrintGFF(a, fp);
-			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, fp);
+			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -112,304 +92,8 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 }
 
 /* TODO */
-void AlignedReadConvertPrintMAF(AlignedRead *a,
-		RGBinary *rg,
-		FILE *fp)
-{
-	int32_t i, j;
-
-	/* Get Data */
-	for(i=0;i<a->numEnds;i++) {
-		for(j=0;j<a->ends[i].numEntries;j++) {
-			AlignedReadConvertPrintAlignedEntryToMAF(&a->ends[i].entries[j], 
-					rg, 
-					a->readName, 
-					a->ends[i].qual,
-					i+1,
-					a->space, 
-					j+1,
-					fp); 
-		}
-	}
-}
-
-/* TODO */
-void AlignedReadConvertPrintAlignedEntryToMAF(AlignedEntry *a,
-		RGBinary *rg,
-		char *readName,
-		char *qual,
-		int32_t whichEnd,
-		int32_t space,
-		int32_t alignmentNum,
-		FILE *fp)
-{
-	char *FnName="AlignedReadConvertPrintAlignedEntryToMAF";
-	int32_t i;
-	int32_t originalReferenceLength=0;
-	int32_t originalReadLength=0; 
-
-	/* Recover original lengths */
-	for(i=0;i<a->length;i++) {
-		if(a->reference[i] != GAP) {
-			originalReferenceLength++;
-		}
-		if(a->read[i] != GAP) {
-			originalReadLength++;
-		}
-	}
-	assert(originalReferenceLength == a->referenceLength);
-
-	/* Print the score */
-	if(space == ColorSpace) {
-		if(0>fprintf(fp, "a score=%lf which-end=%d alignment-num=%d color-errors=%s contig-index=%d\n",
-					a->score,
-					whichEnd,
-					alignmentNum,
-					a->colorError,
-					a->contig)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-	}
-	else {
-		assert(space == NTSpace);
-		if(0>fprintf(fp, "a score=%lf which-end=%d alignment-num=%d contig-index=%d\n",
-					a->score,
-					whichEnd,
-					alignmentNum,
-					a->contig)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-	}
-
-	/* Make sure the contig reported is within bounds of the reference genome */
-	assert(1 <= a->contig && a->contig <= rg->numContigs);
-
-	/* Print the reference */
-	if(0>fprintf(fp, "s %s %u %d %c %d %s\n",
-				a->contigName,
-				a->position-1, /* zero based */
-				originalReferenceLength,
-				a->strand,
-				rg->contigs[a->contig-1].sequenceLength, /* original contig length */
-				a->reference)) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-	/* Print the read */
-	if(0>fprintf(fp, "s %s %u %d %c %d %s\n\n", /* Include a blank line */
-				readName,
-				0,
-				originalReadLength, /* We align the full read */
-				a->strand,
-				originalReadLength, /* original read length */
-				a->read)) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-	/* Print the qualities */
-	if(0>fprintf(fp, "q %s ",
-				a->contigName)) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-	for(i=0;i<strlen(qual);i++) {
-		if(0>fprintf(fp, "%1d",
-					QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-	}
-	if(0>fprintf(fp, "\n")) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-}
-
-/* TODO */
-void AlignedReadConvertPrintGFF(AlignedRead *a,
-		FILE *fp)
-{
-	int32_t i, j;
-
-	/* Get Data */
-	for(i=0;i<a->numEnds;i++) {
-		for(j=0;j<a->ends[i].numEntries;j++) {
-			/* Get Data */
-			AlignedReadConvertPrintAlignedEntryToGFF(&a->ends[i].entries[j], 
-					a->readName, 
-					a->ends[i].qual,
-					i+1,
-					a->space, 
-					j+1,
-					fp); 
-		}
-	}
-}
-
-/* TODO */
-void AlignedReadConvertPrintAlignedEntryToGFF(AlignedEntry *a,
-		char *readName,
-		char *qual,
-		int32_t whichEnd,
-		int32_t space,
-		int32_t alignmentNum,
-		FILE *fp)
-{
-	char *FnName="AlignedReadConvertPrintAlignedEntryToGFF";
-	int32_t i;
-	int32_t originalReferenceLength=0;
-	int32_t originalReadLength=0; 
-	int32_t initialized=0;
-	char string[SEQUENCE_LENGTH]="\0";
-	char tempString[SEQUENCE_LENGTH]="\0";
-	char color;
-	char prevBase;
-
-	/* Recover original lengths */
-	for(i=0;i<a->length;i++) {
-		if(a->reference[i] != GAP) {
-			originalReferenceLength++;
-		}
-		if(a->read[i] != GAP) {
-			originalReadLength++;
-		}
-	}
-	assert(originalReferenceLength == a->referenceLength);
-
-	/* Write fields */
-	if(0>fprintf(fp, "%s\t%s\t%s\t%d\t%d\t%lf\t%c\t.\twhich_end=%d;",
-				readName,
-				PROGRAM_NAME,
-				"read",
-				a->position, /* one based */
-				a->position + a->referenceLength-1,
-				a->score,
-				a->strand,
-				alignmentNum)) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-
-	/* Write attributes */ 
-	if(NTSpace == space) {
-		/* b attribute - the base-space representation of the read */
-		/* r attribute - the base-space representation of the reference */
-		if(0>fprintf(fp, "b=%s;r=%s",
-					a->read,
-					a->reference)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-		/* Print the qualities */
-		if(0>fprintf(fp, ";q=")) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-		for(i=0;i<strlen(qual);i++) {
-			if(0>fprintf(fp, "%d",
-						QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
-				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-			}
-			if(i<strlen(qual)-1) {
-				if(0>fprintf(fp, ",")) {
-					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-				}
-			}
-		}
-	}
-	else {
-		/* Write ABI SOLiD attributes */
-
-		/* b attribute - the corrected base-space representation of the read. */
-		assert(a->length < SEQUENCE_LENGTH);
-		for(i=0;i<a->length;i++) {
-			if(a->read[i] == GAP ||
-					ToLower(a->read[i]) == ToLower(a->reference[i])) {
-				string[i] = ToUpper(a->read[i]);
-			}
-			else {
-				string[i] = ToLower(a->read[i]);
-			}
-		}
-		string[a->length]='\0';
-		if(0>fprintf(fp, "b=%s", string)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-
-		/* c - ignore, since we may not have unique alignments */
-
-		/* g - the color-sace string for this read, written from 5' to 3'.  Also,
-		 * convert the adaptor and color to base space.  This is really stupid, since you
-		 * should keep the same format as the ABI csfasta files, but typical ABI: don't be
-		 * consistent.
-		 * */
-		prevBase = string[0] = a->read[0];
-		for(i=1;i<a->length;i++) {
-			if(GAP == a->read[i]) {
-				string[i] = GAP;
-			}
-			else {
-				if(1!=ConvertBaseToColorSpace(prevBase, a->read[i], &color)) {
-					PrintError(FnName, NULL, "Could not convert bases to color space", Exit, OutOfRange);
-				}
-				string[i] = ConvertIntColorToCharColor(color);
-				prevBase = a->read[i];
-			}
-		}
-		string[a->length]='\0';
-		if(0>fprintf(fp, ";g=%s", string)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-
-		/* i - ignore, since we only use one reference */
-
-		/* p - ignore, since we do not define the mappability */
-
-		/* q - qualities */
-		if(0>fprintf(fp, ";q=")) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-		}
-		for(i=0;i<strlen(qual);i++) {
-			if(0>fprintf(fp, "%d",
-						QUAL_TO_MAF_QUAL(CHAR2QUAL(qual[i])))) {
-				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-			}
-			if(i<strlen(qual)-1) {
-				if(0>fprintf(fp, ",")) {
-					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-				}
-			}
-		}
-
-		/* r - a comma separated list of {position}_{ref_color} for all of the color
-		 * calls in the read sequence that differ from the reference sequence. The position
-		 * is 1-based */
-		initialized=0;
-		string[0]='\0';
-		for(i=0;i<a->length;i++) {
-			if(GAP != a->colorError[i]) {
-				if(0 != initialized) {
-					strcat(string, ",");
-				}
-				if(0>sprintf(tempString, "%d_%c", 
-							i+1,
-							a->colorError[i])) {
-					PrintError(FnName, "tempString", "Could not write to string", Exit, OutOfRange);
-				}
-				strcat(string, tempString);
-				initialized=1;
-			}
-		}
-		if(1==initialized) {
-			if(0>fprintf(fp, ";r=%s", string)) {
-				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-			}
-		}
-
-		/* s - ignore, since we don't use color rules to align our data */
-
-		/* u - ignore, since we don't define mappability */
-	}
-	/* Print new-line */
-	if(0>fprintf(fp, "\n")) {
-		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-	}
-}
-
-/* TODO */
 void AlignedReadConvertPrintSAM(AlignedRead *a,
+		RGBinary *rg,
 		int32_t postprocessAlgorithm,
 		int32_t *numOriginalEntries,
 		char *outputID,
@@ -430,6 +114,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 	for(i=0;i<a->numEnds;i++) {
 		if(0 == a->ends[i].numEntries) { /* Unmapped read */
 			AlignedReadConvertPrintAlignedEntryToSAM(a,
+					rg,
 					i,
 					-1,
 					postprocessAlgorithm,
@@ -441,6 +126,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 		else {
 			for(j=0;j<a->ends[i].numEntries;j++) {
 				AlignedReadConvertPrintAlignedEntryToSAM(a,
+						rg,
 						i,
 						j,
 						postprocessAlgorithm,
@@ -455,6 +141,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 
 /* TODO */
 void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
+		RGBinary *rg,
 		int32_t endIndex,
 		int32_t entriesIndex,
 		int32_t postprocessAlgorithm,
@@ -468,6 +155,10 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	uint64_t flag;
 	int32_t mateEndIndex, mateEntriesIndex, mapq;
 	int32_t numEdits=0;
+	
+	char alignment[3][SEQUENCE_LENGTH]={"\0", "\0", "\0"}; // [0] - reference, [1] - read, [2] - color error
+	int32_t length = 0;
+
 	char read[SEQUENCE_LENGTH]="\0";
 	char readRC[SEQUENCE_LENGTH]="\0";
 	char qual[SEQUENCE_LENGTH]="\0";
@@ -475,10 +166,19 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	char colorError[SEQUENCE_LENGTH]="\0";
 	char MD[SEQUENCE_LENGTH]="\0";
 
+	if(0 <= entriesIndex) {
+		length = AlignedEntryGetAlignment(&a->ends[endIndex].entries[entriesIndex],
+				rg,
+				alignment,
+				a->ends[endIndex].read,
+				a->ends[endIndex].readLength,
+				a->space);
+	}
+
 	/* Get mate end and mate index if they exist */
 	mateEndIndex=mateEntriesIndex=-1;
 	for(i=0;mateEndIndex < 0 && i < a->numEnds;i++) { /* Try other ends */
-		if(endIndex != i && 0 <a->ends[i].numEntries) {
+		if(endIndex != i && 0 < a->ends[i].numEntries) {
 			mateEndIndex=i;
 			mateEntriesIndex=0;
 		}
@@ -533,7 +233,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		/* Use mate */
 		if(0 <= mateEndIndex) {
 			if(0>fprintf(fp, "\t%s\t%d",
-						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
+						rg->contigs[a->ends[mateEndIndex].entries[mateEntriesIndex].contig-1].contigName,
 						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
 				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 			}
@@ -547,7 +247,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	else {
 		if(0>fprintf(fp, "\t%s\t%d",
-					a->ends[endIndex].entries[entriesIndex].contigName,
+					rg->contigs[a->ends[endIndex].entries[entriesIndex].contig-1].contigName,
 					a->ends[endIndex].entries[entriesIndex].position)) {
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
@@ -571,24 +271,24 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	else {
-		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], a->space, colorError, MD, &numEdits, fp);
+		AlignedReadConvertPrintAlignedEntryToCIGAR(&a->ends[endIndex].entries[entriesIndex], alignment, length, a->space, colorError, MD, &numEdits, fp);
 	}
 	/* MRNM and MPOS */
 	if(2 == a->numEnds) {
 		if(0 <= mateEndIndex) {
 			if(0 <= entriesIndex &&
-					0 == strcmp(a->ends[mateEndIndex].entries[mateEntriesIndex].contigName, a->ends[endIndex].entries[entriesIndex].contigName)) {
-			if(0>fprintf(fp, "\t=\t%d",
-						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
-				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-			}
+					a->ends[mateEndIndex].entries[mateEntriesIndex].contig == a->ends[endIndex].entries[entriesIndex].contig) {
+				if(0>fprintf(fp, "\t=\t%d",
+							a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+				}
 			}
 			else {
-			if(0>fprintf(fp, "\t%s\t%d",
-						a->ends[mateEndIndex].entries[mateEntriesIndex].contigName,
-						a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
-				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
-			}
+				if(0>fprintf(fp, "\t%s\t%d",
+							rg->contigs[a->ends[mateEndIndex].entries[mateEntriesIndex].contig-1].contigName,
+							a->ends[mateEndIndex].entries[mateEntriesIndex].position)) {
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+				}
 			}
 		}
 		else {
@@ -665,7 +365,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 					}
 					else {
 						qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(a->ends[endIndex].qual[i-1])/-10.0, 
-									CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
+										CHAR2QUAL(a->ends[endIndex].qual[i])/-10.0) - log10(2.0)) + 0.5);
 						qual[i] = QUAL2CHAR(qual[i]);
 					}
 				}
@@ -683,30 +383,30 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 		else { /* Mapped */
 			/* Remove gaps from the read (deletions) */
-			for(i=j=0;i<strlen(a->ends[endIndex].entries[entriesIndex].read);i++) {
-				if(GAP != a->ends[endIndex].entries[entriesIndex].read[i]) {
-					read[j] = a->ends[endIndex].entries[entriesIndex].read[i];
+			for(i=j=0;i<length;i++) {
+				if(GAP != alignment[1][i]) {
+					read[j] = alignment[1][i];
 					j++;
 				}
 			}
 			read[j]='\0';
 			/* Convert quals to NT Space - use MAQ 0.7.1 conversion */
-			for(i=j=0;i<a->ends[endIndex].entries[entriesIndex].length;i++) {
-				if(GAP != a->ends[endIndex].entries[entriesIndex].read[i]) { /* Not a deletion */
-					if(a->ends[endIndex].entries[entriesIndex].length - 1 == i) { /* At the end of the alignment */
+			for(i=j=0;i<length;i++) {
+				if(GAP != alignment[1][i]) { /* Not a deletion */
+					if(length - 1 == i) { // At the end of the alignment
 						assert(j==a->ends[endIndex].qualLength-1);
 						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]);
 					}
-					else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i] &&
-							GAP == a->ends[endIndex].entries[entriesIndex].colorError[i+1]) {
+					else if(GAP == alignment[2][i] &&
+							GAP == alignment[2][i+1]) {
 						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) + 
 							CHAR2QUAL(a->ends[endIndex].qual[j+1]) + 10;
 					}
-					else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i]) {
+					else if(GAP == alignment[2][i]) {
 						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) - 
 							CHAR2QUAL(a->ends[endIndex].qual[j+1]);
 					}
-					else if(GAP == a->ends[endIndex].entries[entriesIndex].colorError[i+1]) {
+					else if(GAP == alignment[2][i+1]) {
 						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j+1]) - 
 							CHAR2QUAL(a->ends[endIndex].qual[j]);
 					}
@@ -801,8 +501,10 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(ColorSpace == a->space) {
 		int32_t numCM=0;
 		if(0 <=entriesIndex) {
-			for(i=0;i<a->ends[endIndex].entries[entriesIndex].length;i++) {
-				if(GAP != a->ends[endIndex].entries[entriesIndex].colorError[i]) numCM++;
+			for(i=0;i<length;i++) {
+				if(GAP != alignment[2][i]) {
+					numCM++;
+				}
 			}
 		}
 		if(0>fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s\tCM:i:%d",
@@ -820,7 +522,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
 	else {
 		if(0>fprintf(fp, "\tCC:Z:%s\tCP:i:%d",
-					a->ends[endIndex].entries[entriesIndex+1].contigName,
+					rg->contigs[a->ends[endIndex].entries[entriesIndex+1].contig-1].contigName,
 					a->ends[endIndex].entries[entriesIndex+1].position)) {
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
@@ -842,6 +544,8 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 
 /* TODO */
 void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
+		char alignment[3][SEQUENCE_LENGTH],
+		int32_t length,
 		int32_t space,
 		char *colorError,
 		char *MD,
@@ -857,6 +561,8 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	int32_t curType=0;
 	int32_t startDel, endDel, startIns, endIns, prevDel, prevIns;
 
+	// TODO: use already made cigar (?)
+
 	(*numEdits) = 0;
 
 	if(0>fprintf(fp, "\t")) {
@@ -864,17 +570,17 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	}
 
 	if(REVERSE == a->strand) {
-		GetReverseComplimentAnyCase(a->read, read, a->length);
-		GetReverseComplimentAnyCase(a->reference, reference, a->length);
+		GetReverseComplimentAnyCase(alignment[1], read, length);
+		GetReverseComplimentAnyCase(alignment[0], reference, length);
 		if(ColorSpace == space) {
-			ReverseRead(a->colorError, colorError, a->length);
+			ReverseRead(alignment[2], colorError, length);
 		}
 	}
 	else {
-		strcpy(read, a->read);
-		strcpy(reference, a->reference);
+		strcpy(read, alignment[1]);
+		strcpy(reference, alignment[0]);
 		if(ColorSpace == space) {
-			strcpy(colorError, a->colorError);
+			strcpy(colorError, alignment[2]);
 		}
 	}
 
@@ -882,7 +588,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	i=0;
 	prevDel = prevIns = 0;
 	startDel = endDel = startIns = endIns = -1;
-	while(i<a->length) {
+	while(i<length) {
 		assert(0 == prevIns || 0 == prevDel);
 
 		if(GAP == read[i]) {
@@ -978,7 +684,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	numPrevType = 0;
 	MDi = MDNumMatches = 0;
 	MD[MDi]='\0';
-	for(i=0;i<a->length;i++) {
+	for(i=0;i<length;i++) {
 		assert(0 == prevIns || 0 == prevDel);
 
 		if(GAP == read[i]) { // Deletion

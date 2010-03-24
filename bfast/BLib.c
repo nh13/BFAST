@@ -1631,44 +1631,6 @@ void RangeCopy(Range *dest,
 	dest->positionEnd = src->positionEnd; 
 }
 
-/* TODO */
-int GetNumMismatchesInAlignedEntry(AlignedEntry *a)
-{
-	int32_t i, numMismatches;
-	/* Check mismatches */
-	numMismatches=0;
-	for(i=0;i<a->length;i++) {
-		/* Increment mismatches */
-		if(GAP != a->read[i] &&
-				GAP != a->reference[i] &&
-				ToLower(a->read[i]) != ToLower(a->reference[i])) {
-			numMismatches++;
-		}
-	}
-	return numMismatches;
-}
-
-/* TODO */
-int GetNumColorErrorsInAlignedEntry(AlignedEntry *a, int space)
-{       
-	int32_t i, numColorErrors;
-	/* Check color errors */
-	numColorErrors=0;
-	if(ColorSpace == space) {
-		for(i=0;i<a->length;i++) {
-			/* Increment color errors */
-			switch(a->colorError[i]) {
-				case GAP:
-					break;
-				default:
-					numColorErrors++;
-					break;
-			}   
-		}   
-	}       
-	return numColorErrors;
-}
-
 double AddLog10(double a, double b)
 {
 	if(a < b) {
