@@ -365,7 +365,6 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 	/* Get best and next best score */
 	for(i=0;i<a->numEntries;i++) {
 		if(bestScore < a->entries[i].score) {
-			// HERE
 			if(1 == foundBest) {
 				nextBestScore = bestScore;
 				foundNextBest = 1;

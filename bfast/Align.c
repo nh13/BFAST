@@ -535,6 +535,7 @@ int32_t AlignUngapped(char *read,
 {
 	// Note: we do not allow any wiggle room in ungapped alignment
 	char *FnName="AlignUngapped";
+
 	switch(space) {
 		case NTSpace:
 			return AlignNTSpaceUngapped(read,
@@ -641,6 +642,7 @@ void AlignGapped(char *read,
 	free(a->alnRead);
 	a->alnRead = NULL;
 	a->alnReadLength = 0;
+	assert(NULL == a->alnRead);
 	
 	switch(unconstrained) {
 		case Unconstrained:
