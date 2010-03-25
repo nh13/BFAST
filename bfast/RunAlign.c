@@ -108,6 +108,7 @@ void RunAlign(
 			BestScore,
 			space,
 			0,
+			0,
 			AVG_MISMATCH_QUALITY,
 			NULL,
 			numThreads,

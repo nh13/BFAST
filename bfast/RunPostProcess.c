@@ -21,6 +21,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int algorithm,
 		int space,
 		int unpaired,
+		int reversePaired,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
 		int numThreads,
@@ -126,6 +127,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		data[i].bins = &bins;
 		data[i].algorithm = algorithm;
 		data[i].unpaired = unpaired;
+		data[i].reversePaired = reversePaired;
 		data[i].avgMismatchQuality = avgMismatchQuality;
 		data[i].mismatchScore = mismatchScore;
 		data[i].queueLength = queueLength;
@@ -227,6 +229,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	RGBinary *rg = data->rg;
 	int algorithm = data->algorithm;
 	int unpaired = data->unpaired;
+	int reversePaired = data->reversePaired;
 	int avgMismatchQuality = data->avgMismatchQuality;
 	int mismatchScore = data->mismatchScore;
 	int queueLength = data->queueLength;
@@ -300,6 +303,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 			foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
 					algorithm,
 					unpaired,
+					reversePaired,
 					avgMismatchQuality,
 					mismatchScore,
 					bins);
@@ -400,6 +404,7 @@ int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead, pthr
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
 		int unpaired,
+		int reversePaired,
 		int avgMismatchQuality,
 		int mismatchScore,
 		PEDBins *b)
@@ -440,11 +445,8 @@ int FilterAlignedRead(AlignedRead *a,
 		int32_t penultimateScore = INT_MIN;
 		int32_t penultimateNum = 0;
 
-		// TODO
-		//avgMismatchQuality = AVG_MISMATCH_QUALITY; // TODO: user input
-		//mismatchScore = (tmpA.space == NTSpace) ? SCORING_MATRIX_NT_MATCH - SCORING_MATRIX_NT_MISMATCH : SCORING_MATRIX_COLOR_MATCH - SCORING_MATRIX_COLOR_MISMATCH; // TODO: user input
 		int32_t max_STD = MAX_STD; // TODO: user input
-		
+
 		// Get "best score"
 		for(i=0;i<2;i++) {
 			for(j=0;j<tmpA.ends[i].numEntries;j++) {
@@ -461,7 +463,11 @@ int FilterAlignedRead(AlignedRead *a,
 		for(i=0;i<tmpA.ends[0].numEntries;i++) {
 			for(j=0;j<tmpA.ends[1].numEntries;j++) {
 				int32_t s = (int)(tmpA.ends[0].entries[i].score + tmpA.ends[1].entries[j].score);
-				if(tmpA.ends[0].entries[i].strand != tmpA.ends[1].entries[j].strand) { // inversion penalty
+				if(0 == reversePaired && tmpA.ends[0].entries[i].strand != tmpA.ends[1].entries[j].strand) { // inversion penalty
+					// log10(P) * mismatchScore
+					s += (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
+				}
+				else if(1 == reversePaired && tmpA.ends[0].entries[i].strand == tmpA.ends[1].entries[j].strand) { // inversion penalty
 					// log10(P) * mismatchScore
 					s += (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
 				}
@@ -683,6 +689,7 @@ int32_t GetPEDBins(char *inputFileName,
 				foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
 						BestScore,
 						1,
+						-1,
 						INT_MIN,
 						INT_MIN,
 						NULL);

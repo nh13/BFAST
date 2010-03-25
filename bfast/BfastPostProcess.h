@@ -13,6 +13,7 @@ struct arguments
 	int algorithm;							/* -a */
 	int space;								/* -A */
 	int unpaired;							/* -U */
+	int reversePaired;						/* -R */
 	int avgMismatchQuality;					/* -q */
 	char *scoringMatrixFileName;			/* -x */
 	int numThreads;							/* -n */

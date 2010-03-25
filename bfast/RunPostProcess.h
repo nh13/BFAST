@@ -21,6 +21,7 @@ typedef struct {
 	PEDBins *bins;
 	int algorithm;
 	int unpaired;
+	int reversePaired;
 	int avgMismatchQuality;
 	int mismatchScore;
 	int queueLength;
@@ -47,6 +48,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int algorithm,
 		int space,
 		int unpaired,
+		int reversePaired,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
 		int numThreads,
@@ -65,7 +67,8 @@ int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t, pthread_mutex_t*);
 
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
-		int unpairedInfer,
+		int unpaired,
+		int reversePaired,
 		int avgMismatchQuality,
 		int mismatchScore,
 		PEDBins *b);

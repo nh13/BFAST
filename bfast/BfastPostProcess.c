@@ -20,7 +20,7 @@
    */
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
-	DescAlgoTitle, DescAlgorithm, DescSpace, DescUnpaired, DescAvgMismatchQuality, 
+	DescAlgoTitle, DescAlgorithm, DescSpace, DescUnpaired, DescReversePaired, DescAvgMismatchQuality, 
 	DescScoringMatrixFileName, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
@@ -41,6 +41,7 @@ static struct argp_option options[] = {
 		2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies that pairing should not be performed", 2},
+	{"reversePair", 'R', 0, OPTION_NO_USAGE, "Specifies that paired reads are on opposite strands", 2},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
@@ -61,7 +62,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:n:o:q:r:u:x:A:O:Q:hptU";
+"a:i:f:n:o:q:r:u:x:A:O:Q:hptRU";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -112,6 +113,7 @@ BfastPostProcess(int argc, char **argv)
 							arguments.algorithm,
 							arguments.space,
 							arguments.unpaired,
+							arguments.reversePaired,
 							arguments.avgMismatchQuality,
 							arguments.scoringMatrixFileName,
 							arguments.numThreads,
@@ -246,6 +248,7 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	}	
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->unpaired == 0 || args->unpaired == 1);
+	assert(args->reversePaired == 0 || args->reversePaired == 1);
 
 	if(SAM != args->outputFormat && NULL != args->RGFileName) {
 		PrintError(FnName, "RGFileName", "Command line argument can only be used when outputting to SAM format", Exit, OutOfRange);
@@ -268,6 +271,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->algorithm=BestScore;
 	args->space = NTSpace;
 	args->unpaired=0;
+	args->reversePaired=0;
 	args->scoringMatrixFileName=NULL;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads=1;
@@ -298,6 +302,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
 		fprintf(fp, "space:\t\t\t%s\n", SPACE(args->space));
 		fprintf(fp, "unpaired:\t\t%s\n", INTUSING(args->unpaired));
+		fprintf(fp, "reversePaired:\t\t%s\n", INTUSING(args->reversePaired));
 		fprintf(fp, "scoringMatrixFileName:\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
 		fprintf(fp, "numThreads:\t\t%d\n", args->numThreads);
@@ -410,6 +415,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
+			case 'R':
+				arguments->reversePaired=1; break;
 			case 'U':
 				arguments->unpaired=1; break;
 			default:
