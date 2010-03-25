@@ -436,8 +436,9 @@ int FilterAlignedRead(AlignedRead *a,
 	// Only for di-end reads and best scoring, for now
 	if(0 == unpaired && 2 == tmpA.numEnds && BestScore == algorithm &&
 			0 < tmpA.ends[0].numEntries && 0 < tmpA.ends[1].numEntries) {
-		int32_t bestIndexSE[2] = {-1, -1};
 		int32_t bestScoreSE[2] = {INT_MIN, INT_MIN};
+		int32_t bestScoreSENum[2] = {0, 0};
+		int32_t bestScoreSEIndex[2] = {-1, -1};
 		int32_t bestIndex[2] = {-1, -1};
 		int32_t bestScore = INT_MIN;
 		int32_t bestNum = 0;
@@ -450,9 +451,10 @@ int FilterAlignedRead(AlignedRead *a,
 		// Get "best score"
 		for(i=0;i<2;i++) {
 			for(j=0;j<tmpA.ends[i].numEntries;j++) {
-				if(-1 == bestIndexSE[i] || bestScoreSE[i] < tmpA.ends[i].entries[j].score) {
+				if(0 == bestScoreSENum[i] || bestScoreSE[i] < tmpA.ends[i].entries[j].score) {
 					bestScoreSE[i] = tmpA.ends[i].entries[j].score;
-					bestIndexSE[i] = j;
+					bestScoreSEIndex[i] = j;
+					bestScoreSENum[i]++;
 				}
 			}
 		}
@@ -520,11 +522,19 @@ int FilterAlignedRead(AlignedRead *a,
 		// set new mapping quality (?)
 		// TODO: set single end mapping quality
 		if(1 < bestNum) { // more than one found
-			// clear
-			foundTypes[0] = NoneFound;
-			AlignedEndReallocate(&tmpA.ends[0], 0);
-			foundTypes[1] = NoneFound;
-			AlignedEndReallocate(&tmpA.ends[1], 0);
+			// Revert to best alignment score for each end if they are 
+			// unique.  
+			for(i=0;i<2;i++) {
+				if(bestScoreSENum[1] == 1) { // keep best score
+					AlignedEntryCopy(&tmpA.ends[i].entries[0], &tmpA.ends[i].entries[bestScoreSEIndex[i]]);
+					AlignedEndReallocate(&tmpA.ends[i], 1);
+					foundTypes[0] = Found;
+				}
+				else { // clear
+					foundTypes[i] = NoneFound;
+					AlignedEndReallocate(&tmpA.ends[i], 0);
+				}
+			}
 		}
 		else {
 			// copy to the front and reallocate
@@ -548,7 +558,7 @@ int FilterAlignedRead(AlignedRead *a,
 				// update mapping quality
 				tmpA.ends[1].entries[0].mappingQuality = mapq;
 			}
-			// TODO set single end mapq flag
+			// TODO: set single end mapq flag
 		}
 	}
 	else {
