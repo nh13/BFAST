@@ -537,12 +537,13 @@ Specifies that if one read of the pair has CALs and the other does not, this dis
 
 \subsubsection{\TT{-L INTEGER, --mirroringType=INTEGER}}
 Specifies the directionality of the mirroring.
-A value of \TT{-f 0} that no mirroring should occur.
-A value of \TT{-f 1} specifies that we assume that the first end is before the second end ($5'\rightarrow3'$).
-A value of \TT{-f 2} specifies that we assume that the second end is before the first end ($5'\rightarrow3'$).
-A value of \TT{-f 3} specifies that we mirror CALs in both directions.
+A value of \TT{-L 0} that no mirroring should occur.
+A value of \TT{-L 1} specifies that we assume that the first end is before the second end ($5'\rightarrow3'$).
+A value of \TT{-L 2} specifies that we assume that the second end is before the first end ($5'\rightarrow3'$).
+A value of \TT{-L 3} specifies that we mirror CALs in both directions.
 \subsubsection{\TT{-f INTEGER, --forceMirroring INTEGER}}
 Specifies that we should always mirror CALs using the distance specified in option \TT{-l} for paired end reads, even if both of the reads have CALs.
+The type of mirroring can be specified with \TT{-L}.
 
 \section{bfast postprocess}
 \label{sec:postprocess}
