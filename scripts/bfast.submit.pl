@@ -600,7 +600,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
-		$cmd .= " -U" if defined($deta->{'postprocessOptions'}->{'unpaired'});
+		$cmd .= " -U" if defined($data->{'postprocessOptions'}->{'unpaired'});
 		$cmd .= " -q ".$data->{'localalignOptions'}->{'mismatchQuality'}    if defined($data->{'localalignOptions'}->{'mismatchQuality'});
 		$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
