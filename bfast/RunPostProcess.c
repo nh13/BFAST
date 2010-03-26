@@ -465,13 +465,24 @@ int FilterAlignedRead(AlignedRead *a,
 		for(i=0;i<tmpA.ends[0].numEntries;i++) {
 			for(j=0;j<tmpA.ends[1].numEntries;j++) {
 				int32_t s = (int)(tmpA.ends[0].entries[i].score + tmpA.ends[1].entries[j].score);
+
 				if(0 == reversePaired && tmpA.ends[0].entries[i].strand != tmpA.ends[1].entries[j].strand) { // inversion penalty
 					// log10(P) * mismatchScore
-					s += (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
+					if(0 < b->inversionCount && 0 < b->numDistances) {
+						s -= (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
+					}
+					else {
+						s -= (int)(mismatchScore * -1.0 * MAX_INVERSION_LOG10_RATIO);
+					}
 				}
 				else if(1 == reversePaired && tmpA.ends[0].entries[i].strand == tmpA.ends[1].entries[j].strand) { // inversion penalty
 					// log10(P) * mismatchScore
-					s += (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
+					if(0 < b->inversionCount && 0 < b->numDistances) {
+						s -= (int)(mismatchScore * -1.0 * log10(b->inversionCount / ((double)b->numDistances)));
+					}
+					else {
+						s -= (int)(mismatchScore * -1.0 * MAX_INVERSION_LOG10_RATIO);
+					}
 				}
 
 				// add penalty for insert size -- assumes normality
