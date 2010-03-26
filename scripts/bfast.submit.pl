@@ -203,6 +203,7 @@ sub Schema {
 				</xs:simpleType>
 			  </xs:element>
 			  <xs:element name="unpaired" type="xs:integer"/>
+			  <xs:element name="reversePaired" type="xs:integer"/>
 			  <xs:element name="outputFormat" type="xs:integer"/>
 			  <xs:element name="unmappedFile" type="xs:string"/>
 			  <xs:element name="readGroupFile" type="xs:string"/>
@@ -314,6 +315,7 @@ sub ValidateData {
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'unpaired',                                  OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'reversePaired',                            OPTIONAL);
 	ValidateOption($data->{'unmappedFile'}, 'unmappedFile',                                   OPTIONAL);
 	ValidateFile($data->{'postprocessOptions'}, 'readGroupFile',                              OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
@@ -601,6 +603,7 @@ sub CreateJobsPostprocess {
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
 		$cmd .= " -U" if defined($data->{'postprocessOptions'}->{'unpaired'});
+		$cmd .= " -R" if defined($data->{'postprocessOptions'}->{'reversePaired'});
 		$cmd .= " -q ".$data->{'localalignOptions'}->{'mismatchQuality'}    if defined($data->{'localalignOptions'}->{'mismatchQuality'});
 		$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});

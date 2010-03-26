@@ -487,7 +487,7 @@ int FilterAlignedRead(AlignedRead *a,
 
 				// add penalty for insert size -- assumes normality
 				if(tmpA.ends[0].entries[i].contig != tmpA.ends[1].entries[j].contig) { // chimera/inter-chr-translocation
-					// TODO: make this a constant
+					// TODO: make this a constant calculation
 					s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
 				}
 				else { // same chr
@@ -497,7 +497,7 @@ int FilterAlignedRead(AlignedRead *a,
 						s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * fabs(l - b->avg) / b->std)) + 0.499);
 					}
 					else {
-						// TODO: make this a constant
+						// TODO: make this a constant calculation
 						s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
 					}
 				}
