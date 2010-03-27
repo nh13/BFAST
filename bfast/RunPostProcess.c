@@ -68,6 +68,10 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	if(NULL != readGroup) {
 		readGroupString=ParseReadGroup(readGroup);
 	}
+	
+	if(NULL == inputFileName && 0 == unpaired) {
+		PrintError(FnName, "unpaired", "Pairing from stdin currently not supported", Exit, OutOfRange);
+	}
 
 	/* Get the PEDBins if necessary */
 	if(0 == unpaired) {
