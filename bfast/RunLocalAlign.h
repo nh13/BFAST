@@ -15,19 +15,6 @@
 #include "BLibDefinitions.h"
 
 typedef struct {
-	pthread_mutex_t matchFP_mutex;
-	gzFile matchFP;
-	int32_t matchFPctr;
-	gzFile outputFP;
-	pthread_mutex_t outputFP_mutex;
-	int32_t outputFPctr;
-	// No mutex for these
-	int32_t startReadNum;
-	int32_t endReadNum;
-} ThreadFileData;
-
-typedef struct {
-	ThreadFileData *fdata;
 	RGBinary *rg;
 	int32_t space;
 	int32_t offsetLength;
@@ -44,15 +31,17 @@ typedef struct {
 	double mismatchScore;
 	int32_t queueLength;
 	int32_t threadID;
+	int32_t numThreads;
 	int64_t numAligned;
 	int64_t numNotAligned;
-	int32_t fileTime;
-	int32_t alignTime;
+	RGMatches *matchQueue;
+	int32_t *matchQueueThreadIDs;
+	AlignedRead *alignedQueue;
 } ThreadData;
 
 void RunAligner(char*, char*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, FILE*);
 void RunDynamicProgramming(gzFile, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, gzFile, int32_t*, int32_t*);
 void *RunDynamicProgrammingThread(void *);
-int32_t GetMatches(ThreadFileData*, RGMatches*, int32_t, int32_t*);
-void SkipMatches(ThreadFileData*);
+int32_t GetMatches(gzFile, int32_t*, int32_t, int32_t, RGMatches*, int32_t);
+void SkipMatches(gzFile, int32_t*, int32_t);
 #endif

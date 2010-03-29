@@ -809,12 +809,6 @@ int FindMatches(char **indexFileName,
 		PrintError(FnName, "matchQueueThreadIDs", "Could not allocate memory", Exit, MallocMemory);
 	}
 
-	/* Initialize match structures */
-	for(i=0;i<matchQueueLength;i++) {
-		RGMatchesInitialize(&matchQueue[i]);
-		matchQueueThreadIDs[i] = -1;
-	}
-
 	/* For each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reads processed: 0");
@@ -825,6 +819,11 @@ int FindMatches(char **indexFileName,
 	while(0!=(numMatches = GetReads((*tmpSeqFP), matchQueue, matchQueueLength, space))) { // Read in data
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
+	
+	/* Initialize match structures */
+		for(i=0;i<matchQueueLength;i++) {
+		matchQueueThreadIDs[i] = -1;
+	}
 
 		// Initialize arguments to threads 
 		for(i=0;i<numThreads;i++) {
