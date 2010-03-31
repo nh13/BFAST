@@ -560,19 +560,30 @@ int FilterAlignedRead(AlignedRead *a,
 			AlignedEndReallocate(&tmpA.ends[1], 1);
 			foundTypes[1] = Found;
 
-			double mapq = MAXIMUM_MAPPING_QUALITY;
+			int32_t mapq = MAXIMUM_MAPPING_QUALITY;
 			if(-1 != penultimateIndex[0]) { // next best pairing found
 				mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
+				if(0 == mapq) {
+					mapq = 1;
+				}
+				else if(MAXIMUM_MAPPING_QUALITY < mapq) {
+					mapq = MAXIMUM_MAPPING_QUALITY;
+				}
 			}
 
-			if(tmpA.ends[0].entries[0].score < bestScoreSE[0]) { // changed alignment
+			assert(0 < mapq);
+			if(tmpA.ends[0].entries[0].score < bestScoreSE[0] || // changed alignment
+					tmpA.ends[0].entries[0].mappingQuality < mapq) { 
 				// update mapping quality
 				tmpA.ends[0].entries[0].mappingQuality = mapq;
 			}
-			if(tmpA.ends[1].entries[0].score < bestScoreSE[1]) { // changed alignment 
+			if(tmpA.ends[1].entries[0].score < bestScoreSE[0] || // changed alignment
+					tmpA.ends[1].entries[0].mappingQuality < mapq) { 
 				// update mapping quality
 				tmpA.ends[1].entries[0].mappingQuality = mapq;
 			}
+			assert(0 < tmpA.ends[0].entries[0].mappingQuality);
+			assert(0 < tmpA.ends[1].entries[0].mappingQuality);
 			// TODO: set single end mapq flag
 		}
 	}
