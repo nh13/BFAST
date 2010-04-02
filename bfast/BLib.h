@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <zlib.h>
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include "RGIndex.h"
 #include "BLibDefinitions.h"
 

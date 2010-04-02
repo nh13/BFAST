@@ -14,10 +14,10 @@ typedef struct {
 	double std;
 	double avg;
 	int32_t inversionCount;
+	double invRatio;
 } PEDBins;
 
 typedef struct {
-	RGBinary *rg;
 	PEDBins *bins;
 	int algorithm;
 	int unpaired;
@@ -25,21 +25,12 @@ typedef struct {
 	int avgMismatchQuality;
 	int mismatchScore;
 	int queueLength;
-	int outputFormat;
-	char *readGroupString;
-	char *outputID;
-	int32_t **mappedEndCounts;
-	int32_t *mappedEndCountsNumEnds;
-	int32_t *numReported, *numUnmapped;
-
-	pthread_mutex_t *inputFP_mutex;
-	int32_t *input_threadID;
-	gzFile fpIn;
-
-	FILE *fpReported;
-	gzFile fpReportedGZ;
-	gzFile fpUnmapped;
-	pthread_mutex_t *outputFP_mutex;
+	int8_t *foundTypes;
+	AlignedRead *alignQueue;
+	int32_t *alignQueueThreadIDs;
+	int32_t **numEntries;
+	int32_t *numEntriesN;
+	int32_t numThreads;
 	int32_t threadID;
 } PostProcessThreadData;
 
@@ -63,7 +54,7 @@ void *ReadInputFilterAndOutputThread(void*);
 
 int32_t GetPEDBins(char*, int, int, PEDBins*);
 
-int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t, pthread_mutex_t*);
+int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t);
 
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
