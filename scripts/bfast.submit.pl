@@ -98,7 +98,7 @@ sub Schema {
 			  <xs:element name="outputDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="tmpDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="outputID" type="xs:string" use="required"/>
-			  <xs:element name="cleanUsedIntermediateFiles" type="xs:integer" use="required"/>
+			  <xs:element name="cleanUsedIntermediateFiles" type="xs:integer" use="optional"/>
 			  <xs:element name="numReadsPerFASTQ" type="positiveInteger">
 				<xs:complexType>
 				  <xs:attribute name="matchSplit" type="positiveInteger" use="required"/>
