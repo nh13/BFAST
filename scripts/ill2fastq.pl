@@ -120,28 +120,26 @@ elsif(0 < scalar(@files_two) && scalar(@files_one) != scalar(@files_two)) {
 # If '-B' was specified. Try to figure out what the barcode length is
 my $has_illumina_barcode = 0;
 if($infer_barcode_length) {
-        # Check if there are illuminia barcodes.
-        my $qseq_dir = $input_prefix;
-        $qseq_dir =~ /([^\/]+)$/;
+	# Check if there are illuminia barcodes.
+	my $qseq_dir = $input_prefix;
+	$qseq_dir =~ /([^\/]+)$/;
 	$qseq_dir =~ s/$1$//;
 
-
 	if( -e "$qseq_dir/config.xml" ) {
-	        open(FH, "$qseq_dir/config.xml") || die;
-                while(<FH>) {
+		open(FH, "$qseq_dir/config.xml") || die;
+		while(<FH>) {
 			if(/<Barcode>/) {
-                                $has_illumina_barcode = 1;
-                                last;
-                        }
+				$has_illumina_barcode = 1;
+				last;
+			}
 		}
-                close(FH) || die;
+		close(FH) || die;
 	}
 
 	if(0 == $has_illumina_barcode) {
-	        # Check every 1000th read
-	        $barcode_length = &infer_barcode_len(1000);
+		# Check every 1000th read
+		$barcode_length = &infer_barcode_len(1000);
 	}
-
 }
 
 my $FH_index = 0;
@@ -215,6 +213,7 @@ elsif(0 == scalar(@files_two)) { # Single end
 }
 else { # Paired end
 	while($FH_index < scalar(@files_one)) {
+		print "ON $FH_index\n";
 		my $min_read_name = "";
 
 		open(FH_one, "$files_one[$FH_index]") || die;
@@ -321,24 +320,10 @@ sub get_read {
 	my ($FH, $read, $barcode_length, $end, $input_suffix_state) = @_;
 
 	if(0 == $input_suffix_state) {
-		if(defined(my $line = <$FH>)) {
-			chomp($line);
-			($read->{"NAME"}, $read->{"SEQ"}, $read->{"QUAL"}) = parse_qseq_line($line, $barcode_length, $end);
-			return 1;
-		}
+		return parse_qseq_line($FH, $read, $barcode_length, $end);
 	}
 	elsif(1 == $input_suffix_state) {
-		if(defined($read->{"NAME"} = <$FH>) &&
-			defined($read->{"SEQ"} = <$FH>) &&
-			defined(my $comment = <$FH>) &&
-			defined($read->{"QUAL"} = <$FH>)) {
-			chomp($read->{"NAME"});
-			chomp($read->{"SEQ"});
-			chomp($read->{"QUAL"});
-			# strip end ID off of read name
-			$read->{"NAME"} =~ s/\/$end$//;
-			return 1;
-		}
+		return parse_sequence_line($FH, $read, $barcode_length, $end);
 	}
 	else {
 		die("Error.  Could not understand input suffix state: $input_suffix_state.  Terminating!\n");
@@ -347,19 +332,54 @@ sub get_read {
 }
 
 sub parse_qseq_line {
-	my ($line, $barcode_length, $end) = @_;
+	my ($FH, $read, $barcode_length, $end) = @_;
 
-	my @arr = split(/\s+/, $line);
+	if(defined(my $line = <$FH>)) {
+		my @arr = split(/\s+/, $line);
 
-	# Convert Illumina PHRED to Sanger PHRED
-	my $qual = "";
-	for(my $i=0;$i<length($arr[9]);$i++) {
-		my $Q = ord(substr($arr[9], $i, 1)) - 64;
-		$qual .= chr(($Q<=93? $Q : 93) + 33);
+		my $name = "@".$arr[0]."_".$arr[1]."_".$arr[2]."_".$arr[3]."_".$arr[4]."_".$arr[5]."_".$arr[6]."";
+		my $qual = $arr[9];
+		my $seq = $arr[8];
+
+		($read->{"NAME"}, $read->{"SEQ"}, $read->{"QUAL"}) = convert_ill($name, $seq, $qual, $barcode_length, $end);
+
+		return 1;
 	}
+	else {
+		return 0;
+	}
+}
 
-	my $name = "@".$arr[0]."_".$arr[1]."_".$arr[2]."_".$arr[3]."_".$arr[4]."_".$arr[5]."_".$arr[6]."";
-	my $seq = $arr[8];
+sub parse_sequence_line {
+	my ($FH, $read, $barcode_lenghth, $end) = @_;
+
+	if(defined(my $name = <$FH>) &&
+		defined(my $seq = <$FH>) && 
+		defined(my $comment = <$FH>) &&
+		defined(my $qual = <$FH>)) {
+	
+		chomp($name); chomp($seq); chomp($qual);
+
+		($read->{"NAME"}, $read->{"SEQ"}, $read->{"QUAL"}) = convert_ill($name, $seq, $qual, $barcode_length, $end);
+
+		# strip end ID off of read name
+		$read->{"NAME"} =~ s/\/$end$//;
+
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
+sub convert_ill {
+	my ($name, $seq, $qual, $barcode_length, $end) = @_;
+	
+	# Convert Illumina PHRED to Sanger PHRED
+	for(my $i=0;$i<length($qual);$i++) {
+		my $Q = ord(substr($qual, $i, 1)) - 64;
+		substr($qual, $i, 1) = chr(($Q<=93? $Q : 93) + 33);
+	}
 
 	$seq =~ tr/\./N/; # 'bfast postprocess' bails on '.'
 
@@ -374,7 +394,6 @@ sub parse_qseq_line {
 		$seq =~ tr/ACGTacgt/TGCAtgca/;
 		$qual = reverse($qual);
 	}
-
 	return ($name, $seq, $qual);
 }
 
