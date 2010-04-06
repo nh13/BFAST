@@ -29,6 +29,7 @@ constrains, where L is the unconstrained left side of the read, C be the
 constrained middle portion of the read, and R be the unconstrained right portion
 of the read.  We can get bounds on L and R for gapped local alignment by using 
 the L and R values from ungapped local alignment. How much will this buy us?
+- parameters -L, -F, and -l must be removed from the manual.
 ===============================================================================
 
 ===============================================================================
