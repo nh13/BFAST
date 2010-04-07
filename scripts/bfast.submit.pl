@@ -98,6 +98,7 @@ sub Schema {
 			  <xs:element name="outputDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="tmpDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="outputID" type="xs:string" use="required"/>
+			  <xs:element name="cleanUsedIntermediateFiles" type="xs:integer" use="optional"/>
 			  <xs:element name="numReadsPerFASTQ" type="positiveInteger">
 				<xs:complexType>
 				  <xs:attribute name="matchSplit" type="positiveInteger" use="required"/>
@@ -145,7 +146,7 @@ sub Schema {
 					<xs:enumeration value="bz2"/>
 				  </xs:restriction>
 				</xs:simpleType>
-              </xs:element>
+			  </xs:element>
 			  <xs:element name="keySize" type="positiveInteger"/>
 			  <xs:element name="maxKeyMatches" type="positiveInteger"/>
 			  <xs:element name="maxNumMatches" type="positiveInteger"/>
@@ -250,8 +251,8 @@ sub Schema {
 </xs:schema>
 END
 
-  print STDOUT $schema;
-  exit 1;
+	print STDOUT $schema;
+	exit 1;
 }
 
 sub ValidateData {
@@ -543,9 +544,10 @@ sub CreateJobsLocalalign {
 			$output_id_read_num_start = 1;
 			$output_id_read_num_end = $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 		} 
+		my $bmf_file = GetMatchesFile($data, $input_id);
+		my @bmf_file_clean_ids = ();
 		for(my $j=0;$j<$num_split_files;$j++) {
 			my $output_id = "$input_id_no_read_num.$output_id_read_num_start-$output_id_read_num_end";
-			my $bmf_file = GetMatchesFile($data, $input_id);
 			my $run_file = CreateRunFile($data, 'localalign', $output_id);
 			my $baf_file = GetAlignFile($data, $output_id);
 
@@ -579,6 +581,15 @@ sub CreateJobsLocalalign {
 			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 			$output_id_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
 			$output_id_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'};
+			push(@bmf_file_clean_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+		}
+		if(defined($data->{'globalOptions'}->{'cleanUsedIntermediateFiles'}) &&
+			$data->{'globalOptions'}->{'cleanUsedIntermediateFiles'} == 1 &&
+			0 < scalar(@bmf_file_clean_ids)) {
+			my $cmd = "rm -v $bmf_file";
+			my $run_file = CreateRunFile($data, 'clean.bmf', $input_id);
+			my $output_id = "clean.bmf.$input_id";
+			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, $dryrun, $cmd, $data, 'globalOptions', $output_id, \@bmf_file_clean_ids);
 		}
 	}
 }
@@ -589,6 +600,7 @@ sub CreateJobsPostprocess {
 	# Go through each
 	for(my $i=0;$i<scalar(@$output_ids);$i++) {
 		my $output_id = $output_ids->[$i];
+		my $input_id = $output_ids->[$i];
 		my $dependent_job = (0 < scalar(@$dependent_ids)) ? $dependent_ids->[$i] : QSUBNOJOB;
 		my $baf_file = GetAlignFile($data, $output_id);
 		my $run_file = CreateRunFile($data, 'postprocess', $output_id);
@@ -618,6 +630,18 @@ sub CreateJobsPostprocess {
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
 		my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $dryrun, $cmd, $data, 'postprocessOptions', $output_id, \@a);
 		push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+
+		if(defined($data->{'globalOptions'}->{'cleanUsedIntermediateFiles'}) &&
+			$data->{'globalOptions'}->{'cleanUsedIntermediateFiles'} == 1 &&
+			QSUBNOJOB ne $qsub_id) {
+
+			my @a = (); 
+			push(@a, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+			my $cmd = "rm -v $baf_file";
+			my $run_file = CreateRunFile($data, 'clean.baf', $input_id);
+			my $output_id = "clean.baf.$input_id";
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, ($start_step <= $STARTSTEP{"localalign"}) ? 1 : 0, $dryrun, $cmd, $data, 'globalOptions', $output_id, \@a);
+		}
 	}
 }
 
@@ -649,7 +673,6 @@ sub CreateJobsSAM {
 			$cmd .= " SO=coordinate";
 			$cmd .= " TMP_DIR=".$data->{'globalOptions'}->{'tmpDirectory'};
 			$cmd .= " VALIDATION_STRINGENCY=SILENT";
-			push(@reported_bams, $data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam");
 		}
 		else {
 			$cmd = "";
@@ -663,6 +686,7 @@ sub CreateJobsSAM {
 			$cmd .= " - ".$data->{'globalOptions'}->{'outputDirectory'};
 			$cmd .= "bfast.reported.file.$output_id";
 		}
+		push(@reported_bams, $data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam");
 
 # Submit the job
 		my @a = (); push(@a, $dependent_job) if(QSUBNOJOB ne $dependent_job);
@@ -674,9 +698,23 @@ sub CreateJobsSAM {
 			# currently it must be submitted
 			die;
 		}
+
+		if(defined($data->{'globalOptions'}->{'cleanUsedIntermediateFiles'}) &&
+			$data->{'globalOptions'}->{'cleanUsedIntermediateFiles'} == 1 &&
+			QSUBNOJOB ne $qsub_id) {
+			my @a = (); 
+			push(@a, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+			my $cmd = "rm -v $sam_file";
+			my $input_id = $output_id;
+			my $run_file = CreateRunFile($data, 'clean.sam', $input_id);
+			my $output_id = "clean.sam.$input_id";
+			$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $dryrun, $cmd, $data, 'globalOptions', $output_id, \@a);
+		}
 	}
+
 	# Merge script(s)
 	# Note: there could be too many dependencies, so lets just create dummy jobs to "merge" the dependencies
+	# Note: what todo if there are too many inputs?
 	my $merge_lvl = 0;
 	while(MERGE_LOG_BASE < scalar(@qsub_ids)) { # while we must merge
 		$merge_lvl++;
@@ -735,13 +773,26 @@ sub CreateJobsSAM {
 		my $sam_file = $data->{'globalOptions'}->{'outputDirectory'}."bfast.reported.file.$output_id.bam";
 		$cmd = "cp -v $sam_file ".$data->{'globalOptions'}->{'outputDirectory'}."bfast.".$data->{'globalOptions'}->{'outputID'}.".bam";
 	}
-	SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, 1, $dryrun, $cmd, $data, 'samOptions', $output_id, \@qsub_ids);
+	$qsub_id = SubmitJob($run_file , $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, 1, $dryrun, $cmd, $data, 'samOptions', $output_id, \@qsub_ids);
 	if(QSUBNOJOB ne $qsub_id) {
 		push(@qsub_ids, $qsub_id);
 	}
 	else {
 		# currently it must be submitted
 		die;
+	}
+
+	# clean up SAM files
+	# What if there are too many BAMS?
+	if(defined($data->{'globalOptions'}->{'cleanUsedIntermediateFiles'}) &&
+		$data->{'globalOptions'}->{'cleanUsedIntermediateFiles'} == 1 &&
+		QSUBNOJOB ne $qsub_id) {
+		my @a = (); 
+		push(@a, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+		my $cmd = "rm -v @reported_bams";
+		my $output_id = "clean.bams";
+		my $run_file = CreateRunFile($data, 'clean', "bams");
+		$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"sam"}) ? 1 : 0, ($start_step <= $STARTSTEP{"postprocess"}) ? 1 : 0, $dryrun, $cmd, $data, 'globalOptions', $output_id, \@a);
 	}
 }
 
