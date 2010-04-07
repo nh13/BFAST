@@ -284,7 +284,8 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		// Read matchQueueLength matches for each file
 		minRead = -1;
 		for(i=j=k=0;i<numFiles;i++) {
-			for(j=0;j<matchQueueLength;j++) {
+			for(j=0;j<matchQueueLength;j++,k++) {
+				assert(k < matchQueueLength*numFiles);
 				if(RGMatchesRead(tempFPs[i], &matchQueue[k])==EOF) {
 					if(minRead < 0) {
 						minRead = j;
@@ -295,12 +296,12 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 					numFinished++;
 					break;
 				}
-				else {
-					k++;
-				}
 			}
 		}
-		/* We must finish all at the same time */
+		if(minRead < 0) {
+			minRead = matchQueueLength;
+		}
+		// We must finish all at the same time
 		assert(numFinished == 0 || numFinished == numFiles);
 
 
@@ -338,6 +339,7 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		}
 
 		counter += minRead;
+
 	}
 
 	// Free
