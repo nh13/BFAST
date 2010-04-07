@@ -277,10 +277,9 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		fputs("\r[0]", stderr);
 	}
 	while(0 == numFinished) {
-		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
+		if(VERBOSE >= 0) {
 			fprintf(stderr, "\r[%d]", counter);
 		}
-		counter++;
 
 		// Read matchQueueLength matches for each file
 		minRead = -1;
@@ -337,13 +336,15 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		for(i=0;i<minRead;i++) {
 			RGMatchesFree(&matchQueue[i]);
 		}
+
+		counter += minRead;
 	}
 
 	// Free
 	free(matchQueue);
 
 	if(VERBOSE >=0) {
-		fprintf(stderr, "\r[%d]... completed.\n", counter-1);
+		fprintf(stderr, "\r[%d]... completed.\n", counter);
 	}
 
 	return numMatches;
