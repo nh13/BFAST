@@ -156,7 +156,6 @@ void RunMatch(
 		fprintf(stderr, "Will process %d reads.\n",
 				numReads);
 	}
-	assert(numReads >= numThreads);
 
 	/* Open output file */
 	if(0 == (outputFP=gzdopen(fileno(fpOut), "wb"))) {
