@@ -245,70 +245,102 @@ void RGMatchesRemoveDuplicates(RGMatches *m,
 int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		int32_t numFiles,
 		gzFile outputFP,
-		int32_t maxNumMatches)
+		int32_t maxNumMatches,
+		int32_t queueLength)
 {
 	char *FnName="RGMatchesMergeFilesAndOutput";
-	int32_t i;
-	int32_t foundMatch;
+	int32_t i, j, k, minRead;
 	int32_t counter;
-	RGMatches matches;
-	RGMatches tempMatches;
 	int32_t numMatches=0;
 	int32_t numFinished = 0;
+	RGMatches *matchQueue=NULL;
+	int32_t matchQueueLength = (queueLength / numFiles) + 1;
+	
+	if(matchQueueLength < 1) {
+		matchQueueLength = 1;
+	}
 
-	/* Initialize matches */
-	RGMatchesInitialize(&matches);
-	RGMatchesInitialize(&tempMatches);
+	// Allocate
+	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength*numFiles);
+	if(NULL == matchQueue) {
+		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	// Initialize
+	for(i=0;i<matchQueueLength*numFiles;i++) {
+		RGMatchesInitialize(&matchQueue[i]);
+	}
 
 	/* Read in each sequence/match one at a time */
 	counter = 0;
 	if(VERBOSE >=0) {
 		fputs("\r[0]", stderr);
 	}
-	while(numFinished == 0) {
+	while(0 == numFinished) {
 		if(VERBOSE >=0 && counter%RGMATCH_MERGE_ROTATE_NUM == 0) {
 			fprintf(stderr, "\r[%d]", counter);
 		}
 		counter++;
 
-		/* Read matches for one read from each file */ 
-		for(i=0;i<numFiles;i++) {
-			if(RGMatchesRead(tempFPs[i],
-						&tempMatches)==EOF) {
-				numFinished++;
-			}
-			else {
-				if(matches.readName != NULL &&
-						strcmp(matches.readName, tempMatches.readName)!=0) {
-					PrintError(FnName, NULL, "Read names do not match", Exit, OutOfRange);
+		// Read matchQueueLength matches for each file
+		minRead = -1;
+		for(i=j=k=0;i<numFiles;i++) {
+			for(j=0;j<matchQueueLength;j++) {
+				if(RGMatchesRead(tempFPs[i], &matchQueue[k])==EOF) {
+					if(minRead < 0) {
+						minRead = j;
+					}
+					else if(j != minRead) {
+						PrintError(FnName, "j != minRead", "Did not read in the correct # of entries", Exit, OutOfRange);
+					}
+					numFinished++;
+					break;
 				}
-				/* Append temp matches to matches */
-				RGMatchesAppend(&matches, &tempMatches);
+				else {
+					k++;
+				}
 			}
-
-			/* Free temp matches */
-			RGMatchesFree(&tempMatches);
 		}
 		/* We must finish all at the same time */
 		assert(numFinished == 0 || numFinished == numFiles);
 
-		if(numFinished == 0) {
-			/* Remove duplicates */
-			RGMatchesRemoveDuplicates(&matches, maxNumMatches);
 
-			/* Print to output file */
-			for(i=foundMatch=0;foundMatch == 0 && i<matches.numEnds;i++) {
-				if(0 < matches.ends[i].numEntries) {
-					foundMatch = 1;
+		// Merge
+		for(i=j=k=0;i<minRead;i++) {
+			k = minRead + i; // store in first minRead matches 
+			// Append
+			for(j=1;j<numFiles;j++,k+=minRead) {
+				if(0 != strcmp(matchQueue[i].readName, matchQueue[k].readName)) {
+					PrintError(FnName, NULL, "Read names do not match", Exit, OutOfRange);
+				}
+				RGMatchesAppend(&matchQueue[i], &matchQueue[k]); 
+				// Free
+				RGMatchesFree(&matchQueue[k]);
+			}
+			// Remove duplicates
+			RGMatchesRemoveDuplicates(&matchQueue[i], maxNumMatches);
+			// Count matches
+			for(j=0;j<matchQueue[i].numEnds;j++) {
+				if(0 < matchQueue[i].ends[j].numEntries) {
 					numMatches++;
+					break;
 				}
 			}
-			RGMatchesPrint(outputFP,
-					&matches);
 		}
-		/* Free memory */
-		RGMatchesFree(&matches);
+
+		// Print
+		for(i=0;i<minRead;i++) {
+			RGMatchesPrint(outputFP, &matchQueue[i]);
+		}
+
+		// Free rest in the queue
+		for(i=0;i<minRead;i++) {
+			RGMatchesFree(&matchQueue[i]);
+		}
 	}
+
+	// Free
+	free(matchQueue);
 
 	if(VERBOSE >=0) {
 		fprintf(stderr, "\r[%d]... completed.\n", counter-1);

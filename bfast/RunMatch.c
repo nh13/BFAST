@@ -607,7 +607,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 			numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
 					numUniqueIndexes,
 					tempOutputFP,
-					maxNumMatches);
+					maxNumMatches,
+					queueLength);
 			endTime=time(NULL);
 			if(VERBOSE >= 0 && timing == 1) {
 				seconds = (int)(endTime - startTime);
