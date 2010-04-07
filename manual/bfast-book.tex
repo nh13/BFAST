@@ -61,9 +61,9 @@ urlcolor=myurlcolor     % color of external links
 \newcommand{\BIF}{BFAST index file} % short form for bif
 \newcommand{\BMF}{BFAST matches file} % short form for bmf
 \newcommand{\BAF}{BFAST aligned file} % short form for baf
-\newcommand{\BMAF}{BFAST multiple sequence alignment file} % short form for the bfast output (maf)
-\newcommand{\BGFFF}{BFAST general feature format file} % short form for the bfast output (gff)
-\newcommand{\BSAMF}{BFAST sequence alignment/map file} % shoft for for the bfast output (sam) 
+%\newcommand{\BMAF}{BFAST multiple sequence alignment file} % short form for the bfast output (maf)
+%\newcommand{\BGFFF}{BFAST general feature format file} % short form for the bfast output (gff)
+\newcommand{\BSAMF}{BFAST sequence alignment/map file} % short for for the bfast output (sam) 
 \newcommand{\FIVETOTHREE}{$5'\rightarrow3'$} % 5 prime to 3 prime
 
 % DATE
@@ -244,7 +244,6 @@ This option applies to \TT{bfast index}, and \TT{bfast match}.
 Specifies the encoding space of the alphabet.
 For nucleotide space, use \TT{-A 0} (Illumina, 454, etc.).
 For color space, use \TT{-A 1} (ABI SOLiD).
-
 
 \subsubsection{\TT{-t, --timing}}
 This option applies to \TT{bfast fasta2brg}, \TT{bfast index}, \TT{bfast match}, \TT{bfast localalign}, and \TT{bfast postprocess}.
@@ -479,7 +478,6 @@ Local alignment may be time consuming when a large number of CALs are returned.
 Therefore we can use the option \TT{-M} to specify maximum number of CALs.
 If a read has more than the specified number, it will be ignored, and annotated as having too many CALs.
 
-
 The Smith Waterman algorithm supports mismatches, indels (with affine gap penalties), and color errors.
 The value for the \TT{-A} option must match the value given to the \TT{-A} option in \TT{bfast match}.
 In the case that \TT{-A 1} is used, the algorithm will simultaneously correct for color errors.
@@ -491,10 +489,10 @@ Without this option, bases that matched the reference during \TT{bfast match} wi
 
 The \TT{-s}, \TT{-S}, \TT{-e} and \TT{-E} can be used to specify only to consider CALs within a given range.
 
-For any paired end read using option \TT{-l} will infer a set of CALs for one read using the CALs from the second read, given the first read has no CALs.
-The expected length between the reads should be given as input to the option.
-We can use the \TT{-L} option to mirror in various directions ($5'\rightarrow 3'$ or $3'\rightarrow 5'$) according the underlying sequencing technology used. 
-If we wish to force this inference for all reads, not just those that have one read without CALs and the other with CALs, then the option \TT{-f} should be specified.
+%For any paired end read using option \TT{-l} will infer a set of CALs for one read using the CALs from the second read, given the first read has no CALs.
+%The expected length between the reads should be given as input to the option.
+%We can use the \TT{-L} option to mirror in various directions ($5'\rightarrow 3'$ or $3'\rightarrow 5'$) according the underlying sequencing technology used. 
+%If we wish to force this inference for all reads, not just those that have one read without CALs and the other with CALs, then the option \TT{-f} should be specified.
 
 \subsection{Usage}
 \subsubsection{\TT{-m FILENAME, --matchFileName=FILENAME}}
@@ -532,19 +530,19 @@ Specifies to ignore reads who have more than the specified number of CALs.
 \subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
 Specifies the average mismatch quality.
 
-\subsubsection{\TT{-l INTEGER, --pairedEndLength=INTEGER}}
-Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read’s CAL.
-
-\subsubsection{\TT{-L INTEGER, --mirroringType=INTEGER}}
-Specifies the directionality of the mirroring.
-A value of \TT{-L 0} that no mirroring should occur.
-A value of \TT{-L 1} specifies that we assume that the first end is before the second end ($5'\rightarrow3'$).
-A value of \TT{-L 2} specifies that we assume that the second end is before the first end ($5'\rightarrow3'$).
-A value of \TT{-L 3} specifies that we mirror CALs in both directions.
-\subsubsection{\TT{-f INTEGER, --forceMirroring INTEGER}}
-Specifies that we should always mirror CALs using the distance specified in option \TT{-l} for paired end reads, even if both of the reads have CALs.
-The type of mirroring can be specified with \TT{-L}.
-
+%\subsubsection{\TT{-l INTEGER, --pairedEndLength=INTEGER}}
+%Specifies that if one read of the pair has CALs and the other does not, this distance will be used to infer the latter read’s CAL.
+%
+%\subsubsection{\TT{-L INTEGER, --mirroringType=INTEGER}}
+%Specifies the directionality of the mirroring.
+%A value of \TT{-L 0} that no mirroring should occur.
+%A value of \TT{-L 1} specifies that we assume that the first end is before the second end ($5'\rightarrow3'$).
+%A value of \TT{-L 2} specifies that we assume that the second end is before the first end ($5'\rightarrow3'$).
+%A value of \TT{-L 3} specifies that we mirror CALs in both directions.
+%\subsubsection{\TT{-f INTEGER, --forceMirroring INTEGER}}
+%Specifies that we should always mirror CALs using the distance specified in option \TT{-l} for paired end reads, even if both of the reads have CALs.
+%The type of mirroring can be specified with \TT{-L}.
+%
 \section{bfast postprocess}
 \label{sec:postprocess}
 \BF{bfast postprocess} is a command that takes as input a \BAF{}.
@@ -596,9 +594,10 @@ This works only if the other end is mapped uniquely (using \TT{-a 3}).
 \subsubsection{\TT{-O INTEGER, --outputFormat=INTEGER}}
 Specifies the output format.
 \TT{-O 0} specifies the output to be in \BAF{} format (see \autoref{sec:baf} for the file format).
-\TT{-O 1} specifies the output to be in \BMAF{} format (see \autoref{sec:bmaf} for the file format).
-\TT{-O 2} specifies the output to be in \BGFFF{} format (currently undocumented and experimental).
-\TT{-O 3} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
+\TT{-O 1} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
+%\TT{-O 1} specifies the output to be in \BMAF{} format (see \autoref{sec:bmaf} for the file format).
+%\TT{-O 2} specifies the output to be in \BGFFF{} format (currently undocumented and experimental).
+%\TT{-O 3} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
 
 \subsubsection{\TT{-u, --unmappedFileName}}
 Dump unmapped reads including all their alignments into this file (always \BAF{} format).
@@ -607,6 +606,22 @@ Specifies output ID to prepend to the read name (\BSAMF{} output only).
 \subsubsection{\TT{-r STRING, --readGroupFileName=STRING}}
 Specifies to add the read group (@RG) line to add to the header, which is given in the specified file.
 Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
+\subsubsection{\tt{-U, --unpaired}}
+Specifies that the alignments should not be selected based on paired end information.
+Each end of a read will be examined independently.
+
+\subsubsection{\tt{-R, --reverseStrand}}
+Specifies to expect paired reads to be on reverse strands.
+
+\subsubsection{\TT{-x FILENAME, --scoringMatrixFileName=FILENAME}}
+Specifies the Scoring Matrix file used to score the alignments.
+Please see \autoref{sec:scoringmatrixfile} for the file format.
+This file should be the file used in \TT{bfast match}.
+If this option is used with ABI SOLiD data, then the \TT{-A 1} option must be set.
+
+\subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
+Specifies the average mismatch quality (should match that value used in \TT{bfast match}.
+
 \section{bfast bafconvert}
 \label{sec:bafconvert}
 \TT{bfast bafconvert} converts \BAF{s} to the specified output format.
@@ -617,9 +632,10 @@ The command line options are:
 Specifies the output type.
 \TT{0} converts a text \BAF{} to a binary \BAF{}.
 \TT{1} converts a binary \BAF{} to a text \BAF{}.
-\TT{2} converts a binary \BAF{} to a \BMAF{}.
-\TT{3} converts a binary \BAF{} to a \BGFFF{} (currently undocumented and experimental).
-\TT{4} converts a binary \BAF{} to a \BSAMF{} (currently experimental, see \url{https://sourceforge.net/projects/samtools/}).
+\TT{2} converts a binary \BAF{} to a \BSAMF{} (currently experimental, see \url{https://sourceforge.net/projects/samtools/}).
+%\TT{2} converts a binary \BAF{} to a \BMAF{}.
+%\TT{3} converts a binary \BAF{} to a \BGFFF{} (currently undocumented and experimental).
+%TT{4} converts a binary \BAF{} to a \BSAMF{} (currently experimental, see \url{https://sourceforge.net/projects/samtools/}).
 \subsubsection{\TT{-f}}
 Specifies the \rGFF{}.
 See \autoref{sec:commonoptions} for common options for a description of this option.
@@ -1062,28 +1078,20 @@ This can be overcome by having an upper limit on the number of alignments per re
 
 The \BAF{} will have the prefix \TT{bfast.aligned.file} and the file extension \TT{.baf}.
 
-The first line contains three fields: the @ symbol prepended to the read name, the encoding of the read (0 for NT space and 1 for color space), and the number of ends in the read.
-For each end of the read, the first line contains three fields: the original sequence, the original quality values, and the number of alignments.
-For each alignment for each end, there are three (NT space) or four (color space) lines.
-The first line contains eight fields: the contig name, the contig number (1-based), the position (1-based), the strand, the alignment score, the mapping quality, the reference length (the length of the alignment minus the sum of the lengths of any insertions), and the length of the total alignment including insertions and deletions.
-The second line contains the reference sequence.
-The third line contains the read sequence.
-For color space, there is a fourth line, which contains the called color error information.
-
 Please see the source code for the full internal binary representation.
 
-\subsection{\BMAF{}}
-\label{sec:bmaf}
-The \BMAF{} is a file format to store multiple sequence alignments.
-This format conforms to the UCSC specification of  multiple alignment format (see \url{http://genome.ucsc.edu/FAQ/FAQformat#format5}).
-The file is stored in text format.
-
-For a detailed description of the multiple alignment format see \url{http://genome.ucsc.edu/FAQ/FAQformat#format5}).
-Each entry represents one alignment for a read. 
-Depending on the options used to generate this file (see \autoref{sec:postprocess}), there may be multiple entries for a read.
-Paired end reads have each end outputted individually.
-Alignment score, paired end information including to which end the alignment belong, contig name and optionally color error information is printed on the \QU{a} line.
-The next two \QU{s} lines follow the defined format conventions.
+%\subsection{\BMAF{}}
+%\label{sec:bmaf}
+%The \BMAF{} is a file format to store multiple sequence alignments.
+%This format conforms to the UCSC specification of  multiple alignment format (see \url{http://genome.ucsc.edu/FAQ/FAQformat#format5}).
+%The file is stored in text format.
+%
+%For a detailed description of the multiple alignment format see \url{http://genome.ucsc.edu/FAQ/FAQformat#format5}).
+%Each entry represents one alignment for a read. 
+%Depending on the options used to generate this file (see \autoref{sec:postprocess}), there may be multiple entries for a read.
+%Paired end reads have each end outputted individually.
+%Alignment score, paired end information including to which end the alignment belong, contig name and optionally color error information is printed on the \QU{a} line.
+%The next two \QU{s} lines follow the defined format conventions.
 
 \subsection{\BSAMF{}}
 BFAST is able to produce alignments in the SAM format.
@@ -1379,7 +1387,7 @@ The contigs will be given an index number based on the order specified in the \R
 In this manner the ID of the contig can be recovered.
 In a \BMF{} (see \autoref{sec:bmf}) generated by \TT{match} (see \autoref{sec:match}) only the index number is given for compactness.
 In a \BAF{} (see \autoref{sec:baf}) generated by \TT{localalign} (see \autoref{sec:localalign}) either the index number or original contig name can be used.
-In a \BMAF{} (see \autoref{sec:bmaf}) generated by \TT{postprocess} (see \autoref{sec:postprocess}) either the index number or original contig name can be used.
+%In a \BMAF{} (see \autoref{sec:bmaf}) generated by \TT{postprocess} (see \autoref{sec:postprocess}) either the index number or original contig name can be used.
 
 Other local alignment algorithms to support spliced alignments are currently under development and could be produced during local alignment.
 

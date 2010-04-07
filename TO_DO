@@ -9,10 +9,7 @@ tests
 
 ===============================================================================
 manual
-- update based on postproces changes ("unpaired", "space", "scoringMatrixFileName",
-and "avgMismatchQuality").
 - update tests upon release.
-- change description of BAF file.
 ===============================================================================
 
 ===============================================================================
@@ -29,7 +26,6 @@ constrains, where L is the unconstrained left side of the read, C be the
 constrained middle portion of the read, and R be the unconstrained right portion
 of the read.  We can get bounds on L and R for gapped local alignment by using 
 the L and R values from ungapped local alignment. How much will this buy us?
-- parameters -L, -F, and -l must be removed from the manual.
 ===============================================================================
 
 ===============================================================================
@@ -38,12 +34,8 @@ postprocess
 ===============================================================================
 
 ===============================================================================
-general
-- instead of multiply mapped ends going to the mapped end, choose a random alignment.
-===============================================================================
-
-===============================================================================
 bfast.submit.pl
+- what if there are too many files to be merged at the end?
 - if there is an error while submitting, could we call an error-handling routine
 that will try to delete all the jobs?
 - add options for 'samtools index' as well as 'dbamfilter -D'
