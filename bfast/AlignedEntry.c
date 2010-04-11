@@ -546,14 +546,19 @@ int32_t AlignedEntryGetAlignment(AlignedEntry *a,
 		// Copy over 
 		char prevBase = origRead[0];
 		for(i=0,j=1;i<length;i++) {
-			if(GAP != alignment[1][i]) {
-				char c;
-				assert(1 == ConvertBaseToColorSpace(prevBase, alignment[1][i], &c));
-				if("01234"[(int)c] == origRead[j]) {
-					alignment[2][i]=GAP;
+			if(GAP != alignment[1][i]) { // not a deletion
+				if(GAP != alignment[0][i]) { // not an insertion 
+					char c;
+					assert(1 == ConvertBaseToColorSpace(prevBase, alignment[1][i], &c));
+					if("01234"[(int)c] == origRead[j]) {
+						alignment[2][i]=GAP;
+					}
+					else {
+						alignment[2][i]=origRead[j];
+					}
 				}
 				else {
-					alignment[2][i]=origRead[j];
+					alignment[2][i]=GAP;
 				}
 				prevBase = alignment[1][i];
 				j++;
