@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
+Version 0.6.4b
+* bug fixed in postprocess for color space where an the color space error
+string was malformed, hitting an assertion.
+
 Version 0.6.4a
 * 'postprocess' now supports using pairing information to better choose
 alignments.
