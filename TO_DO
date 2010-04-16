@@ -3,11 +3,6 @@ General
 ===============================================================================
 
 ===============================================================================
-bfast bmfconvert
-- document support for bmf2sam.
-===============================================================================
-
-===============================================================================
 match
 - check the implicit file names against the actual content of the indexes when
 read.
@@ -35,10 +30,14 @@ build the index with BWA).
 ===============================================================================
 general
 - instead of multiply mapped ends going to the mapped end, choose a random alignment.
+=======
+postprocess
+- fix pairing from stdin
 ===============================================================================
 
 ===============================================================================
 bfast.submit.pl
+- what if there are too many files to be merged at the end?
 - if there is an error while submitting, could we call an error-handling routine
 that will try to delete all the jobs?
 - add options for 'samtools index' as well as 'dbamfilter -D'

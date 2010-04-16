@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	int numThreads = 1;
 	int whichStrand = 0;
 	int space = NTSpace;
-	char c;
+	int c;
 	RGBinary rg;
 	RGIndex index;
 
@@ -639,7 +639,7 @@ void GetMatchesFromContigPos(RGIndex *index,
 	RGRanges ranges;
 	RGMatch match;
 	int readLength = index->width;
-	int32_t i, numEntries;
+	int32_t i;
 	int8_t readInt[SEQUENCE_LENGTH];
 
 	/* Initialize */
@@ -682,21 +682,12 @@ void GetMatchesFromContigPos(RGIndex *index,
 			BothStrands,
 			&ranges);
 
-	numEntries=0;
-	for(i=0;i<ranges.numEntries;i++) {
-		numEntries += ranges.endIndex[i] - ranges.startIndex[i] + 1;
-	}
-	if(0 < numEntries) {
-		/* Allocate memory for the matches */
-		RGMatchAllocate(&match, numEntries);
-
-		/* Transfer ranges to matches */
-		RGRangesCopyToRGMatch(&ranges,
-				index,
-				&match,
-				rg->space,
-				0);
-	}
+	/* Transfer ranges to matches */
+	RGRangesCopyToRGMatch(&ranges,
+			index,
+			&match,
+			rg->space,
+			0);
 
 	/* Remove duplicates */
 	RGMatchRemoveDuplicates(&match,

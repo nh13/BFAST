@@ -22,9 +22,7 @@ void BfastBAFConvertUsage()
 	fprintf(stderr, "\t-O\t\toutput type:\n"
 			"\t\t\t\t0-BAF text to BAF binary\n"
 			"\t\t\t\t1-BAF binary to BAF text\n"
-			"\t\t\t\t2-BAF binary to MAF\n"
-			"\t\t\t\t3-BAF binary to GFF (v2)\n"
-			"\t\t\t\t4-BAF binary to SAM (v.%s)\n",
+			"\t\t\t\t2-BAF binary to SAM (v.%s)\n",
 			BFAST_SAM_VERSION
 		   );
 	fprintf(stderr, "\t-f\t\tSpecifies the file name of the FASTA reference genome\n");
@@ -103,18 +101,6 @@ int BfastBAFConvert(int argc, char *argv[])
 			strcat(fileExtension, "txt");
 			break;
 		case 2:
-			outputType=MAF;
-			inputType=BinaryInput;
-			outputSubType=TextOutput;
-			strcat(fileExtension, BFAST_MAF_FILE_EXTENSION);
-			break;
-		case 3:
-			outputType=GFF;
-			inputType=BinaryInput;
-			outputSubType=TextOutput;
-			strcat(fileExtension, BFAST_GFF_FILE_EXTENSION);
-			break;
-		case 4:
 			outputType=SAM;
 			inputType=BinaryInput;
 			outputSubType=TextOutput;
@@ -215,8 +201,7 @@ int BfastBAFConvert(int argc, char *argv[])
 			gzclose(fpOutGZ);
 		}
 	}
-	if(MAF == outputType ||
-			SAM == outputType) {
+	if(SAM == outputType) {
 		RGBinaryDelete(&rg);
 	}
 	free(readGroupFileName);

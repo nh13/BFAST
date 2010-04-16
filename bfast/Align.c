@@ -251,20 +251,13 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			/* Copy over mask */
 			masks[ctr] = RGMatchMaskToString(m->masks[i], m->readLength);
 			/* Update contig name and strand */
-			end->entries[ctr].contigNameLength = rg->contigs[m->contigs[i]-1].contigNameLength;
-			end->entries[ctr].contigName = malloc(sizeof(char)*(end->entries[ctr].contigNameLength+1));
-			if(NULL==end->entries[ctr].contigName) {
-				PrintError(FnName, "end->entries[ctr].contigName", "Could not allocate memory", Exit, MallocMemory);
-			}
-			strcpy(end->entries[ctr].contigName, rg->contigs[m->contigs[i]-1].contigName);
 			end->entries[ctr].contig = m->contigs[i];
 			end->entries[ctr].strand = m->strands[i];
 			/* The rest should be filled in later */
 			end->entries[ctr].position = -1; 
 			end->entries[ctr].score=NEGATIVE_INFINITY;
-			end->entries[ctr].length = 0;
-			end->entries[ctr].referenceLength = 0;
-			end->entries[ctr].read = end->entries[ctr].reference = end->entries[ctr].colorError = NULL;
+			end->entries[ctr].alnRead = NULL;
+			end->entries[ctr].alnReadLength = 0;
 
 			if(matrix->ncol < referenceLengths[ctr]+1) {
 				AlignMatrixReallocate(matrix, matrix->nrow, referenceLengths[ctr]+1);
@@ -520,8 +513,7 @@ int32_t AlignExact(char *read,
 				readLength,
 				readLength,
 				read,
-				referenceAligned,
-				(NTSpace == space) ? NULL : colorErrorAligned);
+				referenceAligned);
 	}
 
 	return 1;
@@ -543,6 +535,7 @@ int32_t AlignUngapped(char *read,
 {
 	// Note: we do not allow any wiggle room in ungapped alignment
 	char *FnName="AlignUngapped";
+
 	switch(space) {
 		case NTSpace:
 			return AlignNTSpaceUngapped(read,
@@ -646,10 +639,10 @@ void AlignGapped(char *read,
 	maxV = GETMIN(maxV, readLength);
 
 	/* Free relevant entries */
-	free(a->read);
-	free(a->reference);
-	free(a->colorError);
-	a->read = a->reference = a->colorError = NULL;
+	free(a->alnRead);
+	a->alnRead = NULL;
+	a->alnReadLength = 0;
+	assert(NULL == a->alnRead);
 	
 	switch(unconstrained) {
 		case Unconstrained:

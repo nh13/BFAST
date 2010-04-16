@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <zlib.h>
-#include <bzlib.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -107,9 +106,13 @@ void RunAlign(
 	ReadInputFilterAndOutput(&rg,
 			tmpLocalAlignFileName,
 			BestScore,
+			space,
 			0,
+			0,
+			AVG_MISMATCH_QUALITY,
+			NULL,
 			numThreads,
-			DEFAULT_QUEUE_LENGTH,
+			DEFAULT_LOCALALIGN_QUEUE_LENGTH,
 			SAM,
 			NULL,
 			NULL,

@@ -4,7 +4,6 @@
 #include <config.h>
 #include <unistd.h>
 #include <string.h>
-#include <bzlib.h>
 #include <ctype.h>
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"
@@ -63,7 +62,7 @@ int main(int argc, char *argv[])
 	int32_t in_comp=AFILE_NO_COMPRESSION;
 	int32_t out_comp=AFILE_NO_COMPRESSION;
 	int32_t output_suffix_number;
-	char c;
+	int c;
 	int32_t i, j;
 	int32_t trim_end = 0;
 	fastq_t *reads=NULL;

@@ -19,7 +19,11 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets,  DescLoadAllIndexes, DescCompressionBZ2, DescCompressionGZ,
+	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets,  DescLoadAllIndexes, 
+#ifndef DISABLE_BZ2
+	DescCompressionBZ2, 
+#endif
+	DescCompressionGZ,
 	DescAlgoTitle, DescSpace, DescStartReadNum, DescEndReadNum, 
 	DescKeySize, DescMaxKeyMatches, DescMaxTotalMatches, DescWhichStrand, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescTmpDir, DescTiming,
@@ -35,7 +39,9 @@ static struct argp_option options[] = {
 	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
 	{"offsets", 'o', "offsets", 0, "Specifies the offsets", 1},
 	{"loadAllIndexes", 'l', "loadAllIndexes", 0, "Specifies to load all main or secondary indexes into memory", 1},
+#ifndef DISABLE_BZ2
 	{"bz2", 'j', "bz2", 0, "Specifies that the input reads are bz2 compressed (bzip2)", 1},
+#endif
 	{"gz", 'z', "gz", 0, "Specifies that the input reads are gz compressed (gzip)", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
@@ -62,7 +68,11 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
+#ifndef DISABLE_BZ2
 "e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hjlptz";
+#else
+"e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hlptz";
+#endif
 
 	int
 BfastMatch(int argc, char **argv)
@@ -352,7 +362,7 @@ BfastMatchGetOptHelp() {
 	int
 BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct arguments* arguments) 
 {
-	char key;
+	int key;
 	int OptErr=0;
 	while((OptErr==0) && ((key = getopt (argc, argv, OptionString)) != -1)) {
 		/*
@@ -367,8 +377,10 @@ BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->programMode=ExecuteGetOptHelp; break;
 			case 'i':
 				arguments->mainIndexes=strdup(optarg); break;
+#ifndef DISABLE_BZ2
 			case 'j':
 				arguments->compression=AFILE_BZ2_COMPRESSION; break;
+#endif
 			case 'k':
 				arguments->keySize = atoi(optarg); break;
 			case 'l':

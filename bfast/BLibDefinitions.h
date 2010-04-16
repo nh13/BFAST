@@ -51,7 +51,7 @@ enum {ExecuteGetOptHelp, ExecuteProgram, ExecutePrintProgramParameters};
 /* Default output */
 enum {TextOutput, BinaryOutput};
 enum {TextInput, BinaryInput};
-enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
+enum {BRG, BIF, BMF, BAF, SAM, LastFileType};
 #define BPREPROCESS_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 #define BMATCHES_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 #define BALIGN_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
@@ -67,11 +67,11 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define BFAST_MATCHES_FILE_EXTENSION "bmf"
 #define BFAST_MATCHES_READS_FILTERED_FILE_EXTENSION "fastq"
 #define BFAST_ALIGNED_FILE_EXTENSION "baf"
-#define BFAST_MAF_FILE_EXTENSION "maf"
-#define BFAST_GFF_FILE_EXTENSION "gff"
 #define BFAST_SAM_FILE_EXTENSION "sam"
 
 #define BFAST_MATCH_THREAD_BLOCK_SIZE 1024
+#define BFAST_LOCALALIGN_THREAD_BLOCK_SIZE 512
+#define BFAST_POSTPROCESS_THREAD_BLOCK_SIZE 512
 #define RGMATCH_MERGE_ROTATE_NUM 100000
 #define READ_ROTATE_NUM 1000000
 #define RGINDEX_ROTATE_NUM 1000000
@@ -100,12 +100,14 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define COLOR_SPACE_START_NT_INT 0
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
+#define MAX_STD 4
+#define MAX_INVERSION_LOG10_RATIO 3
 
 /* To calculate the paired end insert size distribution in postprocess */
 #define MIN_PEDBINS_SIZE 100
-#define MAX_PEDBINS_SIZE 1000000
 #define MIN_PEDBINS_DISTANCE -20000
 #define MAX_PEDBINS_DISTANCE 20000
+#define MAX_PEDBINS_DISTANCES 10000
 
 /* Scoring matrix defaults */
 #define SCORING_MATRIX_GAP_OPEN -175
@@ -128,7 +130,6 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define LOWERBOUNDSCORE(_score) (_score = (_score < NEGATIVE_INFINITY) ? NEGATIVE_INFINITY : _score)
 #define GETMIN(_X, _Y)  ((_X) < (_Y) ? (_X) : (_Y))
 #define GETMAX(_X, _Y)  ((_X) < (_Y) ? (_Y) : (_X))
-#define QUAL_TO_MAF_QUAL(_X)  (GETMIN( (int)floor(_X/5), 9))
 #define CHAR2QUAL(c) ((uint8_t)c-33)
 #define QUAL2CHAR(q) (char)(((q<=93)?q:93)+33)
 #define SPACENAME(_space) ((NTSpace == _space) ? "nt" : "cs")
@@ -154,8 +155,7 @@ enum {BRG, BIF, BMF, BAF, MAF, GFF, SAM, LastFileType};
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
 #define DEFAULT_LOCALALIGN_QUEUE_LENGTH 10000
-
-#define DEFAULT_QUEUE_LENGTH 10000
+#define DEFAULT_POSTPROCESS_QUEUE_LENGTH 50000
 
 extern char COLORS[5];
 
@@ -322,18 +322,13 @@ typedef struct {
 
 /* TODO */
 typedef struct {
-	int32_t contigNameLength;
-	char *contigName;
 	uint32_t contig;
 	uint32_t position;
 	char strand;
-	double score;
-	int32_t mappingQuality;
-	uint32_t referenceLength; /* The length of the reference alignment substracting gaps */
-	uint32_t length; /* The length of the alignment */
-	char *read; /* The read */
-	char *reference;
-	char *colorError;
+	int32_t score;
+	uint8_t mappingQuality;
+	int32_t alnReadLength; // enhanced aligned read
+	uint8_t *alnRead; 
 } AlignedEntry;
 
 /* TODO */

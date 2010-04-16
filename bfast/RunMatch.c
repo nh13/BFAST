@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <zlib.h>
-#include <bzlib.h>
 #include "BLibDefinitions.h"
 #include "BError.h"
 #include "BLib.h"
@@ -139,7 +138,7 @@ void RunMatch(
 	}
 	/* Read the reads to the thread temp files */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Reading %s into temp files.\n",
+		fprintf(stderr, "Reading %s into a temp file.\n",
 				(readFileName == NULL) ? "stdin" : readFileName);
 	}
 	/* This will close the reads file */
@@ -157,7 +156,6 @@ void RunMatch(
 		fprintf(stderr, "Will process %d reads.\n",
 				numReads);
 	}
-	assert(numReads >= numThreads);
 
 	/* Open output file */
 	if(0 == (outputFP=gzdopen(fileno(fpOut), "wb"))) {
@@ -608,7 +606,8 @@ int FindMatchesInIndexSet(char **indexFileNames,
 			numWritten=RGMatchesMergeFilesAndOutput(tempOutputIndexFPs,
 					numUniqueIndexes,
 					tempOutputFP,
-					maxNumMatches);
+					maxNumMatches,
+					queueLength);
 			endTime=time(NULL);
 			if(VERBOSE >= 0 && timing == 1) {
 				seconds = (int)(endTime - startTime);
@@ -651,7 +650,10 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		}
 
 		/* Open a new temporary read file */
-		tempRGMatchesAFP.fp = NULL; tempRGMatchesAFP.gz = NULL; tempRGMatchesAFP.bz2 = NULL;
+		tempRGMatchesAFP.fp = NULL; tempRGMatchesAFP.gz = NULL; 
+#ifndef DISABLE_BZ2
+		tempRGMatchesAFP.bz2 = NULL;
+#endif
 		tempRGMatchesAFP.c = AFILE_GZ_COMPRESSION;
 		tempRGMatchesAFP.gz = OpenTmpGZFile(tmpDir, &tempRGMatchesFileName);
 
@@ -746,7 +748,7 @@ int FindMatches(char **indexFileName,
 	RGMatches *matchQueue=NULL;
 	int32_t *matchQueueThreadIDs=NULL; // TODO: could make this more memory efficient
 	int32_t matchQueueLength=queueLength;
-	int32_t returnNumMatches=0;
+	int32_t returnNumMatches=0, numReadsProcessed=0;
 
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
@@ -807,12 +809,6 @@ int FindMatches(char **indexFileName,
 		PrintError(FnName, "matchQueueThreadIDs", "Could not allocate memory", Exit, MallocMemory);
 	}
 
-	/* Initialize match structures */
-	for(i=0;i<matchQueueLength;i++) {
-		RGMatchesInitialize(&matchQueue[i]);
-		matchQueueThreadIDs[i] = -1;
-	}
-
 	/* For each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "Reads processed: 0");
@@ -823,6 +819,11 @@ int FindMatches(char **indexFileName,
 	while(0!=(numMatches = GetReads((*tmpSeqFP), matchQueue, matchQueueLength, space))) { // Read in data
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
+	
+	/* Initialize match structures */
+		for(i=0;i<matchQueueLength;i++) {
+		matchQueueThreadIDs[i] = -1;
+	}
 
 		// Initialize arguments to threads 
 		for(i=0;i<numThreads;i++) {
@@ -883,8 +884,10 @@ int FindMatches(char **indexFileName,
 		}
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
+
+		numReadsProcessed += numMatches;
 		if(VERBOSE >= 0) {
-			fprintf(stderr, "\rReads processed: %d", returnNumMatches);
+			fprintf(stderr, "\rReads processed: %d", numReadsProcessed);
 		}
 
 		/* Free matches */
@@ -900,7 +903,7 @@ int FindMatches(char **indexFileName,
 	(*totalOutputTime)+=endTime - startTime;
 
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rReads processed: %d\n", returnNumMatches);
+		fprintf(stderr, "\rReads processed: %d\n", numReadsProcessed);
 	}
 
 	/* Free memory of the RGIndex */

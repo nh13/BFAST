@@ -10,13 +10,17 @@ enum {AFILE_BZ2_READ=0, AFILE_BZ2_WRITE};
 
 typedef struct {
 	FILE *fp;
+#ifndef DISABLE_BZ2
 	BZFILE *bz2;
+#endif
 	gzFile gz;
 	int32_t c;
 
+#ifndef DISABLE_BZ2
 	// bzip2
 	char unused[BZ_MAX_UNUSED];
 	int32_t n_unused, bzerror, open_type;
+#endif
 } AFILE;
 
 AFILE *AFILE_afopen(const char* path, const char *mode, int32_t compression);

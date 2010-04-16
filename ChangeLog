@@ -5,9 +5,27 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
-Version 0.6.3d
-* 'bfast match' multi-threading re-implemented.
-* adding in 'bfast bwtbfast2' as an alternative to 'bfast match'.
+Version 0.6.4b
+* bug fixed in postprocess for color space where an the color space error
+string was malformed, hitting an assertion.
+
+Version 0.6.4a
+* 'postprocess' now supports using pairing information to better choose
+alignments.
+* multi-threading re-implemented in 'match', 'localalign', and 'postprocess'.
+* output format of BAF files changed to reduce file size, thus speeding up
+'localalign' 
+* bfast.submit.pl now can clean up files no longer need to make the final BAM
+file.
+* some small boundary conditions fixed in 'localalign' that would cause a
+crash.
+* command line parsing now standardized with GNU getopt.
+* mapping quality was incorrectly calculated in some boundary cases,
+defaulting to the 255 value.
+* MAF and GFF output removed.
+* pairing/mirroring options in 'localalign' removed. 
+* ill2fastq.pl now outputs the qualities from sequence.txt files assuming
+PHRED+64 input.
 
 Version 0.6.3c
 * NM tag now fixed to include indels as edits.

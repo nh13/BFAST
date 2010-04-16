@@ -4,77 +4,115 @@
 #include <math.h>
 #include <assert.h>
 #include <zlib.h>
+#include <ctype.h>
 #include "BError.h"
 #include "BLib.h"
 #include "AlignedEntry.h"
 
-/* TODO */
-int32_t AlignedEntryPrint(AlignedEntry *a,
-		gzFile outputFP,
-		int32_t space)
+// move to BLib.c
+char getAlnReadBase(uint8_t *alnRead, int32_t i)
 {
-	assert(NULL != a->read);
-	assert(NULL != a->reference);
-	assert(space == NTSpace ||
-			(space == ColorSpace && NULL != a->colorError));
-	
-	if(gzwrite64(outputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)||
-			gzwrite64(outputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
-			gzwrite64(outputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite64(outputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite64(outputFP, &a->strand, sizeof(char))!=sizeof(char)||
-			gzwrite64(outputFP, &a->score, sizeof(double))!=sizeof(double)||
-			gzwrite64(outputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
-			gzwrite64(outputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite64(outputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzwrite64(outputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
-			gzwrite64(outputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
-		return EOF;
+	uint8_t base;
+
+	base = alnRead[(int)(i/2)];
+	if(0 == (i & 1)) { // left-four bits
+		base >>= 4;
 	}
-	if(ColorSpace==space) {
-		if(gzwrite64(outputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
-			return EOF;
-		}
+	else { // right-four bits
+		base &= 0x0F;
 	}
-	
-	return 1;
+
+	if(5 < base) {
+		return "ACGTN"[base % 6];
+	}
+	else {
+		return "acgtn-"[base % 6];
+	}
+
+}
+
+// move to BLib.c
+void putAlnReadBase(uint8_t *alnRead, int32_t i, char b, int32_t ins) 
+{
+	uint8_t op = 0;
+
+	switch(b) {
+		case 'A':
+		case 'a': 
+			op = 0; break;
+		case 'c':
+		case 'C':
+			op = 1; break;
+		case 'g':
+		case 'G':
+			op = 2; break;
+		case 't':
+		case 'T':
+			op = 3; break;
+		case 'n':
+		case 'N':
+			op = 4; break;
+		case '-':
+			op = 5; break;
+		default:
+			assert(1==0); // should not go here
+	}
+
+	if(1 == ins) {
+		assert(op != 5); // cannot have ins and del
+		op += 6;
+	}
+	// op should range from 0-11
+	if(0 == (i & 1)) { // left-four bits
+		alnRead[(int)(i/2)] |= (op << 4);
+	}
+	else { // right-four bits
+		alnRead[(int)(i/2)] |= op;
+	}
 }
 
 /* TODO */
-int32_t AlignedEntryPrintText(AlignedEntry *a,
-		FILE *outputFP,
-		int32_t space)
+int32_t AlignedEntryPrint(AlignedEntry *a,
+		gzFile outputFP)
 {
-	assert(NULL != a->read);
-	assert(NULL != a->reference);
-	assert(space == NTSpace ||
-			(space == ColorSpace && NULL != a->colorError));
+	int len = (int)(a->alnReadLength/2 + 1);
+	if(gzwrite64(outputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite64(outputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
+			gzwrite64(outputFP, &a->strand, sizeof(char))!=sizeof(char)||
+			gzwrite64(outputFP, &a->score, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite64(outputFP, &a->mappingQuality, sizeof(uint8_t))!=sizeof(uint8_t)||
+			gzwrite64(outputFP, &a->alnReadLength, sizeof(int32_t))!=sizeof(int32_t)||
+			gzwrite64(outputFP, a->alnRead, sizeof(uint8_t)*len)!=sizeof(uint8_t)*len) {
+		return EOF;
+	}
 
-	if(fprintf(outputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
-				a->contigName,
+	return 1;
+}
+
+
+/* TODO */
+int32_t AlignedEntryPrintText(AlignedEntry *a,
+		FILE *outputFP)
+{
+	int32_t i;
+	if(fprintf(outputFP, "%u\t%u\t%c\t%d\t%d\t%d\t",
 				a->contig,
 				a->position,
 				a->strand,
 				a->score,
 				a->mappingQuality,
-				a->referenceLength,
-				a->length) < 0) {
+				a->alnReadLength) < 0) {
 		return EOF;
 	}
 
-	/* Print32_t the reference and read alignment */
-	if(fprintf(outputFP, "%s\n%s\n",
-				a->reference,
-				a->read) < 0) {
-		return EOF;
-	}
-
-	/* Print32_t the color errors if necessary */
-	if(space == ColorSpace) {
-		if(fprintf(outputFP, "%s\n",
-					a->colorError) < 0) {
+	for(i=0;i<a->alnReadLength;i++) {
+		if(fprintf(outputFP, "%c",
+					getAlnReadBase(a->alnRead, i)) < 0) {
 			return EOF;
 		}
+	}
+	if(fprintf(outputFP, "\n") < 0) {
+		return EOF;
 	}
 
 	return 1;
@@ -82,193 +120,67 @@ int32_t AlignedEntryPrintText(AlignedEntry *a,
 
 /* TODO */
 int32_t AlignedEntryRead(AlignedEntry *a,
-		gzFile inputFP,
-		int32_t space)
+		gzFile inputFP)
 {
 	char *FnName = "AlignedEntryRead";
-
+	int len;
 	assert(NULL != a);
 
-	/* Allocate memory for the alignment */
-	if(a->read == NULL) {
-		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == a->read) {
-			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
-		}
-	}
-	if(a->reference == NULL) {
-		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == a->reference) {
-			PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
-		}
-	}
-	if(space == ColorSpace) {
-		if(a->colorError == NULL) {
-			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == a->colorError) {
-				PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
-			}
-		}
-	}
-
-	if(gzread64(inputFP, &a->contigNameLength, sizeof(int32_t))!=sizeof(int32_t)) {
-		return EOF;
-	}
-	/* Copy over contig name */
-	a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
-	if(NULL==a->contigName) {
-		PrintError(FnName, "a->contigName", "Could not allocate memory", Exit, MallocMemory);
-	}
-	if(gzread64(inputFP, a->contigName, sizeof(char)*a->contigNameLength)!=sizeof(char)*a->contigNameLength||
-			gzread64(inputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
+	if(gzread64(inputFP, &a->contig, sizeof(uint32_t))!=sizeof(uint32_t)||
 			gzread64(inputFP, &a->position, sizeof(uint32_t))!=sizeof(uint32_t)||
 			gzread64(inputFP, &a->strand, sizeof(char))!=sizeof(char)||
-			gzread64(inputFP, &a->score, sizeof(double))!=sizeof(double)||
-			gzread64(inputFP, &a->mappingQuality, sizeof(int32_t))!=sizeof(int32_t)||
-			gzread64(inputFP, &a->referenceLength, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzread64(inputFP, &a->length, sizeof(uint32_t))!=sizeof(uint32_t)||
-			gzread64(inputFP, a->read, sizeof(char)*a->length)!=sizeof(char)*a->length||
-			gzread64(inputFP, a->reference, sizeof(char)*a->length)!=sizeof(char)*a->length) {
+			gzread64(inputFP, &a->score, sizeof(int32_t))!=sizeof(int32_t)||
+			gzread64(inputFP, &a->mappingQuality, sizeof(uint8_t))!=sizeof(uint8_t)||
+			gzread64(inputFP, &a->alnReadLength, sizeof(int32_t))!=sizeof(int32_t)) {
 		return EOF;
 	}
-	/* Add the null terminator to strings */
-	a->contigName[a->contigNameLength]='\0';
-	a->read[a->length]='\0';
-	a->reference[a->length]='\0';
-	if(ColorSpace==space) {
-		if(gzread64(inputFP, a->colorError, sizeof(char)*a->length)!=sizeof(char)*a->length) {
-			return EOF;
-		}
-		a->colorError[a->length]='\0';
+
+	len = (int)(a->alnReadLength/2 + 1);
+	a->alnRead = calloc(sizeof(uint8_t), len);
+	if(NULL == a->alnRead) {
+		PrintError(FnName, "a->alnRead", "Could not allocate memory", Exit, MallocMemory);
 	}
 
-	/* Reallocate to conserve memory */
-	assert(a->length > 0);
-	a->read = realloc(a->read, sizeof(char)*(a->length+1));
-	if(NULL == a->read) {
-		PrintError(FnName, "a->read", "Could not reallocate memory", Exit, ReallocMemory);
+	if(gzread64(inputFP, a->alnRead, sizeof(uint8_t)*len)!=sizeof(uint8_t)*len) {
+		return EOF;
 	}
-	/* Reference */
-	a->reference = realloc(a->reference, sizeof(char)*(a->length+1));
-	if(NULL == a->reference) {
-		PrintError(FnName, "a->reference", "Could not reallocate memory", Exit, ReallocMemory);
-	}
-	/* Color error, if necessary */
-	if(space == ColorSpace) {
-		a->colorError = realloc(a->colorError, sizeof(char)*(a->length+1));
-		if(NULL == a->colorError) {
-			PrintError(FnName, "a->colorError", "Could not reallocate memory", Exit, ReallocMemory);
-		}
-	}
-	else {
-		assert(NULL == a->colorError);
-	}
-
-	/*
-	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
-	   assert(((int)strlen(a->read)) == a->length);
-	   assert(strlen(a->reference) == a->length);
-	   assert((int)strlen(a->colorError) == a->length);
-	   */
 
 	return 1;
 }
 
 /* TODO */
 int32_t AlignedEntryReadText(AlignedEntry *a,
-		FILE *inputFP,
-		int32_t space)
+		FILE *inputFP)
 {
 	char *FnName = "AlignedEntryReadText";
-	char tempContigName[MAX_CONTIG_NAME_LENGTH]="\0";
-
+	int32_t i, tmp, len;
+	char alnRead[1024]="\0";
 	assert(NULL != a);
 
-	/* Allocate memory for the alignment */
-	if(a->read == NULL) {
-		a->read = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == a->read) {
-			PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
-		}
-	}
-	if(a->reference == NULL) {
-		a->reference = malloc(sizeof(char)*SEQUENCE_LENGTH);
-		if(NULL == a->reference) {
-			PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
-		}
-	}
-	if(space == ColorSpace) {
-		if(a->colorError == NULL) {
-			a->colorError = malloc(sizeof(char)*SEQUENCE_LENGTH);
-			if(NULL == a->colorError) {
-				PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
-			}
-		}
-	}
-
-	if(fscanf(inputFP, "%s\t%u\t%u\t%c\t%lf\t%d\t%u\t%u\n",
-				tempContigName,
+	if(fscanf(inputFP, "%u\t%u\t%c\t%d\t%d\t%d\t",
 				&a->contig,
 				&a->position,
 				&a->strand,
 				&a->score,
-				&a->mappingQuality,
-				&a->referenceLength,
-				&a->length) < 0) {
+				&tmp,
+				&a->alnReadLength) < 0) {
+		return EOF;
+	}
+	a->mappingQuality = tmp;
+
+	len = (int)(a->alnReadLength/2 + 1);
+	a->alnRead = calloc(sizeof(uint8_t), len);
+	if(NULL == a->alnRead) {
+		PrintError(FnName, "a->alnRead", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	if(NULL == fgets(alnRead, 1024, inputFP)) {
 		return EOF;
 	}
 
-	/* Copy over contig name */
-	a->contigNameLength = (int)strlen(tempContigName);
-	a->contigName = malloc(sizeof(char)*(a->contigNameLength+1));
-	if(NULL==a->contigName) {
-		PrintError(FnName, "a->contigName", "Could not allocate memory", Exit, MallocMemory);
+	for(i=0;i<a->alnReadLength;i++) {
+		putAlnReadBase(a->alnRead, i, alnRead[i], (toupper(alnRead[i]) == alnRead[i]) ? 1: 0);
 	}
-	strcpy(a->contigName, tempContigName);
-
-	/* Read the reference and read alignment */
-	if(fscanf(inputFP, "%s %s", 
-				a->reference,
-				a->read)==EOF) {
-		return EOF;
-	}
-
-	/* Read the color errors if necessary */
-	if(space == ColorSpace) {
-		if(fscanf(inputFP, "%s",
-					a->colorError)==EOF) {
-			return EOF;
-		}
-	}
-
-	/* Reallocate to conserve memory */
-	assert(a->length > 0);
-	a->read = realloc(a->read, sizeof(char)*(a->length+1));
-	if(NULL == a->read) {
-		PrintError(FnName, "a->read", "Could not reallocate memory", Exit, ReallocMemory);
-	}
-	/* Reference */
-	a->reference = realloc(a->reference, sizeof(char)*(a->length+1));
-	if(NULL == a->reference) {
-		PrintError(FnName, "a->reference", "Could not reallocate memory", Exit, ReallocMemory);
-	}
-	/* Color error, if necessary */
-	if(space == ColorSpace) {
-		a->colorError = realloc(a->colorError, sizeof(char)*(a->length+1));
-		if(NULL == a->colorError) {
-			PrintError(FnName, "a->colorError", "Could not reallocate memory", Exit, ReallocMemory);
-		}
-	}
-	else {
-		assert(NULL == a->colorError);
-	}
-
-	/*
-	   assert(((int)strlen(a->contigName)) == a->contigNameLength);
-	   assert(((int)strlen(a->read)) == a->length);
-	   assert(strlen(a->reference) == a->length);
-	   assert((int)strlen(a->colorError) == a->length);
-	   */
 
 	return 1;
 }
@@ -457,111 +369,47 @@ void AlignedEntryCopyAtIndex(AlignedEntry *dest, int32_t destIndex, AlignedEntry
 void AlignedEntryCopy(AlignedEntry *dest, AlignedEntry *src)
 {
 	char *FnName = "AlignedEntryCopy";
+	int32_t i, len;
 	if(src != dest) {
-		/* Contig name length */
-		assert(src->contigNameLength > 0);
-		dest->contigNameLength = src->contigNameLength;
-		/* Contig name */
-		dest->contigName = realloc(dest->contigName, sizeof(char)*(dest->contigNameLength+1));
-		if(NULL == dest->contigName) {
-			PrintError(FnName, "dest->contigName", "Could not reallocate memory", Exit, ReallocMemory);
-		}
-		assert(src->contigName != NULL);
-		strcpy(dest->contigName, src->contigName);
-		/* Read */
-		assert(src->length > 0);
-		dest->read = realloc(dest->read, sizeof(char)*(src->length+1));
-		if(NULL == dest->read) {
-			PrintError(FnName, "dest->read", "Could not reallocate memory", Exit, ReallocMemory);
-		}
-		assert(src->read != NULL);
-		strcpy(dest->read, src->read);
-		/* Reference */
-		dest->reference = realloc(dest->reference, sizeof(char)*(src->length+1));
-		if(NULL == dest->reference) {
-			PrintError(FnName, "dest->reference", "Could not reallocate memory", Exit, ReallocMemory);
-		}
-		assert(src->reference!= NULL);
-		strcpy(dest->reference, src->reference);
-		/* Color error, if necessary */
-		if(src->colorError != NULL) {
-			assert(src->length > 0);
-			dest->colorError = realloc(dest->colorError, sizeof(char)*(src->length+1));
-			if(NULL == dest->colorError) {
-				PrintError(FnName, "dest->colorError", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			assert(src->colorError!= NULL);
-			strcpy(dest->colorError, src->colorError);
-		}
 		/* Metadata */
-		dest->referenceLength = src->referenceLength;
-		dest->length = src->length;
 		dest->contig = src->contig;
 		dest->position = src->position;
 		dest->strand = src->strand;
 		dest->score = src->score;
 		dest->mappingQuality = src->mappingQuality;
+		// alnRead
+		if(0 < dest->alnReadLength) {
+			free(dest->alnRead);
+			dest->alnRead=NULL;
+			dest->alnReadLength=0;
+		}
+		dest->alnReadLength = src->alnReadLength;
+		len = (int)(dest->alnReadLength/2 + 1);
+		dest->alnRead = calloc(sizeof(uint8_t), len);
+		if(NULL == dest->alnRead) {
+			PrintError(FnName, "dest->alnRead", "Could not allocate memory", Exit, MallocMemory);
+		}
+		for(i=0;i<len;i++) {
+			dest->alnRead[i] = src->alnRead[i];
+		}
 	}
 }
 
 void AlignedEntryFree(AlignedEntry *a)
 {
-	free(a->contigName);
-	free(a->read);
-	free(a->reference);
-	free(a->colorError);
+	free(a->alnRead);
 	AlignedEntryInitialize(a);
 }
 
 void AlignedEntryInitialize(AlignedEntry *a) 
 {
-	a->contigNameLength=0;
-	a->contigName=NULL;
 	a->contig=0;
 	a->position=0;
 	a->strand=0;
-	a->score=0.0;
+	a->score=0;
 	a->mappingQuality=0;
-	a->referenceLength=0;
-	a->length=0;
-	a->read=NULL;
-	a->reference=NULL;
-	a->colorError=NULL;
-}
-
-/* TODO */
-/* Debugging function */
-void AlignedEntryCheckReference(AlignedEntry *a, RGBinary *rg, int32_t space)
-{
-	char *FnName = "AlignedEntryCheckReference";
-	int32_t i;
-	int32_t curPos;
-	char rgBase;
-	char reference[SEQUENCE_LENGTH]="\0";
-
-	if(a->strand == REVERSE) {
-		GetReverseComplimentAnyCase(a->reference, reference, a->length);
-	}
-	else {
-		strcpy(reference, a->reference);
-	}
-
-	for(i=0, curPos = a->position;i<a->length;i++) {
-		if(reference[i] != GAP) {
-			rgBase = RGBinaryGetBase(rg, a->contig, curPos);	
-			if(rgBase != reference[i]) {
-				fprintf(stderr, "\n[%d]\t[%d]\n[%c]\t[%c]\n[%s]\n",
-						curPos,
-						i,
-						reference[i],
-						rgBase,
-						reference);
-				AlignedEntryPrintText(a, stderr, space);
-				PrintError(FnName, NULL, "Reference in the align entry does not match the reference genome", Exit, OutOfRange);
-			}
-			curPos++;
-		}
-	}
+	a->alnReadLength=0;
+	a->alnRead=NULL;
 }
 
 int32_t AlignedEntryGetPivot(AlignedEntry *a,
@@ -626,27 +474,107 @@ void AlignedEntryUpdateAlignment(AlignedEntry *a,
 		int32_t referenceLength,
 		int32_t length,
 		char *read,
-		char *reference,
-		char *colorError) 
+		char *reference)
 {
 	char *FnName="AlignedEntryAllocate";
+	int32_t i, len;
 
+	// contig updated earlier (I hope)
 	a->position = position;
+	// strand updated earlier (I hope)
 	a->score = score;
-	a->referenceLength = referenceLength;
-	a->length = length;
-	a->read = strdup(read);
-	if(NULL == a->read) {
-		PrintError(FnName, "a->read", "Could not allocate memory", Exit, MallocMemory);
+
+	// make a->alnRead
+	a->alnReadLength = length;
+	len = (int)(a->alnReadLength/2 + 1);
+	a->alnRead = calloc(sizeof(uint8_t), len);
+	if(NULL == a->alnRead) {
+		PrintError(FnName, "a->alnRead", "Could not allocate memory", Exit, MallocMemory);
 	}
-	a->reference = strdup(reference);
-	if(NULL == a->reference) {
-		PrintError(FnName, "a->reference", "Could not allocate memory", Exit, MallocMemory);
+	for(i=0;i<length;i++) {
+		putAlnReadBase(a->alnRead, 
+				i,
+				read[i],
+				(GAP == reference[i]) ? 1 : 0);
 	}
-	if(NULL != colorError) {
-		a->colorError = strdup(colorError);
-		if(NULL == a->colorError) {
-			PrintError(FnName, "a->colorError", "Could not allocate memory", Exit, MallocMemory);
+}
+
+int32_t AlignedEntryGetAlignment(AlignedEntry *a,
+		RGBinary *rg,
+		char alignment[3][SEQUENCE_LENGTH],
+		char *origRead,
+		int32_t origReadLength,
+		int32_t space)
+{
+	char *FnName="AlignedEntryGetAlignment";
+	int32_t i, j;
+	int32_t length=0, referenceLength=0;
+	char *reference=NULL;
+
+	// Get read, and reference length
+	length = a->alnReadLength;
+	for(i=0;i<a->alnReadLength;i++) {
+		alignment[1][i] = getAlnReadBase(a->alnRead, i);
+		if(GAP == alignment[1][i] || // deleted from read
+				alignment[1][i] != toupper(alignment[1][i])) { // not an inserted base into the read
+			referenceLength++;
 		}
 	}
+	alignment[1][length]='\0';
+
+	// get reference
+	if(0 == RGBinaryGetSequence(rg, a->contig, a->position, a->strand, &reference, referenceLength)) {
+		PrintError(FnName, NULL, "Could not get reference sequence", Exit, OutOfRange);
+	}
+	for(i=j=0;i<length;i++) {
+		if(GAP == alignment[1][i] ||
+				alignment[1][i] != toupper(alignment[1][i])) { // not an inserted base into the read
+			referenceLength++;
+			alignment[0][i] = reference[j];
+			j++;
+		}
+		else {
+			alignment[0][i] = GAP;
+		}
+		alignment[1][i] = toupper(alignment[1][i]);
+	}
+	free(reference);
+	alignment[0][length]='\0';
+
+	// get color error string (how) ?
+	if(ColorSpace == space) {
+		// Copy over 
+		char prevBase = origRead[0];
+		for(i=0,j=1;i<length;i++) {
+			if(GAP != alignment[1][i]) { // not a deletion
+				if(GAP != alignment[0][i]) { // not an insertion 
+					char c;
+					assert(1 == ConvertBaseToColorSpace(prevBase, alignment[1][i], &c));
+					if("01234"[(int)c] == origRead[j]) {
+						alignment[2][i]=GAP;
+					}
+					else {
+						alignment[2][i]=origRead[j];
+					}
+				}
+				else {
+					alignment[2][i]=GAP;
+				}
+				prevBase = alignment[1][i];
+				j++;
+			}
+			else {
+				alignment[2][i]=GAP;
+			}
+		}
+
+		alignment[2][length]='\0';
+	}
+	else {
+		// maybe check that origRead matches?
+		alignment[0][length]='\0';
+		alignment[1][length]='\0';
+		alignment[2][0]='\0';
+	}
+	return length;
 }

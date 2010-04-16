@@ -16,6 +16,8 @@
 #include "Align.h"
 #include "RunLocalAlign.h"
 
+static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* TODO */
 void RunAligner(char *fastaFileName,
 		char *matchFileName,
@@ -208,12 +210,31 @@ void RunDynamicProgramming(gzFile matchFP,
 	pthread_t *threads=NULL;
 	int32_t errCode;
 	void *status;
-	ThreadFileData fdata;
-	int32_t avgFileTime, avgAlignTime;
+	RGMatches *matchQueue=NULL;
+	int32_t *matchQueueThreadIDs=NULL;
+	AlignedRead *alignedQueue=NULL;
+	int32_t matchQueueLength=0;
+	int32_t matchFPctr = 1;
+	int32_t outputCtr = 0;
+	int32_t numReadsProcessed = 0, numMatchesRead = 0;
 
 	/* Initialize */
 	RGMatchesInitialize(&m);
 	ScoringMatrixInitialize(&sm);
+
+	/* Allocate match queue */
+	matchQueue = malloc(sizeof(RGMatches)*queueLength);
+	if(NULL == matchQueue) {
+		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
+	}
+	matchQueueThreadIDs = malloc(sizeof(int32_t)*queueLength);
+	if(NULL == matchQueueThreadIDs) {
+		PrintError(FnName, "matchQueueThreadIDs", "Could not allocate memory", Exit, MallocMemory);
+	}
+	alignedQueue = malloc(sizeof(AlignedRead)*queueLength);
+	if(NULL == alignedQueue) {
+		PrintError(FnName, "alignedQueue", "Could not allocate memory", Exit, MallocMemory);
+	}
 
 	/* Allocate memory for thread arguments */
 	data = malloc(sizeof(ThreadData)*numThreads);
@@ -246,117 +267,127 @@ void RunDynamicProgramming(gzFile matchFP,
 		mismatchScore = sm.colorMatch - sm.colorMismatch;
 	}
 
-	/* Initialize fdata */
-	// matchFP
-	pthread_mutex_init(&fdata.matchFP_mutex, NULL);
-	pthread_mutex_lock(&fdata.matchFP_mutex);
-	fdata.matchFP = matchFP;
-	fdata.matchFPctr = 1;
-	pthread_mutex_unlock(&fdata.matchFP_mutex);
-	// outputFP
-	pthread_mutex_init(&fdata.outputFP_mutex, NULL);
-	pthread_mutex_lock(&fdata.outputFP_mutex);
-	fdata.outputFP = outputFP;
-	fdata.outputFPctr = 0;
-	pthread_mutex_unlock(&fdata.outputFP_mutex);
-	// start/end read numbers
-	fdata.startReadNum = startReadNum;
-	fdata.endReadNum = endReadNum;
-
 	// Skip matches
 	startTime = time(NULL);
-	pthread_mutex_lock(&fdata.matchFP_mutex);
-	SkipMatches(&fdata);
-	pthread_mutex_unlock(&fdata.matchFP_mutex);
+	SkipMatches(matchFP, &matchFPctr, startReadNum);
 	endTime = time(NULL);
 	(*totalFileHandlingTime) += endTime - startTime;
 
-	/* Create thread arguments */
-	for(i=0;i<numThreads;i++) {
-		data[i].fdata = &fdata;
-		data[i].rg=rg;
-		data[i].space=space;
-		data[i].offsetLength=offsetLength;
-		data[i].usePairedEndLength = usePairedEndLength;
-		data[i].pairedEndLength = pairedEndLength;
-		data[i].mirroringType = mirroringType;
-		data[i].forceMirroring = forceMirroring;
-		data[i].sm = &sm;
-		data[i].ungapped = ungapped;
-		data[i].unconstrained = unconstrained;
-		data[i].bestOnly = bestOnly;
-		data[i].numLocalAlignments = 0;
-		data[i].avgMismatchQuality = avgMismatchQuality;
-		data[i].mismatchScore = mismatchScore;
-		data[i].queueLength = queueLength;
-		data[i].threadID = i;
-		data[i].numAligned = 0;
-		data[i].numNotAligned = 0;
-		data[i].fileTime = 0;
-		data[i].alignTime = 0;
-	}
 
 	if(0 <= VERBOSE) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Performing alignment...\n");
-		fprintf(stderr, "Currently on:\n0");
+		fprintf(stderr, "Reads processed: 0");
 	}
 
 	startTime = time(NULL);
+	while(0 != (numMatchesRead = GetMatches(matchFP, &matchFPctr, startReadNum, endReadNum, matchQueue, queueLength))) {
+		endTime = time(NULL);
+		(*totalFileHandlingTime) += endTime - startTime;
 
-	/* Create threads */
-	for(i=0;i<numThreads;i++) {
-		/* Start thread */
-		errCode = pthread_create(&threads[i], /* thread struct */
-				NULL, /* default thread attributes */
-				RunDynamicProgrammingThread, /* start routine */
-				&data[i]); /* data to routine */
-		if(0!=errCode) {
-			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
+		numReadsProcessed += numMatchesRead;
+		matchQueueLength = numMatchesRead;
+
+		/* Initialize match structures */
+		for(i=0;i<matchQueueLength;i++) {
+			matchQueueThreadIDs[i] = -1;
 		}
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Created threadID:%d\n",
-					i);
+
+		/* Initialize thread arguments */
+		for(i=0;i<numThreads;i++) {
+			data[i].rg=rg;
+			data[i].space=space;
+			data[i].offsetLength=offsetLength;
+			data[i].usePairedEndLength = usePairedEndLength;
+			data[i].pairedEndLength = pairedEndLength;
+			data[i].mirroringType = mirroringType;
+			data[i].forceMirroring = forceMirroring;
+			data[i].sm = &sm;
+			data[i].ungapped = ungapped;
+			data[i].unconstrained = unconstrained;
+			data[i].bestOnly = bestOnly;
+			data[i].numLocalAlignments = 0;
+			data[i].avgMismatchQuality = avgMismatchQuality;
+			data[i].mismatchScore = mismatchScore;
+			data[i].queueLength = matchQueueLength;
+			data[i].threadID = i;
+			data[i].numThreads = numThreads;
+			data[i].numAligned = 0;
+			data[i].numNotAligned = 0;
+			data[i].matchQueue = matchQueue;
+			data[i].matchQueueThreadIDs = matchQueueThreadIDs;
+			data[i].alignedQueue = alignedQueue;
 		}
+
+		/* Create threads */
+		startTime = time(NULL);
+		for(i=0;i<numThreads;i++) {
+			/* Start thread */
+			errCode = pthread_create(&threads[i], /* thread struct */
+					NULL, /* default thread attributes */
+					RunDynamicProgrammingThread, /* start routine */
+					&data[i]); /* data to routine */
+			if(0!=errCode) {
+				PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
+			}
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Created threadID:%d\n",
+						i);
+			}
+		}
+
+		/* Wait for the threads to finish */
+		for(i=0;i<numThreads;i++) {
+			/* Wait for the given thread to return */
+			errCode = pthread_join(threads[i],
+					&status);
+			if(VERBOSE >= DEBUG) {
+				fprintf(stderr, "Thread returned with errCode:%d\n",
+						errCode);
+			}
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
+			}
+		}
+		endTime = time(NULL);
+		(*totalAlignedTime) += (endTime - startTime);
+
+		// Output to file 
+		startTime = time(NULL);
+		for(i=0;i<matchQueueLength;i++) {
+			AlignedReadPrint(&alignedQueue[i],
+					outputFP);
+
+			/* Free memory */
+			AlignedReadFree(&alignedQueue[i]);
+			RGMatchesFree(&matchQueue[i]);
+			outputCtr++;
+		}
+		endTime = time(NULL);
+		(*totalFileHandlingTime) += endTime - startTime;
+
+		/* Sum up statistics */
+		for(i=0;i<numThreads;i++) {
+			numAligned += data[i].numAligned;
+			numNotAligned += data[i].numNotAligned;
+			numLocalAlignments += data[i].numLocalAlignments;
+		}
+
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rReads processed: %d", numReadsProcessed);
+		}
+
+		startTime = time(NULL);
 	}
 
-	/* Wait for the threads to finish */
-	for(i=0;i<numThreads;i++) {
-		/* Wait for the given thread to return */
-		errCode = pthread_join(threads[i],
-				&status);
-		if(VERBOSE >= DEBUG) {
-			fprintf(stderr, "Thread returned with errCode:%d\n",
-					errCode);
-		}
-		/* Check the return code of the thread */
-		if(0!=errCode) {
-			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
-		}
-	}
 
 	if(0 <= VERBOSE) {
-		fprintf(stderr, "\n");
+		fprintf(stderr, "\rReads processed: %d\n", numReadsProcessed);
 		fprintf(stderr, "Alignment complete.\n");
 	}
 
 	endTime = time(NULL);
-
-	/* Sum up statistics */
-	avgFileTime = avgAlignTime = 0;
-	for(i=0;i<numThreads;i++) {
-		numAligned += data[i].numAligned;
-		numNotAligned += data[i].numNotAligned;
-		numLocalAlignments += data[i].numLocalAlignments;
-		avgFileTime += data[i].fileTime;
-		avgAlignTime += data[i].alignTime;
-	}
-
-	/* Use the average */
-	if(0 < avgAlignTime + avgFileTime) {
-		(*totalAlignedTime) += (endTime - startTime)*(avgAlignTime / (double)(avgAlignTime + avgFileTime));
-		(*totalFileHandlingTime) += (endTime - startTime)*(avgFileTime / (double)(avgAlignTime + avgFileTime));
-	}
 
 	if(VERBOSE >=0) {
 		fprintf(stderr, "Performed %lld local alignments.\n", (long long int)numLocalAlignments);
@@ -365,11 +396,10 @@ void RunDynamicProgramming(gzFile matchFP,
 		fprintf(stderr, "Outputting complete.\n");
 	}
 
-	if(numAligned + numNotAligned != fdata.outputFPctr) {
-		PrintError(FnName, "Inconsistent results", "numAligned + numNotAligned != fdata->outputFPctr", Exit, OutOfRange);
-	}
-
 	/* Free memory */
+	free(matchQueue);
+	free(matchQueueThreadIDs);
+	free(alignedQueue);
 	free(data);
 	free(threads);
 }
@@ -379,7 +409,6 @@ void *RunDynamicProgrammingThread(void *arg)
 {
 	/* Recover arguments */
 	ThreadData *data = (ThreadData *)(arg);
-	ThreadFileData *fdata = data->fdata;
 	RGBinary *rg=data->rg;
 	int32_t space=data->space;
 	int32_t offsetLength=data->offsetLength;
@@ -392,60 +421,53 @@ void *RunDynamicProgrammingThread(void *arg)
 	int32_t unconstrained=data->unconstrained;
 	int32_t bestOnly=data->bestOnly;
 	int32_t threadID=data->threadID;
+	int32_t numThreads=data->numThreads;
 	int32_t avgMismatchQuality=data->avgMismatchQuality;
 	double mismatchScore=data->mismatchScore;
 	int32_t queueLength=data->queueLength;
+	AlignedRead *alignedQueue=data->alignedQueue;
+	RGMatches *matchQueue=data->matchQueue;
+	int32_t *matchQueueThreadIDs = data->matchQueueThreadIDs;
 	/* Local variables */
-	char *FnName = "RunDynamicProgrammingThread";
-	int32_t i, j, wasAligned;
-	int32_t numAlignedRead=0;
-	int32_t numMatches=0;
-	int32_t ctr=0;
-	int32_t startTime, endTime, readTime;
-
+	//char *FnName = "RunDynamicProgrammingThread";
+	int32_t i, j, wasAligned, queueIndex;
 	AlignMatrix matrix;
-	AlignedRead *alignedQueue=NULL;
-	RGMatches *matchQueue=NULL;
-	int32_t matchQueueLength=queueLength;
-	int32_t numMatchesRead=0;
-
+	
+	/* Initialize */
 	AlignMatrixInitialize(&matrix);
 
-	/* Allocate match queue */
-	matchQueue = malloc(sizeof(RGMatches)*matchQueueLength);
-	if(NULL == matchQueue) {
-		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
-	}
-	alignedQueue = malloc(sizeof(AlignedRead)*matchQueueLength);
-	if(NULL == alignedQueue) {
-		PrintError(FnName, "alignedQueue", "Could not allocate memory", Exit, MallocMemory);
-	}
-
-	/* Initialize */
-
 	/* Go through each read in the match file */
-	while(0 != (numMatchesRead = GetMatches(fdata, matchQueue, matchQueueLength, &readTime))) {
-
-		data->fileTime += readTime;
-
-		startTime = time(NULL);
-
-		for(i=0;i<numMatchesRead;i++) {
-			AlignedReadInitialize(&alignedQueue[i]);
-
-			if(0 <= VERBOSE && ctr%ALIGN_ROTATE_NUM==0) {
-				fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
+	queueIndex=0;
+	while(queueIndex<queueLength) {
+		if(1 < numThreads) {
+			pthread_mutex_lock(&matchQueueMutex);
+			if(matchQueueThreadIDs[queueIndex] < 0) {
+				// mark this block
+				for(j=queueIndex;j<queueLength && j<queueIndex+BFAST_LOCALALIGN_THREAD_BLOCK_SIZE;j++) {
+					matchQueueThreadIDs[j] = threadID;
+				}
 			}
+			else if(matchQueueThreadIDs[queueIndex] != threadID) {
+				pthread_mutex_unlock(&matchQueueMutex);
+				queueIndex+=BFAST_LOCALALIGN_THREAD_BLOCK_SIZE;
+				// skip this block
+				continue;
+			}
+			pthread_mutex_unlock(&matchQueueMutex);
+		}
+
+		// Process this block
+		for(i=0;i<BFAST_LOCALALIGN_THREAD_BLOCK_SIZE && queueIndex<queueLength;i++,queueIndex++) {
+			assert(numThreads <= 1 || matchQueueThreadIDs[queueIndex] == threadID);
+			AlignedReadInitialize(&alignedQueue[queueIndex]);
 
 			wasAligned=0;
-			if(1 == IsValidMatch(&matchQueue[i])) {
-				numMatches++;
-				numAlignedRead = 0;
+			if(1 == IsValidMatch(&matchQueue[queueIndex])) {
 
 				/* Update the number of local alignments performed */
-				data->numLocalAlignments += AlignRGMatches(&matchQueue[i],
+				data->numLocalAlignments += AlignRGMatches(&matchQueue[queueIndex],
 						rg,
-						&alignedQueue[i],
+						&alignedQueue[queueIndex],
 						space,
 						offsetLength,
 						sm,
@@ -458,8 +480,8 @@ void *RunDynamicProgrammingThread(void *arg)
 						forceMirroring,
 						&matrix);
 
-				for(j=wasAligned=0;j<alignedQueue[i].numEnds;j++) {
-					if(0 < alignedQueue[i].ends[j].numEntries) {
+				for(j=wasAligned=0;j<alignedQueue[queueIndex].numEnds;j++) {
+					if(0 < alignedQueue[queueIndex].ends[j].numEntries) {
 						wasAligned = 1;
 					}
 				}
@@ -467,23 +489,23 @@ void *RunDynamicProgrammingThread(void *arg)
 
 			if(1 == wasAligned) {
 				/* Remove duplicates */
-				AlignedReadRemoveDuplicates(&alignedQueue[i],
+				AlignedReadRemoveDuplicates(&alignedQueue[queueIndex],
 						AlignedEntrySortByAll);
 				/* Updating mapping quality */
-				AlignedReadUpdateMappingQuality(&alignedQueue[i], 
+				AlignedReadUpdateMappingQuality(&alignedQueue[queueIndex], 
 						mismatchScore, 
 						avgMismatchQuality);
 			}
 			else {
-				/* Copy over to alignedQueue[i] */
-				AlignedReadAllocate(&alignedQueue[i],
-						matchQueue[i].readName,
-						matchQueue[i].numEnds,
+				/* Copy over to alignedQueue[queueIndex] */
+				AlignedReadAllocate(&alignedQueue[queueIndex],
+						matchQueue[queueIndex].readName,
+						matchQueue[queueIndex].numEnds,
 						space);
-				for(j=0;j<matchQueue[i].numEnds;j++) {
-					AlignedEndAllocate(&alignedQueue[i].ends[j],
-							matchQueue[i].ends[j].read,
-							matchQueue[i].ends[j].qual,
+				for(j=0;j<matchQueue[queueIndex].numEnds;j++) {
+					AlignedEndAllocate(&alignedQueue[queueIndex].ends[j],
+							matchQueue[queueIndex].ends[j].read,
+							matchQueue[queueIndex].ends[j].qual,
 							0);
 				}
 			}
@@ -496,78 +518,42 @@ void *RunDynamicProgrammingThread(void *arg)
 			}
 
 			/* Free memory */
-			RGMatchesFree(&matchQueue[i]);
-			ctr++;
+			RGMatchesFree(&matchQueue[queueIndex]);
 		}
-
-		endTime = time(NULL);
-		data->alignTime += (endTime - startTime);
-
-		if(0 <= VERBOSE) {
-			fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
-		}
-
-		/* Print */
-		pthread_mutex_lock(&fdata->outputFP_mutex);
-		startTime = time(NULL);
-		for(i=0;i<numMatchesRead;i++) {
-			AlignedReadPrint(&alignedQueue[i],
-					fdata->outputFP);
-
-			/* Free memory */
-			AlignedReadFree(&alignedQueue[i]);
-			fdata->outputFPctr++;
-		}
-		endTime = time(NULL);
-		data->fileTime += endTime - startTime;
-		pthread_mutex_unlock(&fdata->outputFP_mutex);
 	}
 	/* Free the matrix, free your mind */
 	AlignMatrixFree(&matrix);
 
-	if(0 <= VERBOSE) {
-		fprintf(stderr, "\rthread:%d\t[%d]", threadID, ctr);
-	}
-
-	free(matchQueue);
-	free(alignedQueue);
-
 	return arg;
 }
 
-int32_t GetMatches(ThreadFileData *fdata, RGMatches *m, int32_t maxToRead, int32_t *readTime) 
+int32_t GetMatches(gzFile matchFP, int32_t *matchFPctr, int32_t startReadNum, int32_t endReadNum, RGMatches *m, int32_t maxToRead)
 {
 	char *FnName="GetMatches";
 	int32_t numRead = 0;
 
-	/* Get lock */
-	pthread_mutex_lock(&fdata->matchFP_mutex);
-	(*readTime) = time(NULL);
-
-	if(fdata->matchFPctr < fdata->startReadNum) {
-		PrintError(FnName, "fdata->matchFPctr < fdata->startReadNum", "The start read number was greater the actual number of reads found", Warn, OutOfRange);
+	if((*matchFPctr) < startReadNum) {
+		PrintError(FnName, "matchFPctr < startReadNum", "The start read number was greater the actual number of reads found", Warn, OutOfRange);
 		numRead=0; // to be explicit
 	}
 	else {
-		while(numRead < maxToRead && fdata->matchFPctr <= fdata->endReadNum) {
+		while(numRead < maxToRead && (*matchFPctr) <= endReadNum) {
 			RGMatchesInitialize(&(m[numRead]));
-			if(EOF == RGMatchesRead(fdata->matchFP, &(m[numRead]))) {
+			if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) {
 				break;
 			}
+			(*matchFPctr)++;
 			numRead++;
-			fdata->matchFPctr++;
 		}
 	}
-	(*readTime) = time(NULL) - (*readTime);
-	pthread_mutex_unlock(&fdata->matchFP_mutex);
 	return numRead;
 }
 
-void SkipMatches(ThreadFileData *fdata) 
+void SkipMatches(gzFile matchFP, int32_t *matchFPctr, int32_t startReadNum)
 {
 	RGMatches m;
 
-	if(fdata->startReadNum <= 1) {
+	if(startReadNum <= 1) {
 		return;
 	}
 
@@ -576,14 +562,14 @@ void SkipMatches(ThreadFileData *fdata)
 	}
 
 	RGMatchesInitialize(&m);
-	while(fdata->matchFPctr < fdata->startReadNum && EOF != RGMatchesRead(fdata->matchFP, &m)) {
-		if(0 <= VERBOSE && fdata->matchFPctr%ALIGN_SKIP_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%d", fdata->matchFPctr);
+	while((*matchFPctr) < startReadNum && EOF != RGMatchesRead(matchFP, &m)) {
+		if(0 <= VERBOSE && (*matchFPctr)%ALIGN_SKIP_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d", (*matchFPctr));
 		}
 		RGMatchesFree(&m);
-		fdata->matchFPctr++;
+		(*matchFPctr)++;
 	}
 	if(0 <= VERBOSE) {
-		fprintf(stderr, "\r%d\n", fdata->matchFPctr);
+		fprintf(stderr, "\r%d\n", (*matchFPctr));
 	}
 }

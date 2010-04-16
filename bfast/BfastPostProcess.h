@@ -11,7 +11,11 @@ struct arguments
 	char *fastaFileName;					/* -f */
 	char *alignFileName;					/* -i */
 	int algorithm;							/* -a */
-	int pairedEndInfer;						/* -P */
+	int space;								/* -A */
+	int unpaired;							/* -U */
+	int reversePaired;						/* -R */
+	int avgMismatchQuality;					/* -q */
+	char *scoringMatrixFileName;			/* -x */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
 	char *unmappedFileName;					/* -i */

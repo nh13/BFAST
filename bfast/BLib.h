@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <zlib.h>
+#ifdef HAVE_CONFIG_H
 #include <config.h>
+#endif
 #include "RGIndex.h"
 #include "BLibDefinitions.h"
 
@@ -71,8 +73,6 @@ void ParseRange(Range*, char*);
 int32_t CheckRange(Range*, int32_t, int32_t);
 int32_t CheckRangeWithinRange(Range*, Range*);
 void RangeCopy(Range*, Range*);
-int GetNumMismatchesInAlignedEntry(AlignedEntry *a);
-int GetNumColorErrorsInAlignedEntry(AlignedEntry *a, int space);
 double AddLog10(double, double);
 int64_t gzwrite64(gzFile, void*, int64_t);
 int64_t gzread64(gzFile, void*, int64_t);

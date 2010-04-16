@@ -45,6 +45,7 @@ static struct argp_option options[] = {
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
+	/*
 	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
 	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other"
 		"\n\t\t\t  does not,"
@@ -58,6 +59,7 @@ static struct argp_option options[] = {
 			"\n\t\t\t  3: specifies that we mirror CALs in both directions", 3},
 	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance"
 		"\n\t\t\t  from -l", 3},
+		*/
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
@@ -67,7 +69,8 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
+"e:f:m:n:o:q:s:x:A:M:Q:T:hptuU";
+//"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
 
 	int
 BfastLocalAlign(int argc, char **argv)
@@ -305,10 +308,12 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "avgMismatchQuality:\t\t\t%d\n", args->avgMismatchQuality); 
 		fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 		fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
+		/*
 		if(1 == args->usePairedEndLength) fprintf(fp, "pairedEndLength:\t\t\t%d\n", args->pairedEndLength);
 		else fprintf(fp, "pairedEndLength:\t\t\t%s\n", INTUSING(args->usePairedEndLength));
 		fprintf(fp, "mirroringType:\t\t\t\t%s\n", MIRRORINGTYPE(args->mirroringType));
 		fprintf(fp, "forceMirroring:\t\t\t\t%s\n", INTUSING(args->forceMirroring));
+		*/
 		fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
 		fprintf(fp, BREAK_LINE);
 	}
@@ -354,7 +359,7 @@ BfastLocalAlignGetOptHelp() {
 	int
 BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct arguments* arguments) 
 {
-	char key;
+	int key;
 	int OptErr=0;
 	while((OptErr==0) && ((key = getopt (argc, argv, OptionString)) != -1)) {
 		/*
@@ -367,9 +372,11 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 				arguments->fastaFileName=strdup(optarg);break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp; break;
+				/*
 			case 'l':
 				arguments->usePairedEndLength=1;
 				arguments->pairedEndLength = atoi(optarg);break;
+				*/
 			case 'm':
 				arguments->matchFileName=strdup(optarg);break;
 			case 'n':
@@ -391,10 +398,12 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 				break;
 			case 'A':
 				arguments->space=atoi(optarg);break;
+				/*
 			case 'F':
 				arguments->forceMirroring=1;break;
 			case 'L':
 				arguments->mirroringType=atoi(optarg);break;
+				*/
 			case 'M':
 				arguments->maxNumMatches=atoi(optarg);break;
 			case 'Q':

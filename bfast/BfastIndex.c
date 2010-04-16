@@ -362,7 +362,7 @@ BfastIndexGetOptHelp() {
 	int
 BfastIndexGetOptParse(int argc, char** argv, char OptionString[], struct arguments* arguments) 
 {
-	char key;
+	int key;
 	int OptErr=0;
 	while((OptErr==0) && ((key = getopt (argc, argv, OptionString)) != -1)) {
 		/*
@@ -375,7 +375,6 @@ BfastIndexGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->endContig=atoi(optarg);break;
 			case 'f':
 				arguments->fastaFileName = strdup(optarg); break;
-				break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp;break;
 			case 'i':

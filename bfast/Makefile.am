@@ -59,4 +59,4 @@ bfast_SOURCES = \
 				aflib.c aflib.h \
 				Main.c Main.h
 
-bfast_LDADD = -lm -lz -lbz2
+bfast_LDADD = 

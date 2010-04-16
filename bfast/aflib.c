@@ -6,6 +6,7 @@
 #include <bzlib.h>
 #include <zlib.h>
 #include <ctype.h>
+#include <config.h>
 #include "aflib.h"
 
 void AFILE_print_error(char *message)
@@ -24,10 +25,12 @@ AFILE *AFILE_afopen(const char* path, const char *mode, int32_t compression)
 	afp = calloc(1, sizeof(AFILE));
 	if(NULL == afp) AFILE_print_error("Could not allocate memory\n");
 	afp->fp=NULL;
+#ifndef DISABLE_BZ2 
 	afp->bz2=NULL;
+	afp->n_unused=0;
+#endif
 	afp->gz=NULL;
 	afp->c=compression;
-	afp->n_unused=0;
 
 	switch(afp->c) {
 		case AFILE_NO_COMPRESSION:
@@ -37,6 +40,7 @@ AFILE *AFILE_afopen(const char* path, const char *mode, int32_t compression)
 				return NULL;
 			}
 			break;
+#ifndef DISABLE_BZ2 
 		case AFILE_BZ2_COMPRESSION:
 			afp->fp = fopen(path, mode);
 			if(NULL == afp->fp) {
@@ -58,6 +62,7 @@ AFILE *AFILE_afopen(const char* path, const char *mode, int32_t compression)
 				afp->bz2 = BZ2_bzWriteOpen(&afp->bzerror, afp->fp, 9, 0, 30); 
 			}
 			break;
+#endif
 		case AFILE_GZ_COMPRESSION:
 			afp->gz = gzopen(path, mode);
 			if(NULL == afp->gz) {
@@ -83,10 +88,12 @@ AFILE *AFILE_afdopen(int filedes, const char *mode, int32_t compression)
 	afp = calloc(1, sizeof(AFILE));
 	if(NULL == afp) AFILE_print_error("Could not allocate memory\n");
 	afp->fp=NULL;
+#ifndef DISABLE_BZ2 
 	afp->bz2=NULL;
+	afp->n_unused=0;
+#endif
 	afp->gz=NULL;
 	afp->c=compression;
-	afp->n_unused=0;
 
 	switch(afp->c) {
 		case AFILE_NO_COMPRESSION:
@@ -96,6 +103,7 @@ AFILE *AFILE_afdopen(int filedes, const char *mode, int32_t compression)
 				return NULL;
 			}
 			break;
+#ifndef DISABLE_BZ2 
 		case AFILE_BZ2_COMPRESSION:
 			afp->fp = fdopen(filedes, mode);
 			if(NULL == afp->fp) {
@@ -116,6 +124,7 @@ AFILE *AFILE_afdopen(int filedes, const char *mode, int32_t compression)
 				// 30 workFactor
 				afp->bz2 = BZ2_bzWriteOpen(&afp->bzerror, afp->fp, 9, 0, 30); 
 			}
+#endif
 		case AFILE_GZ_COMPRESSION:
 			afp->gz = gzdopen(filedes, mode);
 			if(NULL == afp->gz) {
@@ -135,6 +144,7 @@ void AFILE_afclose(AFILE *afp)
 {
 	switch(afp->c) {
 		case AFILE_NO_COMPRESSION:
+#ifndef DISABLE_BZ2 
 		case AFILE_BZ2_COMPRESSION:
 			if(AFILE_BZ2_WRITE == afp->open_type) {
 				BZ2_bzWriteClose(&afp->bzerror, afp->bz2, 0, NULL, NULL);
@@ -144,6 +154,7 @@ void AFILE_afclose(AFILE *afp)
 			}
 			fclose(afp->fp);
 			break;
+#endif
 		case AFILE_GZ_COMPRESSION:
 			gzclose(afp->gz);
 			break;
@@ -158,13 +169,16 @@ void AFILE_afclose(AFILE *afp)
 
 size_t AFILE_afread(void *ptr, size_t size, size_t count, AFILE *afp) 
 {
+#ifndef DISABLE_BZ2 
 	int32_t nbuf=0, i;
 	void *unused_tmp_void=NULL;
 	char *unused_tmp=NULL;
+#endif
 
 	switch(afp->c) {
 		case AFILE_NO_COMPRESSION:
 			return fread(ptr, size, count, afp->fp);
+#ifndef DISABLE_BZ2 
 		case AFILE_BZ2_COMPRESSION:
 			while(0 == nbuf && 
 					!(BZ_STREAM_END == afp->bzerror && 0 == afp->n_unused && feof(afp->fp))) {
@@ -201,6 +215,7 @@ size_t AFILE_afread(void *ptr, size_t size, size_t count, AFILE *afp)
 				}
 			}
 			return nbuf;
+#endif
 		case AFILE_GZ_COMPRESSION:
 			return gzread(afp->gz, ptr, size*count);
 			break;
@@ -221,8 +236,10 @@ size_t AFILE_afwrite(void *ptr, size_t size, size_t count, AFILE *afp)
 	switch(afp->c) {
 		case AFILE_NO_COMPRESSION:
 			return fwrite(ptr, size, count, afp->fp);
+#ifndef DISABLE_BZ2 
 		case AFILE_BZ2_COMPRESSION:
 			return BZ2_bzwrite(afp->bz2, ptr, size*count);
+#endif
 		case AFILE_GZ_COMPRESSION:
 			return gzwrite(afp->gz, ptr, size*count);
 		default:

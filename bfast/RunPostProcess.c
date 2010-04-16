@@ -15,11 +15,17 @@
 #include "ScoringMatrix.h"
 #include "RunPostProcess.h"
 
-/* TODO */
+static pthread_mutex_t alignQueueMutex = PTHREAD_MUTEX_INITIALIZER;
+
+// TODO: change the meaning of unpaired
 void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
-		int pairedEndInfer,
+		int space,
+		int unpaired,
+		int reversePaired,
+		int avgMismatchQuality,
+		char *scoringMatrixFileName,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
@@ -30,7 +36,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 {
 	char *FnName="ReadInputFilterAndOutput";
 	gzFile fp=NULL;
-	int32_t i;
+	int32_t i, j;
 	int32_t numUnmapped=0, numReported=0;
 	gzFile fpReportedGZ=NULL;
 	FILE *fpReported=NULL;
@@ -38,23 +44,47 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	PEDBins bins;
 	int32_t *mappedEndCounts=NULL;
 	int32_t mappedEndCountsNumEnds=-1;
-	int32_t pairedEndInferRescued=0;
+	int8_t *foundTypes=NULL;
 	char *readGroupString=NULL;
-	pthread_mutex_t inputFP_mutex, outputFP_mutex;
 	pthread_t *threads=NULL;
 	int errCode;
 	void *status=NULL;
 	PostProcessThreadData *data=NULL;
+	ScoringMatrix sm;
+	int32_t mismatchScore, numRead, queueIndex;
+	int32_t numReadsProcessed = 0;
+	AlignedRead *alignQueue=NULL;
+	int32_t alignQueueLength = 0;
+	int32_t *alignQueueThreadIDs = NULL;
+	int32_t **numEntries=NULL;
+	int32_t *numEntriesN=NULL;
+
+	/* Read in scoring matrix */
+	ScoringMatrixInitialize(&sm);
+	if(NULL != scoringMatrixFileName) {
+		ScoringMatrixRead(scoringMatrixFileName, &sm, space);
+	}
+	/* Calculate mismatch score */
+	/* Assumes all match scores are the same and all substitution scores are the same */
+	if(space == NTSpace) {
+		mismatchScore = sm.ntMatch - sm.ntMismatch;
+	}
+	else {
+		mismatchScore = sm.colorMatch - sm.colorMismatch;
+	}
 
 	if(NULL != readGroup) {
 		readGroupString=ParseReadGroup(readGroup);
 	}
 
+	if(NULL == inputFileName && 0 == unpaired) {
+		PrintError(FnName, "unpaired", "Pairing from stdin currently not supported", Exit, OutOfRange);
+	}
+
 	/* Get the PEDBins if necessary */
-	if(1 == pairedEndInfer) {
+	if(0 == unpaired) {
 		PEDBinsInitialize(&bins);
-		pairedEndInfer = GetPEDBins(inputFileName, algorithm, queueLength, &bins);
-		PEDBinsMakeIntoProbability(&bins);
+		unpaired = GetPEDBins(inputFileName, algorithm, queueLength, &bins);
 	}
 
 	/* Open the input file */
@@ -88,10 +118,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	AlignedReadConvertPrintHeader(fpReported, rg, outputFormat, readGroup);
 
-	// Initialize mutex
-	pthread_mutex_init(&outputFP_mutex, NULL);
-	pthread_mutex_init(&inputFP_mutex, NULL);
-
 	/* Allocate memory for threads */
 	threads=malloc(sizeof(pthread_t)*numThreads);
 	if(NULL==threads) {
@@ -103,60 +129,160 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		PrintError(FnName, "data", "Could not allocate memory", Exit, MallocMemory);
 	}
 
-	/* Initialize thread data */
-	for(i=0;i<numThreads;i++) {
-		data[i].rg = rg;
-		data[i].bins = &bins;
-		data[i].algorithm = algorithm;
-		data[i].pairedEndInfer = pairedEndInfer;
-		data[i].queueLength = queueLength;
-		data[i].outputFormat = outputFormat;
-		data[i].readGroupString = readGroupString;
-		data[i].outputID = outputID;
-		data[i].mappedEndCounts = &mappedEndCounts;
-		data[i].mappedEndCountsNumEnds = &mappedEndCountsNumEnds;
-		data[i].numReported = &numReported;
-		data[i].numUnmapped = &numUnmapped;
-		data[i].pairedEndInferRescued = &pairedEndInferRescued;
+	alignQueueLength=queueLength;
+	alignQueue=malloc(sizeof(AlignedRead)*alignQueueLength);
+	if(NULL == alignQueue) {
+		PrintError(FnName, "alignQueue", "Could not allocate memory", Exit, MallocMemory);
+	}
+	alignQueueThreadIDs=malloc(sizeof(int32_t)*alignQueueLength);
+	if(NULL == alignQueueThreadIDs) {
+		PrintError(FnName, "alignQueue", "Could not allocate memory", Exit, MallocMemory);
+	}
+	numEntries=malloc(sizeof(int32_t*)*alignQueueLength);
+	if(NULL == numEntries) {
+		PrintError(FnName, "numEntries", "Could not allocate memory", Exit, MallocMemory);
+	}
+	numEntriesN=malloc(sizeof(int32_t)*alignQueueLength);
+	if(NULL == numEntriesN) {
+		PrintError(FnName, "numEntriesN", "Could not allocate memory", Exit, MallocMemory);
+	}
+	foundTypes=malloc(sizeof(int8_t)*alignQueueLength);
+	if(NULL == foundTypes) {
+		PrintError(FnName, "foundTypes", "Could not allocate memory", Exit, MallocMemory);
+	}
 
-		data[i].inputFP_mutex = &inputFP_mutex;
-		data[i].outputFP_mutex = &inputFP_mutex;
-		data[i].fpIn = fp;
-		data[i].fpReported = fpReported;
-		data[i].fpReportedGZ = fpReportedGZ;
-		data[i].fpUnmapped = fpUnmapped;
-		data[i].threadID = i+1;
+	// Initialize
+	for(i=0;i<alignQueueLength;i++) {
+			numEntries[i] = NULL;
+			numEntriesN[i] = 0;
 	}
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Processing reads, currently on:\n");
+		fprintf(stderr, "Postprocesing...\n");
+		fprintf(stderr, "Reads processed: 0");
+	}
+	numRead = 0;
+	while(0 != (numRead = GetAlignedReads(fp, alignQueue, alignQueueLength))) {
+
+		// Store the original # of entries for SAM output
+		for(i=0;i<numRead;i++) {
+			numEntries[i] = NULL;
+			numEntriesN[i] = 0;
+			foundTypes[i] = NoneFound;
+			alignQueueThreadIDs[i] = -1;
+		}
+
+		/* Initialize thread data */
+		for(i=0;i<numThreads;i++) {
+			data[i].bins = &bins;
+			data[i].algorithm = algorithm;
+			data[i].unpaired = unpaired;
+			data[i].reversePaired = reversePaired;
+			data[i].avgMismatchQuality = avgMismatchQuality;
+			data[i].mismatchScore = mismatchScore;
+			data[i].alignQueue =  alignQueue;
+			data[i].alignQueueThreadIDs =  alignQueueThreadIDs;
+			data[i].queueLength = numRead;
+			data[i].foundTypes = foundTypes;
+			data[i].numEntriesN = numEntriesN;
+			data[i].numEntries = numEntries;
+			data[i].threadID = i+1;
+			data[i].numThreads = numThreads;
+		}
+
+		/* Open threads */
+		for(i=0;i<numThreads;i++) {
+			/* Start thread */
+			errCode = pthread_create(&threads[i], /* thread struct */
+					NULL, /* default thread attributes */
+					ReadInputFilterAndOutputThread, /* start routine */
+					&data[i]); /* data to routine */
+			if(0!=errCode) {
+				PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
+			}
+		}
+		/* Wait for threads to return */
+		for(i=0;i<numThreads;i++) {
+			/* Wait for the given thread to return */
+			errCode = pthread_join(threads[i],
+					&status);
+			/* Check the return code of the thread */
+			if(0!=errCode) {
+				PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
+			}
+		}
+
+		/* Print to Output file */
+		for(queueIndex=0;queueIndex<numRead;queueIndex++) {
+			int32_t numEnds=0;
+			if(NoneFound == foundTypes[queueIndex]) {
+				/* Print to Not Reported file */
+				if(NULL != fpUnmapped) {
+					AlignedReadPrint(&alignQueue[queueIndex], fpUnmapped);
+				}
+
+				/* Free the alignments for output */
+				for(i=0;i<alignQueue[queueIndex].numEnds;i++) {
+					for(j=0;j<alignQueue[queueIndex].ends[i].numEntries;j++) {
+						AlignedEntryFree(&alignQueue[queueIndex].ends[i].entries[j]);
+					}
+					alignQueue[queueIndex].ends[i].numEntries=0;
+				}
+			}
+			else {
+				numReported++;
+			}
+
+			// Get the # of ends
+			numEnds = 0;
+			for(i=0;i<alignQueue[queueIndex].numEnds;i++) {
+				if(0 < alignQueue[queueIndex].ends[i].numEntries) {
+					numEnds++;
+				}
+			}
+			if(0 == numEnds) {
+				numUnmapped++;
+			}
+			// Clean up
+			if(mappedEndCountsNumEnds < numEnds) {
+				// Reallocate
+				mappedEndCounts = realloc(mappedEndCounts, sizeof(int32_t)*(1+numEnds));
+				if(NULL == mappedEndCounts) {
+					PrintError(FnName, "mappedEndCounts", "Could not reallocate memory", Exit, ReallocMemory);
+				}
+				// Initialize
+				for(i=1+mappedEndCountsNumEnds;i<=numEnds;i++) {
+					mappedEndCounts[i] = 0;
+				}
+				mappedEndCountsNumEnds = numEnds;
+			}
+			mappedEndCounts[numEnds]++;
+
+			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, BinaryOutput);
+
+			/* Free memory */
+			AlignedReadFree(&alignQueue[queueIndex]);
+		}
+		
+		// Free
+		for(i=0;i<numRead;i++) {
+			free(numEntries[i]);
+			numEntries[i] = NULL;
+			numEntriesN[i] = 0;
+		}
+
+		numReadsProcessed += numRead;
+		if(VERBOSE >= 0) {
+			fprintf(stderr, "\rReads processed: %d", numReadsProcessed);
+		}
+
+	}
+	if(0 <= VERBOSE) {
+		fprintf(stderr, "\rReads processed: %d\n", numReadsProcessed);
+		fprintf(stderr, "Alignment complete.\n");
 	}
 
-	/* Open threads */
-	for(i=0;i<numThreads;i++) {
-		/* Start thread */
-		errCode = pthread_create(&threads[i], /* thread struct */
-				NULL, /* default thread attributes */
-				ReadInputFilterAndOutputThread, /* start routine */
-				&data[i]); /* data to routine */
-		if(0!=errCode) {
-			PrintError(FnName, "pthread_create: errCode", "Could not start thread", Exit, ThreadError);
-		}
-	}
-	/* Wait for threads to return */
-	for(i=0;i<numThreads;i++) {
-		/* Wait for the given thread to return */
-		errCode = pthread_join(threads[i],
-				&status);
-		/* Check the return code of the thread */
-		if(0!=errCode) {
-			PrintError(FnName, "pthread_join: errCode", "Thread returned an error", Exit, ThreadError);
-		}
-	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\n");
-	}
 
 	/* Close output files, if necessary */
 	if(BAF == outputFormat) {
@@ -188,21 +314,22 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		}
 		fprintf(stderr, "Found %10lld reads with at least one end mapping.\n",
 				(long long int)numReported);
-		if(1 == pairedEndInfer) {
-			fprintf(stderr, "Rescued %d ends using the paired end insert distribution.\n",
-					pairedEndInferRescued);
-		}
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
 
 	/* Free */
-	if(1 == pairedEndInfer) {
+	if(0 == unpaired) {
 		PEDBinsFree(&bins);
 	}
 	free(mappedEndCounts);
 	free(readGroupString);
 	free(threads);
 	free(data);
+	free(alignQueue);
+	free(alignQueueThreadIDs);
+	free(foundTypes);
+	free(numEntries);
+	free(numEntriesN);
 }
 
 void *ReadInputFilterAndOutputThread(void *arg)
@@ -210,183 +337,88 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	char *FnName="ReadInputFilterAndOutputThread";
 	PostProcessThreadData *data = (PostProcessThreadData*)arg;
 	PEDBins *bins = data->bins;
-	RGBinary *rg = data->rg;
 	int algorithm = data->algorithm;
-	int pairedEndInfer = data->pairedEndInfer;
+	int unpaired = data->unpaired;
+	int reversePaired = data->reversePaired;
+	int avgMismatchQuality = data->avgMismatchQuality;
+	int mismatchScore = data->mismatchScore;
+	AlignedRead *alignQueue = data->alignQueue;
+	int32_t *alignQueueThreadIDs = data->alignQueueThreadIDs;
 	int queueLength = data->queueLength;
-	int outputFormat = data->outputFormat;
-	char *outputID = data->outputID;
-	char *readGroupString = data->readGroupString;
-	int32_t **mappedEndCounts = data->mappedEndCounts;
-	int32_t *mappedEndCountsNumEnds = data->mappedEndCountsNumEnds;
-	int32_t *numReported = data->numReported;
-	int32_t *numUnmapped = data->numUnmapped;
-	int32_t *pairedEndInferRescued = data->pairedEndInferRescued;
-	pthread_mutex_t *inputFP_mutex = data->inputFP_mutex;
-	gzFile fpIn = data->fpIn;
-	FILE *fpReported = data->fpReported;
-	gzFile fpReportedGZ = data->fpReportedGZ;
-	gzFile fpUnmapped = data->fpUnmapped;
-	pthread_mutex_t *outputFP_mutex = data->outputFP_mutex;
+	int8_t *foundTypes = data->foundTypes;
 	int32_t threadID = data->threadID;
-
+	int32_t numThreads = data->numThreads;
+	int32_t **numEntries = data->numEntries;
+	int32_t *numEntriesN = data->numEntriesN;
 	int32_t i, j;
-	int32_t numEnds=0;
-	int64_t counter, foundType;
-	AlignedRead *aBuffer=NULL;
-	int32_t aBufferLength=0;
-	int32_t numRead, aBufferIndex;
-	int32_t **numEntries=NULL;
-	int32_t *numEntriesN=NULL;
-
-	aBufferLength=queueLength;
-	aBuffer=malloc(sizeof(AlignedRead)*aBufferLength);
-	if(NULL == aBuffer) {
-		PrintError(FnName, "aBuffer", "Could not allocate memory", Exit, MallocMemory);
-	}
-	numEntries=malloc(sizeof(int32_t*)*aBufferLength);
-	if(NULL == numEntries) {
-		PrintError(FnName, "numEntries", "Could not allocate memory", Exit, MallocMemory);
-	}
-	numEntriesN=malloc(sizeof(int32_t)*aBufferLength);
-	if(NULL == numEntriesN) {
-		PrintError(FnName, "numEntriesN", "Could not allocate memory", Exit, MallocMemory);
-	}
-	for(i=0;i<aBufferLength;i++) {
-		numEntries[i] = NULL;
-		numEntriesN[i] = 0;
-	}
-
-	counter = numRead = 0;
-
-	while(0 != (numRead = GetAlignedReads(fpIn, aBuffer, aBufferLength, inputFP_mutex))) {
-
-		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
-
-			if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
-				fprintf(stderr, "\rthreadID:%d\t[%lld]",
-						threadID,
-						(long long int)counter);
-			}
-
-			// Store the original # of entries for SAM output
-			if(numEntriesN[aBufferIndex] < aBuffer[aBufferIndex].numEnds) {
-				numEntriesN[aBufferIndex] = aBuffer[aBufferIndex].numEnds;
-				numEntries[aBufferIndex]=realloc(numEntries[aBufferIndex], sizeof(int32_t)*numEntriesN[aBufferIndex]);
-				if(NULL == numEntries[aBufferIndex]) {
-					PrintError(FnName, "numEntries[aBufferIndex]", "Could not reallocate memory", Exit, ReallocMemory);
+	int32_t queueIndex=0;
+	
+	while(queueIndex<queueLength) {
+		if(1 < numThreads) {
+			pthread_mutex_lock(&alignQueueMutex);
+			if(alignQueueThreadIDs[queueIndex] < 0) {
+				// mark this block
+				for(i=queueIndex;i<queueLength && i<queueIndex+BFAST_POSTPROCESS_THREAD_BLOCK_SIZE;i++) {
+					alignQueueThreadIDs[i] = threadID;
 				}
 			}
-			for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
-				numEntries[aBufferIndex][i] = aBuffer[aBufferIndex].ends[i].numEntries;
+			else if(alignQueueThreadIDs[queueIndex] != threadID) {
+				pthread_mutex_unlock(&alignQueueMutex);
+				queueIndex+=BFAST_POSTPROCESS_THREAD_BLOCK_SIZE;
+				// skip this block
+				continue;
+			}
+			pthread_mutex_unlock(&alignQueueMutex);
+		}
+
+		for(i=0;i<BFAST_POSTPROCESS_THREAD_BLOCK_SIZE && queueIndex<queueLength;i++,queueIndex++) {
+			assert(numThreads <= 1 || alignQueueThreadIDs[queueIndex] == threadID);
+
+			if(numEntriesN[queueIndex] < alignQueue[queueIndex].numEnds) {
+				numEntriesN[queueIndex] = alignQueue[queueIndex].numEnds;
+				numEntries[queueIndex]=realloc(numEntries[queueIndex], sizeof(int32_t)*numEntriesN[queueIndex]);
+				if(NULL == numEntries[queueIndex]) {
+					PrintError(FnName, "numEntries[queueIndex]", "Could not reallocate memory", Exit, ReallocMemory);
+				}
+			}
+			for(j=0;j<alignQueue[queueIndex].numEnds;j++) {
+				numEntries[queueIndex][j] = alignQueue[queueIndex].ends[j].numEntries;
 			}
 
 			/* Filter */
-			foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
+			foundTypes[queueIndex] = FilterAlignedRead(&alignQueue[queueIndex],
 					algorithm,
-					pairedEndInfer,
-					bins,
-					pairedEndInferRescued);
-
-			numEnds=0;
-			if(NoneFound == foundType) {
-				/* Print to Not Reported file */
-				if(NULL != fpUnmapped) {
-					AlignedReadPrint(&aBuffer[aBufferIndex], fpUnmapped);
-				}
-
-				/* Free the alignments for output */
-				for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
-					for(j=0;j<aBuffer[aBufferIndex].ends[i].numEntries;j++) {
-						AlignedEntryFree(&aBuffer[aBufferIndex].ends[i].entries[j]);
-					}
-					aBuffer[aBufferIndex].ends[i].numEntries=0;
-				}
-			}
-			else {
-				(*numReported)++;
-			}
-
-			/* Increment counter */
-			counter++;
-		}
-
-		/* Print to Output file */
-		pthread_mutex_lock(outputFP_mutex);
-		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
-			// Get the # of ends
-			numEnds = 0;
-			for(i=0;i<aBuffer[aBufferIndex].numEnds;i++) {
-				if(0 < aBuffer[aBufferIndex].ends[i].numEntries) {
-					numEnds++;
-				}
-			}
-			if(0 == numEnds) {
-				(*numUnmapped)++;
-			}
-			// Clean up
-			if((*mappedEndCountsNumEnds) < numEnds) {
-				// Reallocate
-				(*mappedEndCounts) = realloc((*mappedEndCounts), sizeof(int32_t)*(1+numEnds));
-				if(NULL == (*mappedEndCounts)) {
-					PrintError(FnName, "mappedEndCounts", "Could not reallocate memory", Exit, ReallocMemory);
-				}
-				// Initialize
-				for(i=1+(*mappedEndCountsNumEnds);i<=numEnds;i++) {
-					(*mappedEndCounts)[i] = 0;
-				}
-				(*mappedEndCountsNumEnds) = numEnds;
-			}
-			(*mappedEndCounts)[numEnds]++;
-
-			AlignedReadConvertPrintOutputFormat(&aBuffer[aBufferIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[aBufferIndex], outputFormat, BinaryOutput);
-
-			/* Free memory */
-			AlignedReadFree(&aBuffer[aBufferIndex]);
-		}
-		pthread_mutex_unlock(outputFP_mutex);
-		if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
-			fprintf(stderr, "\rthreadID:%d\t[%lld]",
-					threadID,
-					(long long int)counter);
+					unpaired,
+					reversePaired,
+					avgMismatchQuality,
+					mismatchScore,
+					bins);
 		}
 	}
-	if(VERBOSE >= 0) {
-		fprintf(stderr, "\rthreadID:%d\t[%lld]",
-				threadID,
-				(long long int)counter);
-	}
 
-	free(aBuffer);
-	for(i=0;i<aBufferLength;i++) {
-		free(numEntries[i]);
-	}
-	free(numEntries);
-	free(numEntriesN);
 	return arg;
 }
 
-int32_t GetAlignedReads(gzFile fp, AlignedRead *aBuffer, int32_t maxToRead, pthread_mutex_t *inputFP_mutex)
+int32_t GetAlignedReads(gzFile fp, AlignedRead *alignQueue, int32_t maxToRead) 
 {
-	if(NULL != inputFP_mutex) pthread_mutex_lock(inputFP_mutex);
 	int32_t numRead=0;
 	while(numRead < maxToRead) {
-		AlignedReadInitialize(&aBuffer[numRead]);
-		if(EOF == AlignedReadRead(&aBuffer[numRead], fp)) {
+		AlignedReadInitialize(&alignQueue[numRead]);
+		if(EOF == AlignedReadRead(&alignQueue[numRead], fp)) {
 			break;
 		}
 		numRead++;
 	}
-	if(NULL != inputFP_mutex) pthread_mutex_unlock(inputFP_mutex);
 	return numRead;
 }
 
-/* TODO */
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
-		int  pairedEndInfer,
-		PEDBins *b,
-		int32_t *pairedEndInferRescued)
+		int unpaired,
+		int reversePaired,
+		int avgMismatchQuality,
+		int mismatchScore,
+		PEDBins *b)
 {
 	char *FnName="FilterAlignedRead";
 	int foundType;
@@ -394,7 +426,6 @@ int FilterAlignedRead(AlignedRead *a,
 	AlignedRead tmpA;
 	int32_t i, j, ctr;
 	int32_t best, bestIndex, numBest;
-	int32_t prob, bestProb;
 
 	AlignedReadInitialize(&tmpA);
 
@@ -413,159 +444,239 @@ int FilterAlignedRead(AlignedRead *a,
 
 	/* If we are going to use the paired end to infer the other end, then
 	 * use the BestScoreAll algorithm and try to infer. */
-	if(1 == pairedEndInfer && 2 == tmpA.numEnds) {
-		assert(BestScore == algorithm);
-		algorithm = BestScoreAll;
-	}
+	// Only for di-end reads and best scoring, for now
+	if(0 == unpaired && 2 == tmpA.numEnds && BestScore == algorithm &&
+			0 < tmpA.ends[0].numEntries && 0 < tmpA.ends[1].numEntries) {
+		int32_t bestScoreSE[2] = {INT_MIN, INT_MIN};
+		int32_t bestScoreSENum[2] = {0, 0};
+		int32_t bestScoreSEIndex[2] = {-1, -1};
+		int32_t bestIndex[2] = {-1, -1};
+		int32_t bestScore = INT_MIN;
+		int32_t bestNum = 0;
+		int32_t penultimateIndex[2] = {-1, -1};
+		int32_t penultimateScore = INT_MIN;
+		int32_t penultimateNum = 0;
 
-	/* Pick alignment for each end individually (is this a good idea?) */
-	for(i=0;i<tmpA.numEnds;i++) {
-		/* Choose each end */
-		switch(algorithm) {
-			case NoFiltering:
-			case AllNotFiltered:
-				foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
-				break;
-			case Unique:
-				foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
-				break;
-			case BestScore:
-			case BestScoreAll:
-				best = INT_MIN;
-				bestIndex = -1;
-				numBest = 0;
-				for(j=0;j<tmpA.ends[i].numEntries;j++) {
-					if(best < tmpA.ends[i].entries[j].score) {
-						best = tmpA.ends[i].entries[j].score;
-						bestIndex = j;
-						numBest = 1;
-					}
-					else if(best == tmpA.ends[i].entries[j].score) {
-						numBest++;
-					}
+		int32_t max_STD = MAX_STD; // TODO: user input
+
+
+		// Get "best score"
+		for(i=0;i<2;i++) {
+			for(j=0;j<tmpA.ends[i].numEntries;j++) {
+				if(0 == bestScoreSENum[i] || bestScoreSE[i] < tmpA.ends[i].entries[j].score) {
+					bestScoreSE[i] = tmpA.ends[i].entries[j].score;
+					bestScoreSEIndex[i] = j;
+					bestScoreSENum[i] = 1;
 				}
-				if(BestScore == algorithm &&
-						1 == numBest) {
-					foundTypes[i] = Found;
-					/* Copy to front */
-					AlignedEntryCopy(&tmpA.ends[i].entries[0], 
-							&tmpA.ends[i].entries[bestIndex]);
-					AlignedEndReallocate(&tmpA.ends[i], 1);
+				else if(bestScoreSE[i] == tmpA.ends[i].entries[j].score) {
+					bestScoreSENum[i]++;
 				}
-				else if(BestScoreAll == algorithm &&
-						1 <= numBest) {
-					foundTypes[i] = Found;
-					ctr=0;
-					for(j=0;j<tmpA.ends[i].numEntries;j++) {
-						if(tmpA.ends[i].entries[j].score == best) {
-							if(ctr != j) {
-								AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
-										&tmpA.ends[i].entries[j]);
+			}
+		}
+
+		// one end must be the anchor, and thus the best score.
+		// This could be more efficient
+		for(i=0;i<tmpA.ends[0].numEntries;i++) {
+			int anchored = 0;
+			if(bestScoreSE[0] <= tmpA.ends[0].entries[i].score) { // anchor
+				anchored = 1;
+			}
+			for(j=0;j<tmpA.ends[1].numEntries;j++) {
+				if(1 == anchored || bestScoreSE[1] <= tmpA.ends[1].entries[j].score) { // itself an anchor, or other end anchored
+
+					int32_t s = (int)(tmpA.ends[0].entries[i].score + tmpA.ends[1].entries[j].score);
+
+					if((0 == reversePaired && tmpA.ends[0].entries[i].strand != tmpA.ends[1].entries[j].strand) ||
+							(1 == reversePaired && tmpA.ends[0].entries[i].strand == tmpA.ends[1].entries[j].strand)) { // inversion penalty
+						// log10(P) * mismatchScore
+						if(0 < b->inversionCount && 0 < b->numDistances) {
+							if(MAX_INVERSION_LOG10_RATIO < b->invRatio) {
+								s -= (int)(mismatchScore * MAX_INVERSION_LOG10_RATIO);
 							}
-							ctr++;
+							else {
+								s -= (int)(mismatchScore * b->invRatio);
+							}
+						}
+						else {
+							s -= (int)(mismatchScore * MAX_INVERSION_LOG10_RATIO);
 						}
 					}
-					assert(ctr == numBest);
-					AlignedEndReallocate(&tmpA.ends[i], numBest);
+					
+					// add penalty for insert size -- assumes normality
+					if(tmpA.ends[0].entries[i].contig != tmpA.ends[1].entries[j].contig) { // chimera/inter-chr-translocation
+						// TODO: make this a constant calculation
+						s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
+					}
+					else { // same chr
+						int32_t l = tmpA.ends[1].entries[j].position - tmpA.ends[0].entries[i].position;
+						// penalty times probability of observing etc.
+						if(fabs(l - b->avg) / b->std <= max_STD) { 
+							s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * fabs(l - b->avg) / b->std)) + 0.499);
+						}
+						else {
+							// TODO: make this a constant calculation
+							s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
+						}
+					}
+					
+					if(-1 == bestIndex[0] || bestScore < s) { // current is the best
+						if(-1 != bestIndex[0]) { // there was a previous
+							penultimateIndex[0] = bestIndex[0];
+							penultimateIndex[1] = bestIndex[1];
+							penultimateScore = bestScore;
+							penultimateNum = bestNum;
+						}
+						// reset
+						bestIndex[0] = i; bestIndex[1] = j;
+						bestScore = s;
+						bestNum = 1;
+					}
+					else if(bestScore == s) { // equal to the best
+						bestNum++;
+					}
+					else if(-1 == penultimateIndex[0] || penultimateScore < s) { // current is next best
+						penultimateIndex[0] = i; penultimateIndex[1] = j;
+						penultimateScore = s;
+						penultimateNum = 1;
+					}
+					else { // current is equal to the next best
+						penultimateNum++;
+					}
 				}
-				break;
-			default:
-				PrintError(FnName, "algorithm", "Could not understand algorithm", Exit, OutOfRange);
-				break;
+			}
 		}
-		/* Free if not found */
-		if(NoneFound == foundTypes[i]) {
-			AlignedEndReallocate(&tmpA.ends[i],
-					0);
-		}
-	}
+		assert(-1 != bestIndex[0]);
+		assert(1 <= bestNum);
 
-	/* Now see if need to infer one end using the other */
-	if(1 == pairedEndInfer && 2 == tmpA.numEnds) {
-		if(1 == tmpA.ends[0].numEntries &&
-				1 == tmpA.ends[1].numEntries) {
-			foundType = Found;
-		}
-		else if((1 == tmpA.ends[0].numEntries && 1 < tmpA.ends[1].numEntries) ||
-				(1 < tmpA.ends[0].numEntries && 1 == tmpA.ends[1].numEntries)) {
-			int32_t endOne, endTwo;
-			if(1 == tmpA.ends[0].numEntries &&
-					1 < tmpA.ends[1].numEntries) {
-				endOne = 0;
-				endTwo = 1;
-			}
-			else {
-				endOne = 1;
-				endTwo = 0;
-			}
-			// Get entry with the highest probability
-			bestIndex = -1;
-			bestProb = -1.0;
-			numBest = 0;
-			for(i=0;i<tmpA.ends[endTwo].numEntries;i++) {
-				prob = PEDBinsGetProbability(b,
-						tmpA.ends[endOne].entries[0].contig,
-						tmpA.ends[endOne].entries[0].position,
-						tmpA.ends[endTwo].entries[i].contig,
-						tmpA.ends[endTwo].entries[i].position);
-				if(bestProb < prob) {
-					bestProb = prob;
-					bestIndex = i;
-					numBest = 1;
+		// set new mapping quality (?)
+		// TODO: set single end mapping quality
+		if(1 < bestNum) { // more than one found
+			// Revert to best alignment score for each end if they are 
+			// unique.  
+			for(i=0;i<2;i++) {
+				if(1 == bestScoreSENum[i]) { // keep best score
+					AlignedEntryCopy(&tmpA.ends[i].entries[0], &tmpA.ends[i].entries[bestScoreSEIndex[i]]);
+					AlignedEndReallocate(&tmpA.ends[i], 1);
+					foundTypes[i] = Found;
 				}
-				else if(prob < bestProb) {
-					// Ignore
-				}
-				else {
-					numBest++;
+				else { // clear
+					foundTypes[i] = NoneFound;
+					AlignedEndReallocate(&tmpA.ends[i], 0);
 				}
 			}
-			// Check if this helped
-			if(1 == numBest) { // Keep
-				/* Copy to front */
-				foundTypes[endTwo] = Found;
-				AlignedEntryCopy(&tmpA.ends[endTwo].entries[0],
-						&tmpA.ends[endTwo].entries[bestIndex]);
-				AlignedEndReallocate(&tmpA.ends[endTwo], 1);
-				tmpA.ends[endTwo].entries[0].mappingQuality = bestProb * tmpA.ends[endOne].entries[0].mappingQuality / b->numDistances;
-				// Updating the mapping quality (how?)
-				(*pairedEndInferRescued)++;
-			}
-			else { // Remove
-				AlignedEndReallocate(&tmpA.ends[endTwo], 0);
-				foundTypes[endTwo] = NoneFound;
-			}
-			foundType = Found; // We found at least one end!
 		}
 		else {
-			/* Check each end individually */
-			foundType=NoneFound;
-			for(i=0;i<tmpA.numEnds;i++) {
-				if(1 == tmpA.ends[i].numEntries) { // Keep
-					foundTypes[i] = foundType = Found;
+			// copy to the front and reallocate
+			AlignedEntryCopy(&tmpA.ends[0].entries[0], &tmpA.ends[0].entries[bestIndex[0]]);
+			AlignedEndReallocate(&tmpA.ends[0], 1);
+			foundTypes[0] = Found;
+			AlignedEntryCopy(&tmpA.ends[1].entries[0], &tmpA.ends[1].entries[bestIndex[1]]);
+			AlignedEndReallocate(&tmpA.ends[1], 1);
+			foundTypes[1] = Found;
+
+			int32_t mapq = MAXIMUM_MAPPING_QUALITY;
+			if(-1 != penultimateIndex[0]) { // next best pairing found
+				mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
+				if(0 == mapq) {
+					mapq = 1;
 				}
-				else { // Remove
-					AlignedEndReallocate(&tmpA.ends[i], 0);
-					foundTypes[i] = NoneFound;
+				else if(MAXIMUM_MAPPING_QUALITY < mapq) {
+					mapq = MAXIMUM_MAPPING_QUALITY;
 				}
 			}
+
+			assert(0 < mapq);
+			if(tmpA.ends[0].entries[0].score < bestScoreSE[0] || // changed alignment
+					tmpA.ends[0].entries[0].mappingQuality < mapq) { 
+				// update mapping quality
+				tmpA.ends[0].entries[0].mappingQuality = mapq;
+			}
+			if(tmpA.ends[1].entries[0].score < bestScoreSE[1] || // changed alignment
+					tmpA.ends[1].entries[0].mappingQuality < mapq) { 
+				// update mapping quality
+				tmpA.ends[1].entries[0].mappingQuality = mapq;
+			}
+			assert(0 < tmpA.ends[0].entries[0].mappingQuality);
+			assert(0 < tmpA.ends[1].entries[0].mappingQuality);
+			// TODO: set single end mapq flag
 		}
 	}
-	else if(1 == tmpA.numEnds) {
-		foundType=foundTypes[0];
-	}
 	else {
-		/* Call found if at least one has been found */
-		foundType=NoneFound;
-		for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
-			if(Found == foundTypes[i]) {
-				foundType=Found;
-				break;
+		// can we use Smith-Waterman to recover one end from the other?
+
+		/* Pick alignment for each end individually (is this a good idea?) */
+		for(i=0;i<tmpA.numEnds;i++) {
+			/* Choose each end */
+			switch(algorithm) {
+				case NoFiltering:
+				case AllNotFiltered:
+					foundTypes[i] = (0<tmpA.ends[i].numEntries)?Found:NoneFound;
+					break;
+				case Unique:
+					foundTypes[i]=(1==tmpA.ends[i].numEntries)?Found:NoneFound;
+					break;
+				case BestScore:
+				case BestScoreAll:
+					best = INT_MIN;
+					bestIndex = -1;
+					numBest = 0;
+					for(j=0;j<tmpA.ends[i].numEntries;j++) {
+						if(best < tmpA.ends[i].entries[j].score) {
+							best = tmpA.ends[i].entries[j].score;
+							bestIndex = j;
+							numBest = 1;
+						}
+						else if(best == tmpA.ends[i].entries[j].score) {
+							numBest++;
+						}
+					}
+					if(BestScore == algorithm &&
+							1 == numBest) {
+						foundTypes[i] = Found;
+						/* Copy to front */
+						AlignedEntryCopy(&tmpA.ends[i].entries[0], 
+								&tmpA.ends[i].entries[bestIndex]);
+						AlignedEndReallocate(&tmpA.ends[i], 1);
+					}
+					else if(BestScoreAll == algorithm &&
+							1 <= numBest) {
+						foundTypes[i] = Found;
+						ctr=0;
+						for(j=0;j<tmpA.ends[i].numEntries;j++) {
+							if(tmpA.ends[i].entries[j].score == best) {
+								if(ctr != j) {
+									AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
+											&tmpA.ends[i].entries[j]);
+								}
+								ctr++;
+							}
+						}
+						assert(ctr == numBest);
+						AlignedEndReallocate(&tmpA.ends[i], numBest);
+					}
+					break;
+				default:
+					PrintError(FnName, "algorithm", "Could not understand algorithm", Exit, OutOfRange);
+					break;
+			}
+			/* Free if not found */
+			if(NoneFound == foundTypes[i]) {
+				AlignedEndReallocate(&tmpA.ends[i],
+						0);
 			}
 		}
 	}
 
-	/* If we found, then copy back */
+	// Found if one end is found
+	foundType=NoneFound;
+	for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
+		if(Found == foundTypes[i]) {
+			foundType=Found;
+			break;
+		}
+	}
+
+	/* copy back */
 	if(NoneFound != foundType) {
 		AlignedReadFree(a);
 		AlignedReadCopy(a, &tmpA);
@@ -584,9 +695,9 @@ int32_t GetPEDBins(char *inputFileName,
 	char *FnName="GetPEDBins";
 	gzFile fp=NULL;
 	int64_t counter, foundType;
-	AlignedRead *aBuffer;
-	int32_t aBufferLength=0;
-	int32_t numRead, aBufferIndex;
+	AlignedRead *alignQueue;
+	int32_t alignQueueLength=0;
+	int32_t numRead, queueIndex;
 
 	/* Open the input file */
 	if(NULL == inputFileName) {
@@ -600,10 +711,10 @@ int32_t GetPEDBins(char *inputFileName,
 		}
 	}
 
-	aBufferLength=queueLength;
-	aBuffer=malloc(sizeof(AlignedRead)*aBufferLength);
-	if(NULL == aBuffer) {
-		PrintError(FnName, "aBuffer", "Could not allocate memory", Exit, MallocMemory);
+	alignQueueLength=queueLength;
+	alignQueue=malloc(sizeof(AlignedRead)*alignQueueLength);
+	if(NULL == alignQueue) {
+		PrintError(FnName, "alignQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
 
 	/* Go through each read */
@@ -613,37 +724,45 @@ int32_t GetPEDBins(char *inputFileName,
 	counter = numRead = 0;
 
 	// TODO: make this multi-threaded
+	while(0 != (numRead = GetAlignedReads(fp, alignQueue, alignQueueLength))) {
 
-	while(0 != (numRead = GetAlignedReads(fp, aBuffer, aBufferLength, NULL))) {
+		for(queueIndex=0;queueIndex<numRead;queueIndex++) {
 
-		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
+			if(2 == alignQueue[queueIndex].numEnds) { // Only paired end data
 
-			if(2 == aBuffer[aBufferIndex].numEnds) { // Only paired end data
-
-				if(VERBOSE >= 0 && counter%ALIGNENTRIES_READ_ROTATE_NUM==0) {
+				if(VERBOSE >= 0 && counter%1000==0) {
 					fprintf(stderr, "\r%lld",
 							(long long int)counter);
 				}
 
-				/* Filter */
-				foundType=FilterAlignedRead(&aBuffer[aBufferIndex],
-						algorithm,
-						0,
-						NULL,
+				// Filter base ond best scoring
+				foundType=FilterAlignedRead(&alignQueue[queueIndex],
+						BestScore,
+						1,
+						-1,
+						INT_MIN,
+						INT_MIN,
 						NULL);
 
 				if(Found == foundType) {
-					assert(2 == aBuffer[aBufferIndex].numEnds);
+					assert(2 == alignQueue[queueIndex].numEnds);
 					/* Must only have one alignment per end and on the same contig.
 					 * There is a potential this will be inferred incorrectly under
 					 * many scenarios.  Be careful! */
-					if(1 == aBuffer[aBufferIndex].ends[0].numEntries &&
-							1 == aBuffer[aBufferIndex].ends[1].numEntries &&
-							aBuffer[aBufferIndex].ends[0].entries[0].contig == aBuffer[aBufferIndex].ends[1].entries[0].contig) {
+					if(1 == alignQueue[queueIndex].ends[0].numEntries &&
+							1 == alignQueue[queueIndex].ends[1].numEntries &&
+							alignQueue[queueIndex].ends[0].entries[0].contig == alignQueue[queueIndex].ends[1].entries[0].contig) {
 						PEDBinsInsert(b, 
-								fabs(aBuffer[aBufferIndex].ends[1].entries[0].position - aBuffer[aBufferIndex].ends[0].entries[0].position));
+								alignQueue[queueIndex].ends[0].entries[0].strand,
+								alignQueue[queueIndex].ends[1].entries[0].strand,
+								fabs(alignQueue[queueIndex].ends[1].entries[0].position - alignQueue[queueIndex].ends[0].entries[0].position));
 					}
 				}
+			}
+
+			// break if we have found enough
+			if(MAX_PEDBINS_DISTANCES <= b->numDistances) {
+				break;
 			}
 
 			/* Increment counter */
@@ -656,15 +775,16 @@ int32_t GetPEDBins(char *inputFileName,
 		}
 
 		/* Free buffer */
-		for(aBufferIndex=0;aBufferIndex<numRead;aBufferIndex++) {
+		for(queueIndex=0;queueIndex<numRead;queueIndex++) {
 			/* Free memory */
-			AlignedReadFree(&aBuffer[aBufferIndex]);
+			AlignedReadFree(&alignQueue[queueIndex]);
 		}
 
-		/* Do we really need this many? */
-		if(MAX_PEDBINS_SIZE < counter) {
+		// break if we have found enough
+		if(MAX_PEDBINS_DISTANCES <= b->numDistances) {
 			break;
 		}
+
 	}
 	if(VERBOSE>=0) {
 		fprintf(stderr, "\r%lld\n",
@@ -673,95 +793,66 @@ int32_t GetPEDBins(char *inputFileName,
 
 	/* Close the input file */
 	gzclose(fp);
-	free(aBuffer);
+	free(alignQueue);
 
 	if(b->numDistances < MIN_PEDBINS_SIZE) {
 		fprintf(stderr, "Found only %d distances to infer the insert size distribution\n", b->numDistances);
 		PrintError(FnName, "b->numDistances", "Not enough distances to infer insert size distribution", Warn, OutOfRange);
 		PEDBinsFree(b);
-		return 0;
+		return 1;
 	}
 
 	if(VERBOSE>=0) {
 		// Print Statistics
 		PEDBinsPrintStatistics(b, stderr);
 	}
-	return 1;
+
+	return 0;
 }
 
 void PEDBinsInitialize(PEDBins *b)
 {
+	int32_t i;
 	b->minDistance = INT_MAX;
 	b->maxDistance = INT_MIN;
-	b->bins = NULL;
+	for(i=0;i<MAX_PEDBINS_DISTANCE - MIN_PEDBINS_DISTANCE+1;i++) {
+		b->bins[i] = 0;
+	}
 	b->numDistances = 0;
+	b->inversionCount = 0;
+	b->avg = 0;
+	b->std = 0;
 }
 
 void PEDBinsFree(PEDBins *b) {
-	free(b->bins);
 	PEDBinsInitialize(b);
 }
 
 void PEDBinsInsert(PEDBins *b,
+		char strandOne,
+		char strandTwo,
 		int32_t distance)
 {
-	char *FnName="PEDBinsInsert";
-	int32_t prevMinDistance, prevMaxDistance;
-	int32_t i;
-
-	// TODO: there is a bug here with an off-by-one error
-	// such that b->numDistances does not equal the sum of
-	// all the bins.
-
 	if(distance < MIN_PEDBINS_DISTANCE ||
 			MAX_PEDBINS_DISTANCE < distance) {
 		return;
 	}
 
+	/// Update inversion count
+	if(strandOne != strandTwo) {
+		b->inversionCount++;
+	}
+
 	if(distance < b->minDistance) {
-		if(INT_MIN < b->maxDistance) { // Bins exist
-			prevMinDistance = b->minDistance;
-			b->minDistance = distance;
-			b->bins = realloc(b->bins, sizeof(int32_t)*(b->maxDistance - b->minDistance + 1));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			// Move over old bins
-			for(i=b->maxDistance - prevMinDistance;0<=i;i--) {
-				b->bins[i + (prevMinDistance - b->minDistance)] = b->bins[i];
-			}
-			// Initialize new bins
-			for(i=0;i < prevMinDistance - b->minDistance;i++) {
-				b->bins[i] = 0;
-			}
-		}
-		else { // No bins
+		b->minDistance = distance;
+		if(0 == b->numDistances) { // First one!
 			b->minDistance = b->maxDistance = distance;
-			b->bins = malloc(sizeof(int32_t));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not allocate memory", Exit, MallocMemory);
-			}
 		}
 	}
 	else if(b->maxDistance < distance) {
-		if(b->minDistance < INT_MAX) { // Bins exist
-			prevMaxDistance = b->maxDistance;
-			b->maxDistance = distance;
-			b->bins = realloc(b->bins, sizeof(int32_t)*(b->maxDistance - b->minDistance + 1));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not reallocate memory", Exit, ReallocMemory);
-			}
-			// Initialize new bins
-			for(i=prevMaxDistance-b->minDistance+1;i<b->maxDistance-b->minDistance+1;i++) {
-				b->bins[i] = 0;
-			}
-		}
-		else { // No bins
-			b->minDistance = b->maxDistance = distance;
-			b->bins = malloc(sizeof(int32_t));
-			if(NULL == b->bins) {
-				PrintError(FnName, "b->bins", "Could not allocate memory", Exit, MallocMemory);
-			}
+		b->maxDistance = distance;
+		if(0 == b->numDistances) { // First one!
+			b->minDistance = distance;
 		}
 	}
 
@@ -774,22 +865,23 @@ void PEDBinsPrintStatistics(PEDBins *b, FILE *fp)
 {
 	// Mean, Range, and SD
 	int32_t i;
-	double mean, sd;
 
 	// Mean
-	mean = 0.0;
+	b->avg = 0.0;
 	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		mean += (b->minDistance + i)*b->bins[i];
+		b->avg += (b->minDistance + i)*b->bins[i];
 	}
-	mean /= b->numDistances;
+	b->avg /= b->numDistances;
 
 	// SD
-	sd = 0.0;
+	b->std = 0.0;
 	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		sd += b->bins[i]*((b->minDistance + i) - mean)*((b->minDistance + i) - mean);
+		b->std += b->bins[i]*((b->minDistance + i) - b->avg)*((b->minDistance + i) - b->avg);
 	}
-	sd /= b->numDistances-1;
-	sd = sqrt(sd);
+	b->std /= b->numDistances-1;
+	b->std = sqrt(b->std);
+
+	b->invRatio = -1.0 * log10(b->inversionCount / ((double)b->numDistances));
 
 	if(0<=VERBOSE) {
 		fprintf(stderr, "Used %d paired end distances to infer the insert size distribution.\n",
@@ -797,83 +889,9 @@ void PEDBinsPrintStatistics(PEDBins *b, FILE *fp)
 		fprintf(stderr, "The paired end distance range was from %d to %d.\n",
 				b->minDistance, b->maxDistance);
 		fprintf(stderr, "The paired end distance mean and standard deviation was %.2lf and %.2lf.\n",
-				mean, sd);
+				b->avg, b->std);
+		fprintf(stderr, "The inversion ratio was %lf (%d / %d).\n",
+				b->inversionCount * 1.0 / ((double)b->numDistances), b->inversionCount, b->numDistances);
 		fprintf(stderr, "%s", BREAK_LINE);
 	}
-}
-
-void PEDBinsMakeIntoProbability(PEDBins *b)
-{
-	// Mean, Range, and SD
-	int32_t i;
-	double mean;
-	int32_t distance, mid, sum;
-
-	// Mean
-	mean = 0.0;
-	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		mean += (b->minDistance + i)*b->bins[i];
-	}
-	mean /= b->numDistances;
-
-	mid = (int)mean;
-	if(b->maxDistance - mid < mid - b->minDistance) {
-		distance = mid - b->minDistance + 1;
-	}
-	else {
-		distance = b->maxDistance - mid + 1;
-	}
-
-	sum=0;
-	while(0 != distance) {
-		// Compute sum
-		if(distance <= b->maxDistance - mid) {
-			assert(mid + distance - b->minDistance < b->maxDistance - b->minDistance + 1);
-			sum += b->bins[mid + distance - b->minDistance];
-		}
-		if(distance <= mid - b->minDistance) {
-			assert(0 <= mid - distance - b->minDistance);
-			sum += b->bins[mid - distance - b->minDistance];
-		}
-		// Put in sum
-		if(distance <= b->maxDistance - mid) {
-			assert(mid + distance - b->minDistance < b->maxDistance - b->minDistance + 1);
-			b->bins[mid + distance - b->minDistance] = sum;
-		}
-		if(distance <= mid - b->minDistance) {
-			assert(0 <= mid - distance - b->minDistance);
-			b->bins[mid - distance - b->minDistance] = sum;
-		}
-		/*
-		   fprintf(stderr, "distance=%d\tsum=%d\n",
-		   distance, sum);
-		   */
-		// Decrement the distance
-		distance--;
-	}
-	// Take care of the final case
-	sum += b->bins[mid - b->minDistance];
-	b->bins[mid - b->minDistance] = sum;
-}
-
-// Not normalized
-int32_t PEDBinsGetProbability(PEDBins *b, int32_t contigA, int32_t positionA, int32_t contigB, int32_t positionB)
-{
-	int32_t distance;
-
-	// Must be on the same contig
-	if(contigA != contigB) {
-		return 0.0;
-	}
-
-	// Get the distance
-	distance = (int)fabs(positionA - positionB);
-
-	// Distance is out of bounds
-	if(distance < b->minDistance ||
-			b->maxDistance < distance) {
-		return 0.0;
-	}
-
-	return b->bins[distance - b->minDistance];
 }

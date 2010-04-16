@@ -16,8 +16,7 @@
 
 /* TODO */
 int32_t AlignedEndPrint(AlignedEnd *a,
-		gzFile outputFP,
-		int32_t space)
+		gzFile outputFP)
 {
 	int32_t i;
 	assert(NULL != a->read);
@@ -31,8 +30,7 @@ int32_t AlignedEndPrint(AlignedEnd *a,
 
 	for(i=0;i<a->numEntries;i++) {
 		if(EOF == AlignedEntryPrint(&a->entries[i],
-					outputFP,
-					space)) {
+					outputFP)) {
 			return EOF;
 		}
 	}
@@ -42,8 +40,7 @@ int32_t AlignedEndPrint(AlignedEnd *a,
 
 /* TODO */
 int32_t AlignedEndPrintText(AlignedEnd *a,
-		FILE *outputFP,
-		int32_t space)
+		FILE *outputFP)
 {
 	int32_t i;
 	assert(NULL != a->read);
@@ -56,8 +53,7 @@ int32_t AlignedEndPrintText(AlignedEnd *a,
 
 	for(i=0;i<a->numEntries;i++) {
 		if(EOF == AlignedEntryPrintText(&a->entries[i],
-					outputFP,
-					space)) {
+					outputFP)) {
 			return EOF;
 		}
 	}
@@ -67,8 +63,7 @@ int32_t AlignedEndPrintText(AlignedEnd *a,
 
 /* TODO */
 int32_t AlignedEndRead(AlignedEnd *a,
-		gzFile inputFP,
-		int32_t space)
+		gzFile inputFP) 
 {
 	char *FnName = "AlignedEndRead";
 	int32_t i;
@@ -107,8 +102,7 @@ int32_t AlignedEndRead(AlignedEnd *a,
 	for(i=0;i<a->numEntries;i++) {
 		AlignedEntryInitialize(&a->entries[i]);
 		if(EOF == AlignedEntryRead(&a->entries[i],
-					inputFP,
-					space)) {
+					inputFP)) {
 			PrintError(FnName, "a->entries[i]", "Could not read from file", Exit, ReadFileError);
 		}
 	}
@@ -118,8 +112,7 @@ int32_t AlignedEndRead(AlignedEnd *a,
 
 /* TODO */
 int32_t AlignedEndReadText(AlignedEnd *a,
-		FILE *inputFP,
-		int32_t space)
+		FILE *inputFP)
 {
 	char *FnName = "AlignedEndReadText";
 	char read[SEQUENCE_LENGTH]="\0";
@@ -160,8 +153,7 @@ int32_t AlignedEndReadText(AlignedEnd *a,
 	for(i=0;i<a->numEntries;i++) {
 		AlignedEntryInitialize(&a->entries[i]);
 		if(EOF == AlignedEntryReadText(&a->entries[i],
-					inputFP,
-					space)) {
+					inputFP)) {
 			PrintError(FnName, "a->entries[i]", "Could not read from file", Exit, ReadFileError);
 		}
 	}
@@ -365,7 +357,7 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 		double mismatchScore,
 		int avgMismatchQuality)
 {
-	double bestScore=INT_MIN, nextBestScore=INT_MIN;
+	int32_t bestScore=INT_MIN, nextBestScore=INT_MIN;
 	int32_t bestMappingQuality = 0;
 	int32_t foundBest = 0, foundNextBest = 0;
 	int32_t i;
@@ -373,7 +365,6 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 	/* Get best and next best score */
 	for(i=0;i<a->numEntries;i++) {
 		if(bestScore < a->entries[i].score) {
-			// HERE
 			if(1 == foundBest) {
 				nextBestScore = bestScore;
 				foundNextBest = 1;
@@ -390,7 +381,10 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
 	assert(nextBestScore <= bestScore);
 	if(INT_MIN < nextBestScore) { 
 		assert(1 == foundNextBest);
-		bestMappingQuality = ( (bestScore - nextBestScore) * avgMismatchQuality ) / mismatchScore;
+		bestMappingQuality = (int)( (bestScore - nextBestScore) * avgMismatchQuality ) / mismatchScore;
+		if(nextBestScore < bestScore && 0 == bestMappingQuality) {
+			bestMappingQuality = 1;
+		}
 	}
 	else {
 		/* If no other matches was found, give it the max */
