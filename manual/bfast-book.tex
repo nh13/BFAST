@@ -1504,13 +1504,13 @@ We use as input the \BAF{} created in the previous step.
 In this case, we choose to output the best unambiguous alignment for each read.
 The command we use to prioritize alignments is:
 \begin{script}
-	bfast postprocess -f phi.x.174.fa -i bfast.aligned.file.phi.x.174.baf -a 3 -O 3 $>$ bfast.reported.file.phi.x.174.sam
+	bfast postprocess -f phi.x.174.fa -i bfast.aligned.file.phi.x.174.baf $>$ bfast.reported.file.phi.x.174.sam
 \end{script}
 This should create one output file, a \BSAMF{}.
 
 The third and fifth step can performed in a pipe-and-filter format, generating only one output file:
 \begin{script}
-	cat reads.phi.x.174.fastq $|$ bfast match -f phi.x.174.fa $|$ bfast localalign -f phi.x.174.fa $|$ bfast postprocess -f phi.x.174.fa -a 3 -O 3 $>$ bfast.reported.file.phi.x.174.sam
+	cat reads.phi.x.174.fastq $|$ bfast match -f phi.x.174.fa $|$ bfast localalign -f phi.x.174.fa $|$ bfast postprocess -f phi.x.174.fa $>$ bfast.reported.file.phi.x.174.sam
 \end{script}
 \chapter{Appendix}
 \section{Human Genome Alignment Recommended Settings}
@@ -1574,7 +1574,7 @@ Search the indexes:\\
 Perform local alignment:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.s\_<N>.bmf $>$ bfast.aligned.file.s\_<N>.baf\\}
 Filter alignments:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.s\_<N>.baf -a 3 -O 3 \\
+{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.s\_<N>.baf\\
 $>$ bfast.reported.file.s\_<N>.sam\\}
 \\
 
@@ -1616,7 +1616,7 @@ Search the indexes:\\
 Perform local alignment:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A 1 $>$ bfast.aligned.file.hg18.<N>.baf\\}
 Filter alignments:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.hg18.<N>.baf -a 3 -O 3\\
+{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.hg18.<N>.baf\\
 $>$ bfast.reported.file.hg18.<N>.sam\\}
 \\
 Note that for parallel computation, execute {\tt bfast match}, {\tt bfast localalign}, and {\tt bfast postprocess} for each converted input file created (replace $<N>$ with the input file number).
