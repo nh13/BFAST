@@ -79,7 +79,7 @@ static int bwt_cal_width(const bwt_t *rbwt, int len, const ubyte_t *str, bwt_wid
 	return bid;
 }
 
-static void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt)
+void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt)
 {
 	int i, max_l = 0, max_len;
 	gap_stack_t *stack;
@@ -346,7 +346,7 @@ int bwa_aln(int argc, char *argv[])
 	gap_opt_t *opt;
 
 	opt = gap_init_opt();
-	while ((c = getopt(argc, argv, "n:o:e:i:d:l:k:cLR:m:t:NM:O:E:q:")) >= 0) {
+	while ((c = getopt(argc, argv, "n:o:e:i:d:l:k:cLR:m:t:NM:O:E:q:f:")) >= 0) {
 		switch (c) {
 			case 'n':
 				if (strstr(optarg, ".")) opt->fnr = atof(optarg), opt->max_diff = -1;
@@ -368,6 +368,7 @@ int bwa_aln(int argc, char *argv[])
 			case 'q': opt->trim_qual = atoi(optarg); break;
 			case 'c': opt->mode &= ~BWA_MODE_COMPREAD; break;
 			case 'N': opt->mode |= BWA_MODE_NONSTOP; opt->max_top2 = 0x7fffffff; break;
+			case 'f': freopen(optarg, "wb", stdout); break;
 			default: return 1;
 		}
 	}
@@ -397,6 +398,7 @@ int bwa_aln(int argc, char *argv[])
 		fprintf(stderr, "         -c        input sequences are in the color space\n");
 		fprintf(stderr, "         -L        log-scaled gap penalty for long deletions\n");
 		fprintf(stderr, "         -N        non-iterative mode: search for all n-difference hits (slooow)\n");
+		fprintf(stderr, "         -f FILE   file to write output to instead of stdout\n");
 		fprintf(stderr, "\n");
 		return 1;
 	}
@@ -411,4 +413,18 @@ int bwa_aln(int argc, char *argv[])
 	bwa_aln_core(argv[optind], argv[optind+1], opt);
 	free(opt);
 	return 0;
+}
+
+/* rgoya: Temporary clone of aln_path2cigar to accomodate for bwa_cigar_t,
+ * __cigar_op and __cigar_len while keeping stdaln stand alone */
+bwa_cigar_t *bwa_aln_path2cigar(const path_t *path, int path_len, int *n_cigar)
+{
+	uint32_t *cigar32;
+	bwa_cigar_t *cigar;
+	int i;
+	cigar32 = aln_path2cigar32((path_t*) path, path_len, n_cigar);
+	cigar = (bwa_cigar_t*)cigar32;
+	for (i = 0; i < *n_cigar; ++i)
+		cigar[i] = __cigar_create( (cigar32[i]&0xf), (cigar32[i]>>4) );
+	return cigar;
 }

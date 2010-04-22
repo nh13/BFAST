@@ -37,6 +37,23 @@ typedef struct {
 	int score;
 } bwt_aln1_t;
 
+typedef uint16_t bwa_cigar_t;
+/* rgoya: If changing order of bytes, beware of operations like:
+ *  *     s->cigar[0] += s->full_len - s->len;
+ *   */
+#define CIGAR_OP_SHIFT 14
+#define CIGAR_LN_MASK 0x3fff
+
+#define __cigar_op(__cigar) ((__cigar)>>CIGAR_OP_SHIFT)
+#define __cigar_len(__cigar) ((__cigar)&CIGAR_LN_MASK)
+#define __cigar_create(__op, __len) ((__op)<<CIGAR_OP_SHIFT | (__len))
+
+typedef struct {
+	uint32_t pos;
+	uint32_t n_cigar:15, gap:8, mm:8, strand:1;
+	bwa_cigar_t *cigar;
+} bwt_multi1_t;
+
 typedef struct {
 	char *name;
 	ubyte_t *seq, *rseq, *qual;
@@ -47,11 +64,14 @@ typedef struct {
 	// alignments in SA coordinates
 	int n_aln;
 	bwt_aln1_t *aln;
+	// multiple hits
+	int n_multi;
+	bwt_multi1_t *multi;
 	// alignment information
 	bwtint_t sa, pos;
 	uint64_t c1:28, c2:28, seQ:8; // number of top1 and top2 hits; single-end mapQ
 	int n_cigar;
-	uint16_t *cigar;
+	bwa_cigar_t *cigar;
 	// for multi-threading only
 	int tid;
 	// NM and MD tags
@@ -80,9 +100,11 @@ typedef struct {
 #define BWA_PET_SOLID 2
 
 typedef struct {
-	int max_isize;
+	int max_isize, force_isize;
 	int max_occ;
+	int n_multi, N_multi;
 	int type, is_sw, is_preload;
+	double ap_prior;
 } pe_opt_t;
 
 struct __bwa_seqio_t;
@@ -102,8 +124,16 @@ extern "C" {
 	void bwa_free_read_seq(int n_seqs, bwa_seq_t *seqs);
 
 	int bwa_cal_maxdiff(int l, double err, double thres);
+	void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *seqs, const gap_opt_t *opt);
 
 	void bwa_cs2nt_core(bwa_seq_t *p, bwtint_t l_pac, ubyte_t *pac);
+
+
+	/* rgoya: Temporary clone of aln_path2cigar to accomodate for bwa_cigar_t,
+	 *     __cigar_op and __cigar_len while keeping stdaln stand alone */
+#include "stdaln.h"
+
+	bwa_cigar_t *bwa_aln_path2cigar(const path_t *path, int path_len, int *n_cigar);
 
 #ifdef __cplusplus
 }

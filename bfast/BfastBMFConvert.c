@@ -46,7 +46,7 @@ int BfastBMFConvert(int argc, char *argv[])
 	char outputFileName[MAX_FILENAME_LENGTH]="\0";
 	char fastaFileName[MAX_FILENAME_LENGTH]="\0";
 	int outputType = 1;
-	int c, argnum, space;
+	int c, argnum, space=NTSpace;
 	char *last;
 	RGMatches m;
 	RGBinary rg;
