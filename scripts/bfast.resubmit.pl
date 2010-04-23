@@ -50,10 +50,17 @@ else {
 	pod2usage(1);
 }
 
-while(0 < scalar(@jids_to_do)) {
-	resub(\@jids_to_do, \%jids_completed, $delete);
+if(0 == $delete) {
+	while(0 < scalar(@jids_to_do)) {
+		resub_jids(\@jids_to_do, \%jids_completed);
+	}
 }
-
+else {
+	delete_get_jids(\@jids_to_do, \%jids_completed);
+	while(0 < scalar(@jids_to_do)) {
+		delete_jids(\@jids_to_do);
+	}
+}
 
 sub get_jids_from_username {
 	my $username = shift;
@@ -72,10 +79,9 @@ sub get_jids_from_username {
 	return @jids;
 }
 
-sub resub {
-	my ($jids, $jids_completed, $delete) = @_;
+sub resub_jids {
+	my ($jids, $jids_completed) = @_;
 	my $job_name = "";
-	my $jid_successors = ();
 	my @lines = ();
 	my $new_jid = "";
 	my $out = "";
@@ -83,7 +89,7 @@ sub resub {
 	my $old_jid = shift(@$jids);
 
 	# ignore previously processed ids
-	if(defined($jids_completed{$old_jid})) {
+	if(defined($jids_completed->{$old_jid})) {
 		return;
 	}
 
@@ -91,53 +97,80 @@ sub resub {
 
 	get_params($old_jid, \%params);
 
-	if(0 == $delete) {
-		# Resub with user hold
-		$new_jid=`qresub -h u $old_jid`;
-		$new_jid =~ s/^.*\n//;
-		$new_jid =~ s/^.*job\s+(\S+).*?$/$1/;
-		chomp($new_jid);
-		printf(STDOUT "%s resubbed with hold on %s\n", $CORE, $new_jid); 
+	# Resub with user hold
+	$new_jid=`qresub -h u $old_jid`;
+	$new_jid =~ s/^.*\n//;
+	$new_jid =~ s/^.*job\s+(\S+).*?$/$1/;
+	chomp($new_jid);
+	printf(STDOUT "%s resubbed with hold on %s\n", $CORE, $new_jid); 
 
-		if(defined($params{'jid_successor_list'})) {
-			# Alter the successors
-			my @jid_successors = split(/,/, $params{'jid_successor_list'});
-			foreach my $jid_successor (@jid_successors) {
-				my $new_hold_list = get_new_hold_list($jid_successor, $old_jid, $new_jid);
-				$out=`qalter $jid_successor -hold_jid $new_hold_list`;
-				printf(STDOUT "%s altered successor %s\n", $CORE, $jid_successor);
-			}
+	if(defined($params{'jid_successor_list'})) {
+		# Alter the successors
+		my @jid_successors = split(/,/, $params{'jid_successor_list'});
+		foreach my $jid_successor (@jid_successors) {
+			my $new_hold_list = get_new_hold_list($jid_successor, $old_jid, $new_jid);
+			$out=`qalter $jid_successor -hold_jid $new_hold_list`;
+			printf(STDOUT "%s altered successor %s\n", $CORE, $jid_successor);
 		}
-
-		# Delete the old job
-		$out=`qdel $old_jid`;
-		printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
-
-		# Remove user hold
-		$out=`qalter $new_jid -h U`;
-		printf(STDOUT "%s removed hold on %s\n", $CORE, $new_jid); 
 	}
-	else {
 
-		if(defined($params{'jid_successor_list'})) {
-			# Alter the successors
-			my @jid_successors = split(/,/, $params{'jid_successor_list'});
-			foreach my $jid_successor (@jid_successors) {
-				if(!defined($jids_completed->{$jid_successor})) {
-					push(@$jids, $jid_successor);
-					printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
-				}
-				else {
-					printf(STDOUT "%s successor is queued for deletion %s\n", $CORE, $jid_successor);
-				}
-			}
-		}
+	# Delete the old job
+	$out=`qdel $old_jid`;
+	printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
 
-		# Delete the old job
-		$out=`qdel $old_jid`;
-		printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
-	}
+	# Remove user hold
+	$out=`qalter $new_jid -h U`;
+	printf(STDOUT "%s removed hold on %s\n", $CORE, $new_jid); 
+
 	$jids_completed->{$old_jid} = 1;
+}
+
+sub delete_get_jids {
+	my ($jids, $jids_completed) = @_;
+	my %params = ();
+	my $old_jid = shift(@$jids);
+	my $out = "";
+
+	# ignore previously processed ids
+	if(defined($jids_completed->{$old_jid})) {
+		return;
+	}
+
+	printf(STDOUT "%s found %s\n", $CORE, $old_jid); 
+	get_params($old_jid, \%params);
+
+	# Add a user hold
+	$out=`qalter -h u $old_jid`;
+	printf(STDOUT "%s added a user hold on %s\n", $CORE, $old_jid);
+
+	if(defined($params{'jid_successor_list'})) {
+		# Alter the successors
+		my @jid_successors = split(/,/, $params{'jid_successor_list'});
+		foreach my $jid_successor (@jid_successors) {
+			if(!defined($jids_completed->{$jid_successor})) {
+				push(@$jids, $jid_successor);
+				printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+			}
+			else {
+				printf(STDOUT "%s successor is queued for deletion %s\n", $CORE, $jid_successor);
+			}
+		}
+	}
+
+	$jids_completed->{$old_jid} = 1;
+}
+
+sub delete_jids {
+	my $jids = shift;
+	my $old_jid = shift(@$jids);
+	my $out = "";
+
+	printf(STDOUT "%s processing %s\n", $CORE, $old_jid); 
+
+	# Delete the old job
+	$out=`qdel $old_jid`;
+
+	printf(STDOUT "%s deleted %s\n", $CORE, $old_jid); 
 }
 
 sub get_params {
