@@ -51,6 +51,7 @@ void putAlnReadBase(uint8_t *alnRead, int32_t i, char b, int32_t ins)
 			op = 3; break;
 		case 'n':
 		case 'N':
+		case '.':
 			op = 4; break;
 		case '-':
 			op = 5; break;

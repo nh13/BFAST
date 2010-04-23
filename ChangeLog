@@ -5,6 +5,9 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
+Version 0.6.4c
+* bug fixed encountering '.' base characters.  Added new tests in 'make check'.
+
 Version 0.6.4b
 * bug fixed in postprocess for color space where an the color space error
 string was malformed, hitting an assertion.
