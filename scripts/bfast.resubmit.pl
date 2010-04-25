@@ -56,9 +56,14 @@ if(0 == $delete) {
 	}
 }
 else {
-	delete_get_jids(\@jids_to_do, \%jids_completed);
-	while(0 < scalar(@jids_to_do)) {
-		delete_jids(\@jids_to_do);
+	if(0 < scalar(@jids_to_do)) {
+		my @jids_to_delete = ();
+		while(0 < scalar(@jids_to_do)) {
+			delete_get_jids(\@jids_to_do, \@jids_to_delete, \%jids_completed);
+		}
+		while(0 < scalar(@jids_to_delete)) {
+			delete_jids(\@jids_to_delete);
+		}
 	}
 }
 
@@ -126,9 +131,9 @@ sub resub_jids {
 }
 
 sub delete_get_jids {
-	my ($jids, $jids_completed) = @_;
+	my ($jids_in, $jids_out, $jids_completed) = @_;
 	my %params = ();
-	my $old_jid = shift(@$jids);
+	my $old_jid = shift(@$jids_in);
 	my $out = "";
 
 	# ignore previously processed ids
@@ -143,12 +148,16 @@ sub delete_get_jids {
 	$out=`qalter -h u $old_jid`;
 	printf(STDOUT "%s added a user hold on %s\n", $CORE, $old_jid);
 
+	# Add for deletion
+	push(@$jids_out, $old_jid);
+	printf(STDOUT "%s added job for deletion %s\n", $CORE, $old_jid);
+
 	if(defined($params{'jid_successor_list'})) {
 		# Alter the successors
 		my @jid_successors = split(/,/, $params{'jid_successor_list'});
 		foreach my $jid_successor (@jid_successors) {
 			if(!defined($jids_completed->{$jid_successor})) {
-				push(@$jids, $jid_successor);
+				push(@$jids_out, $jid_successor);
 				printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
 			}
 			else {
