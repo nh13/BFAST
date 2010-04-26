@@ -26,6 +26,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int reversePaired,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
+		int randomBest,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
@@ -58,6 +59,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	int32_t *alignQueueThreadIDs = NULL;
 	int32_t **numEntries=NULL;
 	int32_t *numEntriesN=NULL;
+
+	srand48(1); // to get the same behavior
 
 	/* Read in scoring matrix */
 	ScoringMatrixInitialize(&sm);
@@ -153,8 +156,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	// Initialize
 	for(i=0;i<alignQueueLength;i++) {
-			numEntries[i] = NULL;
-			numEntriesN[i] = 0;
+		numEntries[i] = NULL;
+		numEntriesN[i] = 0;
 	}
 
 	/* Go through each read */
@@ -180,6 +183,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			data[i].unpaired = unpaired;
 			data[i].reversePaired = reversePaired;
 			data[i].avgMismatchQuality = avgMismatchQuality;
+			data[i].randomBest = randomBest;
 			data[i].mismatchScore = mismatchScore;
 			data[i].alignQueue =  alignQueue;
 			data[i].alignQueueThreadIDs =  alignQueueThreadIDs;
@@ -264,7 +268,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			/* Free memory */
 			AlignedReadFree(&alignQueue[queueIndex]);
 		}
-		
+
 		// Free
 		for(i=0;i<numRead;i++) {
 			free(numEntries[i]);
@@ -341,6 +345,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	int unpaired = data->unpaired;
 	int reversePaired = data->reversePaired;
 	int avgMismatchQuality = data->avgMismatchQuality;
+	int randomBest = data->randomBest;
 	int mismatchScore = data->mismatchScore;
 	AlignedRead *alignQueue = data->alignQueue;
 	int32_t *alignQueueThreadIDs = data->alignQueueThreadIDs;
@@ -352,7 +357,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	int32_t *numEntriesN = data->numEntriesN;
 	int32_t i, j;
 	int32_t queueIndex=0;
-	
+
 	while(queueIndex<queueLength) {
 		if(1 < numThreads) {
 			pthread_mutex_lock(&alignQueueMutex);
@@ -391,6 +396,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 					unpaired,
 					reversePaired,
 					avgMismatchQuality,
+					randomBest,
 					mismatchScore,
 					bins);
 		}
@@ -412,11 +418,60 @@ int32_t GetAlignedReads(gzFile fp, AlignedRead *alignQueue, int32_t maxToRead)
 	return numRead;
 }
 
+int32_t getPairedScore(AlignedEnd *endOne,
+		int32_t endOneEntriesIndex,
+		AlignedEnd *endTwo,
+		int32_t endTwoEntriesIndex,
+		int reversePaired,
+		int avgMismatchQuality,
+		int mismatchScore,
+		PEDBins *b,
+		int max_STD)
+{
+	int32_t s = (int)(endOne->entries[endOneEntriesIndex].score + endTwo->entries[endTwoEntriesIndex].score);
+
+	if((0 == reversePaired && endOne->entries[endOneEntriesIndex].strand != endTwo->entries[endTwoEntriesIndex].strand) ||
+			(1 == reversePaired && endOne->entries[endOneEntriesIndex].strand == endTwo->entries[endTwoEntriesIndex].strand)) { // inversion penalty
+		// log10(P) * mismatchScore
+		if(0 < b->inversionCount && 0 < b->numDistances) {
+			if(MAX_INVERSION_LOG10_RATIO < b->invRatio) {
+				s -= (int)(mismatchScore * MAX_INVERSION_LOG10_RATIO);
+			}
+			else {
+				s -= (int)(mismatchScore * b->invRatio);
+			}
+		}
+		else {
+			s -= (int)(mismatchScore * MAX_INVERSION_LOG10_RATIO);
+		}
+	}
+
+	// add penalty for insert size -- assumes normality
+	if(endOne->entries[endOneEntriesIndex].contig != endTwo->entries[endTwoEntriesIndex].contig) { // chimera/inter-chr-translocation
+		// TODO: make this a constant calculation
+		s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
+	}
+	else { // same chr
+		int32_t l = endTwo->entries[endTwoEntriesIndex].position - endOne->entries[endOneEntriesIndex].position;
+		// penalty times probability of observing etc.
+		if(fabs(l - b->avg) / b->std <= max_STD) { 
+			s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * fabs(l - b->avg) / b->std)) + 0.499);
+		}
+		else {
+			// TODO: make this a constant calculation
+			s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
+		}
+	}
+
+	return s;
+}
+
 int FilterAlignedRead(AlignedRead *a,
 		int algorithm,
 		int unpaired,
 		int reversePaired,
 		int avgMismatchQuality,
+		int randomBest,
 		int mismatchScore,
 		PEDBins *b)
 {
@@ -445,7 +500,7 @@ int FilterAlignedRead(AlignedRead *a,
 	/* If we are going to use the paired end to infer the other end, then
 	 * use the BestScoreAll algorithm and try to infer. */
 	// Only for di-end reads and best scoring, for now
-	if(0 == unpaired && 2 == tmpA.numEnds && BestScore == algorithm &&
+	if(0 == unpaired && 2 == tmpA.numEnds && (BestScore == algorithm || BestScoreAll == algorithm) &&
 			0 < tmpA.ends[0].numEntries && 0 < tmpA.ends[1].numEntries) {
 		int32_t bestScoreSE[2] = {INT_MIN, INT_MIN};
 		int32_t bestScoreSENum[2] = {0, 0};
@@ -458,7 +513,6 @@ int FilterAlignedRead(AlignedRead *a,
 		int32_t penultimateNum = 0;
 
 		int32_t max_STD = MAX_STD; // TODO: user input
-
 
 		// Get "best score"
 		for(i=0;i<2;i++) {
@@ -484,41 +538,8 @@ int FilterAlignedRead(AlignedRead *a,
 			for(j=0;j<tmpA.ends[1].numEntries;j++) {
 				if(1 == anchored || bestScoreSE[1] <= tmpA.ends[1].entries[j].score) { // itself an anchor, or other end anchored
 
-					int32_t s = (int)(tmpA.ends[0].entries[i].score + tmpA.ends[1].entries[j].score);
+					int32_t s = getPairedScore(&tmpA.ends[0], i, &tmpA.ends[1], j, reversePaired, avgMismatchQuality, mismatchScore, b, max_STD);
 
-					if((0 == reversePaired && tmpA.ends[0].entries[i].strand != tmpA.ends[1].entries[j].strand) ||
-							(1 == reversePaired && tmpA.ends[0].entries[i].strand == tmpA.ends[1].entries[j].strand)) { // inversion penalty
-						// log10(P) * mismatchScore
-						if(0 < b->inversionCount && 0 < b->numDistances) {
-							if(MAX_INVERSION_LOG10_RATIO < b->invRatio) {
-								s -= (int)(mismatchScore * MAX_INVERSION_LOG10_RATIO);
-							}
-							else {
-								s -= (int)(mismatchScore * b->invRatio);
-							}
-						}
-						else {
-							s -= (int)(mismatchScore * MAX_INVERSION_LOG10_RATIO);
-						}
-					}
-					
-					// add penalty for insert size -- assumes normality
-					if(tmpA.ends[0].entries[i].contig != tmpA.ends[1].entries[j].contig) { // chimera/inter-chr-translocation
-						// TODO: make this a constant calculation
-						s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
-					}
-					else { // same chr
-						int32_t l = tmpA.ends[1].entries[j].position - tmpA.ends[0].entries[i].position;
-						// penalty times probability of observing etc.
-						if(fabs(l - b->avg) / b->std <= max_STD) { 
-							s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * fabs(l - b->avg) / b->std)) + 0.499);
-						}
-						else {
-							// TODO: make this a constant calculation
-							s -= (int)(mismatchScore * -1.0 * log10( erfc(M_SQRT1_2 * max_STD)) + 0.499);
-						}
-					}
-					
 					if(-1 == bestIndex[0] || bestScore < s) { // current is the best
 						if(-1 != bestIndex[0]) { // there was a previous
 							penultimateIndex[0] = bestIndex[0];
@@ -548,20 +569,74 @@ int FilterAlignedRead(AlignedRead *a,
 		assert(-1 != bestIndex[0]);
 		assert(1 <= bestNum);
 
+		if(1 < bestNum && BestScore == algorithm && 1 == randomBest) {
+			// Choose random pair, give zero mapping quality
+			int32_t keep = (int)(drand48() * bestNum);
+			int32_t k = 0;
+			for(i=0;i<tmpA.ends[0].numEntries && k <= keep;i++) {
+				int anchored = 0;
+				if(bestScoreSE[0] <= tmpA.ends[0].entries[i].score) { // anchor
+					anchored = 1;
+				}
+				for(j=0;j<tmpA.ends[1].numEntries;j++) {
+					if(1 == anchored || bestScoreSE[1] <= tmpA.ends[1].entries[j].score) { // itself an anchor, or other end anchored
+
+						int32_t s = getPairedScore(&tmpA.ends[0], i, &tmpA.ends[1], j, reversePaired, avgMismatchQuality, mismatchScore, b, max_STD);
+						if(bestScore == s) {
+							if(keep == k) {
+								AlignedEntryCopy(&tmpA.ends[0].entries[0], &tmpA.ends[0].entries[i]);
+								AlignedEndReallocate(&tmpA.ends[0], 1);
+								tmpA.ends[0].entries[0].mappingQuality = 0;
+								foundTypes[0] = Found;
+								AlignedEntryCopy(&tmpA.ends[1].entries[0], &tmpA.ends[1].entries[j]);
+								AlignedEndReallocate(&tmpA.ends[1], 1);
+								tmpA.ends[1].entries[0].mappingQuality = 0;
+								foundTypes[1] = Found;
+								break;
+							}
+							k++;
+						}
+					}
+				}
+			}
+		}
+
 		// set new mapping quality (?)
 		// TODO: set single end mapping quality
 		if(1 < bestNum) { // more than one found
-			// Revert to best alignment score for each end if they are 
-			// unique.  
+			// Revert to best alignment score(s) for each end.
 			for(i=0;i<2;i++) {
-				if(1 == bestScoreSENum[i]) { // keep best score
-					AlignedEntryCopy(&tmpA.ends[i].entries[0], &tmpA.ends[i].entries[bestScoreSEIndex[i]]);
-					AlignedEndReallocate(&tmpA.ends[i], 1);
-					foundTypes[i] = Found;
+				int k = 0;
+				for(j=0;j<tmpA.ends[i].numEntries;j++) {
+					if(tmpA.ends[i].entries[j].score == bestScoreSE[i]) { // keep best score
+						AlignedEntryCopy(&tmpA.ends[i].entries[k], &tmpA.ends[i].entries[j]);
+						k++;
+					}
 				}
-				else { // clear
-					foundTypes[i] = NoneFound;
-					AlignedEndReallocate(&tmpA.ends[i], 0);
+				AlignedEndReallocate(&tmpA.ends[i], k);
+			}
+
+			if(BestScore == algorithm) {
+				for(i=0;i<2;i++) {
+					if(1 == tmpA.ends[i].numEntries) {
+						foundTypes[i] = Found;
+					}
+					else { // clear
+						foundTypes[i] = NoneFound;
+						AlignedEndReallocate(&tmpA.ends[i], 0);
+					}
+				}
+			}
+			else {
+				assert(BestScoreAll == algorithm);
+				for(i=0;i<2;i++) {
+					if(0 < tmpA.ends[i].numEntries) {
+						foundTypes[i] = Found;
+					}
+					else { // clear
+						foundTypes[i] = NoneFound;
+						AlignedEndReallocate(&tmpA.ends[i], 0);
+					}
 				}
 			}
 		}
@@ -630,29 +705,42 @@ int FilterAlignedRead(AlignedRead *a,
 							numBest++;
 						}
 					}
-					if(BestScore == algorithm &&
-							1 == numBest) {
-						foundTypes[i] = Found;
-						/* Copy to front */
-						AlignedEntryCopy(&tmpA.ends[i].entries[0], 
-								&tmpA.ends[i].entries[bestIndex]);
-						AlignedEndReallocate(&tmpA.ends[i], 1);
-					}
-					else if(BestScoreAll == algorithm &&
-							1 <= numBest) {
-						foundTypes[i] = Found;
-						ctr=0;
-						for(j=0;j<tmpA.ends[i].numEntries;j++) {
-							if(tmpA.ends[i].entries[j].score == best) {
-								if(ctr != j) {
-									AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
-											&tmpA.ends[i].entries[j]);
-								}
-								ctr++;
+					// Copy all to the front
+					ctr=0;
+					for(j=0;j<tmpA.ends[i].numEntries;j++) {
+						if(tmpA.ends[i].entries[j].score == best) {
+							if(ctr != j) {
+								AlignedEntryCopy(&tmpA.ends[i].entries[ctr], 
+										&tmpA.ends[i].entries[j]);
 							}
+							ctr++;
 						}
-						assert(ctr == numBest);
-						AlignedEndReallocate(&tmpA.ends[i], numBest);
+					}
+					assert(ctr == numBest);
+					AlignedEndReallocate(&tmpA.ends[i], numBest);
+					// Random
+					if(BestScore == algorithm) {
+						if(1 < numBest && 1 == randomBest) {
+							int32_t keep = (int)(drand48() * numBest);
+							AlignedEntryCopy(&tmpA.ends[i].entries[0], &tmpA.ends[i].entries[keep]);
+							AlignedEndReallocate(&tmpA.ends[i], 1);
+							tmpA.ends[i].entries[0].mappingQuality = 0; // ambiguous
+							numBest = 1;
+						}
+						if(1 == numBest) {
+							foundTypes[i] = Found;
+						}
+						else {
+							foundTypes[i] = NoneFound;
+						}
+					}
+					else if(BestScoreAll == algorithm) {
+						if( 1 <= numBest) {
+							foundTypes[i] = Found;
+						}
+						else {
+							foundTypes[i] = NoneFound;
+						}
 					}
 					break;
 				default:
@@ -741,6 +829,7 @@ int32_t GetPEDBins(char *inputFileName,
 						1,
 						-1,
 						INT_MIN,
+						0,
 						INT_MIN,
 						NULL);
 
