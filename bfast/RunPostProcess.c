@@ -569,6 +569,7 @@ int FilterAlignedRead(AlignedRead *a,
 		assert(-1 != bestIndex[0]);
 		assert(1 <= bestNum);
 
+		int randomized = 0;
 		if(1 < bestNum && BestScore == algorithm && 1 == randomBest) {
 			// Choose random pair, give zero mapping quality
 			int32_t keep = (int)(drand48() * bestNum);
@@ -586,12 +587,11 @@ int FilterAlignedRead(AlignedRead *a,
 							if(keep == k) {
 								AlignedEntryCopy(&tmpA.ends[0].entries[0], &tmpA.ends[0].entries[i]);
 								AlignedEndReallocate(&tmpA.ends[0], 1);
-								tmpA.ends[0].entries[0].mappingQuality = 0;
 								foundTypes[0] = Found;
 								AlignedEntryCopy(&tmpA.ends[1].entries[0], &tmpA.ends[1].entries[j]);
 								AlignedEndReallocate(&tmpA.ends[1], 1);
-								tmpA.ends[1].entries[0].mappingQuality = 0;
 								foundTypes[1] = Found;
+								randomized = 1;
 								break;
 							}
 							k++;
@@ -599,6 +599,7 @@ int FilterAlignedRead(AlignedRead *a,
 					}
 				}
 			}
+			bestNum = 1;
 		}
 
 		// set new mapping quality (?)
@@ -620,6 +621,7 @@ int FilterAlignedRead(AlignedRead *a,
 				for(i=0;i<2;i++) {
 					if(1 == tmpA.ends[i].numEntries) {
 						foundTypes[i] = Found;
+						assert(0 == randomized);
 					}
 					else { // clear
 						foundTypes[i] = NoneFound;
@@ -642,37 +644,51 @@ int FilterAlignedRead(AlignedRead *a,
 		}
 		else {
 			// copy to the front and reallocate
-			AlignedEntryCopy(&tmpA.ends[0].entries[0], &tmpA.ends[0].entries[bestIndex[0]]);
-			AlignedEndReallocate(&tmpA.ends[0], 1);
+			if(0 == randomized) {
+				AlignedEntryCopy(&tmpA.ends[0].entries[0], &tmpA.ends[0].entries[bestIndex[0]]);
+				AlignedEndReallocate(&tmpA.ends[0], 1);
+				AlignedEntryCopy(&tmpA.ends[1].entries[0], &tmpA.ends[1].entries[bestIndex[1]]);
+				AlignedEndReallocate(&tmpA.ends[1], 1);
+			}
 			foundTypes[0] = Found;
-			AlignedEntryCopy(&tmpA.ends[1].entries[0], &tmpA.ends[1].entries[bestIndex[1]]);
-			AlignedEndReallocate(&tmpA.ends[1], 1);
 			foundTypes[1] = Found;
 
-			int32_t mapq = MAXIMUM_MAPPING_QUALITY;
-			if(-1 != penultimateIndex[0]) { // next best pairing found
-				mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
-				if(0 == mapq) {
-					mapq = 1;
+			if(1 == randomized) {
+				for(i=0;i<2;i++) {
+					if(1 == bestScoreSENum[i]) {
+						// keep
+						assert(bestScoreSE[i] == tmpA.ends[i].entries[0].score);
+					}
+					else {
+						tmpA.ends[i].entries[0].mappingQuality = 0;
+					}
 				}
-				else if(MAXIMUM_MAPPING_QUALITY < mapq) {
-					mapq = MAXIMUM_MAPPING_QUALITY;
+			}
+			else {
+				int32_t mapq = MAXIMUM_MAPPING_QUALITY;
+				if(-1 != penultimateIndex[0]) { // next best pairing found
+					mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
+					if(0 == mapq) {
+						mapq = 1;
+					}
+					else if(MAXIMUM_MAPPING_QUALITY < mapq) {
+						mapq = MAXIMUM_MAPPING_QUALITY;
+					}
 				}
+				assert(0 < mapq);
+				if(tmpA.ends[0].entries[0].score < bestScoreSE[0] || // changed alignment
+						tmpA.ends[0].entries[0].mappingQuality < mapq) { 
+					// update mapping quality
+					tmpA.ends[0].entries[0].mappingQuality = mapq;
+				}
+				if(tmpA.ends[1].entries[0].score < bestScoreSE[1] || // changed alignment
+						tmpA.ends[1].entries[0].mappingQuality < mapq) { 
+					// update mapping quality
+					tmpA.ends[1].entries[0].mappingQuality = mapq;
+				}
+				assert(0 < tmpA.ends[0].entries[0].mappingQuality);
+				assert(0 < tmpA.ends[1].entries[0].mappingQuality);
 			}
-
-			assert(0 < mapq);
-			if(tmpA.ends[0].entries[0].score < bestScoreSE[0] || // changed alignment
-					tmpA.ends[0].entries[0].mappingQuality < mapq) { 
-				// update mapping quality
-				tmpA.ends[0].entries[0].mappingQuality = mapq;
-			}
-			if(tmpA.ends[1].entries[0].score < bestScoreSE[1] || // changed alignment
-					tmpA.ends[1].entries[0].mappingQuality < mapq) { 
-				// update mapping quality
-				tmpA.ends[1].entries[0].mappingQuality = mapq;
-			}
-			assert(0 < tmpA.ends[0].entries[0].mappingQuality);
-			assert(0 < tmpA.ends[1].entries[0].mappingQuality);
 			// TODO: set single end mapq flag
 		}
 	}
