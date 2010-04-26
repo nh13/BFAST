@@ -5,6 +5,10 @@ See COPYING for copying conditions.
 
 Please send bfast bug reports to bfast-help@lists.sourceforge.net 
 
+Version 0.6.4d
+* adding '-z' option in 'bfast postprocess' to choose a random best scoring
+alignment when used with '-z 3'.
+
 Version 0.6.4c
 * bug fixed encountering '.' base characters.  Added new tests in 'make check'.
 

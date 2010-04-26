@@ -619,6 +619,10 @@ Please see \autoref{sec:scoringmatrixfile} for the file format.
 This file should be the file used in \TT{bfast match}.
 If this option is used with ABI SOLiD data, then the \TT{-A 1} option must be set.
 
+\subsubsection{\tt{-z, --randomBest}}
+Specifies to choose a random best scoring alignment to break ties.
+This only works when used in conjunction with \TT{-a 3}.
+
 \subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
 Specifies the average mismatch quality (should match that value used in \TT{bfast match}.
 
