@@ -810,6 +810,16 @@ Which strand to examine: 0 - both strands, 1 - item forward strand only, and 2 -
 \subsubsection{\TT{-n INT}}
 The number of threads to use for the search.
 
+\subsection{bmfmerge}
+\label{sec:bmfmerge}
+\TT{bmfmerge} merges the results from searches from different indexes under the assumption that all the searches were performed on the same dataset.
+This performs the final merge step in \TT{bfast match} separately such that the merge step can be separated from the search step.
+
+\subsubsection{\TT{-M INTEGER, --maxNumMatches=INTEGER}}
+Specifies the maximum number of CALs to allow before we stop searching for CALS for a given read.
+If the limit is reached, the read will be flagged and ignored in later alignment processes.
+For example, a value of $500$ may be useful when aligning the to Human Genome given that each index used is expected to return one CAL.
+
 \subsection{brepeat}
 \label{sec:brepeat}
 \TT{brepeat} finds all contiguous repeats in the genome specified by the index that fall within the specified unit length range and minimum contiguous length.
