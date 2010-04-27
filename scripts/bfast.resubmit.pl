@@ -158,9 +158,8 @@ sub delete_get_jids {
 		foreach my $jid_successor (@jid_successors) {
 			if(!defined($jids_completed->{$jid_successor})) {
 				$out=`qalter -h u $jid_successor`;
-				printf(STDOUT "%s added a user hold on %s\n", $CORE, $jid_successor);
-				push(@$jids_out, $jid_successor);
-				printf(STDOUT "%s added successor for deletion %s\n", $CORE, $jid_successor);
+				printf(STDOUT "%s added a user hold on successor %s\n", $CORE, $jid_successor);
+				push(@$jids_in, $jid_successor);
 			}
 			else {
 				printf(STDOUT "%s successor is queued for deletion %s\n", $CORE, $jid_successor);
