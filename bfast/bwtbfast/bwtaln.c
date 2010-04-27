@@ -252,6 +252,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 				seq_reverse(p->len, p->seq, 0);
 				matches[i+n_matches].read_name_length = strlen(p->name);
 				matches[i+n_matches].read_name = my_malloc(sizeof(char)*(1+matches[i+n_matches].read_name_length), fn_name);
+				matches[i+n_matches].read_int = matches[i+n_matches].read_rc_int = NULL;
 				strcpy(matches[i+n_matches].read_name, p->name);
 				matches[i+n_matches].read_length = p->len;
 				matches[i+n_matches].read = my_malloc(sizeof(char)*(1+p->len), fn_name);

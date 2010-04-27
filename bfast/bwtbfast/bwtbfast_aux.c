@@ -390,7 +390,8 @@ int32_t bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len,
 			bfast_rg_matches_t_print(match_queue, prev_i, i-1, fp);
 			// free
 			for(j=prev_i;j<=i-1;j++) {
-			free(match_queue[j].read_int); free(match_queue[j].read_rc_int);
+				free(match_queue[j].read_int); free(match_queue[j].read_rc_int);
+				match_queue[j].read_int=match_queue[j].read_rc_int=NULL;
 				bfast_rg_match_t_destroy(&match_queue[j]);
 			}
 
