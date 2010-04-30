@@ -264,6 +264,17 @@ int main(int argc, char *argv[])
 	if(0 < output_count && 0 == no_output) {
 		AFILE_afclose(afp_output);
 	}
+
+  // Remove last fastq file when total input reads % num_reads_per_file == 0
+  // We don't want an empty file
+	if(0 == output_count && 0 == no_output) {
+    char empty_fn[4096]="\0";
+		assert(0 < sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number));
+    if(remove(empty_fn)) { 
+		  PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
+    }
+  }
+
 	fprintf(stderr, "\r%lld\n", (long long int)output_count_total);
 	fprintf(stderr, "Found\n%16s\t%16s\n", "number_of_ends", "number_of_reads");
 	for(i=0;i<number_of_ends;i++) {
