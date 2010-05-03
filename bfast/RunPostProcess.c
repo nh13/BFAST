@@ -655,9 +655,8 @@ int FilterAlignedRead(AlignedRead *a,
 
 			if(1 == randomized) {
 				for(i=0;i<2;i++) {
-					if(1 == bestScoreSENum[i]) {
-						// keep
-						assert(bestScoreSE[i] == tmpA.ends[i].entries[0].score);
+					if(1 == bestScoreSENum[i] && bestScoreSE[i] == tmpA.ends[i].entries[0].score) {
+						// keep the mapping quality
 					}
 					else {
 						tmpA.ends[i].entries[0].mappingQuality = 0;

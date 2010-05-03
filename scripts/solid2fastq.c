@@ -265,15 +265,15 @@ int main(int argc, char *argv[])
 		AFILE_afclose(afp_output);
 	}
 
-  // Remove last fastq file when total input reads % num_reads_per_file == 0
-  // We don't want an empty file
+	// Remove last fastq file when total input reads % num_reads_per_file == 0
+	// We don't want an empty file
 	if(0 == output_count && 0 == no_output) {
-    char empty_fn[4096]="\0";
+		char empty_fn[4096]="\0";
 		assert(0 < sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number));
-    if(remove(empty_fn)) { 
-		  PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-    }
-  }
+		if(remove(empty_fn)) { 
+			PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
+		}
+	}
 
 	fprintf(stderr, "\r%lld\n", (long long int)output_count_total);
 	fprintf(stderr, "Found\n%16s\t%16s\n", "number_of_ends", "number_of_reads");
@@ -343,7 +343,7 @@ void fastq_print(fastq_t *read, AFILE *afp_output)
 		AFILE_afwrite(&read->name[i], sizeof(char), 1, afp_output);
 	}
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
-	
+
 	// Sequence
 	for(i=0;i<strlen(read->read);i++) {
 		AFILE_afwrite(&read->read[i], sizeof(char), 1, afp_output);
