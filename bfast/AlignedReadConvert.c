@@ -155,7 +155,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	uint64_t flag;
 	int32_t mateEndIndex, mateEntriesIndex, mapq;
 	int32_t numEdits=0;
-	
+
 	char alignment[3][SEQUENCE_LENGTH]={"\0", "\0", "\0"}; // [0] - reference, [1] - read, [2] - color error
 	int32_t length = 0;
 
@@ -679,53 +679,67 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		}
 	}
 
+	// Create MD tag
+	prevType = 0; /* 0 - MM, 1 - I, 2 - D */
+	MDi = MDNumMatches = 0;
+	for(i=0;i<length;i++) {
+		if(ToUpper(read[i]) == ToUpper(reference[i])) { // Match
+			MDNumMatches++;
+			prevType = 0;
+		}
+		else if(GAP == reference[i]) { // Insertion
+			// ignore insertion for MD
+			prevType = 1;
+			(*numEdits)++;
+		}
+		else { // Other
+			if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+				PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+			}
+			MDi+=(int)(1+log10(0.1+MDNumMatches));
+			MDNumMatches = 0;
+
+			(*numEdits)++;
+			if(GAP == read[i]) { // Deletion
+				if(2 != prevType) { // add in start char
+					MD[MDi]='^';
+					MDi++;
+				}
+				prevType = 2;
+				// Add in deleted base base
+				MD[MDi]=ToUpper(reference[i]);
+				MDi++;
+			}
+			else { // Mismatch
+				// Add in mismatch
+				MD[MDi]=ToUpper(reference[i]);
+				MDi++;
+				prevType = 0;
+			}
+		}
+	}
+	if(0 < MDNumMatches) {
+		if(sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+			PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+		}
+		MDi+=(int)(1+log10(0.1+MDNumMatches));
+		MDNumMatches=0;
+	}
+	MD[MDi]='\0';
+
 	/* Convert to cigar format */
 	prevType = 0; /* 0 - MM, 1 - I, 2 - D */
 	numPrevType = 0;
-	MDi = MDNumMatches = 0;
-	MD[MDi]='\0';
 	for(i=0;i<length;i++) {
 		assert(0 == prevIns || 0 == prevDel);
 
 		if(GAP == read[i]) { // Deletion
-			if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-				PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-			}
-			MDi+=(int)(1+log10(0.1+MDNumMatches));
-			MDNumMatches = 0;
 			curType = 2;
-			(*numEdits)++;
-			// ignore MD
 		}
 		else if(GAP == reference[i]) { // Insertion
-			if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-				PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-			}
-			MDi+=(int)(1+log10(0.1+MDNumMatches));
-			MDNumMatches = 0;
 			curType = 1;
-			(*numEdits)++;
-			if(1 != prevType) {
-				MD[MDi]='^';
-				MDi++;
-			}
-			MD[MDi]=ToUpper(read[i]);
-			MDi++;
 		}
 		else { // Match/Mismatch
-			if(ToUpper(read[i]) != ToUpper(reference[i])) {
-				(*numEdits)++;
-				if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-					PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-				}
-				MDi+=(int)(1+log10(0.1+MDNumMatches));
-				MDNumMatches = 0;
-				MD[MDi]=ToUpper(reference[i]);
-				MDi++;
-			}
-			else {
-				MDNumMatches++;
-			}
 			curType = 0;
 		}
 
@@ -753,10 +767,4 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
-	if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-		PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-	}
-	MDi+=(int)(1+log10(0.1+MDNumMatches));
-	MDNumMatches=0;
-	MD[MDi]='\0';
 }
