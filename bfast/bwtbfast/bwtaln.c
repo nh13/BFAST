@@ -31,6 +31,7 @@ gap_opt_t *gap_init_opt()
 	o->indel_end_skip = 5; o->max_del_occ = 10; o->max_entries = 2000000;
 	o->mode = BWA_MODE_GAPE | BWA_MODE_COMPREAD;
 	o->seed_len = 32; o->max_seed_diff = 2;
+	o->max_num_m = MAX_NUM_MATCHES;
 	o->fnr = 0.04;
 	o->n_threads = 1;
 	o->max_top2 = 30;
@@ -273,50 +274,61 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 				for(j=0;j<p->n_aln;j++) {
 					matches[i+n_matches].num_entries += p->aln[j].l - p->aln[j].k + 1;
 				}
-				matches[i+n_matches].contigs = my_malloc(sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
-				matches[i+n_matches].positions = my_malloc(sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
-				matches[i+n_matches].strands = my_malloc(sizeof(char)*matches[i+n_matches].num_entries, fn_name);
-				matches[i+n_matches].masks = my_malloc(sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
-
-				for(j=ctr=0;j<p->n_aln;j++) {
-					for(k=p->aln[j].k;k<=p->aln[j].l;k++) {
-						// p->aln[j].a == 1 means it is the reverse 
-
-						// use suffix array
-						if(p->aln[j].a) { // reverse
-							pos = bwt_sa(bwt[0], k);
-						}
-						else {
-							pos = bwt[1]->seq_len - (bwt_sa(bwt[1], k) + p->len);
-						}
-						bns_coor_pac2real(bns, pos, 1, &seqid);
-
-						// check if hit spans two sequences
-						if(bns->anns[seqid].len < pos) {
-							n_skipped++;
-							continue;
-						}
-
-						matches[i+n_matches].contigs[ctr] = seqid+1; //contig
-						matches[i+n_matches].positions[ctr] = pos+1; // position
-						matches[i+n_matches].strands[ctr] = (0 == p->aln[j].a) ? FORWARD : REVERSE; // strand
-						matches[i+n_matches].masks[ctr] = my_calloc(GETMASKNUMBYTESFROMLENGTH(matches[i+n_matches].read_length), sizeof(char), fn_name); // mask
-
-						// adjust position
-						if(ColorSpace == space) {
-							if(FORWARD == matches[i+n_matches].strands[ctr]) matches[i+n_matches].positions[ctr]+=3;
-							else matches[i+n_matches].positions[ctr]--;
-						}
-
-						ctr++;
-					}
+				if(opt->max_num_m < matches[i+n_matches].num_entries) {
+					// Ignore
+					matches[i+n_matches].num_entries = 0;
+					matches[i+n_matches].contigs = NULL;
+					matches[i+n_matches].positions = NULL;
+					matches[i+n_matches].strands = NULL;
+					matches[i+n_matches].masks = NULL;
 				}
-				if(0 < n_skipped) {
-					matches[i+n_matches].num_entries -= n_skipped;
-					matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
-					matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
-					matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
-					matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
+				else {
+
+					matches[i+n_matches].contigs = my_malloc(sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
+					matches[i+n_matches].positions = my_malloc(sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
+					matches[i+n_matches].strands = my_malloc(sizeof(char)*matches[i+n_matches].num_entries, fn_name);
+					matches[i+n_matches].masks = my_malloc(sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
+
+					for(j=ctr=0;j<p->n_aln;j++) {
+						for(k=p->aln[j].k;k<=p->aln[j].l;k++) {
+							// p->aln[j].a == 1 means it is the reverse 
+
+							// use suffix array
+							if(p->aln[j].a) { // reverse
+								pos = bwt_sa(bwt[0], k);
+							}
+							else {
+								pos = bwt[1]->seq_len - (bwt_sa(bwt[1], k) + p->len);
+							}
+							bns_coor_pac2real(bns, pos, 1, &seqid);
+
+							// check if hit spans two sequences
+							if(bns->anns[seqid].len < pos) {
+								n_skipped++;
+								continue;
+							}
+
+							matches[i+n_matches].contigs[ctr] = seqid+1; //contig
+							matches[i+n_matches].positions[ctr] = pos+1; // position
+							matches[i+n_matches].strands[ctr] = (0 == p->aln[j].a) ? FORWARD : REVERSE; // strand
+							matches[i+n_matches].masks[ctr] = my_calloc(GETMASKNUMBYTESFROMLENGTH(matches[i+n_matches].read_length), sizeof(char), fn_name); // mask
+
+							// adjust position
+							if(ColorSpace == space) {
+								if(FORWARD == matches[i+n_matches].strands[ctr]) matches[i+n_matches].positions[ctr]+=3;
+								else matches[i+n_matches].positions[ctr]--;
+							}
+
+							ctr++;
+						}
+					}
+					if(0 < n_skipped) {
+						matches[i+n_matches].num_entries -= n_skipped;
+						matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
+						matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
+						matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
+						matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
+					}
 				}
 			}
 		}
@@ -400,6 +412,7 @@ int bwa_aln(int argc, char *argv[])
 		fprintf(stderr, "         -L        log-scaled gap penalty for long deletions\n");
 		fprintf(stderr, "         -N        non-iterative mode: search for all n-difference hits (slooow)\n");
 		fprintf(stderr, "         -f FILE   file to write output to instead of stdout\n");
+		fprintf(stderr, "         -X INT    maximum number of matches to output [%d]\n", opt->max_num_m);
 		fprintf(stderr, "\n");
 		return 1;
 	}

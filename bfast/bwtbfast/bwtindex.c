@@ -85,7 +85,7 @@ int bwtindex(int argc, char *argv[])
 	str2 = (char*)calloc(strlen(prefix) + 10, 1);
 	str3 = (char*)calloc(strlen(prefix) + 10, 1);
 
-	if (space == 0) { // nucleotide indexing
+	if (space == NTSpace) { // nucleotide indexing
 		gzFile fp = xzopen(argv[optind], "r");
 		t = clock();
 		fprintf(stderr, "[bfast bwtindex] Pack FASTA... ");
