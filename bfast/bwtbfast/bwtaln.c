@@ -255,6 +255,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 				matches[i+n_matches].read_name = my_malloc(sizeof(char)*(1+matches[i+n_matches].read_name_length), fn_name);
 				matches[i+n_matches].read_int = matches[i+n_matches].read_rc_int = NULL;
 				strcpy(matches[i+n_matches].read_name, p->name);
+		    //fprintf(stderr, "RN: %s i:%d \n", p->name, i);
 				matches[i+n_matches].read_length = p->len;
 				matches[i+n_matches].read = my_malloc(sizeof(char)*(1+p->len), fn_name);
 				for(j=0;j<p->len;j++) {
@@ -324,10 +325,13 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 					}
 					if(0 < n_skipped) {
 						matches[i+n_matches].num_entries -= n_skipped;
-						matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
-						matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
-						matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
-						matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
+            if (matches[i+n_matches].num_entries != 0) {
+              //fprintf(stderr, "re1\n");
+              matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
+              matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
+              matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
+              matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
+            }
 					}
 				}
 			}

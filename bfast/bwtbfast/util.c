@@ -12,6 +12,7 @@ void *my_realloc(void *ptr, size_t size, char *fn_name)
 {
 	ptr = realloc(ptr, size);
 	if(NULL == ptr) {
+    fprintf(stderr, "my_realloc: requesting: %ld\n", size);
 		PrintError(fn_name, NULL, "Could not reallocate memory", Exit, ReallocMemory);
 	}
 	return realloc(ptr, size);
