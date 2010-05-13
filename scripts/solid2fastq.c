@@ -498,18 +498,26 @@ void read_name_trim(char *name)
 {
 	int32_t l;
 
-	// Trim last _R3 or _F3 
-
+	// Trim last _R3 or _F3 : >427_67_118_R3
+  // For V4 (PE), read2 file uses: F5-P2: >427_67_118_F5-P2
 	if(NULL == name) {
 		return;
 	}
+
 	l=strlen(name);
 	if(3 < l &&
 			name[l-3]=='_' &&
 			(name[l-2]=='F' || name[l-2]=='R') &&
-			name[l-1]=='3') {
+			name[l-1]=='3') { 
 		name[l-3]='\0';
 	}
+	else if(3 < l &&
+			name[l-3]=='-' &&
+			name[l-2]=='P' &&
+			name[l-4]=='5') {
+		name[l-6]='\0';
+  }
+
 	assert('_' != name[0]);
 }
 
