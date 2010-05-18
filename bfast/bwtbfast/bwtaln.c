@@ -247,7 +247,8 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 			bwa_seq_t *p = seqs + i;
 			// BWA to BMF
 			{
-				int j, k, ctr=0, n_skipped=0, seqid, pos;
+        int ctr=0, n_skipped=0, seqid;
+				bwtint_t j, k, pos;
 
 				assert(NULL != p->seq);
 				seq_reverse(p->len, p->seq, 0);
