@@ -117,7 +117,6 @@ bmfmerge_SOURCES = \
 					 bmfmerge.c	
 
 bmfmerge_LDADD =
->>>>>>> 73e6adf75d9bd6c6365115100da9aa3ec27ff04a
 
 brepeat_SOURCES = \
 				  ../bfast/BError.c	../bfast/BError.h \
