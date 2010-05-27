@@ -79,7 +79,7 @@ if(!$quiet) {
 sub Schema {
 	# print the schema
 	my $schema = <<END;
-<?xml version="1.0"?>
+	<?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="bfastConfig">
 	<xs:complexType>
@@ -161,6 +161,7 @@ sub Schema {
 			  </xs:element>
 			  <xs:element name="threads" type="positiveInteger"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
+			  <xs:element name="mergeSeparate" type="xs:integer"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
 			  <xs:element name="qsubArgs" type="xs:string"/>
 			</xs:sequence>
@@ -275,6 +276,7 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'tmpDirectory',                             REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'outputID',                                 REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'numReadsPerFASTQ',                         REQUIRED);
+	ValidateOption($data->{'globalOptions'},       'cleanUsedIntermediateFiles',               REQUIRED);
 	die "Attribute matchSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
 	die "Attribute localalignSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
 	die "Attribute matchSplit must be <= numReadsPerFASTQ\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'});
@@ -293,6 +295,7 @@ sub ValidateData {
 	ValidateOptions($data->{'matchOptions'},    'strand',             \%STRAND,             OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'threads',                                  OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'queueLength',                              OPTIONAL);
+	ValidateOption($data->{'matchOptions'},     'mergeSeparate',                            OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'matchOptions'},     'qsubArgs',                                 OPTIONAL);
 
@@ -458,6 +461,51 @@ sub GetUnmappedFile {
 		$OUTTYPES{$type});
 }
 
+sub GetIndexes {
+	my ($data, $indexNumbers) = @_;
+
+	if(defined($data->{'matchOptions'}->{'secondaryIndexes'})) {
+		die("Option \"secondaryIndexes\" not supported when using \"mergeSeparate\"");
+	}
+	if(defined($data->{'matchOptions'}->{'mainIndexes'})) {
+		# This could be supported, but currently not
+		die("Option \"mainIndexes\" currently not supported when using \"mergeSeparate\"");
+	}
+	else {
+		my $space = "nt";
+		$space = "cs" if ("CS" eq $data->{'globalOptions'}->{'space'});
+
+		my $dir = $data->{'globalOptions'}->{'fastaFileName'};
+
+		# infer directory
+		if($dir =~ m/^(.*\/)/) {
+			$dir = $1;
+		}
+		else {
+			$dir = "./";
+		}
+
+		local *DIR;
+		opendir(DIR, "$dir") or die("Error.  Could not open $dir.  Terminating!\n");
+		my @dirs = grep !/^\.\.?$/, readdir DIR;
+		close(DIR);
+
+		@dirs = grep m/$space\.\d+\.1\.bif$/, @dirs; # indexes only
+		for(my $i=0;$i<scalar(@dirs);$i++) {
+			if($dirs[$i] =~ m/$space\.(\d+)\.1\.bif$/) {
+				push(@$indexNumbers, $1);
+			}
+			else {
+				die;
+			}
+		}
+	}
+
+	@$indexNumbers = sort { $a <=> $b } @$indexNumbers;
+
+	die if(0 == scalar(@$indexNumbers));
+}
+
 sub CreateJobsMatch {
 	my ($data, $quiet, $start_step, $dryrun, $qsub_ids, $output_ids) = @_;
 	my @read_files = ();
@@ -466,6 +514,11 @@ sub CreateJobsMatch {
 	my $file_ext = "fastq";
 	$file_ext .= ".".$data->{'matchOptions'}->{'readCompression'} if(defined($data->{'matchOptions'}->{'readCompression'}));
 	GetDirContents($data->{'globalOptions'}->{'readsDirectory'}, \@read_files, $file_ext);
+
+	my @indexNumbers = ();
+	if(defined($data->{'matchOptions'}->{'mergeSeparate'})) {
+		GetIndexes($data, \@indexNumbers);
+	}
 
 	# The number of match to perform per read file
 	my $num_split_files = int(0.5 + ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'}/$data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
@@ -485,37 +538,121 @@ sub CreateJobsMatch {
 				$output_id = $data->{'globalOptions'}->{'outputID'}.".reads.$i";            
 			}
 
-			my $run_file = CreateRunFile($data, 'match', $output_id);
-			my $bmf_file = GetMatchesFile($data, $output_id);
-			my $cmd = "";
-			$cmd .= $data->{'globalOptions'}->{'bfastBin'}.""      if defined($data->{'globalOptions'}->{'bfastBin'});
-			$cmd .= "bfast match";
-			$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
-			$cmd .= " -i ".$data->{'matchOptions'}->{'mainIndexes'} if defined($data->{'matchOptions'}->{'mainIndexes'});
-			$cmd .= " -I ".$data->{'matchOptions'}->{'secondaryIndexes'} if defined($data->{'matchOptions'}->{'secondaryIndexes'});
-			$cmd .= " -r ".$read_file;
-			$cmd .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
-			$cmd .= " -l " if defined($data->{'matchOptions'}->{'loadAllIndexes'});
-			$cmd .= " ".$COMPRESSION{$data->{'matchOptions'}->{'readCompression'}} if(defined($data->{'matchOptions'}->{'readCompression'}));
-			$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
-			$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
-			$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
-			$cmd .= " -K ".$data->{'matchOptions'}->{'maxKeyMatches'}    if defined($data->{'matchOptions'}->{'maxKeyMatches'});
-			$cmd .= " -M ".$data->{'matchOptions'}->{'maxNumMatches'}    if defined($data->{'matchOptions'}->{'maxNumMatches'});
-			$cmd .= " -w ".$STRAND{$data->{'matchOptions'}->{'strand'}}           if defined($data->{'matchOptions'}->{'strand'});
-			$cmd .= " -n ".$data->{'matchOptions'}->{'threads'}          if defined($data->{'matchOptions'}->{'threads'});
-			$cmd .= " -Q ".$data->{'matchOptions'}->{'queueLength'}      if defined($data->{'matchOptions'}->{'queueLength'});
-			$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
-			$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
-			$cmd .= " > ".$bmf_file;
+			if(defined($data->{'matchOptions'}->{'mergeSeparate'}) && 1 == $data->{'matchOptions'}->{'mergeSeparate'}) {
+				# Run each BMF separately
+				my @qsub_ids_sub = ();
+				my @output_ids_sub = ();
+				my @bmf_files_sub = ();
+				for(my $j=0;$j<scalar(@indexNumbers);$j++) {
+					my $output_id_sub = $output_id.".".(1+$j)."";
+					my $run_file_sub = CreateRunFile($data, 'match', $output_id_sub);
+					my $bmf_file_sub = GetMatchesFile($data, $output_id_sub);
+					my $cmd_sub = "";
+					$cmd_sub .= $data->{'globalOptions'}->{'bfastBin'}.""      if defined($data->{'globalOptions'}->{'bfastBin'});
+					$cmd_sub .= "bfast match";
+					$cmd_sub .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
+					$cmd_sub .= " -i ".(1+$j);
+					$cmd_sub .= " -r ".$read_file;
+					$cmd_sub .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
+					$cmd_sub .= " ".$COMPRESSION{$data->{'matchOptions'}->{'readCompression'}} if(defined($data->{'matchOptions'}->{'readCompression'}));
+					$cmd_sub .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
+					$cmd_sub .= " -s $cur_read_num_start -e $cur_read_num_end";
+					$cmd_sub .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
+					$cmd_sub .= " -K ".$data->{'matchOptions'}->{'maxKeyMatches'}    if defined($data->{'matchOptions'}->{'maxKeyMatches'});
+					$cmd_sub .= " -M ".$data->{'matchOptions'}->{'maxNumMatches'}    if defined($data->{'matchOptions'}->{'maxNumMatches'});
+					$cmd_sub .= " -w ".$STRAND{$data->{'matchOptions'}->{'strand'}}           if defined($data->{'matchOptions'}->{'strand'});
+					$cmd_sub .= " -n ".$data->{'matchOptions'}->{'threads'}          if defined($data->{'matchOptions'}->{'threads'});
+					$cmd_sub .= " -Q ".$data->{'matchOptions'}->{'queueLength'}      if defined($data->{'matchOptions'}->{'queueLength'});
+					$cmd_sub .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
+					$cmd_sub .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
+					$cmd_sub .= " > ".$bmf_file_sub;
 
-			# Submit the job
-			my @a = (); # empty array for job dependencies
-			my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 0, $dryrun, $cmd, $data, 'matchOptions', $output_id, \@a);
-			push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
-			push(@$output_ids, $output_id);
-			$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
-			$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
+					# Submit the job
+					my @a_sub = (); # empty array for job dependencies
+					my $qsub_id_sub = SubmitJob($run_file_sub, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 0, $dryrun, $cmd_sub, $data, 'matchOptions', $output_id_sub, \@a_sub);
+					push(@qsub_ids_sub, $qsub_id_sub) if (QSUBNOJOB ne $qsub_id_sub);
+					push(@output_ids_sub, $output_id_sub);
+					push(@bmf_files_sub, $bmf_file_sub);
+				}
+
+				# Temporarily nullify threads  
+				my $tmp_threads = -1;
+				if(defined($data->{'matchOptions'}->{'threads'}) && 1 < $data->{'matchOptions'}->{'threads'}) {
+					$tmp_threads = $data->{'matchOptions'}->{'threads'};
+					$data->{'matchOptions'}->{'threads'} = 1;
+				}
+
+				# Merge results
+				my $run_file = CreateRunFile($data, 'match', $output_id);
+				my $bmf_file = GetMatchesFile($data, $output_id);
+				my $cmd = "";
+				$cmd .= $data->{'globalOptions'}->{'bfastBin'}.""      if defined($data->{'globalOptions'}->{'bfastBin'});
+				$cmd .= "bmfmerge";
+				$cmd .= " -M ".$data->{'matchOptions'}->{'maxNumMatches'}    if defined($data->{'matchOptions'}->{'maxNumMatches'});
+				$cmd .= " -Q ".$data->{'matchOptions'}->{'queueLength'}      if defined($data->{'matchOptions'}->{'queueLength'});
+				for(my $j=0;$j<scalar(@bmf_files_sub);$j++) {
+					$cmd .= " ".$bmf_files_sub[$j];
+				}
+				$cmd .= " > ".$bmf_file;
+				my @a = @qsub_ids_sub; 
+				my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 1, $dryrun, $cmd, $data, 'matchOptions', $output_id, \@a);
+				push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+				push(@$output_ids, $output_id);
+
+				# Clean merged results
+				if(defined($data->{'globalOptions'}->{'cleanUsedIntermediateFiles'}) &&
+					$data->{'globalOptions'}->{'cleanUsedIntermediateFiles'} == 1) {
+					$run_file = CreateRunFile($data, 'clean.bmfmerge', $output_id);
+					$output_id = "clean.bmfmerge.$output_id";
+					$cmd = "rm -v";
+					for(my $j=0;$j<scalar(@bmf_files_sub);$j++) {
+						$cmd .= " ".$bmf_files_sub[$j];
+					}
+					@a = (); push(@a, $qsub_id); # depend on the previous
+					$qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 1, $dryrun, $cmd, $data, 'matchOptions', $output_id, \@a);
+				}
+				
+				# Restore threads
+				if(defined($data->{'matchOptions'}->{'threads'}) && 1 < $data->{'matchOptions'}->{'threads'}) {
+					$data->{'matchOptions'}->{'threads'} = $tmp_threads;
+				}
+
+				$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
+				$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
+			}
+			else {
+				my $run_file = CreateRunFile($data, 'match', $output_id);
+				my $bmf_file = GetMatchesFile($data, $output_id);
+				my $cmd = "";
+				$cmd .= $data->{'globalOptions'}->{'bfastBin'}.""      if defined($data->{'globalOptions'}->{'bfastBin'});
+				$cmd .= "bfast match";
+				$cmd .= " -f ".$data->{'globalOptions'}->{'fastaFileName'};
+				$cmd .= " -i ".$data->{'matchOptions'}->{'mainIndexes'} if defined($data->{'matchOptions'}->{'mainIndexes'});
+				$cmd .= " -I ".$data->{'matchOptions'}->{'secondaryIndexes'} if defined($data->{'matchOptions'}->{'secondaryIndexes'});
+				$cmd .= " -r ".$read_file;
+				$cmd .= " -o ".$data->{'matchOptions'}->{'offsets'}          if defined($data->{'matchOptions'}->{'offsets'});
+				$cmd .= " -l " if defined($data->{'matchOptions'}->{'loadAllIndexes'});
+				$cmd .= " ".$COMPRESSION{$data->{'matchOptions'}->{'readCompression'}} if(defined($data->{'matchOptions'}->{'readCompression'}));
+				$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
+				$cmd .= " -s $cur_read_num_start -e $cur_read_num_end";
+				$cmd .= " -k ".$data->{'matchOptions'}->{'keySize'}          if defined($data->{'matchOptions'}->{'keySize'});
+				$cmd .= " -K ".$data->{'matchOptions'}->{'maxKeyMatches'}    if defined($data->{'matchOptions'}->{'maxKeyMatches'});
+				$cmd .= " -M ".$data->{'matchOptions'}->{'maxNumMatches'}    if defined($data->{'matchOptions'}->{'maxNumMatches'});
+				$cmd .= " -w ".$STRAND{$data->{'matchOptions'}->{'strand'}}           if defined($data->{'matchOptions'}->{'strand'});
+				$cmd .= " -n ".$data->{'matchOptions'}->{'threads'}          if defined($data->{'matchOptions'}->{'threads'});
+				$cmd .= " -Q ".$data->{'matchOptions'}->{'queueLength'}      if defined($data->{'matchOptions'}->{'queueLength'});
+				$cmd .= " -T ".$data->{'globalOptions'}->{'tmpDirectory'};
+				$cmd .= " -t"                                                   if defined($data->{'globalOptions'}->{'timing'});
+				$cmd .= " > ".$bmf_file;
+
+				# Submit the job
+				my @a = (); # empty array for job dependencies
+				my $qsub_id = SubmitJob($run_file, $quiet, ($start_step <= $STARTSTEP{"match"}) ? 1 : 0, 0, $dryrun, $cmd, $data, 'matchOptions', $output_id, \@a);
+				push(@$qsub_ids, $qsub_id) if (QSUBNOJOB ne $qsub_id);
+				push(@$output_ids, $output_id);
+				$cur_read_num_start += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
+				$cur_read_num_end += $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'};
+			}
 		}
 	}
 }
@@ -816,7 +953,15 @@ run ()
 }
 END_OUTPUT
 		$output .= "\nrun \"hostname\";\n";
-		$output .= "run \"$command\";\n";
+		# Redirect PBS stderr/stdout, since it buffers them
+		if ("PBS" eq $data->{'globalOptions'}->{'queueType'}) {
+			my $pbs_stderr_redirect = "$run_file.stderr.redirect";
+			my $pbs_stdout_redirect = "$run_file.stdout.redirect";
+			$output .= "run \"$command 2> $pbs_stderr_redirect > $pbs_stdout_redirect\";\n";
+		}
+		else {
+			$output .= "run \"$command\";\n";
+		}
 		$output .= "exit 0;\n";
 		open(FH, ">$run_file") or die("Error.  Could not open $run_file for writing!\n");
 		print FH "$output";

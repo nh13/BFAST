@@ -4,7 +4,7 @@ bin_PROGRAMS = balignmentscoredistribution \
 			   bgeneratereads \
 			   bindexdist \
 			   bindexhist \
-			   bmffix \
+			   bmfmerge \
 			   brepeat \
 			   btestindexes 
 
@@ -102,21 +102,22 @@ bindexhist_SOURCES = \
 
 bindexhist_LDADD =
 
-bmffix_SOURCES = \
-									  ../bfast/BError.c	../bfast/BError.h \
-									  ../bfast/RGIndex.c	../bfast/RGIndex.h \
-									  ../bfast/BLib.c	../bfast/BLib.h \
-									  ../bfast/RGBinary.c ../bfast/RGBinary.h \
-									  ../bfast/RGRanges.c ../bfast/RGRanges.h \
-									  ../bfast/RGMatch.c ../bfast/RGMatch.h \
-									  ../bfast/RGMatches.c ../bfast/RGMatches.h \
-									  ../bfast/AlignedRead.c	../bfast/AlignedRead.h \
-									  ../bfast/AlignedReadConvert.c	../bfast/AlignedReadConvert.h \
-									  ../bfast/AlignedEnd.c	../bfast/AlignedEnd.h \
-									  ../bfast/AlignedEntry.c	../bfast/AlignedEntry.h \
-									  bmffix.c
+bmfmerge_SOURCES = \
+					 ../bfast/BError.c	../bfast/BError.h \
+					 ../bfast/RGIndexExons.c  ../bfast/RGIndexExons.h \
+					 ../bfast/RGIndex.c	../bfast/RGIndex.h \
+					 ../bfast/BLib.c	../bfast/BLib.h \
+					 ../bfast/RGBinary.c ../bfast/RGBinary.h \
+					 ../bfast/RGRanges.c ../bfast/RGRanges.h \
+					 ../bfast/RGReads.c	../bfast/RGReads.h \
+					 ../bfast/RGMatch.c ../bfast/RGMatch.h \
+					 ../bfast/RGMatches.c ../bfast/RGMatches.h \
+					 ../bfast/MatchesReadInputFiles.h ../bfast/MatchesReadInputFiles.c \
+					 ../bfast/aflib.c ../bfast/aflib.h \
+					 bmfmerge.c	
 
-bmffix_LDADD = -lz
+bmfmerge_LDADD =
+>>>>>>> 73e6adf75d9bd6c6365115100da9aa3ec27ff04a
 
 brepeat_SOURCES = \
 				  ../bfast/BError.c	../bfast/BError.h \

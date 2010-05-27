@@ -48,8 +48,8 @@ bfast_SOURCES = \
 				bwtbfast/bntseq.c bwtbfast/bntseq.h \
 				bwtbfast/bwt.c bwtbfast/bwt.h \
 				bwtbfast/bwtgap.c bwtbfast/bwtgap.h \
-				bwtbfast/bwtaln.c bwtbfast/bwtaln.h \
 				bwtbfast/stdaln.c bwtbfast/stdaln.h \
+				bwtbfast/bwtaln.c bwtbfast/bwtaln.h \
 				bwtbfast/util.c bwtbfast/utils.h \
 				bwtbfast/occ_results.c bwtbfast/occ_results.h \
 				bwtbfast/bwtbfast2_aux.c bwtbfast/bwtbfast2_aux.h \

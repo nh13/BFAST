@@ -25,10 +25,13 @@ static int usage()
 	fprintf(stderr, "         localalign\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "BWT Bfast:\n");
-	fprintf(stderr, "         bwtbfast\n");
 	fprintf(stderr, "         bwtindex\n");
-	fprintf(stderr, "         bwtbfast2\n");
 	fprintf(stderr, "         bwaaln\n");
+	/*
+	 * hidden ;)
+	fprintf(stderr, "         bwtbfast\n");
+	fprintf(stderr, "         bwtbfast2\n");
+	*/
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Post-processing:\n");
 	fprintf(stderr, "         postprocess\n");

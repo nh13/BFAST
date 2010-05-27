@@ -203,6 +203,7 @@ char GetReverseComplimentAnyCaseBase(char a)
 		case 'T':
 			return 'A';
 			break;
+		case '.':
 		case 'N':
 			return 'N';
 			break;
@@ -233,6 +234,7 @@ int ValidateBasePair(char c) {
 		case 'T':
 		case 'n':
 		case 'N':
+		case '.':
 			return 1;
 			break;
 		default:
@@ -856,6 +858,7 @@ int ConvertBaseToColorSpace(char A,
 			break;
 		case 'N':
 		case 'n':
+		case '.':
 			(*C) = 4;
 			return 1;
 			break;
@@ -883,6 +886,7 @@ int ConvertBaseToColorSpace(char A,
 			break;
 		case 'N':
 		case 'n':
+		case '.':
 			(*C) = 4;
 			return 1;
 			break;
