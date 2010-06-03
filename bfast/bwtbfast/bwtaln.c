@@ -121,7 +121,7 @@ void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *seq
 		if(!(BWA_MODE_COMPREAD & opt->mode)) { // adjust color space
 			// ignore adaptor and first color
 			len -= 2; 
-			seq[0] += 2;
+			//seq[0] += 2;
 			// reverse adaptor and first color ignored by length decrement
 		}
 		if (max_l < len) { // should not go here?
@@ -257,7 +257,6 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 				matches[i+n_matches].read_name = my_malloc(sizeof(char)*(1+matches[i+n_matches].read_name_length), fn_name);
 				matches[i+n_matches].read_int = matches[i+n_matches].read_rc_int = NULL;
 				strcpy(matches[i+n_matches].read_name, p->name);
-		    //fprintf(stderr, "RN: %s i:%d \n", p->name, i);
 				matches[i+n_matches].read_length = p->len;
 				matches[i+n_matches].read = my_malloc(sizeof(char)*(1+p->len), fn_name);
 				for(j=0;j<p->len;j++) {
