@@ -121,7 +121,7 @@ void bwa_cal_sa_reg_gap(int tid, bwt_t *const bwt[2], int n_seqs, bwa_seq_t *seq
 		if(!(BWA_MODE_COMPREAD & opt->mode)) { // adjust color space
 			// ignore adaptor and first color
 			len -= 2; 
-			seq[0] += 2;
+			//seq[0] += 2;
 			// reverse adaptor and first color ignored by length decrement
 		}
 		if (max_l < len) { // should not go here?
@@ -248,7 +248,8 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 			// BWA to BMF
 			{
         int ctr=0, n_skipped=0, seqid;
-				bwtint_t j, k, pos;
+				bwtint_t j, k;
+        int64_t pos;
 
 				assert(NULL != p->seq);
 				seq_reverse(p->len, p->seq, 0);
@@ -256,7 +257,6 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 				matches[i+n_matches].read_name = my_malloc(sizeof(char)*(1+matches[i+n_matches].read_name_length), fn_name);
 				matches[i+n_matches].read_int = matches[i+n_matches].read_rc_int = NULL;
 				strcpy(matches[i+n_matches].read_name, p->name);
-		    //fprintf(stderr, "RN: %s i:%d \n", p->name, i);
 				matches[i+n_matches].read_length = p->len;
 				matches[i+n_matches].read = my_malloc(sizeof(char)*(1+p->len), fn_name);
 				for(j=0;j<p->len;j++) {
@@ -285,7 +285,6 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 					matches[i+n_matches].masks = NULL;
 				}
 				else {
-
 					matches[i+n_matches].contigs = my_malloc(sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
 					matches[i+n_matches].positions = my_malloc(sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
 					matches[i+n_matches].strands = my_malloc(sizeof(char)*matches[i+n_matches].num_entries, fn_name);
@@ -300,9 +299,15 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 								pos = bwt_sa(bwt[0], k);
 							}
 							else {
-								pos = bwt[1]->seq_len - (bwt_sa(bwt[1], k) + p->len);
+								pos = (int64_t) (bwt[1]->seq_len - (bwt_sa(bwt[1], k) + p->len));
 							}
-							bns_coor_pac2real(bns, pos, 1, &seqid);
+
+              // weird cases when [pos (pac_coor) >= bns->l_pac]
+              if(pos >= bns->l_pac) {
+                pos=0;
+              }
+							
+              bns_coor_pac2real(bns, pos, 1, &seqid);
 
 							// check if hit spans two sequences
 							if(bns->anns[seqid].len < pos) {
@@ -320,14 +325,12 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 								if(FORWARD == matches[i+n_matches].strands[ctr]) matches[i+n_matches].positions[ctr]+=3;
 								else matches[i+n_matches].positions[ctr]--;
 							}
-
 							ctr++;
 						}
 					}
 					if(0 < n_skipped) {
 						matches[i+n_matches].num_entries -= n_skipped;
             if (matches[i+n_matches].num_entries != 0) {
-              //fprintf(stderr, "re1\n");
               matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
               matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
               matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
@@ -336,7 +339,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 					}
 				}
 			}
-		}
+		} // Finished converting to BF the BWA alignments 
 		n_matches += n_seqs;
 		// print
 		n_matches = bfast_rg_match_t_print_queue(matches, n_matches, fp_out, 0);
@@ -344,7 +347,7 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
 		bwa_free_read_seq(n_seqs, seqs);
 		fprintf(stderr, "[bwa_aln_core] %d sequences have been processed.\n", tot_seqs);
-	}
+	} // There are not more reads to process
 
 	// flush
 	n_matches = bfast_rg_match_t_print_queue(matches, n_matches, fp_out, 1);
