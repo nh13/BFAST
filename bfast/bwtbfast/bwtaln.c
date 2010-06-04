@@ -247,9 +247,9 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 			bwa_seq_t *p = seqs + i;
 			// BWA to BMF
 			{
-        int ctr=0, n_skipped=0, seqid;
+				int ctr=0, n_skipped=0, seqid;
 				bwtint_t j, k;
-        int64_t pos;
+				int64_t pos;
 
 				assert(NULL != p->seq);
 				seq_reverse(p->len, p->seq, 0);
@@ -301,13 +301,16 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 							else {
 								pos = (int64_t) (bwt[1]->seq_len - (bwt_sa(bwt[1], k) + p->len));
 							}
-
-              // weird cases when [pos (pac_coor) >= bns->l_pac]
-              if(pos >= bns->l_pac) {
-                pos=0;
-              }
 							
-              bns_coor_pac2real(bns, pos, 1, &seqid);
+							// weird cases when [pos (pac_coor) >= bns->l_pac]
+							if(pos >= bns->l_pac) {
+								pos=0;
+							}
+
+							// Get sequence id
+							bns_coor_pac2real(bns, pos, 1, &seqid);
+							
+							pos = pos - bns->anns[seqid].offset;
 
 							// check if hit spans two sequences
 							if(bns->anns[seqid].len < pos) {
@@ -322,20 +325,24 @@ void bwa_aln_core(const char *prefix, const char *fn_fa, const gap_opt_t *opt)
 
 							// adjust position
 							if(ColorSpace == space) {
-								if(FORWARD == matches[i+n_matches].strands[ctr]) matches[i+n_matches].positions[ctr]+=3;
-								else matches[i+n_matches].positions[ctr]--;
+								if(FORWARD == matches[i+n_matches].strands[ctr]) {
+									matches[i+n_matches].positions[ctr]+=1;
+								}
+								else {
+									matches[i+n_matches].positions[ctr]--;
+								}
 							}
 							ctr++;
 						}
 					}
 					if(0 < n_skipped) {
 						matches[i+n_matches].num_entries -= n_skipped;
-            if (matches[i+n_matches].num_entries != 0) {
-              matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
-              matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
-              matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
-              matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
-            }
+						if (matches[i+n_matches].num_entries != 0) {
+							matches[i+n_matches].contigs = my_realloc(matches[i+n_matches].contigs, sizeof(uint32_t)*matches[i+n_matches].num_entries, fn_name);
+							matches[i+n_matches].positions = my_realloc(matches[i+n_matches].positions, sizeof(int32_t)*matches[i+n_matches].num_entries, fn_name);
+							matches[i+n_matches].strands = my_realloc(matches[i+n_matches].strands, sizeof(char)*matches[i+n_matches].num_entries, fn_name);
+							matches[i+n_matches].masks = my_realloc(matches[i+n_matches].masks, sizeof(char*)*matches[i+n_matches].num_entries, fn_name);
+						}
 					}
 				}
 			}
