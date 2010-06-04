@@ -111,6 +111,7 @@ void RunAlign(
 			0,
 			AVG_MISMATCH_QUALITY,
 			NULL,
+			0,
 			numThreads,
 			DEFAULT_LOCALALIGN_QUEUE_LENGTH,
 			SAM,

@@ -264,6 +264,17 @@ int main(int argc, char *argv[])
 	if(0 < output_count && 0 == no_output) {
 		AFILE_afclose(afp_output);
 	}
+
+	// Remove last fastq file when total input reads % num_reads_per_file == 0
+	// We don't want an empty file
+	if(0 == output_count && 0 == no_output) {
+		char empty_fn[4096]="\0";
+		assert(0 < sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number));
+		if(remove(empty_fn)) { 
+			PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
+		}
+	}
+
 	fprintf(stderr, "\r%lld\n", (long long int)output_count_total);
 	fprintf(stderr, "Found\n%16s\t%16s\n", "number_of_ends", "number_of_reads");
 	for(i=0;i<number_of_ends;i++) {
@@ -332,7 +343,7 @@ void fastq_print(fastq_t *read, AFILE *afp_output)
 		AFILE_afwrite(&read->name[i], sizeof(char), 1, afp_output);
 	}
 	AFILE_afwrite(&new_line, sizeof(char), 1, afp_output);
-	
+
 	// Sequence
 	for(i=0;i<strlen(read->read);i++) {
 		AFILE_afwrite(&read->read[i], sizeof(char), 1, afp_output);
@@ -487,18 +498,26 @@ void read_name_trim(char *name)
 {
 	int32_t l;
 
-	// Trim last _R3 or _F3 
-
+	// Trim last _R3 or _F3 : >427_67_118_R3
+  // For V4 (PE), read2 file uses: F5-P2: >427_67_118_F5-P2
 	if(NULL == name) {
 		return;
 	}
+
 	l=strlen(name);
 	if(3 < l &&
 			name[l-3]=='_' &&
 			(name[l-2]=='F' || name[l-2]=='R') &&
-			name[l-1]=='3') {
+			name[l-1]=='3') { 
 		name[l-3]='\0';
 	}
+	else if(3 < l &&
+			name[l-3]=='-' &&
+			name[l-2]=='P' &&
+			name[l-4]=='5') {
+		name[l-6]='\0';
+  }
+
 	assert('_' != name[0]);
 }
 

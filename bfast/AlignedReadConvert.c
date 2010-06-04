@@ -155,7 +155,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	uint64_t flag;
 	int32_t mateEndIndex, mateEntriesIndex, mapq;
 	int32_t numEdits=0;
-	
+
 	char alignment[3][SEQUENCE_LENGTH]={"\0", "\0", "\0"}; // [0] - reference, [1] - read, [2] - color error
 	int32_t length = 0;
 
@@ -679,53 +679,96 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		}
 	}
 
+	// Create MD tag
+	// Samtools spec is a little fuzzy on details so mainly trying to match
+	// the implementation of the samtools calmd functionality
+	prevType = -1; /* -1 - No previous, 0 - M, 1 - I, 2 - D, 3 - MM, 4 - Insertion following mismatch */
+	MDi = MDNumMatches = 0;
+
+	for(i=0;i<length;i++) {
+		if(0 == RGBinaryIsBaseN(reference[i]) && ToUpper(read[i]) == ToUpper(reference[i])) { // Match
+			MDNumMatches++;
+			prevType = 0;
+		}
+		else if(GAP == reference[i]) { // Insertion
+			// for samtools calmd compatibility an insertion with a previous gap
+			// will need to remember that state to specify 0 matches at end of 
+			// insertion keep track of that with prevType 1 (I) vs prevType 4 (MM/I)
+			if (prevType == 3 || prevType == 4) {
+				prevType = 4; 	// This run of insertions was preceded by a mismatch
+			}
+			else {
+				prevType = 1; 	// Regular insertion
+			}
+			// ignore insertion for MD
+			(*numEdits)++;
+		}
+		else { // Other
+			if(0 < MDNumMatches) {
+				if( sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+					PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+				}
+				MDi+=(int)(1+log10(0.1+MDNumMatches));
+			}
+			MDNumMatches = 0;
+
+			(*numEdits)++;
+			if(GAP == read[i]) { // Deletion
+				// If previous base was a mismatch then insert a 0 for 0 matches 
+				// between mismatch and deletion
+				if (3 == prevType) {
+					MD[MDi] = '0';
+					MDi++;
+				}
+				if(2 != prevType) { // add in start char
+					MD[MDi]='^';
+					MDi++;
+				}
+				prevType = 2;
+				// Add in deleted base base
+				MD[MDi]=ToUpper(reference[i]);
+				MDi++;
+			}
+			else { // Mismatch
+				// For samtools call md compatibility need to add a 0 number of matches
+				// if we're changing state from an gap, insertion or previous mismatch
+				if (-1 == prevType || 2 == prevType || 3 == prevType || 4 == prevType) {
+					MD[MDi] = '0';
+					MDi++;
+				}
+				// Add in the mismatch
+				MD[MDi]=ToUpper(reference[i]);
+				MDi++;
+				prevType = 3;
+			}
+		}
+	}
+	if(0 < MDNumMatches) {
+		if(sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+			PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
+		}
+		MDi+=(int)(1+log10(0.1+MDNumMatches));
+		MDNumMatches=0;
+	}
+	else if (prevType == 3) { /* Trailing zero for samtools calmd compatibility */
+		MD[MDi] = '0';
+		MDi++;
+	}
+	MD[MDi]='\0';
+
 	/* Convert to cigar format */
 	prevType = 0; /* 0 - MM, 1 - I, 2 - D */
 	numPrevType = 0;
-	MDi = MDNumMatches = 0;
-	MD[MDi]='\0';
 	for(i=0;i<length;i++) {
 		assert(0 == prevIns || 0 == prevDel);
 
 		if(GAP == read[i]) { // Deletion
-			if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-				PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-			}
-			MDi+=(int)(1+log10(0.1+MDNumMatches));
-			MDNumMatches = 0;
 			curType = 2;
-			(*numEdits)++;
-			// ignore MD
 		}
 		else if(GAP == reference[i]) { // Insertion
-			if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-				PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-			}
-			MDi+=(int)(1+log10(0.1+MDNumMatches));
-			MDNumMatches = 0;
 			curType = 1;
-			(*numEdits)++;
-			if(1 != prevType) {
-				MD[MDi]='^';
-				MDi++;
-			}
-			MD[MDi]=ToUpper(read[i]);
-			MDi++;
 		}
 		else { // Match/Mismatch
-			if(ToUpper(read[i]) != ToUpper(reference[i])) {
-				(*numEdits)++;
-				if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-					PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-				}
-				MDi+=(int)(1+log10(0.1+MDNumMatches));
-				MDNumMatches = 0;
-				MD[MDi]=ToUpper(reference[i]);
-				MDi++;
-			}
-			else {
-				MDNumMatches++;
-			}
 			curType = 0;
 		}
 
@@ -753,10 +796,4 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
 		}
 	}
-	if(0 < MDNumMatches && sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
-		PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
-	}
-	MDi+=(int)(1+log10(0.1+MDNumMatches));
-	MDNumMatches=0;
-	MD[MDi]='\0';
 }

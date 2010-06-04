@@ -23,6 +23,7 @@ typedef struct {
 	int unpaired;
 	int reversePaired;
 	int avgMismatchQuality;
+	int randomBest;
 	int mismatchScore;
 	int queueLength;
 	int8_t *foundTypes;
@@ -42,6 +43,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int reversePaired,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
+	int randomBest,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
@@ -61,6 +63,7 @@ int FilterAlignedRead(AlignedRead *a,
 		int unpaired,
 		int reversePaired,
 		int avgMismatchQuality,
+		int randomBest,
 		int mismatchScore,
 		PEDBins *b);
 

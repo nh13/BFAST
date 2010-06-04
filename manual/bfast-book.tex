@@ -29,7 +29,7 @@ urlcolor=myurlcolor     % color of external links
 \usepackage{courier}
 
 % Version number
-\newcommand{\Version}{0.6.4c}
+\newcommand{\Version}{0.6.4e}
 
 % layout
 \setlength\topmargin{0in}
@@ -619,6 +619,10 @@ Please see \autoref{sec:scoringmatrixfile} for the file format.
 This file should be the file used in \TT{bfast match}.
 If this option is used with ABI SOLiD data, then the \TT{-A 1} option must be set.
 
+\subsubsection{\tt{-z, --randomBest}}
+Specifies to choose a random best scoring alignment to break ties.
+This only works when used in conjunction with \TT{-a 3}.
+
 \subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
 Specifies the average mismatch quality (should match that value used in \TT{bfast match}.
 
@@ -805,6 +809,16 @@ Which strand to examine: 0 - both strands, 1 - item forward strand only, and 2 -
 
 \subsubsection{\TT{-n INT}}
 The number of threads to use for the search.
+
+\subsection{bmfmerge}
+\label{sec:bmfmerge}
+\TT{bmfmerge} merges the results from searches from different indexes under the assumption that all the searches were performed on the same dataset.
+This performs the final merge step in \TT{bfast match} separately such that the merge step can be separated from the search step.
+
+\subsubsection{\TT{-M INTEGER, --maxNumMatches=INTEGER}}
+Specifies the maximum number of CALs to allow before we stop searching for CALS for a given read.
+If the limit is reached, the read will be flagged and ignored in later alignment processes.
+For example, a value of $500$ may be useful when aligning the to Human Genome given that each index used is expected to return one CAL.
 
 \subsection{brepeat}
 \label{sec:brepeat}
@@ -1504,13 +1518,13 @@ We use as input the \BAF{} created in the previous step.
 In this case, we choose to output the best unambiguous alignment for each read.
 The command we use to prioritize alignments is:
 \begin{script}
-	bfast postprocess -f phi.x.174.fa -i bfast.aligned.file.phi.x.174.baf -a 3 -O 3 $>$ bfast.reported.file.phi.x.174.sam
+	bfast postprocess -f phi.x.174.fa -i bfast.aligned.file.phi.x.174.baf $>$ bfast.reported.file.phi.x.174.sam
 \end{script}
 This should create one output file, a \BSAMF{}.
 
 The third and fifth step can performed in a pipe-and-filter format, generating only one output file:
 \begin{script}
-	cat reads.phi.x.174.fastq $|$ bfast match -f phi.x.174.fa $|$ bfast localalign -f phi.x.174.fa $|$ bfast postprocess -f phi.x.174.fa -a 3 -O 3 $>$ bfast.reported.file.phi.x.174.sam
+	cat reads.phi.x.174.fastq $|$ bfast match -f phi.x.174.fa $|$ bfast localalign -f phi.x.174.fa $|$ bfast postprocess -f phi.x.174.fa $>$ bfast.reported.file.phi.x.174.sam
 \end{script}
 \chapter{Appendix}
 \section{Human Genome Alignment Recommended Settings}
@@ -1574,7 +1588,7 @@ Search the indexes:\\
 Perform local alignment:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.s\_<N>.bmf $>$ bfast.aligned.file.s\_<N>.baf\\}
 Filter alignments:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.s\_<N>.baf -a 3 -O 3 \\
+{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.s\_<N>.baf\\
 $>$ bfast.reported.file.s\_<N>.sam\\}
 \\
 
@@ -1614,9 +1628,10 @@ Create the indexes:\\
 Search the indexes:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast match -f hg18.fa -A 1 -r reads.<N>.fastq $>$ bfast.matches.file.hg18.<N>.bmf\\}
 Perform local alignment:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A 1 $>$ bfast.aligned.file.hg18.<N>.baf\\}
+{\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A \\
+$>$ bfast.aligned.file.hg18.<N>.baf\\}
 Filter alignments:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.hg18.<N>.baf -a 3 -O 3\\
+{\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.hg18.<N>.baf -A 1\\
 $>$ bfast.reported.file.hg18.<N>.sam\\}
 \\
 Note that for parallel computation, execute {\tt bfast match}, {\tt bfast localalign}, and {\tt bfast postprocess} for each converted input file created (replace $<N>$ with the input file number).

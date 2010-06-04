@@ -16,6 +16,7 @@ struct arguments
 	int reversePaired;						/* -R */
 	int avgMismatchQuality;					/* -q */
 	char *scoringMatrixFileName;			/* -x */
+	int randomBest;						    /* -z */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
 	char *unmappedFileName;					/* -i */
