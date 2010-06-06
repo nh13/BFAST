@@ -301,7 +301,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	foundExact = 0;
 	/* Try exact alignment */
 	for(i=0;i<end->numEntries;i++) {
-		if(1==AlignExact(read, 
+		if(readLength <= referenceLengths[i] &&
+				1==AlignExact(read, 
 					readLength, 
 					references[i], 
 					referenceLengths[i],
@@ -346,7 +347,8 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 		 * */
 		if(Gapped != ungapped || Constrained != unconstrained) {
 			for(i=0;i<end->numEntries;i++) {
-				if(!(NEGATIVE_INFINITY < end->entries[i].score)) { // If we did not find an exact match
+				if(readLength <= referenceLengths[i] &&
+						!(NEGATIVE_INFINITY < end->entries[i].score)) { // If we did not find an exact match
 					numberFound += AlignUngapped(read,
 							colors,
 							masks[i],
@@ -466,6 +468,8 @@ int32_t AlignExact(char *read,
 	int32_t i;
 	int32_t foundOffset = -1;
 
+	assert(readLength <= referenceLength);
+
 	// Use this when we want to perform exact substring matching 
 	//foundOffset = KnuthMorrisPratt(read, readLength, reference, referenceLength);
 
@@ -535,6 +539,8 @@ int32_t AlignUngapped(char *read,
 {
 	// Note: we do not allow any wiggle room in ungapped alignment
 	char *FnName="AlignUngapped";
+	
+	assert(readLength <= referenceLength);
 
 	switch(space) {
 		case NTSpace:
