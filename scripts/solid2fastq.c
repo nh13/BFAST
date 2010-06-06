@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
 
 	// Remove last fastq file when total input reads % num_reads_per_file == 0
 	// We don't want an empty file
-	if(0 == output_count && 0 == no_output) {
+  if(0 == output_count && 0 == no_output && NULL != output_prefix) {
 		char empty_fn[4096]="\0";
 		assert(0 < sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number));
 		if(remove(empty_fn)) { 
