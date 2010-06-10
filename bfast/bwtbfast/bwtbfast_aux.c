@@ -384,6 +384,10 @@ int32_t bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len,
 {
 	int32_t i, prev_i, j;
 
+	if(len <=0) {
+		return 0;
+	}
+
 	for(i=prev_i=0;i<len;i++) {
 		if(i != prev_i && 0 != strcmp(match_queue[prev_i].read_name, match_queue[i].read_name)) {
 			// print prev_i to i-1
@@ -410,35 +414,37 @@ int32_t bfast_rg_match_t_print_queue(bfast_rg_match_t *match_queue, int32_t len,
 	}
 	else {
 		// copy to the front
-		for(j=prev_i;j<=len-1;j++) {
-			match_queue[j-prev_i].read_int = match_queue[j].read_int;
-			match_queue[j].read_int = NULL;
-			match_queue[j-prev_i].read_rc_int = match_queue[j].read_rc_int;
-			match_queue[j].read_rc_int = NULL;
-			match_queue[j-prev_i].read_name_length = match_queue[j].read_name_length;
-			match_queue[j].read_name_length=0;
-			match_queue[j-prev_i].read_name = match_queue[j].read_name;
-			match_queue[j].read_name=NULL;
-			match_queue[j-prev_i].read_length = match_queue[j].read_length;
-			match_queue[j].read_length=0;
-			match_queue[j-prev_i].read = match_queue[j].read;
-			match_queue[j].read=NULL;
-			match_queue[j-prev_i].qual_length = match_queue[j].qual_length;
-			match_queue[j].qual_length=0;
-			match_queue[j-prev_i].qual = match_queue[j].qual;
-			match_queue[j].qual=NULL;
-			match_queue[j-prev_i].max_reached = match_queue[j].max_reached;
-			match_queue[j].max_reached=0;
-			match_queue[j-prev_i].num_entries = match_queue[j].num_entries;
-			match_queue[j].num_entries=0;
-			match_queue[j-prev_i].contigs = match_queue[j].contigs;
-			match_queue[j].contigs=NULL;
-			match_queue[j-prev_i].positions = match_queue[j].positions;
-			match_queue[j].positions=NULL;
-			match_queue[j-prev_i].strands = match_queue[j].strands;
-			match_queue[j].strands=NULL;
-			match_queue[j-prev_i].masks = match_queue[j].masks;
-			match_queue[j].masks=NULL;
+		if(0 < prev_i) {
+			for(j=prev_i;j<=len-1;j++) {
+				match_queue[j-prev_i].read_int = match_queue[j].read_int;
+				match_queue[j].read_int = NULL;
+				match_queue[j-prev_i].read_rc_int = match_queue[j].read_rc_int;
+				match_queue[j].read_rc_int = NULL;
+				match_queue[j-prev_i].read_name_length = match_queue[j].read_name_length;
+				match_queue[j].read_name_length=0;
+				match_queue[j-prev_i].read_name = match_queue[j].read_name;
+				match_queue[j].read_name=NULL;
+				match_queue[j-prev_i].read_length = match_queue[j].read_length;
+				match_queue[j].read_length=0;
+				match_queue[j-prev_i].read = match_queue[j].read;
+				match_queue[j].read=NULL;
+				match_queue[j-prev_i].qual_length = match_queue[j].qual_length;
+				match_queue[j].qual_length=0;
+				match_queue[j-prev_i].qual = match_queue[j].qual;
+				match_queue[j].qual=NULL;
+				match_queue[j-prev_i].max_reached = match_queue[j].max_reached;
+				match_queue[j].max_reached=0;
+				match_queue[j-prev_i].num_entries = match_queue[j].num_entries;
+				match_queue[j].num_entries=0;
+				match_queue[j-prev_i].contigs = match_queue[j].contigs;
+				match_queue[j].contigs=NULL;
+				match_queue[j-prev_i].positions = match_queue[j].positions;
+				match_queue[j].positions=NULL;
+				match_queue[j-prev_i].strands = match_queue[j].strands;
+				match_queue[j].strands=NULL;
+				match_queue[j-prev_i].masks = match_queue[j].masks;
+				match_queue[j].masks=NULL;
+			}
 		}
 		return len-prev_i;
 	}
