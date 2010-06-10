@@ -754,6 +754,10 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		MD[MDi] = '0';
 		MDi++;
 	}
+	if(0 == MDi) { // add NULL zero
+		MD[0]='0';
+		MDi++;
+	}
 	MD[MDi]='\0';
 
 	/* Convert to cigar format */
