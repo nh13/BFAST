@@ -956,8 +956,7 @@ END_OUTPUT
 		# Redirect PBS stderr/stdout, since it buffers them
 		if ("PBS" eq $data->{'globalOptions'}->{'queueType'}) {
 			my $pbs_stderr_redirect = "$run_file.stderr.redirect";
-			my $pbs_stdout_redirect = "$run_file.stdout.redirect";
-			$output .= "run \"$command 2> $pbs_stderr_redirect > $pbs_stdout_redirect\";\n";
+			$output .= "run \"$command 2> $pbs_stderr_redirect\";\n";
 		}
 		else {
 			$output .= "run \"$command\";\n";
