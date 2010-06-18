@@ -1628,7 +1628,7 @@ Create the indexes:\\
 Search the indexes:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast match -f hg18.fa -A 1 -r reads.<N>.fastq $>$ bfast.matches.file.hg18.<N>.bmf\\}
 Perform local alignment:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A \\
+{\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A 1\\
 $>$ bfast.aligned.file.hg18.<N>.baf\\}
 Filter alignments:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.hg18.<N>.baf -A 1\\
