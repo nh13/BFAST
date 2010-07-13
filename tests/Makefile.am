@@ -8,4 +8,5 @@ TESTS = test.initialize.sh \
 		test.localalign.sh \
 		test.postprocess.sh \
 		test.diff.sh \
+		test.solid2fastq.sh \
 		test.cleanup.sh

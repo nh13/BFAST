@@ -10,7 +10,7 @@ sh test.match.sh
 sh test.localalign.sh
 sh test.postprocess.sh
 # Update md5sum
-md5sum $OUTPUT_DIR/bfast* > $OUTPUT_DIR/tests.md5
+$MD5BIN $OUTPUT_DIR/bfast* > $OUTPUT_DIR/tests.md5
 # Archive
 cd $DATA_DIR
 tar -jxvf data.tar.bz2
