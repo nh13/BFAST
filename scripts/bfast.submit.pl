@@ -93,7 +93,7 @@ sub Schema {
 			  <xs:element name="javaBin" type="directoryPath"/>
 			  <xs:element name="qsubBin" type="directoryPath"/>
 			  <xs:element name="fastaFileName" type="filePath" use="required"/>
-			  <xs:element name="runDirectory" type="directoryPath" use="required">
+			  <xs:element name="runDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="readsDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="outputDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="tmpDirectory" type="directoryPath" use="required"/>
