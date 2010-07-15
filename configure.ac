@@ -23,7 +23,7 @@ AC_GNU_SOURCE
 
 # set CFLAGS and CXXFLAGS
 default_CFLAGS="-Wall -g -O2 -pthread";
-extended_CFLAGS="-m64 -D_FILE_OFFSET_BITS=64";
+extended_CFLAGS="";# "-m64 -D_FILE_OFFSET_BITS=64";
 
 # Define some variables
 GITREV="Revision: undefined$";
