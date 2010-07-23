@@ -5,6 +5,7 @@
 #include <zlib.h>
 #include "BLibDefinitions.h"
 
+int32_t RGMatchesRead_2bmf(gzFile, gzFile, gzFile, RGMatches*);
 int32_t RGMatchesRead(gzFile, RGMatches*);
 int32_t RGMatchesReadWithOffsets(gzFile, RGMatches*);
 int32_t RGMatchesReadText(FILE*, RGMatches*);

@@ -102,13 +102,14 @@ BfastLocalAlign(int argc, char **argv)
 					}
 					else {
 						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
-
 					}
 					BfastLocalAlignPrintProgramParameters(stderr, &arguments);
 					/* Execute Program */
 					/* Run the aligner */
 					RunAligner(arguments.fastaFileName,
 							arguments.matchFileName,
+							arguments.bmfFileNameOne,
+  						arguments.bmfFileNameTwo,
 							arguments.scoringMatrixFileName,
 							arguments.ungapped,
 							arguments.unconstrained,
@@ -254,6 +255,14 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);	
 	}
 
+  /* Checking when passing two bmf files */
+  if (args->matchFileName != NULL && (args->bmfFileNameOne !=NULL || args->bmfFileNameTwo != NULL)) {
+		PrintError(FnName, "matchFileName", "Command line argument (Single MatchFile or use -O -T)", Exit, OutOfRange);	
+  }
+  if (args->matchFileName == NULL && (args->bmfFileNameOne ==NULL || args->bmfFileNameOne == NULL)) {
+		PrintError(FnName, "matchFileName", "Command line argument (Need -O and -T)", Exit, OutOfRange);	
+  }
+
 	return 1;
 }
 
@@ -282,6 +291,9 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->pairedEndLength = 0;
 	args->mirroringType = NoMirroring;
 	args->forceMirroring = 0;
+
+	args->bmfFileNameOne = NULL;
+	args->bmfFileNameTwo = NULL;
 
 	args->timing = 0;
 
@@ -410,6 +422,12 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 				arguments->queueLength=atoi(optarg);break;
 			case 'U':
 				arguments->unconstrained=Unconstrained;break;
+
+      case 'O':
+				arguments->bmfFileNameOne=strdup(optarg);break;
+      case 'T':
+				arguments->bmfFileNameTwo=strdup(optarg);break;
+
 			default:
 				OptErr=1;
 		} /* while */

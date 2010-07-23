@@ -21,6 +21,8 @@ static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 /* TODO */
 void RunAligner(char *fastaFileName,
 		char *matchFileName,
+		char *bmfFileNameOne,
+	  char *bmfFileNameTwo,
 		char *scoringMatrixFileName,
 		int32_t ungapped,
 		int32_t unconstrained,
@@ -42,6 +44,8 @@ void RunAligner(char *fastaFileName,
 {
 	char *FnName = "RunAligner";
 	gzFile outputFP=NULL;
+	gzFile bmf1_FP=NULL;
+  gzFile bmf2_FP=NULL;
 	gzFile matchFP=NULL;
 	int32_t startTime, endTime;
 	RGBinary rg;
@@ -77,19 +81,28 @@ void RunAligner(char *fastaFileName,
 				(NULL == matchFileName) ? "stdin" : matchFileName);
 	}
 
-	/* Open current match file */
-	if(NULL == matchFileName) {
+	/* Open current match file -- If we are not in two bmf file mode */
+	if(NULL == matchFileName && (NULL==bmfFileNameOne && NULL==bmfFileNameTwo)) {
 		if((matchFP=gzdopen(fileno(stdin), "rb"))==0) {
 			PrintError(FnName, "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
-	else {
+  /* Regular 1 bmf file mode */
+	else if(NULL==bmfFileNameOne && NULL==bmfFileNameTwo) { 
 		if((matchFP=gzopen(matchFileName, "rb"))==0) {
 			PrintError(FnName, matchFileName, "Could not open file for reading", Exit, OpenFileError);
 		}
 	}
+  /* two bmf input files mode */
+  else { 
+		if((bmf1_FP=gzopen(bmfFileNameOne, "rb"))==0 || (bmf2_FP=gzopen(bmfFileNameTwo, "rb"))==0) {
+			PrintError(FnName, matchFileName, "Could not open file for reading (2 bmf)", Exit, OpenFileError);
+    }    
+  }
 
 	RunDynamicProgramming(matchFP,
+      bmf1_FP,
+      bmf2_FP, 
 			&rg,
 			scoringMatrixFileName,
 			ungapped,
@@ -173,6 +186,8 @@ void RunAligner(char *fastaFileName,
 
 /* TODO */
 void RunDynamicProgramming(gzFile matchFP,
+    gzFile bmf1_FP,
+    gzFile bmf2_FP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
 		int32_t ungapped,
@@ -281,7 +296,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	}
 
 	startTime = time(NULL);
-	while(0 != (numMatchesRead = GetMatches(matchFP, &matchFPctr, startReadNum, endReadNum, matchQueue, queueLength))) {
+	while(0 != (numMatchesRead = GetMatches(matchFP, bmf1_FP, bmf2_FP, &matchFPctr, startReadNum, endReadNum, matchQueue, queueLength))) {
 		endTime = time(NULL);
 		(*totalFileHandlingTime) += endTime - startTime;
 
@@ -527,7 +542,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	return arg;
 }
 
-int32_t GetMatches(gzFile matchFP, int32_t *matchFPctr, int32_t startReadNum, int32_t endReadNum, RGMatches *m, int32_t maxToRead)
+int32_t GetMatches(gzFile matchFP, gzFile bmf1_FP, gzFile bmf2_FP, int32_t *matchFPctr, int32_t startReadNum, int32_t endReadNum, RGMatches *m, int32_t maxToRead)
 {
 	char *FnName="GetMatches";
 	int32_t numRead = 0;
@@ -539,9 +554,9 @@ int32_t GetMatches(gzFile matchFP, int32_t *matchFPctr, int32_t startReadNum, in
 	else {
 		while(numRead < maxToRead && (*matchFPctr) <= endReadNum) {
 			RGMatchesInitialize(&(m[numRead]));
-			if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) {
-				break;
-			}
+			if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) { 
+        break; 
+      }
 			(*matchFPctr)++;
 			numRead++;
 		}

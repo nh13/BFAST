@@ -15,9 +15,14 @@
 
 #define RGMATCHES_CHECK 0
 
+/* Specific for when we work with two bmf as input file */
+int32_t RGMatchesRead_2bmf(gzFile fp, gzFile bmf1_FP, gzFile bmf2_FP, RGMatches *m)
+{
+  return 1;
+}
+
 /* TODO */
-int32_t RGMatchesRead(gzFile fp,
-		RGMatches *m)
+int32_t RGMatchesRead(gzFile fp, RGMatches *m)
 {
 	char *FnName = "RGMatchesRead";
 	int32_t i;
