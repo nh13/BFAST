@@ -554,9 +554,14 @@ int32_t GetMatches(gzFile matchFP, gzFile bmf1_FP, gzFile bmf2_FP, int32_t *matc
 	else {
 		while(numRead < maxToRead && (*matchFPctr) <= endReadNum) {
 			RGMatchesInitialize(&(m[numRead]));
-			if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) { 
-        break; 
+      /* one bmf as input file */
+      if (NULL!=matchFP && NULL==bmf1_FP && NULL==bmf2_FP) {
+			  if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) { break; }
       }
+      /* two bmfs files as input */
+      else {
+			  if(EOF == RGMatchesRead_2bmf(matchFP, bmf1_FP, bmf2_FP, &(m[numRead]))) { break; }
+      }      
 			(*matchFPctr)++;
 			numRead++;
 		}
