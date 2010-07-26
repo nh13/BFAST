@@ -69,7 +69,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:m:n:o:q:s:x:A:M:Q:T:hptuU";
+"e:f:m:n:o:q:s:x:A:M:Q:O:T::hptuU";
 //"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
 
 	int
@@ -308,7 +308,10 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "Printing Program Parameters:\n");
 		fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
 		fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+		fprintf(fp, "bmfFileNameOne:\t\t\t\t%s\n", args->bmfFileNameOne);
+		fprintf(fp, "bmfFileNameTwo:\t\t\t\t%s\n", args->bmfFileNameTwo);
 		fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
+		fprintf(fp, "bmf:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
 		fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
 		fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));

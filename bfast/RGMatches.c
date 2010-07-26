@@ -15,13 +15,70 @@
 
 #define RGMATCHES_CHECK 0
 
-/* Specific for when we work with two bmf as input file */
-int32_t RGMatchesRead_2bmf(gzFile fp, gzFile bmf1_FP, gzFile bmf2_FP, RGMatches *m)
+/* The bmf data is coming from two files */
+int32_t RGMatchesRead_2bmf(gzFile bmf1_FP, gzFile bmf2_FP, RGMatches *m)
 {
-  return 1;
+  //return RGMatchesRead(bmf2_FP, m);
+	char *FnName = "RGMatchesRead_2bmf";
+  char r2_name[1000];
+	int32_t i, rl2, ne_tmp; /* read length read 2 , number of ends tmp */
+
+	/* Read read(1/2) name length */
+	if(gzread64(bmf1_FP, &m->readNameLength, sizeof(int32_t))!=sizeof(int32_t)) { return EOF; }
+	if(gzread64(bmf2_FP, &rl2, sizeof(int32_t))!=sizeof(int32_t)) { return EOF; }
+	assert(m->readNameLength < SEQUENCE_NAME_LENGTH);
+	assert(m->readNameLength > 0);
+	assert(rl2 < SEQUENCE_NAME_LENGTH);
+	assert(rl2 > 0);
+
+	/* Allocate memory for the read name */
+	m->readName = malloc(sizeof(char)*(m->readNameLength + 1));
+	if(NULL == m->readName) {
+		PrintError(FnName, "m->readName", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	/* Read in read name (read 1)*/
+	if(gzread64(bmf1_FP, m->readName, sizeof(char)*m->readNameLength)!=sizeof(char)*m->readNameLength) {
+		PrintError(FnName, "m->readName", "Could not read in read name", Exit, ReadFileError);
+	}
+	m->readName[m->readNameLength]='\0';
+
+	/* Read in read name (read 2); we don't need it, but we have to increase the FP to the next bucket */
+	if(gzread64(bmf2_FP, r2_name, sizeof(char)*rl2) != sizeof(char)*rl2) {
+		PrintError(FnName, "r2_name", "Could not read in read name 2", Exit, ReadFileError);
+	}
+	r2_name[m->readNameLength]='\0';
+	assert(0 == strcmp(m->readName, r2_name));
+
+	/* Read numEnds -- We know we'll have to force it to 2, but we have to increase the FP in the bmf files */
+	if(gzread64(bmf1_FP, &m->numEnds, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName, "numEnds", "Could not read in numEnds", Exit, ReadFileError);
+	}
+	assert(1 == m->numEnds);
+	if(gzread64(bmf2_FP, &ne_tmp, sizeof(int32_t))!=sizeof(int32_t)) {
+		PrintError(FnName, "numEnds 2", "Could not read in numEnds 2", Exit, ReadFileError);
+	}
+	assert(1 == ne_tmp);
+  m->numEnds = 2; /* We are running PE mode but the read info is coming from two different files */
+
+	/* Allocate the ends */
+	m->ends = malloc(sizeof(RGMatch)*m->numEnds);
+	if(NULL == m->ends) {
+		PrintError(FnName, "m->ends", "Could not allocate memory", Exit, MallocMemory);
+	}
+
+	/* Read each end */
+	for(i=0;i<m->numEnds;i++) {
+		/* Initialize */
+		RGMatchInitialize(&m->ends[i]);
+		/* Read */
+    if (i == 0) { RGMatchRead(bmf1_FP, &m->ends[i]); }
+    if (i == 1) { RGMatchRead(bmf2_FP, &m->ends[i]); }
+	}
+
+	return 1;
 }
 
-/* TODO */
 int32_t RGMatchesRead(gzFile fp, RGMatches *m)
 {
 	char *FnName = "RGMatchesRead";
