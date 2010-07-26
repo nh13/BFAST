@@ -162,7 +162,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Postprocesing...\n");
+		fprintf(stderr, "Postprocessing...\n");
 		fprintf(stderr, "Reads processed: 0");
 	}
 	numRead = 0;
