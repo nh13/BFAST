@@ -69,7 +69,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:m:n:o:q:s:x:A:M:Q:O:T::hptuU";
+"e:f:m:n:o:q:s:x:A:M:Q:O:T:hptuU";
 //"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
 
 	int
