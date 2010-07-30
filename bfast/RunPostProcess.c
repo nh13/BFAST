@@ -27,6 +27,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
 		int randomBest,
+	int minimumMappingQuality,
+	int minimumNormalizedScore,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
@@ -162,7 +164,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 	/* Go through each read */
 	if(VERBOSE >= 0) {
-		fprintf(stderr, "Postprocesing...\n");
+		fprintf(stderr, "Postprocessing...\n");
 		fprintf(stderr, "Reads processed: 0");
 	}
 	numRead = 0;
@@ -185,6 +187,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			data[i].avgMismatchQuality = avgMismatchQuality;
 			data[i].randomBest = randomBest;
 			data[i].mismatchScore = mismatchScore;
+			data[i].minimumMappingQuality = minimumMappingQuality; 
+			data[i].minimumNormalizedScore = minimumNormalizedScore; 
 			data[i].alignQueue =  alignQueue;
 			data[i].alignQueueThreadIDs =  alignQueueThreadIDs;
 			data[i].queueLength = numRead;
@@ -347,6 +351,8 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	int avgMismatchQuality = data->avgMismatchQuality;
 	int randomBest = data->randomBest;
 	int mismatchScore = data->mismatchScore;
+	int minimumMappingQuality = data->minimumMappingQuality;
+	int minimumNormalizedScore = data->minimumNormalizedScore;
 	AlignedRead *alignQueue = data->alignQueue;
 	int32_t *alignQueueThreadIDs = data->alignQueueThreadIDs;
 	int queueLength = data->queueLength;
@@ -398,6 +404,8 @@ void *ReadInputFilterAndOutputThread(void *arg)
 					avgMismatchQuality,
 					randomBest,
 					mismatchScore,
+					minimumMappingQuality,
+					minimumNormalizedScore,
 					bins);
 		}
 	}
@@ -473,13 +481,15 @@ int FilterAlignedRead(AlignedRead *a,
 		int avgMismatchQuality,
 		int randomBest,
 		int mismatchScore,
+		int minimumMappingQuality,
+		int minimumNormalizedScore,
 		PEDBins *b)
 {
 	char *FnName="FilterAlignedRead";
 	int foundType;
 	int32_t *foundTypes=NULL;
 	AlignedRead tmpA;
-	int32_t i, j, ctr;
+	int32_t i, j, k, ctr;
 	int32_t best, bestIndex, numBest;
 
 	AlignedReadInitialize(&tmpA);
@@ -770,6 +780,26 @@ int FilterAlignedRead(AlignedRead *a,
 		}
 	}
 
+	if(INT_MIN < minimumMappingQuality ||
+			INT_MIN < minimumNormalizedScore) {
+		for(i=0;i<tmpA.numEnds;i++) {
+			for(j=k=0;j<tmpA.ends[i].numEntries;j++) {
+				if(minimumMappingQuality <= tmpA.ends[i].entries[j].mappingQuality &&
+						minimumNormalizedScore <= tmpA.ends[i].entries[j].score/AlignedEntryGetReadLength(&tmpA.ends[i].entries[j])) {
+					// Copy to the front
+					if(j != k) {
+						AlignedEntryCopy(&tmpA.ends[i].entries[k], &tmpA.ends[i].entries[j]);
+					}
+					k++;
+				}
+			}
+			// Reallocate
+			if(k < tmpA.ends[i].numEntries) {
+				AlignedEndReallocate(&tmpA.ends[i], k);
+			}
+		}
+	}
+
 	// Found if one end is found
 	foundType=NoneFound;
 	for(i=0;NoneFound==foundType && i<tmpA.numEnds;i++) {
@@ -786,6 +816,7 @@ int FilterAlignedRead(AlignedRead *a,
 	}
 	AlignedReadFree(&tmpA);
 	free(foundTypes);
+
 
 	return foundType;
 }
@@ -845,6 +876,8 @@ int32_t GetPEDBins(char *inputFileName,
 						-1,
 						INT_MIN,
 						0,
+						INT_MIN,
+						INT_MIN,
 						INT_MIN,
 						NULL);
 

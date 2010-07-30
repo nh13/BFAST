@@ -613,6 +613,9 @@ Each end of a read will be examined independently.
 \subsubsection{\tt{-R, --reverseStrand}}
 Specifies to expect paired reads to be on reverse strands.
 
+\subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
+Specifies the average mismatch quality (should match that value used in \TT{bfast match}.
+
 \subsubsection{\TT{-x FILENAME, --scoringMatrixFileName=FILENAME}}
 Specifies the Scoring Matrix file used to score the alignments.
 Please see \autoref{sec:scoringmatrixfile} for the file format.
@@ -623,9 +626,12 @@ If this option is used with ABI SOLiD data, then the \TT{-A 1} option must be se
 Specifies to choose a random best scoring alignment to break ties.
 This only works when used in conjunction with \TT{-a 3}.
 
-\subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
-Specifies the average mismatch quality (should match that value used in \TT{bfast match}.
+\subsubsection{\tt{-m INTEGER, --minMappingQuality=INTEGER}}
+Specifies to choose remove all alignments with worse mapping quality.
 
+\subsubsection{\tt{-M INTEGER, --minNormalizedScore=INTEGER}}
+Specifies to choose remove all alignments with worse normalized alignment score.
+The normalized alignment score is calculated by dividing the alignment score by the read length.
 \section{bfast bafconvert}
 \label{sec:bafconvert}
 \TT{bfast bafconvert} converts \BAF{s} to the specified output format.
@@ -1628,7 +1634,7 @@ Create the indexes:\\
 Search the indexes:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast match -f hg18.fa -A 1 -r reads.<N>.fastq $>$ bfast.matches.file.hg18.<N>.bmf\\}
 Perform local alignment:\\
-{\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A \\
+{\tt \scriptsize \$bfast-\Version{}/bfast localalign -f hg18.fa -m bfast.matches.file.hg18.<N>.bmf -A 1\\
 $>$ bfast.aligned.file.hg18.<N>.baf\\}
 Filter alignments:\\
 {\tt \scriptsize \$bfast-\Version{}/bfast postprocess -f hg18.fa -i bfast.aligned.file.hg18.<N>.baf -A 1\\

@@ -230,19 +230,7 @@ void AlignColorSpaceGappedBounded(char *colors,
 		}
 	}
 
-	AlignColorSpaceRecoverAlignmentFromMatrix(a, 
-			matrix, 
-			colors, 
-			readLength, 
-			reference, 
-			referenceLength,
-			0, 
-			0,
-			readLength - maxV, 
-			position, 
-			strand, 
-			alphabetSize, 
-			0);
+	AlignColorSpaceRecoverAlignmentFromMatrix(a, matrix, colors, readLength, reference, referenceLength, 0, 0, readLength - maxV, position, strand, alphabetSize, 0);
 }
 
 void AlignColorSpaceGappedConstrained(char *colors,

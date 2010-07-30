@@ -17,6 +17,8 @@ struct arguments
 	int avgMismatchQuality;					/* -q */
 	char *scoringMatrixFileName;			/* -x */
 	int randomBest;						    /* -z */
+	int minMappingQuality;				    /* -m */
+	int minNormalizedScore;				    /* -M */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
 	char *unmappedFileName;					/* -i */

@@ -49,9 +49,9 @@ void RunAligner(char *fastaFileName,
 	gzFile matchFP=NULL;
 	int32_t startTime, endTime;
 	RGBinary rg;
-	int32_t totalReferenceGenomeTime;
-	int32_t totalAlignedTime;
-	int32_t totalFileHandlingTime;
+	int32_t totalReferenceGenomeTime=0;
+	int32_t totalAlignedTime=0;
+	int32_t totalFileHandlingTime=0;
 	int32_t seconds, minutes, hours;
 
 	startTime = time(NULL);
@@ -271,7 +271,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	}
 	/* End file handling timer */
 	endTime = time(NULL);
-	totalFileHandlingTime += endTime - startTime;
+	(*totalFileHandlingTime) += endTime - startTime;
 
 	/* Calculate mismatch score */
 	/* Assumes all match scores are the same and all substitution scores are the same */

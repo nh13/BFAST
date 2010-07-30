@@ -25,7 +25,7 @@ my %LOCALALIGNMENTTYPE = ("GAPPED" => 0, "UNGAPPED" => 1);
 my %STRAND = ("BOTH" => 0, "FORWARD" => 1, "REVERSE" => 2);
 my %STARTSTEP = ("match" => 0, "localalign" => 1, "postprocess" => 2, "sam" => 3);
 my %OUTTYPES = (0 => "baf", 1 => "maf", 2 => "gff", 3 => "sam");
-my %COMPRESSION = ("none" => ".fastq", "gz" => "-z", "bz2" => "-z");
+my %COMPRESSION = ("none" => ".fastq", "gz" => "-z", "bz2" => "-j");
 my $FAKEQSUBID = 0;
 
 use constant {
@@ -93,7 +93,7 @@ sub Schema {
 			  <xs:element name="javaBin" type="directoryPath"/>
 			  <xs:element name="qsubBin" type="directoryPath"/>
 			  <xs:element name="fastaFileName" type="filePath" use="required"/>
-			  <xs:element name="runDirectory" type="directoryPath" use="required">
+			  <xs:element name="runDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="readsDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="outputDirectory" type="directoryPath" use="required"/>
 			  <xs:element name="tmpDirectory" type="directoryPath" use="required"/>
@@ -138,7 +138,7 @@ sub Schema {
 			  <xs:element name="secondaryIndexes" type="xs:string"/>
 			  <xs:element name="offsets" type="xs:string"/>
 			  <xs:element name="loadAllIndexes" type="xs:integer"/>
-			  <xs:element name="readsCompression">
+			  <xs:element name="readCompression">
 				<xs:simpleType>
 				  <xs:restriction base="xs:string">
 					<xs:enumeration value="none"/>
@@ -956,8 +956,7 @@ END_OUTPUT
 		# Redirect PBS stderr/stdout, since it buffers them
 		if ("PBS" eq $data->{'globalOptions'}->{'queueType'}) {
 			my $pbs_stderr_redirect = "$run_file.stderr.redirect";
-			my $pbs_stdout_redirect = "$run_file.stdout.redirect";
-			$output .= "run \"$command 2> $pbs_stderr_redirect > $pbs_stdout_redirect\";\n";
+			$output .= "run \"$command 2> $pbs_stderr_redirect\";\n";
 		}
 		else {
 			$output .= "run \"$command\";\n";
