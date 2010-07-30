@@ -500,6 +500,18 @@ void AlignedEntryUpdateAlignment(AlignedEntry *a,
 	}
 }
 
+int32_t AlignedEntryGetReadLength(AlignedEntry *a)
+{
+	int32_t i, l;
+	for(i=l=0;i<a->alnReadLength;i++) {
+		char b = getAlnReadBase(a->alnRead, i);
+		if(GAP != b) {
+			l++;
+		}
+	}
+	return l;
+}
+
 int32_t AlignedEntryGetAlignment(AlignedEntry *a,
 		RGBinary *rg,
 		char alignment[3][SEQUENCE_LENGTH],

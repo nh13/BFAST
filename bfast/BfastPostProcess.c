@@ -21,7 +21,7 @@
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
 	DescAlgoTitle, DescAlgorithm, DescSpace, DescUnpaired, DescReversePaired, DescAvgMismatchQuality, 
-	DescScoringMatrixFileName, DescRandomBest, DescNumThreads, DescQueueLength, 
+	DescScoringMatrixFileName, DescRandomBest, DescMinimumMappingQuality, DescMinimumNormalizedScore, DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -45,6 +45,8 @@ static struct argp_option options[] = {
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"randomBest", 'z', 0, OPTION_NO_USAGE, "Specifies to output a random best scoring alignment (with -a 3)", 2},
+	{"minMappingQuality", 'm', "minMappingQuality", 0, "Specifies to remove low mapping quality alignments", 2},
+	{"minNormalizedScore", 'M', "minNormalizedScore", 0, "Specifies to remove low (alignment) scoring alignments", 2},
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
@@ -63,7 +65,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:n:o:q:r:u:x:A:O:Q:hptzRU";
+"a:i:f:m:n:o:q:r:u:x:A:M:O:Q:hptzRU";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -118,6 +120,8 @@ BfastPostProcess(int argc, char **argv)
 							arguments.avgMismatchQuality,
 							arguments.scoringMatrixFileName,
 							arguments.randomBest,
+							arguments.minMappingQuality,
+							arguments.minNormalizedScore,
 							arguments.numThreads,
 							arguments.queueLength,
 							arguments.outputFormat,
@@ -227,7 +231,6 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "avgMismatchQuality", "Command line argument", Exit, OutOfRange);
 	}
 
-
 	if(args->numThreads <= 0) {
 		PrintError(FnName, "numThreads", "Command line argument", Exit, OutOfRange);
 	}
@@ -277,6 +280,8 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->reversePaired=0;
 	args->scoringMatrixFileName=NULL;
 	args->randomBest=0;
+	args->minMappingQuality=INT_MIN;
+	args->minNormalizedScore=INT_MIN;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads=1;
 	args->queueLength=DEFAULT_POSTPROCESS_QUEUE_LENGTH;
@@ -310,6 +315,8 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
 		fprintf(fp, "scoringMatrixFileName:\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "randomBest:\t\t%s\n", INTUSING(args->randomBest));
+		fprintf(fp, "minMappingQuality:\t%d\n", args->minMappingQuality);
+		fprintf(fp, "minNormalizedScore:\t%d\n", args->minNormalizedScore);
 		fprintf(fp, "numThreads:\t\t%d\n", args->numThreads);
 		fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
 		fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
@@ -385,6 +392,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 			case 'i':
 				arguments->alignFileName=strdup(optarg);break;
 				break;
+			case 'm':
+				arguments->minMappingQuality=atoi(optarg);break;
 			case 'n':
 				arguments->numThreads=atoi(optarg); break;
 			case 'o':
@@ -406,6 +415,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				arguments->randomBest = 1; break;
 			case 'A':
 				arguments->space=atoi(optarg);break;
+			case 'M':
+				arguments->minNormalizedScore=atoi(optarg);break;
 			case 'O':
 				switch(atoi(optarg)) {
 					case 0:

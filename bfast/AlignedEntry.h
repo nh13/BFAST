@@ -23,6 +23,7 @@ void AlignedEntryInitialize(AlignedEntry*);
 void AlignedEntryCheckReference(AlignedEntry*, RGBinary*, int32_t);
 int32_t AlignedEntryGetPivot(AlignedEntry*, int32_t, int32_t, int32_t);
 void AlignedEntryUpdateAlignment(AlignedEntry *a, uint32_t, double, int32_t, int32_t, char*, char*);
+int32_t AlignedEntryGetReadLength(AlignedEntry*);
 int32_t AlignedEntryGetAlignment(AlignedEntry*, RGBinary*, char alignment[3][SEQUENCE_LENGTH], char*, int32_t, int32_t);
 
 #endif
