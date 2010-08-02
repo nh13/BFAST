@@ -30,6 +30,8 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
+	{"matchFileName_1", 'O', "matchFileName_1", 0, "Specifies the bfast matches file for read 1", 1},
+	{"matchFileName_2", 'T', "matchFileName_2", 0, "Specifies the bfast matches file for read 2", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 1},
 	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
