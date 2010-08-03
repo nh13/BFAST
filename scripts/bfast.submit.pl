@@ -209,6 +209,8 @@ sub Schema {
 			  <xs:element name="outputFormat" type="xs:integer"/>
 			  <xs:element name="unmappedFile" type="xs:string"/>
 			  <xs:element name="readGroupFile" type="xs:string"/>
+			  <xs:element name="minMappingQuality" type="xs:integer"/>
+			  <xs:element name="minNormalizedScore" type="xs:integer"/>
 			  <xs:element name="threads" type="positiveInteger"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
@@ -322,6 +324,8 @@ sub ValidateData {
 	ValidateOption($data->{'postprocessOptions'}, 'reversePaired',                            OPTIONAL);
 	ValidateOption($data->{'unmappedFile'}, 'unmappedFile',                                   OPTIONAL);
 	ValidateFile($data->{'postprocessOptions'}, 'readGroupFile',                              OPTIONAL);
+	ValidateOptions($data->{'postprocessOptions'}, 'minMappingQuality', 					  OPTIONAL);
+	ValidateOptions($data->{'postprocessOptions'}, 'minNormalizedScore', 					  OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'threads',                                  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
@@ -758,6 +762,8 @@ sub CreateJobsPostprocess {
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
 		$cmd .= " -O ".$data->{'postprocessOptions'}->{'outputFormat'}   if defined($data->{'postprocessOptions'}->{'outputFormat'});
 		$cmd .= " -r ".$data->{'postprocessOptions'}->{'readGroupFile'}.""   if defined($data->{'postprocessOptions'}->{'readGroupFile'});
+		$cmd .= " -m ".$data->{'postprocessOptions'}->{'minMappingQuality'}.""   if defined($data->{'postprocessOptions'}->{'minMappingQuality'});
+		$cmd .= " -M ".$data->{'postprocessOptions'}->{'minNormalizedScore'}.""   if defined($data->{'postprocessOptions'}->{'minNormalizedScore'});
 		$cmd .= " -n ".$data->{'postprocessOptions'}->{'threads'}          if defined($data->{'postprocessOptions'}->{'threads'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});
