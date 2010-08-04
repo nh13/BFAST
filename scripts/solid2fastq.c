@@ -20,8 +20,8 @@ typedef struct {
 	char qual[SEQUENCE_LENGTH];
 } fastq_t;
 
-void open_output_file(char*, int32_t, int32_t, int32_t, AFILE **, int32_t, int32_t);
-void fastq_print(fastq_t*, AFILE**, int32_t, char *, int32_t, fastq_t *, int32_t);
+void open_output_file(char*, int32_t, int32_t, int32_t, AFILE **, int32_t, int32_t, int32_t);
+void fastq_print(fastq_t*, AFILE**, int32_t, char *, int32_t, fastq_t *, int32_t, int32_t);
 void dump_read(AFILE *afp_output, fastq_t *read);
 void fastq_read(fastq_t*, AFILE*, AFILE*, int32_t, int32_t);
 int32_t cmp_read_names(char*, char*);
@@ -29,9 +29,8 @@ void read_name_trim(char*);
 char *strtok_mod(char*, char*, int32_t*);
 int32_t read_line(AFILE *afp, char *line);
 void to_bwa(fastq_t *, int32_t, char *);
-void close_fds(AFILE **, int32_t, char *, int32_t);
-void open_bf_single(char *, int32_t, AFILE **, int32_t);
-void close_bf_single(AFILE **);
+void close_fds(AFILE **, int32_t, char *, int32_t, int32_t);
+void open_bf_single(char *, int32_t, AFILE **);
 
 int print_usage ()
 {
@@ -183,9 +182,9 @@ int main(int argc, char *argv[])
 		}
 	}
 	else if(0 == no_output) {
-		open_output_file(output_prefix, output_suffix_number, num_reads_per_file, out_comp, afp_output, bwa_output, number_of_ends);
+		open_output_file(output_prefix, output_suffix_number, num_reads_per_file, out_comp, afp_output, bwa_output, number_of_ends, single_output);
     if (1 == single_output) {
-      open_bf_single(output_prefix, out_comp, afp_output, single_output); 
+      open_bf_single(output_prefix, out_comp, afp_output); 
     }
 	}
 
@@ -260,7 +259,7 @@ int main(int argc, char *argv[])
 				more_afps_left++;
 				num_ends_printed++;
 				if(0 == no_output) {
-					fastq_print(&reads[i], afp_output, bwa_output, output_prefix, number_of_ends, reads, single_output);
+					fastq_print(&reads[i], afp_output, bwa_output, output_prefix, number_of_ends, reads, single_output, i);
 				}
 				reads[i].is_pop = reads[i].to_print = 0;
 			}
@@ -276,18 +275,15 @@ int main(int argc, char *argv[])
 				num_reads_per_file <= output_count) {
 			output_suffix_number++;
 			if(0 == no_output && NULL != output_prefix) {
-        close_fds(afp_output, bwa_output, output_prefix, number_of_ends);
-				open_output_file(output_prefix, output_suffix_number, num_reads_per_file, out_comp, afp_output, bwa_output, number_of_ends);
+        close_fds(afp_output, bwa_output, output_prefix, number_of_ends, single_output);
+				open_output_file(output_prefix, output_suffix_number, num_reads_per_file, out_comp, afp_output, bwa_output, number_of_ends, single_output);
 			}
 			output_count=0;
 		}
 	} // end while
 
 	if(0 < output_count && 0 == no_output) {
-    close_fds(afp_output, bwa_output, output_prefix, number_of_ends);
-    if (1 == single_output ) {
-      close_bf_single(afp_output);
-    }
+    close_fds(afp_output, bwa_output, output_prefix, number_of_ends, single_output);
 	}
 
 	// Remove last fastq file when total input reads % num_reads_per_file == 0
@@ -347,12 +343,12 @@ int main(int argc, char *argv[])
 }
 
 void open_output_file(char *output_prefix, int32_t output_suffix_number, int32_t num_reads_per_file, 
-                      int32_t out_comp, AFILE **fps, int32_t bwa_output, int32_t number_of_ends)
+                      int32_t out_comp, AFILE **fps, int32_t bwa_output, int32_t number_of_ends, int32_t single_output)
 {
 	char *FnName="open_output_file";
 	char output_filename[4096]="\0";
 
-  if (bwa_output == 0) { // BF mode
+  if (0 == bwa_output && 0 == single_output) { // Regular BF mode
 	  // Create output file name
 	  if(0 < num_reads_per_file) {
 		  assert(0 < sprintf(output_filename, "%s.%d.fastq", output_prefix, output_suffix_number));
@@ -375,9 +371,41 @@ void open_output_file(char *output_prefix, int32_t output_suffix_number, int32_t
 	  if(!(fps[0] = AFILE_afopen(output_filename, "wb", out_comp))) {
 		  PrintError(FnName, output_filename, "Could not open file for writing", Exit, OpenFileError);
 	  }
-
   }
-  else { // BWA output detected
+  else if (1 == single_output) { // BF single mode (read1, read2, single)
+	  char output_fn_r1[4096]="\0";
+	  char output_fn_r2[4096]="\0";
+
+	  if(0 < num_reads_per_file) {
+		  assert(0 < sprintf(output_fn_r1, "%s.r1.%d.fastq", output_prefix, output_suffix_number));
+		  assert(0 < sprintf(output_fn_r2, "%s.r2.%d.fastq", output_prefix, output_suffix_number));
+	  }
+	  else {
+		  assert(0 < sprintf(output_fn_r1, "%s.r1.fastq", output_prefix));
+		  assert(0 < sprintf(output_fn_r2, "%s.r2.fastq", output_prefix));
+	  }
+
+	  // Only if compression is used
+	  switch(out_comp) {
+		  case AFILE_GZ_COMPRESSION:
+			  strcat(output_fn_r1, ".gz"); break;
+			  strcat(output_fn_r2, ".gz"); break;
+		  case AFILE_BZ2_COMPRESSION:
+			  strcat(output_fn_r1, ".bz2"); break;
+			  strcat(output_fn_r2, ".bz2"); break;
+		  default: 
+			  break;
+	  }
+
+	  // Open an output file
+	  if(!(fps[0] = AFILE_afopen(output_fn_r1, "wb", out_comp))) {
+		  PrintError(FnName, output_fn_r1, "Could not open file for writing", Exit, OpenFileError);
+	  }
+	  if(!(fps[1] = AFILE_afopen(output_fn_r2, "wb", out_comp))) {
+		  PrintError(FnName, output_fn_r2, "Could not open file for writing", Exit, OpenFileError);
+	  }
+  }
+  else if (1 == bwa_output) { // BWA output detected
 	  char output_filename_read1[4096]="\0";
 	  char output_filename_read2[4096]="\0";
 	  char output_filename_single[4096]="\0";
@@ -436,14 +464,21 @@ void open_output_file(char *output_prefix, int32_t output_suffix_number, int32_t
   }
 }
 
-void fastq_print(fastq_t *read, AFILE **fps, int32_t bwa_output, char *output_prefix, int32_t number_of_ends, fastq_t *reads, int32_t single_output)
+void fastq_print(fastq_t *read, AFILE **fps, int32_t bwa_output, char *output_prefix, 
+                 int32_t number_of_ends, fastq_t *reads, int32_t single_output, int32_t rend)
 {
-  // Select the proper file descriptor to dump data 
+  assert(rend == 1 || rend == 0);
+
   if (0 == bwa_output || NULL==output_prefix) {
-    if (1 == single_output && 2 == number_of_ends && (0 != strcmp(reads[0].name, reads[1].name) ) ) { // The user wants us to dump reads without ends to the single file
-      dump_read(fps[1], read);
-    }
-    else { // No single_output enabled 
+    if (1 == single_output && 2 == number_of_ends) { 
+    	if (0 != strcmp(reads[0].name, reads[1].name)) {  // single output, read has only 1 end
+       	dump_read(fps[2], read);
+    	}
+			else { // single output enabled, the read has two ends
+     		dump_read(fps[rend], read);
+			}
+		}
+    else { // No single_output enabled
       dump_read(fps[0], read);
     }
   }
@@ -818,21 +853,20 @@ int32_t read_line(AFILE *afp, char *line)
 /*
  * Close open File descriptors
  */
-void close_fds(AFILE **afp_output, int32_t bwa_output, char *prefix_output, int32_t number_of_ends)
+void close_fds(AFILE **afp_output, int32_t bwa_output, char *prefix_output, int32_t number_of_ends, int32_t single_output)
 {
   assert(NULL != afp_output[0]);
   AFILE_afclose(afp_output[0]);
 
-  if (1 == bwa_output && prefix_output != NULL && number_of_ends == 2) {
+  if ((prefix_output != NULL && number_of_ends == 2) && (1 == bwa_output) && (1 == single_output)) { 
 	  assert(NULL != afp_output[1]);
 	  assert(NULL != afp_output[2]);
     AFILE_afclose(afp_output[1]);
     AFILE_afclose(afp_output[2]);
   }
-
 }
 
-void open_bf_single(char *output_prefix, int32_t out_comp, AFILE **fps, int32_t single_output)
+void open_bf_single(char *output_prefix, int32_t out_comp, AFILE **fps)
 {
 	char *FnName="open_bf_single";
 	char output_filename[4096]="\0";
@@ -848,13 +882,7 @@ void open_bf_single(char *output_prefix, int32_t out_comp, AFILE **fps, int32_t 
 			break;
 	}
 
-	if(!(fps[1] = AFILE_afopen(output_filename, "wb", out_comp))) {
+	if(!(fps[2] = AFILE_afopen(output_filename, "wb", out_comp))) {
 		PrintError(FnName, output_filename, "Could not open file for writing", Exit, OpenFileError);
 	}
-}
-
-void close_bf_single(AFILE **afp_output)
-{
-	  assert(NULL != afp_output[1]);
-    AFILE_afclose(afp_output[1]);
 }

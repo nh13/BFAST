@@ -1,0 +1,15 @@
+
+If you want to add some tests:
+
+1. If what you are testing deserves its own test script, add it to the Makefile.am,
+right before test.diff.sh
+
+2. Write your test script. Use any of the current ones as a reference.
+
+3. If you need to add some data for your tests, unpack data/data.tar.gz, add the
+   file or files and re-compress the tarball.
+
+4. Once your testing is completed run update.save.sh. That script will regenerate
+   the md5s that are stored in the tarball.
+
+5. Commit
