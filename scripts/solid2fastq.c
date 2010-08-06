@@ -31,6 +31,7 @@ int32_t read_line(AFILE *afp, char *line);
 void to_bwa(fastq_t *, int32_t, char *);
 void close_fds(AFILE **, int32_t, char *, int32_t, int32_t);
 void open_bf_single(char *, int32_t, AFILE **);
+int is_empty(char *path);
 
 int print_usage ()
 {
@@ -296,6 +297,7 @@ int main(int argc, char *argv[])
 			  PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
 		  }
     }
+
     if(1 == bwa_output) {
 		  char empty_fn[4096]="\0";
       FILE *f;
@@ -319,6 +321,35 @@ int main(int argc, char *argv[])
 	  }
 	}
 
+	/* When in single output mode, we may have empty files in the last split */
+	if(1 == single_output && 0 == no_output && NULL != output_prefix) {
+		char empty_fn[4096]="\0";
+    FILE *f;
+
+		assert(0 < sprintf(empty_fn, "%s.r1.%d.fastq", output_prefix, output_suffix_number));
+		if (1 == is_empty(empty_fn)) {
+    	if ((f = fopen(empty_fn, "r")) != NULL) {
+		  	if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
+      	fclose(f);
+    	}
+		}
+
+		assert(0 < sprintf(empty_fn, "%s.r2.%d.fastq", output_prefix, output_suffix_number));
+		if (1 == is_empty(empty_fn)) {
+    	if ((f = fopen(empty_fn, "r")) != NULL) {
+		  	if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
+      	fclose(f);
+    	}
+		}
+
+		assert(0 < sprintf(empty_fn, "%s.single.fastq", output_prefix));
+		if (1 == is_empty(empty_fn)) {
+    	if ((f = fopen(empty_fn, "r")) != NULL) {
+		  	if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
+      	fclose(f);
+    	}
+		}
+	}
 
 	fprintf(stderr, "\r%lld\n", (long long int)output_count_total);
 	fprintf(stderr, "Found\n%16s\t%16s\n", "number_of_ends", "number_of_reads");
@@ -885,4 +916,19 @@ void open_bf_single(char *output_prefix, int32_t out_comp, AFILE **fps)
 	if(!(fps[2] = AFILE_afopen(output_filename, "wb", out_comp))) {
 		PrintError(FnName, output_filename, "Could not open file for writing", Exit, OpenFileError);
 	}
+}
+
+int is_empty(char *path)
+{
+  int32_t size; 
+  FILE *f;
+
+  assert(NULL != path);
+  f = fopen(path, "r");
+  fseek(f, 0, SEEK_END); // seek to end of file
+  size = ftell(f);       // get current file pointer
+  fseek(f, 0, SEEK_SET);
+  fclose(f);
+
+  return((size == 0) ? 1 : 0);
 }
