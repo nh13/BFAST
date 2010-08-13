@@ -19,9 +19,10 @@ struct arguments
 	int randomBest;						    /* -z */
 	int minMappingQuality;				    /* -m */
 	int minNormalizedScore;				    /* -M */
+	double pairingStandardDeviation;		/* -S */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
-	char *unmappedFileName;					/* -i */
+	int gappedPairingRescue;				/* -u */
 	int outputFormat;						/* -O */
 	char *outputID;							/* -o */
 	char *RGFileName;						/* -r */

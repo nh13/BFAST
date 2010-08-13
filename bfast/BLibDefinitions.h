@@ -100,7 +100,7 @@ enum {BRG, BIF, BMF, BAF, SAM, LastFileType};
 #define COLOR_SPACE_START_NT_INT 0
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
-#define MAX_STD 4
+#define MAX_STD 2.0
 #define MAX_INVERSION_LOG10_RATIO 3
 
 /* To calculate the paired end insert size distribution in postprocess */

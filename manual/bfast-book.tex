@@ -599,8 +599,6 @@ Specifies the output format.
 %\TT{-O 2} specifies the output to be in \BGFFF{} format (currently undocumented and experimental).
 %\TT{-O 3} specifies the output to be in \BSAMF{} format (see \url{https://sourceforge.net/projects/samtools/}).
 
-\subsubsection{\TT{-u, --unmappedFileName}}
-Dump unmapped reads including all their alignments into this file (always \BAF{} format).
 \subsubsection{\TT{-o STRING, --outputID=STRING}}
 Specifies output ID to prepend to the read name (\BSAMF{} output only).
 \subsubsection{\TT{-r STRING, --readGroupFileName=STRING}}
@@ -632,6 +630,13 @@ Specifies to choose remove all alignments with worse mapping quality.
 \subsubsection{\tt{-M INTEGER, --minNormalizedScore=INTEGER}}
 Specifies to choose remove all alignments with worse normalized alignment score.
 The normalized alignment score is calculated by dividing the alignment score by the read length.
+\subsubsection{\tt{-S FLOAT, --pairingStandardDeviation=FLOAT}}
+Specifies the window to use when performing pairing rescue (when not using \TT{-U}).
+This specifies to use a window corresponding to a standard deviation of the insert size before and after the mean insert size for pairing rescue.
+\subsubsection{\tt{-g, --gappedPairingRescue}}
+Specifies to usengapped alignment when performing pairing rescue (when not using \TT{-U}).
+Otherwise, ungapped alignment will be performed.
+
 \section{bfast bafconvert}
 \label{sec:bafconvert}
 \TT{bfast bafconvert} converts \BAF{s} to the specified output format.

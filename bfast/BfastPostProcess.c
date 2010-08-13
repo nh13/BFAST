@@ -21,7 +21,8 @@
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescInputFileName, 
 	DescAlgoTitle, DescAlgorithm, DescSpace, DescUnpaired, DescReversePaired, DescAvgMismatchQuality, 
-	DescScoringMatrixFileName, DescRandomBest, DescMinimumMappingQuality, DescMinimumNormalizedScore, DescNumThreads, DescQueueLength, 
+	DescScoringMatrixFileName, DescRandomBest, DescMinimumMappingQuality, DescMinimumNormalizedScore,  DescPairingStandardDeviation, DescPairingUngappedRescue,
+	DescNumThreads, DescQueueLength, 
 	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
@@ -41,17 +42,17 @@ static struct argp_option options[] = {
 		2},
 	{"space", 'A', "space", 0, "0: NT space 1: Color space", 2},
 	{"unpaired", 'U', 0, OPTION_NO_USAGE, "Specifies that pairing should not be performed", 2},
-	{"reversePair", 'R', 0, OPTION_NO_USAGE, "Specifies that paired reads are on opposite strands", 2},
+	{"reversePaired", 'R', 0, OPTION_NO_USAGE, "Specifies that paired reads are on opposite strands", 2},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{"randomBest", 'z', 0, OPTION_NO_USAGE, "Specifies to output a random best scoring alignment (with -a 3)", 2},
 	{"minMappingQuality", 'm', "minMappingQuality", 0, "Specifies to remove low mapping quality alignments", 2},
 	{"minNormalizedScore", 'M', "minNormalizedScore", 0, "Specifies to remove low (alignment) scoring alignments", 2},
+	{"pairingStandardDeviation", 'S', "pairingStandardDeviation", 0, "Specifies the pairing distance standard deviation to examine when rescuing", 2}, // TODO document
+	{"gappedPairingRescue", 'g', 0, OPTION_NO_USAGE, "Specifies that ungapped pairing rescue should be performed", 2}, // TODO document
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
-	{"unmappedFileName", 'u', "unmappedFileName", 0, "Dump unmapped reads including all their alignments"
-		"\n\t\t\t  into this file (always BAF format)", 3},
 	{"outputFormat", 'O', "outputFormat", 0, "Specifies the output format 0: BAF 1: SAM", 3},
 	{"outputID", 'o', "outputID", 0, "Specifies output ID to prepend to the read name (SAM only)", 3},
 	{"RGFileName", 'r', "RGFileName", 0, "Specifies to add the RG in the specified file to the SAM"
@@ -65,7 +66,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:m:n:o:q:r:u:x:A:M:O:Q:hptzRU";
+"a:i:f:m:n:o:q:r:x:A:M:O:Q:S:ghptzRU";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -122,12 +123,13 @@ BfastPostProcess(int argc, char **argv)
 							arguments.randomBest,
 							arguments.minMappingQuality,
 							arguments.minNormalizedScore,
+							arguments.pairingStandardDeviation,
+							arguments.gappedPairingRescue,
 							arguments.numThreads,
 							arguments.queueLength,
 							arguments.outputFormat,
 							arguments.outputID,
 							readGroup,
-							arguments.unmappedFileName,
 							stdout);
 					if(BAF != arguments.outputFormat) {
 						/* Free rg binary */
@@ -243,14 +245,6 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 				args->outputFormat == SAM)) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);	
 	}	
-	if(args->unmappedFileName!=0) {		
-		if(0 <= VERBOSE) {
-			fprintf(stderr, "Validating unmappedFileName %s. \n", 
-					args->unmappedFileName);
-		}
-		if(ValidateFileName(args->unmappedFileName)==0)
-			PrintError(FnName, "unmappedFileName", "Command line argument", Exit, IllegalFileName);	
-	}	
 	assert(args->timing == 0 || args->timing == 1);
 	assert(args->unpaired == 0 || args->unpaired == 1);
 	assert(args->reversePaired == 0 || args->reversePaired == 1);
@@ -282,12 +276,13 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->randomBest=0;
 	args->minMappingQuality=INT_MIN;
 	args->minNormalizedScore=INT_MIN;
+	args->pairingStandardDeviation=MAX_STD;
+	args->gappedPairingRescue=0;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads=1;
 	args->queueLength=DEFAULT_POSTPROCESS_QUEUE_LENGTH;
 
 	args->outputFormat=SAM;
-	args->unmappedFileName=NULL;
 	args->outputID=NULL;
 	args->RGFileName=NULL;
 
@@ -305,25 +300,26 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 	if(0 <= VERBOSE) {
 		fprintf(fp, BREAK_LINE);
 		fprintf(fp, "Printing Program Parameters:\n");
-		fprintf(fp, "programMode:\t\t%s\n", PROGRAMMODE(args->programMode));
-		fprintf(fp, "fastaFileName:\t\t%s\n", FILEREQUIRED(args->fastaFileName));
-		fprintf(fp, "alignFileName:\t\t%s\n", FILESTDIN(args->alignFileName));
-		fprintf(fp, "algorithm:\t\t%s\n", algorithm[args->algorithm]);
-		fprintf(fp, "space:\t\t\t%s\n", SPACE(args->space));
-		fprintf(fp, "unpaired:\t\t%s\n", INTUSING(args->unpaired));
-		fprintf(fp, "reversePaired:\t\t%s\n", INTUSING(args->reversePaired));
-		fprintf(fp, "avgMismatchQuality:\t%d\n", args->avgMismatchQuality);
-		fprintf(fp, "scoringMatrixFileName:\t%s\n", FILEUSING(args->scoringMatrixFileName));
-		fprintf(fp, "randomBest:\t\t%s\n", INTUSING(args->randomBest));
-		fprintf(fp, "minMappingQuality:\t%d\n", args->minMappingQuality);
-		fprintf(fp, "minNormalizedScore:\t%d\n", args->minNormalizedScore);
-		fprintf(fp, "numThreads:\t\t%d\n", args->numThreads);
-		fprintf(fp, "queueLength:\t\t%d\n", args->queueLength);
-		fprintf(fp, "outputFormat:\t\t%s\n", outputType[args->outputFormat]);
-		fprintf(fp, "unmappedFileName:\t%s\n", FILEUSING(args->unmappedFileName));
-		fprintf(fp, "outputID:\t\t%s\n", FILEUSING(args->outputID));
-		fprintf(fp, "RGFileName:\t\t%s\n", FILEUSING(args->RGFileName));
-		fprintf(fp, "timing:\t\t\t%s\n", INTUSING(args->timing));
+		fprintf(fp, "programMode:\t\t\t%s\n", PROGRAMMODE(args->programMode));
+		fprintf(fp, "fastaFileName:\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+		fprintf(fp, "alignFileName:\t\t\t%s\n", FILESTDIN(args->alignFileName));
+		fprintf(fp, "algorithm:\t\t\t%s\n", algorithm[args->algorithm]);
+		fprintf(fp, "space:\t\t\t\t%s\n", SPACE(args->space));
+		fprintf(fp, "unpaired:\t\t\t%s\n", INTUSING(args->unpaired));
+		fprintf(fp, "reversePaired:\t\t\t%s\n", INTUSING(args->reversePaired));
+		fprintf(fp, "avgMismatchQuality:\t\t%d\n", args->avgMismatchQuality);
+		fprintf(fp, "scoringMatrixFileName:\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
+		fprintf(fp, "randomBest:\t\t\t%s\n", INTUSING(args->randomBest));
+		fprintf(fp, "minMappingQuality:\t\t%d\n", args->minMappingQuality);
+		fprintf(fp, "minNormalizedScore:\t\t%d\n", args->minNormalizedScore);
+		fprintf(fp, "pairingStandardDeviation:\t%lf\n", args->pairingStandardDeviation);
+		fprintf(fp, "gappedPairingRescue\t\t%s\n", INTUSING(args->gappedPairingRescue));
+		fprintf(fp, "numThreads:\t\t\t%d\n", args->numThreads);
+		fprintf(fp, "queueLength:\t\t\t%d\n", args->queueLength);
+		fprintf(fp, "outputFormat:\t\t\t%s\n", outputType[args->outputFormat]);
+		fprintf(fp, "outputID:\t\t\t%s\n", FILEUSING(args->outputID));
+		fprintf(fp, "RGFileName:\t\t\t%s\n", FILEUSING(args->RGFileName));
+		fprintf(fp, "timing:\t\t\t\t%s\n", INTUSING(args->timing));
 		fprintf(fp, BREAK_LINE);
 	}
 	return;
@@ -336,8 +332,6 @@ void BfastPostProcessFreeProgramParameters(struct arguments *args)
 	args->fastaFileName=NULL;
 	free(args->alignFileName);
 	args->alignFileName=NULL;
-	free(args->unmappedFileName);
-	args->unmappedFileName=NULL;
 	free(args->outputID);
 	args->outputID=NULL;
 	free(args->RGFileName);
@@ -387,6 +381,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				arguments->algorithm = atoi(optarg);break;
 			case 'f':
 				arguments->fastaFileName=strdup(optarg);break;
+			case 'g':
+				arguments->gappedPairingRescue = 1; break;
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp;break;
 			case 'i':
@@ -405,9 +401,7 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 			case 'r':
 				arguments->RGFileName=strdup(optarg);break;
 			case 't':
-				arguments->timing = 1;break;
-			case 'u':
-				arguments->unmappedFileName=strdup(optarg);break;
+				arguments->timing = 1; break;
 			case 'x':
 				StringCopyAndReallocate(&arguments->scoringMatrixFileName, optarg);
 				break;
@@ -435,6 +429,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				arguments->queueLength=atoi(optarg);break;
 			case 'R':
 				arguments->reversePaired=1; break;
+			case 'S':
+				arguments->pairingStandardDeviation=atof(optarg); break;
 			case 'U':
 				arguments->unpaired=1; break;
 			default:

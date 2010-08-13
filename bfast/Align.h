@@ -37,7 +37,7 @@ int AlignRGMatches(RGMatches*, RGBinary*, AlignedRead*, int32_t, int32_t, Scorin
 void AlignRGMatchesOneEnd(RGMatch*, RGBinary*, AlignedEnd*, int32_t, int32_t, ScoringMatrix*, int32_t, int32_t, int32_t, double*, int32_t*, AlignMatrix*);
 int32_t AlignExact(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, int32_t, char);
 int32_t AlignUngapped(char*, char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, int32_t, int32_t, int32_t, char);
-void AlignGapped(char*, char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t, int32_t, char, double);
+int AlignGapped(char*, char*, char*, int32_t, char*, int32_t, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t, int32_t, char, double);
 void AlignGappedBounded(char*, char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, char, double, int32_t, int32_t);
 void AlignGappedConstrained(char*, char*, char*, int32_t, char*, int32_t, ScoringMatrix*, AlignedEntry*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t, int32_t, char);
 int32_t AlignRGMatchesKeepBestScore(AlignedEnd*, double);
