@@ -7,6 +7,8 @@ struct arguments
 	char *args[1];							/* No arguments to this function */
 	char *fastaFileName;                   	/* -f */
 	char *matchFileName;					/* -m */
+	char *matchFileNameOne;					/* -O -1 */ 
+	char *matchFileNameTwo;					/* -T -2 */
 	char *scoringMatrixFileName;			/* -x */
 	int ungapped;							/* -u */
 	int unconstrained;						/* -U */
@@ -24,8 +26,6 @@ struct arguments
 	int pairedEndLength;					/* -l */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
-  char *bmfFileNameOne;
-  char *bmfFileNameTwo;
 };
 
 /* Local functions */

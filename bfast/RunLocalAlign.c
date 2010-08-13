@@ -22,7 +22,7 @@ static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 void RunAligner(char *fastaFileName,
 		char *matchFileName,
 		char *bmfFileNameOne,
-	  char *bmfFileNameTwo,
+		char *bmfFileNameTwo,
 		char *scoringMatrixFileName,
 		int32_t ungapped,
 		int32_t unconstrained,
@@ -45,7 +45,7 @@ void RunAligner(char *fastaFileName,
 	char *FnName = "RunAligner";
 	gzFile outputFP=NULL;
 	gzFile bmf1_FP=NULL;
-  gzFile bmf2_FP=NULL;
+	gzFile bmf2_FP=NULL;
 	gzFile matchFP=NULL;
 	int32_t startTime, endTime;
 	RGBinary rg;
@@ -87,22 +87,22 @@ void RunAligner(char *fastaFileName,
 			PrintError(FnName, "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
-  /* Regular 1 bmf file mode */
+	/* Regular 1 bmf file mode */
 	else if(NULL==bmfFileNameOne && NULL==bmfFileNameTwo) { 
 		if((matchFP=gzopen(matchFileName, "rb"))==0) {
 			PrintError(FnName, matchFileName, "Could not open file for reading", Exit, OpenFileError);
 		}
 	}
-  /* two bmf input files mode */
-  else { 
+	/* two bmf input files mode */
+	else { 
 		if((bmf1_FP=gzopen(bmfFileNameOne, "rb"))==0 || (bmf2_FP=gzopen(bmfFileNameTwo, "rb"))==0) {
 			PrintError(FnName, matchFileName, "Could not open file for reading (2 bmf)", Exit, OpenFileError);
-    }    
-  }
+		}    
+	}
 
 	RunDynamicProgramming(matchFP,
-      bmf1_FP,
-      bmf2_FP, 
+			bmf1_FP,
+			bmf2_FP, 
 			&rg,
 			scoringMatrixFileName,
 			ungapped,
@@ -186,8 +186,8 @@ void RunAligner(char *fastaFileName,
 
 /* TODO */
 void RunDynamicProgramming(gzFile matchFP,
-    gzFile bmf1_FP,
-    gzFile bmf2_FP,
+		gzFile bmf1_FP,
+		gzFile bmf2_FP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
 		int32_t ungapped,
@@ -447,7 +447,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	//char *FnName = "RunDynamicProgrammingThread";
 	int32_t i, j, wasAligned, queueIndex;
 	AlignMatrix matrix;
-	
+
 	/* Initialize */
 	AlignMatrixInitialize(&matrix);
 
@@ -555,14 +555,14 @@ int32_t GetMatches(gzFile matchFP, gzFile bmf1_FP, gzFile bmf2_FP, int32_t *matc
 		while(numRead < maxToRead && (*matchFPctr) <= endReadNum) {
 			RGMatchesInitialize(&(m[numRead]));
 
-      /* one bmf as input file */
-      if (NULL!=matchFP && NULL==bmf1_FP && NULL==bmf2_FP) {
-			  if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) { break; }
-      }
-      /* two bmfs files as input */
-      else {
-			  if(EOF == RGMatchesRead_2bmf(bmf1_FP, bmf2_FP, &(m[numRead]))) { break; }
-      }      
+			/* one bmf as input file */
+			if (NULL!=matchFP && NULL==bmf1_FP && NULL==bmf2_FP) {
+				if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) { break; }
+			}
+			/* two bmfs files as input */
+			else {
+				if(EOF == RGMatchesRead_2bmf(bmf1_FP, bmf2_FP, &(m[numRead]))) { break; }
+			}      
 
 			(*matchFPctr)++;
 			numRead++;
