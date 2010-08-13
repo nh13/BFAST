@@ -310,10 +310,9 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "Printing Program Parameters:\n");
 		fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
 		fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
-		fprintf(fp, "matchFileNameOne:\t\t\t\t%s\n", args->matchFileNameOne);
-		fprintf(fp, "matchFileNameTwo:\t\t\t\t%s\n", args->matchFileNameTwo);
-		fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
-		fprintf(fp, "bmf:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
+		fprintf(fp, "matchFileName:\t\t\t\t%s\n", (NULL == args->matchFileNameOne) ? FILESTDIN(args->matchFileName) : FILEUSING(NULL));
+		fprintf(fp, "matchFileNameOne:\t\t\t%s\n", FILEUSING(args->matchFileNameOne));
+		fprintf(fp, "matchFileNameTwo:\t\t\t%s\n", FILEUSING(args->matchFileNameTwo));
 		fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
 		fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));
