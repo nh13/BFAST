@@ -24,6 +24,8 @@ struct arguments
 	int pairedEndLength;					/* -l */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
+  char *bmfFileNameOne;
+  char *bmfFileNameTwo;
 };
 
 /* Local functions */

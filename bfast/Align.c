@@ -203,7 +203,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			readStartInsertionLengths[ctr]=0;
 			readEndInsertionLengths[ctr]=0;
 			referenceOffsets[ctr]=offset;
-
+			
 			if(referencePositions[ctr] <= m->positions[i] &&
 					m->positions[i] + readLength <= referencePositions[ctr] + referenceLengths[ctr]) {
 			}
@@ -472,6 +472,8 @@ int32_t AlignExact(char *read,
 
 	// Use this when we want to perform exact substring matching 
 	//foundOffset = KnuthMorrisPratt(read, readLength, reference, referenceLength);
+	
+	assert(readLength <= referenceLength); 
 
 	// Use this when we want to perform exact string matching
 	for(i=0, foundOffset=offset;i<readLength;i++) {

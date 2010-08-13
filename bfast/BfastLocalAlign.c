@@ -30,6 +30,8 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
+	{"matchFileName_1", 'O', "matchFileName_1", 0, "Specifies the bfast matches file for read 1", 1},
+	{"matchFileName_2", 'T', "matchFileName_2", 0, "Specifies the bfast matches file for read 2", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 1},
 	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
@@ -69,7 +71,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:m:n:o:q:s:x:A:M:Q:T:hptuU";
+"e:f:m:n:o:q:s:x:A:M:Q:O:T:hptuU";
 //"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
 
 	int
@@ -102,13 +104,14 @@ BfastLocalAlign(int argc, char **argv)
 					}
 					else {
 						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
-
 					}
 					BfastLocalAlignPrintProgramParameters(stderr, &arguments);
 					/* Execute Program */
 					/* Run the aligner */
 					RunAligner(arguments.fastaFileName,
 							arguments.matchFileName,
+							arguments.bmfFileNameOne,
+  						arguments.bmfFileNameTwo,
 							arguments.scoringMatrixFileName,
 							arguments.ungapped,
 							arguments.unconstrained,
@@ -254,6 +257,14 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);	
 	}
 
+  /* Checking when passing two bmf files */
+  if (args->matchFileName != NULL && (args->bmfFileNameOne !=NULL || args->bmfFileNameTwo != NULL)) {
+		PrintError(FnName, "matchFileName", "Command line argument (Single MatchFile or use -O -T)", Exit, OutOfRange);	
+  }
+  if (args->matchFileName == NULL && (args->bmfFileNameOne ==NULL || args->bmfFileNameOne == NULL)) {
+		PrintError(FnName, "matchFileName", "Command line argument (Need -O and -T)", Exit, OutOfRange);	
+  }
+
 	return 1;
 }
 
@@ -283,6 +294,9 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->mirroringType = NoMirroring;
 	args->forceMirroring = 0;
 
+	args->bmfFileNameOne = NULL;
+	args->bmfFileNameTwo = NULL;
+
 	args->timing = 0;
 
 	return;
@@ -296,7 +310,10 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "Printing Program Parameters:\n");
 		fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
 		fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
+		fprintf(fp, "bmfFileNameOne:\t\t\t\t%s\n", args->bmfFileNameOne);
+		fprintf(fp, "bmfFileNameTwo:\t\t\t\t%s\n", args->bmfFileNameTwo);
 		fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
+		fprintf(fp, "bmf:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
 		fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
 		fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));
@@ -410,6 +427,12 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 				arguments->queueLength=atoi(optarg);break;
 			case 'U':
 				arguments->unconstrained=Unconstrained;break;
+
+      case 'O':
+				arguments->bmfFileNameOne=strdup(optarg);break;
+      case 'T':
+				arguments->bmfFileNameTwo=strdup(optarg);break;
+
 			default:
 				OptErr=1;
 		} /* while */

@@ -39,9 +39,9 @@ typedef struct {
 	AlignedRead *alignedQueue;
 } ThreadData;
 
-void RunAligner(char*, char*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, FILE*);
-void RunDynamicProgramming(gzFile, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, gzFile, int32_t*, int32_t*);
+void RunAligner(char*, char*, char*, char*,  char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, FILE*);
+void RunDynamicProgramming(gzFile, gzFile, gzFile, RGBinary*, char*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, gzFile, int32_t*, int32_t*);
 void *RunDynamicProgrammingThread(void *);
-int32_t GetMatches(gzFile, int32_t*, int32_t, int32_t, RGMatches*, int32_t);
+int32_t GetMatches(gzFile, gzFile, gzFile, int32_t*, int32_t, int32_t, RGMatches*, int32_t);
 void SkipMatches(gzFile, int32_t*, int32_t);
 #endif

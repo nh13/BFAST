@@ -17,7 +17,7 @@
 #include "MatchesReadInputFiles.h"
 #include "aflib.h"
 #include "RunMatch.h"
-#include "RunLocalAlign.h"
+//#include "RunLocalAlign.h"
 #include "RunPostProcess.h"
 #include "RunAlign.h"
 
