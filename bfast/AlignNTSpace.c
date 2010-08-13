@@ -34,8 +34,6 @@ int32_t AlignNTSpaceUngapped(char *read,
 	int32_t maxScore = NEGATIVE_INFINITY;
 	int alignmentOffset=-1;
 	int32_t curScore = 0.0;
-	char curReference[SEQUENCE_LENGTH]="\0";
-	char bestReference[SEQUENCE_LENGTH]="\0";
 
 	assert(readLength <= referenceLength);
 
@@ -49,25 +47,22 @@ int32_t AlignNTSpaceUngapped(char *read,
 				break;
 			}
 			curScore += ScoringMatrixGetNTScore(read[j], reference[i+j], sm);
-			curReference[j] = reference[i+j];
 		}
-		curReference[j]='\0';
 		if(maxScore < curScore) {
 			maxScore = curScore;
 			alignmentOffset = i;
-			strcpy(bestReference, curReference);
 		}
 	}
 
 	/* Copy over */
 	if(NEGATIVE_INFINITY < maxScore) {
 		AlignedEntryUpdateAlignment(a,
-				(FORWARD==strand) ? (position + referenceLength - readLength - offset) : (position + offset),
+				(REVERSE == strand) ? (position + referenceLength - readLength - alignmentOffset) : (position + alignmentOffset),
 				maxScore, 
 				readLength, 
 				readLength,
 				read,
-				bestReference);
+				reference + alignmentOffset);
 		return 1;
 	}
 	else {

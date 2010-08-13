@@ -70,6 +70,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		int32_t postprocessAlgorithm,
 		int32_t *numOriginalEntries,
 		int32_t outputFormat,
+		int properPaired,
 		int32_t binaryOutput)
 {
 	char *FnName = "AlignedReadConvertPrintOutputFormat";
@@ -83,7 +84,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			}
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, fp);
+			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -98,6 +99,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 		int32_t *numOriginalEntries,
 		char *outputID,
 		char *readGroupString,
+		int properPaired,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintSAM";
@@ -121,6 +123,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 					numOriginalEntries,
 					outputID,
 					readGroupString,
+					properPaired,
 					fp);
 		}
 		else {
@@ -133,6 +136,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 						numOriginalEntries,
 						outputID,
 						readGroupString,
+					properPaired,
 						fp);
 			}
 		}
@@ -148,6 +152,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		int32_t *numOriginalEntries,
 		char *outputID,
 		char *readGroupString,
+		int properPaired,
 		FILE *fp) 
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
@@ -204,7 +209,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	flag = 0;
 	if(2 == a->numEnds) {
 		flag |= 0x0001; /* Paired end */
-		flag |= 0x0002; /* Always a proper pair */
+		if(1 == properPaired) flag |= 0x0002; /* Proper pair */
 		if(mateEndIndex < 0) {
 			/* Other end is unmapped */
 			flag |= 0x0008;

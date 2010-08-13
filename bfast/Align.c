@@ -552,7 +552,7 @@ int32_t AlignUngapped(char *read,
 					unconstrained,
 					sm,
 					a,
-					offset, //(Unconstrained == unconstrained) ? 0 : offset,
+					(Unconstrained == unconstrained) ? 0 : offset,
 					position,
 					strand);
 			break;
@@ -565,7 +565,7 @@ int32_t AlignUngapped(char *read,
 					unconstrained,
 					sm,
 					a,
-					offset, //(Unconstrained == unconstrained) ? 0 : offset,
+					(Unconstrained == unconstrained) ? 0 : offset,
 					position,
 					strand);
 			break;
@@ -576,7 +576,7 @@ int32_t AlignUngapped(char *read,
 	return 0;
 }
 
-void AlignGapped(char *read,
+int AlignGapped(char *read,
 		char *colors,
 		char *mask,
 		int32_t readLength,
@@ -596,6 +596,8 @@ void AlignGapped(char *read,
 {
 	char *FnName="AlignGapped";
 	int64_t maxH, maxV;
+	
+	//fprintf(stderr, "HERE 4 position=%d\n", position);
 
 	/* Get the maximum number of vertical and horizontal moves allowed */
 	maxV = maxH = 0;
@@ -637,7 +639,7 @@ void AlignGapped(char *read,
 	}
 	if(maxH == 0 && maxV == 0) {
 		/* Use result from searching only mismatches */
-		return;
+		return 0;
 	}
 
 	/* Re-bound the maximum number of vertical and horizontal moves */
@@ -687,7 +689,9 @@ void AlignGapped(char *read,
 		default:
 			PrintError(FnName, "unconstrained", "Could not understand unconstrained", Exit, OutOfRange);
 			break;
+
 	}
+	return 1;
 }
 
 void AlignGappedBounded(char *read,
@@ -706,6 +710,8 @@ void AlignGappedBounded(char *read,
 		int32_t maxV)
 {
 	char *FnName="AlignGappedBounded";
+
+	//fprintf(stderr, "HERE 5 position=%d\n", position);
 
 	switch(space) {
 		case NTSpace:

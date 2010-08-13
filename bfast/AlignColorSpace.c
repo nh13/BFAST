@@ -42,7 +42,7 @@ int32_t AlignColorSpaceUngapped(char *colors,
 	char referenceAligned[SEQUENCE_LENGTH]="\0";
 	char Aligned[SEQUENCE_LENGTH]="\0";
 	int32_t alphabetSize = ALPHABET_SIZE+1;
-
+	
 	assert(readLength <= referenceLength);
 
 	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
@@ -141,7 +141,7 @@ int32_t AlignColorSpaceUngapped(char *colors,
 			Aligned[i] = ConvertIntColorToCharColor((c[0] == c[1])?GAP:c[0]); /* Keep original color */
 		}
 		readAligned[readLength]=referenceAligned[readLength]=Aligned[readLength]='\0';
-
+				
 		/* Copy over */
 		AlignedEntryUpdateAlignment(a,
 				(FORWARD==strand) ? (position + offsetAligned) : (position + referenceLength - readLength - offsetAligned),
@@ -149,7 +149,7 @@ int32_t AlignColorSpaceUngapped(char *colors,
 				readLength,
 				readLength,
 				readAligned,
-				referenceAligned);
+				reference + offsetAligned);
 		return 1;
 	}
 	else {
@@ -214,11 +214,11 @@ void AlignColorSpaceGappedBounded(char *colors,
 
 	assert(0 < readLength);
 	assert(0 < referenceLength);
-
+	
 	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
 
 	AlignColorSpaceInitializeAtStart(colors, matrix, sm, readLength, referenceLength, alphabetSize, COLOR_SPACE_START_NT);
-
+	
 	/* Fill in the matrix according to the recursive rules */
 	for(i=0;i<readLength;i++) { /* read/rows */
 		/* Get the current color */

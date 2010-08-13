@@ -2,7 +2,7 @@
 #define RUNPOSTPROCESS_H_
 
 #include "AlignedRead.h"
-
+#include "AlignMatrix.h"
 
 /* Paired End Distance Bins */
 // This distance of the second end minus the first end
@@ -13,12 +13,14 @@ typedef struct {
 	int32_t numDistances;
 	double std;
 	double avg;
-	int32_t inversionCount;
 	double invRatio;
+	int32_t inversionCount;
 } PEDBins;
 
 typedef struct {
 	PEDBins *bins;
+	RGBinary *rg;
+	ScoringMatrix *sm;
 	int algorithm;
 	int unpaired;
 	int reversePaired;
@@ -27,6 +29,8 @@ typedef struct {
 	int mismatchScore;
 	int minimumMappingQuality;
 	int minimumNormalizedScore;
+	double pairingStandardDeviation;
+	int gappedPairingRescue;
 	int queueLength;
 	int8_t *foundTypes;
 	AlignedRead *alignQueue;
@@ -48,21 +52,25 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int randomBest,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
+		double pairingStandardDeviation,
+		int gappedPairingRescue,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
 		char *outputID,
 		char *readGroup,
-		char *unmappedFileName,
 		FILE *fpOut);
 
 void *ReadInputFilterAndOutputThread(void*);
 
-int32_t GetPEDBins(char*, int, int, PEDBins*);
+int32_t GetPEDBins(AlignedRead*, int, PEDBins*);
 
 int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t);
 
 int FilterAlignedRead(AlignedRead *a,
+		RGBinary *rg,
+		AlignMatrix *matrix,
+		ScoringMatrix *sm,
 		int algorithm,
 		int unpaired,
 		int reversePaired,
@@ -71,6 +79,8 @@ int FilterAlignedRead(AlignedRead *a,
 		int mismatchScore,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
+		double pairingStandardDeviation,
+		int gappedPairingRescue,
 		PEDBins *b);
 
 void PEDBinsInitialize(PEDBins*);

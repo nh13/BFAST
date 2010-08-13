@@ -114,10 +114,11 @@ void RunAlign(
 			0,
 			INT_MIN,
 			INT_MIN,
+			MAX_STD,
+			1,
 			numThreads,
 			DEFAULT_LOCALALIGN_QUEUE_LENGTH,
 			SAM,
-			NULL,
 			NULL,
 			NULL,
 			stdout);
