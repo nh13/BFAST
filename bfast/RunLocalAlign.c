@@ -20,9 +20,9 @@ static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* TODO */
 void RunAligner(char *fastaFileName,
-		char *matchFileName,
-		char *bmfFileNameOne,
-		char *bmfFileNameTwo,
+		char *matchFileNameAll,
+		char *matchFileNameReadOne,
+		char *matchFileNameReadTwo,
 		char *scoringMatrixFileName,
 		int32_t ungapped,
 		int32_t unconstrained,
@@ -44,9 +44,9 @@ void RunAligner(char *fastaFileName,
 {
 	char *FnName = "RunAligner";
 	gzFile outputFP=NULL;
-	gzFile bmf1_FP=NULL;
-	gzFile bmf2_FP=NULL;
-	gzFile matchFP=NULL;
+	gzFile matchAllFP=NULL;
+	gzFile matchReadOneFP=NULL;
+	gzFile matchReadTwoFP=NULL;
 	int32_t startTime, endTime;
 	RGBinary rg;
 	int32_t totalReferenceGenomeTime=0;
@@ -78,31 +78,31 @@ void RunAligner(char *fastaFileName,
 	if(0 <= VERBOSE) {
 		fprintf(stderr, "%s", BREAK_LINE);
 		fprintf(stderr, "Reading match file from %s.\n",
-				(NULL == matchFileName) ? "stdin" : matchFileName);
+				(NULL == matchFileNameAll) ? "stdin" : matchFileNameAll);
 	}
 
 	/* Open current match file -- If we are not in two bmf file mode */
-	if(NULL == matchFileName && (NULL==bmfFileNameOne && NULL==bmfFileNameTwo)) {
-		if((matchFP=gzdopen(fileno(stdin), "rb"))==0) {
+	if(NULL == matchFileNameAll && NULL==matchFileNameReadOne && NULL==matchFileNameReadTwo) {
+		if((matchAllFP=gzdopen(fileno(stdin), "rb"))==0) {
 			PrintError(FnName, "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
 	/* Regular 1 bmf file mode */
-	else if(NULL==bmfFileNameOne && NULL==bmfFileNameTwo) { 
-		if((matchFP=gzopen(matchFileName, "rb"))==0) {
-			PrintError(FnName, matchFileName, "Could not open file for reading", Exit, OpenFileError);
+	else if(NULL==matchFileNameReadOne && NULL==matchFileNameReadTwo) { 
+		if((matchAllFP=gzopen(matchFileNameAll, "rb"))==0) {
+			PrintError(FnName, matchFileNameAll, "Could not open file for reading", Exit, OpenFileError);
 		}
 	}
 	/* two bmf input files mode */
 	else { 
-		if((bmf1_FP=gzopen(bmfFileNameOne, "rb"))==0 || (bmf2_FP=gzopen(bmfFileNameTwo, "rb"))==0) {
-			PrintError(FnName, matchFileName, "Could not open file for reading (2 bmf)", Exit, OpenFileError);
+		if((matchReadOneFP=gzopen(matchFileNameReadOne, "rb"))==0 || (matchReadTwoFP=gzopen(matchFileNameReadTwo, "rb"))==0) {
+			PrintError(FnName, matchFileNameAll, "Could not open file for reading (2 bmf)", Exit, OpenFileError);
 		}    
 	}
 
-	RunDynamicProgramming(matchFP,
-			bmf1_FP,
-			bmf2_FP, 
+	RunDynamicProgramming(matchAllFP,
+			matchReadOneFP,
+			matchReadTwoFP, 
 			&rg,
 			scoringMatrixFileName,
 			ungapped,
@@ -129,7 +129,14 @@ void RunAligner(char *fastaFileName,
 	}
 
 	/* Close the match file */
-	gzclose(matchFP);
+	if(NULL != matchAllFP) {
+		gzclose(matchAllFP);
+	}
+	else {
+		gzclose(matchReadOneFP);
+		gzclose(matchReadTwoFP);
+	}
+
 
 	/* Close output file */
 	gzclose(outputFP);
@@ -185,9 +192,9 @@ void RunAligner(char *fastaFileName,
 }
 
 /* TODO */
-void RunDynamicProgramming(gzFile matchFP,
-		gzFile bmf1_FP,
-		gzFile bmf2_FP,
+void RunDynamicProgramming(gzFile matchAllFP,
+		gzFile matchReadOneFP,
+		gzFile matchReadTwoFP,
 		RGBinary *rg,
 		char *scoringMatrixFileName,
 		int32_t ungapped,
@@ -229,7 +236,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	int32_t *matchQueueThreadIDs=NULL;
 	AlignedRead *alignedQueue=NULL;
 	int32_t matchQueueLength=0;
-	int32_t matchFPctr = 1;
+	int32_t matchAllFPctr = 1;
 	int32_t outputCtr = 0;
 	int32_t numReadsProcessed = 0, numMatchesRead = 0;
 
@@ -284,7 +291,14 @@ void RunDynamicProgramming(gzFile matchFP,
 
 	// Skip matches
 	startTime = time(NULL);
-	SkipMatches(matchFP, &matchFPctr, startReadNum);
+	if(NULL != matchAllFP) {
+		SkipMatches(matchAllFP, &matchAllFPctr, startReadNum);
+	}
+	else {
+		int32_t tmpMatchAllFPctr = matchAllFPctr;
+		SkipMatches(matchReadOneFP, &tmpMatchAllFPctr, startReadNum);
+		SkipMatches(matchReadTwoFP, &matchAllFPctr, startReadNum);
+	}
 	endTime = time(NULL);
 	(*totalFileHandlingTime) += endTime - startTime;
 
@@ -296,7 +310,7 @@ void RunDynamicProgramming(gzFile matchFP,
 	}
 
 	startTime = time(NULL);
-	while(0 != (numMatchesRead = GetMatches(matchFP, bmf1_FP, bmf2_FP, &matchFPctr, startReadNum, endReadNum, matchQueue, queueLength))) {
+	while(0 != (numMatchesRead = GetMatches(matchAllFP, matchReadOneFP, matchReadTwoFP, &matchAllFPctr, startReadNum, endReadNum, matchQueue, queueLength))) {
 		endTime = time(NULL);
 		(*totalFileHandlingTime) += endTime - startTime;
 
@@ -542,36 +556,36 @@ void *RunDynamicProgrammingThread(void *arg)
 	return arg;
 }
 
-int32_t GetMatches(gzFile matchFP, gzFile bmf1_FP, gzFile bmf2_FP, int32_t *matchFPctr, int32_t startReadNum, int32_t endReadNum, RGMatches *m, int32_t maxToRead)
+int32_t GetMatches(gzFile matchAllFP, gzFile matchReadOneFP, gzFile matchReadTwoFP, int32_t *matchAllFPctr, int32_t startReadNum, int32_t endReadNum, RGMatches *m, int32_t maxToRead)
 {
 	char *FnName="GetMatches";
 	int32_t numRead = 0;
 
-	if((*matchFPctr) < startReadNum) {
-		PrintError(FnName, "matchFPctr < startReadNum", "The start read number was greater the actual number of reads found", Warn, OutOfRange);
+	if((*matchAllFPctr) < startReadNum) {
+		PrintError(FnName, "matchAllFPctr < startReadNum", "The start read number was greater the actual number of reads found", Warn, OutOfRange);
 		numRead=0; // to be explicit
 	}
 	else {
-		while(numRead < maxToRead && (*matchFPctr) <= endReadNum) {
+		while(numRead < maxToRead && (*matchAllFPctr) <= endReadNum) {
 			RGMatchesInitialize(&(m[numRead]));
 
 			/* one bmf as input file */
-			if (NULL!=matchFP && NULL==bmf1_FP && NULL==bmf2_FP) {
-				if(EOF == RGMatchesRead(matchFP, &(m[numRead]))) { break; }
+			if (NULL!=matchAllFP && NULL==matchReadOneFP && NULL==matchReadTwoFP) {
+				if(EOF == RGMatchesRead(matchAllFP, &(m[numRead]))) { break; }
 			}
 			/* two bmfs files as input */
 			else {
-				if(EOF == RGMatchesRead_2bmf(bmf1_FP, bmf2_FP, &(m[numRead]))) { break; }
+				if(EOF == RGMatchesRead_2bmf(matchReadOneFP, matchReadTwoFP, &(m[numRead]))) { break; }
 			}      
 
-			(*matchFPctr)++;
+			(*matchAllFPctr)++;
 			numRead++;
 		}
 	}
 	return numRead;
 }
 
-void SkipMatches(gzFile matchFP, int32_t *matchFPctr, int32_t startReadNum)
+void SkipMatches(gzFile matchAllFP, int32_t *matchAllFPctr, int32_t startReadNum)
 {
 	RGMatches m;
 
@@ -584,14 +598,14 @@ void SkipMatches(gzFile matchFP, int32_t *matchFPctr, int32_t startReadNum)
 	}
 
 	RGMatchesInitialize(&m);
-	while((*matchFPctr) < startReadNum && EOF != RGMatchesRead(matchFP, &m)) {
-		if(0 <= VERBOSE && (*matchFPctr)%ALIGN_SKIP_ROTATE_NUM==0) {
-			fprintf(stderr, "\r%d", (*matchFPctr));
+	while((*matchAllFPctr) < startReadNum && EOF != RGMatchesRead(matchAllFP, &m)) {
+		if(0 <= VERBOSE && (*matchAllFPctr)%ALIGN_SKIP_ROTATE_NUM==0) {
+			fprintf(stderr, "\r%d", (*matchAllFPctr));
 		}
 		RGMatchesFree(&m);
-		(*matchFPctr)++;
+		(*matchAllFPctr)++;
 	}
 	if(0 <= VERBOSE) {
-		fprintf(stderr, "\r%d\n", (*matchFPctr));
+		fprintf(stderr, "\r%d\n", (*matchAllFPctr));
 	}
 }

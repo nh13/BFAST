@@ -17,7 +17,7 @@
 #include "MatchesReadInputFiles.h"
 #include "aflib.h"
 #include "RunMatch.h"
-//#include "RunLocalAlign.h"
+#include "RunLocalAlign.h"
 #include "RunPostProcess.h"
 #include "RunAlign.h"
 
@@ -74,6 +74,8 @@ void RunAlign(
 	// Run local alignment
 	RunAligner(fastaFileName,
 			tmpMatchFileName,
+			NULL,
+			NULL,
 			NULL,
 			Gapped,
 			Constrained,
