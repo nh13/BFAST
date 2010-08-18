@@ -573,8 +573,11 @@ Options \TT{-a 1}, \TT{-a 2}, and \TT{-a 3}, will for each read select a subset 
 If multiple alignments have the same best score, an alignment is not reported.
 \TT{-a 4} will output only reads that have a best scoring alignment (possibly many best scoring alignments may exist).
 
-Optionally, the \TT{-P} option will try to rescue paired-end (mate-end) when using \TT{-a 3}.
-It will do so by breaking the tie between equally best scoring alignments using the estimated insert size distribution.
+Furthermore, the paired-end (mate-end) will be rescued when using \TT{-a 3}.
+Only reads that are discordant (determined by \TT{-S}) or are unpaired (only one end/mate maps) will be rescued. 
+Paired-end reads will be scored by examining both ends to select the best paired-alignment.
+Also ties will be broken between equally best scoring alignments using the estimated insert size distribution.
+This pairing procedure can be turned-off by using the \TT{-U} option.
 
 \subsection{Usage}
 \subsubsection{\TT{-i FILENAME, --alignedFileName=FILENAME}}

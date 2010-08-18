@@ -592,9 +592,6 @@ static int ReadPairingAndRescue(AlignedRead *a,
 					pairingStandardDeviation);
 		}
 
-		// HERE
-		//fprintf(stderr, "HERE 1 %d:%d discordant=%d\n", a->ends[0].numEntries, a->ends[1].numEntries, discordantPair);
-
 		// Rescue unpaired reads and discordant pairs
 		if(0 == a->ends[0].numEntries || 0 == a->ends[1].numEntries || 1 == discordantPair) { 
 			// Read-rescue
@@ -690,13 +687,6 @@ static int ReadPairingAndRescue(AlignedRead *a,
 								referenceLength,
 								&referenceLength,
 								&referencePosition);
-						// HERE
-						/*
-						   fprintf(stderr, "%s\t%c:%d-%d\t%c:%d-%d\t%c:%d-%d\n",
-						   a->readName, a->ends[i].entries[j].strand, a->ends[i].entries[j].position, a->ends[i].entries[j].position + a->ends[i].readLength-1, 
-						   strand, startPos, startPos + referenceLength -1,
-						   strand, referencePosition, referencePosition + referenceLength-1);
-						   */
 						if(readLength <= referenceLength) {
 							AlignedEntry *aEntry=NULL;
 
@@ -733,8 +723,6 @@ static int ReadPairingAndRescue(AlignedRead *a,
 											strand,
 											NEGATIVE_INFINITY) ||
 										aEntry->score <= 0) {
-									// HERE
-									//fprintf(stderr, "IGNORED aEntry->score=%d\n", aEntry->score);
 									AlignedEndReallocate(&ends[1-i], ends[1-i].numEntries-1);
 								}
 								else { 
@@ -746,14 +734,6 @@ static int ReadPairingAndRescue(AlignedRead *a,
 											ends[1-i].entries[ends[1-i].numEntries-1].mappingQuality = a->ends[i].entries[j].mappingQuality;
 										}
 									}
-									// HERE
-									/*
-									   fprintf(stderr, "RESCUED %c:%d\t%d\t%c:%d-%d\t%d:%d:%d\n", aEntry->strand, aEntry->position, aEntry->score,
-									   strand, referencePosition, referencePosition + referenceLength-1,
-									   a->ends[0].numEntries,
-									   a->ends[1].numEntries,
-									   discordantPair);
-									   */
 								}
 							}
 							else {
@@ -773,9 +753,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 										aEntry->score <= 0) {
 									AlignedEndReallocate(&ends[1-i], ends[1-i].numEntries-1);
 								}
-								else if(0 == i) { // HERE
-									// HERE
-									//fprintf(stderr, "RESCUED %c:%d\t%d\n", aEntry->strand, aEntry->position, aEntry->score);
+								else {
 									if(0 == discordantPair) {
 										if(MAXIMUM_RESCUE_MAPQ < a->ends[i].entries[j].mappingQuality) {
 											ends[1-i].entries[ends[1-i].numEntries-1].mappingQuality = MAXIMUM_RESCUE_MAPQ;
@@ -836,16 +814,6 @@ static int ReadPairingAndRescue(AlignedRead *a,
 				AlignedEndFree(&ends[i]);
 			}
 		}
-
-		// HERE
-		/*
-		   fprintf(stderr, "HERE 2 %d:%d\n", a->ends[0].numEntries, a->ends[1].numEntries);
-		   for(i=0;i<2;i++) {
-		   for(j=0;j<a->ends[i].numEntries;j++) {
-		   AlignedEntryPrintText(&a->ends[i].entries[j], stderr);
-		   }
-		   }
-		   */
 
 		// Check if we have hits for both ends
 		if(a->ends[0].numEntries <= 0 || a->ends[1].numEntries <= 0) {
