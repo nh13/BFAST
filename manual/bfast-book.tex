@@ -499,6 +499,16 @@ The \TT{-s}, \TT{-S}, \TT{-e} and \TT{-E} can be used to specify only to conside
 Specifies the \BMF{} outputted by the \TT{match} utility.
 See \autoref{sec:bmf} for the file format.
 
+\subsubsection{\TT{-O FILENAME, --matchFileName1=FILENAME}}
+Specifies the \BMF{} outputted by the \TT{bwaaln} utility.
+See \autoref{sec:bmf} for the file format.
+The option flag \TT{-1} can also be used.
+
+\subsubsection{\TT{-T FILENAME, --matchFileName2=FILENAME}}
+Specifies the \BMF{} outputted by the \TT{bwaaln} utility.
+See \autoref{sec:bmf} for the file format.
+The option flag \TT{-2} can also be used.
+
 \subsubsection{\TT{-x FILENAME, --scoringMatrixFileName=FILENAME}}
 Specifies the Scoring Matrix file used to score the alignments.
 Please see \autoref{sec:scoringmatrixfile} for the file format.
@@ -693,6 +703,23 @@ The usage is \TT{bfast brg2fasta \BRGF{}}.
 \label{sec:easyalign}
 \TT{bfast easyalign} will run \TT{bfast match}, \TT{bfast localalign}, and \TT{bfast postprocess} with their respective default parameters. 
 See the respective commands for the default parameters and explanation of the command line usage.
+\section{bfast bwtindex}
+\label{sec:bwtindex}
+\BF{bfast bwtindex} creats the appropriate files to run \BF{bfast bwaaln}.
+
+See the BWA website (\url{bio-bwa.sourceforge.net}) for more information on all other the options.
+
+\section{bfast bwaaln}
+\label{sec:bwaaln}
+\BF{bfast bwaaln} command runs BWA (see \url{bio-bwa.sourceforge.net}).
+The output will be in \BMF{} format (see \autoref{sec:bmf} for the file format).
+
+The input \rFF{} must be converted using the \BF{solid2fastq} utility (see \autoref{sec:solid2fastq}).
+Note that the input reads should be in the same format as those used by BFAST, but with only one end present.
+Therefore, two of the \BF{bfast bwaaln} commands must be executed for paired-end/mate-pair reads.
+
+See the BWA website (\url{bio-bwa.sourceforge.net}) for more information on all other the options.
+
 \section{butil}
 \label{sec:butil}
 \BF{butil} is a folder containing utilities that were developed for personal use to test, debug, and compliment the BFAST program and its accompanying publication.  
@@ -943,6 +970,7 @@ Process all given job ids.
 This script will convert Illumina generated QSEQ files or Illumina generated SEQUENCE files to the BFAST FASTQ format.
 Please execute the script with no arguments for more information.
 \subsection{solid2fastq}
+\label{sec:solid2fastq}
 This program will convert ABI SOLiD generated CSFASTA and QUAL files to the BFAST format.
 It will also split the input reads into chunks for parallel computation.
 Please execute the program with no arguments for more information.
@@ -1467,6 +1495,18 @@ The work flow for color space has five steps as seen in \autoref{fig:work-flow-c
 	\label{fig:work-flow-color}
 	}
 \end{figure}
+\section{Running BWA within BFAST}
+BFAST admittedly is difficult to tune for very short reads (less than 30bp).
+Therefore, BFAST supports running BWA (see \url{http://bio-bwa.sourceforge.net}).
+The workflow is similar to running BFAST, with a few exceptions.
+
+First, \TT{bfast bwtindex} must be run on the reference genome, with the appropriate setting for the type of read data (\TT{-A 0} for NT space, \TT{-A 1} for color space).
+Next, the input reads must in FASTQ format.
+For paired end or mate-pair reads, each end/mate must be in its own separate file as pairs/mates are not aggregated until a later step.
+Next, one \TT{bfast bwaaln} command is run for each input FASTQ file (one for fragment reads, two for paired-end/mate-pair reads).
+Finally, the \TT{bfast localalign} command is run inputting both the outputs of the two \TT{bfast bwaaln} command using the \TT{-1} and \TT{-2} options.
+The workflow proceeds similarly from this point.
+
 \chapter{Examples}
 \section{Whole-Genome Alignment of Phi X 174}
 \label{sec:phi}
