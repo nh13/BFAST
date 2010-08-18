@@ -5,6 +5,7 @@
 #include <zlib.h>
 #include "BLibDefinitions.h"
 
+int32_t RGMatchesRead_2bmf(gzFile, gzFile, RGMatches*);
 int32_t RGMatchesRead(gzFile, RGMatches*);
 int32_t RGMatchesReadWithOffsets(gzFile, RGMatches*);
 int32_t RGMatchesReadText(FILE*, RGMatches*);
@@ -12,6 +13,7 @@ void RGMatchesPrint(gzFile, RGMatches*);
 void RGMatchesPrintWithOffsets(gzFile, RGMatches*);
 void RGMatchesPrintText(FILE*, RGMatches*);
 void RGMatchesPrintFastq(FILE*, RGMatches*);
+void RGMatchesPrintSAM(FILE*, RGBinary*, int32_t, RGMatches*);
 void RGMatchesRemoveDuplicates(RGMatches*, int32_t);
 int32_t RGMatchesMergeFilesAndOutput(gzFile*, int32_t, gzFile, int32_t, int32_t);
 int32_t RGMatchesMergeThreadTempFilesIntoOutputTempFile(gzFile*, int32_t, gzFile);
@@ -25,6 +27,7 @@ void RGMatchesMirrorPairedEnd(RGMatches*, RGBinary *rg, int32_t, int32_t, int32_
 void RGMatchesCheck(RGMatches*, RGBinary*);
 void RGMatchesFilterOutOfRange(RGMatches*, int32_t);
 int32_t RGMatchesMergeIndexBins(gzFile*, int32_t, gzFile, RGIndex*, int32_t, int32_t); 
+void RGMatchesFixConstraints(RGMatches*, RGBinary*);
 
 #endif
 

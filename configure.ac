@@ -47,6 +47,9 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_LIB([m], [pow])
 AC_CHECK_LIB([z], [gzread])
+AC_CHECK_LIB([z], [gzwrite])
+AC_CHECK_LIB([bz2], [BZ2_bzRead])
+AC_CHECK_LIB([pthread],[pthread_create])
 # AC_CHECK_FUNCS_ONCE requires 2.63, which may not be available, so use AC_CHECH_FUNC on each 
 #AC_CHECK_FUNCS_ONCE([floor pow strstr strpbrk strdup strchr strtok_r])
 AC_CHECK_FUNC(floor, [AC_DEFINE(HAVE_FLOOR, 1, [Define 1 if you have the function floor])], [])

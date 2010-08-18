@@ -236,6 +236,107 @@ void RGMatchPrintFastq(FILE *fp,
 	}
 }
 
+void RGMatchPrintSAM(FILE *fp,
+		char *readName,
+		int32_t endNum,
+		RGBinary *rg,
+		int32_t space,
+		RGMatch *m)
+{
+	char *FnName = "RGMatchPrintSAM";
+	int32_t i, flag;
+	char *read=NULL, *qual=NULL;
+
+	if(NTSpace == space) {
+		read = m->read;
+		qual = m->qual;
+	}
+	else {
+		read = strdup(m->read);
+		strcpy(read, m->read);
+		ConvertReadFromColorSpace(read, m->readLength);
+		qual = strdup(m->qual);
+		strcpy(qual, m->qual);
+		for(i=0;i<m->qualLength;i++) {
+			if(0 == i) qual[i] = CHAR2QUAL(m->qual[i]);
+			else {
+				qual[i] = (int8_t)(-10*(AddLog10(CHAR2QUAL(m->qual[i-1])/-10.0,
+								CHAR2QUAL(m->qual[i])/-10.0) - log10(2.0)) + 0.5);
+			}
+			if(qual[i] <= 0) qual[i] = QUAL2CHAR(0);
+			else if(qual[i] > 63) qual[i] = QUAL2CHAR(63);
+			else qual[i] = QUAL2CHAR(qual[i]);
+		}
+		qual[i]='\0';
+	}
+
+	if(0 == m->numEntries) { // unmapped
+		flag = 0;
+		flag |= 0x04;
+		if(0 == endNum) flag |= 0x0040; 
+		else if(1 == endNum) flag |= 0x0080;
+		if(0 > fprintf(fp, "%s\t%d\t*\t0\t0\t*\t*\t0\t0\t%s\t%s\tNH:i:%d\tHI:i:%d\tIH:i:%d\tXX:i:%d",
+					readName,
+					flag,
+					read,
+					qual,
+					1,
+					1,
+					1,
+					m->maxReached)) {
+			PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
+		}
+		if(ColorSpace == space) {
+			if(0 > fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s", m->read, m->qual)) {
+				PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
+			}
+		}
+		if(0 > fprintf(fp, "\n")) {
+			PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
+		}
+	}
+	else {
+		for(i=0;i<m->numEntries;i++) {
+			flag = 0;
+			if(REVERSE == m->strands[i]) flag |= 0x0010;
+			if(0 == endNum) flag |= 0x0040; 
+			else if(1 == endNum) flag |= 0x0080;
+			if(0 < i) flag |= 0x0100; // not primary
+			char *mask = RGMatchMaskToString(m->masks[i], m->readLength);
+			if(0 > fprintf(fp, "%s\t%d\t%s\t%d\t1\t%dM\t*\t0\t0\t%s\t%s\tNH:i:%dHI:i:%d\tIH:i:%d\tXX:i:%d\tXM:Z:%s",
+						readName,
+						flag,
+						rg->contigs[m->contigs[i]-1].contigName,
+						m->positions[i],
+						(int)strlen(read),
+						read,
+						qual,
+						m->numEntries,
+						m->numEntries,
+						i+1,
+						m->maxReached,
+						mask)) {
+				PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
+			}
+			free(mask);
+			if(ColorSpace == space) {
+				if(0 > fprintf(fp, "\tCS:Z:%s\tCQ:Z:%s", m->read, m->qual)) {
+					PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
+				}
+			}
+			if(0 > fprintf(fp, "\n")) {
+				PrintError(FnName, NULL, "Could not to file", Exit, WriteFileError);
+			}
+		}
+	}
+
+
+	if(ColorSpace == space) {
+		free(read);
+		free(qual);
+	}
+}
+
 /* TODO */
 void RGMatchRemoveDuplicates(RGMatch *m,
 		int32_t maxNumMatches)
@@ -955,5 +1056,47 @@ void RGMatchUnionOffsets(RGMatch *m, int32_t dest, int32_t src)
 	}
 	for(i=0;i<m->numOffsets[src];i++) {
 		m->offsets[dest][i+prevNumOffsets] = m->offsets[src][i];
+	}
+}
+
+void RGMatchFixConstraints(RGMatch *m, RGBinary *rg)
+{
+	int32_t i, j, diff=0;
+	char *mask=NULL;
+	char *ref=NULL;
+
+	for(i=0;i<m->numEntries;i++) {
+		diff = 0;
+		mask = RGMatchMaskToString(m->masks[i], m->readLength);
+		assert(1 == RGBinaryGetSequence(rg, m->contigs[i], m->positions[i], m->strands[i], &ref, m->readLength));
+
+		if(NTSpace == rg->space) {
+			for(j=0;j<m->readLength;j++) {
+				if('1' == mask[j]) { // match
+					if(RGBinaryIsBaseN(ref[j])) {
+						mask[j] = '0';
+						diff = 1;
+					}
+				}
+			}
+		}
+		else {
+			for(j=0;j<m->readLength-1;j++) {
+				if('1' == mask[j+1]) { // match
+					if(RGBinaryIsBaseN(ref[j])) {
+						mask[j+1] = '0';
+						diff = 1;
+					}
+				}
+			}
+		}
+
+		if(1 == diff) {
+			free(m->masks[i]);
+			m->masks[i] = RGMatchStringToMask(mask, m->readLength);
+		}
+
+		free(ref);
+		free(mask);
 	}
 }

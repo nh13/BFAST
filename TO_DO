@@ -3,16 +3,6 @@ General
 ===============================================================================
 
 ===============================================================================
-tests
-- update tests for new default parameters
-===============================================================================
-
-===============================================================================
-manual
-- update tests upon release.
-===============================================================================
-
-===============================================================================
 match
 - check the implicit file names against the actual content of the indexes when
 read.
@@ -29,6 +19,18 @@ the L and R values from ungapped local alignment. How much will this buy us?
 ===============================================================================
 
 ===============================================================================
+bwtbfast2
+- update the manual to include a description including pre-requisites (i.e. 
+build the index with BWA).
+- add "-t" option.
+- add "-p" option.
+- error message if reads file not found 
+===============================================================================
+
+===============================================================================
+general
+- instead of multiply mapped ends going to the mapped end, choose a random alignment.
+=======
 postprocess
 - fix pairing from stdin
 ===============================================================================

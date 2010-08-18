@@ -416,6 +416,8 @@ void Run(RGBinary *rg,
 	fprintf(stderr, "%s", BREAK_LINE);
 	fprintf(stderr, "../bfast/Running local alignment.\n");
 	RunDynamicProgramming(matchesFP,
+      NULL, 
+      NULL,
 			rg,
 			scoringMatrixFileName,
 			Gapped,

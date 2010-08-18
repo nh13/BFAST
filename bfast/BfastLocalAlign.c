@@ -19,7 +19,7 @@
    Order of fields: {NAME, KEY, ARG, FLAGS, DOC, OPTIONAL_GROUP_NAME}.
    */
 enum { 
-	DescInputFilesTitle, DescFastaFileName, DescMatchFileName, DescScoringMatrixFileName, 
+	DescInputFilesTitle, DescFastaFileName, DescMatchFileName, DescMatchFileNameOne, DescMatchFileNameTwo, DescScoringMatrixFileName, 
 	DescAlgoTitle, DescUngapped, DescUnconstrained, DescSpace, DescStartReadNum, DescEndReadNum, DescOffsetLength, DescMaxNumMatches, DescAvgMismatchQuality, DescNumThreads, DescQueueLength,
 	DescPairedEndOptionsTitle, DescPairedEndLength, DescMirroringType, DescForceMirroring, 
 	DescOutputTitle, DescTiming, 
@@ -30,6 +30,8 @@ static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
 	{"matchFileName", 'm', "matchFileName", 0, "Specifies the bfast matches file", 1},
+	{"matchFileName1", 'O', "matchFileName_1", 0, "Specifies the bfast matches file for read 1 (-1 also works)", 1},
+	{"matchFileName2", 'T', "matchFileName_2", 0, "Specifies the bfast matches file for read 2 (-2 also works)", 1},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options =======================================================", 1},
 	{"ungapped", 'u', 0, OPTION_NO_USAGE, "Do ungapped local alignment (the default is gapped).", 2},
@@ -46,20 +48,20 @@ static struct argp_option options[] = {
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	/*
-	{0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
-	{"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other"
-		"\n\t\t\t  does not,"
-			"\n\t\t\t  this distance will be used to infer the latter read's CALs", 3},
-	{"mirroringType", 'L', "mirroringType", 0, "Specifies how to infer the other end (with -l)"
-		"\n\t\t\t  0: No mirroring should occur"
-			"\n\t\t\t  1: specifies that we assume that the first end is before the"
-			"\n\t\t\t    second end (5'->3')"
-			"\n\t\t\t  2: specifies that we assume that the second end is before"
-			"\n\t\t\t    the first end (5'->3')"
-			"\n\t\t\t  3: specifies that we mirror CALs in both directions", 3},
-	{"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance"
-		"\n\t\t\t  from -l", 3},
-		*/
+	   {0, 0, 0, 0, "=========== Paired End Options ======================================================", 3},
+	   {"pairedEndLength", 'l', "pairedEndLength", 0, "Specifies that if one read of the pair has CALs and the other"
+	   "\n\t\t\t  does not,"
+	   "\n\t\t\t  this distance will be used to infer the latter read's CALs", 3},
+	   {"mirroringType", 'L', "mirroringType", 0, "Specifies how to infer the other end (with -l)"
+	   "\n\t\t\t  0: No mirroring should occur"
+	   "\n\t\t\t  1: specifies that we assume that the first end is before the"
+	   "\n\t\t\t    second end (5'->3')"
+	   "\n\t\t\t  2: specifies that we assume that the second end is before"
+	   "\n\t\t\t    the first end (5'->3')"
+	   "\n\t\t\t  3: specifies that we mirror CALs in both directions", 3},
+	   {"forceMirroring", 'F', 0, OPTION_NO_USAGE, "Specifies that we should always mirror CALs using the distance"
+	   "\n\t\t\t  from -l", 3},
+	   */
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 4},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 4},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 5},
@@ -69,7 +71,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"e:f:m:n:o:q:s:x:A:M:Q:T:hptuU";
+"1:2:e:f:m:n:o:q:s:x:A:M:Q:O:T:hptuU";
 //"e:f:l:m:n:o:q:s:x:A:L:M:Q:T:hptuFU";
 
 	int
@@ -102,13 +104,14 @@ BfastLocalAlign(int argc, char **argv)
 					}
 					else {
 						PrintError("PrintError", NULL, "validating command-line inputs", Exit, InputArguments);
-
 					}
 					BfastLocalAlignPrintProgramParameters(stderr, &arguments);
 					/* Execute Program */
 					/* Run the aligner */
 					RunAligner(arguments.fastaFileName,
 							arguments.matchFileName,
+							arguments.matchFileNameOne,
+							arguments.matchFileNameTwo,
 							arguments.scoringMatrixFileName,
 							arguments.ungapped,
 							arguments.unconstrained,
@@ -169,7 +172,7 @@ BfastLocalAlign(int argc, char **argv)
 int BfastLocalAlignValidateInputs(struct arguments *args) {
 
 	char *FnName="BfastLocalAlignValidateInputs";
-	
+
 	/* Check if we are piping */
 	if(NULL == args->matchFileName) {
 		VERBOSE = -1;
@@ -254,6 +257,14 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairedEndLength", "Must specify a paired end length when using force mirroring", Exit, OutOfRange);	
 	}
 
+	/* Checking when passing two bmf files */
+	if (args->matchFileName != NULL && (args->matchFileNameOne !=NULL || args->matchFileNameTwo != NULL)) {
+		PrintError(FnName, "matchFileName", "Command line argument (Single MatchFile or use -O -T)", Exit, OutOfRange);	
+	}
+	if (args->matchFileName == NULL && (args->matchFileNameOne ==NULL || args->matchFileNameOne == NULL)) {
+		PrintError(FnName, "matchFileName", "Command line argument (Need -O and -T)", Exit, OutOfRange);	
+	}
+
 	return 1;
 }
 
@@ -283,6 +294,9 @@ BfastLocalAlignAssignDefaultValues(struct arguments *args)
 	args->mirroringType = NoMirroring;
 	args->forceMirroring = 0;
 
+	args->matchFileNameOne = NULL;
+	args->matchFileNameTwo = NULL;
+
 	args->timing = 0;
 
 	return;
@@ -296,7 +310,9 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "Printing Program Parameters:\n");
 		fprintf(fp, "programMode:\t\t\t\t%s\n", PROGRAMMODE(args->programMode));
 		fprintf(fp, "fastaFileName:\t\t\t\t%s\n", FILEREQUIRED(args->fastaFileName));
-		fprintf(fp, "matchFileName:\t\t\t\t%s\n", FILESTDIN(args->matchFileName));
+		fprintf(fp, "matchFileName:\t\t\t\t%s\n", (NULL == args->matchFileNameOne) ? FILESTDIN(args->matchFileName) : FILEUSING(NULL));
+		fprintf(fp, "matchFileNameOne:\t\t\t%s\n", FILEUSING(args->matchFileNameOne));
+		fprintf(fp, "matchFileNameTwo:\t\t\t%s\n", FILEUSING(args->matchFileNameTwo));
 		fprintf(fp, "scoringMatrixFileName:\t\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "ungapped:\t\t\t\t%s\n", INTUSING(args->ungapped));
 		fprintf(fp, "unconstrained:\t\t\t\t%s\n", INTUSING(args->unconstrained));
@@ -309,11 +325,11 @@ BfastLocalAlignPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
 		fprintf(fp, "queueLength:\t\t\t\t%d\n", args->queueLength);
 		/*
-		if(1 == args->usePairedEndLength) fprintf(fp, "pairedEndLength:\t\t\t%d\n", args->pairedEndLength);
-		else fprintf(fp, "pairedEndLength:\t\t\t%s\n", INTUSING(args->usePairedEndLength));
-		fprintf(fp, "mirroringType:\t\t\t\t%s\n", MIRRORINGTYPE(args->mirroringType));
-		fprintf(fp, "forceMirroring:\t\t\t\t%s\n", INTUSING(args->forceMirroring));
-		*/
+		   if(1 == args->usePairedEndLength) fprintf(fp, "pairedEndLength:\t\t\t%d\n", args->pairedEndLength);
+		   else fprintf(fp, "pairedEndLength:\t\t\t%s\n", INTUSING(args->usePairedEndLength));
+		   fprintf(fp, "mirroringType:\t\t\t\t%s\n", MIRRORINGTYPE(args->mirroringType));
+		   fprintf(fp, "forceMirroring:\t\t\t\t%s\n", INTUSING(args->forceMirroring));
+		   */
 		fprintf(fp, "timing:\t\t\t\t\t%s\n", INTUSING(args->timing));
 		fprintf(fp, BREAK_LINE);
 	}
@@ -328,6 +344,10 @@ void BfastLocalAlignFreeProgramParameters(struct arguments *args)
 	args->fastaFileName=NULL;
 	free(args->matchFileName);
 	args->matchFileName=NULL;
+	free(args->matchFileNameOne);
+	args->matchFileNameOne=NULL;
+	free(args->matchFileNameTwo);
+	args->matchFileNameTwo=NULL;
 	free(args->scoringMatrixFileName);
 	args->scoringMatrixFileName=NULL;
 }
@@ -373,10 +393,10 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 			case 'h':
 				arguments->programMode=ExecuteGetOptHelp; break;
 				/*
-			case 'l':
-				arguments->usePairedEndLength=1;
-				arguments->pairedEndLength = atoi(optarg);break;
-				*/
+				   case 'l':
+				   arguments->usePairedEndLength=1;
+				   arguments->pairedEndLength = atoi(optarg);break;
+				   */
 			case 'm':
 				arguments->matchFileName=strdup(optarg);break;
 			case 'n':
@@ -399,17 +419,25 @@ BfastLocalAlignGetOptParse(int argc, char** argv, char OptionString[], struct ar
 			case 'A':
 				arguments->space=atoi(optarg);break;
 				/*
-			case 'F':
-				arguments->forceMirroring=1;break;
-			case 'L':
-				arguments->mirroringType=atoi(optarg);break;
-				*/
+				   case 'F':
+				   arguments->forceMirroring=1;break;
+				   case 'L':
+				   arguments->mirroringType=atoi(optarg);break;
+				   */
 			case 'M':
 				arguments->maxNumMatches=atoi(optarg);break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
 			case 'U':
 				arguments->unconstrained=Unconstrained;break;
+
+			case 'O':
+			case '1':
+				arguments->matchFileNameOne=strdup(optarg);break;
+			case 'T':
+			case '2':
+				arguments->matchFileNameTwo=strdup(optarg);break;
+
 			default:
 				OptErr=1;
 		} /* while */
