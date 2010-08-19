@@ -45,12 +45,12 @@ bfast_SOURCES = \
 				bwtbfast/bwaseqio.c \
 				bwtbfast/bwtio.c \
 				bwtbfast/utils.c bwtbfast/utils.h \
+				bwtbfast/util.c bwtbfast/util.h \
 				bwtbfast/bntseq.c bwtbfast/bntseq.h \
 				bwtbfast/bwt.c bwtbfast/bwt.h \
 				bwtbfast/bwtgap.c bwtbfast/bwtgap.h \
 				bwtbfast/stdaln.c bwtbfast/stdaln.h \
 				bwtbfast/bwtaln.c bwtbfast/bwtaln.h \
-				bwtbfast/util.c bwtbfast/utils.h \
 				bwtbfast/occ_results.c bwtbfast/occ_results.h \
 				bwtbfast/bwtbfast2_aux.c bwtbfast/bwtbfast2_aux.h \
 				bwtbfast/bwtbfast_aux.c bwtbfast/bwtbfast_aux.h \
