@@ -558,7 +558,7 @@ Specifies the average mismatch quality.
 \BF{bfast postprocess} is a command that takes as input a \BAF{}.
 It can convert the input file to a specified output format as well as help choose the best alignment for each read based on score or uniqueness.
 This utility performs the fifth step in the work flow outlined in \autoref{sec:work-flow}.
-Many other filters can be applied, for example with paired-end reads where we desire only alignments for which \bf{BOTH} ends align. 
+Many other filters can be applied, for example with paired-end reads where we desire only alignments for which {\bf BOTH} ends align.
 These filters can be applied by downstream tools such as SAMtools (see \url{http://samtools.sourceforge.net}) or DNAA (see \url{http://dnaa.sourceforge.net}).
 
 The input by default will be read from the standard input stream and must be in the same format as a \BAF{} outputted by \TT{bfast localalign}.
@@ -647,7 +647,7 @@ The normalized alignment score is calculated by dividing the alignment score by 
 Specifies the window to use when performing pairing rescue (when not using \TT{-U}).
 This specifies to use a window corresponding to a standard deviation of the insert size before and after the mean insert size for pairing rescue.
 \subsubsection{\tt{-g, --gappedPairingRescue}}
-Specifies to usengapped alignment when performing pairing rescue (when not using \TT{-U}).
+Specifies to use gapped alignment when performing pairing rescue (when not using \TT{-U}).
 Otherwise, ungapped alignment will be performed.
 
 \section{bfast bafconvert}
