@@ -21,7 +21,7 @@ typedef struct {
 } fastq_t;
 
 void open_output_file(char*, int32_t, int32_t, int32_t, AFILE **, int32_t, int32_t, int32_t);
-void fastq_print(fastq_t*, AFILE**, int32_t, char *, int32_t, fastq_t *, int32_t, int32_t);
+void fastq_print(fastq_t*, AFILE**, int32_t, char *, int32_t, fastq_t *, int32_t, int32_t, int32_t);
 void dump_read(AFILE *afp_output, fastq_t *read);
 void fastq_read(fastq_t*, AFILE*, AFILE*, int32_t, int32_t);
 int32_t cmp_read_names(char*, char*);
@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
 	int64_t output_count=0;
 	int64_t output_count_total=0;
 	char *min_read_name=NULL;
+  int32_t prev=0;
 
 	// Get Parameters
 	while((c = getopt(argc, argv, "n:o:t:chjzJZbw")) >= 0) {
@@ -256,11 +257,14 @@ int main(int argc, char *argv[])
 		more_afps_left = 0;
 		num_ends_printed = 0;
 		for(i=0;i<number_of_ends;i++) {
+      // In bwa mode, I need to know if the first end was available or not to drop the 
+      // read in single or in its proper end file (read1 / read 2)
+      if (i==0 && number_of_ends == 2) { prev = reads[i].to_print; }
 			if(1 == reads[i].to_print) {
 				more_afps_left++;
 				num_ends_printed++;
 				if(0 == no_output) {
-					fastq_print(&reads[i], afp_output, bwa_output, output_prefix, number_of_ends, reads, single_output, i);
+					fastq_print(&reads[i], afp_output, bwa_output, output_prefix, number_of_ends, reads, single_output, i, prev);
 				}
 				reads[i].is_pop = reads[i].to_print = 0;
 			}
@@ -289,7 +293,7 @@ int main(int argc, char *argv[])
 
 	// Remove last fastq file when total input reads % num_reads_per_file == 0
 	// We don't want an empty file
-	if(0 == output_count && 0 == no_output && NULL != output_prefix && 0 == bwa_output) {
+	if(0 == output_count && 0 == no_output && NULL != output_prefix) {
 		if (0 == bwa_output) {
 			char empty_fn[4096]="\0";
 			assert(0 < sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number));
@@ -496,7 +500,7 @@ void open_output_file(char *output_prefix, int32_t output_suffix_number, int32_t
 }
 
 void fastq_print(fastq_t *read, AFILE **fps, int32_t bwa_output, char *output_prefix, 
-		int32_t number_of_ends, fastq_t *reads, int32_t single_output, int32_t rend)
+		int32_t number_of_ends, fastq_t *reads, int32_t single_output, int32_t rend, int32_t prev)
 {
 	assert(rend == 1 || rend == 0);
 
@@ -514,6 +518,22 @@ void fastq_print(fastq_t *read, AFILE **fps, int32_t bwa_output, char *output_pr
 		}
 	}
 	else if (1 == bwa_output && 2 == number_of_ends) { // bwa_output (two ends)
+
+    //fprintf(stdout, "DRD: %d %d %d\n", rend, reads[0].to_print, reads[1].to_print);
+    if (rend == 0 && reads[0].to_print == 1 && reads[1].to_print == 0) { // end 0, one read
+		  dump_read(fps[0], read); 
+    }
+    else if (rend == 0 && reads[0].to_print == 1 && reads[1].to_print == 1) { // end 0, two reads
+		  dump_read(fps[1], read);
+    }
+    else if (rend == 1 && reads[0].to_print == 0 && reads[1].to_print == 1 && prev == 1) { // end 1, two reads
+		  dump_read(fps[2], read);
+    }
+    else { // end 1, one read
+		  dump_read(fps[0], read); 
+    }
+
+    /*
 		int i;
 		int read_type = 0;
 
@@ -536,6 +556,7 @@ void fastq_print(fastq_t *read, AFILE **fps, int32_t bwa_output, char *output_pr
 				dump_read(fps[1], read);      // dump read2
 			}
 		}
+    */
 	}
 	else if (1 == bwa_output && 1 == number_of_ends) {
 		dump_read(fps[0], read); // single
@@ -592,6 +613,9 @@ void to_bwa(fastq_t *read, int32_t n_end, char *output_prefix)
 
 	// Convert read name to bwa format
 	strcpy(tmp_name, read->name);
+
+  for(i=0; i<SEQUENCE_NAME_LENGTH; i++) { read->name[i] = '\0'; } 
+
 	strcpy(read->name, output_prefix);
 	ops = strlen(output_prefix);
 	read->name[ops] = ':';
@@ -600,6 +624,7 @@ void to_bwa(fastq_t *read, int32_t n_end, char *output_prefix)
 		read->name[i] = tmp_name[i-ops];
 	}
 	read->name[i-1] = '/';
+
 	if (n_end == 1) {
 		read->name[i] = '2'; // In bwa's script, they encode R3 as 1 and F3 as 2.
 	}
@@ -883,18 +908,29 @@ int32_t read_line(AFILE *afp, char *line)
 
 /*
  * Close open File descriptors
+ * Notice that in bwa mode the single file is in afp_output[0] and the ends are in afp_output[1]/[2]
+ * In single_output mode (BF) afp_output[0]/[1] have the ends and [2] has the single.
+ * There is only 1 single file but many ends files.
  */
 void close_fds(AFILE **afp_output, int32_t bwa_output, char *prefix_output, int32_t number_of_ends, int32_t single_output)
 {
-	assert(NULL != afp_output[0]);
-	AFILE_afclose(afp_output[0]);
+  assert(NULL != afp_output[0]);
+  AFILE_afclose(afp_output[0]);
 
-	if ((prefix_output != NULL && number_of_ends == 2) && (1 == bwa_output) && (1 == single_output)) { 
-		assert(NULL != afp_output[1]);
-		assert(NULL != afp_output[2]);
-		AFILE_afclose(afp_output[1]);
-		AFILE_afclose(afp_output[2]);
-	}
+  //if ((prefix_output != NULL && number_of_ends == 2) && (1 == bwa_output) || (1 == single_output)) {
+  if (prefix_output != NULL && number_of_ends == 2 && 1 == bwa_output) {
+    assert(NULL != afp_output[1]);
+    assert(NULL != afp_output[2]);
+    AFILE_afclose(afp_output[1]);
+    AFILE_afclose(afp_output[2]);
+  }
+
+  if (prefix_output != NULL && number_of_ends == 2 && 1 == single_output) {
+    assert(NULL != afp_output[1]);
+    AFILE_afclose(afp_output[1]);
+    //assert(NULL != afp_output[2]);
+    //AFILE_afclose(afp_output[2]);
+  }
 }
 
 void open_bf_single(char *output_prefix, int32_t out_comp, AFILE **fps)
