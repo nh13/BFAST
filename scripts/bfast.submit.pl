@@ -320,12 +320,12 @@ sub ValidateData {
 	# postprocess
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
-	ValidateOption($data->{'postprocessOptions'}, 'unpaired',                                  OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'unpaired',                                 OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'reversePaired',                            OPTIONAL);
-	ValidateOption($data->{'unmappedFile'}, 'unmappedFile',                                   OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'unmappedFile',                             OPTIONAL);
 	ValidateFile($data->{'postprocessOptions'}, 'readGroupFile',                              OPTIONAL);
-	ValidateOptions($data->{'postprocessOptions'}, 'minMappingQuality', 					  OPTIONAL);
-	ValidateOptions($data->{'postprocessOptions'}, 'minNormalizedScore', 					  OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'minMappingQuality', 					      OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'minNormalizedScore', 					  OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'threads',                                  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
@@ -346,7 +346,7 @@ sub ValidateData {
 
 sub ValidateOption {
 	my ($hash, $option, $required) = @_;
-
+	
 	return 1 if (defined($hash->{$option}));
 	return 0 if (OPTIONAL == $required);
 
