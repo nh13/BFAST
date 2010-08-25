@@ -49,7 +49,7 @@ static struct argp_option options[] = {
 	{"minMappingQuality", 'm', "minMappingQuality", 0, "Specifies to remove low mapping quality alignments", 2},
 	{"minNormalizedScore", 'M', "minNormalizedScore", 0, "Specifies to remove low (alignment) scoring alignments", 2},
 	{"pairingStandardDeviation", 'S', "pairingStandardDeviation", 0, "Specifies the pairing distance standard deviation to examine when rescuing", 2}, // TODO document
-	{"gappedPairingRescue", 'g', 0, OPTION_NO_USAGE, "Specifies that ungapped pairing rescue should be performed", 2}, // TODO document
+	{"gappedPairingRescue", 'g', 0, OPTION_NO_USAGE, "Specifies that gapped pairing rescue should be performed", 2}, // TODO document
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
 	{0, 0, 0, 0, "=========== Output Options ==========================================================", 3},
