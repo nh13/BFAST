@@ -36,7 +36,7 @@ static struct argp_option options[] = {
 	{"mainIndexes", 'i', "mainIndexes", 0, "The index numbers for the main bif files (comma separated)", 1},
 	{"secondaryIndexes", 'I', "secondaryIndexes", 0, "The index numbers for the secondary bif files (comma"
 		"\n\t\t\t\t  separated)", 1},
-	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
+	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads (FASTQ format)", 1}, 
 	{"offsets", 'o', "offsets", 0, "Specifies the offsets", 1},
 	{"loadAllIndexes", 'l', "loadAllIndexes", 0, "Specifies to load all main or secondary indexes into memory", 1},
 #ifndef DISABLE_BZ2
