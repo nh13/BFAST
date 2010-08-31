@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <config.h>
 
 /* Program defaults */
 #define PROGRAM_NAME "bfast" /* Could just use PACKAGE_NAME */
