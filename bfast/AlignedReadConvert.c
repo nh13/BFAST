@@ -71,6 +71,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		int32_t *numOriginalEntries,
 		int32_t outputFormat,
 		int properPaired,
+		int reversePaired,
 		int32_t binaryOutput)
 {
 	char *FnName = "AlignedReadConvertPrintOutputFormat";
@@ -84,7 +85,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			}
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, fp);
+			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, reversePaired, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -100,6 +101,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 		char *outputID,
 		char *readGroupString,
 		int properPaired,
+		int reversePaired,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintSAM";
@@ -124,6 +126,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 					outputID,
 					readGroupString,
 					properPaired,
+					reversePaired,
 					fp);
 		}
 		else {
@@ -136,7 +139,8 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 						numOriginalEntries,
 						outputID,
 						readGroupString,
-					properPaired,
+						properPaired,
+						reversePaired,
 						fp);
 			}
 		}
@@ -153,6 +157,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		char *outputID,
 		char *readGroupString,
 		int properPaired,
+		int reversePaired,
 		FILE *fp) 
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
@@ -326,10 +331,30 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	else {
-		if(0>fprintf(fp, "\t%d",
-					a->ends[mateEndIndex].entries[mateEntriesIndex].position -
-					a->ends[endIndex].entries[entriesIndex].position)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+		if(0 == reversePaired) {
+			if(0>fprintf(fp, "\t%d",
+						a->ends[mateEndIndex].entries[mateEntriesIndex].position -
+						a->ends[endIndex].entries[entriesIndex].position)) {
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+			}
+		}
+		else {
+			if(a->ends[mateEndIndex].entries[mateEntriesIndex].position < a->ends[endIndex].entries[entriesIndex].position) {
+				if(0>fprintf(fp, "\t%d",
+							a->ends[mateEndIndex].entries[mateEntriesIndex].position -
+							a->ends[endIndex].entries[entriesIndex].position +
+							a->ends[endIndex].entries[entriesIndex].alnReadLength - 1)) {
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+				}
+			}
+			else {
+				if(0>fprintf(fp, "\t%d",
+							a->ends[endIndex].entries[entriesIndex].position -
+							a->ends[mateEndIndex].entries[mateEntriesIndex].position +
+							a->ends[mateEndIndex].entries[mateEntriesIndex].alnReadLength - 1)) {
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+				}
+			}
 		}
 	}
 	/* SEQ and QUAL */

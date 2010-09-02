@@ -314,7 +314,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				}
 			}
 
-			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, properPair, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, properPair, reversePaired, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&alignQueue[queueIndex]);
