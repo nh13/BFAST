@@ -75,26 +75,33 @@ void RunAligner(char *fastaFileName,
 		PrintError(FnName, "stdout", "Could not open stdout file for writing", Exit, OpenFileError);
 	}
 
-	if(0 <= VERBOSE) {
-		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Reading match file from %s.\n",
-				(NULL == matchFileNameAll) ? "stdin" : matchFileNameAll);
-	}
 
 	/* Open current match file -- If we are not in two bmf file mode */
 	if(NULL == matchFileNameAll && NULL==matchFileNameReadOne && NULL==matchFileNameReadTwo) {
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Reading match file from stdin.\n");
+		}
 		if((matchAllFP=gzdopen(fileno(stdin), "rb"))==0) {
 			PrintError(FnName, "stdin", "Could not open stdin for reading", Exit, OpenFileError);
 		}
 	}
 	/* Regular 1 bmf file mode */
 	else if(NULL==matchFileNameReadOne && NULL==matchFileNameReadTwo) { 
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Reading match file from %s.\n", matchFileNameAll);
+		}
 		if((matchAllFP=gzopen(matchFileNameAll, "rb"))==0) {
 			PrintError(FnName, matchFileNameAll, "Could not open file for reading", Exit, OpenFileError);
 		}
 	}
 	/* two bmf input files mode */
 	else { 
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "%s", BREAK_LINE);
+			fprintf(stderr, "Reading match files from %s and %s.\n", matchFileNameReadOne, matchFileNameReadTwo);
+		}
 		if((matchReadOneFP=gzopen(matchFileNameReadOne, "rb"))==0 || (matchReadTwoFP=gzopen(matchFileNameReadTwo, "rb"))==0) {
 			PrintError(FnName, matchFileNameAll, "Could not open file for reading (2 bmf)", Exit, OpenFileError);
 		}    
