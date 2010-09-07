@@ -8,7 +8,7 @@ AC_PREREQ(2.59);
 AC_INIT([bfast],[0.6.4f],[bfast-help@lists.sourceforge.net],[bfast])
 AC_COPYRIGHT([See LICENSE for copyright information.])
 AC_CONFIG_AUX_DIR(config)
-AM_INIT_AUTOMAKE([dist-bzip2])
+AM_INIT_AUTOMAKE([dist-bzip2 subdir-objects])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
 
@@ -17,6 +17,7 @@ AC_CANONICAL_BUILD
 
 # Check for C and C++ compilers
 AC_PROG_CC
+AM_PROG_CC_C_O
 
 AC_PROG_INSTALL
 AC_GNU_SOURCE
