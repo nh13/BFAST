@@ -211,6 +211,9 @@ sub Schema {
 			  <xs:element name="readGroupFile" type="xs:string"/>
 			  <xs:element name="minMappingQuality" type="xs:integer"/>
 			  <xs:element name="minNormalizedScore" type="xs:integer"/>
+			  <xs:element name="pairingStandardDeviation" type="positiveInteger"/>
+			  <xs:element name="insertSizeAvg" type="positiveInteger"/>
+			  <xs:element name="insertSizeStdDev" type="positiveInteger"/>
 			  <xs:element name="threads" type="positiveInteger"/>
 			  <xs:element name="queueLength" type="positiveInteger"/>
 			  <xs:element name="qsubQueue" type="xs:string"/>
@@ -326,6 +329,9 @@ sub ValidateData {
 	ValidateFile($data->{'postprocessOptions'}, 'readGroupFile',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'minMappingQuality', 					      OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'minNormalizedScore', 					  OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'pairingStandardDeviation',		  OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'insertSizeAvg',				  OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'insertSizeStdDev', 			  OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'threads',                                  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
@@ -764,6 +770,9 @@ sub CreateJobsPostprocess {
 		$cmd .= " -r ".$data->{'postprocessOptions'}->{'readGroupFile'}.""   if defined($data->{'postprocessOptions'}->{'readGroupFile'});
 		$cmd .= " -m ".$data->{'postprocessOptions'}->{'minMappingQuality'}.""   if defined($data->{'postprocessOptions'}->{'minMappingQuality'});
 		$cmd .= " -M ".$data->{'postprocessOptions'}->{'minNormalizedScore'}.""   if defined($data->{'postprocessOptions'}->{'minNormalizedScore'});
+		$cmd .= " -S ".$data->{'postprocessOptions'}->{'pairingStandardDeviation'}.""   if defined($data->{'postprocessOptions'}->{'pairingStandardDeviation'});
+		$cmd .= " -v ".$data->{'postprocessOptions'}->{'insertSizeAvg'}.""   if defined($data->{'postprocessOptions'}->{'insertSizeAvg'});
+		$cmd .= " -s ".$data->{'postprocessOptions'}->{'insertSizeStdDev'}.""   if defined($data->{'postprocessOptions'}->{'insertSizeStdDev'});
 		$cmd .= " -n ".$data->{'postprocessOptions'}->{'threads'}          if defined($data->{'postprocessOptions'}->{'threads'});
 		$cmd .= " -Q ".$data->{'postprocessOptions'}->{'queueLength'} if defined($data->{'postprocessOptions'}->{'queueLength'});
 		$cmd .= " -t"                                                  if defined($data->{'globalOptions'}->{'timing'});

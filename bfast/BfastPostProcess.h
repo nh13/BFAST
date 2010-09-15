@@ -20,6 +20,9 @@ struct arguments
 	int minMappingQuality;				    /* -m */
 	int minNormalizedScore;				    /* -M */
 	double pairingStandardDeviation;		/* -S */
+	int insertSizeSpecified;
+	double insertSizeAvg;						/* -v */
+	double insertSizeStdDev;					/* -s */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
 	int gappedPairingRescue;				/* -u */
