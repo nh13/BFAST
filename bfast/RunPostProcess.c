@@ -207,7 +207,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		/* Get the PEDBins if necessary */
 		if(0 == unpaired) {
 			PEDBinsInitialize(&bins, insertSizeSpecified, insertSizeAvg, insertSizeStdDev);
-			unpaired = GetPEDBins(alignQueue, alignQueueLength, &bins);
+			unpaired = GetPEDBins(alignQueue, numRead, &bins);
 		}
 
 		// Store the original # of entries for SAM output
