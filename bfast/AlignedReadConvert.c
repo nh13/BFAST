@@ -585,7 +585,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	char *FnName="AlignedReadConvertPrintAlignedEntryToCIGAR";
 	char read[SEQUENCE_LENGTH]="\0";
 	char reference[SEQUENCE_LENGTH]="\0";
-	int32_t i, MDi, MDNumMatches=0;
+	int32_t i, MDi, MDNumMatches=0, MDret=0;
 	int32_t prevType=0;
 	int32_t numPrevType=0;
 	int32_t curType=0;
@@ -735,10 +735,11 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		}
 		else { // Other
 			if(0 < MDNumMatches) {
-				if( sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+				MDret = sprintf(MD + MDi, "%d", MDNumMatches);
+				if(MDret < 0) {
 					PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
 				}
-				MDi+=(int)(1+log10(0.1+MDNumMatches));
+				MDi+=MDret;
 			}
 			MDNumMatches = 0;
 
@@ -774,10 +775,11 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		}
 	}
 	if(0 < MDNumMatches) {
-		if(sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+		MDret = sprintf(MD + MDi, "%d", MDNumMatches);
+		if(MDret < 0) {
 			PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
 		}
-		MDi+=(int)(1+log10(0.1+MDNumMatches));
+		MDi+=MDret;
 		MDNumMatches=0;
 	}
 	else if (prevType == 3) { /* Trailing zero for samtools calmd compatibility */
