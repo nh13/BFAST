@@ -499,7 +499,7 @@ void read_name_trim(char *name)
 	int32_t l;
 
 	// Trim last _R3 or _F3 : >427_67_118_R3
-  // For V4 (PE), read2 file uses: F5-P2: >427_67_118_F5-P2
+        // For V4 (PE), read2 file uses: F5-P2: >427_67_118_F5-P2
 	if(NULL == name) {
 		return;
 	}
@@ -516,7 +516,25 @@ void read_name_trim(char *name)
 			name[l-2]=='P' &&
 			name[l-4]=='5') {
 		name[l-6]='\0';
-  }
+        }
+	else if(3 < l &&
+			name[l-3]=='-' &&
+			name[l-2]=='B' &&
+			name[l-4]=='C') {
+		name[l-6]='\0';
+        }
+        else {
+            // try to trim off until the last underscore
+            l--; // 0-based
+            while(0 <= l) {
+                if('_' == name[l]) {
+                    name[l]='\0';
+                    break;
+                }
+                name[l]='\0';
+                l--;
+            }
+        }
 
 	assert('_' != name[0]);
 }
