@@ -141,7 +141,7 @@ For example, we may be interested in mutations in Breast Cancer and therefore ma
 In other cases, the speed of mapping is important and the accuracy is not. 
 For example, in digital gene expression analysis the goal is to estimate the number of reads map over locations in the genome as to gain an overall trend of coverage, rather than precise variant detection.
 
-Whatever is the intended application of BFAST, it can be tuned to find alignments quickly at the cost of accuracy or robustness against variants.
+Whatever the intended application of BFAST, it can be tuned to find alignments quickly at the cost of accuracy or robustness against variants.
 It can also be tuned to accurately find alignments with variants at the cost of speed. 
 This is the power of BFAST.
 It is a highly generalized algorithm allowing the user to tune the algorithm to suit their specific needs.
@@ -175,8 +175,8 @@ The basic work flow has five steps as seen in \autoref{fig:work-flow}.
 
 \begin{enumerate}
 	\item
-		The first step is to create a reference genome.
-		This reference genome contains all the sequence to which we wish to align.
+		The first step is to create a reference genome from an input FASTA file
+		that contains all the sequence to which we wish to align.
 		The command \TT{bfast fasta2brg} performs this task (see \autoref{sec:fasta2brg}).
 	\item
 		The second step is to create indexes of the reference genome, which was created in the first step.
@@ -207,12 +207,12 @@ BFAST is a command-line program.
 It accepts many command-line options to customize and tune the alignment algorithm.
 The key commands are organized into one binary program called \TT{bfast}.
 To access each command, we use \TT{bfast <command>}.
-As seen in the \autoref{sec:work-flow}, there are five commands to be run for the entire work flow, although only three need to be used if we are aligning to the same reference genome using the same indexes.
+As seen in the \autoref{sec:work-flow}, there are five commands to be run for the entire work flow, although only three need to be used if we are aligning to a previously indexed reference.
 \section{Common Options}
 \label{sec:commonoptions}
 Some common options exist across some or all of the commands. 
 
-These options include specifying the reference genome FASTA file, specifying the number of threads for parallel processing (\TT{-n}), the number of reads to load at a time (\TT{-Q}), specifying where temporary files should be stored (\TT{-T}), specifying the encoding space (\TT{-A}), outputting timing information (\TT{-t}), printing program parameters (\TT{-p}), and printing a help message (\TT{-h}).
+These options include specifying the reference genome FASTA file (\\T{-f}), specifying the number of threads for parallel processing (\TT{-n}), the number of reads to load at a time (\TT{-Q}), specifying where temporary files should be stored (\TT{-T}), specifying the encoding space (\TT{-A}), outputting timing information (\TT{-t}), printing program parameters (\TT{-p}), and printing a help message (\TT{-h}).
 
 Other options, such as the options \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} for specifying only a contiguous range should be considered, are shared across some of the commands but have specific implications to each command and are described in the respective command's section.
 
@@ -267,7 +267,7 @@ See \autoref{sec:brgf} for the file format of the \BRGF{}.
 See \autoref{sec:commonoptions} for common options that are in use in this command.
 \subsection{Creating a Reference Genome}
 \label{sec:creating-a-rg}
-To create a reference genome, the required command-line options is \TT{-f}.
+To create a reference genome, the required command-line option is \TT{-f}.
 
 We need to input a \rGFF{} using the \TT{-f} option (see \autoref{sec:rgfastafile} for the file format).
 To create a reference genome in color space, we use the option \TT{-A 1}, otherwise we use \TT{-A 0}.
@@ -301,6 +301,7 @@ The \TT{-w} option specifies the hash width (the index into the index).
 
 The \TT{-d} option is used to split the index into multiple parts for low-memory computation.
 The index will be split into $4^d$ parts, where $d$ is the value for \TT{-d} specified.
+Specify a value of 1 to reduce memory usage to 25\%.
 To calculate the size of the \BIF{} before creation, see \autoref{sec:bif}.
 The \TT{-i} option is used when we wish to create more than one index using the same \rGFF{} and space (\TT{-A}).
 
@@ -384,7 +385,7 @@ This can be modified by using the \TT{-w} option, which will target a specific s
 
 In all cases, the \BRGF{} and \BIF{s} must match that encoding space specified by \TT{-A}.
 
-The \TT{-K} and \TT{-M} options are useful to ignore keys that return too many CALs (\TT{-K}) and to ignore reads that in aggregate have too many CALs (\TT{-M}).
+The \TT{-K} and \TT{-M} options are useful to ignore keys that return too many CALs (\TT{-K}) and to ignore reads that in aggregate have too many CALs (\TT{-M}). (For reference, 65\% of the human genome has fewer than 100 CALs given a key size (\TT{-k}) of 16).
 
 If the reads file is large, a subset of reads can be specified using the \TT{-s} and \TT{-e} options, which helps distribute the process across a cluster.
 For extremely large read datasets (billions), it is recommended that the reads be split into separate files before hand.
@@ -438,7 +439,7 @@ This may be useful when distributing a large data set across a cluster.
 \subsubsection{\TT{-k INTEGER, --keySize=INTEGER}}
 Specifies to truncate all indexes to have the given key size.
 This will only be performed on indexes for which the given value is greater than the hash width and less than the original key size.
-This may be useful to search with greater sensitivity by reusing indexes large key sizes.
+This may be useful to search with greater sensitivity by reusing indexes large key sizes (See \autoref{sec:design-indexes}).
 
 \subsubsection{\TT{-K INTEGER, --maxKeyMatches=INTEGER}}
 Specifies the maximum number of matches to allow before a key is ignored.  
@@ -465,8 +466,8 @@ See \autoref{sec:commonoptions} for common options that are in use in this comma
 
 \subsection{Performing Local Alignment on Candidate Alignment Locations (CALs)}
 \label{sec:local-alignment}
-To perform local alignment of CALs, the required option is \TT{-f}.
-We need to input a \rGFF{} using the \TT{-f} option (see \autoref{sec:rgfastafile} for the file format).
+To perform local alignment of CALs,
+we need to input a \rGFF{} using the \TT{-f} option (see \autoref{sec:rgfastafile} for the file format).
 The \BRGF{} must already be created using this \rGFF{} using \TT{bfast fasta2brg} and will be inferred from the \rGFF{} file name.
 
 The input by default will be read from the standard input stream and must be in the same format as a \BMF{} outputted by \TT{bfast match}.
@@ -485,7 +486,7 @@ For more information on the local aligner, please see \cite{BFAST-local-alignmen
 
 To align without gaps (deletions and insertions), we can use \TT{-u}.
 The \TT{-U} is used to align without considering seed constraints.  
-Without this option, bases that matched the reference during \TT{bfast match} will be constrained to match during \TT{bfast localalign}.
+With this option, bases that matched the reference during \TT{bfast match} will be not constrained to match during \TT{bfast localalign}.
 
 The \TT{-s}, \TT{-S}, \TT{-e} and \TT{-E} can be used to specify only to consider CALs within a given range.
 
@@ -637,7 +638,7 @@ The normalized alignment score is calculated by dividing the alignment score by 
 Specifies the window to use when performing pairing rescue (when not using \TT{-U}).
 This specifies to use a window corresponding to a standard deviation of the insert size before and after the mean insert size for pairing rescue.
 \subsubsection{\tt{-g, --gappedPairingRescue}}
-Specifies to usengapped alignment when performing pairing rescue (when not using \TT{-U}).
+Specifies to use gapped alignment when performing pairing rescue (when not using \TT{-U}).
 Otherwise, ungapped alignment will be performed.
 
 \section{bfast bafconvert}
