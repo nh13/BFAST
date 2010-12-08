@@ -40,6 +40,9 @@ AC_ARG_ENABLE(bz2, [  --disable-bz2         use this option to disable bz2 suppo
 
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}";
 
+# Enable large file support; disable with --disable-largefile
+AC_SYS_LARGEFILE
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 # Checks for library functions.
@@ -60,6 +63,8 @@ AC_CHECK_FUNC(strdup, [AC_DEFINE(HAVE_STRDUP, 1, [Define 1 if you have the funct
 AC_CHECK_FUNC(strpbrk, [AC_DEFINE(HAVE_STRPBRK, 1, [Define 1 if you have the function strpbrk])],[])
 AC_CHECK_FUNC(strstr, [AC_DEFINE(HAVE_STRSTR, 1, [Define 1 if you have the function strstr])],[])
 AC_CHECK_FUNC(strtok_r, [AC_DEFINE(HAVE_STRTOK_R, 1, [Define 1 if you have the function strpbrk])],[])
+
+AC_FUNC_FSEEKO
 
 # Check types
 AC_CHECK_TYPE(int8_t)
