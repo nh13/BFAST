@@ -29,5 +29,8 @@ void AFILE_afclose(AFILE *afp);
 size_t AFILE_afread(void *ptr, size_t size, size_t count, AFILE *afp);
 int AFILE_afread2(AFILE *afp, void *ptr, unsigned int len);
 size_t AFILE_afwrite(void *ptr, size_t size, size_t count, AFILE *afp); 
-
+#ifdef HAVE_FSEEKO
+int AFILE_afseek(AFILE *afp, off_t pos, int whence);
+off_t AFILE_aftell(AFILE *afp);
+#endif
 #endif

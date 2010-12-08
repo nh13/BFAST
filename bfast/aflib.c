@@ -248,3 +248,45 @@ size_t AFILE_afwrite(void *ptr, size_t size, size_t count, AFILE *afp)
 	}
 	return 0;
 }
+
+#ifdef HAVE_FSEEKO
+int AFILE_afseek(AFILE *afp, off_t pos, int whence) {
+	switch(afp->c) {
+		case AFILE_NO_COMPRESSION:
+			return fseeko(afp->fp, pos, whence);
+#ifndef DISABLE_BZ2 
+		case AFILE_BZ2_COMPRESSION:
+			AFILE_print_error("Bzip2 compression does now allow seeking");
+			return 0;
+#endif
+		case AFILE_GZ_COMPRESSION:
+			if (gzseek(afp->gz, pos, whence) == -1)
+				return -1;
+			else
+				return 0;
+		default:
+			AFILE_print_error("Could not recognize compresssion\n");
+			break;
+	}
+	return 0;
+}
+
+
+off_t AFILE_aftell(AFILE *afp) {
+	switch(afp->c) {
+		case AFILE_NO_COMPRESSION:
+			return ftello(afp->fp);
+#ifndef DISABLE_BZ2 
+		case AFILE_BZ2_COMPRESSION:
+			AFILE_print_error("Bzip2 compression does now allow telling of file location");
+			return (off_t)0;
+#endif
+		case AFILE_GZ_COMPRESSION:
+			return (off_t)gztell(afp->gz);
+		default:
+			AFILE_print_error("Could not recognize compresssion\n");
+			break;
+	}
+	return 0;
+}
+#endif
