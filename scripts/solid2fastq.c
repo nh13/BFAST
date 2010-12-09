@@ -12,6 +12,30 @@
 
 #define Name "solid2fastq"
 
+#define MALLOC_AND_TEST(VAR, SIZE) \
+	VAR = malloc(SIZE); \
+	if(NULL == VAR) { \
+		PrintError(Name, #VAR, "Could not allocate memory", Exit, MallocMemory); \
+	}
+
+#define CHECK_RM_EMPTY_FILE(OUTPUT_COUNTS, FN, FH, CREATE_FN, OUT_COMP)	\
+	if (0 == OUTPUT_COUNTS) {					\
+		CREATE_FN;						\
+		switch(OUT_COMP) {					\
+ 			case AFILE_GZ_COMPRESSION:			\
+				strcat(FN, ".gz"); break;		\
+			case AFILE_BZ2_COMPRESSION:			\
+				strcat(FN, ".bz2"); break;		\
+			 default:					\
+				break;					\
+		}							\
+		if ((FH = fopen(FN, "r")) != NULL) {			\
+			if(remove(FN)) PrintError(Name, #FN, "Cannot remove file", Exit, DeleteFileError); \
+			fclose(FH);					\
+		}							\
+	}
+
+
 enum fastq_read_type { read1, read2, single, combined, undefined };
 
 typedef struct {
@@ -135,18 +159,10 @@ int main(int argc, char *argv[])
 	}
 
 	// Allocate memory
-	csfasta_filenames = malloc(sizeof(char*)*number_of_ends);
-	if(NULL == csfasta_filenames) {
-		PrintError(Name, "csfasta_filenames", "Could not allocate memory", Exit, MallocMemory);
-	}
-	qual_filenames = malloc(sizeof(char*)*number_of_ends);
-	if(NULL == qual_filenames) {
-		PrintError(Name, "qual_filenames", "Could not allocate memory", Exit, MallocMemory);
-	}
-	end_counts = malloc(sizeof(int64_t)*number_of_ends);
-	if(NULL == end_counts) {
-		PrintError(Name, "end_counts", "Could not allocate memory", Exit, MallocMemory);
-	}
+	MALLOC_AND_TEST(csfasta_filenames, sizeof(char*)*number_of_ends);
+	MALLOC_AND_TEST(qual_filenames, sizeof(char*)*number_of_ends);
+	MALLOC_AND_TEST(end_counts, sizeof(int64_t)*number_of_ends);
+
 	for(i=0;i<number_of_ends;i++) {
 		csfasta_filenames[i] = strdup(argv[optind+i]);
 		qual_filenames[i] = strdup(argv[optind+i+number_of_ends]);
@@ -154,14 +170,8 @@ int main(int argc, char *argv[])
 	}
 
 	// Allocate memory for input file pointers
-	afps_csfasta = malloc(sizeof(AFILE*)*number_of_ends);
-	if(NULL == afps_csfasta) {
-		PrintError(Name, "afps_csfasta", "Could not allocate memory", Exit, MallocMemory);
-	}
-	afps_qual = malloc(sizeof(AFILE*)*number_of_ends);
-	if(NULL == afps_qual) {
-		PrintError(Name, "afps_qual", "Could not allocate memory", Exit, MallocMemory);
-	}
+	MALLOC_AND_TEST(afps_csfasta, sizeof(AFILE*)*number_of_ends);
+	MALLOC_AND_TEST(afps_qual, sizeof(AFILE*)*number_of_ends);
 
 	// Open input files
 	for(i=0;i<number_of_ends;i++) {
@@ -173,30 +183,21 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	reads = malloc(sizeof(fastq_t)*number_of_ends);
-	if(NULL == reads) {
-		PrintError(Name, "reads", "Could not allocate memory", Exit, MallocMemory);
-	}
+	MALLOC_AND_TEST(reads, sizeof(fastq_t)*number_of_ends);
 
 	for(i=0;i<number_of_ends;i++) {
 		reads[i].to_print = 0;
 		reads[i].is_pop = 0;
 	}
 
-	output_suffix_number = malloc(sizeof(int32_t)*3);
-	if(NULL == output_suffix_number) {
-		PrintError(Name, "output_suffix_number", "Could not allocate memory", Exit, MallocMemory);
-	}
-
-	output_counts = malloc(sizeof(int64_t)*3);
-	if(NULL == output_counts) {
-		PrintError(Name, "output_counts", "Could not allocate memory", Exit, MallocMemory);
-	}
+	MALLOC_AND_TEST(output_suffix_number, sizeof(int32_t)*3);
+	MALLOC_AND_TEST(output_counts, sizeof(int64_t)*3);
 
 	for(i=0;i<num_output_files;i++) {
 		output_suffix_number[i] = 1;
 		output_counts[i] = 0;
 	}
+
 	more_afps_left=number_of_ends;
 	output_count_total = 0;
 
@@ -348,68 +349,39 @@ int main(int argc, char *argv[])
 	if(0 == no_output && NULL != output_prefix) {
 		if (0 == bwa_output && 0 == output_counts[0]) {
 			char empty_fn[4096]="\0";
-			assert(0 < sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number[0]));
-			if(remove(empty_fn)) { 
-				PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-			}
+			FILE *f;
+			CHECK_RM_EMPTY_FILE( output_counts[0], empty_fn, f, 
+					     sprintf(empty_fn, "%s.%d.fastq", output_prefix, output_suffix_number[0]),
+					     out_comp);
 		}
 
 		if(1 == bwa_output) {
 			char empty_fn[4096]="\0";
 			FILE *f;
-			if (0 == output_counts[2]) {
-				assert(0 < sprintf(empty_fn, "%s.read1.%d.fastq", output_prefix, output_suffix_number[2]));
-				if ((f = fopen(empty_fn, "r")) != NULL) {
-					if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-					fclose(f);
-				}
-			}
+			CHECK_RM_EMPTY_FILE( output_counts[2], empty_fn, f, 
+					     sprintf(empty_fn, "%s.read1.%d.fastq", output_prefix, output_suffix_number[2]),
+					     out_comp );
+			CHECK_RM_EMPTY_FILE( output_counts[1], empty_fn, f, 
+					     sprintf(empty_fn, "%s.read2.%d.fastq", output_prefix, output_suffix_number[1]),
+					     out_comp );
+			CHECK_RM_EMPTY_FILE( output_counts[0], empty_fn, f, 
+					     sprintf(empty_fn, "%s.single.%d.fastq", output_prefix, output_suffix_number[0]),
+					     out_comp );
 
-			if (0 == output_counts[1]) {
-				assert(0 < sprintf(empty_fn, "%s.read2.%d.fastq", output_prefix, output_suffix_number[1]));
-				if ((f = fopen(empty_fn, "r")) != NULL) {
-					if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-					fclose(f);
-				}
-			}
-
-			if (0 == output_counts[0]) {
-				assert(0 < sprintf(empty_fn, "%s.single.%d.fastq", output_prefix, output_suffix_number[0]));
-				if ((f = fopen(empty_fn, "r")) != NULL) {
-					if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-					fclose(f);
-				}
-			}
-		}
-	}
-
-	/* When in single output mode, we may have empty files in the last split */
-	if(1 == single_output && 0 == no_output && NULL != output_prefix) {
-		char empty_fn[4096]="\0";
-		FILE *f;
-
-		assert(0 < sprintf(empty_fn, "%s.rd1.%d.fastq", output_prefix, output_suffix_number[1]));
-		if (1 == is_empty(empty_fn)) {
-			if ((f = fopen(empty_fn, "r")) != NULL) {
-				if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-				fclose(f);
-			}
 		}
 
-		assert(0 < sprintf(empty_fn, "%s.rd2.%d.fastq", output_prefix, output_suffix_number[2]));
-		if (1 == is_empty(empty_fn)) {
-			if ((f = fopen(empty_fn, "r")) != NULL) {
-				if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-				fclose(f);
-			}
-		}
-
-		assert(0 < sprintf(empty_fn, "%s.single.fastq", output_prefix));
-		if (1 == is_empty(empty_fn)) {
-			if ((f = fopen(empty_fn, "r")) != NULL) {
-				if(remove(empty_fn)) PrintError(Name, "empty_fn", "Cannot remove file", Exit, DeleteFileError);
-				fclose(f);
-			}
+		if(1 == single_output) {
+			char empty_fn[4096]="\0";
+			FILE *f;
+			CHECK_RM_EMPTY_FILE( output_counts[1], empty_fn, f, 
+					     sprintf(empty_fn, "%s.rd1.%d.fastq", output_prefix, output_suffix_number[1]),
+					     out_comp );
+			CHECK_RM_EMPTY_FILE( output_counts[2], empty_fn, f, 
+					     sprintf(empty_fn, "%s.rd2.%d.fastq", output_prefix, output_suffix_number[2]),
+					     out_comp );
+			CHECK_RM_EMPTY_FILE( output_counts[0], empty_fn, f, 
+					     sprintf(empty_fn, "%s.single.%d.fastq", output_prefix, output_suffix_number[0]),
+					     out_comp );
 		}
 	}
 
