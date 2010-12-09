@@ -3,6 +3,7 @@ EXTRA_DIST = LICENSE \
 			 manual/bfast-book.pdf \
 			 scripts/ill2fastq.pl \
 			 scripts/bfast.submit.pl \
+			 scripts/psolid2fastq.pl \
 			 tests/test.definitions.sh \
 			 tests/data/data.tar.bz2 \
 			 tests/test.initialize.sh \

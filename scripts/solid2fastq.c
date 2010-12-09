@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include "../bfast/BLibDefinitions.h"
 #include "../bfast/BError.h"
 #include "../bfast/BLib.h"
@@ -50,16 +51,20 @@ void open_output_file(char*, enum fastq_read_type, int32_t, int32_t, int32_t, AF
 void open_output_files(char*, int32_t**, int32_t, int32_t, AFILE **, int32_t, int32_t, int32_t);
 void fastq_print(fastq_t*, AFILE**, int32_t, char *, int32_t, fastq_t *, int32_t, int32_t, int32_t, int64_t **);
 void dump_read(AFILE *afp_output, fastq_t *read, int64_t *output_count);
-void fastq_read(fastq_t*, AFILE*, AFILE*, int32_t, int32_t);
 int32_t cmp_read_names(char*, char*, int32_t);
 void read_name_trim(char*);
 char *strtok_mod(char*, char*, int32_t*);
-int32_t read_line(AFILE *afp, char *line);
 void add_read_name_prefix(fastq_t *, char *, int32_t);
 void to_bwa(fastq_t *, int32_t);
 void close_fds(AFILE **, int32_t, char *, int32_t, int32_t);
-int is_empty(char *path);
-
+//int is_empty(char *path);
+#ifdef HAVE_FSEEKO
+void fastq_read(fastq_t*, AFILE*, AFILE*, off_t, off_t, int32_t, int32_t);
+int32_t read_line(AFILE *afp, off_t end_pos, char *line);
+#else
+void fastq_read(fastq_t*, AFILE*, AFILE*, int32_t, int32_t);
+int32_t read_line(AFILE *afp, char *line);
+#endif
 int print_usage ()
 {
 	fprintf(stderr, "solid2fastq %s\n", PACKAGE_VERSION);
@@ -76,10 +81,50 @@ int print_usage ()
 	fprintf(stderr, "\t-t\tINT\ttrim INT bases from the 3' end of the reads.\n");
 	fprintf(stderr, "\t-b\t\tEnable bwa output (for 'bwa aln', not for 'bfast bwaaln').\n");
 	fprintf(stderr, "\t-w\t\tCreate a single file to dump reads with only one end.\n");
+#ifdef HAVE_FSEEKO
+        fprintf(stderr, "\t-s\tINT,INT[,INT,INT]\tstart reading at the given byte location in each file\n");
+        fprintf(stderr, "\t-e\tINT,INT[,INT,INT]\tstop reading at the given byte location in each file\n");
+	fprintf(stderr, "\t-N\tINT\tFile number (appended to end of output prefix)\n");
 	fprintf(stderr, "\t-h\t\tprint this help message.\n");
+        fprintf(stderr, "\n\n-s and -e are used to split files in parallel on a cluster.");
+#else
+	fprintf(stderr, "\t-h\t\tprint this help message.\n");
+#endif
+        fprintf(stderr, "\n");
 	fprintf(stderr, "\n send bugs to %s\n", PACKAGE_BUGREPORT);
 	return 1;
 }
+
+#ifdef HAVE_FSEEKO
+int parse_locations(char *options, int64_t *csfasta_loc, int64_t *qual_loc) {
+	char *str_tmp1;
+	char *str_tmp2;
+	char *str_tmp3;
+	char *str_tmp4;
+
+	str_tmp1 = strtok(options, ",");
+	str_tmp2 = strtok(NULL, ",");
+	str_tmp3 = strtok(NULL, ",");
+	str_tmp4 = strtok(NULL, ",");
+
+	if (str_tmp1 == NULL || str_tmp2 == NULL || (str_tmp3 != NULL && str_tmp4 == NULL)) {
+		PrintError(Name, "csfasta_loc, qual_loc", "not enough byte location arguments", Exit, OutOfRange);
+	}
+
+	if (str_tmp3 == NULL) {
+		csfasta_loc[0] = atoll(str_tmp1);
+		qual_loc[0] = atoll(str_tmp2);
+		return 1; // total number of csfasta/qual pairs found
+	}
+
+	csfasta_loc[0] = atoll(str_tmp1);
+	csfasta_loc[1] = atoll(str_tmp2);
+	qual_loc[0] = atoll(str_tmp3);
+	qual_loc[1] = atoll(str_tmp4);
+	
+	return 2;  // Number of csfasta/qual pairs found
+}
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -112,9 +157,18 @@ int main(int argc, char *argv[])
 	char *min_read_name=NULL;
 	int32_t prev=0;
 	int32_t num_output_files = 1;
+#ifdef HAVE_FSEEKO
+	off_t csfasta_start_pos[2];
+	off_t csfasta_end_pos[2];
+	off_t qual_start_pos[2];
+	off_t qual_end_pos[2];
+	int start_pos_counts = 0;
+	int end_pos_counts = 0;
+	int file_number = -1;
+#endif
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:t:p:chjzJZbw")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:t:p:chjzJZbws:e:N:")) >= 0) {
 		switch(c) {
 			case 'b':
 				bwa_output=1; break;
@@ -144,6 +198,14 @@ int main(int argc, char *argv[])
 				out_comp=AFILE_BZ2_COMPRESSION; break;
 			case 'Z':
 				out_comp=AFILE_GZ_COMPRESSION; break;
+#ifdef HAVE_FSEEKO
+			case 's':
+				start_pos_counts = parse_locations(optarg, csfasta_start_pos, qual_start_pos); break;
+			case 'e':
+				end_pos_counts = parse_locations(optarg, csfasta_end_pos, qual_end_pos); break;
+			case 'N':
+				file_number = atoi(optarg); break;
+#endif
 			default: fprintf(stderr, "Unrecognized option: -%c\n", c); return 1;
 		}
 	}
@@ -158,6 +220,17 @@ int main(int argc, char *argv[])
 	// Validate argument counts
 	assert(0 == (argc - optind) % 2);
 	number_of_ends = (argc - optind) / 2;
+
+#ifdef HAVE_FSEEKO
+	if (start_pos_counts > 0 || end_pos_counts > 0) {
+		if (start_pos_counts != end_pos_counts ||
+		    start_pos_counts != number_of_ends) {
+			PrintError(Name, "start_pos_counts", 
+				   "Number of start/end positions not consistent with number of files",
+				   Exit, OutOfRange);
+		}
+	}
+#endif
 
 	// Single output mode is only useful for paired-end data
 	if (1 == number_of_ends) {
@@ -190,6 +263,18 @@ int main(int argc, char *argv[])
 		rnp_len = strlen(read_name_prefix);
 	}
 
+#ifdef HAVE_FSEEKO
+	// Add number to output_prefix, if necessary
+	// Do this AFTER copying output_prefix to read_name_prefix (block above)
+
+	if (file_number > 0 && NULL != output_prefix) {
+		char *tmp_output_prefix = strdup(output_prefix);
+		free(output_prefix);
+		MALLOC_AND_TEST(output_prefix, strlen(tmp_output_prefix) + (int)(log10((double)file_number)) + 3);
+		sprintf(output_prefix, "%s.%d", tmp_output_prefix, file_number);
+	}
+#endif
+
 	// Copy over the filenames
 
 	// Allocate memory
@@ -215,6 +300,12 @@ int main(int argc, char *argv[])
 		if(!(afps_qual[i] = AFILE_afopen(qual_filenames[i], "rb", in_comp))) {
 			PrintError(Name, qual_filenames[i], "Could not open file for reading", Exit, OpenFileError);
 		}
+#ifdef HAVE_FSEEKO
+		if (start_pos_counts > 0) {
+			AFILE_afseek(afps_csfasta[i], csfasta_start_pos[i], SEEK_SET);
+			AFILE_afseek(afps_qual[i], qual_start_pos[i], SEEK_SET);
+		}
+#endif
 	}
 
 	MALLOC_AND_TEST(reads, sizeof(fastq_t)*number_of_ends);
@@ -281,7 +372,11 @@ int main(int argc, char *argv[])
 			if(0 == reads[i].is_pop &&
 					NULL != afps_csfasta[i] &&
 					NULL != afps_qual[i]) {
+#ifdef HAVE_FSEEKO
+				fastq_read(&reads[i], afps_csfasta[i], afps_qual[i], csfasta_end_pos[i], qual_end_pos[i], trim_end, bwa_output); // Get read name
+#else
 				fastq_read(&reads[i], afps_csfasta[i], afps_qual[i], trim_end, bwa_output); // Get read name
+#endif
 				if(0 == reads[i].is_pop) { // was not populated
 					//fprintf(stderr, "EOF\n");
 					AFILE_afclose(afps_csfasta[i]);
@@ -389,8 +484,8 @@ int main(int argc, char *argv[])
 
 	// Remove last fastq file when total input reads % num_reads_per_file == 0
 	// We don't want an empty file
-	if(0 == no_output && NULL != output_prefix) {
-		if (0 == bwa_output && 0 == output_counts[0]) {
+	if(0 == no_output && NULL != output_prefix && num_reads_per_file > 0) {
+		if (0 == bwa_output && 0 == single_output) {
 			char empty_fn[4096]="\0";
 			FILE *f;
 			CHECK_RM_EMPTY_FILE( output_counts[0], empty_fn, f, 
@@ -689,7 +784,11 @@ void to_bwa(fastq_t *read, int32_t n_end)
 	}
 }
 
+#ifdef HAVE_FSEEKO
+void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, off_t csfasta_end_pos, off_t qual_end_pos, int32_t trim_end, int32_t bwa_output)
+#else
 void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, int32_t trim_end, int32_t bwa_output)
+#endif
 {
 	char *FnName="fastq_read";
 	char qual_name[SEQUENCE_NAME_LENGTH]="\0";
@@ -708,6 +807,15 @@ void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, int32_t trim
 	}
 
 	// Read in
+#ifdef HAVE_FSEEKO
+	if(read_line(afp_csfasta, csfasta_end_pos, read->name) < 0 || 
+			read_line(afp_csfasta, csfasta_end_pos, read->read) < 0 ||
+			read_line(afp_qual, qual_end_pos, qual_name) < 0 ||
+			read_line(afp_qual, qual_end_pos, qual_line) < 0) {
+		//fprintf(stderr, "return 2\n"); // HERE
+		return;
+	}
+#else
 	if(read_line(afp_csfasta, read->name) < 0 || 
 			read_line(afp_csfasta, read->read) < 0 ||
 			read_line(afp_qual, qual_name) < 0 ||
@@ -715,6 +823,8 @@ void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, int32_t trim
 		//fprintf(stderr, "return 2\n"); // HERE
 		return;
 	}
+#endif
+
 	StringTrimWhiteSpace(read->name);
 	StringTrimWhiteSpace(read->read);
 	StringTrimWhiteSpace(qual_name);
@@ -908,15 +1018,22 @@ char *strtok_mod(char *str, char *delim, int32_t *index)
 	}
 }
 
+#ifdef HAVE_FSEEKO
+int32_t read_line(AFILE *afp, off_t end_pos, char *line)
+#else
 int32_t read_line(AFILE *afp, char *line)
+#endif
 {
 	//char *FnName="read_line";
 	char c=0;
 	int32_t i=0, p=0;
-
 	int32_t state=0;
 
 	if(NULL == afp) return -1;
+
+#ifdef HAVE_FSEEKO
+	if(end_pos > 0 && AFILE_aftell(afp) >= end_pos) return -1;
+#endif
 
 	// States:
 	// 0 - no characteres in line
@@ -994,17 +1111,3 @@ void close_fds(AFILE **afp_output, int32_t bwa_output, char *prefix_output, int3
 	}
 }
 
-int is_empty(char *path)
-{
-	int32_t size; 
-	FILE *f;
-
-	assert(NULL != path);
-	f = fopen(path, "r");
-	fseek(f, 0, SEEK_END); // seek to end of file
-	size = ftell(f);       // get current file pointer
-	fseek(f, 0, SEEK_SET);
-	fclose(f);
-
-	return((size == 0) ? 1 : 0);
-}
