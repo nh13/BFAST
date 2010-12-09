@@ -55,7 +55,8 @@ int32_t cmp_read_names(char*, char*, int32_t);
 void read_name_trim(char*);
 char *strtok_mod(char*, char*, int32_t*);
 int32_t read_line(AFILE *afp, char *line);
-void to_bwa(fastq_t *, int32_t, char *);
+void add_read_name_prefix(fastq_t *, char *, int32_t);
+void to_bwa(fastq_t *, int32_t);
 void close_fds(AFILE **, int32_t, char *, int32_t, int32_t);
 int is_empty(char *path);
 
@@ -67,6 +68,7 @@ int print_usage ()
 	fprintf(stderr, "\t-c\t\tproduce no output.\n");
 	fprintf(stderr, "\t-n\tINT\tnumber of reads per file.\n");
 	fprintf(stderr, "\t-o\tSTRING\toutput prefix.\n");
+	fprintf(stderr, "\t-p\tSTRING\tread name prefix (added to front of all read names).\n");
 	fprintf(stderr, "\t-j\t\tinput files are bzip2 compressed.\n");
 	fprintf(stderr, "\t-z\t\tinput files are gzip compressed.\n");
 	fprintf(stderr, "\t-J\t\toutput files are bzip2 compressed.\n");
@@ -82,6 +84,8 @@ int print_usage ()
 int main(int argc, char *argv[])
 {
 	char *output_prefix=NULL;
+	char *read_name_prefix=NULL;
+	int32_t rnp_len=0; // length of read_name_prefix
 	int32_t num_reads_per_file=-1;
 	int32_t no_output=0;
 	int32_t bwa_output=0;
@@ -110,7 +114,7 @@ int main(int argc, char *argv[])
 	int32_t num_output_files = 1;
 
 	// Get Parameters
-	while((c = getopt(argc, argv, "n:o:t:chjzJZbw")) >= 0) {
+	while((c = getopt(argc, argv, "n:o:t:p:chjzJZbw")) >= 0) {
 		switch(c) {
 			case 'b':
 				bwa_output=1; break;
@@ -122,9 +126,13 @@ int main(int argc, char *argv[])
 				in_comp=AFILE_BZ2_COMPRESSION; break;
 			case 'n':
 				num_reads_per_file=atoi(optarg); break;
-				break;
 			case 'o':
 				output_prefix=strdup(optarg); break;
+			case 'p':
+				MALLOC_AND_TEST(read_name_prefix, strlen(optarg) + 3);
+				strcpy(read_name_prefix, optarg); 
+				strcat(read_name_prefix, ":");
+				rnp_len = strlen(read_name_prefix);
 				break;
 			case 't':
 				trim_end=atoi(optarg); break;
@@ -147,9 +155,14 @@ int main(int argc, char *argv[])
 		return print_usage();
 	}
 
-	// Copy over the filenames
+	// Validate argument counts
 	assert(0 == (argc - optind) % 2);
 	number_of_ends = (argc - optind) / 2;
+
+	// Single output mode is only useful for paired-end data
+	if (1 == number_of_ends) {
+		single_output = 0;
+	}
 
 	if (2 == number_of_ends && (1 == bwa_output || 1 == single_output)) {
 		num_output_files = 3;
@@ -157,6 +170,27 @@ int main(int argc, char *argv[])
 	else {
 		num_output_files = 1;
 	}
+
+	// bwa expects a read_name_prefix
+	if (1 == bwa_output && read_name_prefix == NULL && output_prefix != NULL) {
+		char *prefix_start;
+
+		// Remove path from beginning of output prefix
+		if (NULL == (prefix_start = strrchr(output_prefix, '/'))) {
+			prefix_start = output_prefix;
+		}
+		else {
+			prefix_start += 1; // need to move past '/'
+		}
+
+		// Add a colon to the read_name_prefix
+		MALLOC_AND_TEST(read_name_prefix, strlen(prefix_start) + 3);
+		strcpy(read_name_prefix, prefix_start); 
+		strcat(read_name_prefix, ":");
+		rnp_len = strlen(read_name_prefix);
+	}
+
+	// Copy over the filenames
 
 	// Allocate memory
 	MALLOC_AND_TEST(csfasta_filenames, sizeof(char*)*number_of_ends);
@@ -248,9 +282,6 @@ int main(int argc, char *argv[])
 					NULL != afps_csfasta[i] &&
 					NULL != afps_qual[i]) {
 				fastq_read(&reads[i], afps_csfasta[i], afps_qual[i], trim_end, bwa_output); // Get read name
-				if (1 == bwa_output) { // BWA output enabled, transform data (read/qual) to bwa expected format
-					to_bwa(&reads[i], i, output_prefix);
-				}
 				if(0 == reads[i].is_pop) { // was not populated
 					//fprintf(stderr, "EOF\n");
 					AFILE_afclose(afps_csfasta[i]);
@@ -258,6 +289,18 @@ int main(int argc, char *argv[])
 					afps_csfasta[i] = afps_qual[i] = NULL;
 					reads[i].to_print = 0;
 				}
+				else {
+					// add read name prefix
+					if (NULL != read_name_prefix) {
+						add_read_name_prefix(&reads[i], read_name_prefix, rnp_len);
+					}
+
+					// BWA output enabled, transform data (read/qual) to bwa expected format
+					if (1 == bwa_output) { 
+						to_bwa(&reads[i], i);
+					}
+				}
+
 			}
 			else {
 				reads[i].to_print = 0;
@@ -602,40 +645,33 @@ void dump_read(AFILE *afp_output, fastq_t *read, int64_t *output_count)
 	(*output_count)++;
 }
 
+void add_read_name_prefix(fastq_t *read, char *read_name_prefix, int rnp_len) {
+	char tmp_name[SEQUENCE_NAME_LENGTH]="\0";
+
+	strcpy(tmp_name, read->name);
+	strcpy(read->name, read_name_prefix);  // read name prefix already has a ":" at the end
+	strncpy(read->name + rnp_len, tmp_name, SEQUENCE_NAME_LENGTH - rnp_len); // strncpy fills the remaining space with zeros
+}
+
 /*
  * @427_67_118                --> @bwa:427_67_118/2
  * T3233100000020000000000000 --> GTTCAAAAAAGAAAAAAAAAAAAA
  * B@.7>/+-8:0.<8:/%@;280>=>  --> @.7>/+-8:0.<8:/%@;280>=> 
  */
-void to_bwa(fastq_t *read, int32_t n_end, char *output_prefix)
+void to_bwa(fastq_t *read, int32_t n_end)
 {
-	int32_t i, ops; // output prefix size
-	char tmp_name[SEQUENCE_NAME_LENGTH]="\0";
+	int32_t i;
 	char tmp_read[SEQUENCE_LENGTH]="\0";
 	char de[52]="\0";
 
 	// Prepare the double encode convertion (TODO: make this global for speed)
 	de[46]='N'; de[48]='A'; de[49]='C'; de[50]='G'; de[51]='T';
 
-	// Convert read name to bwa format
-	strcpy(tmp_name, read->name);
-
-	for(i=0; i<SEQUENCE_NAME_LENGTH; i++) { read->name[i] = '\0'; } 
-
-	strcpy(read->name, output_prefix);
-	ops = strlen(output_prefix);
-	read->name[ops] = ':';
-	ops = ops + 1;
-	for(i=ops; i<=strlen(read->name); i++) {
-		read->name[i] = tmp_name[i-ops];
-	}
-	read->name[i-1] = '/';
-
 	if (n_end == 1) {
-		read->name[i] = '2'; // In bwa's script, they encode R3 as 1 and F3 as 2.
+		strcat(read->name, "/2"); // In bwa's script, they encode R3 as 1 and F3 as 2.
 	}
 	else {
-		read->name[i] = '1';
+		strcat(read->name, "/1");
 	}
 
 	// Remove last base of the primer and first color call
@@ -732,7 +768,7 @@ void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, int32_t trim
 	read->is_pop = 1;
 }
 
-int32_t cmp_read_names(char *name_one, char *name_two, int32_t bwa_output)
+int32_t cmp_read_names(char *name_one, char *name_two, int32_t rnp_len)
 {
 	char *name_one_cur = NULL;
 	char *name_two_cur = NULL;
@@ -743,8 +779,8 @@ int32_t cmp_read_names(char *name_one, char *name_two, int32_t bwa_output)
 	   fprintf(stderr, "comparing %s with %s\n", name_one, name_two);
 	   */
 
-	// needed if bwa_output == 1 and the read name contains a "_"
-	if (1 == bwa_output) { // @read_name:5_123_456;
+	// for safety, skip the read name prefix
+	if (rnp_len > 0) { // @read_name:5_123_456;
 		name_one_cur = strtok_mod(name_one, ":", &name_one_index);
 		name_two_cur = strtok_mod(name_two, ":", &name_two_index);
 		free(name_one_cur);
@@ -880,7 +916,7 @@ int32_t read_line(AFILE *afp, char *line)
 
 	int32_t state=0;
 
-	if(NULL == afp) return 0;
+	if(NULL == afp) return -1;
 
 	// States:
 	// 0 - no characteres in line
