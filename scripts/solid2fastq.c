@@ -404,13 +404,13 @@ int main(int argc, char *argv[])
 			if(1 == reads[i].is_pop) {
 				/* fprintf(stdout, "i=%d\tmin_read_name=%s\treads[i].name=%s\n", i, min_read_name, reads[i].name); */
 				if(NULL == min_read_name ||
-				   0 == cmp_read_names(reads[i].name, min_read_name, bwa_output)) {
+				   0 == cmp_read_names(reads[i].name, min_read_name, rnp_len)) {
 					if(NULL == min_read_name) {
 						min_read_name = strdup(reads[i].name);
 					}
 					reads[i].to_print = 1;
 				}
-				else if(cmp_read_names(reads[i].name, min_read_name, bwa_output) < 0) {
+				else if(cmp_read_names(reads[i].name, min_read_name, rnp_len) < 0) {
 					free(min_read_name);
 					min_read_name = strdup(reads[i].name);
 					// Re-initialize other fps
