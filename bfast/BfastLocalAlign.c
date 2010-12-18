@@ -261,9 +261,11 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 	if (args->matchFileName != NULL && (args->matchFileNameOne !=NULL || args->matchFileNameTwo != NULL)) {
 		PrintError(FnName, "matchFileName", "Command line argument (Single MatchFile or use -O -T)", Exit, OutOfRange);	
 	}
+  /* This breaks piping, to fix, we have to check if stdin has data
 	if (args->matchFileName == NULL && (args->matchFileNameOne ==NULL || args->matchFileNameOne == NULL)) {
 		PrintError(FnName, "matchFileName", "Command line argument (Need -O and -T)", Exit, OutOfRange);	
 	}
+  */
 
 	return 1;
 }

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -24,6 +25,7 @@
 #ifndef THREAD_BLOCK_SIZE
 #define THREAD_BLOCK_SIZE 102
 #endif
+
 
 #ifdef HAVE_LIBPTHREAD
 static pthread_mutex_t bfast_g_seq_lock = PTHREAD_MUTEX_INITIALIZER;
