@@ -147,6 +147,7 @@ END_OUTPUT
    my $qsub_id = `$qsub`;
    $qsub_id = "$qsub_id";
    chomp($qsub_id);
+   $qsub_id =~ s/(\d+)\..*/$1/;
 
    die("Error submitting QSUB_COMMAND=$qsub\nQSUB_ID=$qsub_id\n") unless (0 < length($qsub_id));
    if($qsub_id !~ m/^\S+$/) {
