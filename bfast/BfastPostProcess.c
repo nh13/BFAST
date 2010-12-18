@@ -263,7 +263,7 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "pairingStdDeviation", "Number of standard deviations to search when rescuing must be > 0.", Exit, OutOfRange);
 	}
 
-	if (1 == args->insertSizeSpecified) {
+	if (1 == args->insertSizeSpecified && 0 == args->unpaired) {
 		if (args->insertSizeStdDev <= 0.0) {
 			PrintError(FnName, "insertSizeStdDev", "When specifying insertSizeAvg, you must also specify an insertSizeStdDev > 0.", Exit, OutOfRange);
 		}
