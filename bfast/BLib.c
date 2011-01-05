@@ -473,7 +473,7 @@ FILE *OpenTmpFile(char *tmpDir,
 	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
 
 	if(-1 == (fd = mkstemp((*tmpFileName))) ||
-			NULL == (fp = fdopen(fd, "wb+"))) {
+			NULL == (fp = fdopen(fd, "ab"))) {
 		/* Check if the fd was open */ 
 		if(-1 != fd) {
 			/* Remove the file and close */
@@ -546,7 +546,7 @@ gzFile OpenTmpGZFile(char *tmpDir,
 	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
 
 	if(-1 == (fd = mkstemp((*tmpFileName))) ||
-			NULL == (fp = gzdopen(fd, "wb+"))) {
+			NULL == (fp = gzdopen(fd, "ab"))) {
 		/* Check if the fd was open */ 
 		if(-1 != fd) {
 			/* Remove the file and close */
