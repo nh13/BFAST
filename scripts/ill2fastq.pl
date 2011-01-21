@@ -29,6 +29,8 @@ separate files each consisting of the specified number of reads.
 In this case, you will need to also specify an output prefix 
 using the -o option.
 
+The -q option specifies that qseq.txt files are expected, while 
+the -s option specifies that sequence.txt files are expected.
 
 All *qseq.txt or *sequence.txt files will be inferred from the 
 specified directory and accompanying prefix.  For paired end data, 

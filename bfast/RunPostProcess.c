@@ -73,6 +73,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
 		double pairingStandardDeviation,
+		int insertSizeSpecified,
+		double insertSizeAvg,
+		double insertSizeStdDev,
 		int gappedPairingRescue,
 		int numThreads,
 		int queueLength,
@@ -203,8 +206,8 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 		/* Get the PEDBins if necessary */
 		if(0 == unpaired) {
-			PEDBinsInitialize(&bins);
-			unpaired = GetPEDBins(alignQueue, alignQueueLength, &bins);
+			PEDBinsInitialize(&bins, insertSizeSpecified, insertSizeAvg, insertSizeStdDev);
+			unpaired = GetPEDBins(alignQueue, numRead, &bins);
 		}
 
 		// Store the original # of entries for SAM output
@@ -314,7 +317,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				}
 			}
 
-			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, properPair, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, properPair, reversePaired, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&alignQueue[queueIndex]);
@@ -600,7 +603,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 
 				AlignedEndInitialize(&ends[1-i]);
 
-				if(0 == i) {
+				if(0 == i) { // first end
 					meanInsert += b->avg;
 				}
 				else {
@@ -631,20 +634,10 @@ static int ReadPairingAndRescue(AlignedRead *a,
 							strand = a->ends[i].entries[j].strand;
 						}
 						if(FORWARD == a->ends[i].entries[j].strand) {
-							if(0 == i) { // first end
-								startPos = a->ends[i].entries[j].position + b->avg - pairingStandardDeviation*b->std;
-							}
-							else {
-								startPos = a->ends[i].entries[j].position - b->avg - pairingStandardDeviation*b->std;
-							}
+							startPos = a->ends[i].entries[j].position + meanInsert - pairingStandardDeviation*b->std;
 						}
 						else {
-							if(0 == i) { // first end
-								startPos = a->ends[i].entries[j].position - b->avg - pairingStandardDeviation*b->std;
-							}
-							else {
-								startPos = a->ends[i].entries[j].position + b->avg - pairingStandardDeviation*b->std;
-							}
+							startPos = a->ends[i].entries[j].position - meanInsert - pairingStandardDeviation*b->std;
 						}
 						if(1 == reversePaired) {
 							startPos -= a->ends[1-i].readLength; // Not counted otherwise
@@ -1177,7 +1170,10 @@ int32_t GetPEDBins(AlignedRead *alignQueue,
 	/* Go through each read */
 	if(VERBOSE >= 0) {
 		fprintf(stderr, "%s", BREAK_LINE);
-		fprintf(stderr, "Estimating paired end distance...\n");
+		if (1 == b->doCalc) 
+			fprintf(stderr, "Estimating paired end distance...\n");
+		else
+			fprintf(stderr, "Collecting paired end statistics...\n");
 	}
 	counter = numRead = 0;
 
@@ -1235,7 +1231,7 @@ int32_t GetPEDBins(AlignedRead *alignQueue,
 		counter++;
 	}
 
-	if(b->numDistances < MIN_PEDBINS_SIZE) {
+	if(1 == b->doCalc && b->numDistances < MIN_PEDBINS_SIZE) {
 		fprintf(stderr, "Found only %d distances to infer the insert size distribution\n", b->numDistances);
 		PrintError(FnName, "b->numDistances", "Not enough distances to infer insert size distribution", Warn, OutOfRange);
 		PEDBinsFree(b);
@@ -1250,7 +1246,7 @@ int32_t GetPEDBins(AlignedRead *alignQueue,
 	return 0;
 }
 
-void PEDBinsInitialize(PEDBins *b)
+void PEDBinsInitialize(PEDBins *b, int insertSizeSpecified, double insertSizeAvg, double insertSizeStdDev)
 {
 	int32_t i;
 	b->minDistance = INT_MAX;
@@ -1260,12 +1256,20 @@ void PEDBinsInitialize(PEDBins *b)
 	}
 	b->numDistances = 0;
 	b->inversionCount = 0;
-	b->avg = 0;
-	b->std = 0;
+	if (1 == insertSizeSpecified) {
+		b->doCalc = 0;
+		b->avg = insertSizeAvg;
+		b->std = insertSizeStdDev;
+	}
+	else {
+		b->doCalc = 1;
+		b->avg = 0;
+		b->std = 0;
+	}
 }
 
 void PEDBinsFree(PEDBins *b) {
-	PEDBinsInitialize(b);
+	PEDBinsInitialize(b, (1 - b->doCalc), b->avg, b->std);
 }
 
 void PEDBinsInsert(PEDBins *b,
@@ -1274,7 +1278,7 @@ void PEDBinsInsert(PEDBins *b,
 		int32_t distance)
 {
 	if(distance < MIN_PEDBINS_DISTANCE ||
-			MAX_PEDBINS_DISTANCE < distance) {
+	   MAX_PEDBINS_DISTANCE < distance) {
 		return;
 	}
 
@@ -1299,38 +1303,52 @@ void PEDBinsInsert(PEDBins *b,
 	// Add to bin
 	b->bins[distance - b->minDistance]++;
 	b->numDistances++;
+
 }
 
 void PEDBinsPrintStatistics(PEDBins *b, FILE *fp)
 {
-	// Mean, Range, and SD
-	int32_t i;
+	if (1 == b->doCalc) {
+		// Mean, Range, and SD
+		int32_t i;
 
-	// Mean
-	b->avg = 0.0;
-	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		b->avg += (b->minDistance + i)*b->bins[i];
-	}
-	b->avg /= b->numDistances;
+		// Mean
+		b->avg = 0.0;
+		for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
+			b->avg += (b->minDistance + i)*b->bins[i];
+		}
+		b->avg /= b->numDistances;
 
-	// SD
-	b->std = 0.0;
-	for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
-		b->std += b->bins[i]*((b->minDistance + i) - b->avg)*((b->minDistance + i) - b->avg);
+		// SD
+		b->std = 0.0;
+		for(i=0;i<b->maxDistance-b->minDistance+1;i++) {
+			b->std += b->bins[i]*((b->minDistance + i) - b->avg)*((b->minDistance + i) - b->avg);
+		}
+		b->std /= b->numDistances-1;
+		b->std = sqrt(b->std);
 	}
-	b->std /= b->numDistances-1;
-	b->std = sqrt(b->std);
 
 	b->invRatio = -1.0 * log10(b->inversionCount / ((double)b->numDistances));
 
 	if(0<=VERBOSE) {
-		fprintf(stderr, "Used %d paired end distances to infer the insert size distribution.\n",
+		if (1 == b->doCalc)
+			fprintf(stderr, "Used %d paired end distances to infer the insert size distribution.\n",
 				b->numDistances);
+		else
+			fprintf(stderr, "Collected statistics for %d paired end distances.\n",
+				b->numDistances);
+
 		fprintf(stderr, "The paired end distance range was from %d to %d.\n",
-				b->minDistance, b->maxDistance);
-		fprintf(stderr, "The paired end distance mean and standard deviation was %.2lf and %.2lf.\n",
+			b->minDistance, b->maxDistance);
+
+		if (1 == b->doCalc)
+			fprintf(stderr, "The paired end distance mean and standard deviation were %.2lf and %.2lf.\n",
 				b->avg, b->std);
+		else
+			fprintf(stderr, "The paired end distance mean and standard deviation were %.2lf and %.2lf. (Specified.)\n",
+				b->avg, b->std);
+
 		fprintf(stderr, "The inversion ratio was %lf (%d / %d).\n",
-				b->inversionCount * 1.0 / ((double)b->numDistances), b->inversionCount, b->numDistances);
+			b->inversionCount * 1.0 / ((double)b->numDistances), b->inversionCount, b->numDistances);
 	}
 }

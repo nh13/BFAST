@@ -49,6 +49,8 @@ static struct argp_option options[] = {
 	{"minMappingQuality", 'm', "minMappingQuality", 0, "Specifies to remove low mapping quality alignments", 2},
 	{"minNormalizedScore", 'M', "minNormalizedScore", 0, "Specifies to remove low (alignment) scoring alignments", 2},
 	{"pairingStandardDeviation", 'S', "pairingStandardDeviation", 0, "Specifies the pairing distance standard deviation to examine when rescuing", 2}, // TODO document
+	{"insertSizeAvg", 'v', "insertSizeAvg", 0, "Specifies the mean insert size to use when rescuing", 2}, // TODO document
+	{"insertSizeStdDev", 's', "insertSizeStdDev", 0, "Specifies the standard deviation of the insert size to use when rescuing", 2}, // TODO document
 	{"gappedPairingRescue", 'g', 0, OPTION_NO_USAGE, "Specifies that gapped pairing rescue should be performed", 2}, // TODO document
 	{"numThreads", 'n', "numThreads", 0, "Specifies the number of threads to use (Default 1)", 2},
 	{"queueLength", 'Q', "queueLength", 0, "Specifies the number of reads to cache", 2},
@@ -66,7 +68,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:m:n:o:q:r:x:A:M:O:Q:S:ghptzRU";
+"a:i:f:m:n:o:q:r:s:v:x:A:M:O:Q:S:ghptzRU";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -124,6 +126,9 @@ BfastPostProcess(int argc, char **argv)
 							arguments.minMappingQuality,
 							arguments.minNormalizedScore,
 							arguments.pairingStandardDeviation,
+							arguments.insertSizeSpecified,
+							arguments.insertSizeAvg,
+							arguments.insertSizeStdDev,
 							arguments.gappedPairingRescue,
 							arguments.numThreads,
 							arguments.queueLength,
@@ -254,6 +259,19 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "RGFileName", "Command line argument can only be used when outputting to SAM format", Exit, OutOfRange);
 	}
 
+	if (args->pairingStandardDeviation <= 0.0) {
+		PrintError(FnName, "pairingStdDeviation", "Number of standard deviations to search when rescuing must be > 0.", Exit, OutOfRange);
+	}
+
+	if (1 == args->insertSizeSpecified && 0 == args->unpaired) {
+		if (args->insertSizeStdDev <= 0.0) {
+			PrintError(FnName, "insertSizeStdDev", "When specifying insertSizeAvg, you must also specify an insertSizeStdDev > 0.", Exit, OutOfRange);
+		}
+		if (args->insertSizeAvg <= 0.0) {
+			PrintError(FnName, "insertSizeAvg", "insertSizeAvg <= 0.", Warn, OutOfRange);
+		}
+	}
+
 	return 1;
 }
 
@@ -277,6 +295,9 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->minMappingQuality=INT_MIN;
 	args->minNormalizedScore=INT_MIN;
 	args->pairingStandardDeviation=MAX_STD;
+	args->insertSizeSpecified=0;
+	args->insertSizeAvg=0.0;
+	args->insertSizeStdDev=0.0;
 	args->gappedPairingRescue=0;
 	args->avgMismatchQuality=AVG_MISMATCH_QUALITY;
 	args->numThreads=1;
@@ -313,6 +334,10 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "minMappingQuality:\t\t%d\n", args->minMappingQuality);
 		fprintf(fp, "minNormalizedScore:\t\t%d\n", args->minNormalizedScore);
 		fprintf(fp, "pairingStandardDeviation:\t%lf\n", args->pairingStandardDeviation);
+		if (0 == args->insertSizeSpecified) {
+			fprintf(fp, "insertSizeAvg:\t%lf\n", args->insertSizeAvg);
+			fprintf(fp, "insertSizeStdDev:\t%lf\n", args->insertSizeStdDev);
+		}
 		fprintf(fp, "gappedPairingRescue\t\t%s\n", INTUSING(args->gappedPairingRescue));
 		fprintf(fp, "numThreads:\t\t\t%d\n", args->numThreads);
 		fprintf(fp, "queueLength:\t\t\t%d\n", args->queueLength);
@@ -400,6 +425,11 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				arguments->avgMismatchQuality = atoi(optarg); break;
 			case 'r':
 				arguments->RGFileName=strdup(optarg);break;
+			case 's':
+				arguments->insertSizeStdDev=atof(optarg);break;
+			case 'v':
+				arguments->insertSizeSpecified=1;
+				arguments->insertSizeAvg=atof(optarg);break;
 			case 't':
 				arguments->timing = 1; break;
 			case 'x':

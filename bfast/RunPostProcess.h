@@ -15,6 +15,7 @@ typedef struct {
 	double avg;
 	double invRatio;
 	int32_t inversionCount;
+	int32_t doCalc;
 } PEDBins;
 
 typedef struct {
@@ -53,6 +54,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
 		double pairingStandardDeviation,
+		int insertSizeSpecified,
+		double insertSizeAvg,
+		double insertSizeStdDev,
 		int gappedPairingRescue,
 		int numThreads,
 		int queueLength,
@@ -83,7 +87,7 @@ int FilterAlignedRead(AlignedRead *a,
 		int gappedPairingRescue,
 		PEDBins *b);
 
-void PEDBinsInitialize(PEDBins*);
+void PEDBinsInitialize(PEDBins*, int, double, double);
 void PEDBinsFree(PEDBins*);
 void PEDBinsInsert(PEDBins*, char, char, int32_t);
 void PEDBinsPrintStatistics(PEDBins*, FILE*);

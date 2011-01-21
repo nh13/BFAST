@@ -71,6 +71,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		int32_t *numOriginalEntries,
 		int32_t outputFormat,
 		int properPaired,
+		int reversePaired,
 		int32_t binaryOutput)
 {
 	char *FnName = "AlignedReadConvertPrintOutputFormat";
@@ -84,7 +85,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			}
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, fp);
+			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, reversePaired, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -100,6 +101,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 		char *outputID,
 		char *readGroupString,
 		int properPaired,
+		int reversePaired,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintSAM";
@@ -124,6 +126,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 					outputID,
 					readGroupString,
 					properPaired,
+					reversePaired,
 					fp);
 		}
 		else {
@@ -136,7 +139,8 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 						numOriginalEntries,
 						outputID,
 						readGroupString,
-					properPaired,
+						properPaired,
+						reversePaired,
 						fp);
 			}
 		}
@@ -153,6 +157,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		char *outputID,
 		char *readGroupString,
 		int properPaired,
+		int reversePaired,
 		FILE *fp) 
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
@@ -326,10 +331,30 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		}
 	}
 	else {
-		if(0>fprintf(fp, "\t%d",
-					a->ends[mateEndIndex].entries[mateEntriesIndex].position -
-					a->ends[endIndex].entries[entriesIndex].position)) {
-			PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+		if(0 == reversePaired) {
+			if(0>fprintf(fp, "\t%d",
+						a->ends[mateEndIndex].entries[mateEntriesIndex].position -
+						a->ends[endIndex].entries[entriesIndex].position)) {
+				PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+			}
+		}
+		else {
+			if(a->ends[mateEndIndex].entries[mateEntriesIndex].position < a->ends[endIndex].entries[entriesIndex].position) {
+				if(0>fprintf(fp, "\t%d",
+							a->ends[mateEndIndex].entries[mateEntriesIndex].position -
+							a->ends[endIndex].entries[entriesIndex].position +
+							a->ends[endIndex].entries[entriesIndex].alnReadLength - 1)) {
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+				}
+			}
+			else {
+				if(0>fprintf(fp, "\t%d",
+							a->ends[endIndex].entries[entriesIndex].position -
+							a->ends[mateEndIndex].entries[mateEntriesIndex].position +
+							a->ends[mateEndIndex].entries[mateEntriesIndex].alnReadLength - 1)) {
+					PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
+				}
+			}
 		}
 	}
 	/* SEQ and QUAL */
@@ -560,7 +585,7 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 	char *FnName="AlignedReadConvertPrintAlignedEntryToCIGAR";
 	char read[SEQUENCE_LENGTH]="\0";
 	char reference[SEQUENCE_LENGTH]="\0";
-	int32_t i, MDi, MDNumMatches=0;
+	int32_t i, MDi, MDNumMatches=0, MDret=0;
 	int32_t prevType=0;
 	int32_t numPrevType=0;
 	int32_t curType=0;
@@ -710,10 +735,11 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		}
 		else { // Other
 			if(0 < MDNumMatches) {
-				if( sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+				MDret = sprintf(MD + MDi, "%d", MDNumMatches);
+				if(MDret < 0) {
 					PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
 				}
-				MDi+=(int)(1+log10(0.1+MDNumMatches));
+				MDi+=MDret;
 			}
 			MDNumMatches = 0;
 
@@ -749,10 +775,11 @@ void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry *a,
 		}
 	}
 	if(0 < MDNumMatches) {
-		if(sprintf(MD, "%s%d", MD, MDNumMatches) < 0) {
+		MDret = sprintf(MD + MDi, "%d", MDNumMatches);
+		if(MDret < 0) {
 			PrintError(FnName, "MD", "Could not create string", Exit, OutOfRange);
 		}
-		MDi+=(int)(1+log10(0.1+MDNumMatches));
+		MDi+=MDret;
 		MDNumMatches=0;
 	}
 	else if (prevType == 3) { /* Trailing zero for samtools calmd compatibility */

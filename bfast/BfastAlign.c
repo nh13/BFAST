@@ -28,7 +28,7 @@ enum {
 static struct argp_option options[] = {
 	{0, 0, 0, 0, "=========== Input Files =============================================================", 1},
 	{"fastaFileName", 'f', "fastaFileName", 0, "Specifies the file name of the FASTA reference genome", 1},
-	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads", 1}, 
+	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads (FASTQ format)", 1}, 
 	{"bz2", 'j', "bz2", 0, "Specifies that the input reads are bz2 compressed (bzip2)", 1},
 	{"gz", 'z', "gz", 0, "Specifies that the input reads are gz compressed (gzip)", 1},
 	{0, 0, 0, 0, "=========== Algorithm Options: (Unless specified, default value = 0) ================", 2},
