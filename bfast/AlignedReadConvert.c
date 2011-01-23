@@ -234,6 +234,12 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	if(0 <= entriesIndex) { /* Mapped */
 		flag |= (REVERSE==a->ends[endIndex].entries[entriesIndex].strand)?0x0010:0x0000;
 	}
+  /* If alignment happens in the adjacency of two contigs: flag UNMAP */
+  if (entriesIndex >= 0 &&
+      a->ends[endIndex].entries[entriesIndex].position + a->ends[endIndex].readLength >
+      rg->contigs[a->ends[endIndex].entries[entriesIndex].contig-1].sequenceLength)
+		flag |= 0x0004;
+
 	if(0>fprintf(fp, "\t%llu",
 				(unsigned long long int)flag)) {
 		PrintError(FnName, NULL, "Could not write to file", Exit, WriteFileError);
