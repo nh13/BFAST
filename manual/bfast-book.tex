@@ -605,6 +605,7 @@ Specifies output ID to prepend to the read name (\BSAMF{} output only).
 \subsubsection{\TT{-r STRING, --readGroupFileName=STRING}}
 Specifies to add the read group (@RG) line to add to the header, which is given in the specified file.
 Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
+Make sure that the line is exactly the same as what would be printed to the SAM file, which includes the ``@RG'' string.
 \subsubsection{\tt{-U, --unpaired}}
 Specifies that the alignments should not be selected based on paired end information.
 Each end of a read will be examined independently.
@@ -663,6 +664,7 @@ This option is only used for for \BSAMF{} output only.
 \subsubsection{\TT{-r STRING, --readGroupFileName=STRING}}
 Specifies to add the read group (@RG) line to add to the header, which is given in the specified file.
 Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
+Make sure that the line is exactly the same as what would be printed to the SAM file, which includes the ``@RG'' string.
 \section{bfast header}
 \label{sec:header}
 \TT{header} prints the header of a \BRGF{} or a \BIF{}.
