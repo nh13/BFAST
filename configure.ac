@@ -36,7 +36,10 @@ AC_DEFINE_UNQUOTED(GIT_REV, "${GITREV}", [Define to be the git revision number])
 
 AC_ARG_ENABLE(intel64, [  --enable-intel64        optimize for Intel64 CPU such as Xeon and Core2], [extended_CFLAGS="${extended_CFLAGS} -mtune=nocona"], [])
 AC_ARG_ENABLE(unoptimized-sw, [  --enable-unoptimized-sw         use the unoptimized smith waterman algorithm (use for benchmarking only)], [AC_DEFINE(UNOPTIMIZED_SMITH_WATERMAN,1,[Define 1 if we want to use the unoptimized smith waterman (use for benchmarking only)])], [])
-AC_ARG_ENABLE(bz2, [  --disable-bz2         use this option to disable bz2 support], [AC_DEFINE(DISABLE_BZ2,1,[Define 1 if we want to disable bz2 support.])], [AC_CHECK_HEADER([bzlib.h], AC_MSG_ERROR("could not find the bzip2 library.  Please use --disable-bz2 if you wish to disable bz2 support."))])
+AC_ARG_ENABLE(bzlib, [  --disable-bzlib         use this option to disable bzlib support], [AC_DEFINE(DISABLE_BZLIB,1,[Define 1 if we want to disable bzlib support.])], [AC_CHECK_HEADER([bzlib.h], [ 
+					LIBS="${LIBS} -lbz2";
+					AC_DEFINE(HAVE_LIBBZ2, 1, [Define to 1 if you have the <bzlib.h> header file.])], 
+					AC_MSG_ERROR("could not find the bzlib library.  Please use --disable-bzlib if you wish to disable bzlib support."))])
 
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}";
 
