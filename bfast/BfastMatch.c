@@ -20,7 +20,7 @@
    */
 enum { 
 	DescInputFilesTitle, DescFastaFileName, DescMainIndexes, DescSecondaryIndexes, DescReadsFileName, DescOffsets,  DescLoadAllIndexes, 
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 	DescCompressionBZ2, 
 #endif
 	DescCompressionGZ,
@@ -39,7 +39,7 @@ static struct argp_option options[] = {
 	{"readsFileName", 'r', "readsFileName", 0, "Specifies the file name for the reads (FASTQ format)", 1}, 
 	{"offsets", 'o', "offsets", 0, "Specifies the offsets", 1},
 	{"loadAllIndexes", 'l', "loadAllIndexes", 0, "Specifies to load all main or secondary indexes into memory", 1},
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 	{"bz2", 'j', "bz2", 0, "Specifies that the input reads are bz2 compressed (bzip2)", 1},
 #endif
 	{"gz", 'z', "gz", 0, "Specifies that the input reads are gz compressed (gzip)", 1},
@@ -68,7 +68,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 "e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hjlptz";
 #else
 "e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hlptz";
@@ -377,7 +377,7 @@ BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->programMode=ExecuteGetOptHelp; break;
 			case 'i':
 				arguments->mainIndexes=strdup(optarg); break;
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 			case 'j':
 				arguments->compression=AFILE_BZ2_COMPRESSION; break;
 #endif

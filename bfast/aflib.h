@@ -4,19 +4,20 @@
 #include <stdio.h>
 #include <zlib.h>
 #include <bzlib.h>
+#include <config.h>
 
 enum {AFILE_NO_COMPRESSION=0, AFILE_BZ2_COMPRESSION, AFILE_GZ_COMPRESSION};
 enum {AFILE_BZ2_READ=0, AFILE_BZ2_WRITE};
 
 typedef struct {
 	FILE *fp;
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 	BZFILE *bz2;
 #endif
 	gzFile gz;
 	int32_t c;
 
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 	// bzip2
 	char unused[BZ_MAX_UNUSED];
 	int32_t n_unused, bzerror, open_type;

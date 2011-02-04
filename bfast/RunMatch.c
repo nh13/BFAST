@@ -651,7 +651,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 
 		/* Open a new temporary read file */
 		tempRGMatchesAFP.fp = NULL; tempRGMatchesAFP.gz = NULL; 
-#ifndef DISABLE_BZ2
+#ifndef DISABLE_BZLIB
 		tempRGMatchesAFP.bz2 = NULL;
 #endif
 		tempRGMatchesAFP.c = AFILE_GZ_COMPRESSION;
