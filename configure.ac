@@ -56,6 +56,7 @@ AC_CHECK_LIB([z], [gzread],
 			 LIBS="${LIBS} -lz";
 			 AC_DEFINE(HAVE_LIBZ, 1, [Define to 1 if you have the `z' library (-lz).]),
 			 AC_MSG_ERROR("could not find the zlib libaray."))
+AC_CHECK_LIB([pthread],[pthread_create])
 # AC_CHECK_FUNCS_ONCE requires 2.63, which may not be available, so use AC_CHECH_FUNC on each 
 #AC_CHECK_FUNCS_ONCE([floor pow strstr strpbrk strdup strchr strtok_r])
 AC_CHECK_FUNC(floor, [AC_DEFINE(HAVE_FLOOR, 1, [Define 1 if you have the function floor.])], [])
