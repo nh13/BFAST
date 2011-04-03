@@ -29,7 +29,7 @@ urlcolor=myurlcolor     % color of external links
 \usepackage{courier}
 
 % Version number
-\newcommand{\Version}{0.6.4f}
+\newcommand{\Version}{0.6.5a}
 
 % layout
 \setlength\topmargin{0in}
@@ -119,6 +119,40 @@ So impatient!
 If you want to run BFAST now, you have come to the right place.
 If you are aligning Illumina data or ABI SOLiD data to the human genome, please see \autoref{sec:hg-settings}.  
 Otherwise, then please check out the High Speed Tutorial (\autoref{sec:high-speed-tutorial}).
+
+\chapter{Installation}
+BFAST is distributed via source code.
+This requires the user to compile and install BFAST from source.
+We assume that the BFAST tarball has been downloaded and unpacked.
+
+\section{Prerequisites}
+BFAST requires the following packages to be installed:
+\begin{itemize}
+	\item automake (part of GNU autotools)
+	\item zlib-dev (ZLIB developer's libraray)
+	\item libbz2-dev (BZIP2 developer's library)
+\end{itemize}
+
+The BZIP2 developer's library may optionally not be installed, but the \TT{--disable-bz2} option must be used when running the configure script (see the next section).
+
+\section{Compilation}
+
+Enter the following commands, and note any warnings or errors.
+These commands are commont to linux source packages that use GNU Autotools for compilation.
+\begin{verbatim}
+./configure
+make
+make check
+make install
+\end{verbatim}
+
+If you are having problems, try regenerating the configure script (depends on \TT{automake}):
+\begin{verbatim}
+sh autogen.sh
+\end{verbatim}
+
+The installation path is set by default based on your system (see the output of \TT{make install}).
+You may change the installation path by using the \TT{--prefix=PATH} option when running the configure script, where \TT{PATH} is the full path to the installation directory.
 
 \chapter{Fundamental Concepts}
 \section{What is BFAST?}
