@@ -1367,7 +1367,6 @@ This can be achieved by using the \TT{-s}, \TT{-S}, \TT{-e}, and \TT{-E} in \TT{
 \section{Whole-Genome Alignment}
 \label{sec:whole-genome-alignment}
 Whole-Genome alignment is as simple as following the work flow presented in \autoref{sec:work-flow}.
-An example can be found in \autoref{sec:phi}.
 \section{Targeted Genomic Alignments}
 \label{sec:targeted-genomic-alignments}
 There are a number of ways to target specific regions within the genome, for example by specifying a subset of chromosomes or a number of contiguous regions.
@@ -1467,86 +1466,12 @@ The work flow for color space has five steps as seen in \autoref{fig:work-flow-c
 	\label{fig:work-flow-color}
 	}
 \end{figure}
-\chapter{Examples}
-\section{Whole-Genome Alignment of Phi X 174}
-\label{sec:phi}
-In this example, we will align read to the Phi X 174 genome using the work flow presented in \autoref{sec:work-flow}.
-
-To begin this example, open the URL: \url{http://bfast.soureforge.net}.
-Under example datasets, right-click the file ``bfast-example-phi.x.174.tar.gz'' and select the ``save-as'' option to download the examples file.
-To uncompress the compressed archive, in the command line type in ``tar zxvf bfast-example-phi.x.174.tar.gz'' (no quotes).
-
-We first want to create a \BRGF{} (see \autoref{sec:fasta2brg}).
-The \rGFF{} is stored in a file called ``phi.x.174.fa''.
-The command we use to create the \BRGF{} is:
-\begin{script}
-	bfast fasta2brg -f phi.x.174.fa 
-\end{script}
-This should create a file called ``phi.x.174.fa.nt.brg'', which is the \BRGF{}.
-
-The second step is to create the indexes using the \BRGF{} as input (see \autoref{sec:index}).
-We will create five indexes that are chosen for $50$ base-pair reads, and robust against mismatches.
-The method used to choose these indexes is not described here, but can be performed using \TT{btestindexes} (see \autoref{sec:btestindexes} and \autoref{sec:design-indexes}).
-The commands we use to create the \BIF{s} is:
-\begin{script}
-	bfast index -f phi.x.174.fa -m 111111111111111111 -w 12 -i 1
-	\\
-	bfast index -f phi.x.174.fa -m 1111111110111111111 -w 12 -i 2
-	\\
-	bfast index -f phi.x.174.fa -m 111111011111101011111 -w 12 -i 3
-	\\
-	bfast index -f phi.x.174.fa -m 111111011001100111011111 -w 12 -i 4
-	\\
-	bfast index -f phi.x.174.fa -m 1111011101011111101111 -w 12 -i 5
-\end{script}
-This should create five files, one for each \BIF{}:
-\begin{verbatim}
-phi.x.174.fa.1.1.bif
-phi.x.174.fa.2.1.bif
-phi.x.174.fa.3.1.bif
-phi.x.174.fa.4.1.bif
-phi.x.174.fa.5.1.bif
-\end{verbatim}
-
-The third step is to find candidate alignment locations (CALs) for the set of reads using the indexes created in the second step (see \autoref{sec:match}).
-We have generated synthetic reads from the Phi X 174 genome using \TT{bgeneratereads} (see \autoref{sec:bgeneratereads}).
-We created reads with $0$ to $5$ mismatches, with $10,000$ reads created for each scenario, for a total of $60,000$ reads.
-The reads file is ``reads.phi.x.174.fa''.
-In this example we use all five indexes as our main indexes, and no secondary indexes.
-We use all possible offsets, listed in ``offsets.txt''.
-The command we use to find the matches is:
-\begin{script}
-	bfast match -f phi.x.174.fa -r reads.phi.x.174.fastq $>$  bfast.matches.file.phi.x.174.bmf
-\end{script}
-One file should be outputted, a \BMF{} (``bfast.matches.file.phi.x.174.bmf'').
-
-The fourth step is to run the local alignment algorithm for each CAL for a given read (see \autoref{sec:localalign}).
-The command we use to perform the local alignment is:
-\begin{script}
-	bfast localalign -f phi.x.174.fa -m bfast.matches.file.phi.x.174.bmf $>$ bfast.aligned.file.phi.x.174.baf
-\end{script}
-This should create one output file, a \BAF{} (``bfast.aligned.file.phi.x.174.baf'').
-
-The fifth and final step is to prioritize the alignments (see \autoref{sec:postprocess}).
-We use as input the \BAF{} created in the previous step.
-In this case, we choose to output the best unambiguous alignment for each read.
-The command we use to prioritize alignments is:
-\begin{script}
-	bfast postprocess -f phi.x.174.fa -i bfast.aligned.file.phi.x.174.baf $>$ bfast.reported.file.phi.x.174.sam
-\end{script}
-This should create one output file, a \BSAMF{}.
-
-The third and fifth step can performed in a pipe-and-filter format, generating only one output file:
-\begin{script}
-	cat reads.phi.x.174.fastq $|$ bfast match -f phi.x.174.fa $|$ bfast localalign -f phi.x.174.fa $|$ bfast postprocess -f phi.x.174.fa $>$ bfast.reported.file.phi.x.174.sam
-\end{script}
 \chapter{Appendix}
 \section{Human Genome Alignment Recommended Settings}
 \label{sec:hg-settings}
 We assume that you have the full hg18 reference in the FASTA format in a file called hg18.fa.
 We detail our recommended commands to align sensitively to the human genome, at the cost of speed, outputting in the SAM format (see \url{http://samtools.sourceforge.net}).
 Further filtering, especially filtering on mapping quality, alignment score, and alignment quality, should be also be performed.
-For a more detailed explanation, please see \autoref{sec:phi}.
 Please use the {\tt -n} option for multi-threaded alignment where possible.
 For Illumina data see \autoref{sec:hg-settings-illumina}. 
 For ABI SOLiD data see \autoref{sec:hg-settings-abi}
