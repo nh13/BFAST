@@ -9,7 +9,6 @@ sh test.index.sh
 sh test.match.sh
 sh test.localalign.sh
 sh test.postprocess.sh
-sh test.solid2fastq.sh
 # Update md5sum
 $MD5BIN $OUTPUT_DIR/bfast* > $OUTPUT_DIR/tests.md5
 # Archive

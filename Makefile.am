@@ -12,7 +12,6 @@ EXTRA_DIST = LICENSE \
 			 tests/test.match.sh \
 			 tests/test.localalign.sh \
 			 tests/test.postprocess.sh \
-			 tests/test.solid2fastq.sh \
 			 tests/test.diff.sh \
 			 tests/test.cleanup.sh
 
