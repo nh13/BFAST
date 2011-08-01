@@ -14,6 +14,7 @@
 
 // Remove debugging code
 // Fill in end insertion
+static int constrained_warned = 0;
 
 /* TODO */
 int32_t AlignColorSpaceUngapped(char *colors,
@@ -269,6 +270,10 @@ void AlignColorSpaceGappedConstrained(char *colors,
 		i++;
 	}
         if(i == readAfterInsertionLength-readEndInsertionLength) {
+            if(0 == constrained_warned) {
+                constrained_warned = 1;
+                PrintError(FnName, NULL, "Found an uninformative mask, ignoring constrained local alignment", Warn, OutOfRange);
+            }
             // no constraints available
             AlignColorSpaceGappedBounded(colors,
                                          readLength,
