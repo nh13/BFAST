@@ -256,7 +256,6 @@ void AlignColorSpaceGappedConstrained(char *colors,
 	int32_t readAfterInsertionLength = readLength - readStartInsertionLength;
 	char prevBase, curBase;
 
-	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
 
 	/* Get where to transition */
 	endRowStepOne = endColStepOne = endRowStepTwo = endColStepTwo = -1;
@@ -269,6 +268,21 @@ void AlignColorSpaceGappedConstrained(char *colors,
 		}
 		i++;
 	}
+        if(i == readAfterInsertionLength-readEndInsertionLength) {
+            // no constraints available
+            AlignColorSpaceGappedBounded(colors,
+                                         readLength,
+                                         reference,
+                                         referenceLength,
+                                         sm,
+                                         a,
+                                         matrix,
+                                         position,
+                                         strand,
+                                         readLength,
+                                         readLength);
+            return;
+        }
 	i=readAfterInsertionLength-readEndInsertionLength;
 	while(0<=i) {
 		if('1' == maskAfterInsertion[i]) {
@@ -281,6 +295,8 @@ void AlignColorSpaceGappedConstrained(char *colors,
 
 	assert(0 <= endRowStepOne && 0 <= endColStepOne);
 	assert(0 <= endRowStepTwo && 0 <= endColStepTwo);
+
+	alphabetSize = AlignColorSpaceGetAlphabetSize(colors, readLength, reference, referenceLength);
 
 	// Get start NT after insertion
 	prevBase = COLOR_SPACE_START_NT;
