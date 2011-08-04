@@ -236,7 +236,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 	}
   /* If alignment happens in the adjacency of two contigs: flag UNMAP */
   if (entriesIndex >= 0 &&
-      a->ends[endIndex].entries[entriesIndex].position + a->ends[endIndex].readLength >
+      a->ends[endIndex].entries[entriesIndex].position + a->ends[endIndex].readLength - a->space >
       rg->contigs[a->ends[endIndex].entries[entriesIndex].contig-1].sequenceLength)
 		flag |= 0x0004;
 
