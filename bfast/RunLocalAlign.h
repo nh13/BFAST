@@ -28,6 +28,7 @@ typedef struct {
 	int32_t bestOnly;
 	int64_t numLocalAlignments;
 	int32_t avgMismatchQuality;
+        double matchScore;
 	double mismatchScore;
 	int32_t queueLength;
 	int32_t threadID;

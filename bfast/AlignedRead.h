@@ -17,6 +17,6 @@ void AlignedReadFree(AlignedRead*);
 void AlignedReadInitialize(AlignedRead*);
 void AlignedReadCopy(AlignedRead*, AlignedRead*);
 int32_t AlignedReadCompareAll(AlignedRead*, AlignedRead*);
-void AlignedReadUpdateMappingQuality(AlignedRead*, double, int32_t);
+void AlignedReadUpdateMappingQuality(AlignedRead*, double, double, int32_t);
 #endif
 

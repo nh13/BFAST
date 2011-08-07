@@ -10,5 +10,5 @@ void AlignNTSpaceGappedConstrained(char*, char*, int, char*, int, ScoringMatrix*
 void AlignNTSpaceRecoverAlignmentFromMatrix(AlignedEntry*, AlignMatrix*, char*, int, char*, int, int32_t, int32_t, int, int32_t, char, int);
 void AlignNTSpaceInitializeAtStart(AlignMatrix*, ScoringMatrix*, int32_t, int32_t);
 void AlignNTSpaceInitializeToExtend(AlignMatrix*, ScoringMatrix*, int32_t, int32_t, int32_t, int32_t);
-void AlignNTSpaceFillInCell(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t);
+inline void AlignNTSpaceFillInCell(char*, int32_t, char*, int32_t, ScoringMatrix*, AlignMatrix*, int32_t, int32_t, int32_t, int32_t);
 #endif

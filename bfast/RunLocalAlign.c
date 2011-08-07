@@ -226,7 +226,7 @@ void RunDynamicProgramming(gzFile matchAllFP,
 	char *FnName="RunDynamicProgramming";
 	/* local variables */
 	ScoringMatrix sm;
-	double mismatchScore;
+	double mismatchScore, matchScore;
 	RGMatches m;
 	int32_t i;
 
@@ -290,9 +290,11 @@ void RunDynamicProgramming(gzFile matchAllFP,
 	/* Calculate mismatch score */
 	/* Assumes all match scores are the same and all substitution scores are the same */
 	if(space == NTSpace) {
+                matchScore = sm.ntMatch;
 		mismatchScore = sm.ntMatch - sm.ntMismatch;
 	}
 	else {
+                matchScore = sm.colorMatch + sm.ntMatch;
 		mismatchScore = sm.colorMatch - sm.colorMismatch;
 	}
 
@@ -344,6 +346,7 @@ void RunDynamicProgramming(gzFile matchAllFP,
 			data[i].bestOnly = bestOnly;
 			data[i].numLocalAlignments = 0;
 			data[i].avgMismatchQuality = avgMismatchQuality;
+			data[i].matchScore = matchScore;
 			data[i].mismatchScore = mismatchScore;
 			data[i].queueLength = matchQueueLength;
 			data[i].threadID = i;
@@ -459,6 +462,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	int32_t threadID=data->threadID;
 	int32_t numThreads=data->numThreads;
 	int32_t avgMismatchQuality=data->avgMismatchQuality;
+	double matchScore=data->matchScore;
 	double mismatchScore=data->mismatchScore;
 	int32_t queueLength=data->queueLength;
 	AlignedRead *alignedQueue=data->alignedQueue;
@@ -529,6 +533,7 @@ void *RunDynamicProgrammingThread(void *arg)
 						AlignedEntrySortByAll);
 				/* Updating mapping quality */
 				AlignedReadUpdateMappingQuality(&alignedQueue[queueIndex], 
+                                                matchScore,
 						mismatchScore, 
 						avgMismatchQuality);
 			}

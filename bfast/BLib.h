@@ -16,7 +16,7 @@ int GetFastaHeaderLine(FILE*, char*);
 int ParseFastaHeaderLine(char*);
 char ToLower(char);
 void ToLowerRead(char*, int);
-char ToUpper(char);
+inline char ToUpper(char);
 void ToUpperRead(char*, int);
 void ReverseRead(char*, char*, int);
 void ReverseReadFourBit(int8_t*, int8_t*, int);
