@@ -478,7 +478,7 @@ void AlignNTSpaceInitializeToExtend(AlignMatrix *matrix,
 	}
 }
 
-void AlignNTSpaceFillInCell(char *read,
+inline void AlignNTSpaceFillInCell(char *read,
 		int32_t readLength,
 		char *reference,
 		int32_t referenceLength,

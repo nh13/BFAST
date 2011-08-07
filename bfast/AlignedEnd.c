@@ -354,43 +354,69 @@ void AlignedEndInitialize(AlignedEnd *a)
 }
 
 void AlignedEndUpdateMappingQuality(AlignedEnd *a,
+                double matchScore,
 		double mismatchScore,
 		int avgMismatchQuality)
 {
 	int32_t bestScore=INT_MIN, nextBestScore=INT_MIN;
+        int32_t numBestScore=0, numNextBestScore=0; 
 	int32_t bestMappingQuality = 0;
-	int32_t foundBest = 0, foundNextBest = 0;
 	int32_t i;
 
 	/* Get best and next best score */
 	for(i=0;i<a->numEntries;i++) {
 		if(bestScore < a->entries[i].score) {
-			if(1 == foundBest) {
-				nextBestScore = bestScore;
-				foundNextBest = 1;
-			}
+                        nextBestScore = bestScore;
+                        numNextBestScore = numBestScore;
 			bestScore = a->entries[i].score;
-			foundBest = 1;
+                        numBestScore = 1;
 		}
+		else if(bestScore == a->entries[i].score) {
+                    numBestScore++;
+                }
 		else if(nextBestScore < a->entries[i].score) {
 			nextBestScore = a->entries[i].score;
-			foundNextBest = 1;
+                        numNextBestScore = 1;
+                }
+		else if(nextBestScore == a->entries[i].score) {
+                        numNextBestScore++;
 		}
 	}
 
 	assert(nextBestScore <= bestScore);
-	if(INT_MIN < nextBestScore) { 
-		assert(1 == foundNextBest);
-		bestMappingQuality = (int)( (bestScore - nextBestScore) * avgMismatchQuality ) / mismatchScore;
-		if(nextBestScore < bestScore && 0 == bestMappingQuality) {
-			bestMappingQuality = 1;
-		}
-	}
-	else {
-		/* If no other matches was found, give it the max */
-		bestMappingQuality = MAXIMUM_MAPPING_QUALITY;
-	}
+        if(0 == numNextBestScore) {
+            numNextBestScore = 1;
+            if(bestScore < 0) {
+                nextBestScore = bestScore - 1;
+            }
+            else {
+                nextBestScore = 0;
+            }
+        }
+        else if(0 < bestScore) {
+            if(nextBestScore < 0) {
+                nextBestScore = 0;
+            }
+        }
 
+        if(1 < numBestScore) {
+            bestMappingQuality = 0;
+        }
+        else {
+            double sf = 0.2;
+            //fprintf(stderr, "bestScore=%d nextBestScore=%d\n", bestScore, nextBestScore);
+            sf *= 250.0 / (matchScore * a->readLength); // scale based on the best possible alignment score 
+            //fprintf(stderr, "1=%lf\n", sf);
+            sf *= (numBestScore / (1.0 * numNextBestScore)); // scale based on number of sub-optimal mappings
+            //fprintf(stderr, "2=%lf\n", sf);
+            sf *= (double)(bestScore - nextBestScore + 1); // scale based on distance to the sub-optimal mapping
+            //fprintf(stderr, "3=%lf\n", sf);
+            //sf *= (seq_len < 10) ? 1.0 : log10(seq_len); // scale based on longer reads having more information content
+            bestMappingQuality = (int32_t)(sf + 0.99999);
+            //fprintf(stderr, "4=%d\n", bestMappingQuality);
+            if(bestMappingQuality > MAXIMUM_MAPPING_QUALITY) bestMappingQuality= MAXIMUM_MAPPING_QUALITY;
+            if(bestMappingQuality <= 0) bestMappingQuality= 1;
+        }
 	for(i=0;i<a->numEntries;i++) {
 		if(a->entries[i].score < bestScore) {
 			a->entries[i].mappingQuality = 0;
