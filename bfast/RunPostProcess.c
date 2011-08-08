@@ -99,7 +99,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	void *status=NULL;
 	PostProcessThreadData *data=NULL;
 	ScoringMatrix sm;
-	int32_t mismatchScore, numRead, queueIndex;
+	int32_t matchScore ,mismatchScore, numRead, queueIndex;
 	int32_t numReadsProcessed = 0;
 	AlignedRead *alignQueue=NULL;
 	int32_t alignQueueLength = 0;
@@ -118,9 +118,11 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	/* Calculate mismatch score */
 	/* Assumes all match scores are the same and all substitution scores are the same */
 	if(space == NTSpace) {
+                matchScore = sm.ntMatch;
 		mismatchScore = sm.ntMatch - sm.ntMismatch;
 	}
 	else {
+                matchScore = sm.colorMatch + sm.ntMatch;
 		mismatchScore = sm.colorMatch - sm.colorMismatch;
 	}
 
@@ -228,6 +230,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			data[i].reversePaired = reversePaired;
 			data[i].avgMismatchQuality = avgMismatchQuality;
 			data[i].randomBest = randomBest;
+			data[i].matchScore = matchScore;
 			data[i].mismatchScore = mismatchScore;
 			data[i].minimumMappingQuality = minimumMappingQuality; 
 			data[i].minimumNormalizedScore = minimumNormalizedScore; 
@@ -397,6 +400,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	int reversePaired = data->reversePaired;
 	int avgMismatchQuality = data->avgMismatchQuality;
 	int randomBest = data->randomBest;
+	int matchScore = data->matchScore;
 	int mismatchScore = data->mismatchScore;
 	int minimumMappingQuality = data->minimumMappingQuality;
 	int minimumNormalizedScore = data->minimumNormalizedScore;
@@ -457,6 +461,7 @@ void *ReadInputFilterAndOutputThread(void *arg)
 					reversePaired,
 					avgMismatchQuality,
 					randomBest,
+                                        matchScore,
 					mismatchScore,
 					minimumMappingQuality,
 					minimumNormalizedScore,
@@ -491,6 +496,7 @@ static int32_t getPairedScore(AlignedEnd *endOne,
 		int32_t endTwoEntriesIndex,
 		int reversePaired,
 		int avgMismatchQuality,
+                int matchScore,
 		int mismatchScore,
 		PEDBins *b,
 		double pairingStandardDeviation)
@@ -544,6 +550,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 		int reversePaired,
 		int avgMismatchQuality,
 		int randomBest,
+                int matchScore,
 		int mismatchScore,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
@@ -599,15 +606,16 @@ static int ReadPairingAndRescue(AlignedRead *a,
 		if(0 == a->ends[0].numEntries || 0 == a->ends[1].numEntries || 1 == discordantPair) { 
 			// Read-rescue
 			for(i=0;i<2;i++) {
-				double meanInsert = 0.0;
+                                double meanInsert = 0.0;
 
 				AlignedEndInitialize(&ends[1-i]);
 
+                                // Note: assumes 5'->3'
 				if(0 == i) { // first end
-					meanInsert += b->avg;
+					meanInsert -= b->avg;
 				}
 				else {
-					meanInsert -= b->avg;
+					meanInsert = b->avg;
 				}
 				for(j=0;j<a->ends[i].numEntries;j++) {
 					if(bestScoreSE[i] == a->ends[i].entries[j].score) {
@@ -623,7 +631,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 						int8_t strand = 0;
 
 						contig = a->ends[i].entries[j].contig;
-						startPos = a->ends[i].entries[j].position - pairingStandardDeviation*b->std;
+
 						referenceLength = (int)((2.0*pairingStandardDeviation*b->std) + 0.5);
 						if(0.5 < b->inversionCount / ((double)b->numDistances)) {
 							// Opposite strands
@@ -633,12 +641,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 							// Same strand
 							strand = a->ends[i].entries[j].strand;
 						}
-						if(FORWARD == a->ends[i].entries[j].strand) {
-							startPos = a->ends[i].entries[j].position + meanInsert - pairingStandardDeviation*b->std;
-						}
-						else {
-							startPos = a->ends[i].entries[j].position - meanInsert - pairingStandardDeviation*b->std;
-						}
+                                                startPos = a->ends[i].entries[j].position + meanInsert - pairingStandardDeviation*b->std;
 						if(1 == reversePaired) {
 							startPos -= a->ends[1-i].readLength; // Not counted otherwise
 							referenceLength += a->ends[1-i].readLength; 
@@ -680,6 +683,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 								referenceLength,
 								&referenceLength,
 								&referencePosition);
+                
 						if(readLength <= referenceLength) {
 							AlignedEntry *aEntry=NULL;
 
@@ -719,6 +723,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 									AlignedEndReallocate(&ends[1-i], ends[1-i].numEntries-1);
 								}
 								else { 
+                                                                        rescuedEnd[1-i] = 1;
 									if(0 == discordantPair) {
 										if(MAXIMUM_RESCUE_MAPQ < a->ends[i].entries[j].mappingQuality) {
 											ends[1-i].entries[ends[1-i].numEntries-1].mappingQuality = MAXIMUM_RESCUE_MAPQ;
@@ -747,6 +752,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 									AlignedEndReallocate(&ends[1-i], ends[1-i].numEntries-1);
 								}
 								else {
+                                                                        rescuedEnd[1-i] = 1;
 									if(0 == discordantPair) {
 										if(MAXIMUM_RESCUE_MAPQ < a->ends[i].entries[j].mappingQuality) {
 											ends[1-i].entries[ends[1-i].numEntries-1].mappingQuality = MAXIMUM_RESCUE_MAPQ;
@@ -776,28 +782,30 @@ static int ReadPairingAndRescue(AlignedRead *a,
 							bestScoreSE[i] = ends[i].entries[j].score;
 							bestScoreSEIndex[i] = k;
 							bestScoreSENum[i] = 1;
-							rescuedEnd[i] = 1;
 						}
 						else if(bestScoreSE[i] == ends[i].entries[j].score) {
 							bestScoreSENum[i]++;
-							rescuedEnd[i] = 1;
 						}
 					}
 				}
 			}
-			if(0 < rescuedEnd[0] + rescuedEnd[1]) {
+
+                        if(0 < rescuedEnd[0] + rescuedEnd[1]) {
 				AlignedReadRemoveDuplicates(a, AlignedEntrySortByAll);
 
 				int32_t mismatchScore;
 				if(space == NTSpace) {
+                                        matchScore = sm->ntMatch;
 					mismatchScore = sm->ntMatch - sm->ntMismatch;
 				}
 				else {
+                                        matchScore = sm->colorMatch + sm->ntMatch;
 					mismatchScore = sm->colorMatch - sm->colorMismatch;
 				}
 
 				if(1 == discordantPair) {
 					AlignedReadUpdateMappingQuality(a,
+                                                        matchScore,
 							mismatchScore,
 							avgMismatchQuality);
 				}
@@ -826,7 +834,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 			for(j=0;j<a->ends[1].numEntries;j++) {
 				if(1 == anchored || bestScoreSE[1] <= a->ends[1].entries[j].score) { // itself an anchor, or other end anchored
 
-					int32_t s = getPairedScore(&a->ends[0], i, &a->ends[1], j, reversePaired, avgMismatchQuality, mismatchScore, b, pairingStandardDeviation);
+					int32_t s = getPairedScore(&a->ends[0], i, &a->ends[1], j, reversePaired, avgMismatchQuality, matchScore, mismatchScore, b, pairingStandardDeviation);
 
 					if(-1 == bestIndex[0] || bestScore < s) { // current is the best
 						if(-1 != bestIndex[0]) { // there was a previous
@@ -870,7 +878,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 				for(j=0;j<a->ends[1].numEntries;j++) {
 					if(1 == anchored || bestScoreSE[1] <= a->ends[1].entries[j].score) { // itself an anchor, or other end anchored
 
-						int32_t s = getPairedScore(&a->ends[0], i, &a->ends[1], j, reversePaired, avgMismatchQuality, mismatchScore, b, pairingStandardDeviation);
+						int32_t s = getPairedScore(&a->ends[0], i, &a->ends[1], j, reversePaired, avgMismatchQuality, matchScore, mismatchScore, b, pairingStandardDeviation);
 						if(bestScore == s) {
 							if(keep == k) {
 								AlignedEntryCopy(&a->ends[0].entries[0], &a->ends[0].entries[i]);
@@ -953,15 +961,26 @@ static int ReadPairingAndRescue(AlignedRead *a,
 			}
 			else {
 				int32_t mapq = MAXIMUM_MAPPING_QUALITY;
-				if(-1 != penultimateIndex[0]) { // next best pairing found
-					mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
-					if(0 == mapq) {
-						mapq = 1;
-					}
-					else if(MAXIMUM_MAPPING_QUALITY < mapq) {
-						mapq = MAXIMUM_MAPPING_QUALITY;
-					}
-				}
+                                if(-1 == penultimateIndex[0]) {
+                                    penultimateScore = GETMAX(a->ends[i].entries[0].score, a->ends[1].entries[0].score);
+                                    penultimateNum = 1;
+                                }
+                                /*
+                                   mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
+                                   if(0 == mapq) {
+                                   mapq = 1;
+                                   }
+                                   else if(MAXIMUM_MAPPING_QUALITY < mapq) {
+                                   mapq = MAXIMUM_MAPPING_QUALITY;
+                                   }
+                                   */
+                                double sf = 0.2;
+                                sf *= 250.0 / (matchScore * GETMAX(a->ends[0].readLength, a->ends[1].readLength)); // scale based on the best possible alignment score 
+                                sf *= (bestNum / (1.0 * penultimateNum)); // scale based on number of sub-optimal mappings
+                                sf *= (double)(bestScore - penultimateScore + 1); // scale based on distance to the sub-optimal mapping
+                                mapq = (int32_t)(sf + 0.99999);
+                                if(mapq > MAXIMUM_MAPPING_QUALITY) mapq = MAXIMUM_MAPPING_QUALITY;
+                                else if(mapq <= 0) mapq = 1;
 				assert(0 < mapq);
 				if(a->ends[0].entries[0].score < bestScoreSE[0] || // changed alignment
 						a->ends[0].entries[0].mappingQuality < mapq) { 
@@ -992,6 +1011,7 @@ int FilterAlignedRead(AlignedRead *a,
 		int reversePaired,
 		int avgMismatchQuality,
 		int randomBest,
+                int matchScore,
 		int mismatchScore,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
@@ -1020,7 +1040,7 @@ int FilterAlignedRead(AlignedRead *a,
 	for(i=0;i<tmpA.numEnds;i++) {
 		foundTypes[i]=NoneFound;
 	}
-
+                
 	if(0 == ReadPairingAndRescue(&tmpA, 
 				rg,
 				matrix,
@@ -1030,6 +1050,7 @@ int FilterAlignedRead(AlignedRead *a,
 				reversePaired,
 				avgMismatchQuality,
 				randomBest,
+                                matchScore,
 				mismatchScore,
 				minimumMappingQuality,
 				minimumNormalizedScore,
@@ -1195,6 +1216,7 @@ int32_t GetPEDBins(AlignedRead *alignQueue,
 					-1,
 					INT_MIN,
 					0,
+                                        INT_MIN,
 					INT_MIN,
 					INT_MIN,
 					INT_MIN,

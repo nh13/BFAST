@@ -98,14 +98,14 @@ int32_t ScoringMatrixCheck(ScoringMatrix *sm,
 	return 1;
 }
 
-int32_t ScoringMatrixGetNTScore(char a,
+inline int32_t ScoringMatrixGetNTScore(char a,
 		char b,
 		ScoringMatrix *sm)
 {
 	return (ToUpper(a) == ToUpper(b)) ? sm->ntMatch : sm->ntMismatch;
 }
 
-int32_t ScoringMatrixGetColorScore(char a, 
+inline int32_t ScoringMatrixGetColorScore(char a, 
 		char b, 
 		ScoringMatrix *sm) 
 {

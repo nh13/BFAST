@@ -27,6 +27,7 @@ typedef struct {
 	int reversePaired;
 	int avgMismatchQuality;
 	int randomBest;
+	int matchScore;
 	int mismatchScore;
 	int minimumMappingQuality;
 	int minimumNormalizedScore;
@@ -80,6 +81,7 @@ int FilterAlignedRead(AlignedRead *a,
 		int reversePaired,
 		int avgMismatchQuality,
 		int randomBest,
+		int matchScore,
 		int mismatchScore,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,

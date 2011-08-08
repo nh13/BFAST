@@ -335,8 +335,8 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "minNormalizedScore:\t\t%d\n", args->minNormalizedScore);
 		fprintf(fp, "pairingStandardDeviation:\t%lf\n", args->pairingStandardDeviation);
 		if (0 == args->insertSizeSpecified) {
-			fprintf(fp, "insertSizeAvg:\t%lf\n", args->insertSizeAvg);
-			fprintf(fp, "insertSizeStdDev:\t%lf\n", args->insertSizeStdDev);
+			fprintf(fp, "insertSizeAvg:\t\t\t%lf\n", args->insertSizeAvg);
+			fprintf(fp, "insertSizeStdDev:\t\t%lf\n", args->insertSizeStdDev);
 		}
 		fprintf(fp, "gappedPairingRescue\t\t%s\n", INTUSING(args->gappedPairingRescue));
 		fprintf(fp, "numThreads:\t\t\t%d\n", args->numThreads);

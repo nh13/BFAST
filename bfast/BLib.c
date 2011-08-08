@@ -90,8 +90,11 @@ void ToLowerRead(char *r, int readLength)
 }
 
 /* TODO */
-char ToUpper(char a)
+inline char ToUpper(char a)
 {
+  if(97 <= a && a < 122) return (char)(a - 32);
+  return a;
+  /*
 	switch(a) {
 		case 'a':
 			return 'A';
@@ -111,6 +114,7 @@ char ToUpper(char a)
 		default:
 			return a;
 	}
+        */
 }
 
 /* TODO */
