@@ -606,15 +606,16 @@ static int ReadPairingAndRescue(AlignedRead *a,
 		if(0 == a->ends[0].numEntries || 0 == a->ends[1].numEntries || 1 == discordantPair) { 
 			// Read-rescue
 			for(i=0;i<2;i++) {
-				double meanInsert = 0.0;
+                                double meanInsert = 0.0;
 
 				AlignedEndInitialize(&ends[1-i]);
 
+                                // Note: assumes 5'->3'
 				if(0 == i) { // first end
-					meanInsert += b->avg;
+					meanInsert -= b->avg;
 				}
 				else {
-					meanInsert -= b->avg;
+					meanInsert = b->avg;
 				}
 				for(j=0;j<a->ends[i].numEntries;j++) {
 					if(bestScoreSE[i] == a->ends[i].entries[j].score) {
@@ -630,7 +631,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 						int8_t strand = 0;
 
 						contig = a->ends[i].entries[j].contig;
-						startPos = a->ends[i].entries[j].position - pairingStandardDeviation*b->std;
+
 						referenceLength = (int)((2.0*pairingStandardDeviation*b->std) + 0.5);
 						if(0.5 < b->inversionCount / ((double)b->numDistances)) {
 							// Opposite strands
@@ -640,12 +641,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 							// Same strand
 							strand = a->ends[i].entries[j].strand;
 						}
-						if(FORWARD == a->ends[i].entries[j].strand) {
-							startPos = a->ends[i].entries[j].position + meanInsert - pairingStandardDeviation*b->std;
-						}
-						else {
-							startPos = a->ends[i].entries[j].position - meanInsert - pairingStandardDeviation*b->std;
-						}
+                                                startPos = a->ends[i].entries[j].position + meanInsert - pairingStandardDeviation*b->std;
 						if(1 == reversePaired) {
 							startPos -= a->ends[1-i].readLength; // Not counted otherwise
 							referenceLength += a->ends[1-i].readLength; 
@@ -687,6 +683,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 								referenceLength,
 								&referenceLength,
 								&referencePosition);
+                
 						if(readLength <= referenceLength) {
 							AlignedEntry *aEntry=NULL;
 
@@ -726,6 +723,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 									AlignedEndReallocate(&ends[1-i], ends[1-i].numEntries-1);
 								}
 								else { 
+                                                                        rescuedEnd[1-i] = 1;
 									if(0 == discordantPair) {
 										if(MAXIMUM_RESCUE_MAPQ < a->ends[i].entries[j].mappingQuality) {
 											ends[1-i].entries[ends[1-i].numEntries-1].mappingQuality = MAXIMUM_RESCUE_MAPQ;
@@ -754,6 +752,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
 									AlignedEndReallocate(&ends[1-i], ends[1-i].numEntries-1);
 								}
 								else {
+                                                                        rescuedEnd[1-i] = 1;
 									if(0 == discordantPair) {
 										if(MAXIMUM_RESCUE_MAPQ < a->ends[i].entries[j].mappingQuality) {
 											ends[1-i].entries[ends[1-i].numEntries-1].mappingQuality = MAXIMUM_RESCUE_MAPQ;
@@ -783,16 +782,15 @@ static int ReadPairingAndRescue(AlignedRead *a,
 							bestScoreSE[i] = ends[i].entries[j].score;
 							bestScoreSEIndex[i] = k;
 							bestScoreSENum[i] = 1;
-							rescuedEnd[i] = 1;
 						}
 						else if(bestScoreSE[i] == ends[i].entries[j].score) {
 							bestScoreSENum[i]++;
-							rescuedEnd[i] = 1;
 						}
 					}
 				}
 			}
-			if(0 < rescuedEnd[0] + rescuedEnd[1]) {
+
+                        if(0 < rescuedEnd[0] + rescuedEnd[1]) {
 				AlignedReadRemoveDuplicates(a, AlignedEntrySortByAll);
 
 				int32_t mismatchScore;
@@ -1031,7 +1029,7 @@ int FilterAlignedRead(AlignedRead *a,
 	for(i=0;i<tmpA.numEnds;i++) {
 		foundTypes[i]=NoneFound;
 	}
-
+                
 	if(0 == ReadPairingAndRescue(&tmpA, 
 				rg,
 				matrix,
