@@ -961,15 +961,26 @@ static int ReadPairingAndRescue(AlignedRead *a,
 			}
 			else {
 				int32_t mapq = MAXIMUM_MAPPING_QUALITY;
-				if(-1 != penultimateIndex[0]) { // next best pairing found
-					mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
-					if(0 == mapq) {
-						mapq = 1;
-					}
-					else if(MAXIMUM_MAPPING_QUALITY < mapq) {
-						mapq = MAXIMUM_MAPPING_QUALITY;
-					}
-				}
+                                if(-1 == penultimateIndex[0]) {
+                                    penultimateScore = GETMAX(a->ends[i].entries[0].score, a->ends[1].entries[0].score);
+                                    penultimateNum = 1;
+                                }
+                                /*
+                                   mapq = (bestScore - penultimateScore) * avgMismatchQuality / mismatchScore;
+                                   if(0 == mapq) {
+                                   mapq = 1;
+                                   }
+                                   else if(MAXIMUM_MAPPING_QUALITY < mapq) {
+                                   mapq = MAXIMUM_MAPPING_QUALITY;
+                                   }
+                                   */
+                                double sf = 0.2;
+                                sf *= 250.0 / (matchScore * GETMAX(a->ends[0].readLength, a->ends[1].readLength)); // scale based on the best possible alignment score 
+                                sf *= (bestNum / (1.0 * penultimateNum)); // scale based on number of sub-optimal mappings
+                                sf *= (double)(bestScore - penultimateScore + 1); // scale based on distance to the sub-optimal mapping
+                                mapq = (int32_t)(sf + 0.99999);
+                                if(mapq > MAXIMUM_MAPPING_QUALITY) mapq = MAXIMUM_MAPPING_QUALITY;
+                                else if(mapq <= 0) mapq = 1;
 				assert(0 < mapq);
 				if(a->ends[0].entries[0].score < bestScoreSE[0] || // changed alignment
 						a->ends[0].entries[0].mappingQuality < mapq) { 
