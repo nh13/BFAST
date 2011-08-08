@@ -334,7 +334,7 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 	int32_t numMatches=0;
 	int32_t numFinished = 0;
 	RGMatches *matchQueue=NULL;
-	int32_t matchQueueLength = (queueLength / numFiles) + 1;
+	int32_t matchQueueLength = (queueLength / numFiles);
 	
 	if(matchQueueLength < 1) {
 		matchQueueLength = 1;
@@ -357,6 +357,7 @@ int32_t RGMatchesMergeFilesAndOutput(gzFile *tempFPs,
 		fputs("\r[0]", stderr);
 	}
 	while(0 == numFinished) {
+            // HERE
 		if(VERBOSE >= 0) {
 			fprintf(stderr, "\r[%d]", counter);
 		}
