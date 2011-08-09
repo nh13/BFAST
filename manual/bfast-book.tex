@@ -480,6 +480,9 @@ Specifies the maximum number of matches to allow before a key is ignored.
 A key may return one or more CALs and therefore it may be desirable to ignore non-unique or over-represented keys.
 For example, a value of $100$ may be useful when aligning the to Human Genome given that each index used is expected to return one CAL.
 
+\subsubsection{\TT{-F FLOAT, --keyMissFraction=FLOAT}}
+Specifies the maximum fraction of seed positions within the read that exceed the maximum key matches limti (\TT{-K}) for the hit to be retained.
+The lower the maximum to increase specificity at the cost of sensitivity.
 \subsubsection{\TT{-M INTEGER, --maxNumMatches=INTEGER}}
 Specifies the maximum number of CALs to allow before we stop searching for CALS for a given read.
 If the limit is reached, the read will be flagged and ignored in later alignment processes.
