@@ -36,7 +36,6 @@ typedef struct {
 	int queueLength;
 	int8_t *foundTypes;
 	AlignedRead *alignQueue;
-	int32_t *alignQueueThreadIDs;
 	int32_t **numEntries;
 	int32_t *numEntriesN;
 	int32_t numThreads;

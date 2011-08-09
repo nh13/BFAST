@@ -52,8 +52,8 @@ int32_t RGMatchRead(gzFile fp,
 	if(gzread64(fp, &m->maxReached, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName, "m->maxReached", "Could not read in m->maxReached", Exit, ReadFileError);
 	}
-	assert(0 == m->maxReached || 1 == m->maxReached);
-
+	assert(0 <= m->maxReached);
+        
 	/* Read in the number of matches */
 	if(gzread64(fp, &numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName, "numEntries", "Could not read in numEntries", Exit, ReadFileError);
@@ -119,7 +119,7 @@ int32_t RGMatchReadText(FILE *fp,
 	if(fscanf(fp, "%d", &m->maxReached)==EOF) {
 		PrintError(FnName, "m->maxReached", "Could not read in m->maxReached", Exit, EndOfFile);
 	}
-	assert(1==m->maxReached || 0 == m->maxReached);
+	assert(0 <= m->maxReached);
 
 	/* Read in the number of matches */
 	if(fscanf(fp, "%d", &numEntries)==EOF) {
@@ -245,7 +245,7 @@ void RGMatchRemoveDuplicates(RGMatch *m,
 
 	/* Check to see if the max has been reached.  If so free all matches and return.
 	 * We should remove duplicates before checking against maxNumMatches. */
-	if(1 == m->maxReached) {
+	if(0 < m->maxReached) {
 		/* Clear the matches but don't free the read name */
 		RGMatchClearMatches(m);
 		return;
@@ -454,7 +454,7 @@ void RGMatchAppend(RGMatch *dest, RGMatch *src)
 	}
 
 	/* if the max has been reached by the start or dest, then ignore */
-	if(1 != dest->maxReached && 1 != src->maxReached) { 
+	if(0 == dest->maxReached && 0 == src->maxReached) { 
 		/* Allocate memory for the entries */
 		start = dest->numEntries;
 		RGMatchReallocate(dest, dest->numEntries + src->numEntries);
@@ -699,8 +699,7 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 	/* Basic asserts */
 	assert(m->readLength >= 0);
 	assert(m->qualLength >= 0);
-	assert(m->maxReached == 0 || m->maxReached == 1);
-	assert(m->maxReached == 0 || m->numEntries == 0);
+	assert(0 <= m->maxReached);
 	assert(m->numEntries >= 0);
 	/* Check that if the read length is greater than zero the read is not null */
 	if(m->readLength > 0 && m->read == NULL && m->qual == NULL) {
@@ -718,7 +717,7 @@ int32_t RGMatchCheck(RGMatch *m, RGBinary *rg)
 		return 0;
 	}
 	/* Check that if the max has been reached then there are no entries */
-	if(1==m->maxReached && m->numEntries > 0) {
+	if(0 < m->maxReached && m->numEntries > 0) {
 		PrintError(FnName, NULL, "1==m->maxReached and m->numEntries>0", Warn, OutOfRange);
 		return 0;
 	}

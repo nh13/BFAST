@@ -2108,12 +2108,12 @@ int32_t RGIndexGetRangesBothStrands(RGIndex *index, RGBinary *rg, int8_t *read, 
 	else if(maxKeyMatches < numMatches) {
 		/* Ignore the key since it had too many matches */
 		//assert(0 < numMatches);
-		return 0;
+		return 1;
 	}
 	else if(maxNumMatches < numMatches) {
-		/* Too many matches, return 1 */
+		/* Too many matches, return 2 */
 		//assert(0 < numMatches);
-		return 1;
+		return 2;
 	}
 	else {
 		toAdd = (0 < foundIndexForward)?1:0;

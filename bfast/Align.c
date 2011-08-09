@@ -114,6 +114,14 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t numberFound = 0;
 	int32_t prevIndex;
 
+        if(0 != m->maxReached) { // ignore
+            AlignedEndAllocate(end,
+                               m->read,
+                               m->qual,
+                               0);
+            return;
+        }
+
 	(*bestScore)=NEGATIVE_INFINITY;
 
 	strcpy(read, m->read);
@@ -597,8 +605,6 @@ int AlignGapped(char *read,
 	char *FnName="AlignGapped";
 	int64_t maxH, maxV;
 	
-	//fprintf(stderr, "HERE 4 position=%d\n", position);
-
 	/* Get the maximum number of vertical and horizontal moves allowed */
 	maxV = maxH = 0;
 	if(sm->gapOpenPenalty < sm->gapExtensionPenalty) {
@@ -710,8 +716,6 @@ void AlignGappedBounded(char *read,
 		int32_t maxV)
 {
 	char *FnName="AlignGappedBounded";
-
-	//fprintf(stderr, "HERE 5 position=%d\n", position);
 
 	switch(space) {
 		case NTSpace:

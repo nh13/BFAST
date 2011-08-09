@@ -33,6 +33,7 @@ void RGReadsFindMatches(RGIndex *index,
 		int numGapInsertions,
 		int numGapDeletions,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int strands)
 {
@@ -42,6 +43,11 @@ void RGReadsFindMatches(RGIndex *index,
 	RGReads reads;
 	RGRanges ranges;
 	int readOffset = 0;
+        int count, total;
+
+        if(0 < match->maxReached) { // ignore
+            return;
+        }
 
 	/* Initialize */
 	RGReadsInitialize(&reads);
@@ -71,13 +77,14 @@ void RGReadsFindMatches(RGIndex *index,
 	   RGReadsRemoveDuplicates(reads);
 	   }
 	   */
+        count = total = 0;
 
 	if(0 < numOffsets) { /* Go through the offsets */
 		for(i=0;0 == match->maxReached && // have not reached the maximum
 				i<numOffsets && // offsets remaining
 				index->width <= (readLength - offsets[i]); // offsets is within bounds (assumes sorted) 
 				i++) {
-			match->maxReached = RGIndexGetRangesBothStrands(index, 
+			switch(RGIndexGetRangesBothStrands(index, 
 					rg,
 					read + offsets[i],
 					index->width,
@@ -86,14 +93,27 @@ void RGReadsFindMatches(RGIndex *index,
 					maxNumMatches,
 					space,
 					strands,
-					&ranges);
+					&ranges)) {
+                          case 1:
+                            count++;
+                            break;
+                          case 2:
+                            count++;
+                            // too many matches
+                            match->maxReached = 1;
+                            break;
+                          default:
+                            // do nothing
+                            break;
+                        }
+                        total++;
 		}
 	}
 	else { /* Use all offsets */
 		for(i=0;0 == match->maxReached && // have not reached the maximum
 				index->width <= (readLength - i); // offsets is within bounds (assumes sorted) 
 				i++) {
-			match->maxReached = RGIndexGetRangesBothStrands(index, 
+			switch(RGIndexGetRangesBothStrands(index, 
 					rg,
 					read + i,
 					index->width,
@@ -102,9 +122,26 @@ void RGReadsFindMatches(RGIndex *index,
 					maxNumMatches,
 					space,
 					strands,
-					&ranges);
+					&ranges)) {
+                          case 1:
+                            count++;
+                            break;
+                          case 2:
+                            count++;
+                            // too many matches
+                            match->maxReached = 1;
+                            break;
+                          default:
+                            // do nothing
+                            break;
+                        }
+                        total++;
 		}
 	}
+
+        if(keyMissFraction < ((double)count)/total) {
+            match->maxReached = 1;
+        }
 
 	/* Transfer ranges to matches */
 	RGRangesCopyToRGMatch(&ranges,
@@ -112,7 +149,7 @@ void RGReadsFindMatches(RGIndex *index,
 			match,
 			space,
 			copyOffsets);
-
+        
 	/* Remove duplicates */
 	RGMatchRemoveDuplicates(match,
 			maxNumMatches);

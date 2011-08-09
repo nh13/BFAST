@@ -18,6 +18,7 @@ typedef struct {
 	RGBinary *rg;
 	int32_t space;
 	int32_t offsetLength;
+        int32_t maxNumMatches;
 	int32_t usePairedEndLength;
 	int32_t pairedEndLength;
 	int32_t mirroringType;
@@ -36,7 +37,6 @@ typedef struct {
 	int64_t numAligned;
 	int64_t numNotAligned;
 	RGMatches *matchQueue;
-	int32_t *matchQueueThreadIDs;
 	AlignedRead *alignedQueue;
 } ThreadData;
 

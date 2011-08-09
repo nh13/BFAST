@@ -52,6 +52,8 @@ static struct argp_option options[] = {
 		"\n\t\t\t  (must be greater than the hash width)", 2},
 	{"maxKeyMatches", 'K', "maxKeyMatches", 0, "Specifies the maximum number of matches to allow before a key"
 		"\n\t\t\t is ignored", 2},
+	{"keyMissFraction", 'K', "keyMissFraction", 0, "Specifies the maximum fraction of keys looked up that can"
+                "\n\t\t\t be ignored/missed", 2},
 	{"maxNumMatches", 'M', "maxNumMatches", 0, "Specifies the maximum total number of matches to consider"
 		"\n\t\t\t before the read is discarded", 2},
 	{"whichStrand", 'w', "whichStrand", 0, "0: consider both strands 1: forward strand only 2: reverse"
@@ -69,7 +71,7 @@ static struct argp_option options[] = {
 
 static char OptionString[]=
 #ifndef DISABLE_BZLIB
-"e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hjlptz";
+"e:f:i:k:m:n:o:r:s:w:A:I:K:F:M:Q:T:hjlptz";
 #else
 "e:f:i:k:m:n:o:r:s:w:A:I:K:M:Q:T:hlptz";
 #endif
@@ -123,6 +125,7 @@ BfastMatch(int argc, char **argv)
 							arguments.endReadNum,
 							arguments.keySize,
 							arguments.maxKeyMatches,
+                                                        arguments.keyMissFraction,
 							arguments.maxNumMatches,
 							arguments.whichStrand,
 							arguments.numThreads,
@@ -214,6 +217,9 @@ int BfastMatchValidateInputs(struct arguments *args) {
 	if(args->maxKeyMatches < 0) {
 		PrintError(FnName, "maxKeyMatches", "Command line argument", Exit, OutOfRange);	
 	}	
+        if(args->keyMissFraction < 0 || 1.0 < args->keyMissFraction) {
+                PrintError(FnName, "keyMissFraction", "Command line argument", Exit, OutOfRange);
+        }
 	if(args->maxNumMatches < 0) {		
 		PrintError(FnName, "maxNumMatches", "Command line argument", Exit, OutOfRange);
 	}
@@ -268,6 +274,7 @@ BfastMatchAssignDefaultValues(struct arguments *args)
 	args->endReadNum = INT_MAX;
 	args->keySize = 0;
 	args->maxKeyMatches = MAX_KEY_MATCHES;
+	args->keyMissFraction = MAX_KEY_MISS_FRACTION;
 	args->maxNumMatches = MAX_NUM_MATCHES;
 	args->whichStrand = BothStrands;
 	args->numThreads = 1;
@@ -304,6 +311,7 @@ BfastMatchPrintProgramParameters(FILE* fp, struct arguments *args)
 		if(0 < args->keySize) fprintf(fp, "keySize:\t\t\t\t%d\n", args->keySize);
 		else fprintf(fp, "keySize:\t\t\t\t%s\n", INTUSING(0));
 		fprintf(fp, "maxKeyMatches:\t\t\t\t%d\n", args->maxKeyMatches);
+		fprintf(fp, "keyMissFraction:\t\t\t%lf\n", args->keyMissFraction);
 		fprintf(fp, "maxNumMatches:\t\t\t\t%d\n", args->maxNumMatches);
 		fprintf(fp, "whichStrand:\t\t\t\t%s\n", WHICHSTRAND(args->whichStrand));
 		fprintf(fp, "numThreads:\t\t\t\t%d\n", args->numThreads);
@@ -407,6 +415,8 @@ BfastMatchGetOptParse(int argc, char** argv, char OptionString[], struct argumen
 				arguments->secondaryIndexes=strdup(optarg); break;
 			case 'K':
 				arguments->maxKeyMatches=atoi(optarg); break;
+			case 'F':
+				arguments->keyMissFraction=atof(optarg); break;
 			case 'M':
 				arguments->maxNumMatches=atoi(optarg); break;
 			case 'Q':

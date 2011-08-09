@@ -19,6 +19,7 @@ struct arguments
 	int endReadNum;							/* -e */
 	int keySize;							/* -k */
 	int maxKeyMatches;						/* -K */
+        double keyMissFraction;                                         /* -F */
 	int maxNumMatches;						/* -M */
 	int whichStrand;						/* -w */
 	int numThreads;							/* -n */
