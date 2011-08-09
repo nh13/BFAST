@@ -1941,7 +1941,7 @@ char *ParseReadGroup(char *readGroup)
 	}
 
 	if(0 == foundReadGroupID) {
-		PrintError(FnName, "readGroupString", "Could not parse read group", Exit, OutOfRange);
+		PrintError(FnName, "readGroupString", "Could not parse read group; read ID required", Exit, OutOfRange);
 	}
 	
 	free(tmpReadGroup);
