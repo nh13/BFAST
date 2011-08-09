@@ -16,8 +16,6 @@
 #include "Align.h"
 #include "RunLocalAlign.h"
 
-static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
-
 /* TODO */
 void RunAligner(char *fastaFileName,
 		char *matchFileNameAll,
@@ -240,7 +238,6 @@ void RunDynamicProgramming(gzFile matchAllFP,
 	int32_t errCode;
 	void *status;
 	RGMatches *matchQueue=NULL;
-	int32_t *matchQueueThreadIDs=NULL;
 	AlignedRead *alignedQueue=NULL;
 	int32_t matchQueueLength=0;
 	int32_t matchAllFPctr = 1;
@@ -255,10 +252,6 @@ void RunDynamicProgramming(gzFile matchAllFP,
 	matchQueue = malloc(sizeof(RGMatches)*queueLength);
 	if(NULL == matchQueue) {
 		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
-	}
-	matchQueueThreadIDs = malloc(sizeof(int32_t)*queueLength);
-	if(NULL == matchQueueThreadIDs) {
-		PrintError(FnName, "matchQueueThreadIDs", "Could not allocate memory", Exit, MallocMemory);
 	}
 	alignedQueue = malloc(sizeof(AlignedRead)*queueLength);
 	if(NULL == alignedQueue) {
@@ -326,16 +319,12 @@ void RunDynamicProgramming(gzFile matchAllFP,
 		numReadsProcessed += numMatchesRead;
 		matchQueueLength = numMatchesRead;
 
-		/* Initialize match structures */
-		for(i=0;i<matchQueueLength;i++) {
-			matchQueueThreadIDs[i] = -1;
-		}
-
 		/* Initialize thread arguments */
 		for(i=0;i<numThreads;i++) {
 			data[i].rg=rg;
 			data[i].space=space;
 			data[i].offsetLength=offsetLength;
+                        data[i].maxNumMatches=maxNumMatches;
 			data[i].usePairedEndLength = usePairedEndLength;
 			data[i].pairedEndLength = pairedEndLength;
 			data[i].mirroringType = mirroringType;
@@ -354,7 +343,6 @@ void RunDynamicProgramming(gzFile matchAllFP,
 			data[i].numAligned = 0;
 			data[i].numNotAligned = 0;
 			data[i].matchQueue = matchQueue;
-			data[i].matchQueueThreadIDs = matchQueueThreadIDs;
 			data[i].alignedQueue = alignedQueue;
 		}
 
@@ -437,7 +425,6 @@ void RunDynamicProgramming(gzFile matchAllFP,
 
 	/* Free memory */
 	free(matchQueue);
-	free(matchQueueThreadIDs);
 	free(alignedQueue);
 	free(data);
 	free(threads);
@@ -451,6 +438,7 @@ void *RunDynamicProgrammingThread(void *arg)
 	RGBinary *rg=data->rg;
 	int32_t space=data->space;
 	int32_t offsetLength=data->offsetLength;
+	int32_t maxNumMatches=data->maxNumMatches;
 	int32_t usePairedEndLength=data->usePairedEndLength;
 	int32_t pairedEndLength=data->pairedEndLength;
 	int32_t mirroringType=data->mirroringType;
@@ -467,100 +455,83 @@ void *RunDynamicProgrammingThread(void *arg)
 	int32_t queueLength=data->queueLength;
 	AlignedRead *alignedQueue=data->alignedQueue;
 	RGMatches *matchQueue=data->matchQueue;
-	int32_t *matchQueueThreadIDs = data->matchQueueThreadIDs;
 	/* Local variables */
 	//char *FnName = "RunDynamicProgrammingThread";
-	int32_t i, j, wasAligned, queueIndex;
+	int32_t j, wasAligned, queueIndex;
 	AlignMatrix matrix;
 
 	/* Initialize */
 	AlignMatrixInitialize(&matrix);
 
 	/* Go through each read in the match file */
-	queueIndex=0;
-	while(queueIndex<queueLength) {
-		if(1 < numThreads) {
-			pthread_mutex_lock(&matchQueueMutex);
-			if(matchQueueThreadIDs[queueIndex] < 0) {
-				// mark this block
-				for(j=queueIndex;j<queueLength && j<queueIndex+BFAST_LOCALALIGN_THREAD_BLOCK_SIZE;j++) {
-					matchQueueThreadIDs[j] = threadID;
-				}
-			}
-			else if(matchQueueThreadIDs[queueIndex] != threadID) {
-				pthread_mutex_unlock(&matchQueueMutex);
-				queueIndex+=BFAST_LOCALALIGN_THREAD_BLOCK_SIZE;
-				// skip this block
-				continue;
-			}
-			pthread_mutex_unlock(&matchQueueMutex);
-		}
+	for(queueIndex=threadID;queueIndex<queueLength;queueIndex+=numThreads) {
+                AlignedReadInitialize(&alignedQueue[queueIndex]);
 
-		// Process this block
-		for(i=0;i<BFAST_LOCALALIGN_THREAD_BLOCK_SIZE && queueIndex<queueLength;i++,queueIndex++) {
-			assert(numThreads <= 1 || matchQueueThreadIDs[queueIndex] == threadID);
-			AlignedReadInitialize(&alignedQueue[queueIndex]);
+                wasAligned=0;
 
-			wasAligned=0;
-			if(1 == IsValidMatch(&matchQueue[queueIndex])) {
+                for(j=0;j<matchQueue[queueIndex].numEnds;j++) {
+                    if(maxNumMatches < matchQueue[queueIndex].ends[j].numEntries) {
+                        matchQueue[queueIndex].ends[j].maxReached = 1;
+                    }
+                }
+                if(1 == IsValidMatch(&matchQueue[queueIndex])) {
 
-				/* Update the number of local alignments performed */
-				data->numLocalAlignments += AlignRGMatches(&matchQueue[queueIndex],
-						rg,
-						&alignedQueue[queueIndex],
-						space,
-						offsetLength,
-						sm,
-						ungapped,
-						unconstrained,
-						bestOnly,
-						usePairedEndLength,
-						pairedEndLength,
-						mirroringType,
-						forceMirroring,
-						&matrix);
+                        /* Update the number of local alignments performed */
+                        data->numLocalAlignments += AlignRGMatches(&matchQueue[queueIndex],
+                                        rg,
+                                        &alignedQueue[queueIndex],
+                                        space,
+                                        offsetLength,
+                                        sm,
+                                        ungapped,
+                                        unconstrained,
+                                        bestOnly,
+                                        usePairedEndLength,
+                                        pairedEndLength,
+                                        mirroringType,
+                                        forceMirroring,
+                                        &matrix);
 
-				for(j=wasAligned=0;j<alignedQueue[queueIndex].numEnds;j++) {
-					if(0 < alignedQueue[queueIndex].ends[j].numEntries) {
-						wasAligned = 1;
-					}
-				}
-			}
+                        for(j=wasAligned=0;j<alignedQueue[queueIndex].numEnds;j++) {
+                                if(0 < alignedQueue[queueIndex].ends[j].numEntries) {
+                                        wasAligned = 1;
+                                }
+                        }
+                }
 
-			if(1 == wasAligned) {
-				/* Remove duplicates */
-				AlignedReadRemoveDuplicates(&alignedQueue[queueIndex],
-						AlignedEntrySortByAll);
-				/* Updating mapping quality */
-				AlignedReadUpdateMappingQuality(&alignedQueue[queueIndex], 
-                                                matchScore,
-						mismatchScore, 
-						avgMismatchQuality);
-			}
-			else {
-				/* Copy over to alignedQueue[queueIndex] */
-				AlignedReadAllocate(&alignedQueue[queueIndex],
-						matchQueue[queueIndex].readName,
-						matchQueue[queueIndex].numEnds,
-						space);
-				for(j=0;j<matchQueue[queueIndex].numEnds;j++) {
-					AlignedEndAllocate(&alignedQueue[queueIndex].ends[j],
-							matchQueue[queueIndex].ends[j].read,
-							matchQueue[queueIndex].ends[j].qual,
-							0);
-				}
-			}
+                if(1 == wasAligned) {
+                        /* Remove duplicates */
+                        AlignedReadRemoveDuplicates(&alignedQueue[queueIndex],
+                                        AlignedEntrySortByAll);
+                        /* Updating mapping quality */
+                        AlignedReadUpdateMappingQuality(&alignedQueue[queueIndex], 
+                                        matchScore,
+                                        mismatchScore, 
+                                        avgMismatchQuality);
+                }
+                else {
+                        /* Copy over to alignedQueue[queueIndex] */
+                        AlignedReadAllocate(&alignedQueue[queueIndex],
+                                        matchQueue[queueIndex].readName,
+                                        matchQueue[queueIndex].numEnds,
+                                        space);
+                        for(j=0;j<matchQueue[queueIndex].numEnds;j++) {
+                                AlignedEndAllocate(&alignedQueue[queueIndex].ends[j],
+                                                matchQueue[queueIndex].ends[j].read,
+                                                matchQueue[queueIndex].ends[j].qual,
+                                                0);
+                        }
+                }
 
-			if(0 == wasAligned) {
-				data->numNotAligned++;
-			}
-			else {
-				data->numAligned++;
-			}
+                if(0 == wasAligned) {
+                        data->numNotAligned++;
+                }
+                else {
+                        data->numAligned++;
+                }
 
-			/* Free memory */
-			RGMatchesFree(&matchQueue[queueIndex]);
-		}
+                /* Free memory */
+                RGMatchesFree(&matchQueue[queueIndex]);
 	}
 	/* Free the matrix, free your mind */
 	AlignMatrixFree(&matrix);

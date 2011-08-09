@@ -18,8 +18,6 @@
 #include "aflib.h"
 #include "RunMatch.h"
 
-static pthread_mutex_t matchQueueMutex = PTHREAD_MUTEX_INITIALIZER;
-
 /* TODO */
 void RunMatch(
 		char *fastaFileName,
@@ -34,6 +32,7 @@ void RunMatch(
 		int endReadNum,
 		int keySize,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
@@ -173,6 +172,7 @@ void RunMatch(
 			space,
 			keySize,
 			maxKeyMatches,
+                        keyMissFraction,
 			maxNumMatches,
 			whichStrand,
 			numThreads,
@@ -208,6 +208,7 @@ void RunMatch(
 					space,
 					keySize,
 					maxKeyMatches,
+                                        keyMissFraction,
 					maxNumMatches,
 					whichStrand,
 					numThreads,
@@ -326,6 +327,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		int space,
 		int keySize,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
@@ -419,6 +421,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 				space,
 				keySize,
 				maxKeyMatches,
+                                keyMissFraction,
 				maxNumMatches,
 				whichStrand,
 				numThreads,
@@ -464,6 +467,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 						space,
 						keySize,
 						maxKeyMatches,
+                                                keyMissFraction,
 						maxNumMatches,
 						whichStrand,
 						numThreads,
@@ -518,6 +522,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 							space,
 							keySize,
 							maxKeyMatches,
+                                                        keyMissFraction,
 							maxNumMatches,
 							whichStrand,
 							numThreads,
@@ -558,6 +563,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 						tempOutputIndexFPs[uniqueIndexCtr],
 						&tempIndex,
 						maxKeyMatches,
+                                                keyMissFraction,
 						maxNumMatches);
 				endTime=time(NULL);
 				if(VERBOSE >= 0 && timing == 1) {
@@ -722,6 +728,7 @@ int FindMatches(char **indexFileName,
 		int space,
 		int keySize,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
@@ -746,7 +753,6 @@ int FindMatches(char **indexFileName,
 	pthread_t *threads=NULL;
 	void *status;
 	RGMatches *matchQueue=NULL;
-	int32_t *matchQueueThreadIDs=NULL; // TODO: could make this more memory efficient
 	int32_t matchQueueLength=queueLength;
 	int32_t returnNumMatches=0, numReadsProcessed=0;
 
@@ -804,10 +810,6 @@ int FindMatches(char **indexFileName,
 	if(NULL == matchQueue) {
 		PrintError(FnName, "matchQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
-	matchQueueThreadIDs = malloc(sizeof(int32_t)*matchQueueLength); 
-	if(NULL == matchQueueThreadIDs) {
-		PrintError(FnName, "matchQueueThreadIDs", "Could not allocate memory", Exit, MallocMemory);
-	}
 
 	/* For each read */
 	if(VERBOSE >= 0) {
@@ -820,15 +822,9 @@ int FindMatches(char **indexFileName,
 		endTime = time(NULL);
 		(*totalOutputTime)+=endTime - startTime;
 	
-	/* Initialize match structures */
-		for(i=0;i<matchQueueLength;i++) {
-		matchQueueThreadIDs[i] = -1;
-	}
-
 		// Initialize arguments to threads 
 		for(i=0;i<numThreads;i++) {
 			data[i].matchQueue = matchQueue;
-			data[i].matchQueueThreadIDs = matchQueueThreadIDs;
 			data[i].matchQueueLength = numMatches;
 			data[i].numThreads = numThreads;
 			data[i].indexes = indexes;
@@ -838,6 +834,7 @@ int FindMatches(char **indexFileName,
 			data[i].numOffsets = numOffsets;
 			data[i].space = space;
 			data[i].maxKeyMatches = maxKeyMatches;
+			data[i].keyMissFraction = keyMissFraction;
 			data[i].maxNumMatches = maxNumMatches;
 			data[i].whichStrand = whichStrand;
 			data[i].outputOffsets = outputOffsets;
@@ -893,7 +890,6 @@ int FindMatches(char **indexFileName,
 		/* Free matches */
 		for(i=0;i<numMatches;i++) {
 			RGMatchesFree(&matchQueue[i]);
-			matchQueueThreadIDs[i] = -1;
 		}
 
 		// For reading
@@ -921,7 +917,6 @@ int FindMatches(char **indexFileName,
 
 	// Free match queue
 	free(matchQueue);
-	free(matchQueueThreadIDs);
 
 	/* Free thread data */
 	free(threads);
@@ -934,12 +929,11 @@ int FindMatches(char **indexFileName,
 void *FindMatchesThread(void *arg)
 {
 	//char *FnName="FindMatchesThread";
-	int32_t i, j, k, l;
+	int32_t i, j, k;
 	int foundMatch = 0;
 	ThreadIndexData *data=(ThreadIndexData*)arg;
 	/* Function arguments */
 	RGMatches *matchQueue = data->matchQueue;
-	int32_t *matchQueueThreadIDs = data->matchQueueThreadIDs;
 	int32_t matchQueueLength = data->matchQueueLength;
 	int32_t numThreads = data->numThreads; 
 	RGIndex *indexes = data->indexes;
@@ -949,85 +943,64 @@ void *FindMatchesThread(void *arg)
 	int numOffsets = data->numOffsets;
 	int space = data->space;
 	int maxKeyMatches = data->maxKeyMatches;
+	double keyMissFraction = data->keyMissFraction;
 	int maxNumMatches = data->maxNumMatches;
 	int whichStrand = data->whichStrand;
 	int outputOffsets = data->outputOffsets;
 	int threadID = data->threadID;
 	data->numMatches = 0;
 
-	i=0;
-	while(i<matchQueueLength) {
-		if(1 < numThreads) {
-			pthread_mutex_lock(&matchQueueMutex);
-			if(matchQueueThreadIDs[i] < 0) {
-				// mark this block
-				for(j=i;j<matchQueueLength && j<i+BFAST_MATCH_THREAD_BLOCK_SIZE;j++) {
-					matchQueueThreadIDs[j] = threadID;
-				}
-			}
-			else if(matchQueueThreadIDs[i] != threadID) {
-				pthread_mutex_unlock(&matchQueueMutex);
-				i+=BFAST_MATCH_THREAD_BLOCK_SIZE;
-				// skip this block
-				continue;
-			}
-			pthread_mutex_unlock(&matchQueueMutex);
-		}
-
-		// Process the block
-		for(l=0;l<BFAST_MATCH_THREAD_BLOCK_SIZE && i<matchQueueLength;l++,i++) {
-			assert(numThreads <= 1 || matchQueueThreadIDs[i] == threadID); 
-			/* Read */
-			foundMatch = 0;
-			for(j=0;j<matchQueue[i].numEnds;j++) {
-				if(1 == numIndexes) {
-					RGReadsFindMatches(&indexes[0],
-							rg,
-							&matchQueue[i].ends[j], 
-							outputOffsets,
-							offsets,
-							numOffsets,
-							space,
-							0,
-							0,
-							0,
-							0,
-							0,
-							maxKeyMatches,
-							maxNumMatches,
-							whichStrand);
-				}
-				else {
-					for(k=0;k<numIndexes && 1!=matchQueue[i].ends[j].maxReached;k++) {
-						RGReadsFindMatches(&indexes[k],
-								rg,
-								&matchQueue[i].ends[j], 
-								outputOffsets,
-								offsets,
-								numOffsets,
-								space,
-								0,
-								0,
-								0,
-								0,
-								0,
-								maxKeyMatches,
-								maxNumMatches,
-								whichStrand);
-					}
-				}
-				if(0 < matchQueue[i].ends[j].numEntries && 1 != matchQueue[i].ends[j].maxReached) {
-					foundMatch = 1;
-				}
-			}
-			if(1 == foundMatch) {
-				data->numMatches++;
-				//DEBUGGING
-				//RGMatchesCheck(&matchQueue[i], rg);
-			}
-		}
-
-
+        for(i=threadID;i<matchQueueLength;i+=numThreads) {
+                /* Read */
+                foundMatch = 0;
+                for(j=0;j<matchQueue[i].numEnds;j++) {
+                        if(1 == numIndexes) {
+                                RGReadsFindMatches(&indexes[0],
+                                                rg,
+                                                &matchQueue[i].ends[j], 
+                                                outputOffsets,
+                                                offsets,
+                                                numOffsets,
+                                                space,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                maxKeyMatches,
+                                                keyMissFraction,
+                                                maxNumMatches,
+                                                whichStrand);
+                        }
+                        else {
+                                for(k=0;k<numIndexes && 0 == matchQueue[i].ends[j].maxReached;k++) {
+                                        RGReadsFindMatches(&indexes[k],
+                                                        rg,
+                                                        &matchQueue[i].ends[j], 
+                                                        outputOffsets,
+                                                        offsets,
+                                                        numOffsets,
+                                                        space,
+                                                        0,
+                                                        0,
+                                                        0,
+                                                        0,
+                                                        0,
+                                                        maxKeyMatches,
+                                                        keyMissFraction,
+                                                        maxNumMatches,
+                                                        whichStrand);
+                                }
+                        }
+                        if(0 < matchQueue[i].ends[j].numEntries && 0 == matchQueue[i].ends[j].maxReached) {
+                                foundMatch = 1;
+                        }
+                }
+                if(1 == foundMatch) {
+                        data->numMatches++;
+                        //DEBUGGING
+                        //RGMatchesCheck(&matchQueue[i], rg);
+                }
 	}
 
 	return arg;

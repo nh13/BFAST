@@ -56,6 +56,7 @@ void RunAlign(
 			1,
 			INT_MAX,
 			0,
+                        MAX_KEY_MISS_FRACTION,
 			MAX_KEY_MATCHES,
 			MAX_NUM_MATCHES,
 			BothStrands,

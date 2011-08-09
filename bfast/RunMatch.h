@@ -17,7 +17,6 @@
 
 typedef struct {
 	RGMatches *matchQueue;
-	int32_t *matchQueueThreadIDs;
 	int32_t matchQueueLength;
 	int32_t numThreads;
 	RGIndex *indexes;
@@ -27,6 +26,7 @@ typedef struct {
 	int numOffsets;
 	int space;
 	int maxKeyMatches;
+	double keyMissFraction;
 	int maxNumMatches;
 	int whichStrand;
 	int numMatches;
@@ -47,6 +47,7 @@ void RunMatch(
 		int endReadNum,
 		int keySize,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
@@ -65,6 +66,7 @@ int FindMatchesInIndexSet(char **indexFileNames,
 		int colorSpace,
 		int keySize,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,
@@ -88,6 +90,7 @@ int FindMatches(char **indexFileName,
 		int colorSpace,
 		int keySize,
 		int maxKeyMatches,
+                double keyMissFraction,
 		int maxNumMatches,
 		int whichStrand,
 		int numThreads,

@@ -19,8 +19,6 @@
 
 #define MAXIMUM_RESCUE_MAPQ 30
 
-static pthread_mutex_t alignQueueMutex = PTHREAD_MUTEX_INITIALIZER;
-
 static inline int isDiscordantPair(AlignedEntry *entryOne,
 		AlignedEntry *entryTwo,
 		PEDBins *b,
@@ -103,7 +101,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	int32_t numReadsProcessed = 0;
 	AlignedRead *alignQueue=NULL;
 	int32_t alignQueueLength = 0;
-	int32_t *alignQueueThreadIDs = NULL;
 	int32_t **numEntries=NULL;
 	int32_t *numEntriesN=NULL;
 	PEDBins bins;
@@ -176,10 +173,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	if(NULL == alignQueue) {
 		PrintError(FnName, "alignQueue", "Could not allocate memory", Exit, MallocMemory);
 	}
-	alignQueueThreadIDs=malloc(sizeof(int32_t)*alignQueueLength);
-	if(NULL == alignQueueThreadIDs) {
-		PrintError(FnName, "alignQueue", "Could not allocate memory", Exit, MallocMemory);
-	}
 	numEntries=malloc(sizeof(int32_t*)*alignQueueLength);
 	if(NULL == numEntries) {
 		PrintError(FnName, "numEntries", "Could not allocate memory", Exit, MallocMemory);
@@ -217,7 +210,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			numEntries[i] = NULL;
 			numEntriesN[i] = 0;
 			foundTypes[i] = NoneFound;
-			alignQueueThreadIDs[i] = -1;
 		}
 
 		/* Initialize thread data */
@@ -235,14 +227,13 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 			data[i].minimumMappingQuality = minimumMappingQuality; 
 			data[i].minimumNormalizedScore = minimumNormalizedScore; 
 			data[i].alignQueue =  alignQueue;
-			data[i].alignQueueThreadIDs =  alignQueueThreadIDs;
 			data[i].pairingStandardDeviation = pairingStandardDeviation;
 			data[i].gappedPairingRescue = gappedPairingRescue;
 			data[i].queueLength = numRead;
 			data[i].foundTypes = foundTypes;
 			data[i].numEntriesN = numEntriesN;
 			data[i].numEntries = numEntries;
-			data[i].threadID = i+1;
+			data[i].threadID = i;
 			data[i].numThreads = numThreads;
 		}
 
@@ -382,7 +373,6 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	free(threads);
 	free(data);
 	free(alignQueue);
-	free(alignQueueThreadIDs);
 	free(foundTypes);
 	free(numEntries);
 	free(numEntriesN);
@@ -407,68 +397,47 @@ void *ReadInputFilterAndOutputThread(void *arg)
 	double pairingStandardDeviation = data->pairingStandardDeviation;
 	int gappedPairingRescue = data->gappedPairingRescue;
 	AlignedRead *alignQueue = data->alignQueue;
-	int32_t *alignQueueThreadIDs = data->alignQueueThreadIDs;
 	int queueLength = data->queueLength;
 	int8_t *foundTypes = data->foundTypes;
 	int32_t threadID = data->threadID;
 	int32_t numThreads = data->numThreads;
 	int32_t **numEntries = data->numEntries;
 	int32_t *numEntriesN = data->numEntriesN;
-	int32_t i, j;
+	int32_t j;
 	int32_t queueIndex=0;
 	AlignMatrix matrix;
 	AlignMatrixInitialize(&matrix); 
 
-	while(queueIndex<queueLength) {
-		if(1 < numThreads) {
-			pthread_mutex_lock(&alignQueueMutex);
-			if(alignQueueThreadIDs[queueIndex] < 0) {
-				// mark this block
-				for(i=queueIndex;i<queueLength && i<queueIndex+BFAST_POSTPROCESS_THREAD_BLOCK_SIZE;i++) {
-					alignQueueThreadIDs[i] = threadID;
-				}
-			}
-			else if(alignQueueThreadIDs[queueIndex] != threadID) {
-				pthread_mutex_unlock(&alignQueueMutex);
-				queueIndex+=BFAST_POSTPROCESS_THREAD_BLOCK_SIZE;
-				// skip this block
-				continue;
-			}
-			pthread_mutex_unlock(&alignQueueMutex);
-		}
+	for(queueIndex=threadID;queueIndex<queueLength;queueIndex+=numThreads) {
 
-		for(i=0;i<BFAST_POSTPROCESS_THREAD_BLOCK_SIZE && queueIndex<queueLength;i++,queueIndex++) {
-			assert(numThreads <= 1 || alignQueueThreadIDs[queueIndex] == threadID);
+                if(numEntriesN[queueIndex] < alignQueue[queueIndex].numEnds) {
+                        numEntriesN[queueIndex] = alignQueue[queueIndex].numEnds;
+                        numEntries[queueIndex]=realloc(numEntries[queueIndex], sizeof(int32_t)*numEntriesN[queueIndex]);
+                        if(NULL == numEntries[queueIndex]) {
+                                PrintError(FnName, "numEntries[queueIndex]", "Could not reallocate memory", Exit, ReallocMemory);
+                        }
+                }
+                for(j=0;j<alignQueue[queueIndex].numEnds;j++) {
+                        numEntries[queueIndex][j] = alignQueue[queueIndex].ends[j].numEntries;
+                }
 
-			if(numEntriesN[queueIndex] < alignQueue[queueIndex].numEnds) {
-				numEntriesN[queueIndex] = alignQueue[queueIndex].numEnds;
-				numEntries[queueIndex]=realloc(numEntries[queueIndex], sizeof(int32_t)*numEntriesN[queueIndex]);
-				if(NULL == numEntries[queueIndex]) {
-					PrintError(FnName, "numEntries[queueIndex]", "Could not reallocate memory", Exit, ReallocMemory);
-				}
-			}
-			for(j=0;j<alignQueue[queueIndex].numEnds;j++) {
-				numEntries[queueIndex][j] = alignQueue[queueIndex].ends[j].numEntries;
-			}
-
-			/* Filter */
-			foundTypes[queueIndex] = FilterAlignedRead(&alignQueue[queueIndex],
-					rg,
-					&matrix,
-					sm,
-					algorithm,
-					unpaired,
-					reversePaired,
-					avgMismatchQuality,
-					randomBest,
-                                        matchScore,
-					mismatchScore,
-					minimumMappingQuality,
-					minimumNormalizedScore,
-					pairingStandardDeviation,
-					gappedPairingRescue,
-					bins);
-		}
+                /* Filter */
+                foundTypes[queueIndex] = FilterAlignedRead(&alignQueue[queueIndex],
+                                rg,
+                                &matrix,
+                                sm,
+                                algorithm,
+                                unpaired,
+                                reversePaired,
+                                avgMismatchQuality,
+                                randomBest,
+                                matchScore,
+                                mismatchScore,
+                                minimumMappingQuality,
+                                minimumNormalizedScore,
+                                pairingStandardDeviation,
+                                gappedPairingRescue,
+                                bins);
 	}
 
 	// Free

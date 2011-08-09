@@ -640,6 +640,7 @@ int32_t RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 		gzFile tempOutputIndexFP,
 		RGIndex *index,
 		int32_t maxKeyMatches,
+                double keyMissFraction,
 		int32_t maxNumMatches) 
 {
 	char *FnName="RGMatchesMergeIndexBins";
@@ -702,10 +703,19 @@ int32_t RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
 				}
 				for(j=k=0;j<matches.ends[i].numEntries;j++) {
 					// Find any offset that is below the bound
+                                        int keyMissCount = 0;
 					for(l=0;l<matches.ends[i].numOffsets[j];l++) {
-						if(numKeyMatches[matches.ends[i].offsets[j][l]] <= maxKeyMatches) break;
+						if(numKeyMatches[matches.ends[i].offsets[j][l]] <= maxKeyMatches) {
+                                                    keyMissCount++;
+                                                    break;
+                                                }
 					}
-					if(l<matches.ends[i].numOffsets[j]) { // Found one
+                                        if(keyMissFraction < ((double)keyMissCount / matches.ends[i].numOffsets[j])) {
+                                            matches.ends[i].maxReached = 1;
+                                            k = 0; 
+                                            break;
+                                        }
+                                        else if(0 < keyMissCount) {
 						if(k != j) {
 							matches.ends[i].contigs[k] = matches.ends[i].contigs[j];
 							matches.ends[i].positions[k] = matches.ends[i].positions[j];
