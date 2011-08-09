@@ -766,6 +766,7 @@ void RGIndexSort(RGIndex *index, RGBinary *rg, int32_t numThreads, char* tmpDir)
 			sortData[i].tmpDir = tmpDir;
 			/* Divide the maximum overhead by the number of threads */
 			sortData[i].mergeMemoryLimit = MERGE_MEMORY_LIMIT/((int64_t)numThreads); 
+			sortData[i].mergeMemoryLimit = 1500000;
 			assert(sortData[i].low >= 0 && sortData[i].high < index->length);
 		}
 		sortData[0].low = 0;
@@ -1305,6 +1306,67 @@ void RGIndexMergeHelperInMemoryContig_32(RGIndex *index,
 	tmpContigs_32=NULL;
 }
 
+static inline int32_t RGIndexMergeHelperFromDiskContigRead(void *contigs, void *positions, size_t contigsSize, size_t positionsSize, FILE *fpContigs, FILE *fpPositions, int32_t length)
+{
+  if(length != fread(contigs, contigsSize, length, fpContigs) ||
+     length != fread(positions, positionsSize, length, fpPositions)) {
+      return -1;
+  }
+
+  return length;
+}
+
+typedef struct {
+    FILE *fpContigs;
+    char *fnContigs;
+    FILE *fpPositions;
+    char *fnPositions;
+    uint8_t curContig;
+    uint32_t curPosition;
+    uint8_t *contigs;
+    uint32_t *positions;
+    uint32_t index;
+    uint32_t length; // # of entries in memory
+    uint32_t numLeft; // # of entries left to process
+    int32_t eof;
+    int32_t hasMore;
+} RGIndexMergeHelper_8_t;
+
+static void RGIndexMergeHelperFromDiskGetNext_8(RGIndexMergeHelper_8_t *buffer)
+{
+  char *FnName = "RGIndexMergeHelperFromDiskGetNext_8"; 
+  if(buffer->index < buffer->length) {
+      buffer->curContig = buffer->contigs[buffer->index];
+      buffer->curPosition = buffer->positions[buffer->index];
+      buffer->index++;
+      buffer->hasMore = 1;
+  }
+  else if(1 == buffer->eof) {
+      // do nothing
+      buffer->curContig = 0;
+      buffer->curPosition = 0;
+      buffer->hasMore = 0;
+  }
+  else { // buffer->index == buffer->length && 0 == buffer->eof
+      buffer->numLeft -= buffer->length;
+      buffer->length = (buffer->numLeft < buffer->length) ? buffer->numLeft : buffer->length;
+      if(0 == buffer->length) {
+          buffer->curContig = 0;
+          buffer->curPosition = 0;
+          buffer->hasMore = 0;
+      }
+      else {
+          if(buffer->length != RGIndexMergeHelperFromDiskContigRead(buffer->contigs, buffer->positions, sizeof(uint8_t), sizeof(uint32_t), buffer->fpContigs, buffer->fpPositions, buffer->length)) {
+              PrintError(FnName, NULL, "Could not read in buffer", Exit, ReadFileError);
+          }
+          buffer->curContig = buffer->contigs[0];
+          buffer->curPosition = buffer->positions[0];
+          buffer->index=1;
+          buffer->hasMore = 1;
+      }
+  }
+}
+ 
 /* TODO */
 void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
 		RGBinary *rg,
@@ -1316,14 +1378,8 @@ void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
 	char *FnName = "RGIndexMergeHelperFromDiskContig_8";
 	int64_t i=0;
 	int64_t ctr=0;
-	FILE *tmpLowerFP=NULL;
-	FILE *tmpUpperFP=NULL;
-	char *tmpLowerFileName=NULL;
-	char *tmpUpperFileName=NULL;
-	uint32_t tmpLowerPosition=0;
-	uint32_t tmpUpperPosition=0;
-	uint8_t tmpLowerContig_8=0;
-	uint8_t tmpUpperContig_8=0;
+        RGIndexMergeHelper_8_t lowerBuffer;
+        RGIndexMergeHelper_8_t upperBuffer;
 
 	assert(index->contigType == Contig_8);
 	assert(index->contigs_8 != NULL);
@@ -1333,118 +1389,183 @@ void RGIndexMergeHelperFromDiskContig_8(RGIndex *index,
 	 * so that we use tmp files when memory requirements become to large */
 	/* Use tmp files */
 
-	/* Open tmp files */
-	tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
-	tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
-
+        /* Init lower */
+	lowerBuffer.fpContigs = OpenTmpFile(tmpDir, &lowerBuffer.fnContigs);
+	lowerBuffer.fpPositions = OpenTmpFile(tmpDir, &lowerBuffer.fnPositions);
+        lowerBuffer.length = RGINDEX_MERGE_BUFFER_LENGTH;
+        lowerBuffer.contigs = malloc(sizeof(uint8_t)*lowerBuffer.length);
+        if(NULL == lowerBuffer.contigs) {
+            PrintError(FnName, "lowerBuffer.contigs", "Could not allocate memory", Exit, MallocMemory);
+        }
+        lowerBuffer.positions = malloc(sizeof(uint32_t)*lowerBuffer.length);
+        if(NULL == lowerBuffer.positions) {
+            PrintError(FnName, "lowerBuffer.positions", "Could not allocate memory", Exit, MallocMemory);
+        }
+        lowerBuffer.index = RGINDEX_MERGE_BUFFER_LENGTH;
+        lowerBuffer.numLeft = mid - low + 1 + RGINDEX_MERGE_BUFFER_LENGTH; // NB: RGINDEX_MERGE_BUFFER_LENGTH will be subtracted on the first call to read in
+        lowerBuffer.eof = 0;
+	
+        /* Init upper */
+	upperBuffer.fpContigs = OpenTmpFile(tmpDir, &upperBuffer.fnContigs);
+	upperBuffer.fpPositions = OpenTmpFile(tmpDir, &upperBuffer.fnPositions);
+        upperBuffer.length = RGINDEX_MERGE_BUFFER_LENGTH;
+        upperBuffer.contigs = malloc(sizeof(uint8_t)*upperBuffer.length);
+        if(NULL == upperBuffer.contigs) {
+            PrintError(FnName, "upperBuffer.contigs", "Could not allocate memory", Exit, MallocMemory);
+        }
+        upperBuffer.positions = malloc(sizeof(uint32_t)*upperBuffer.length);
+        if(NULL == upperBuffer.positions) {
+            PrintError(FnName, "upperBuffer.positions", "Could not allocate memory", Exit, MallocMemory);
+        }
+        upperBuffer.index = RGINDEX_MERGE_BUFFER_LENGTH;
+        upperBuffer.numLeft = high - mid + RGINDEX_MERGE_BUFFER_LENGTH; // NB: RGINDEX_MERGE_BUFFER_LENGTH will be subtracted on the first call to read in
+        upperBuffer.eof = 0;
+	   
 	/* Print to tmp files */
-	for(i=low;i<=mid;i++) {
-		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-			PrintError(FnName, "index->positions", "Could not write positions to tmp lower file", Exit, WriteFileError);
-		}
-		if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpLowerFP)) {
-			PrintError(FnName, "index->contigs_8", "Could not write contigs_8 to tmp lower file", Exit, WriteFileError);
-		}
+        if((mid - low + 1) != fwrite(index->contigs_8 + low, sizeof(uint8_t), (mid - low + 1), lowerBuffer.fpContigs)) {
+            PrintError(FnName, "index->contigs_8", "Could not write contigs_8 to tmp lower file", Exit, WriteFileError);
+        }
+        if((mid - low + 1) != fwrite(index->positions + low, sizeof(uint32_t), (mid - low + 1), lowerBuffer.fpPositions)) {
+            PrintError(FnName, "index->positions", "Could not write positions to tmp lower file", Exit, WriteFileError);
 	}
-	for(i=mid+1;i<=high;i++) {
-		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-			PrintError(FnName, "index->positions", "Could not write positions to tmp upper file", Exit, WriteFileError);
-		}
-		if(1 != fwrite(&index->contigs_8[i], sizeof(uint8_t), 1, tmpUpperFP)) {
-			PrintError(FnName, "index->contigs_8", "Could not write contigs_8 to tmp upper file", Exit, WriteFileError);
-		}
-	}
+        if((high - mid) != fwrite(index->contigs_8 + mid + 1, sizeof(uint8_t), (high - mid), upperBuffer.fpContigs)) {
+            PrintError(FnName, "index->contigs_8", "Could not write contigs_8 to tmp upper file", Exit, WriteFileError);
+        }
+        if((high - mid) != fwrite(index->positions + mid + 1, sizeof(uint32_t), (high - mid), upperBuffer.fpPositions)) {
+            PrintError(FnName, "index->positions", "Could not write positions to tmp upper file", Exit, WriteFileError);
+        }
 
 	/* Move to beginning of the files */
-	fseek(tmpLowerFP, 0 , SEEK_SET);
-	fseek(tmpUpperFP, 0 , SEEK_SET);
+	fseek(lowerBuffer.fpContigs, 0 , SEEK_SET);
+	fseek(lowerBuffer.fpPositions, 0 , SEEK_SET);
+	fseek(upperBuffer.fpContigs, 0 , SEEK_SET);
+	fseek(upperBuffer.fpPositions, 0 , SEEK_SET);
 
 	/* Merge tmp files back into index */
 	/* Get first contig/pos */
+        RGIndexMergeHelperFromDiskGetNext_8(&lowerBuffer);
+        RGIndexMergeHelperFromDiskGetNext_8(&upperBuffer);
 
-	if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-			1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-		PrintError(FnName, NULL, "Could not read in tmp lower", Exit, ReadFileError);
-	}
-	if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-			1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-		PrintError(FnName, NULL, "Could not read in tmp upper", Exit, ReadFileError);
-	}
+        assert(0 == lowerBuffer.eof);
+        assert(0 == upperBuffer.eof);
 
 	for(i=low, ctr=0;
 			i<=high &&
-			tmpLowerPosition != 0 &&
-			tmpUpperPosition != 0;
+                        1 == lowerBuffer.hasMore &&
+                        1 == upperBuffer.hasMore;
 			i++, ctr++) {
 		if(RGIndexCompareContigPos(index,
 					rg,
-					tmpLowerContig_8,
-					tmpLowerPosition,
-					tmpUpperContig_8,
-					tmpUpperPosition,
+                                        lowerBuffer.curContig,
+                                        lowerBuffer.curPosition,
+                                        upperBuffer.curContig,
+                                        upperBuffer.curPosition,
 					0)<=0) {
 			/* Copy lower */
-			index->positions[i] = tmpLowerPosition;
-			index->contigs_8[i] = tmpLowerContig_8;
-			/* Get new tmpLower */
-			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-					1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-				tmpLowerPosition = 0;
-				tmpLowerContig_8 = 0;
-			}
+			index->contigs_8[i] = lowerBuffer.curContig;
+			index->positions[i] = lowerBuffer.curPosition;
+                        /* Get next */
+                        RGIndexMergeHelperFromDiskGetNext_8(&lowerBuffer);
 		}
 		else {
-			/* Copy upper */
-			index->positions[i] = tmpUpperPosition;
-			index->contigs_8[i] = tmpUpperContig_8;
-			/* Get new tmpUpper */
-			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-					1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-				tmpUpperPosition = 0;
-				tmpUpperContig_8 = 0;
-			}
+			index->contigs_8[i] = upperBuffer.curContig;
+			index->positions[i] = upperBuffer.curPosition;
+                        /* Get next */
+                        RGIndexMergeHelperFromDiskGetNext_8(&upperBuffer);
 		}
 	}
-	while(tmpLowerPosition != 0 && tmpUpperPosition == 0) {
-		/* Copy lower */
-		index->positions[i] = tmpLowerPosition;
-		index->contigs_8[i] = tmpLowerContig_8;
-		/* Get new tmpLower */
-		if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-				1!=fread(&tmpLowerContig_8, sizeof(uint8_t), 1, tmpLowerFP)) {
-			tmpLowerPosition = 0;
-			tmpLowerContig_8 = 0;
-		}
-		i++;
-		ctr++;
+        while(1 == lowerBuffer.hasMore && 0 == upperBuffer.hasMore) {
+            /* Copy lower */
+            index->contigs_8[i] = lowerBuffer.curContig;
+            index->positions[i] = lowerBuffer.curPosition;
+            /* Get next */
+            RGIndexMergeHelperFromDiskGetNext_8(&lowerBuffer);
+            i++;
+            ctr++;
 	}
-	while(tmpLowerPosition == 0 && tmpUpperPosition != 0) {
-		/* Copy upper */
-		index->positions[i] = tmpUpperPosition;
-		index->contigs_8[i] = tmpUpperContig_8;
-		/* Get new tmpUpper */
-		if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-				1!=fread(&tmpUpperContig_8, sizeof(uint8_t), 1, tmpUpperFP)) {
-			tmpUpperPosition = 0;
-			tmpUpperContig_8 = 0;
-		}
-		i++;
-		ctr++;
+        while(0 == lowerBuffer.hasMore && 1 == upperBuffer.hasMore) {
+            /* Copy upper */
+            index->contigs_8[i] = upperBuffer.curContig;
+            index->positions[i] = upperBuffer.curPosition;
+            /* Get next */
+            RGIndexMergeHelperFromDiskGetNext_8(&upperBuffer);
+            i++;
+            ctr++;
 	}
 	assert(ctr == (high - low + 1));
 	assert(i == high + 1);
 
+        /* Free memory */
+        free(lowerBuffer.contigs);
+        free(lowerBuffer.positions);
+        free(upperBuffer.contigs);
+        free(upperBuffer.positions);
+
 	/* Close tmp files */
-	CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
-	CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
-	/* Test merge */
-	/*
-	   for(i=low+1;i<=high;i++) {
-	   assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
-	   }
-	   */
+	CloseTmpFile(&lowerBuffer.fpContigs, &lowerBuffer.fnContigs);
+	CloseTmpFile(&lowerBuffer.fpPositions, &lowerBuffer.fnPositions);
+	CloseTmpFile(&upperBuffer.fpContigs, &upperBuffer.fnContigs);
+	CloseTmpFile(&upperBuffer.fpPositions, &upperBuffer.fnPositions);
+        //HERE
+        /* Test merge */
+        /*
+        for(i=low+1;i<=high;i++) {
+            assert(RGIndexCompareAt(index, rg, i-1, i, 0) <= 0);
+        }
+        */
 }
 
+typedef struct {
+    FILE *fpContigs;
+    char *fnContigs;
+    FILE *fpPositions;
+    char *fnPositions;
+    uint32_t curContig;
+    uint32_t curPosition;
+    uint32_t *contigs;
+    uint32_t *positions;
+    uint32_t index;
+    uint32_t length; // # of entries in memory
+    uint32_t numLeft; // # of entries left to process
+    int32_t eof;
+    int32_t hasMore;
+} RGIndexMergeHelper_32_t;
+
+static void RGIndexMergeHelperFromDiskGetNext_32(RGIndexMergeHelper_32_t *buffer)
+{
+  char *FnName = "RGIndexMergeHelperFromDiskGetNext_32"; 
+  if(buffer->index < buffer->length) {
+      buffer->curContig = buffer->contigs[buffer->index];
+      buffer->curPosition = buffer->positions[buffer->index];
+      buffer->index++;
+      buffer->hasMore = 1;
+  }
+  else if(1 == buffer->eof) {
+      // do nothing
+      buffer->curContig = 0;
+      buffer->curPosition = 0;
+      buffer->hasMore = 0;
+  }
+  else {
+      buffer->numLeft -= buffer->length;
+      buffer->length = (buffer->numLeft < buffer->length) ? buffer->numLeft : buffer->length;
+      if(0 == buffer->length) {
+          buffer->curContig = 0;
+          buffer->curPosition = 0;
+          buffer->hasMore = 0;
+      }
+      else {
+          if(buffer->length != RGIndexMergeHelperFromDiskContigRead(buffer->contigs, buffer->positions, sizeof(uint32_t), sizeof(uint32_t), buffer->fpContigs, buffer->fpPositions, buffer->length)) {
+              PrintError(FnName, NULL, "Could not read in buffer", Exit, ReadFileError);
+          }
+          buffer->curContig = buffer->contigs[0];
+          buffer->curPosition = buffer->positions[0];
+          buffer->index = 1;
+          buffer->hasMore = 1;
+      }
+  }
+}
+ 
 /* TODO */
 void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
 		RGBinary *rg,
@@ -1456,14 +1577,9 @@ void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
 	char *FnName = "RGIndexMergeHelperFromDiskContig_32";
 	int64_t i=0;
 	int64_t ctr=0;
-	FILE *tmpLowerFP=NULL;
-	FILE *tmpUpperFP=NULL;
-	char *tmpLowerFileName=NULL;
-	char *tmpUpperFileName=NULL;
-	uint32_t tmpLowerPosition=0;
-	uint32_t tmpUpperPosition=0;
-	uint32_t tmpLowerContig_32=0;
-	uint32_t tmpUpperContig_32=0;
+        RGIndexMergeHelper_32_t lowerBuffer;
+        RGIndexMergeHelper_32_t upperBuffer;
+
 
 	assert(index->contigType == Contig_32);
 	assert(index->contigs_32 != NULL);
@@ -1473,110 +1589,120 @@ void RGIndexMergeHelperFromDiskContig_32(RGIndex *index,
 	 * so that we use tmp files when memory requirements become to large */
 	/* Use tmp files */
 
-	/* Open tmp files */
-	tmpLowerFP = OpenTmpFile(tmpDir, &tmpLowerFileName);
-	tmpUpperFP = OpenTmpFile(tmpDir, &tmpUpperFileName);
+        /* Init lower */
+	lowerBuffer.fpContigs = OpenTmpFile(tmpDir, &lowerBuffer.fnContigs);
+	lowerBuffer.fpPositions = OpenTmpFile(tmpDir, &lowerBuffer.fnPositions);
+        lowerBuffer.length = RGINDEX_MERGE_BUFFER_LENGTH;
+        lowerBuffer.contigs = malloc(sizeof(uint32_t)*lowerBuffer.length);
+        if(NULL == lowerBuffer.contigs) {
+            PrintError(FnName, "lowerBuffer.contigs", "Could not allocate memory", Exit, MallocMemory);
+        }
+        lowerBuffer.positions = malloc(sizeof(uint32_t)*lowerBuffer.length);
+        if(NULL == lowerBuffer.positions) {
+            PrintError(FnName, "lowerBuffer.positions", "Could not allocate memory", Exit, MallocMemory);
+        }
+        lowerBuffer.index = RGINDEX_MERGE_BUFFER_LENGTH;
+        lowerBuffer.numLeft = mid - low + 1 + RGINDEX_MERGE_BUFFER_LENGTH; // NB: RGINDEX_MERGE_BUFFER_LENGTH will be subtracted on the first call to read in
+        lowerBuffer.eof = 0;
+	
+        /* Init upper */
+	upperBuffer.fpContigs = OpenTmpFile(tmpDir, &upperBuffer.fnContigs);
+	upperBuffer.fpPositions = OpenTmpFile(tmpDir, &upperBuffer.fnPositions);
+        upperBuffer.length = RGINDEX_MERGE_BUFFER_LENGTH;
+        upperBuffer.contigs = malloc(sizeof(uint32_t)*upperBuffer.length);
+        if(NULL == upperBuffer.contigs) {
+            PrintError(FnName, "upperBuffer.contigs", "Could not allocate memory", Exit, MallocMemory);
+        }
+        upperBuffer.positions = malloc(sizeof(uint32_t)*upperBuffer.length);
+        if(NULL == upperBuffer.positions) {
+            PrintError(FnName, "upperBuffer.positions", "Could not allocate memory", Exit, MallocMemory);
+        }
+        upperBuffer.index = RGINDEX_MERGE_BUFFER_LENGTH;
+        upperBuffer.numLeft = high - mid + RGINDEX_MERGE_BUFFER_LENGTH; // NB: RGINDEX_MERGE_BUFFER_LENGTH will be subtracted on the first call to read in
+        upperBuffer.eof = 0;
 
 	/* Print to tmp files */
-	for(i=low;i<=mid;i++) {
-		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-			PrintError(FnName, "index->positions", "Could not write positions to tmp lower file", Exit, WriteFileError);
-		}
-		if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpLowerFP)) {
-			PrintError(FnName, "index->contigs_32", "Could not write contigs_32 to tmp lower file", Exit, WriteFileError);
-		}
+        if((mid - low + 1) != fwrite(index->contigs_32 + low, sizeof(uint32_t), (mid - low + 1), lowerBuffer.fpContigs)) {
+            PrintError(FnName, "index->contigs_32", "Could not write contigs_32 to tmp lower file", Exit, WriteFileError);
+        }
+        if((mid - low + 1) != fwrite(index->positions + low, sizeof(uint32_t), (mid - low + 1), lowerBuffer.fpPositions)) {
+            PrintError(FnName, "index->positions", "Could not write positions to tmp lower file", Exit, WriteFileError);
 	}
-	for(i=mid+1;i<=high;i++) {
-		if(1 != fwrite(&index->positions[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-			PrintError(FnName, "index->positions", "Could not write positions to tmp upper file", Exit, WriteFileError);
-		}
-		if(1 != fwrite(&index->contigs_32[i], sizeof(uint32_t), 1, tmpUpperFP)) {
-			PrintError(FnName, "index->contigs_32", "Could not write contigs_32 to tmp upper file", Exit, WriteFileError);
-		}
-	}
+        if((high - mid) != fwrite(index->contigs_32 + mid + 1, sizeof(uint32_t), (high - mid), upperBuffer.fpContigs)) {
+            PrintError(FnName, "index->contigs_32", "Could not write contigs_32 to tmp upper file", Exit, WriteFileError);
+        }
+        if((high - mid) != fwrite(index->positions + mid + 1, sizeof(uint32_t), (high - mid), upperBuffer.fpPositions)) {
+            PrintError(FnName, "index->positions", "Could not write positions to tmp upper file", Exit, WriteFileError);
+        }
 
 	/* Move to beginning of the files */
-	fseek(tmpLowerFP, 0 , SEEK_SET);
-	fseek(tmpUpperFP, 0 , SEEK_SET);
+	fseek(lowerBuffer.fpContigs, 0 , SEEK_SET);
+	fseek(lowerBuffer.fpPositions, 0 , SEEK_SET);
+	fseek(upperBuffer.fpContigs, 0 , SEEK_SET);
+	fseek(upperBuffer.fpPositions, 0 , SEEK_SET);
 
 	/* Merge tmp files back into index */
 	/* Get first contig/pos */
-
-	if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-			1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-		PrintError(FnName, NULL, "Could not read in tmp lower", Exit, ReadFileError);
-	}
-	if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-			1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-		PrintError(FnName, NULL, "Could not read in tmp upper", Exit, ReadFileError);
-	}
+        RGIndexMergeHelperFromDiskGetNext_32(&lowerBuffer);
+        RGIndexMergeHelperFromDiskGetNext_32(&upperBuffer);
 
 	for(i=low, ctr=0;
 			i<=high &&
-			tmpLowerPosition != 0 &&
-			tmpUpperPosition != 0;
+                        1 == lowerBuffer.hasMore &&
+                        1 == upperBuffer.hasMore;
 			i++, ctr++) {
 		if(RGIndexCompareContigPos(index,
 					rg,
-					tmpLowerContig_32,
-					tmpLowerPosition,
-					tmpUpperContig_32,
-					tmpUpperPosition,
+                                        lowerBuffer.curContig,
+                                        lowerBuffer.curPosition,
+                                        upperBuffer.curContig,
+                                        upperBuffer.curPosition,
 					0)<=0) {
 			/* Copy lower */
-			index->positions[i] = tmpLowerPosition;
-			index->contigs_32[i] = tmpLowerContig_32;
-			/* Get new tmpLower */
-			if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-					1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-				tmpLowerPosition = 0;
-				tmpLowerContig_32 = 0;
-			}
+			index->contigs_32[i] = lowerBuffer.curContig;
+			index->positions[i] = lowerBuffer.curPosition;
+                        /* Get next */
+                        RGIndexMergeHelperFromDiskGetNext_32(&lowerBuffer);
 		}
 		else {
-			/* Copy upper */
-			index->positions[i] = tmpUpperPosition;
-			index->contigs_32[i] = tmpUpperContig_32;
-			/* Get new tmpUpper */
-			if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-					1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-				tmpUpperPosition = 0;
-				tmpUpperContig_32 = 0;
-			}
+			index->contigs_32[i] = upperBuffer.curContig;
+			index->positions[i] = upperBuffer.curPosition;
+                        /* Get next */
+                        RGIndexMergeHelperFromDiskGetNext_32(&upperBuffer);
 		}
 	}
-	while(tmpLowerPosition != 0 && tmpUpperPosition == 0) {
-		/* Copy lower */
-		index->positions[i] = tmpLowerPosition;
-		index->contigs_32[i] = tmpLowerContig_32;
-		/* Get new tmpLower */
-		if(1!=fread(&tmpLowerPosition, sizeof(uint32_t), 1, tmpLowerFP) ||
-				1!=fread(&tmpLowerContig_32, sizeof(uint32_t), 1, tmpLowerFP)) {
-			tmpLowerPosition = 0;
-			tmpLowerContig_32 = 0;
-		}
-		i++;
-		ctr++;
+        while(1 == lowerBuffer.hasMore && 0 == upperBuffer.hasMore) {
+            /* Copy lower */
+            index->contigs_32[i] = lowerBuffer.curContig;
+            index->positions[i] = lowerBuffer.curPosition;
+            /* Get next */
+            RGIndexMergeHelperFromDiskGetNext_32(&lowerBuffer);
+            i++;
+            ctr++;
 	}
-	while(tmpLowerPosition == 0 && tmpUpperPosition != 0) {
-		/* Copy upper */
-		index->positions[i] = tmpUpperPosition;
-		index->contigs_32[i] = tmpUpperContig_32;
-		/* Get new tmpUpper */
-		if(1!=fread(&tmpUpperPosition, sizeof(uint32_t), 1, tmpUpperFP) ||
-				1!=fread(&tmpUpperContig_32, sizeof(uint32_t), 1, tmpUpperFP)) {
-			tmpUpperPosition = 0;
-			tmpUpperContig_32 = 0;
-		}
-		i++;
-		ctr++;
+        while(0 == lowerBuffer.hasMore && 1 == upperBuffer.hasMore) {
+            /* Copy upper */
+            index->contigs_32[i] = upperBuffer.curContig;
+            index->positions[i] = upperBuffer.curPosition;
+            /* Get next */
+            RGIndexMergeHelperFromDiskGetNext_32(&upperBuffer);
+            i++;
+            ctr++;
 	}
 	assert(ctr == (high - low + 1));
 	assert(i == high + 1);
 
+        /* Free memory */
+        free(lowerBuffer.contigs);
+        free(lowerBuffer.positions);
+        free(upperBuffer.contigs);
+        free(upperBuffer.positions);
+
 	/* Close tmp files */
-	CloseTmpFile(&tmpLowerFP, &tmpLowerFileName);
-	CloseTmpFile(&tmpUpperFP, &tmpUpperFileName);
+	CloseTmpFile(&lowerBuffer.fpContigs, &lowerBuffer.fnContigs);
+	CloseTmpFile(&lowerBuffer.fpPositions, &lowerBuffer.fnPositions);
+	CloseTmpFile(&upperBuffer.fpContigs, &upperBuffer.fnContigs);
+	CloseTmpFile(&upperBuffer.fpPositions, &upperBuffer.fnPositions);
 	/* Test merge */
 	/*
 	   for(i=low+1;i<=high;i++) {
