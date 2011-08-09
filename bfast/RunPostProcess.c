@@ -944,6 +944,7 @@ static int ReadPairingAndRescue(AlignedRead *a,
                                    }
                                    */
                                 double sf = 0.2;
+                                sf *= (1.0 - ((a->ends[0].keyMissFraction + a->ends[1].keyMissFraction) / 255.0 / 2.0)); 
                                 sf *= 250.0 / (matchScore * GETMAX(a->ends[0].readLength, a->ends[1].readLength)); // scale based on the best possible alignment score 
                                 sf *= (bestNum / (1.0 * penultimateNum)); // scale based on number of sub-optimal mappings
                                 sf *= (double)(bestScore - penultimateScore + 1); // scale based on distance to the sub-optimal mapping

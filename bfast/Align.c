@@ -114,7 +114,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 	int32_t numberFound = 0;
 	int32_t prevIndex;
 
-        if(0 != m->maxReached) { // ignore
+        if(m->maxReached < 0) { // ignore
             AlignedEndAllocate(end,
                                m->read,
                                m->qual,
@@ -161,6 +161,7 @@ void AlignRGMatchesOneEnd(RGMatch *m,
 			m->read,
 			m->qual,
 			m->numEntries);
+        end->keyMissFraction = m->maxReached; // stores the key missed fraction as (uint8_t)(F * 255) 
 
 	/* Get all the references */
 	references = malloc(sizeof(char*)*m->numEntries);

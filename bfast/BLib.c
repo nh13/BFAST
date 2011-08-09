@@ -689,7 +689,7 @@ int32_t IsValidMatch(RGMatches *m)
 {
 	int32_t i;
 	for(i=0;i<m->numEnds;i++) {
-		if(1 != m->ends[i].maxReached && 0 < m->ends[i].numEntries) {
+		if(0 <= m->ends[i].maxReached && 0 < m->ends[i].numEntries) {
 			return 1;
 		}
 	}

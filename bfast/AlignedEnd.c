@@ -24,6 +24,7 @@ int32_t AlignedEndPrint(AlignedEnd *a,
 			gzwrite64(outputFP, &a->qualLength, sizeof(int32_t))!=sizeof(int32_t)||
 			gzwrite64(outputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
 			gzwrite64(outputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
+                        gzwrite64(outputFP, &a->keyMissFraction, sizeof(uint8_t))!=sizeof(uint8_t)||
 			gzwrite64(outputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		return EOF;
 	}
@@ -44,10 +45,12 @@ int32_t AlignedEndPrintText(AlignedEnd *a,
 {
 	int32_t i;
 	assert(NULL != a->read);
-	if(fprintf(outputFP, "%s\t%s\t%d\n",
+	if(fprintf(outputFP, "%s\t%s\t%d\t%d\n",
 				a->read,
 				a->qual,
+                                a->keyMissFraction,
 				a->numEntries) < 0) {
+
 		return EOF;
 	}
 
@@ -88,6 +91,7 @@ int32_t AlignedEndRead(AlignedEnd *a,
 
 	if(gzread64(inputFP, a->read, sizeof(char)*a->readLength)!=sizeof(char)*a->readLength||
 			gzread64(inputFP, a->qual, sizeof(char)*a->qualLength)!=sizeof(char)*a->qualLength||
+                        gzread64(inputFP, &a->keyMissFraction, sizeof(uint8_t))!=sizeof(uint8_t)||
 			gzread64(inputFP, &a->numEntries, sizeof(int32_t))!=sizeof(int32_t)) {
 		PrintError(FnName, "a->reads, a->qual, and a->numEntries", "Could not read from file", Exit, ReadFileError);
 	}
@@ -119,12 +123,14 @@ int32_t AlignedEndReadText(AlignedEnd *a,
 	char qual[SEQUENCE_LENGTH]="\0";
 	int32_t i;
 
-	if(fscanf(inputFP, "%s %s %d",
+	if(fscanf(inputFP, "%s %s %d %d",
 				read,
 				qual,
-				&a->numEntries) < 3) {
+                                &i,
+				&a->numEntries) < 4) {
 		return EOF;
 	}
+        a->keyMissFraction = (uint8_t)i;
 
 	a->readLength = strlen(read);
 	a->qualLength = strlen(qual);
@@ -292,6 +298,7 @@ void AlignedEndAllocate(AlignedEnd *a,
 	if(NULL == a->entries && 0 < numEntries) {
 		PrintError(FnName, "a->entries", "Could not reallocate memory", Exit, ReallocMemory);
 	}
+        a->keyMissFraction = 0;
 
 	/* Copy over */
 	strcpy(a->read, read);
@@ -349,6 +356,7 @@ void AlignedEndInitialize(AlignedEnd *a)
 	a->readLength=0;
 	a->qual=NULL;
 	a->qualLength=0;
+        a->keyMissFraction=0;
 	a->numEntries=0;
 	a->entries=NULL;
 }
@@ -404,6 +412,7 @@ void AlignedEndUpdateMappingQuality(AlignedEnd *a,
         }
         else {
             double sf = 0.2;
+            sf *= (1.0 - ((double)a->keyMissFraction / 255.0)); 
             //fprintf(stderr, "bestScore=%d nextBestScore=%d\n", bestScore, nextBestScore);
             sf *= 250.0 / (matchScore * a->readLength); // scale based on the best possible alignment score 
             //fprintf(stderr, "1=%lf\n", sf);

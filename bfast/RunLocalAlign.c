@@ -435,7 +435,7 @@ void *RunDynamicProgrammingThread(void *arg)
 
                 for(j=0;j<matchQueue[queueIndex].numEnds;j++) {
                     if(maxNumMatches < matchQueue[queueIndex].ends[j].numEntries) {
-                        matchQueue[queueIndex].ends[j].maxReached = 1;
+                        matchQueue[queueIndex].ends[j].maxReached = -1;
                     }
                 }
                 if(1 == IsValidMatch(&matchQueue[queueIndex])) {

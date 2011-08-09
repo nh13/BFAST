@@ -45,7 +45,7 @@ void RGReadsFindMatches(RGIndex *index,
 	int readOffset = 0;
         int count, total;
 
-        if(0 < match->maxReached) { // ignore
+        if(match->maxReached < 0) { // ignore
             return;
         }
 
@@ -80,7 +80,7 @@ void RGReadsFindMatches(RGIndex *index,
         count = total = 0;
 
 	if(0 < numOffsets) { /* Go through the offsets */
-		for(i=0;0 == match->maxReached && // have not reached the maximum
+		for(i=0;0 <= match->maxReached && // have not reached the maximum
 				i<numOffsets && // offsets remaining
 				index->width <= (readLength - offsets[i]); // offsets is within bounds (assumes sorted) 
 				i++) {
@@ -100,7 +100,7 @@ void RGReadsFindMatches(RGIndex *index,
                           case 2:
                             count++;
                             // too many matches
-                            match->maxReached = 1;
+                            match->maxReached = -1;
                             break;
                           default:
                             // do nothing
@@ -110,7 +110,7 @@ void RGReadsFindMatches(RGIndex *index,
 		}
 	}
 	else { /* Use all offsets */
-		for(i=0;0 == match->maxReached && // have not reached the maximum
+		for(i=0;0 <= match->maxReached && // have not reached the maximum
 				index->width <= (readLength - i); // offsets is within bounds (assumes sorted) 
 				i++) {
 			switch(RGIndexGetRangesBothStrands(index, 
@@ -129,7 +129,7 @@ void RGReadsFindMatches(RGIndex *index,
                           case 2:
                             count++;
                             // too many matches
-                            match->maxReached = 1;
+                            match->maxReached = -1;
                             break;
                           default:
                             // do nothing
@@ -140,7 +140,10 @@ void RGReadsFindMatches(RGIndex *index,
 	}
 
         if(keyMissFraction < ((double)count)/total) {
-            match->maxReached = 1;
+            match->maxReached = -1;
+        }
+        else {
+            match->maxReached = (int)((double)255.0*count/total); 
         }
 
 	/* Transfer ranges to matches */
