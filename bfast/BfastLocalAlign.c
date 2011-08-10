@@ -174,7 +174,7 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 	char *FnName="BfastLocalAlignValidateInputs";
 
 	/* Check if we are piping */
-	if(NULL == args->matchFileName) {
+	if(NULL == args->matchFileName && NULL == args->matchFileNameOne && NULL == args->matchFileNameTwo) {
 		VERBOSE = -1;
 	}
 
@@ -194,14 +194,34 @@ int BfastLocalAlignValidateInputs(struct arguments *args) {
 		PrintError(FnName, "fastaFileName", "Required command line argument", Exit, IllegalFileName);   
 	}
 
-	if(args->matchFileName!=0) {
+	if(args->matchFileName!=NULL) {
 		if(0 <= VERBOSE) {
-			fprintf(stderr, "Validating matchFileName%s. \n", 
+			fprintf(stderr, "Validating matchFileName %s. \n", 
 					args->matchFileName);
 		}
-		if(ValidateFileName(args->matchFileName)==0)
+                if(NULL != args->matchFileNameOne || NULL != args->matchFileNameTwo) {
+                    PrintError(FnName, "matchFileName", "-O/-1 or -T/-2 used with -m", Exit, OutOfRange);
+                }
+		if(ValidateFileName(args->matchFileName)==0) {
 			PrintError(FnName, "matchFileName", "Command line argument", Exit, IllegalFileName);	
+                }
 	}	
+        else {
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating matchFileNameOne %s. \n", 
+					args->matchFileNameOne);
+		}
+		if(ValidateFileName(args->matchFileNameOne)==0) {
+			PrintError(FnName, "matchFileNameOne", "Command line argument", Exit, IllegalFileName);	
+                }
+		if(0 <= VERBOSE) {
+			fprintf(stderr, "Validating matchFileNameTwo %s. \n", 
+					args->matchFileNameTwo);
+		}
+		if(ValidateFileName(args->matchFileNameTwo)==0) {
+			PrintError(FnName, "matchFileNameTwo", "Command line argument", Exit, IllegalFileName);	
+                }
+        }
 	if(args->scoringMatrixFileName!=0) {		
 		if(0 <= VERBOSE) {
 			fprintf(stderr, "Validating scoringMatrixFileName path %s. \n", 
