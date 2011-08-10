@@ -973,7 +973,7 @@ void *FindMatchesThread(void *arg)
                                                 whichStrand);
                         }
                         else {
-                                for(k=0;k<numIndexes && 0 == matchQueue[i].ends[j].maxReached;k++) {
+                                for(k=0;k<numIndexes && 0 <= matchQueue[i].ends[j].maxReached;k++) {
                                         RGReadsFindMatches(&indexes[k],
                                                         rg,
                                                         &matchQueue[i].ends[j], 
@@ -992,7 +992,7 @@ void *FindMatchesThread(void *arg)
                                                         whichStrand);
                                 }
                         }
-                        if(0 < matchQueue[i].ends[j].numEntries && 0 == matchQueue[i].ends[j].maxReached) {
+                        if(0 < matchQueue[i].ends[j].numEntries && 0 <= matchQueue[i].ends[j].maxReached) {
                                 foundMatch = 1;
                         }
                 }

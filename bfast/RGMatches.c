@@ -711,11 +711,12 @@ int32_t RGMatchesMergeIndexBins(gzFile *tempOutputIndexBinFPs,
                                                 }
 					}
                                         if(keyMissFraction < ((double)keyMissCount / matches.ends[i].numOffsets[j])) {
-                                            matches.ends[i].maxReached = 1;
+                                            matches.ends[i].maxReached = -1;
                                             k = 0; 
                                             break;
                                         }
                                         else if(0 < keyMissCount) {
+                                                matches.ends[i].maxReached = (int)((double)255.0 * keyMissCount / matches.ends[i].numOffsets[j]);
 						if(k != j) {
 							matches.ends[i].contigs[k] = matches.ends[i].contigs[j];
 							matches.ends[i].positions[k] = matches.ends[i].positions[j];

@@ -338,6 +338,7 @@ typedef struct {
 	int32_t qualLength;
 	char *qual; /* Original quality */
 	int32_t numEntries;
+        uint8_t keyMissFraction;
 	AlignedEntry *entries;
 } AlignedEnd;
 
