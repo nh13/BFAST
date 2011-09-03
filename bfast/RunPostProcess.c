@@ -80,6 +80,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int outputFormat,
 		char *outputID,
 		char *readGroup,
+                int baseQualityType,
 		FILE *fpOut)
 {
 	char *FnName="ReadInputFilterAndOutput";
@@ -311,7 +312,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 				}
 			}
 
-			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, properPair, reversePaired, BinaryOutput);
+			AlignedReadConvertPrintOutputFormat(&alignQueue[queueIndex], rg, fpReported, fpReportedGZ, (NULL == outputID) ? "" : outputID, readGroupString, algorithm, numEntries[queueIndex], outputFormat, properPair, reversePaired, baseQualityType, BinaryOutput);
 
 			/* Free memory */
 			AlignedReadFree(&alignQueue[queueIndex]);

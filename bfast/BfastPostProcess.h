@@ -29,6 +29,7 @@ struct arguments
 	int outputFormat;						/* -O */
 	char *outputID;							/* -o */
 	char *RGFileName;						/* -r */
+	int baseQualityType;						/* -b */
 	int timing;                             /* -t */
 	int programMode;						/* -h */ 
 };

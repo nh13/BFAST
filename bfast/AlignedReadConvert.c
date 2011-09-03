@@ -72,6 +72,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 		int32_t outputFormat,
 		int properPaired,
 		int reversePaired,
+                int baseQualityType,
 		int32_t binaryOutput)
 {
 	char *FnName = "AlignedReadConvertPrintOutputFormat";
@@ -85,7 +86,7 @@ void AlignedReadConvertPrintOutputFormat(AlignedRead *a,
 			}
 			break;
 		case SAM:
-			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, reversePaired, fp);
+			AlignedReadConvertPrintSAM(a, rg, postprocessAlgorithm, numOriginalEntries, outputID, readGroupString, properPaired, reversePaired, baseQualityType, fp);
 			break;
 		default:
 			PrintError(FnName, "outputFormat", "Could not understand outputFormat", Exit, OutOfRange);
@@ -102,6 +103,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 		char *readGroupString,
 		int properPaired,
 		int reversePaired,
+                int baseQualityType,
 		FILE *fp)
 {
 	char *FnName="AlignedReadConvertPrintSAM";
@@ -127,6 +129,7 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 					readGroupString,
 					properPaired,
 					reversePaired,
+                                        baseQualityType,
 					fp);
 		}
 		else {
@@ -141,10 +144,79 @@ void AlignedReadConvertPrintSAM(AlignedRead *a,
 						readGroupString,
 						properPaired,
 						reversePaired,
+                                                baseQualityType,
 						fp);
 			}
 		}
 	}
+}
+
+static void AlignedReadConvertMakeBaseQualities(AlignedEnd *a, char *qual, char alignment[3][SEQUENCE_LENGTH], int32_t length,int32_t baseQualityType)
+{
+  char *FnName="AlignedReadConvertMakeBaseQualities";
+  int32_t i, j;
+
+  for(i=j=0;i<length;i++) {
+      if(GAP != alignment[1][i]) { /* Not a deletion */
+          if(length - 1 == i) { // At the end of the alignment
+              assert(j==a->qualLength-1);
+              qual[j] = CHAR2QUAL(a->qual[j]);
+          }
+          else {
+              switch(baseQualityType) {
+                case 0:
+                  if(GAP == alignment[2][i] &&
+                     GAP == alignment[2][i+1]) {
+                      qual[j] = CHAR2QUAL(a->qual[j]) + 
+                        CHAR2QUAL(a->qual[j+1]) + 10;
+                  }
+                  else if(GAP == alignment[2][i]) {
+                      qual[j] = CHAR2QUAL(a->qual[j]) - 
+                        CHAR2QUAL(a->qual[j+1]);
+                  }
+                  else if(GAP == alignment[2][i+1]) {
+                      qual[j] = CHAR2QUAL(a->qual[j+1]) - 
+                        CHAR2QUAL(a->qual[j]);
+                  }
+                  else {
+                      qual[j] = 0;
+                  }
+                  break;
+                case 1:
+                  qual[j] = GETMIN(CHAR2QUAL(a->qual[j]), CHAR2QUAL(a->qual[j+1]));
+                  break;
+                case 2:
+                  qual[j] = GETMAX(CHAR2QUAL(a->qual[j]), CHAR2QUAL(a->qual[j+1]));
+                  break;
+                case 3:
+                  if(GAP == alignment[2][i] &&
+                     GAP == alignment[2][i+1]) {
+                      qual[j] = CHAR2QUAL(a->qual[j]) + 
+                        CHAR2QUAL(a->qual[j+1]) + 10;
+                  }
+                  else {
+                      qual[j] = 0;
+                  }
+                  break;
+                default:
+                  PrintError(FnName, "baseQualityType", "baseQualityType out of range", Exit, OutOfRange);
+                  break;
+              }
+          }
+          /* Round */
+          if(qual[j] <= 0) {
+              qual[j] = QUAL2CHAR(1);
+          }
+          else if(qual[j] > 63) {
+              qual[j] = QUAL2CHAR(63);
+          }
+          else {
+              qual[j] = QUAL2CHAR(qual[j]);
+          }
+          j++;
+      }
+  }
+  qual[j]='\0';
 }
 
 /* TODO */
@@ -158,6 +230,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 		char *readGroupString,
 		int properPaired,
 		int reversePaired,
+                int baseQualityType,
 		FILE *fp) 
 {
 	char *FnName="AlignedReadConvertPrintAlignedEntryToSAM";
@@ -420,43 +493,7 @@ void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead *a,
 				}
 			}
 			read[j]='\0';
-			/* Convert quals to NT Space - use MAQ 0.7.1 conversion */
-			for(i=j=0;i<length;i++) {
-				if(GAP != alignment[1][i]) { /* Not a deletion */
-					if(length - 1 == i) { // At the end of the alignment
-						assert(j==a->ends[endIndex].qualLength-1);
-						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]);
-					}
-					else if(GAP == alignment[2][i] &&
-							GAP == alignment[2][i+1]) {
-						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) + 
-							CHAR2QUAL(a->ends[endIndex].qual[j+1]) + 10;
-					}
-					else if(GAP == alignment[2][i]) {
-						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j]) - 
-							CHAR2QUAL(a->ends[endIndex].qual[j+1]);
-					}
-					else if(GAP == alignment[2][i+1]) {
-						qual[j] = CHAR2QUAL(a->ends[endIndex].qual[j+1]) - 
-							CHAR2QUAL(a->ends[endIndex].qual[j]);
-					}
-					else {
-						qual[j] = 0;
-					}
-					/* Round */
-					if(qual[j] <= 0) {
-						qual[j] = QUAL2CHAR(1);
-					}
-					else if(qual[j] > 63) {
-						qual[j] = QUAL2CHAR(63);
-					}
-					else {
-						qual[j] = QUAL2CHAR(qual[j]);
-					}
-					j++;
-				}
-			}
-			qual[j]='\0';
+                        AlignedReadConvertMakeBaseQualities(&a->ends[endIndex], qual, alignment, length, baseQualityType);
 			if(REVERSE == a->ends[endIndex].entries[entriesIndex].strand) {
 				/* Reverse compliment */
 				GetReverseComplimentAnyCase(read, /* src */

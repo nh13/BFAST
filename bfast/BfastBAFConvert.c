@@ -183,6 +183,7 @@ int BfastBAFConvert(int argc, char *argv[])
 					outputType,
 					1,
 					0,
+                                        0,
 					outputSubType);
 			AlignedReadFree(&a);
 		}

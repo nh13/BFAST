@@ -23,7 +23,7 @@ enum {
 	DescAlgoTitle, DescAlgorithm, DescSpace, DescUnpaired, DescReversePaired, DescAvgMismatchQuality, 
 	DescScoringMatrixFileName, DescRandomBest, DescMinimumMappingQuality, DescMinimumNormalizedScore,  DescPairingStandardDeviation, DescPairingUngappedRescue,
 	DescNumThreads, DescQueueLength, 
-	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescTiming,
+	DescOutputTitle, DescOutputFormat, DescOutputID, DescRGFileName, DescBaseQualityType, DescTiming,
 	DescMiscTitle, DescParameters, DescHelp
 };
 
@@ -60,6 +60,12 @@ static struct argp_option options[] = {
 	{"RGFileName", 'r', "RGFileName", 0, "Specifies to add the RG in the specified file to the SAM"
 		"\n\t\t\t  header and updates the RG tag (and LB/PU tags if present) in"
 			"\n\t\t\t  the reads (SAM only)", 3},
+        {"baseQualityType", 'b', "baseQualityType", 0, "Specifies the base quality type for SOLiD reads:"
+			"\n\t\t\t  0: MAQ-style"
+			"\n\t\t\t  1: Minimum (min(color 1, color 2))"
+			"\n\t\t\t  2: Maximum (max(color 1, color 2))"
+			"\n\t\t\t  3: Nullify (if either are an error, base quality is zero)",
+                        3},
 	{"timing", 't', 0, OPTION_NO_USAGE, "Specifies to output timing information", 3},
 	{0, 0, 0, 0, "=========== Miscellaneous Options ===================================================", 4},
 	{"Parameters", 'p', 0, OPTION_NO_USAGE, "Print program parameters", 4},
@@ -68,7 +74,7 @@ static struct argp_option options[] = {
 };
 
 static char OptionString[]=
-"a:i:f:m:n:o:q:r:s:v:x:A:M:O:Q:S:ghptzRU";
+"a:b:i:f:m:n:o:q:r:s:v:x:A:M:O:Q:S:ghptzRU";
 
 	int
 BfastPostProcess(int argc, char **argv)
@@ -135,6 +141,7 @@ BfastPostProcess(int argc, char **argv)
 							arguments.outputFormat,
 							arguments.outputID,
 							readGroup,
+                                                        arguments.baseQualityType,
 							stdout);
 					if(BAF != arguments.outputFormat) {
 						/* Free rg binary */
@@ -255,6 +262,10 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	assert(args->reversePaired == 0 || args->reversePaired == 1);
 	assert(args->randomBest == 0 || args->randomBest == 1);
 
+        if(args->baseQualityType < 0 || 3 < args->baseQualityType) {
+		PrintError(FnName, "baseQualityType", "Command line argument", Exit, OutOfRange);	
+        }
+
 	if(SAM != args->outputFormat && NULL != args->RGFileName) {
 		PrintError(FnName, "RGFileName", "Command line argument can only be used when outputting to SAM format", Exit, OutOfRange);
 	}
@@ -306,6 +317,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->outputFormat=SAM;
 	args->outputID=NULL;
 	args->RGFileName=NULL;
+        args->baseQualityType=0;
 
 	args->timing = 0;
 
@@ -318,6 +330,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 {
 	char algorithm[5][64] = {"[No Filtering]", "[Filtering Only]", "[Unique]", "[Best Score]", "[Best Score All]"};
 	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[SAM]", "[LastFileType]"};
+	char baseQualityType[4][32] = {"[MAQ-style]", "[Min]", "[Max]", "[Nullify]"};
 	if(0 <= VERBOSE) {
 		fprintf(fp, BREAK_LINE);
 		fprintf(fp, "Printing Program Parameters:\n");
@@ -344,6 +357,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "outputFormat:\t\t\t%s\n", outputType[args->outputFormat]);
 		fprintf(fp, "outputID:\t\t\t%s\n", FILEUSING(args->outputID));
 		fprintf(fp, "RGFileName:\t\t\t%s\n", FILEUSING(args->RGFileName));
+		fprintf(fp, "baseQualityType:\t\t\t%s\n", baseQualityType[args->baseQualityType]);
 		fprintf(fp, "timing:\t\t\t\t%s\n", INTUSING(args->timing));
 		fprintf(fp, BREAK_LINE);
 	}
@@ -404,6 +418,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 		switch (key) {
 			case 'a':
 				arguments->algorithm = atoi(optarg);break;
+                        case 'b':
+                                arguments->baseQualityType = atoi(optarg);break;
 			case 'f':
 				arguments->fastaFileName=strdup(optarg);break;
 			case 'g':

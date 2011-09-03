@@ -10,9 +10,9 @@
 #include "BError.h"
 
 void AlignedReadConvertPrintHeader(FILE*, RGBinary*, int, char*);
-void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, gzFile, char*, char*, int, int*, int, int, int, int);
-void AlignedReadConvertPrintSAM(AlignedRead*, RGBinary*, int32_t, int32_t*, char*, char*, int, int, FILE*);
-void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, RGBinary*, int32_t, int32_t, int32_t, int32_t*, char*, char*, int, int, FILE*);
+void AlignedReadConvertPrintOutputFormat(AlignedRead*, RGBinary*, FILE*, gzFile, char*, char*, int, int*, int, int, int, int, int);
+void AlignedReadConvertPrintSAM(AlignedRead*, RGBinary*, int32_t, int32_t*, char*, char*, int, int, int, FILE*);
+void AlignedReadConvertPrintAlignedEntryToSAM(AlignedRead*, RGBinary*, int32_t, int32_t, int32_t, int32_t*, char*, char*, int, int, int, FILE*);
 void AlignedReadConvertPrintAlignedEntryToCIGAR(AlignedEntry*, char alignment[3][SEQUENCE_LENGTH], int32_t, int32_t, char*, char*, int32_t*, FILE*);
 
 #endif

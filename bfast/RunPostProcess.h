@@ -63,6 +63,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int outputFormat,
 		char *outputID,
 		char *readGroup,
+                int baseQualityType,
 		FILE *fpOut);
 
 void *ReadInputFilterAndOutputThread(void*);

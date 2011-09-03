@@ -125,6 +125,7 @@ void RunAlign(
 			SAM,
 			NULL,
 			NULL,
+                        0,
 			stdout);
 	RGBinaryDelete(&rg);
 
