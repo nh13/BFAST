@@ -829,7 +829,7 @@ sub CreateJobsSAM {
 		else {
 			$cmd = "";
 			$cmd .= "".$data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
-			$cmd .= "samtools view -S -b";
+			$cmd .= "samtools view -S -u";
 			$cmd .= " -T ".$data->{'globalOptions'}->{'fastaFileName'};
 			$cmd .= " $sam_file | ";
 			$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});
