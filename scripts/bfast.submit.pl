@@ -342,7 +342,6 @@ sub ValidateData {
 		&& (!defined($data->{'postprocessOptions'}->{'strandedness'}) || !defined($data->{'postprocessOptions'}->{'positioning'}))) {
 		die("One of pairing or strandendess/positioning must be used in post processing.\n");
 	}
-}
 
 	# samtools/picard
 	if(defined($data->{'samOptions'})) {
