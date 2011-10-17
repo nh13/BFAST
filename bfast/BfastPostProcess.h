@@ -12,20 +12,19 @@ struct arguments
 	char *alignFileName;					/* -i */
 	int algorithm;							/* -a */
 	int space;								/* -A */
-	int unpaired;							/* -U */
-	int reversePaired;						/* -R */
+	int strandedness;						/* -S/-Y */
+        int positioning;                                                /* -P/-Y */
+        int pairing;                                          /* -Y */
 	int avgMismatchQuality;					/* -q */
 	char *scoringMatrixFileName;			/* -x */
 	int randomBest;						    /* -z */
 	int minMappingQuality;				    /* -m */
 	int minNormalizedScore;				    /* -M */
-	double pairingStandardDeviation;		/* -S */
 	int insertSizeSpecified;
 	double insertSizeAvg;						/* -v */
 	double insertSizeStdDev;					/* -s */
 	int numThreads;							/* -n */
 	int queueLength;						/* -Q */
-	int gappedPairingRescue;				/* -u */
 	int outputFormat;						/* -O */
 	char *outputID;							/* -o */
 	char *RGFileName;						/* -r */

@@ -611,11 +611,10 @@ Options \TT{-a 1}, \TT{-a 2}, and \TT{-a 3}, will for each read select a subset 
 If multiple alignments have the same best score, an alignment is not reported.
 \TT{-a 4} will output only reads that have a best scoring alignment (possibly many best scoring alignments may exist).
 
-Furthermore, the paired-end (mate-end) will be rescued when using \TT{-a 3}.
-Only reads that are discordant (determined by \TT{-S}) or are unpaired (only one end/mate maps) will be rescued. 
 Paired-end reads will be scored by examining both ends to select the best paired-alignment.
-Also ties will be broken between equally best scoring alignments using the estimated insert size distribution.
-This pairing procedure can be turned-off by using the \TT{-U} option.
+
+For paired end reads, use \TT{-Y 0} or \TT{-S 0 -P 1}.
+For mate pair reads, use \TT{-Y 1} or \TT{-S 1 -P 0}.
 
 \subsection{Usage}
 \subsubsection{\TT{-i FILENAME, --alignedFileName=FILENAME}}
@@ -643,12 +642,20 @@ Specifies output ID to prepend to the read name (\BSAMF{} output only).
 Specifies to add the read group (@RG) line to add to the header, which is given in the specified file.
 Additionally, the appropriate read group (RG) tag (and LB tag if present) will be added to each read.
 Make sure that the line is exactly the same as what would be printed to the SAM file, which includes the ``@RG'' string.
-\subsubsection{\tt{-U, --unpaired}}
-Specifies that the alignments should not be selected based on paired end information.
-Each end of a read will be examined independently.
+\subsubsection{\tt{-S INT, --strandedness=INT}}
+Specifies the pairing strandedness:
+The option \TT{-S 0} specifies that the reads should be mapped onto the same strand.
+The option \TT{-S 1} specifies that the reads should be mapped onto the opposite strand.
 
-\subsubsection{\tt{-R, --reverseStrand}}
-Specifies to expect paired reads to be on reverse strands.
+\subsubsection{\tt{-P INT, --positioning=INT}}
+Specifies the pairing positioning:
+The option \TT{-S 0} specifies that the first read should be (5') upstream of the second read (sequencing strand).
+The option \TT{-S 1} specifies that the second read should be (5') upstream of the first read (sequencing strand).
+
+\subsubsection{\tt{-Y INT, --pairing=INT}}
+Specifies the pairing orientation:
+The option \TT{-S 0} specifies that the reads are paired ends (\TT{-S 0 -P 1}).
+The option \TT{-S 1} specifies that the reads are mate pairs (\TT{-S 1 -P 0}).
 
 \subsubsection{\TT{-q INTEGER, --avgMismatchQuality=INTEGER}}
 Specifies the average mismatch quality (should match that value used in \TT{bfast match}.
@@ -669,12 +676,12 @@ Specifies to choose remove all alignments with worse mapping quality.
 \subsubsection{\tt{-M INTEGER, --minNormalizedScore=INTEGER}}
 Specifies to choose remove all alignments with worse normalized alignment score.
 The normalized alignment score is calculated by dividing the alignment score by the read length.
-\subsubsection{\tt{-S FLOAT, --pairingStandardDeviation=FLOAT}}
-Specifies the window to use when performing pairing rescue (when not using \TT{-U}).
-This specifies to use a window corresponding to a standard deviation of the insert size before and after the mean insert size for pairing rescue.
-\subsubsection{\tt{-g, --gappedPairingRescue}}
-Specifies to use gapped alignment when performing pairing rescue (when not using \TT{-U}).
-Otherwise, ungapped alignment will be performed.
+
+\subsubsection{\tt{-v FLOAT, --insertSizeAVG=FLOAT}}
+Specifies the insert size mean (outer size) to use for pairing.
+
+\subsubsection{\tt{-s FLOAT, --insertSizeStdDev=FLOAT}}
+Specifies the insert size standard deviation (outer size) to use for pairing.
 
 \section{bfast bafconvert}
 \label{sec:bafconvert}
@@ -1016,7 +1023,9 @@ For ABI SOLiD or color space reads, the adaptor should be included in the sequen
 There should be one Phred-like quality score for each base in the sequence (or number of colors for ABI SOLiD data).
 
 For paired end or multi end data, each end should be specified separately but have the same read name.
-The should be listed in order of \FIVETOTHREE{} from left-to-right and on the same strand.
+They should be listed in which order they are sequenced.
+Paired end reads are typically on the opposite strand, with the first end having a smaller co-ordinate when mapped to the forward genomic strand.
+Mate pair reads are typically on the same strand, with the first end having a large co-ordinate when mapped to the forward genomic strand.
 Multi end, paired end, or single end data can be incorporated into the same \RFF{} as long as the data follows the above rules.
 
 Another method to specify this file is through the use of a grammar:
@@ -1512,6 +1521,10 @@ Further filtering, especially filtering on mapping quality, alignment score, and
 Please use the {\tt -n} option for multi-threaded alignment where possible.
 For Illumina data see \autoref{sec:hg-settings-illumina}. 
 For ABI SOLiD data see \autoref{sec:hg-settings-abi}
+
+When mapping paired end or paired end data, the orientation must be specified in \TT{bfast postprocess}.
+For paired end reads, use \TT{-Y 0} or \TT{-S 0 -P 1}.
+For mate pair reads, use \TT{-Y 1} or \TT{-S 1 -P 0}.
 
 \subsection{Illumina}
 \label{sec:hg-settings-illumina}
