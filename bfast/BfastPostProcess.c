@@ -271,8 +271,8 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
                 PrintError(FnName, "pairing", "Command line argument", Exit, OutOfRange);	
             }
             if(0 == args->pairing || 1 ==  args->pairing) {
-                args->strandedness = (0 == args->pairing) ? 0 : 1; 
-                args->positioning = (0 == args->pairing) ? 1 : 0; 
+                args->strandedness = (0 == args->pairing) ? 1 : 0; 
+                args->positioning = (0 == args->pairing) ? 0 : 1; 
             }
             else {
                 args->strandedness = -1;
@@ -355,6 +355,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 	char baseQualityType[4][32] = {"[MAQ-style]", "[Min]", "[Max]", "[Nullify]"};
         char strandedness[2][32] = {"[Same strand]", "[Opposite strand]"};
         char positioning[2][32] = {"[Read one first]", "[Read two first]"};
+        char pairing[2][32] = {"[Paired End]", "[Mate Pair]"};
 	if(0 <= VERBOSE) {
 		fprintf(fp, BREAK_LINE);
 		fprintf(fp, "Printing Program Parameters:\n");
@@ -364,6 +365,8 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "algorithm:\t\t\t%s\n", algorithm[args->algorithm]);
 		fprintf(fp, "space:\t\t\t\t%s\n", SPACE(args->space));
 		fprintf(fp, "strandedness:\t\t\t%s\n", BOOLREQUIRED(args->strandedness, strandedness));
+		fprintf(fp, "positioning:\t\t\t%s\n", BOOLREQUIRED(args->positioning, positioning));
+		fprintf(fp, "pairing:\t\t\t%s\n", BOOLREQUIRED(args->pairing, pairing));
 		fprintf(fp, "positioning:\t\t\t%s\n", BOOLREQUIRED(args->positioning, positioning));
 		fprintf(fp, "avgMismatchQuality:\t\t%d\n", args->avgMismatchQuality);
 		fprintf(fp, "scoringMatrixFileName:\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
