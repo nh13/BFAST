@@ -324,7 +324,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->space = NTSpace;
 	args->strandedness=-1;
 	args->positioning=-1;
-        args->pairing=-1;
+        args->pairing=2;
 	args->scoringMatrixFileName=NULL;
 	args->randomBest=0;
 	args->minMappingQuality=INT_MIN;
