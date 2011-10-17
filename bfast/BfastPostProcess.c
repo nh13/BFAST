@@ -51,7 +51,8 @@ static struct argp_option options[] = {
                         2},
 	{"pairing", 'Y', 0, OPTION_NO_USAGE, "Specifies the pairing options (overrides -S and -P):"
 			"\n\t\t\t  0: paired ends"
-			"\n\t\t\t  1: mate pairs",
+			"\n\t\t\t  1: mate pairs"
+                        "\n\t\t\t  2: no pairing", 
                         2},
 	{"avgMismatchQuality", 'q', "avgMismatchQuality", 0, "Specifies the average mismatch quality", 2},
 	{"scoringMatrixFileName", 'x', "scoringMatrixFileName", 0, "Specifies the file name storing the scoring matrix", 1},
@@ -134,6 +135,7 @@ BfastPostProcess(int argc, char **argv)
 							arguments.space,
                                                         arguments.strandedness,
                                                         arguments.positioning,
+                                                        (2 == arguments.pairing) ? 1 : 0,
 							arguments.avgMismatchQuality,
 							arguments.scoringMatrixFileName,
 							arguments.randomBest,
@@ -265,17 +267,25 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 	}	
 	assert(args->timing == 0 || args->timing == 1);
         if(0 <= args->pairing) {
-            if(args->pairing != 0 && args->pairing != 1) {
+            if(args->pairing < 0 && 2 < args->pairing) {
                 PrintError(FnName, "pairing", "Command line argument", Exit, OutOfRange);	
             }
-            args->strandedness = (0 == args->pairing) ? 0 : 1; 
-            args->positioning = (0 == args->pairing) ? 1 : 0; 
+            if(0 == args->pairing || 1 ==  args->pairing) {
+                args->strandedness = (0 == args->pairing) ? 0 : 1; 
+                args->positioning = (0 == args->pairing) ? 1 : 0; 
+            }
+            else {
+                args->strandedness = -1;
+                args->positioning = -1;
+            }
         }
-	if(args->strandedness != 0 && args->strandedness != 1) {
-		PrintError(FnName, "strandedness", "Command line argument", Exit, OutOfRange);	
-        }
-	if(args->positioning != 0 && args->positioning != 1) {
-		PrintError(FnName, "positioning", "Command line argument", Exit, OutOfRange);	
+        else {
+            if(args->strandedness != 0 && args->strandedness != 1) {
+                PrintError(FnName, "strandedness", "Command line argument", Exit, OutOfRange);	
+            }
+            if(args->positioning != 0 && args->positioning != 1) {
+                PrintError(FnName, "positioning", "Command line argument", Exit, OutOfRange);	
+            }
         }
 	assert(args->randomBest == 0 || args->randomBest == 1);
 
@@ -491,6 +501,8 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
                                 arguments->strandedness = atoi(optarg); break;
                         case 'P':
                                 arguments->positioning = atoi(optarg); break;
+                        case 'Y':
+                                arguments->pairing = atoi(optarg); break;
 			default:
 				OptErr=1;
 		} /* while */

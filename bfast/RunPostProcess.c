@@ -99,6 +99,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		int space,
                 int strandedness,
                 int positioning,
+                int unpaired,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
 		int randomBest,
@@ -234,7 +235,9 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 	while(0 != (numRead = GetAlignedReads(fp, alignQueue, alignQueueLength))) {
 
 		/* Get the PEDBins if necessary */
-	      	GetPEDBins(alignQueue, numRead, strandedness, positioning, &bins);
+                if(0 == unpaired) {
+	      	  GetPEDBins(alignQueue, numRead, strandedness, positioning, &bins);
+                }
 
 		// Store the original # of entries for SAM output
 		for(i=0;i<numRead;i++) {
@@ -245,7 +248,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 		/* Initialize thread data */
 		for(i=0;i<numThreads;i++) {
-			data[i].bins = &bins;
+			data[i].bins = (0 == unpaired) ? &bins : NULL;
 			data[i].rg = rg;
 			data[i].sm = &sm;
 			data[i].algorithm = algorithm;
@@ -331,7 +334,7 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 
 			// Proper pair ? 
 			int properPair = 0;
-			if(2 == alignQueue[queueIndex].numEnds) {
+			if(2 == alignQueue[queueIndex].numEnds && 0 == unpaired) {
                             if(1 == alignQueue[queueIndex].ends[0].numEntries && 1 == alignQueue[queueIndex].ends[1].numEntries) {
                                 properPair = 1 - isDiscordantPair(&alignQueue[queueIndex].ends[0].entries[0],
                                                                   &alignQueue[queueIndex].ends[1].entries[0],
@@ -693,7 +696,8 @@ int FilterAlignedRead(AlignedRead *a,
 		PrintError(FnName, "foundTypes", "Could not allocate memory", Exit, MallocMemory);
 	}
         
-        if(0 <= strandedness && 0 <= positioning && 2 == tmpA.numEnds 
+        if(NULL != b && 
+           0 <= strandedness && 0 <= positioning && 2 == tmpA.numEnds 
            && BestScore == algorithm 
            && 1 <= tmpA.ends[0].numEntries && 1 <= tmpA.ends[1].numEntries) {
             // Do pairing

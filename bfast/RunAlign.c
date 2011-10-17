@@ -108,8 +108,9 @@ void RunAlign(
 			tmpLocalAlignFileName,
 			BestScore,
 			space,
-                        0,
-                        0,
+                        -1,
+                        -1,
+                        1, // unpaired
 			AVG_MISMATCH_QUALITY,
 			NULL,
 			0,
