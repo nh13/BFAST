@@ -47,7 +47,8 @@ static struct argp_option options[] = {
                         2},
 	{"positioning", 'P', 0, OPTION_NO_USAGE, "Specifies the pairing positioning:"
 			"\n\t\t\t  0: The first read should be upstream of the second read (sequencing strand)"
-			"\n\t\t\t  1: The second read should be upstream of the first read (sequencing strand)",
+			"\n\t\t\t  1: The second read should be upstream of the first read (sequencing strand)"
+			"\n\t\t\t  2: There is no positioning",
                         2},
 	{"pairing", 'Y', 0, OPTION_NO_USAGE, "Specifies the pairing options (overrides -S and -P):"
 			"\n\t\t\t  0: paired ends"
@@ -133,9 +134,9 @@ BfastPostProcess(int argc, char **argv)
 							arguments.alignFileName,
 							arguments.algorithm,
 							arguments.space,
-                                                        arguments.strandedness,
-                                                        arguments.positioning,
-                                                        (2 == arguments.pairing) ? 1 : 0,
+							arguments.strandedness,
+							arguments.positioning,
+							(3 == arguments.pairing) ? 1 : 0,
 							arguments.avgMismatchQuality,
 							arguments.scoringMatrixFileName,
 							arguments.randomBest,
@@ -266,27 +267,27 @@ int BfastPostProcessValidateInputs(struct arguments *args) {
 		PrintError(FnName, "outputFormat", "Command line argument", Exit, OutOfRange);	
 	}	
 	assert(args->timing == 0 || args->timing == 1);
-        if(0 <= args->pairing) {
-            if(args->pairing < 0 && 2 < args->pairing) {
-                PrintError(FnName, "pairing", "Command line argument", Exit, OutOfRange);	
-            }
-            if(0 == args->pairing || 1 ==  args->pairing) {
-                args->strandedness = (0 == args->pairing) ? 1 : 0; 
-                args->positioning = (0 == args->pairing) ? 0 : 1; 
-            }
-            else {
-                args->strandedness = -1;
-                args->positioning = -1;
-            }
-        }
-        else {
-            if(args->strandedness != 0 && args->strandedness != 1) {
-                PrintError(FnName, "strandedness", "Command line argument", Exit, OutOfRange);	
-            }
-            if(args->positioning != 0 && args->positioning != 1) {
-                PrintError(FnName, "positioning", "Command line argument", Exit, OutOfRange);	
-            }
-        }
+	if(args->pairing < 0 && 3 < args->pairing) {
+		PrintError(FnName, "pairing", "Command line argument", Exit, OutOfRange);	
+	}
+	if(0 < args->pairing) {
+		if(1 == args->pairing || 2 ==  args->pairing) {
+			args->strandedness = (1 == args->pairing) ? 1 : 0; 
+			args->positioning = (1 == args->pairing) ? 0 : 1; 
+		}
+		else {
+			args->strandedness = -1;
+			args->positioning = -1;
+		}
+	}
+	else {
+		if(args->strandedness != 0 && args->strandedness != 1) {
+			PrintError(FnName, "strandedness", "Command line argument", Exit, OutOfRange);	
+		}
+		if(args->positioning < 0 || 2 < args->positioning) {
+			PrintError(FnName, "positioning", "Command line argument", Exit, OutOfRange);	
+		}
+	}
 	assert(args->randomBest == 0 || args->randomBest == 1);
 
         if(args->baseQualityType < 0 || 3 < args->baseQualityType) {
@@ -324,7 +325,7 @@ BfastPostProcessAssignDefaultValues(struct arguments *args)
 	args->space = NTSpace;
 	args->strandedness=-1;
 	args->positioning=-1;
-        args->pairing=2;
+        args->pairing=3;
 	args->scoringMatrixFileName=NULL;
 	args->randomBest=0;
 	args->minMappingQuality=INT_MIN;
@@ -354,8 +355,8 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 	char outputType[8][32] = {"[BRG]", "[BIF]", "[BMF]", "[BAF]", "[SAM]", "[LastFileType]"};
 	char baseQualityType[4][32] = {"[MAQ-style]", "[Min]", "[Max]", "[Nullify]"};
         char strandedness[2][32] = {"[Same strand]", "[Opposite strand]"};
-        char positioning[2][32] = {"[Read one first]", "[Read two first]"};
-        char pairing[2][32] = {"[Paired End]", "[Mate Pair]"};
+        char positioning[3][32] = {"[Read one first]", "[Read two first]", "[No Positioning]"};
+        char pairing[4][32] = {"[Not Using]", "[Paired End]", "[Mate Pair]", "[No Pairing]"};
 	if(0 <= VERBOSE) {
 		fprintf(fp, BREAK_LINE);
 		fprintf(fp, "Printing Program Parameters:\n");
@@ -366,7 +367,7 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "space:\t\t\t\t%s\n", SPACE(args->space));
 		fprintf(fp, "strandedness:\t\t\t%s\n", BOOLREQUIRED(args->strandedness, strandedness));
 		fprintf(fp, "positioning:\t\t\t%s\n", BOOLREQUIRED(args->positioning, positioning));
-		fprintf(fp, "pairing:\t\t\t%s\n", BOOLREQUIRED(args->pairing, pairing));
+		fprintf(fp, "pairing:\t\t\t%s\n", pairing[args->pairing]);
 		fprintf(fp, "positioning:\t\t\t%s\n", BOOLREQUIRED(args->positioning, positioning));
 		fprintf(fp, "avgMismatchQuality:\t\t%d\n", args->avgMismatchQuality);
 		fprintf(fp, "scoringMatrixFileName:\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
@@ -500,12 +501,14 @@ BfastPostProcessGetOptParse(int argc, char** argv, char OptionString[], struct a
 				break;
 			case 'Q':
 				arguments->queueLength=atoi(optarg);break;
-                        case 'S':
-                                arguments->strandedness = atoi(optarg); break;
-                        case 'P':
-                                arguments->positioning = atoi(optarg); break;
-                        case 'Y':
-                                arguments->pairing = atoi(optarg); break;
+			case 'S':
+				arguments->pairing = 0; 
+				arguments->strandedness = atoi(optarg); break;
+			case 'P':
+				arguments->pairing = 0; 
+				arguments->positioning = atoi(optarg); break;
+			case 'Y':
+				arguments->pairing = atoi(optarg)+1; break;
 			default:
 				OptErr=1;
 		} /* while */

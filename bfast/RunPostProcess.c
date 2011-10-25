@@ -39,7 +39,7 @@ static inline int getStrandDiff(char strandA, char strandB, int strandedness)
 static inline int getPositionDiff(int32_t positionA, int32_t positionB, char strandA, char strandB, int32_t positioning, int32_t strandedness)
 {
   int positionDiff = positionB - positionA;
-  if(0 == positioning) { // one before two
+  if(0 == positioning || 2 == positioning) { // one before two
       if(FORWARD == strandA) {
           positionDiff = positionB - positionA;
       }
@@ -47,7 +47,7 @@ static inline int getPositionDiff(int32_t positionA, int32_t positionB, char str
           positionDiff = positionA - positionB;
       }
   }
-  else { // two before one
+  else if(1 == positioning) { // two before one
       if(FORWARD == strandA) {
           positionDiff = positionA - positionB;
       }
@@ -907,7 +907,7 @@ int32_t GetPEDBins(AlignedRead *alignQueue,
                                                                        tmpA.ends[1].entries[0].strand, 
                                                                        positioning,
                                                                        strandedness);
-                                        if(0 <= positionDiff) {
+                                        if(2 == positioning || 0 <= positionDiff) {
                                             toInsert = 1;
                                         }
                                     }
