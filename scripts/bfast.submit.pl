@@ -204,14 +204,14 @@ sub Schema {
 				  </xs:restriction>
 				</xs:simpleType>
 			  </xs:element>
-			  <xs:element name="unpaired" type="xs:integer"/>
-			  <xs:element name="reversePaired" type="xs:integer"/>
+			  <xs:element name="strandedness" type="xs:integer"/>
+			  <xs:element name="positioning" type="xs:integer"/>
+			  <xs:element name="pairing" type="xs:integer"/>
 			  <xs:element name="outputFormat" type="xs:integer"/>
 			  <xs:element name="unmappedFile" type="xs:string"/>
 			  <xs:element name="readGroupFile" type="xs:string"/>
 			  <xs:element name="minMappingQuality" type="xs:integer"/>
 			  <xs:element name="minNormalizedScore" type="xs:integer"/>
-			  <xs:element name="pairingStandardDeviation" type="positiveInteger"/>
 			  <xs:element name="insertSizeAvg" type="positiveInteger"/>
 			  <xs:element name="insertSizeStdDev" type="positiveInteger"/>
 			  <xs:element name="threads" type="positiveInteger"/>
@@ -281,7 +281,7 @@ sub ValidateData {
 	ValidatePath($data->{'globalOptions'},         'tmpDirectory',                             REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'outputID',                                 REQUIRED); 
 	ValidateOption($data->{'globalOptions'},       'numReadsPerFASTQ',                         REQUIRED);
-	ValidateOption($data->{'globalOptions'},       'cleanUsedIntermediateFiles',               REQUIRED);
+	ValidateOption($data->{'globalOptions'},       'cleanUsedIntermediateFiles',               OPTIONAL);
 	die "Attribute matchSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'}));
 	die "Attribute localalignSplit required with numReadsPerFASTQ\n" if (!defined($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'localalignSplit'}));
 	die "Attribute matchSplit must be <= numReadsPerFASTQ\n" if ($data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'content'} < $data->{'globalOptions'}->{'numReadsPerFASTQ'}->{'matchSplit'});
@@ -323,13 +323,13 @@ sub ValidateData {
 	# postprocess
 	die("The postprocess options were not found.\n") unless (defined($data->{'postprocessOptions'})); 
 	ValidateOption($data->{'postprocessOptions'}, 'algorithm',                                OPTIONAL);
-	ValidateOption($data->{'postprocessOptions'}, 'unpaired',                                 OPTIONAL);
-	ValidateOption($data->{'postprocessOptions'}, 'reversePaired',                            OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'strandedness',                                 OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'positioning',                            OPTIONAL);
+	ValidateOption($data->{'postprocessOptions'}, 'pairing',                                  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'unmappedFile',                             OPTIONAL);
 	ValidateFile($data->{'postprocessOptions'}, 'readGroupFile',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'minMappingQuality', 					      OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'minNormalizedScore', 					  OPTIONAL);
-	ValidateOption($data->{'postprocessOptions'}, 'pairingStandardDeviation',		  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'insertSizeAvg',				  OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'insertSizeStdDev', 			  OPTIONAL);
 	ValidateOptions($data->{'postprocessOptions'}, 'outputFormat', \%OUTTYPES,                OPTIONAL);
@@ -337,6 +337,11 @@ sub ValidateData {
 	ValidateOption($data->{'postprocessOptions'}, 'queueLength',                              OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubQueue',                                OPTIONAL);
 	ValidateOption($data->{'postprocessOptions'}, 'qsubArgs',                                 OPTIONAL);
+	# NB: either strandedness/positioning is used, or pairing is used
+	if(!defined($data->{'postprocessOptions'}->{'pairing'}) 
+		&& (!defined($data->{'postprocessOptions'}->{'strandedness'}) || !defined($data->{'postprocessOptions'}->{'positioning'}))) {
+		die("One of pairing or strandendess/positioning must be used in post processing.\n");
+	}
 
 	# samtools/picard
 	if(defined($data->{'samOptions'})) {
@@ -761,8 +766,9 @@ sub CreateJobsPostprocess {
 		$cmd .= " -i $baf_file";
 		$cmd .= " -a ".$data->{'postprocessOptions'}->{'algorithm'}   if defined($data->{'postprocessOptions'}->{'algorithm'});
 		$cmd .= " -A 1"                                                 if ("CS" eq $data->{'globalOptions'}->{'space'});
-		$cmd .= " -U" if defined($data->{'postprocessOptions'}->{'unpaired'});
-		$cmd .= " -R" if defined($data->{'postprocessOptions'}->{'reversePaired'});
+		$cmd .= " -S ".$data->{'postprocessOptions'}->{'strandedness'}  if defined($data->{'postprocessOptions'}->{'strandedness'});
+		$cmd .= " -P ".$data->{'postprocessOptions'}->{'positioning'}  if defined($data->{'postprocessOptions'}->{'positioning'});
+		$cmd .= " -Y ".$data->{'postprocessOptions'}->{'pairing'}  if defined($data->{'postprocessOptions'}->{'pairing'});
 		$cmd .= " -q ".$data->{'localalignOptions'}->{'mismatchQuality'}    if defined($data->{'localalignOptions'}->{'mismatchQuality'});
 		$cmd .= " -x ".$data->{'localalignOptions'}->{'scoringMatrix'}      if defined($data->{'localalignOptions'}->{'scoringMatrix'});
 		$cmd .= " -u ".$unmapped_file if defined($data->{'postprocessOptions'}->{'unmappedFile'});
@@ -770,7 +776,6 @@ sub CreateJobsPostprocess {
 		$cmd .= " -r ".$data->{'postprocessOptions'}->{'readGroupFile'}.""   if defined($data->{'postprocessOptions'}->{'readGroupFile'});
 		$cmd .= " -m ".$data->{'postprocessOptions'}->{'minMappingQuality'}.""   if defined($data->{'postprocessOptions'}->{'minMappingQuality'});
 		$cmd .= " -M ".$data->{'postprocessOptions'}->{'minNormalizedScore'}.""   if defined($data->{'postprocessOptions'}->{'minNormalizedScore'});
-		$cmd .= " -S ".$data->{'postprocessOptions'}->{'pairingStandardDeviation'}.""   if defined($data->{'postprocessOptions'}->{'pairingStandardDeviation'});
 		$cmd .= " -v ".$data->{'postprocessOptions'}->{'insertSizeAvg'}.""   if defined($data->{'postprocessOptions'}->{'insertSizeAvg'});
 		$cmd .= " -s ".$data->{'postprocessOptions'}->{'insertSizeStdDev'}.""   if defined($data->{'postprocessOptions'}->{'insertSizeStdDev'});
 		$cmd .= " -n ".$data->{'postprocessOptions'}->{'threads'}          if defined($data->{'postprocessOptions'}->{'threads'});
@@ -829,7 +834,7 @@ sub CreateJobsSAM {
 		else {
 			$cmd = "";
 			$cmd .= "".$data->{'globalOptions'}->{'samtoolsBin'} if defined($data->{'globalOptions'}->{'samtoolsBin'});
-			$cmd .= "samtools view -S -b";
+			$cmd .= "samtools view -S -u";
 			$cmd .= " -T ".$data->{'globalOptions'}->{'fastaFileName'};
 			$cmd .= " $sam_file | ";
 			$cmd .= $data->{'globalOptions'}->{'samtoolsBin'}            if defined($data->{'globalOptions'}->{'samtoolsBin'});

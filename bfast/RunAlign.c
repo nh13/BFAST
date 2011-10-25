@@ -110,23 +110,23 @@ void RunAlign(
 			tmpLocalAlignFileName,
 			BestScore,
 			space,
-			0,
-			0,
+                        -1,
+                        -1,
+                        1, // unpaired
 			AVG_MISMATCH_QUALITY,
 			NULL,
 			0,
 			INT_MIN,
 			INT_MIN,
-			MAX_STD,
 			0,
 			0.0,
 			0.0,
-			1,
 			numThreads,
 			DEFAULT_LOCALALIGN_QUEUE_LENGTH,
 			SAM,
 			NULL,
 			NULL,
+                        0,
 			stdout);
 	RGBinaryDelete(&rg);
 

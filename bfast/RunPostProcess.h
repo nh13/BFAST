@@ -13,8 +13,6 @@ typedef struct {
 	int32_t numDistances;
 	double std;
 	double avg;
-	double invRatio;
-	int32_t inversionCount;
 	int32_t doCalc;
 } PEDBins;
 
@@ -23,16 +21,14 @@ typedef struct {
 	RGBinary *rg;
 	ScoringMatrix *sm;
 	int algorithm;
-	int unpaired;
-	int reversePaired;
+        int strandedness;
+        int positioning;
 	int avgMismatchQuality;
 	int randomBest;
 	int matchScore;
 	int mismatchScore;
 	int minimumMappingQuality;
 	int minimumNormalizedScore;
-	double pairingStandardDeviation;
-	int gappedPairingRescue;
 	int queueLength;
 	int8_t *foundTypes;
 	AlignedRead *alignQueue;
@@ -46,28 +42,28 @@ void ReadInputFilterAndOutput(RGBinary *rg,
 		char *inputFileName,
 		int algorithm,
 		int space,
-		int unpaired,
-		int reversePaired,
+                int strandedness,
+                int positioning,
+                int unpaired,
 		int avgMismatchQuality,
 		char *scoringMatrixFileName,
 		int randomBest,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
-		double pairingStandardDeviation,
 		int insertSizeSpecified,
 		double insertSizeAvg,
 		double insertSizeStdDev,
-		int gappedPairingRescue,
 		int numThreads,
 		int queueLength,
 		int outputFormat,
 		char *outputID,
 		char *readGroup,
+                int baseQualityType,
 		FILE *fpOut);
 
 void *ReadInputFilterAndOutputThread(void*);
 
-int32_t GetPEDBins(AlignedRead*, int, PEDBins*);
+int32_t GetPEDBins(AlignedRead*, int, int, int, PEDBins*);
 
 int32_t GetAlignedReads(gzFile, AlignedRead*, int32_t);
 
@@ -76,21 +72,19 @@ int FilterAlignedRead(AlignedRead *a,
 		AlignMatrix *matrix,
 		ScoringMatrix *sm,
 		int algorithm,
-		int unpaired,
-		int reversePaired,
+                int strandedness,
+                int positioning,
 		int avgMismatchQuality,
 		int randomBest,
 		int matchScore,
 		int mismatchScore,
 		int minimumMappingQuality,
 		int minimumNormalizedScore,
-		double pairingStandardDeviation,
-		int gappedPairingRescue,
 		PEDBins *b);
 
 void PEDBinsInitialize(PEDBins*, int, double, double);
 void PEDBinsFree(PEDBins*);
-void PEDBinsInsert(PEDBins*, char, char, int32_t);
+void PEDBinsInsert(PEDBins*, int32_t);
 void PEDBinsPrintStatistics(PEDBins*, FILE*);
 
 #endif

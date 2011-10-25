@@ -60,7 +60,7 @@ enum {BRG, BIF, BMF, BAF, SAM, LastFileType};
 #define BALIGN_DEFAULT_OUTPUT 1 /* 0: text 1: binary */
 
 /* SAM specific */
-#define BFAST_SAM_VERSION "0.1.2"
+#define BFAST_SAM_VERSION "1.3"
 #define BFAST_SAM_MAX_QNAME 254
 #define BFAST_SAM_MAX_QNAME_SEPARATOR ":"
 
@@ -100,8 +100,7 @@ enum {BRG, BIF, BMF, BAF, SAM, LastFileType};
 #define COLOR_SPACE_START_NT_INT 0
 #define BFAST_ID 'B'+'F'+'A'+'S'+'T'
 #define AVG_MISMATCH_QUALITY 10
-#define MAX_STD 2.0
-#define MAX_INVERSION_LOG10_RATIO 3
+#define INSERT_MAX_STD 3.0
 
 /* To calculate the paired end insert size distribution in postprocess */
 #define MIN_PEDBINS_SIZE 100
@@ -119,6 +118,7 @@ enum {BRG, BIF, BMF, BAF, SAM, LastFileType};
 
 /* Macro functions */
 #define FILEREQUIRED(_file) ((NULL == _file) ? "[Required! --> Not Specified]" : _file)
+#define BOOLREQUIRED(_b, _arr) (_b < 0 || 1 < _b) ? "[Required! --> Not Specified]" : _arr[_b] 
 #define FILEUSING(_file) ((NULL == _file) ? "[Not Using]" : _file)
 #define FILESTDIN(_file) ((NULL == _file) ? "[STDIN]" : _file)
 #define INTUSING(_int) ((1 != _int) ? "[Not Using]" : "[Using]")
@@ -154,8 +154,8 @@ enum {BRG, BIF, BMF, BAF, SAM, LastFileType};
 #define MAX_ALGORITHM 1
 #define COLOR_MATCH 0
 #define COLOR_ERROR -1
-#define DEFAULT_LOCALALIGN_QUEUE_LENGTH 10000
-#define DEFAULT_POSTPROCESS_QUEUE_LENGTH 50000
+#define DEFAULT_LOCALALIGN_QUEUE_LENGTH 25000
+#define DEFAULT_POSTPROCESS_QUEUE_LENGTH 100000
 
 extern char COLORS[5];
 

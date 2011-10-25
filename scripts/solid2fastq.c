@@ -839,7 +839,7 @@ void fastq_read(fastq_t *read, AFILE *afp_csfasta, AFILE *afp_qual, int32_t trim
 
 	// Check that the read name and csfasta name match
 	if(0 != strcmp(read->name, qual_name)) {
-		fprintf(stderr, "read->name=%s\nqual_name=%s\n", read->name, qual_name);
+		fprintf(stderr, "read->name=[%s]\nqual_name=[%s]\n", read->name, qual_name);
 		PrintError(FnName, "read->name != qual_name", "Read names did not match", Exit, OutOfRange);
 	}
 	// Remove leading '@' from the read name
