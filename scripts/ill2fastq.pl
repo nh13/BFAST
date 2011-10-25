@@ -12,7 +12,7 @@ select STDERR; $| = 1;  # make unbuffered
 my %opts;
 my $version = '0.1.1';
 my $usage = qq{
-Usage: ill2fastq.pl [[ -b <bar code length> | -B ] -n <number of reads> -o <output prefix> -q -s] <input prefix>
+Usage: ill2fastq.pl [[ -b <bar code length> | -B ] -n <number of reads> -o <output prefix> -q -s -k] <input prefix>
 
 This script will convert Illumina output files (*qseq.txt or 
 *sequence files) to the BFAST fastq multi-end format.  For 
@@ -32,7 +32,7 @@ using the -o option.
 The -q option specifies that qseq.txt files are expected, while 
 the -s option specifies that sequence.txt files are expected.
 
-The -k optio specifies not to reverse compliment the second end.
+The -k option specifies not to reverse compliment the second end.
 
 All *qseq.txt or *sequence.txt files will be inferred from the 
 specified directory and accompanying prefix.  For paired end data, 
@@ -51,7 +51,7 @@ slower because it makes several passes through the datafiles.
 
 my $ROTATE_NUM = 100000;
 
-getopts('b:Cn:o:sqB', \%opts);
+getopts('b:Cn:o:sqBk', \%opts);
 die($usage) if (@ARGV < 1);
 
 my $num_reads = -1;
