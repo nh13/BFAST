@@ -32,6 +32,8 @@ using the -o option.
 The -q option specifies that qseq.txt files are expected, while 
 the -s option specifies that sequence.txt files are expected.
 
+The -k optio specifies not to reverse compliment the second end.
+
 All *qseq.txt or *sequence.txt files will be inferred from the 
 specified directory and accompanying prefix.  For paired end data, 
 reads in
@@ -87,6 +89,11 @@ else {
 
 if(defined($opts{'B'}) && defined($opts{'b'})) {
 	die("Error. Both -b and -B options were specified. Terminating!\n");
+}
+
+my $keep_second = 0;
+if(defined($opts{'k'})) {
+	$keep_second = 1;
 }
 
 my $infer_barcode_length = 0;
@@ -391,7 +398,7 @@ sub convert_ill {
 		$qual = substr($qual, $barcode_length);
 	}
 
-	if(1 != $end) {
+	if(1 != $end && 0 == $keep_second) {
 		$seq = reverse($seq);
 		$seq =~ tr/ACGTacgt/TGCAtgca/;
 		$qual = reverse($qual);
