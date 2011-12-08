@@ -368,7 +368,6 @@ BfastPostProcessPrintProgramParameters(FILE* fp, struct arguments *args)
 		fprintf(fp, "strandedness:\t\t\t%s\n", BOOLREQUIRED(args->strandedness, strandedness));
 		fprintf(fp, "positioning:\t\t\t%s\n", BOOLREQUIRED(args->positioning, positioning));
 		fprintf(fp, "pairing:\t\t\t%s\n", pairing[args->pairing]);
-		fprintf(fp, "positioning:\t\t\t%s\n", BOOLREQUIRED(args->positioning, positioning));
 		fprintf(fp, "avgMismatchQuality:\t\t%d\n", args->avgMismatchQuality);
 		fprintf(fp, "scoringMatrixFileName:\t\t%s\n", FILEUSING(args->scoringMatrixFileName));
 		fprintf(fp, "randomBest:\t\t\t%s\n", INTUSING(args->randomBest));
