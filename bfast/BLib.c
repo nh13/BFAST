@@ -477,7 +477,7 @@ FILE *OpenTmpFile(char *tmpDir,
 	strcat((*tmpFileName), BFAST_TMP_TEMPLATE);
 
 	if(-1 == (fd = mkstemp((*tmpFileName))) ||
-			NULL == (fp = fdopen(fd, ZLIB_VERNUM >= 0x1250 ? "ab" : "wb+"))) {
+			NULL == (fp = fdopen(fd, "wb+"))) {
 		/* Check if the fd was open */ 
 		if(-1 != fd) {
 			/* Remove the file and close */
