@@ -139,7 +139,10 @@ void RGReadsFindMatches(RGIndex *index,
 		}
 	}
 
-        if(keyMissFraction < ((double)count)/total) {
+        if(0 == total) {
+            // ignore
+        }
+        else if(keyMissFraction < ((double)count)/total) {
             match->maxReached = -1;
         }
         else {
