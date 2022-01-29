@@ -1,5 +1,8 @@
 Welcome to bfast.
 
+**This repository is no longer maintained. You should really not use this unless you have SOLiD sequencing data, which has not been generated for a long time.  Please use other aligners like bwa, bowtie, etc.  Issues and pull requests will be ignored.**
+
+
 bfast is copyrighted software. Please see the file LICENSE for details.
 
 For manual pages, including installation directions, please see:
