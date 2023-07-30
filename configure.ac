@@ -44,6 +44,12 @@ AC_ARG_ENABLE(bzlib, [  --disable-bzlib         use this option to disable bzlib
 
 CFLAGS="${default_CFLAGS} ${extended_CFLAGS}";
 
+# https://github.com/nh13/BFAST/issues/2
+# http://stackoverflow.com/questions/30752966/how-to-set-compiler-specific-flags-with-autotools
+if `$CC -v 2>&1 | grep 'gcc version' >/dev/null 2>&1` ; then
+  CPPFLAGS="--std=gnu89";
+fi
+
 # Enable large file support; disable with --disable-largefile
 AC_SYS_LARGEFILE
 
